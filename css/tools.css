@@ -1,0 +1,1618 @@
+/* Sınıf Yardımcı Araçları CSS */
+
+#roster-preview-container {
+  width: 100%;
+  overflow-x: auto;
+  padding: 0.25rem;
+  box-sizing: border-box;
+  -webkit-overflow-scrolling: touch;
+}
+
+.tools-layout {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+@media (max-width: 1024px) {
+  .tools-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Tatil Günü Rozetleri */
+.holiday-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  background: rgba(239, 68, 68, 0.08);
+  color: var(--danger);
+  border: 1px solid rgba(239, 68, 68, 0.15);
+  padding: 0.25rem 0.5rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.75rem;
+  font-weight: 600;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.holiday-badge button {
+  background: none;
+  border: none;
+  color: var(--danger);
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+  line-height: 1;
+}
+
+.holiday-badge button:hover {
+  color: #b91c1c;
+}
+
+/* A4 Baskı Kağıdı Önizleme Kabı (Ekranda Kağıt Gibi Durur) */
+.preview-paper-container {
+  background: #ffffff !important;
+  color: #1e293b !important; /* Koyu metin rengi yüksek okunabilirlik için */
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  border-radius: var(--radius-md);
+  padding: 2.5rem;
+  margin: 0 auto;
+  width: 100%;
+  max-width: 800px;
+  box-sizing: border-box;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  transition: all 0.3s ease;
+}
+
+/* Karanlık modda bile baskı önizleme kağıdı beyaz kalmalıdır */
+[data-theme="dark"] .preview-paper-container {
+  background: #ffffff !important;
+  color: #1e293b !important;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+  border-color: #cbd5e1;
+}
+
+/* Kağıt Başlığı */
+.roster-print-header {
+  text-align: center;
+  margin-bottom: 2rem;
+  border-bottom: 2px solid #e2e8f0;
+  padding-bottom: 1rem;
+}
+
+.roster-print-header h1 {
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: #1e1b4b; /* Lacivert */
+  margin: 0 0 0.5rem 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.roster-print-header .roster-meta {
+  font-size: 0.85rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
+/* Nöbet Grid Düzeni (2 Sütunlu) */
+.roster-print-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+@media (max-width: 768px) {
+  .roster-print-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Günlük Nöbet Kartı */
+.roster-print-day {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 0.75rem;
+  background: #f8fafc;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  transition: border-color 0.2s ease;
+}
+
+.roster-print-day:hover {
+  border-color: #cbd5e1;
+}
+
+.roster-print-date {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #4f46e5; /* İndigo */
+  border-bottom: 1px dashed #e2e8f0;
+  padding-bottom: 0.35rem;
+  margin-bottom: 0.15rem;
+}
+
+/* Nöbetçiler Flex Grubu */
+.roster-print-students {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+/* Nöbetçi Öğrenci Kartı (Kişiselleştirilmiş) */
+.roster-print-student {
+  flex: 1 1 120px;
+  min-width: 120px;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-radius: 6px;
+  padding: 0.4rem;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+}
+
+/* Renkli Kutular - 1. Öğrenci (Açık Mavi) */
+.roster-print-student:nth-child(1) {
+  background-color: #f0f7ff !important;
+  border: 1px solid #cbd5e1 !important;
+  border-left: 4px solid #3b82f6 !important;
+}
+
+/* Renkli Kutular - 2. Öğrenci (Açık Yeşil) */
+.roster-print-student:nth-child(2) {
+  background-color: #f0fdf4 !important;
+  border: 1px solid #cbd5e1 !important;
+  border-left: 4px solid #10b981 !important;
+}
+
+/* Renkli Kutular - 3. Öğrenci (Açık Amber/Turuncu) */
+.roster-print-student:nth-child(3) {
+  background-color: #fffbeb !important;
+  border: 1px solid #cbd5e1 !important;
+  border-left: 4px solid #f59e0b !important;
+}
+
+/* Renkli Kutular - 4. Öğrenci (Açık Mor) */
+.roster-print-student:nth-child(4) {
+  background-color: #faf5ff !important;
+  border: 1px solid #cbd5e1 !important;
+  border-left: 4px solid #8b5cf6 !important;
+}
+
+/* Renkli Kutular - 5. Öğrenci (Açık Pembe) */
+.roster-print-student:nth-child(5) {
+  background-color: #fff1f2 !important;
+  border: 1px solid #cbd5e1 !important;
+  border-left: 4px solid #ec4899 !important;
+}
+
+/* Renkli Kutular - 6. Öğrenci (Açık Camgöbeği) */
+.roster-print-student:nth-child(6) {
+  background-color: #ecfeff !important;
+  border: 1px solid #cbd5e1 !important;
+  border-left: 4px solid #06b6d4 !important;
+}
+
+/* Renkli Kutular - 7. Öğrenci (Açık Kırmızı) */
+.roster-print-student:nth-child(7) {
+  background-color: #fef2f2 !important;
+  border: 1px solid #cbd5e1 !important;
+  border-left: 4px solid #ef4444 !important;
+}
+
+/* Renkli Kutular - 8. Öğrenci (Açık Sarı) */
+.roster-print-student:nth-child(8) {
+  background-color: #fefce8 !important;
+  border: 1px solid #cbd5e1 !important;
+  border-left: 4px solid #eab308 !important;
+}
+
+/* Renkli Kutular - 9. Öğrenci (Açık Zümrüt) */
+.roster-print-student:nth-child(9) {
+  background-color: #ecfdf5 !important;
+  border: 1px solid #cbd5e1 !important;
+  border-left: 4px solid #059669 !important;
+}
+
+/* Renkli Kutular - 10. Öğrenci (Açık İndigo) */
+.roster-print-student:nth-child(10) {
+  background-color: #e0e7ff !important;
+  border: 1px solid #cbd5e1 !important;
+  border-left: 4px solid #6366f1 !important;
+}
+
+.roster-print-student:hover {
+  filter: brightness(0.95);
+}
+
+/* Öğrenci Fotoğrafı ve Fallback */
+.roster-print-photo, .roster-print-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid #e2e8f0;
+  flex-shrink: 0;
+}
+
+.roster-print-avatar {
+  background: #e0e7ff;
+  color: #4f46e5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.75rem;
+  letter-spacing: -0.5px;
+}
+
+/* Öğrenci Bilgileri */
+.roster-print-info {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.roster-print-name {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #0f172a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.roster-print-no {
+  font-size: 0.7rem;
+  color: #64748b;
+  font-weight: 600;
+}
+
+/* Öğrenci Değiştirme Seçim Kutu Stili (Düzenleme Modu) */
+.roster-select-dropdown {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+  z-index: 5;
+}
+
+/* ==========================================
+   YAZDIRMA MODU STİLLERİ (@media print)
+   ========================================== */
+@media print {
+  /* Nöbet yazdırma modunda, ana uygulama kabını tamamen gizle */
+  body.print-roster .app-container {
+    display: none !important;
+  }
+
+  /* Nöbet rapor çıktısını göster ve temizle */
+  body.print-roster .roster-report-print {
+    display: block !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    padding: 1.5cm !important;
+    margin: 0 !important;
+    box-sizing: border-box !important;
+    width: 210mm !important; /* Standart A4 Genişliği */
+    min-height: 297mm !important; /* Standart A4 Yüksekliği */
+  }
+
+  /* Rapor Başlıkları */
+  body.print-roster .roster-print-header {
+    text-align: center !important;
+    margin-bottom: 0.8cm !important;
+    border-bottom: 2px solid #000000 !important;
+    padding-bottom: 0.4cm !important;
+  }
+
+  body.print-roster .roster-print-header h1 {
+    font-size: 20pt !important;
+    font-weight: 800 !important;
+    color: #000000 !important;
+    margin: 0 0 0.2cm 0 !important;
+    text-transform: uppercase !important;
+  }
+
+  body.print-roster .roster-print-header .roster-meta {
+    font-size: 10pt !important;
+    color: #333333 !important;
+  }
+
+  /* Nöbet Gridini A4'e Göre Düzenle (2 Sütunlu) */
+  body.print-roster .roster-print-grid {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 0.4cm !important;
+    width: 100% !important;
+  }
+
+  body.print-roster .roster-print-day {
+    border: 1px solid #000000 !important;
+    border-radius: 8px !important;
+    padding: 0.3cm !important;
+    background: #ffffff !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0.25cm !important;
+    page-break-inside: avoid !important; /* Kartların sayfalar arasında bölünmesini engelle */
+  }
+
+  body.print-roster .roster-print-date {
+    font-size: 10pt !important;
+    font-weight: bold !important;
+    color: #000000 !important;
+    border-bottom: 1px dashed #000000 !important;
+    padding-bottom: 0.15cm !important;
+    margin-bottom: 0.1cm !important;
+  }
+
+  body.print-roster .roster-print-students {
+    display: flex !important;
+    gap: 0.3cm !important;
+    flex-wrap: wrap !important;
+  }
+
+  body.print-roster .roster-print-student {
+    flex: 1 1 2.5cm !important;
+    min-width: 2.5cm !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.25cm !important;
+    border-radius: 6px !important;
+    padding: 0.2cm !important;
+    position: relative !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  body.print-roster .roster-print-student:nth-child(1) {
+    background-color: #f0f7ff !important;
+    border: 1px solid #cbd5e1 !important;
+    border-left: 4px solid #3b82f6 !important;
+  }
+
+  body.print-roster .roster-print-student:nth-child(2) {
+    background-color: #f0fdf4 !important;
+    border: 1px solid #cbd5e1 !important;
+    border-left: 4px solid #10b981 !important;
+  }
+
+  body.print-roster .roster-print-student:nth-child(3) {
+    background-color: #fffbeb !important;
+    border: 1px solid #cbd5e1 !important;
+    border-left: 4px solid #f59e0b !important;
+  }
+
+  body.print-roster .roster-print-student:nth-child(4) {
+    background-color: #faf5ff !important;
+    border: 1px solid #cbd5e1 !important;
+    border-left: 4px solid #8b5cf6 !important;
+  }
+
+  body.print-roster .roster-print-student:nth-child(5) {
+    background-color: #fff1f2 !important;
+    border: 1px solid #cbd5e1 !important;
+    border-left: 4px solid #ec4899 !important;
+  }
+
+  body.print-roster .roster-print-student:nth-child(6) {
+    background-color: #ecfeff !important;
+    border: 1px solid #cbd5e1 !important;
+    border-left: 4px solid #06b6d4 !important;
+  }
+
+  body.print-roster .roster-print-student:nth-child(7) {
+    background-color: #fef2f2 !important;
+    border: 1px solid #cbd5e1 !important;
+    border-left: 4px solid #ef4444 !important;
+  }
+
+  body.print-roster .roster-print-student:nth-child(8) {
+    background-color: #fefce8 !important;
+    border: 1px solid #cbd5e1 !important;
+    border-left: 4px solid #eab308 !important;
+  }
+
+  body.print-roster .roster-print-student:nth-child(9) {
+    background-color: #ecfdf5 !important;
+    border: 1px solid #cbd5e1 !important;
+    border-left: 4px solid #059669 !important;
+  }
+
+  body.print-roster .roster-print-student:nth-child(10) {
+    background-color: #e0e7ff !important;
+    border: 1px solid #cbd5e1 !important;
+    border-left: 4px solid #6366f1 !important;
+  }
+
+  body.print-roster .roster-print-photo, 
+  body.print-roster .roster-print-avatar {
+    width: 32px !important;
+    height: 32px !important;
+    border-radius: 50% !important;
+    object-fit: cover !important;
+    border: 1px solid #999999 !important;
+    flex-shrink: 0 !important;
+  }
+
+  body.print-roster .roster-print-avatar {
+    background: #e0e7ff !important;
+    color: #000000 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-weight: bold !important;
+    font-size: 9pt !important;
+  }
+
+  body.print-roster .roster-print-info {
+    display: flex !important;
+    flex-direction: column !important;
+  }
+
+  body.print-roster .roster-print-name {
+    font-size: 8.5pt !important;
+    font-weight: bold !important;
+    color: #000000 !important;
+  }
+
+  body.print-roster .roster-print-no {
+    font-size: 7.5pt !important;
+    color: #444444 !important;
+  }
+
+  /* Dropdown seçim kutularını yazıcıda gizle */
+  body.print-roster .roster-select-dropdown {
+    display: none !important;
+  }
+}
+
+/* ==========================================
+   DERS PLANI TAKİP SİSTEMİ STİLLERİ
+   ========================================== */
+
+/* Plan Kartları */
+.plans-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.plan-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 180px;
+  position: relative;
+  overflow: hidden;
+  transition: all var(--transition-normal);
+}
+
+.plan-card::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  background: linear-gradient(90deg, var(--info) 0%, var(--primary) 100%);
+}
+
+.plan-card h3 {
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  color: var(--text-primary);
+}
+
+.plan-card .plan-meta {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-bottom: 1rem;
+}
+
+.plan-card .plan-progress-wrapper {
+  margin-top: auto;
+}
+
+.plan-card .progress-stats {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.plan-card .progress-bar-bg {
+  width: 100%;
+  height: 6px;
+  background: rgba(0, 0, 0, 0.08);
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+[data-theme="dark"] .plan-card .progress-bar-bg {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.plan-card .progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--info) 0%, var(--primary) 100%);
+  border-radius: 9999px;
+  transition: width 0.3s ease;
+}
+
+.plan-card .plan-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  opacity: 0.8;
+  transition: opacity var(--transition-fast);
+}
+
+.plan-card:hover .plan-actions {
+  opacity: 1;
+}
+
+/* Haftalık Odak (Current Focus) Kartı */
+.weekly-focus-card-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
+@media (min-width: 768px) {
+  .weekly-focus-card-grid {
+    grid-template-columns: 1fr 2fr 1fr;
+    gap: 1.5rem;
+  }
+}
+
+.focus-week-box {
+  padding: 1rem;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  transition: all var(--transition-fast);
+}
+
+.focus-week-box.current {
+  background: linear-gradient(135deg, rgba(79, 70, 229, 0.06) 0%, rgba(6, 182, 212, 0.06) 100%);
+  border-color: var(--primary);
+  box-shadow: 0 0 15px var(--primary-glow);
+}
+
+.focus-week-box .focus-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: var(--text-muted);
+  margin-bottom: 0.25rem;
+  letter-spacing: 0.5px;
+}
+
+.focus-week-box.current .focus-label {
+  color: var(--primary);
+}
+
+.focus-week-box .focus-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.focus-week-box.current .focus-title {
+  font-size: 1.15rem;
+  color: var(--text-primary);
+}
+
+.focus-week-box .focus-dates {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-top: 0.25rem;
+}
+
+.focus-week-box .focus-desc {
+  font-size: 0.85rem;
+  margin-top: 0.5rem;
+  line-height: 1.4;
+  color: var(--text-secondary);
+}
+
+.focus-week-box.current .focus-desc {
+  font-size: 0.95rem;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+/* Haftalık Takip Listesi */
+.week-strip-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.9rem 1.25rem;
+  border-radius: var(--radius-md);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  gap: 1rem;
+  transition: all var(--transition-fast);
+}
+
+.week-strip-item:hover {
+  border-color: var(--text-muted);
+  transform: translateX(3px);
+}
+
+.week-strip-item.completed {
+  opacity: 0.65;
+  background: var(--bg-primary);
+}
+
+.week-strip-item.completed .week-strip-content {
+  text-decoration: line-through;
+  color: var(--text-muted);
+}
+
+.week-strip-item.active-week {
+  border-color: var(--success);
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.15);
+  background: linear-gradient(90deg, var(--bg-secondary) 0%, rgba(16, 185, 129, 0.03) 100%);
+  position: relative;
+}
+
+.week-strip-item.active-week::before {
+  content: '';
+  position: absolute;
+  left: -1px;
+  top: -1px;
+  bottom: -1px;
+  width: 4px;
+  background: var(--success);
+  border-top-left-radius: var(--radius-md);
+  border-bottom-left-radius: var(--radius-md);
+}
+
+.week-strip-left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.week-strip-number {
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--text-primary);
+  min-width: 65px;
+  padding-right: 0.5rem;
+  border-right: 1px solid var(--border-color);
+}
+
+.week-strip-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.week-strip-dates {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-weight: 600;
+  margin-bottom: 0.15rem;
+}
+
+.week-strip-content {
+  font-size: 0.9rem;
+  color: var(--text-primary);
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.week-strip-right {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-shrink: 0;
+}
+
+.week-badge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.2rem 0.5rem;
+  border-radius: var(--radius-sm);
+  text-transform: uppercase;
+}
+
+.week-badge.active {
+  background-color: var(--success-light);
+  color: var(--success);
+  animation: pulseNeon 2s infinite;
+}
+
+.week-badge.done {
+  background-color: var(--primary-light);
+  color: var(--primary);
+}
+
+@keyframes pulseNeon {
+  0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
+  70% { box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}
+
+/* Excel Yükleme / Sürükleme stili */
+#plan-drag-drop-area:hover, #plan-drag-drop-area.dragover {
+  border-color: var(--primary) !important;
+  background: var(--primary-light) !important;
+}
+
+/* Aylık/Haftalık Klasör Accordion Stilleri */
+.month-collapse-header {
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  background: var(--card-bg-glass);
+  box-shadow: var(--shadow-sm);
+  transition: all var(--transition-normal);
+  user-select: none;
+}
+
+.month-collapse-header:hover {
+  transform: translateY(-2px);
+  border-color: var(--primary);
+  box-shadow: 0 4px 12px var(--primary-glow);
+}
+
+.month-chevron, .week-chevron {
+  transition: transform var(--transition-fast) ease;
+}
+
+.month-chevron.open, .week-chevron.open {
+  transform: rotate(90deg);
+}
+
+.week-collapse-item {
+  margin-bottom: 0.5rem;
+  transition: all var(--transition-normal);
+}
+
+.week-collapse-item.completed {
+  opacity: 0.65;
+}
+
+.week-row-header {
+  user-select: none;
+  transition: background var(--transition-fast);
+}
+
+.week-row-header:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.week-collapse-item.active-week {
+  border-color: var(--success) !important;
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.15);
+}
+
+.week-row-body {
+  transition: all var(--transition-normal) ease-out;
+}
+
+/* ==========================================
+   KİŞİSEL EVRAK DEPOSU SİSTEMİ STİLLERİ
+   ========================================== */
+
+.documents-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.document-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 180px;
+  position: relative;
+  overflow: hidden;
+  transition: all var(--transition-normal);
+}
+
+.document-card::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  background: linear-gradient(90deg, var(--success) 0%, var(--primary) 100%);
+}
+
+.document-card h3 {
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  color: var(--text-primary);
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.document-card .doc-meta {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-bottom: 1rem;
+}
+
+.document-card .doc-meta span {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.document-card .doc-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: auto;
+  opacity: 0.8;
+  transition: opacity var(--transition-fast);
+}
+
+.document-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  border-color: var(--success);
+}
+
+.document-card:hover .doc-actions {
+  opacity: 1;
+}
+
+/* Evrak Okuma Stilleri (A4 Hissiyatı) */
+.document-reader-sheet {
+  background: #ffffff;
+  color: #1e293b;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+  border-radius: 8px;
+  padding: 3rem;
+  min-height: 100%;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  line-height: 1.6;
+  font-size: 1.05rem;
+  word-wrap: break-word;
+}
+
+.document-reader-sheet h1, 
+.document-reader-sheet h2, 
+.document-reader-sheet h3 {
+  color: #0f172a;
+  font-weight: 700;
+  margin-top: 1.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.document-reader-sheet h1 { font-size: 1.8rem; border-bottom: 2px solid #e2e8f0; padding-bottom: 0.5rem; }
+.document-reader-sheet h2 { font-size: 1.45rem; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.25rem; }
+.document-reader-sheet h3 { font-size: 1.2rem; }
+
+.document-reader-sheet p {
+  margin-bottom: 1rem;
+  text-align: justify;
+}
+
+.document-reader-sheet ul, 
+.document-reader-sheet ol {
+  margin-left: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.document-reader-sheet li {
+  margin-bottom: 0.25rem;
+}
+
+/* Word Tablo Biçimlendirmeleri */
+.document-reader-sheet table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.5rem 0;
+  font-size: 0.95rem;
+}
+
+.document-reader-sheet th, 
+.document-reader-sheet td {
+  border: 1px solid #cbd5e1;
+  padding: 0.75rem;
+  text-align: left;
+}
+
+.document-reader-sheet th {
+  background-color: #f1f5f9;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.document-reader-sheet tr:nth-child(even) {
+  background-color: #f8fafc;
+}
+
+/* Sürükle Bırak Alanı */
+#doc-drag-drop-area:hover, #doc-drag-drop-area.dragover {
+  border-color: var(--success) !important;
+  background: var(--success-light) !important;
+}
+
+/* Evrak Yazdırma Biçimlendirmesi */
+@media print {
+  body.print-document #app-container,
+  body.print-document .sidebar,
+  body.print-document .main-content,
+  body.print-document .toast-container,
+  body.print-document .modal {
+    display: none !important;
+  }
+
+  body.print-document .document-print-area {
+    display: block !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  body.print-document .document-print-area .document-reader-sheet {
+    box-shadow: none !important;
+    padding: 0 !important;
+    border: none !important;
+    width: 100% !important;
+    font-size: 11pt !important;
+    color: #000000 !important;
+  }
+
+  body.print-document .document-print-area table {
+    width: 100% !important;
+    page-break-inside: auto !important;
+  }
+
+  body.print-document .document-print-area tr {
+    page-break-inside: avoid !important;
+    page-break-after: auto !important;
+  }
+}
+
+/* Evrak Okuyucu Tam Ekran Modu Stilleri */
+#modal-view-document.fullscreen-mode .modal-content {
+  width: 100vw !important;
+  max-width: 100vw !important;
+  height: 100vh !important;
+  max-height: 100vh !important;
+  border-radius: 0 !important;
+  margin: 0 !important;
+}
+
+#modal-view-document.fullscreen-mode .modal-body {
+  padding: 2rem !important;
+}
+
+#modal-view-document.fullscreen-mode .document-reader-sheet {
+  max-width: 900px;
+  margin: 0 auto;
+  min-height: auto;
+}
+
+/* YILLIK DERS PLANLARI YENİ TASARIM EKLENTİLERİ */
+
+.import-tab-btn {
+  transition: all var(--transition-fast) ease;
+}
+
+.import-tab-btn.active {
+  color: var(--primary) !important;
+  border-bottom: 2px solid var(--primary) !important;
+}
+
+/* Rollover Uyarı Kartı */
+.rollover-warning-card {
+  border-left: 5px solid var(--danger) !important;
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.06) 0%, rgba(255, 255, 255, 0.01) 100%) !important;
+  border: 1px solid rgba(239, 68, 68, 0.15);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.05);
+  border-radius: var(--radius-md);
+  padding: 1.25rem;
+}
+
+/* Aktif Hafta Glowing Frame */
+.week-collapse-item.active-week {
+  border-color: var(--primary) !important;
+  box-shadow: 0 0 15px var(--primary-glow) !important;
+  animation: activeNeonGlow 3s infinite alternate;
+}
+
+@keyframes activeNeonGlow {
+  from {
+    box-shadow: 0 0 6px var(--primary-glow);
+  }
+  to {
+    box-shadow: 0 0 16px var(--primary-glow), inset 0 0 4px var(--primary-glow);
+  }
+}
+
+/* Tatil / Ara Tatil Haftası Stili */
+.week-collapse-item.holiday-week {
+  border-color: rgba(6, 182, 212, 0.25) !important;
+  background: linear-gradient(135deg, rgba(6, 182, 212, 0.04) 0%, rgba(79, 70, 229, 0.02) 100%) !important;
+  border-left: 4px solid var(--info) !important;
+}
+
+.week-collapse-item.holiday-week .week-row-header {
+  cursor: default !important;
+}
+
+.week-collapse-item.holiday-week .week-row-header:hover {
+  background: none !important;
+}
+
+/* Geçmiş Haftalar Soluk Sınıfı */
+.week-collapse-item.past-week {
+  opacity: 0.6;
+  filter: grayscale(15%);
+}
+
+.week-collapse-item.completed .week-strip-content {
+  text-decoration: line-through;
+  opacity: 0.55;
+}
+
+/* Dikey Zaman Çizgisi Sol Bar */
+.month-collapse-body {
+  border-left: 2px dashed rgba(255, 255, 255, 0.08) !important;
+}
+
+[data-theme="light"] .month-collapse-body {
+  border-left: 2px dashed rgba(0, 0, 0, 0.08) !important;
+}
+
+/* YILLIK DERS PLANI GENEL GÖRÜNÜM İLERLEME ÇUBUĞU */
+@keyframes progress-bar-stripes {
+  0% { background-position: 0 0; }
+  100% { background-position: 30px 0; }
+}
+
+.general-plan-progress-bg {
+  position: relative;
+  width: 100%;
+  height: 18px;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--border-color);
+  border-radius: 99px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.35);
+}
+
+[data-theme="light"] .general-plan-progress-bg {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.general-plan-progress-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  border-radius: 99px;
+  transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  background-size: 30px 30px, auto;
+  background-image: 
+    linear-gradient(
+      45deg,
+      rgba(255, 255, 255, 0.15) 25%,
+      transparent 25%,
+      transparent 50%,
+      rgba(255, 255, 255, 0.15) 50%,
+      rgba(255, 255, 255, 0.15) 75%,
+      transparent 75%,
+      transparent
+    ),
+    linear-gradient(90deg, var(--primary) 0%, var(--primary-light, #818cf8) 100%);
+  animation: progress-bar-stripes 1.2s linear infinite;
+}
+
+/* ==========================================================================
+   HAFTALIK DERS PROGRAMI ARACI STİLLERİ
+   ========================================================================== */
+
+.schedule-layout {
+  grid-template-columns: 1fr 320px !important;
+}
+@media (max-width: 1024px) {
+  .schedule-layout {
+    grid-template-columns: 1fr !important;
+  }
+}
+#schedule-preview-content.preview-paper-container {
+  max-width: 100% !important;
+  padding: 1.5rem !important;
+}
+
+/* Renk Seçici */
+#schedule-color-picker-container button {
+  outline: none;
+}
+#schedule-color-picker-container .color-dot {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  padding: 0;
+}
+#schedule-color-picker-container .color-dot.active {
+  transform: scale(1.2);
+  border-color: #ffffff;
+  box-shadow: 0 0 0 2px var(--primary, #4f46e5);
+}
+
+/* Tanımlı Dersler Listesi */
+.schedule-lesson-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 0.75rem;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+  animation: fadeIn 0.2s ease-out;
+}
+.schedule-lesson-info {
+  display: flex;
+  align-items: center;
+}
+.schedule-lesson-color-badge {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  margin-right: 0.5rem;
+  flex-shrink: 0;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+}
+.schedule-lesson-delete-btn {
+  background: none;
+  border: none;
+  color: var(--danger, #ef4444);
+  cursor: pointer;
+  padding: 0.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+.schedule-lesson-delete-btn:hover {
+  background-color: rgba(239, 68, 68, 0.1);
+}
+
+/* Zaman Giriş Satırları */
+.schedule-time-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 0.75rem;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  gap: 0.5rem;
+}
+.schedule-time-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  min-width: 75px;
+}
+.schedule-time-inputs {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-grow: 1;
+}
+.schedule-time-input {
+  width: 100%;
+  height: 30px;
+  font-size: 0.8rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  text-align: center;
+  padding: 0.25rem;
+}
+.schedule-time-separator {
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+}
+
+/* Haftalık Program Tablosu */
+.schedule-print-header {
+  text-align: center;
+  margin-bottom: 1.5rem;
+  border-bottom: 2px solid #cbd5e1;
+  padding-bottom: 0.75rem;
+}
+.schedule-print-header h1 {
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: #1e1b4b;
+  margin: 0 0 0.25rem 0;
+  text-transform: uppercase;
+}
+.schedule-print-header .schedule-meta {
+  font-size: 0.9rem;
+  color: #475569;
+  font-weight: 600;
+}
+
+.schedule-table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+}
+.schedule-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  color: #1e293b;
+  border: 1px solid #cbd5e1;
+  table-layout: fixed;
+}
+.schedule-table th {
+  background-color: #f1f5f9;
+  color: #0f172a;
+  font-weight: 700;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  padding: 0.5rem;
+  border: 1px solid #cbd5e1;
+  height: 38px;
+  text-align: center;
+}
+.schedule-table td {
+  border: 1px solid #cbd5e1;
+  padding: 0.25rem;
+  text-align: center;
+  vertical-align: middle;
+  height: 60px;
+  box-sizing: border-box;
+  transition: all 0.2s ease;
+  position: relative;
+}
+.schedule-table td.schedule-time-cell {
+  background-color: #f8fafc;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #64748b;
+  padding: 0.25rem;
+}
+.schedule-table td.schedule-time-cell div {
+  font-weight: 800;
+  font-size: 0.8rem;
+  color: #1e293b;
+  margin-bottom: 0.15rem;
+}
+.schedule-table tr.schedule-lunch-row td {
+  background-color: #f1f5f9;
+  font-weight: 800;
+  font-size: 0.85rem;
+  color: #475569;
+  letter-spacing: 4px;
+  height: 38px;
+  padding: 0.25rem;
+  text-transform: uppercase;
+}
+
+.schedule-cell-select {
+  width: 100%;
+  height: 100%;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font-family: inherit;
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-align: center;
+  text-align-last: center;
+  cursor: pointer;
+  outline: none;
+  padding: 0.25rem;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.schedule-cell-select:hover {
+  background-color: rgba(0, 0, 0, 0.03);
+}
+[data-theme="dark"] .schedule-cell-select:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+#schedule-print-area {
+  display: none !important;
+}
+
+.print-cell-text {
+  display: none !important;
+}
+
+/* Yazdırma Modu Kuralları (Tüm Elemanları Gizleyip Yalnızca Tabloyu Gösteren Seçici) */
+body.print-schedule > *:not(#schedule-print-area) {
+  display: none !important;
+}
+body.print-schedule #schedule-print-area {
+  display: block !important;
+  width: 100% !important;
+  background: #ffffff !important;
+  color: #000000 !important;
+  padding: 0.5cm !important;
+  margin: 0 !important;
+}
+
+body.print-schedule {
+  -webkit-print-color-adjust: exact !important;
+  print-color-adjust: exact !important;
+  background: #ffffff !important;
+}
+
+body.print-schedule #schedule-print-area .schedule-table {
+  width: 100% !important;
+  border-collapse: collapse !important;
+  border: 2px solid #000000 !important;
+}
+body.print-schedule #schedule-print-area .schedule-table th,
+body.print-schedule #schedule-print-area .schedule-table td {
+  border: 1px solid #000000 !important;
+  color: #000000 !important;
+  font-size: 8pt !important;
+  height: 35px !important;
+  text-align: center !important;
+  vertical-align: middle !important;
+  padding: 2px !important;
+}
+body.print-schedule #schedule-print-area .schedule-table th {
+  background-color: #f1f5f9 !important;
+  font-weight: 700 !important;
+  height: 28px !important;
+}
+body.print-schedule #schedule-print-area .schedule-table td.schedule-time-cell {
+  background-color: #f8fafc !important;
+  font-size: 7.5pt !important;
+  font-weight: 600 !important;
+}
+body.print-schedule #schedule-print-area .schedule-table td.schedule-time-cell div {
+  font-size: 8pt !important;
+}
+body.print-schedule #schedule-print-area .schedule-table tr.schedule-lunch-row td {
+  background-color: #e2e8f0 !important;
+  font-size: 7.5pt !important;
+  font-weight: 800 !important;
+  height: 25px !important;
+}
+
+/* Select elemanlarını gizle ve span metnini göster */
+body.print-schedule #schedule-print-area .schedule-cell-select {
+  display: none !important;
+}
+body.print-schedule #schedule-print-area .print-cell-text {
+  display: block !important;
+  font-weight: 800 !important;
+  font-size: 8.5pt !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+/* ==========================================================================
+   YAZILI SINAV HAZIRLAMA ARACI STİLLERİ
+   ========================================================================== */
+
+/* A4 Sınav Kağıdı Önizleme */
+.written-exam-preview-sheet {
+  background: transparent !important;
+  box-shadow: none !important;
+  width: 100% !important;
+  margin: 0 auto !important;
+  padding: 10px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 20px !important;
+  align-items: center !important;
+}
+
+.written-exam-page {
+  background: #ffffff !important;
+  color: #000000 !important;
+  width: 210mm !important;
+  height: 297mm !important;
+  min-height: 297mm !important;
+  padding: 15mm !important;
+  margin: 0 auto !important;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  font-family: Arial, sans-serif !important;
+  box-sizing: border-box !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: space-between !important;
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+/* Soru kutusu ve yükleme alanları */
+.print-exam-question-item {
+  width: 100% !important;
+  box-sizing: border-box !important;
+  page-break-inside: avoid !important;
+}
+
+.print-exam-question-image-wrapper {
+  width: 100% !important;
+  position: relative !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  border: 1px dashed #7f8c8d !important;
+  background-color: #f8f9fa !important;
+  border-radius: 4px !important;
+  overflow: hidden !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+}
+
+.print-exam-question-image-wrapper:hover {
+  background-color: #e9ecef !important;
+  border-color: #3498db !important;
+}
+
+.print-exam-question-image-wrapper img {
+  max-width: 100% !important;
+  object-fit: contain !important;
+  margin-right: auto !important;
+  margin-left: 0 !important;
+}
+
+.print-exam-placeholder-text {
+  font-size: 0.8rem !important;
+  color: #7f8c8d !important;
+  text-align: center !important;
+  padding: 1rem !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  gap: 0.25rem !important;
+  pointer-events: none !important;
+}
+
+.print-exam-placeholder-text i {
+  font-size: 1.2rem !important;
+}
+
+/* Tekil soru silme butonu */
+.btn-delete-question-img {
+  position: absolute !important;
+  top: 5px !important;
+  right: 5px !important;
+  background: rgba(231, 76, 60, 0.9) !important;
+  color: white !important;
+  border: none !important;
+  border-radius: 50% !important;
+  width: 24px !important;
+  height: 24px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  font-size: 0.75rem !important;
+  z-index: 10 !important;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2) !important;
+}
+
+.btn-delete-question-img:hover {
+  background: #c0392b !important;
+}
+
+/* Yazdırma Modu */
+@media print {
+  body.print-written-exam .app-container {
+    display: none !important;
+  }
+
+  body.print-written-exam .written-exam-report-print {
+    display: block !important;
+    background: transparent !important;
+    color: #000000 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    box-sizing: border-box !important;
+    width: 100% !important;
+    font-family: Arial, sans-serif !important;
+  }
+
+  body.print-written-exam .written-exam-page {
+    page-break-after: always !important;
+    box-shadow: none !important;
+    margin: 0 auto !important;
+    padding: 15mm !important;
+    width: 210mm !important;
+    height: 297mm !important;
+    min-height: 297mm !important;
+    background: #ffffff !important;
+    box-sizing: border-box !important;
+  }
+
+  body.print-written-exam .written-exam-page:last-child {
+    page-break-after: avoid !important;
+  }
+
+  body.print-written-exam .exam-question-controls,
+  body.print-written-exam .btn-delete-question-img,
+  body.print-written-exam .print-exam-placeholder-text {
+    display: none !important;
+  }
+
+  body.print-written-exam .written-exam-kazanim-input {
+    border: none !important;
+    border-bottom: none !important;
+    padding: 0 !important;
+    background: transparent !important;
+    color: #000000 !important;
+    outline: none !important;
+  }
+
+  body.print-written-exam .print-exam-question-image-wrapper {
+    background-color: transparent !important;
+    border: 1px solid #000000 !important;
+    border-radius: 4px !important;
+  }
+}
+
+.print-exam-answer-space {
+  width: 100%;
+  background-color: transparent;
+  transition: height 0.2s ease;
+}
+
+.written-exam-report-print {
+  display: none;
+}
+
+

@@ -1,0 +1,4017 @@
+/* Google Fonts Import */
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
+
+/* Tasarım Sistemi Değişkenleri (CSS Variables) */
+:root {
+  /* Renkler (Açık Tema - Varsayılan) */
+  --bg-primary: #f8fafc;
+  --bg-secondary: #ffffff;
+  --bg-glass: rgba(255, 255, 255, 0.7);
+  --border-color: rgba(226, 232, 240, 0.8);
+  --border-glass: rgba(255, 255, 255, 0.5);
+
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #94a3b8;
+
+  --primary: #4f46e5;
+  --primary-hover: #4338ca;
+  --primary-light: rgba(79, 70, 229, 0.1);
+  --primary-glow: rgba(79, 70, 229, 0.15);
+
+  --success: #10b981;
+  --success-light: rgba(16, 185, 129, 0.1);
+  --danger: #f43f5e;
+  --danger-light: rgba(244, 63, 94, 0.1);
+  --warning: #f59e0b;
+  --warning-light: rgba(245, 158, 11, 0.1);
+  --info: #06b6d4;
+  --info-light: rgba(6, 182, 212, 0.1);
+
+  /* Gölgeler ve Köşeler */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+  --radius-full: 9999px;
+  
+  --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 20px -2px rgba(0, 0, 0, 0.05), 0 2px 8px -1px rgba(0, 0, 0, 0.03);
+  --shadow-lg: 0 20px 25px -5px rgba(79, 70, 229, 0.05), 0 8px 10px -6px rgba(79, 70, 229, 0.05);
+  --shadow-primary: 0 10px 15px -3px rgba(79, 70, 229, 0.2);
+
+  /* Animasyon Geçişleri */
+  --transition-fast: 0.15s ease;
+  --transition-normal: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Layout Genişlikleri */
+  --sidebar-width: 260px;
+  --max-width: 1400px;
+}
+
+/* Koyu Tema Değişkenleri */
+[data-theme="dark"] {
+  --bg-primary: #0b0f19;
+  --bg-secondary: #111827;
+  --bg-glass: rgba(17, 24, 39, 0.7);
+  --border-color: rgba(37, 99, 235, 0.1);
+  --border-glass: rgba(31, 41, 55, 0.5);
+
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+
+  --primary: #6366f1;
+  --primary-hover: #4f46e5;
+  --primary-light: rgba(99, 102, 241, 0.15);
+  --primary-glow: rgba(99, 102, 241, 0.25);
+
+  --border-color: #1f2937;
+  --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 4px 20px -2px rgba(0, 0, 0, 0.3), 0 2px 8px -1px rgba(0, 0, 0, 0.2);
+  --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.4), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
+  --shadow-primary: 0 10px 15px -3px rgba(99, 102, 241, 0.3);
+}
+
+/* Sıfırlama (Reset) */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: 'Outfit', sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  min-height: 100vh;
+  display: flex;
+  overflow-x: hidden;
+  transition: background-color var(--transition-normal), color var(--transition-normal);
+}
+
+/* Kaydırma Çubuğu (Scrollbar) */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-primary);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--text-muted);
+  border-radius: var(--radius-full);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-secondary);
+}
+
+/* Mobil Üst Bar ve Backdrop Varsayılan Durumu (Masaüstünde Gizli) */
+.mobile-header {
+  display: none;
+}
+.sidebar-backdrop {
+  display: none;
+}
+.mobile-close-btn {
+  display: none;
+}
+
+/* Arayüz Düzeni (Layout) */
+.app-container {
+  display: flex;
+  width: 100%;
+  max-width: 100vw;
+  position: relative;
+}
+
+/* Yan Menü (Sidebar) */
+.sidebar {
+  width: var(--sidebar-width);
+  height: 100vh;
+  background-color: var(--bg-secondary);
+  border-right: 1px solid var(--border-color);
+  padding: 2rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 100;
+  transition: transform var(--transition-normal), background-color var(--transition-normal), border-color var(--transition-normal);
+}
+
+.logo-container {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 2.5rem;
+}
+
+.logo-icon {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%);
+  color: white;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-primary);
+}
+
+.logo-text h1 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, var(--text-primary) 0%, var(--primary) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.logo-text span {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  display: block;
+}
+
+/* Menü Linkleri */
+.nav-menu {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  flex: 1;
+}
+
+.nav-item {
+  width: 100%;
+}
+
+.nav-link {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.85rem 1rem;
+  color: var(--text-secondary);
+  text-decoration: none;
+  font-weight: 500;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.nav-link:hover {
+  background-color: var(--bg-primary);
+  color: var(--primary);
+}
+
+.nav-item.active .nav-link {
+  background-color: var(--primary);
+  color: white;
+  box-shadow: var(--shadow-primary);
+}
+
+.nav-link i {
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Alt Ayarlar */
+.sidebar-footer {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border-color);
+}
+
+.theme-toggle-btn, .backup-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--border-color);
+  background-color: transparent;
+  color: var(--text-secondary);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: all var(--transition-fast);
+}
+
+.theme-toggle-btn:hover, .backup-btn:hover {
+  background-color: var(--primary-light);
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.backup-btn.reset-btn {
+  color: var(--danger);
+  border-color: rgba(244, 63, 94, 0.2);
+}
+
+.backup-btn.reset-btn:hover {
+  background-color: var(--danger-light);
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+/* Ana İçerik Alanı */
+.main-content {
+  margin-left: var(--sidebar-width);
+  flex: 1;
+  min-height: 100vh;
+  padding: 2rem 3rem;
+  max-width: calc(100vw - var(--sidebar-width));
+}
+
+.content-section {
+  display: none;
+  animation: fadeIn var(--transition-normal);
+}
+
+.content-section.active {
+  display: block;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Sayfa Başlığı */
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.header-title h2 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.header-title p {
+  color: var(--text-muted);
+  font-size: 0.875rem;
+  margin-top: 0.25rem;
+}
+
+.header-actions {
+  display: flex;
+  gap: 0.75rem;
+}
+
+/* Buton Stilleri */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.65rem 1.25rem;
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  border: none;
+  transition: all var(--transition-fast);
+}
+
+.btn-primary {
+  background-color: var(--primary);
+  color: white;
+}
+
+.btn-primary:hover {
+  background-color: var(--primary-hover);
+  box-shadow: var(--shadow-primary);
+}
+
+.btn-secondary {
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+}
+
+.btn-secondary:hover {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+.btn-danger {
+  background-color: var(--danger);
+  color: white;
+}
+
+.btn-danger:hover {
+  background-color: #e11d48;
+}
+
+.btn-success {
+  background-color: var(--success);
+  color: white;
+}
+
+.btn-success:hover {
+  background-color: #059669;
+}
+
+/* Cam Efektli Kartlar (Glassmorphic Cards) */
+.glass-card {
+  background: var(--bg-glass);
+  backdrop-filter: blur(12px) saturate(120%);
+  -webkit-backdrop-filter: blur(12px) saturate(120%);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  box-shadow: var(--shadow-md);
+  transition: transform var(--transition-normal), box-shadow var(--transition-normal);
+}
+
+.glass-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+/* Dashboard Kartları Grid */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.stat-card {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+}
+
+.stat-icon {
+  width: 50px;
+  height: 50px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+}
+
+.stat-icon.primary { background-color: var(--primary-light); color: var(--primary); }
+.stat-icon.success { background-color: var(--success-light); color: var(--success); }
+.stat-icon.warning { background-color: var(--warning-light); color: var(--warning); }
+.stat-icon.info { background-color: var(--info-light); color: var(--info); }
+
+.stat-info .stat-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.stat-info .stat-label {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+}
+
+/* İki Sütunlu Grid */
+.main-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 1.5rem;
+}
+
+.section-card {
+  margin-bottom: 1.5rem;
+}
+
+.section-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 1.25rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* Öğrenci Kartları Listesi */
+.students-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 1.25rem;
+}
+
+.student-card {
+  text-align: center;
+  position: relative;
+  cursor: pointer;
+  padding: 1.75rem 1rem;
+}
+
+.student-avatar {
+  width: 65px;
+  height: 65px;
+  border-radius: var(--radius-full);
+  margin: 0 auto 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 1.5rem;
+  border: 2px solid var(--border-color);
+  background: linear-gradient(135deg, var(--primary-light) 0%, var(--bg-primary) 100%);
+  color: var(--primary);
+  text-transform: uppercase;
+  object-fit: cover;
+}
+
+.student-card.female .student-avatar {
+  background: linear-gradient(135deg, var(--danger-light) 0%, var(--bg-primary) 100%);
+  color: var(--danger);
+}
+
+.student-info h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.student-info .std-no {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-weight: 500;
+  margin-top: 0.15rem;
+}
+
+.student-score-badge {
+  display: inline-block;
+  margin-top: 0.75rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: var(--radius-full);
+  font-size: 0.75rem;
+  font-weight: 700;
+  background-color: var(--primary-light);
+  color: var(--primary);
+}
+
+.student-score-badge.positive {
+  background-color: var(--success-light);
+  color: var(--success);
+}
+
+.student-score-badge.negative {
+  background-color: var(--danger-light);
+  color: var(--danger);
+}
+
+.student-actions {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  display: flex;
+  gap: 0.25rem;
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+}
+
+.student-card:hover .student-actions {
+  opacity: 1;
+}
+
+.action-btn-sm {
+  width: 26px;
+  height: 26px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border-color);
+  background-color: var(--bg-secondary);
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 0.75rem;
+  transition: all var(--transition-fast);
+}
+
+.action-btn-sm:hover {
+  background-color: var(--primary);
+  color: white;
+  border-color: var(--primary);
+}
+
+.action-btn-sm.delete:hover {
+  background-color: var(--danger);
+  color: white;
+  border-color: var(--danger);
+}
+
+/* Modallar (Popup Windows) */
+.modal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(15, 23, 42, 0.4);
+  backdrop-filter: blur(8px);
+  z-index: 1000;
+  justify-content: center;
+  align-items: center;
+  animation: fadeIn var(--transition-fast);
+}
+
+.modal-content {
+  width: 100%;
+  max-width: var(--max-width, 500px);
+  max-height: 90vh;
+  overflow-y: auto;
+  border-radius: var(--radius-lg);
+  background-color: var(--bg-secondary);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--border-color);
+  transform: scale(0.95);
+  transition: transform var(--transition-fast);
+}
+
+.modal.active {
+  display: flex;
+}
+
+.modal.active .modal-content {
+  transform: scale(1);
+}
+
+.modal-header {
+  padding: 1.5rem;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal-header h3 {
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 1.25rem;
+  cursor: pointer;
+  color: var(--text-muted);
+}
+
+.close-btn:hover {
+  color: var(--text-primary);
+}
+
+.modal-body {
+  padding: 1.5rem;
+}
+
+.modal-footer {
+  padding: 1.5rem;
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+/* Form Elemanları */
+.form-group {
+  margin-bottom: 1.25rem;
+}
+
+.form-group label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 0.5rem;
+}
+
+.form-control {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--border-color);
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  border-radius: var(--radius-md);
+  outline: none;
+  font-size: 0.9rem;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.form-control:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-glow);
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+/* Filtreleme ve Arama Barı */
+.search-filter-bar {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.search-wrapper {
+  position: relative;
+  flex: 1;
+}
+
+.search-wrapper i {
+  position: absolute;
+  left: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+}
+
+.search-wrapper .form-control {
+  padding-left: 2.75rem;
+}
+
+/* ClassDojo Tarzı Performans Puanlama Ekranı */
+.dojo-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+
+.dojo-students {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 0.75rem;
+  max-height: 65vh;
+  overflow-y: auto;
+  padding: 0.25rem;
+}
+
+.dojo-student-card {
+  padding: 1rem 0.5rem;
+  text-align: center;
+  border-radius: var(--radius-md);
+  border: 2px solid transparent;
+  cursor: pointer;
+  background-color: var(--bg-secondary);
+  box-shadow: var(--shadow-sm);
+  transition: all var(--transition-fast);
+}
+
+.dojo-student-card.selected {
+  border-color: var(--primary);
+  background-color: var(--primary-light);
+}
+
+.dojo-student-card .avatar-sm {
+  width: 45px;
+  height: 45px;
+  border-radius: var(--radius-full);
+  margin: 0 auto 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 1.1rem;
+  background-color: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  text-transform: uppercase;
+}
+
+.dojo-student-card.selected .avatar-sm {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.dojo-student-card span {
+  font-size: 0.8rem;
+  font-weight: 500;
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Davranış Kartları */
+.behavior-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 0.5rem;
+}
+
+.behavior-tab-btn {
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius-sm);
+  border: none;
+  background: none;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.behavior-tab-btn.active {
+  background-color: var(--primary-light);
+  color: var(--primary);
+}
+
+.behavior-tab-btn.positive-tab.active {
+  background-color: var(--success-light);
+  color: var(--success);
+}
+
+.behavior-tab-btn.development-tab.active {
+  background-color: var(--danger-light);
+  color: var(--danger);
+}
+
+.behavior-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.75rem;
+}
+
+.behavior-card {
+  padding: 1rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  background-color: var(--bg-secondary);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.5rem;
+  transition: all var(--transition-fast);
+}
+
+.behavior-card:hover {
+  transform: translateY(-2px);
+}
+
+.behavior-card.positive {
+  border-color: rgba(16, 185, 129, 0.2);
+}
+.behavior-card.positive:hover {
+  background-color: var(--success-light);
+  border-color: var(--success);
+}
+.behavior-card.development {
+  border-color: rgba(244, 63, 94, 0.2);
+}
+.behavior-card.development:hover {
+  background-color: var(--danger-light);
+  border-color: var(--danger);
+}
+
+.behavior-icon {
+  font-size: 1.25rem;
+}
+
+.behavior-name {
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.behavior-points {
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.15rem 0.5rem;
+  border-radius: var(--radius-full);
+}
+
+.positive .behavior-points { background-color: var(--success-light); color: var(--success); }
+.development .behavior-points { background-color: var(--danger-light); color: var(--danger); }
+
+/* Ödev Matrisi ve Çizelge */
+.table-wrapper {
+  overflow-x: auto;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.table th, .table td {
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.table th {
+  background-color: var(--bg-primary);
+  font-weight: 600;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.table tbody tr:hover td {
+  background-color: rgba(79, 70, 229, 0.02);
+}
+
+/* Durum Seçici (Homework Status Badges) */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.65rem;
+  border-radius: var(--radius-full);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+}
+
+.status-badge.completed { background-color: var(--success-light); color: var(--success); }
+.status-badge.incomplete { background-color: var(--warning-light); color: var(--warning); }
+.status-badge.missing { background-color: var(--danger-light); color: var(--danger); }
+.status-badge.excused { background-color: var(--info-light); color: var(--info); }
+.status-badge.none { background-color: var(--bg-primary); color: var(--text-muted); border: 1px dashed var(--border-color); }
+
+/* Ödev Ayrıntıları Matrisi */
+.homework-matrix-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.matrix-card {
+  padding: 1.25rem;
+}
+
+.matrix-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+}
+
+.matrix-header h3 {
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.matrix-progress {
+  width: 100%;
+  height: 6px;
+  background-color: var(--border-color);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+  margin: 0.5rem 0 1rem;
+}
+
+.matrix-progress-bar {
+  height: 100%;
+  background-color: var(--success);
+  width: 0%;
+  transition: width var(--transition-normal);
+}
+
+/* Kitap Takip Kitaplık ve Listeler */
+.books-container {
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: 1.5rem;
+}
+
+.book-card-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 0.75rem;
+}
+
+.book-card {
+  padding: 0.65rem;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.book-cover {
+  width: 100%;
+  height: 140px;
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%);
+  border-radius: var(--radius-sm) var(--radius-md) var(--radius-md) var(--radius-sm);
+  border-left: 4px solid rgba(0, 0, 0, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  margin-bottom: 0.5rem;
+  position: relative;
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+
+.book-cover::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 10px;
+  height: 100%;
+  background: linear-gradient(to right, rgba(0,0,0,0.25) 0%, rgba(0,0,0,0.05) 50%, rgba(255,255,255,0.15) 100%);
+}
+
+.book-cover i {
+  font-size: 2.2rem;
+  opacity: 0.8;
+}
+
+.book-title {
+  font-size: 0.9rem;
+  font-weight: 700;
+  margin-bottom: 0.25rem;
+  line-height: 1.2;
+}
+
+.book-author {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  margin-bottom: auto;
+}
+
+.book-pages {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 0.5rem;
+}
+
+/* Haftalık Değerlendirme Bölümü */
+.weekly-container {
+  max-width: 800px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.rating-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.rating-card {
+  text-align: center;
+  padding: 1.25rem;
+}
+
+.rating-label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+}
+
+.stars-container {
+  display: flex;
+  justify-content: center;
+  gap: 0.35rem;
+}
+
+.star {
+  font-size: 1.5rem;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: color var(--transition-fast);
+}
+
+.star:hover, .star.active {
+  color: var(--warning);
+}
+
+/* Öğrenci Detay Modalı Profili */
+.student-detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 1.5rem;
+}
+
+.student-detail-sidebar {
+  text-align: center;
+  border-right: 1px solid var(--border-color);
+  padding-right: 1.5rem;
+}
+
+.student-detail-main {
+  max-height: 60vh;
+  overflow-y: auto;
+  padding-right: 0.5rem;
+}
+
+.detail-tab-menu {
+  display: flex;
+  gap: 0.5rem;
+  border-bottom: 1px solid var(--border-color);
+  margin-bottom: 1rem;
+}
+
+.detail-tab-btn {
+  padding: 0.5rem 1rem;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--text-muted);
+  border-bottom: 2px solid transparent;
+}
+
+.detail-tab-btn.active {
+  color: var(--primary);
+  border-bottom-color: var(--primary);
+}
+
+.detail-tab-content {
+  display: none;
+}
+
+.detail-tab-content.active {
+  display: block;
+}
+
+/* Bildirimler (Toast Alerts) */
+.toast-container {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  z-index: 2000;
+  pointer-events: none;
+}
+
+.toast {
+  pointer-events: auto;
+  background: var(--bg-secondary);
+  border-left: 4px solid var(--primary);
+  color: var(--text-primary);
+  padding: 1rem 1.5rem;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-weight: 500;
+  font-size: 0.875rem;
+  animation: slideIn var(--transition-fast);
+}
+
+.toast.success { border-left-color: var(--success); }
+.toast.danger { border-left-color: var(--danger); }
+.toast.warning { border-left-color: var(--warning); }
+
+@keyframes slideIn {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+/* Yazdırma Stilleri (Print Layouts) */
+@media print {
+  body {
+    background-color: white;
+    color: black;
+  }
+
+  .sidebar, .page-header, .header-actions, .toast-container, .modal {
+    display: none !important;
+  }
+
+  .main-content {
+    margin-left: 0 !important;
+    padding: 0 !important;
+    max-width: 100% !important;
+  }
+
+  .glass-card {
+    border: 1px solid #ccc !important;
+    box-shadow: none !important;
+    background: white !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    page-break-inside: avoid;
+  }
+
+  .table th, .table td {
+    border-bottom: 1px solid #ddd !important;
+  }
+  
+  .table th {
+    background-color: #f5f5f5 !important;
+    color: #333 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .status-badge {
+    border: 1px solid #ccc !important;
+    background: transparent !important;
+    color: black !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .status-badge.completed {
+    border-color: #10b981 !important;
+    color: #10b981 !important;
+  }
+
+  .status-badge.incomplete {
+    border-color: #f59e0b !important;
+    color: #f59e0b !important;
+  }
+
+  .status-badge.missing {
+    border-color: #ef4444 !important;
+    color: #ef4444 !important;
+  }
+
+  .status-badge.excused {
+    border-color: #3b82f6 !important;
+    color: #3b82f6 !important;
+  }
+
+
+  body.print-weekly .weekly-report-print {
+    display: block !important;
+  }
+  body.print-homework .homework-report-print {
+    display: block !important;
+  }
+  body.print-performance .performance-report-print {
+    display: block !important;
+  }
+}
+
+.print-only {
+  display: none;
+}
+
+.weekly-report-print {
+  padding: 2rem;
+}
+
+.print-header {
+  text-align: center;
+  border-bottom: 2px solid #000;
+  padding-bottom: 1rem;
+  margin-bottom: 2rem;
+}
+
+.print-header h1 {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+}
+
+.print-row {
+  margin-bottom: 1.5rem;
+}
+
+/* Mobil Uyumlu Düzenlemeler */
+@media (max-width: 1024px) {
+  .dashboard-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .main-grid, .books-container, .dojo-container {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  body, .app-container {
+    flex-direction: column;
+  }
+  
+  /* Mobil Üst Bar Görünümü */
+  .mobile-header {
+    display: flex;
+    height: 56px;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border-color);
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 1rem;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 900;
+  }
+
+  .mobile-menu-btn {
+    background: none;
+    border: none;
+    color: var(--text-primary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem;
+    border-radius: var(--radius-sm);
+    transition: background var(--transition-fast);
+  }
+
+  .mobile-menu-btn:hover {
+    background: var(--bg-primary);
+  }
+
+  .mobile-header-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--primary);
+  }
+
+  /* Sidebar Drawer Görünümü */
+  .sidebar {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 280px !important;
+    height: 100vh !important;
+    z-index: 1000 !important;
+    transform: translateX(-100%);
+    transition: transform var(--transition-normal) ease-in-out;
+    background: var(--bg-secondary) !important;
+    box-shadow: var(--shadow-lg);
+    display: flex !important;
+    flex-direction: column !important;
+    padding: 1.5rem !important;
+    border-right: 1px solid var(--border-color);
+    border-bottom: none;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  .sidebar.open {
+    transform: translateX(0);
+  }
+
+  .mobile-close-btn {
+    display: flex !important;
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    margin-left: auto;
+    padding: 0.25rem;
+    border-radius: var(--radius-sm);
+  }
+
+  .logo-container {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    margin-bottom: 1.5rem !important;
+  }
+
+  .nav-menu {
+    flex-direction: column !important;
+    overflow-x: visible !important;
+    padding-bottom: 0 !important;
+    gap: 0.5rem;
+  }
+
+  .nav-link {
+    white-space: normal !important;
+    padding: 0.75rem 1rem !important;
+  }
+
+  .sidebar-backdrop {
+    display: block;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(2px);
+    z-index: 999;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--transition-normal);
+  }
+
+  .sidebar-backdrop.active {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .sidebar-footer {
+    display: flex !important;
+    margin-top: 1.5rem !important;
+    padding-top: 1rem !important;
+    padding-bottom: 1.5rem !important;
+  }
+
+  .main-content {
+    margin-left: 0 !important;
+    max-width: 100% !important;
+    padding: 1.5rem 1rem !important;
+    padding-top: calc(56px + 1.5rem) !important; /* Top bar yüksekliği + padding */
+  }
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+  .rating-grid {
+    grid-template-columns: 1fr;
+  }
+  .student-detail-grid {
+    grid-template-columns: 1fr;
+  }
+  .student-detail-sidebar {
+    border-right: none;
+    border-bottom: 1px solid var(--border-color);
+    padding-right: 0;
+    padding-bottom: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  /* Mobile Page Header & Buttons Wrap */
+  .page-header {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 1rem !important;
+    margin-bottom: 1.5rem !important;
+  }
+  
+  .header-title {
+    width: 100% !important;
+  }
+  
+  .header-actions {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 0.5rem !important;
+    width: 100% !important;
+  }
+  
+  .header-actions .btn {
+    flex: 1 1 calc(50% - 0.25rem) !important;
+    font-size: 0.8rem !important;
+    padding: 0.5rem 0.75rem !important;
+  }
+
+  /* Search & Filter Bar responsiveness */
+  .search-filter-bar {
+    flex-direction: column !important;
+    gap: 0.75rem !important;
+  }
+  
+  .search-filter-bar select, 
+  .search-filter-bar .form-control,
+  .search-filter-bar select.form-control {
+    width: 100% !important;
+  }
+
+  /* Modal responsive adjustment */
+  .modal-content {
+    width: calc(100% - 2rem) !important;
+    margin: 1rem !important;
+  }
+
+  /* Student Card actions visibility on touch devices */
+  .student-actions {
+    opacity: 1 !important;
+  }
+
+  /* Mobil Uyumlu Kitap Takip ve Genel Tablo Tasarımları */
+  .table th, .table td {
+    padding: 0.5rem 0.4rem !important;
+    font-size: 0.8rem !important;
+  }
+
+  .glass-card {
+    padding: 1rem !important;
+  }
+
+  #books-student-detail-panel {
+    padding: 1rem !important;
+    gap: 1rem !important;
+  }
+
+  #books-student-detail-panel .glass-card {
+    padding: 0.75rem !important;
+    margin-bottom: 0 !important;
+  }
+
+  .student-book-item {
+    padding: 0.6rem !important;
+  }
+
+  .status-badge {
+    padding: 0.2rem 0.45rem !important;
+    font-size: 0.75rem !important;
+  }
+
+  /* Dashboard Haftalık ve Aylık Performans Tablosu Mobil Görünümü */
+  #dash-weekly-section .table-wrapper,
+  #dash-monthly-section .table-wrapper {
+    border: none !important;
+    background: transparent !important;
+  }
+  #dash-weekly-section .section-title,
+  #dash-monthly-section .section-title {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 0.35rem !important;
+  }
+  #dash-weekly-section .search-filter-bar,
+  #dash-monthly-section .search-filter-bar {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 0.75rem !important;
+  }
+  #dash-weekly-section .search-filter-bar > div,
+  #dash-monthly-section .search-filter-bar > div {
+    display: flex !important;
+    justify-content: center !important;
+    width: 100% !important;
+    flex-wrap: wrap !important;
+    gap: 0.5rem !important;
+  }
+  #dash-select-week,
+  #dash-select-month {
+    flex: 1 !important;
+    width: auto !important;
+    max-width: 200px !important;
+  }
+  #btn-weekly-perf-settings {
+    width: 100% !important;
+    justify-content: center !important;
+  }
+  #dash-weekly-table,
+  #dash-monthly-table {
+    border: none !important;
+    background: transparent !important;
+  }
+  #dash-weekly-table thead,
+  #dash-monthly-table thead {
+    display: none !important;
+  }
+  #dash-weekly-table tbody,
+  #dash-monthly-table tbody {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0.75rem !important;
+  }
+  #dash-weekly-table tr,
+  #dash-monthly-table tr {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    align-items: center !important;
+    padding: 0.75rem !important;
+    background: var(--bg-glass) !important;
+    border: 1px solid var(--border-color) !important;
+    border-radius: var(--radius-md) !important;
+    gap: 0.5rem 0 !important;
+    position: relative !important;
+  }
+  #dash-weekly-table tr.negative-score-row,
+  #dash-monthly-table tr.negative-score-row {
+    background-color: rgba(239, 68, 68, 0.04) !important;
+    border-left: 4px solid var(--danger) !important;
+  }
+  #dash-weekly-table tr.negative-score-row td,
+  #dash-monthly-table tr.negative-score-row td {
+    background-color: transparent !important;
+  }
+  #dash-weekly-table tr.negative-score-row td:first-child,
+  #dash-monthly-table tr.negative-score-row td:first-child {
+    box-shadow: none !important;
+  }
+  #dash-weekly-table td:nth-child(1),
+  #dash-monthly-table td:nth-child(1) {
+    width: 12% !important;
+    padding: 0 0.25rem !important;
+    border: none !important;
+    text-align: center !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+  }
+  #dash-weekly-table td:nth-child(2),
+  #dash-monthly-table td:nth-child(2) {
+    width: 12% !important;
+    height: auto !important;
+    padding: 0 !important;
+    border: none !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+  }
+  #dash-weekly-table td:nth-child(3),
+  #dash-monthly-table td:nth-child(3) {
+    width: 56% !important;
+    padding: 0 0.5rem !important;
+    border: none !important;
+    text-align: left !important;
+    display: flex !important;
+    align-items: center !important;
+  }
+  #dash-weekly-table td:nth-child(9),
+  #dash-monthly-table td:nth-child(9) {
+    width: 20% !important;
+    padding: 0 !important;
+    border: none !important;
+    text-align: right !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+  }
+  #dash-weekly-table td:nth-child(4),
+  #dash-monthly-table td:nth-child(4) {
+    display: none !important; /* Okul No Gizle */
+  }
+  #dash-weekly-table tr::after,
+  #dash-monthly-table tr::after {
+    content: '' !important;
+    width: 100% !important;
+    height: 1px !important;
+    background: var(--border-color) !important;
+    margin: 0.5rem 0 0.25rem 0 !important;
+    order: 4 !important;
+  }
+  #dash-weekly-table td:nth-child(5),
+  #dash-weekly-table td:nth-child(6),
+  #dash-weekly-table td:nth-child(7),
+  #dash-weekly-table td:nth-child(8),
+  #dash-monthly-table td:nth-child(5),
+  #dash-monthly-table td:nth-child(6),
+  #dash-monthly-table td:nth-child(7),
+  #dash-monthly-table td:nth-child(8) {
+    width: 25% !important;
+    padding: 0.25rem 0.1rem !important;
+    border: none !important;
+    text-align: center !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    font-size: 0.75rem !important;
+    order: 5 !important;
+  }
+  #dash-weekly-table td:nth-child(5)::before,
+  #dash-monthly-table td:nth-child(5)::before { content: 'Dojo' !important; font-weight: 700 !important; font-size: 0.65rem !important; color: var(--text-muted) !important; margin-bottom: 0.15rem !important; }
+  #dash-weekly-table td:nth-child(6)::before,
+  #dash-monthly-table td:nth-child(6)::before { content: 'Kitap' !important; font-weight: 700 !important; font-size: 0.65rem !important; color: var(--text-muted) !important; margin-bottom: 0.15rem !important; }
+  #dash-weekly-table td:nth-child(7)::before,
+  #dash-monthly-table td:nth-child(7)::before { content: 'Ödev' !important; font-weight: 700 !important; font-size: 0.65rem !important; color: var(--text-muted) !important; margin-bottom: 0.15rem !important; }
+  #dash-weekly-table td:nth-child(8)::before,
+  #dash-monthly-table td:nth-child(8)::before { content: 'Sınav' !important; font-weight: 700 !important; font-size: 0.65rem !important; color: var(--text-muted) !important; margin-bottom: 0.15rem !important; }
+
+  /* Performance Takip Sayfası Mobil Görünümü */
+  #performance .table-wrapper {
+    border: none !important;
+    background: transparent !important;
+  }
+  #performance .section-title {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 0.35rem !important;
+  }
+  #performance-students-table {
+    border: none !important;
+    background: transparent !important;
+  }
+  #performance-students-table thead {
+    display: none !important;
+  }
+  #performance-students-table tbody {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0.75rem !important;
+  }
+  #performance-students-table tr {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    align-items: center !important;
+    padding: 0.75rem !important;
+    background: var(--bg-glass) !important;
+    border: 1px solid var(--border-color) !important;
+    border-radius: var(--radius-md) !important;
+    gap: 0.5rem 0 !important;
+    position: relative !important;
+  }
+  #performance-students-table tr.negative-score-row {
+    background-color: rgba(239, 68, 68, 0.04) !important;
+    border-left: 4px solid var(--danger) !important;
+  }
+  #performance-students-table tr.negative-score-row td {
+    background-color: transparent !important;
+  }
+  #performance-students-table tr.negative-score-row td:first-child {
+    box-shadow: none !important;
+  }
+  #performance-students-table td:nth-child(1) {
+    width: 10% !important;
+    padding: 0 !important;
+    border: none !important;
+    text-align: center !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+  }
+  #performance-students-table td:nth-child(2) {
+    width: 12% !important;
+    padding: 0 !important;
+    border: none !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+  }
+  #performance-students-table td:nth-child(3) {
+    width: 12% !important;
+    height: auto !important;
+    padding: 0 !important;
+    border: none !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+  }
+  #performance-students-table td:nth-child(4) {
+    width: 46% !important;
+    padding: 0 0.5rem !important;
+    border: none !important;
+    text-align: left !important;
+    display: flex !important;
+    align-items: center !important;
+  }
+  #performance-students-table td:nth-child(6) {
+    width: 20% !important;
+    padding: 0 !important;
+    border: none !important;
+    text-align: right !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+  }
+  #performance-students-table td:nth-child(5) {
+    display: none !important; /* Okul No Gizle */
+  }
+  #performance-students-table tr::after {
+    content: '' !important;
+    width: 100% !important;
+    height: 1px !important;
+    background: var(--border-color) !important;
+    margin: 0.5rem 0 0.25rem 0 !important;
+    order: 4 !important;
+  }
+  #performance-students-table td:nth-child(7) {
+    width: 40% !important;
+    padding: 0.25rem 0.1rem !important;
+    border: none !important;
+    text-align: left !important;
+    display: flex !important;
+    align-items: center !important;
+    font-size: 0.75rem !important;
+    order: 5 !important;
+  }
+  #performance-students-table td:nth-child(7)::before {
+    content: 'Genel: ' !important;
+    font-weight: 700 !important;
+    font-size: 0.65rem !important;
+    color: var(--text-muted) !important;
+    margin-right: 0.25rem !important;
+  }
+  #performance-students-table td:nth-child(8) {
+    width: 60% !important;
+    padding: 0.25rem 0.1rem !important;
+    border: none !important;
+    text-align: left !important;
+    display: block !important;
+    font-size: 0.75rem !important;
+    order: 5 !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    margin-right: 0.25rem !important;
+  }
+
+  /* Ödev Takip Sayfası Mobil Görünümü */
+  #homework .search-filter-bar {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 0.75rem !important;
+  }
+  #homework .search-filter-bar > div {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    width: 100% !important;
+    gap: 0.5rem !important;
+  }
+  #homework .search-filter-bar > div > span {
+    width: 100% !important;
+  }
+  .hw-report-dates-wrapper {
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.5rem !important;
+    width: 100% !important;
+  }
+  .hw-report-dates-wrapper .form-control {
+    width: auto !important;
+    flex: 1 !important;
+  }
+  #btn-generate-hw-report {
+    width: 100% !important;
+    justify-content: center !important;
+  }
+}
+
+/* Haftalık Ödev Çizelgesi Ek Tasarımları */
+#homework-weekly-table {
+  border-collapse: separate;
+  border-spacing: 0;
+  width: 100%;
+}
+
+#homework-weekly-table th {
+  text-align: center;
+  vertical-align: middle;
+  border-bottom: 2px solid var(--border-color);
+  padding: 0.75rem 0.5rem;
+}
+
+#homework-weekly-table th.th-no {
+  text-align: center;
+  width: 50px;
+}
+
+#homework-weekly-table th.th-name {
+  text-align: left;
+  min-width: 180px;
+}
+
+#homework-weekly-table th.th-total {
+  text-align: center;
+  width: 80px;
+}
+
+#homework-weekly-table td {
+  text-align: center;
+  vertical-align: middle;
+  padding: 0.75rem 0.5rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+#homework-weekly-table td.td-no {
+  text-align: center;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+#homework-weekly-table td.td-name {
+  text-align: left;
+}
+
+#homework-weekly-table td.td-day {
+  text-align: center;
+}
+
+#homework-weekly-table td.td-total {
+  text-align: center;
+}
+
+/* Gün Başlık Kartı Tasarımı */
+.hw-day-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 0.6rem 0.4rem;
+  text-align: center;
+  box-shadow: var(--shadow-sm);
+  transition: all var(--transition-fast);
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  align-items: center;
+  justify-content: center;
+}
+
+.hw-day-card:hover {
+  border-color: var(--primary);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  background: var(--bg-glass);
+}
+
+.hw-day-name {
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: var(--text-primary);
+}
+
+.hw-day-date {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.hw-day-subtitle {
+  font-size: 0.7rem;
+  color: var(--primary);
+  font-weight: 600;
+  margin-top: 0.2rem;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 1px 4px;
+  background: rgba(99, 102, 241, 0.08);
+  border-radius: 4px;
+}
+
+.hw-col-actions {
+  margin-top: 0.4rem;
+  display: flex;
+  justify-content: center;
+  gap: 0.25rem;
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+}
+
+th:hover .hw-col-actions {
+  opacity: 1;
+}
+
+.weekly-total-badge {
+  padding: 0.25rem 0.65rem;
+  border-radius: var(--radius-sm);
+  font-weight: 700;
+  font-size: 0.85rem;
+  display: inline-block;
+}
+
+.weekly-total-badge.positive {
+  background-color: var(--success-light);
+  color: var(--success);
+}
+
+.weekly-total-badge.negative {
+  background-color: var(--danger-light);
+  color: var(--danger);
+}
+
+.weekly-total-badge.zero {
+  background-color: var(--bg-primary);
+  color: var(--text-muted);
+  border: 1px solid var(--border-color);
+}
+
+.status-badge.status-interactive {
+  transition: all var(--transition-fast);
+  border: 1px solid transparent;
+  min-width: 80px;
+  justify-content: center;
+}
+
+.status-badge.status-interactive:hover {
+  transform: scale(1.05);
+  box-shadow: var(--shadow-sm);
+  border-color: var(--primary);
+}
+
+.homework-weekly-student-name {
+  font-weight: 600;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: color var(--transition-fast);
+}
+
+.homework-weekly-student-name:hover {
+  color: var(--primary);
+  text-decoration: underline;
+}
+
+/* Alt Sekme Menüsü (Sub-tab menu) */
+.sub-tab-menu {
+  display: flex;
+  gap: 0.5rem;
+  border-bottom: 1.5px solid var(--border-color);
+  margin-bottom: 1.5rem;
+  padding-bottom: 0.25rem;
+  overflow-x: auto;
+  flex-wrap: nowrap;
+  -webkit-overflow-scrolling: touch;
+}
+
+.sub-tab-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1.2rem;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  border-bottom: 3px solid transparent;
+  transition: all var(--transition-fast);
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.sub-tab-btn:hover {
+  color: var(--primary);
+  background-color: rgba(79, 70, 229, 0.05);
+}
+
+.sub-tab-btn.active {
+  color: var(--primary);
+  border-bottom-color: var(--primary);
+  background-color: var(--primary-light);
+}
+
+.books-tab-content {
+  display: none;
+}
+
+.books-tab-content.active {
+  display: block;
+}
+
+/* Liderlik Tablosu Süslemeleri */
+.leaderboard-rank {
+  font-size: 1.1rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+}
+
+.leaderboard-rank.rank-1 {
+  background-color: #fef08a; /* Soft Gold */
+  color: #854d0e;
+  box-shadow: 0 2px 8px rgba(234, 179, 8, 0.2);
+}
+
+.leaderboard-rank.rank-2 {
+  background-color: #f1f5f9; /* Soft Silver */
+  color: #475569;
+  box-shadow: 0 2px 8px rgba(148, 163, 184, 0.15);
+}
+
+.leaderboard-rank.rank-3 {
+  background-color: #ffedd5; /* Soft Bronze */
+  color: #9a3412;
+  box-shadow: 0 2px 8px rgba(249, 115, 22, 0.15);
+}
+
+.leaderboard-student-link {
+  color: var(--primary);
+  text-decoration: none;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color var(--transition-fast);
+}
+
+.leaderboard-student-link:hover {
+  color: var(--primary-hover);
+  text-decoration: underline;
+}
+
+.leaderboard-row {
+  transition: background-color var(--transition-fast);
+}
+
+.leaderboard-row:hover {
+  background-color: rgba(79, 70, 229, 0.02);
+}
+
+.leaderboard-row.active-student-row {
+  background-color: var(--primary-light) !important;
+  border-left: 3px solid var(--primary);
+}
+
+/* Soru Geçiş Animasyonu */
+.question-fade {
+  animation: questionFadeIn 0.35s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes questionFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.book-title.book-title-question-link {
+  cursor: pointer;
+  transition: color var(--transition-fast);
+}
+.book-title.book-title-question-link:hover {
+  color: var(--primary);
+  text-decoration: underline;
+}
+
+.book-title-question-link {
+  cursor: pointer;
+  color: var(--primary);
+  font-weight: 700;
+  text-decoration: none;
+  transition: all var(--transition-fast);
+}
+.book-title-question-link:hover {
+  color: var(--primary-hover);
+  text-decoration: underline;
+}
+
+/* Yeni Performans Sayfası Tasarımı Stilleri */
+.btn-give-point-circle {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  color: var(--primary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  box-shadow: var(--shadow-sm);
+  padding: 0;
+}
+
+.btn-give-point-circle:hover {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+  transform: scale(1.1);
+  box-shadow: var(--shadow-md);
+}
+
+.performance-rank-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  font-weight: 700;
+  font-size: 0.85rem;
+  background-color: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+}
+
+.performance-rank-badge.rank-1 {
+  background-color: rgba(245, 158, 11, 0.1);
+  border-color: #f59e0b;
+  color: #d97706;
+}
+
+.performance-rank-badge.rank-2 {
+  background-color: rgba(148, 163, 184, 0.1);
+  border-color: #94a3b8;
+  color: #475569;
+}
+
+.performance-rank-badge.rank-3 {
+  background-color: rgba(180, 83, 9, 0.1);
+  border-color: #b45309;
+  color: #78350f;
+}
+
+#modal-give-point .behavior-tabs .behavior-tab-btn {
+  flex: 1;
+  text-align: center;
+}
+
+#modal-give-point .behavior-tabs .behavior-tab-btn.active.positive-tab {
+  background-color: var(--success-light);
+  color: var(--success);
+}
+
+#modal-give-point .behavior-tabs .behavior-tab-btn.active.development-tab {
+  background-color: var(--danger-light);
+  color: var(--danger);
+}
+
+/* Sınav Takip Stilleri */
+.exam-card {
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 1.25rem;
+  background: var(--bg-secondary);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.exam-card:hover {
+  transform: translateY(-3px);
+  border-color: var(--primary);
+  box-shadow: var(--shadow-md);
+}
+
+.exam-card.active-card {
+  border-color: var(--primary);
+  background: rgba(79, 70, 229, 0.03);
+  box-shadow: 0 0 0 2px var(--primary-glow);
+}
+
+.exam-card-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.exam-card-meta {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.exam-card-average {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: var(--primary);
+}
+
+.exam-card-topstudents {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.exam-table-input {
+  width: 75px;
+  text-align: center;
+  margin: 0 auto;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.85rem;
+  height: 30px;
+}
+
+.score-change-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  font-weight: 700;
+  font-size: 0.75rem;
+  padding: 0.15rem 0.45rem;
+  border-radius: var(--radius-full);
+}
+
+.score-change-badge.score-up {
+  background-color: var(--success-light);
+  color: var(--success);
+}
+
+.score-change-badge.score-down {
+  background-color: var(--danger-light);
+  color: var(--danger);
+}
+
+.score-change-badge.score-stable {
+  background-color: var(--bg-primary);
+  color: var(--text-muted);
+  border: 1px dashed var(--border-color);
+}
+
+/* Öğrenci Kart İstatistikleri */
+.student-card-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+  margin-top: 1.25rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border-color);
+  font-size: 0.8rem;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.stat-item span {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.stat-item strong {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.stat-item i {
+  width: 14px;
+  height: 14px;
+  opacity: 0.8;
+}
+
+.dash-tab-content {
+  animation: tabFadeIn 0.35s ease forwards;
+}
+
+@keyframes tabFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Haftalık performansta eksi puan alan öğrencilerin görselleştirilmesi */
+.table tbody tr.negative-score-row td {
+  background-color: rgba(239, 68, 68, 0.04) !important;
+}
+.table tbody tr.negative-score-row:hover td {
+  background-color: rgba(239, 68, 68, 0.07) !important;
+}
+.table tbody tr.negative-score-row td:first-child {
+  box-shadow: inset 5px 0 0 0 var(--danger) !important;
+}
+
+/* Optical Form Student Selection List */
+.optical-student-checkbox-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.5rem;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background-color var(--transition-fast);
+  color: var(--text-primary);
+}
+
+.optical-student-checkbox-item:hover {
+  background-color: var(--bg-secondary);
+}
+
+.optical-student-checkbox-item input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+/* Print Optical Form Styles */
+@media print {
+  body.print-optical {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: white !important;
+    color: black !important;
+  }
+  
+  body.print-optical .app-container,
+  body.print-weekly .app-container,
+  body.print-homework .app-container,
+  body.print-performance .app-container,
+  body.print-reports .app-container {
+    display: none !important;
+  }
+  body.print-schedule > *:not(#schedule-print-area) {
+    display: none !important;
+  }
+  
+  body.print-optical .optical-forms-print {
+    display: block !important;
+  }
+  
+  .optical-page {
+    width: 210mm !important;
+    height: 297mm !important;
+    padding: 10mm !important;
+    margin: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+    page-break-after: always !important;
+    box-sizing: border-box !important;
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    grid-auto-rows: max-content !important;
+    gap: 12px !important;
+    aspect-ratio: auto !important;
+    background: white !important;
+  }
+}
+
+.optical-forms-print {
+  display: none;
+  background-color: white;
+  width: 100%;
+}
+
+.optical-page {
+  background-color: white;
+  border: 1px solid #ccc;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+  box-sizing: border-box;
+  aspect-ratio: 210 / 297;
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  grid-auto-rows: max-content;
+  gap: 8px;
+  padding: 10px;
+  margin-bottom: 20px;
+  position: relative;
+}
+
+.optical-form-card {
+  border: 1.5px dashed #000;
+  border-radius: 6px;
+  padding: 8px 10px;
+  background-color: white;
+  color: black;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  page-break-inside: avoid;
+  box-sizing: border-box;
+}
+
+.optical-form-header {
+  border-bottom: 1.5px solid #000;
+  padding-bottom: 4px;
+  margin-bottom: 8px;
+  text-align: center;
+}
+
+.optical-form-header h4 {
+  margin: 0 0 2px 0;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  color: #000;
+  text-transform: uppercase;
+}
+
+.optical-student-info {
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  gap: 4px;
+  font-size: 9px;
+  text-align: left;
+  color: #000;
+}
+
+.optical-student-info div {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.optical-form-body {
+  display: flex;
+  justify-content: space-around;
+  gap: 8px;
+  flex: 1;
+  margin-top: 4px;
+}
+
+.optical-form-column {
+  display: flex;
+  flex-direction: column;
+  gap: 2.5px;
+}
+
+.optical-form-row {
+  display: flex;
+  align-items: center;
+  font-size: 9.5px;
+  color: #000;
+}
+
+.optical-form-qnum {
+  width: 14px;
+  text-align: right;
+  margin-right: 4px;
+  font-weight: 700;
+}
+
+.optical-form-bubbles {
+  display: flex;
+  gap: 3px;
+}
+
+.optical-form-bubble {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  border: 1.2px solid #000;
+  border-radius: 50%;
+  font-size: 8px;
+  font-weight: 700;
+  color: #000;
+  background-color: white;
+}
+
+/* Optical Form Modal Columns styling */
+.optical-modal-body {
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: 1.5rem;
+}
+
+.optical-preview-pane {
+  display: flex;
+  flex-direction: column;
+  border-left: 1px solid var(--border-color);
+  padding-left: 1.5rem;
+}
+
+.optical-preview-container {
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 15px;
+  background-color: #f8fafc;
+  color: black;
+  flex: 1;
+  max-height: 480px; /* slightly taller for page lists */
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
+}
+
+/* Specific scaling for miniature cards inside preview pages */
+.optical-preview-container .optical-page {
+  margin-bottom: 0;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.optical-preview-container .optical-form-card {
+  padding: 4px 6px !important;
+  min-height: auto !important;
+  border-width: 1px !important;
+  border-radius: 4px !important;
+}
+
+.optical-preview-container .optical-form-header {
+  border-bottom-width: 1px !important;
+  padding-bottom: 2px !important;
+  margin-bottom: 4px !important;
+}
+
+.optical-preview-container .optical-form-header h4 {
+  font-size: 7.5px !important;
+  margin-bottom: 1px !important;
+}
+
+.optical-preview-container .optical-student-info {
+  font-size: 6.5px !important;
+  gap: 2px !important;
+}
+
+.optical-preview-container .optical-form-body {
+  gap: 4px !important;
+  margin-top: 2px !important;
+}
+
+.optical-preview-container .optical-form-column {
+  gap: 1.5px !important;
+}
+
+.optical-preview-container .optical-form-row {
+  font-size: 6.5px !important;
+}
+
+.optical-preview-container .optical-form-qnum {
+  width: 10px !important;
+  margin-right: 2px !important;
+}
+
+.optical-preview-container .optical-form-bubbles {
+  gap: 1.5px !important;
+}
+
+.optical-preview-container .optical-form-bubble {
+  width: 9px !important;
+  height: 9px !important;
+  font-size: 5.5px !important;
+  border-width: 0.8px !important;
+}
+
+@media (max-width: 768px) {
+  .optical-modal-body {
+    grid-template-columns: 1fr;
+  }
+  .optical-preview-pane {
+    border-left: none;
+    padding-left: 0;
+    margin-top: 1.5rem;
+  }
+}
+
+/* Corner anchors for camera scanning alignment */
+.optical-form-card {
+  position: relative;
+}
+
+/* 4 Black Corner squares on printed card */
+.optical-card-anchor {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  background-color: black !important;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+  border-radius: 1px;
+}
+
+.optical-card-anchor.tl { top: 0; left: 0; }
+.optical-card-anchor.tr { top: 0; right: 0; }
+.optical-card-anchor.bl { bottom: 0; left: 0; }
+.optical-card-anchor.br { bottom: 0; right: 0; }
+
+/* Student binary ID code container */
+.optical-binary-id-container {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 3px;
+  font-size: 8px;
+  margin-bottom: 4px;
+  color: black;
+  font-weight: bold;
+}
+
+.optical-binary-bubble {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 12px;
+  height: 12px;
+  border: 1px solid #000;
+  border-radius: 50%;
+  font-size: 7px;
+  font-weight: 700;
+  color: #000;
+  background-color: white;
+}
+
+/* Filled bubble styling for student ID code */
+.optical-binary-bubble.filled {
+  background-color: black !important;
+  color: black !important;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+/* Answer Key define modal styles */
+.answer-key-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.4rem 0.75rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+}
+
+.answer-key-qnum {
+  font-weight: 700;
+  font-size: 0.9rem;
+  width: 30px;
+}
+
+.answer-key-options {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.answer-key-option-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1.5px solid var(--border-color);
+  background: var(--bg-primary);
+  color: var(--text-secondary);
+  font-weight: 700;
+  font-size: 0.85rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast);
+}
+
+.answer-key-option-btn:hover {
+  border-color: var(--primary);
+  background: var(--primary-light);
+  color: var(--primary);
+}
+
+.answer-key-option-btn.selected {
+  background: var(--primary) !important;
+  color: white !important;
+  border-color: var(--primary) !important;
+}
+
+/* Scanner log styling */
+.scanner-log-item {
+  padding: 0.4rem 0.6rem;
+  border-bottom: 1px solid var(--border-color);
+  animation: fadeIn var(--transition-fast) ease;
+  border-radius: var(--radius-sm);
+  font-weight: 500;
+}
+
+.scanner-log-item.success {
+  border-left: 4px solid var(--success);
+  background-color: var(--success-light);
+  color: var(--success);
+}
+
+.scanner-log-item.error {
+  border-left: 4px solid var(--danger);
+  background-color: var(--danger-light);
+  color: var(--danger);
+}
+
+.scanner-log-item.info {
+  border-left: 4px solid var(--info);
+  background-color: var(--info-light);
+  color: var(--info);
+}
+
+/* Scaling anchors in live preview */
+.optical-preview-container .optical-card-anchor {
+  width: 5px !important;
+  height: 5px !important;
+}
+
+.optical-preview-container .optical-binary-id-container {
+  font-size: 5.5px !important;
+  gap: 1.5px !important;
+  margin-bottom: 2px !important;
+}
+
+.optical-preview-container .optical-binary-bubble {
+  width: 8px !important;
+  height: 8px !important;
+  font-size: 5px !important;
+}
+
+/* File uploader hover and dragover styles */
+.file-uploader-zone:hover, .file-uploader-zone.dragover {
+  background-color: var(--bg-primary) !important;
+  border-color: var(--primary-dark) !important;
+  box-shadow: 0 0 10px rgba(59, 130, 246, 0.15);
+}
+
+/* Weekly Exam Grade Entry Mobile Adjustments */
+@media (max-width: 768px) {
+  #active-exam-card {
+    padding: 1rem !important;
+  }
+  
+  #active-exam-card .table-wrapper {
+    border: none !important;
+    overflow-x: visible !important;
+    margin-top: 1rem !important;
+    margin-bottom: 1rem !important;
+  }
+  
+  #active-exam-table {
+    display: block !important;
+    width: 100% !important;
+    border: none !important;
+  }
+  
+  #active-exam-table thead {
+    display: none !important;
+  }
+  
+  #active-exam-table tbody {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 1rem !important;
+    width: 100% !important;
+  }
+  
+  #active-exam-table-body tr {
+    display: block !important;
+    background: rgba(255, 255, 255, 0.03) !important;
+    border: 1px solid var(--border-color) !important;
+    border-radius: var(--radius-md) !important;
+    padding: 1rem !important;
+    margin-bottom: 0 !important;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05) !important;
+  }
+  
+  /* Hide Student No to save space */
+  #active-exam-table-body td:nth-child(1) {
+    display: none !important;
+  }
+  
+  /* Student Name & Avatar Header */
+  #active-exam-table-body td:nth-child(2) {
+    display: block !important;
+    width: 100% !important;
+    padding: 0 0 0.75rem 0 !important;
+    border-bottom: 1px solid var(--border-color) !important;
+    margin-bottom: 0.75rem !important;
+    text-align: left !important;
+  }
+  
+  /* Inputs group: Doğru, Boş, Yanlış */
+  #active-exam-table-body td:nth-child(3),
+  #active-exam-table-body td:nth-child(4),
+  #active-exam-table-body td:nth-child(5) {
+    display: inline-block !important;
+    width: 31% !important;
+    margin-right: 2% !important;
+    text-align: center !important;
+    vertical-align: top !important;
+    padding: 0 !important;
+    border-bottom: none !important;
+  }
+  
+  #active-exam-table-body td:nth-child(5) {
+    margin-right: 0 !important;
+  }
+  
+  /* Inject labels for Inputs */
+  #active-exam-table-body td:nth-child(3)::before {
+    content: 'Doğru' !important;
+    display: block !important;
+    font-size: 0.75rem !important;
+    color: var(--text-muted) !important;
+    margin-bottom: 0.25rem !important;
+    font-weight: 600 !important;
+  }
+  
+  #active-exam-table-body td:nth-child(4)::before {
+    content: 'Boş' !important;
+    display: block !important;
+    font-size: 0.75rem !important;
+    color: var(--text-muted) !important;
+    margin-bottom: 0.25rem !important;
+    font-weight: 600 !important;
+  }
+  
+  #active-exam-table-body td:nth-child(5)::before {
+    content: 'Yanlış (Oto)' !important;
+    display: block !important;
+    font-size: 0.75rem !important;
+    color: var(--text-muted) !important;
+    margin-bottom: 0.25rem !important;
+    font-weight: 600 !important;
+  }
+  
+  /* Outputs/Results group: Net, Puan, Değişim */
+  #active-exam-table-body td:nth-child(6),
+  #active-exam-table-body td:nth-child(7),
+  #active-exam-table-body td:nth-child(8) {
+    display: inline-block !important;
+    width: 31% !important;
+    margin-right: 2% !important;
+    text-align: center !important;
+    vertical-align: middle !important;
+    margin-top: 0.75rem !important;
+    padding: 0 !important;
+    border-bottom: none !important;
+  }
+  
+  #active-exam-table-body td:nth-child(8) {
+    margin-right: 0 !important;
+  }
+  
+  /* Inject labels for Outputs */
+  #active-exam-table-body td:nth-child(6)::before {
+    content: 'Net' !important;
+    display: block !important;
+    font-size: 0.75rem !important;
+    color: var(--text-muted) !important;
+    margin-bottom: 0.25rem !important;
+    font-weight: 600 !important;
+  }
+  
+  #active-exam-table-body td:nth-child(7)::before {
+    content: 'Puan' !important;
+    display: block !important;
+    font-size: 0.75rem !important;
+    color: var(--text-muted) !important;
+    margin-bottom: 0.25rem !important;
+    font-weight: 600 !important;
+  }
+  
+  #active-exam-table-body td:nth-child(8)::before {
+    content: 'Değişim' !important;
+    display: block !important;
+    font-size: 0.75rem !important;
+    color: var(--text-muted) !important;
+    margin-bottom: 0.25rem !important;
+    font-weight: 600 !important;
+  }
+  
+  /* Input fields override */
+  #active-exam-table-body .exam-table-input {
+    width: 100% !important;
+    font-size: 0.9rem !important;
+    height: 38px !important;
+    border-radius: var(--radius-sm) !important;
+    padding: 0.35rem !important;
+  }
+  
+  /* Make sure the text alignment on results spans looks great */
+  #active-exam-table-body .exam-net-span,
+  #active-exam-table-body .exam-score-span,
+  #active-exam-table-body .score-change-badge {
+    display: inline-block !important;
+    margin-top: 0.25rem !important;
+  }
+}
+
+/* Homework Weekly Mobile View - Yeni CSS Grid Yapısı (No + İsim + Puan üstte, 5 gün altta yan yana) */
+@media (max-width: 768px) {
+  #homework-weekly-table {
+    min-width: 0 !important;
+    display: block !important;
+    width: 100% !important;
+    border: none !important;
+    background: transparent !important;
+  }
+  
+  #homework .table-wrapper {
+    overflow-x: visible !important;
+    border: none !important;
+    padding: 0 !important;
+  }
+
+  /* Header completely hidden on mobile since each card has day labels */
+  #homework-weekly-table thead {
+    display: none !important;
+  }
+
+  /* tbody */
+  #homework-weekly-table tbody {
+    display: block !important;
+    width: 100% !important;
+  }
+
+  /* ============ Öğrenci Satırı = Modern Grid Kartı ============ */
+  #homework-weekly-table-body tr {
+    display: grid !important;
+    grid-template-columns: repeat(5, 1fr) !important;
+    gap: 0.5rem !important;
+    background: var(--bg-secondary, rgba(255,255,255,0.04)) !important;
+    border: 1px solid var(--border-color) !important;
+    border-radius: var(--radius-md) !important;
+    padding: 0.75rem !important;
+    margin-bottom: 0.75rem !important;
+    box-shadow: var(--shadow-sm) !important;
+    box-sizing: border-box !important;
+    width: 100% !important;
+  }
+
+  /* ===== ÜST SATIR: No (1) + İsim (2) + Puan (3) ===== */
+  
+  /* Numara */
+  #homework-weekly-table-body td.td-no {
+    grid-column: span 1 / span 1 !important;
+    grid-row: 1 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    font-weight: 700 !important;
+    font-size: 0.85rem !important;
+    color: var(--text-muted) !important;
+    border-bottom: 1px solid var(--border-color) !important;
+    padding: 0 0 0.5rem 0 !important;
+    margin-bottom: 0.25rem !important;
+  }
+
+  /* Ad Soyad */
+  #homework-weekly-table-body td.td-name {
+    grid-column: span 3 / span 3 !important;
+    grid-row: 1 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    border-bottom: 1px solid var(--border-color) !important;
+    padding: 0 0 0.5rem 0 !important;
+    margin-bottom: 0.25rem !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+  }
+
+  #homework-weekly-table-body td.td-name .homework-weekly-student-name {
+    font-size: 0.9rem !important;
+    font-weight: 700 !important;
+  }
+
+  /* Haftalık Puan */
+  #homework-weekly-table-body td.td-total {
+    grid-column: span 1 / span 1 !important;
+    grid-row: 1 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    border-bottom: 1px solid var(--border-color) !important;
+    padding: 0 0 0.5rem 0 !important;
+    margin-bottom: 0.25rem !important;
+  }
+
+  /* ===== ALT SATIR: Gün Sütunları (5 tane yan yana) ===== */
+  #homework-weekly-table-body td.td-day {
+    grid-column: span 1 / span 1 !important;
+    grid-row: 2 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    border: none !important;
+    padding: 0.25rem 0 !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Gün etiketi (Pzt, Sal, vs.) - Mobilde görünür yapıyoruz */
+  #homework-weekly-table-body td.td-day .hw-mobile-header {
+    display: block !important;
+    font-size: 0.62rem !important;
+    font-weight: 700 !important;
+    color: var(--text-muted) !important;
+    margin-bottom: 0.25rem !important;
+    text-transform: uppercase !important;
+    line-height: 1.1 !important;
+    text-align: center !important;
+    white-space: nowrap !important;
+  }
+
+  #homework-weekly-table-body td.td-day .hw-mobile-date {
+    font-weight: 500 !important;
+    opacity: 0.8 !important;
+  }
+
+  /* Durum rozeti */
+  #homework-weekly-table-body td.td-day .status-badge.status-interactive {
+    width: 100% !important;
+    min-width: 0 !important;
+    font-size: 0.62rem !important;
+    padding: 0.2rem 2px !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    text-align: center !important;
+    border-radius: 6px !important;
+    box-sizing: border-box !important;
+    min-height: 26px !important;
+    line-height: 1 !important;
+  }
+
+  /* Haftalık puan rozeti */
+  #homework-weekly-table-body .weekly-total-badge {
+    font-size: 0.75rem !important;
+    padding: 0.15rem 0.35rem !important;
+  }
+
+  /* Düzenleme/silme butonları her zaman görünür */
+  .hw-col-actions {
+    opacity: 1 !important;
+  }
+}
+
+/* Modallar Mobil Genişlik Garantisi */
+@media (max-width: 768px) {
+  .modal-content {
+    width: calc(100% - 2rem) !important;
+    max-width: calc(100% - 2rem) !important;
+    margin: 1rem !important;
+  }
+}
+
+/* Sınav Listesi Gridi (Çakışmaları önleme) */
+.exams-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.25rem;
+}
+
+@media (max-width: 768px) {
+  .exams-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* Ödev Matrisi Gridi Mobil */
+@media (max-width: 768px) {
+  .homework-matrix-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* Kitaplık Mobil Düzenleme */
+@media (max-width: 768px) {
+  .book-card-list {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 0.75rem !important;
+  }
+  
+  .book-actions-footer {
+    flex-direction: column !important;
+    gap: 0.35rem !important;
+    align-items: flex-start !important;
+  }
+  
+  .book-actions-footer a,
+  .book-actions-footer button {
+    width: 100% !important;
+  }
+}
+
+/* Öğrenci Detay Modalı Sekme Menüsü (Mobil Yatay Kaydırma) */
+@media (max-width: 768px) {
+  .detail-tab-menu {
+    overflow-x: auto !important;
+    white-space: nowrap !important;
+    display: flex !important;
+    gap: 0.5rem !important;
+    -webkit-overflow-scrolling: touch !important;
+    scrollbar-width: none !important; /* Firefox */
+    border-bottom: 1px solid var(--border-color) !important;
+    padding-bottom: 2px !important;
+  }
+  
+  .detail-tab-menu::-webkit-scrollbar {
+    display: none !important; /* Chrome/Safari/Webkit */
+  }
+  
+  .detail-tab-btn {
+    flex: 0 0 auto !important;
+    white-space: nowrap !important;
+  }
+}
+
+/* Uzun İsimlerin Taşmasını Engelleme */
+@media (max-width: 768px) {
+  #dash-weekly-table td:nth-child(3) {
+    width: 56% !important;
+    padding: 0 0.5rem !important;
+    display: flex !important;
+    align-items: center !important;
+    overflow: hidden !important;
+    white-space: nowrap !important;
+    text-overflow: ellipsis !important;
+  }
+  #dash-weekly-table td:nth-child(3) strong {
+    overflow: hidden !important;
+    white-space: nowrap !important;
+    text-overflow: ellipsis !important;
+    display: inline-block !important;
+    max-width: 100% !important;
+  }
+  
+  #performance-students-table td:nth-child(4) {
+    width: 46% !important;
+    padding: 0 0.5rem !important;
+    display: flex !important;
+    align-items: center !important;
+    overflow: hidden !important;
+    white-space: nowrap !important;
+    text-overflow: ellipsis !important;
+  }
+  #performance-students-table td:nth-child(4) strong {
+    overflow: hidden !important;
+    white-space: nowrap !important;
+    text-overflow: ellipsis !important;
+    display: inline-block !important;
+    max-width: 100% !important;
+  }
+}
+
+/* Custom responsive grids for settings/modals */
+.settings-behaviors-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+.settings-homeworks-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.25rem;
+}
+.settings-books-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+}
+.behavior-buttons-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.75rem;
+}
+.form-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+
+/* Touch responsiveness optimization */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (max-width: 768px) {
+  .settings-behaviors-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  .settings-homeworks-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  .settings-books-grid {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+  .behavior-buttons-grid {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+  .form-grid-2 {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+  
+  /* Remove double scroll in student detail academic profile modal */
+  .student-detail-main {
+    max-height: none !important;
+    overflow-y: visible !important;
+    padding-right: 0 !important;
+  }
+}
+
+/* Student Detail Profile Modern Styling */
+.profile-header-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.profile-name-info {
+  margin-top: 0.5rem;
+}
+
+.profile-meta-info {
+  text-align: left;
+  margin-top: 1.5rem;
+  font-size: 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.profile-notes-section {
+  margin-top: 0.25rem;
+}
+
+.student-detail-sidebar .student-avatar {
+  width: 80px;
+  height: 80px;
+  font-size: 1.8rem;
+  margin: 0 auto 0.5rem auto;
+}
+
+@media (max-width: 768px) {
+  .profile-header-card {
+    flex-direction: row !important;
+    align-items: center !important;
+    text-align: left !important;
+    gap: 1rem !important;
+    width: 100% !important;
+    border-bottom: 1px solid var(--border-color) !important;
+    padding-bottom: 0.75rem !important;
+  }
+
+  .profile-name-info {
+    margin-top: 0 !important;
+    flex: 1 !important;
+  }
+
+  .student-detail-sidebar .student-avatar {
+    width: 55px !important;
+    height: 55px !important;
+    font-size: 1.3rem !important;
+    margin: 0 !important;
+    flex-shrink: 0 !important;
+  }
+
+  .student-detail-sidebar #detail-total-score {
+    margin-top: 0 !important;
+    font-size: 0.75rem !important;
+    padding: 0.25rem 0.5rem !important;
+    white-space: nowrap !important;
+  }
+
+  .profile-meta-info {
+    margin-top: 0.75rem !important;
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 0.5rem !important;
+    border-bottom: 1px solid var(--border-color) !important;
+    padding-bottom: 0.75rem !important;
+    margin-bottom: 0.75rem !important;
+  }
+
+  .profile-notes-section {
+    grid-column: span 2 !important;
+    margin-top: 0 !important;
+  }
+
+  /* Prevent horizontal overflow of the Student Academic Profile modal on mobile viewports */
+  #modal-student-detail .modal-content {
+    width: calc(100% - 1.5rem) !important;
+    max-width: calc(100% - 1.5rem) !important;
+    margin: 0.75rem !important;
+    box-sizing: border-box !important;
+    overflow-x: hidden !important;
+  }
+
+  #modal-student-detail .student-detail-grid {
+    grid-template-columns: 1fr !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    overflow: hidden !important;
+    box-sizing: border-box !important;
+    gap: 1rem !important;
+  }
+
+  #modal-student-detail .student-detail-sidebar {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  #modal-student-detail .student-detail-main {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
+    max-height: none !important;
+    overflow-y: visible !important;
+    padding-right: 0 !important;
+  }
+
+  #modal-student-detail .detail-tab-menu {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 0.5rem !important;
+    padding-bottom: 0.75rem !important;
+    margin-bottom: 1rem !important;
+    border-bottom: 1px solid var(--border-color) !important;
+  }
+
+  #modal-student-detail .detail-tab-btn {
+    width: 100% !important;
+    text-align: center !important;
+    padding: 0.5rem 0.25rem !important;
+    font-size: 0.8rem !important;
+    border: 1px solid var(--border-color) !important;
+    border-radius: var(--radius-sm) !important;
+    background: var(--bg-primary) !important;
+    color: var(--text-muted) !important;
+    font-weight: 600 !important;
+    transition: all var(--transition-fast) !important;
+    white-space: normal !important;
+    height: 100% !important;
+    border-bottom: 1px solid var(--border-color) !important;
+  }
+
+  #modal-student-detail .detail-tab-btn.active {
+    background: var(--primary-light, rgba(99, 102, 241, 0.12)) !important;
+    color: var(--primary) !important;
+    border-color: var(--primary) !important;
+  }
+
+  #modal-student-detail .table-wrapper {
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Make General and Weekly performance sub tabs fit side-by-side on Class Control Panel */
+  #dashboard .sub-tab-menu {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    overflow-x: visible !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    gap: 0.25rem !important;
+  }
+
+  #dashboard .sub-tab-btn {
+    flex: 1 1 50% !important;
+    text-align: center !important;
+    justify-content: center !important;
+    padding: 0.6rem 0.25rem !important;
+    font-size: 0.8rem !important;
+    white-space: nowrap !important;
+    flex-shrink: 1 !important;
+  }
+
+  /* Book evaluation questions modal buttons responsiveness */
+  #modal-book-questions .modal-footer {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 0.5rem !important;
+    padding: 1rem !important;
+    justify-content: space-between !important;
+  }
+
+  #modal-book-questions .modal-footer button {
+    flex: 1 1 calc(33.3% - 0.5rem) !important;
+    min-width: 100px !important;
+    font-size: 0.75rem !important;
+    padding: 0.55rem 0.4rem !important;
+    height: auto !important;
+    margin: 0 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 0.25rem !important;
+  }
+}
+
+@media (max-width: 360px) {
+  #dashboard .sub-tab-menu {
+    flex-direction: column !important;
+    gap: 0.5rem !important;
+  }
+  #dashboard .sub-tab-btn {
+    flex: 1 1 100% !important;
+    border-radius: var(--radius-sm) !important;
+    border-bottom: 2px solid transparent !important;
+  }
+  #dashboard .sub-tab-btn.active {
+    border-bottom-color: var(--primary) !important;
+  }
+}
+
+/* Asistan Konfigürasyonu Mobil Görünüm Ayarları */
+@media (max-width: 768px) {
+  #assistant-config .sub-tab-menu {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 0.5rem !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+  
+  #assistant-config .sub-tab-btn {
+    text-align: center !important;
+    justify-content: center !important;
+    padding: 0.6rem 0.25rem !important;
+    font-size: 0.8rem !important;
+    white-space: nowrap !important;
+    border-radius: var(--radius-sm) !important;
+    border-bottom: 2px solid transparent !important;
+  }
+  
+  #assistant-config .sub-tab-btn.active {
+    border-bottom-color: var(--primary) !important;
+  }
+}
+
+/* ==========================================================================
+   GÖREVLER (TASKS) MODÜLÜ STİLLERİ
+   ========================================================================== */
+
+/* Görev Kartları Grid */
+.tasks-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.5rem;
+  margin-top: 1rem;
+}
+
+/* Görev Kartı */
+.task-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  border-left: 4px solid var(--primary);
+  position: relative;
+  transition: transform var(--transition-normal), box-shadow var(--transition-normal), border-color var(--transition-normal);
+}
+
+.task-card.active {
+  border-left-color: var(--primary);
+}
+
+.task-card.completed {
+  border-left-color: var(--success);
+  background: rgba(16, 185, 129, 0.03);
+}
+
+.task-card.overdue {
+  border-left-color: var(--danger);
+  background: rgba(244, 63, 94, 0.03);
+}
+
+/* Hover durumunda biraz öne çıkarma */
+.task-card:hover {
+  transform: translateY(-3px);
+}
+
+/* Görev kartı başlığındaki avatar */
+.task-student-avatar {
+  border: 2px solid var(--border-color);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Kart Puan ve Tarih Rozetleri */
+.task-badge-points {
+  font-family: var(--font-primary);
+}
+
+.task-date-badge {
+  background: rgba(99, 102, 241, 0.05);
+  border: 1px solid rgba(99, 102, 241, 0.15);
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+}
+
+.task-overdue-badge {
+  background: rgba(244, 63, 94, 0.05);
+  border: 1px solid rgba(244, 63, 94, 0.15);
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+}
+
+/* Mobil Uyumluluk */
+@media (max-width: 576px) {
+  .tasks-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+}
+
+/* ==========================================================================
+   TIMER (SÜRE ÖLÇER) MODÜLÜ STİLLERİ
+   ========================================================================== */
+
+#modal-timer .timer-display-container {
+  margin: 1.5rem auto;
+  filter: drop-shadow(0 10px 15px rgba(99, 102, 241, 0.15));
+}
+
+#modal-timer #timer-modal-time {
+  text-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  transition: color 0.3s ease, transform 0.2s ease;
+}
+
+#modal-timer.time-warning #timer-progress-ring {
+  stroke: var(--warning) !important;
+}
+
+#modal-timer.time-danger #timer-progress-ring {
+  stroke: var(--danger) !important;
+}
+
+#modal-timer.time-danger #timer-modal-time {
+  color: var(--danger) !important;
+  animation: timer-pulse 1s infinite alternate;
+}
+
+@keyframes timer-pulse {
+  0% {
+    transform: scale(1);
+    text-shadow: 0 0 10px rgba(244, 63, 94, 0.3);
+  }
+  100% {
+    transform: scale(1.08);
+    text-shadow: 0 0 20px rgba(244, 63, 94, 0.6);
+  }
+}
+
+/* Preset buttons hover effect */
+#modal-timer .preset-btn {
+  transition: all var(--transition-fast) ease;
+}
+#modal-timer .preset-btn:hover {
+  background: var(--primary) !important;
+  color: #fff !important;
+  border-color: var(--primary) !important;
+  transform: translateY(-2px);
+}
+
+/* Button timer start/pause styling */
+#btn-timer-start-pause {
+  transition: all var(--transition-fast) ease;
+}
+#btn-timer-start-pause.running {
+  background-color: var(--warning) !important;
+  border-color: var(--warning) !important;
+}
+#btn-timer-start-pause.running:hover {
+  filter: brightness(0.95);
+}
+
+/* Pulsing badge on dashboard timer button */
+#btn-dash-timer.active-running {
+  animation: button-pulse 1.5s infinite alternate;
+  background-color: rgba(99, 102, 241, 0.15) !important;
+  border-color: var(--primary) !important;
+}
+#btn-dash-timer.active-running i {
+  color: var(--primary) !important;
+}
+
+@keyframes button-pulse {
+  0% {
+    box-shadow: 0 0 0 0px rgba(99, 102, 241, 0.4);
+  }
+  100% {
+    box-shadow: 0 0 0 8px rgba(99, 102, 241, 0);
+  }
+}
+
+/* Fullscreen mode for timer modal */
+#modal-timer.fullscreen-mode {
+  --max-width: 100vw !important;
+  padding: 0 !important;
+  z-index: 9999 !important;
+}
+
+#modal-timer.fullscreen-mode .modal-content {
+  width: 100vw !important;
+  height: 100vh !important;
+  max-width: 100vw !important;
+  max-height: 100vh !important;
+  border-radius: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: space-between !important;
+  background: var(--bg-primary) !important;
+}
+
+#modal-timer.fullscreen-mode .modal-body {
+  flex: 1 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  align-items: center !important;
+  gap: 3rem !important;
+  padding: 2rem !important;
+}
+
+#modal-timer.fullscreen-mode .timer-display-container {
+  width: min(50vw, 50vh) !important;
+  height: min(50vw, 50vh) !important;
+}
+
+#modal-timer.fullscreen-mode #timer-modal-time {
+  font-size: min(12vw, 12vh) !important;
+}
+
+#modal-timer.fullscreen-mode .timer-presets {
+  gap: 1rem !important;
+}
+
+#modal-timer.fullscreen-mode .preset-btn {
+  font-size: 1.2rem !important;
+  padding: 0.75rem 1.5rem !important;
+}
+
+#modal-timer.fullscreen-mode .timer-adjuster {
+  gap: 1.5rem !important;
+}
+
+#modal-timer.fullscreen-mode .timer-adjuster span {
+  font-size: 1.3rem !important;
+}
+
+#modal-timer.fullscreen-mode .timer-adjuster button {
+  font-size: 1.2rem !important;
+  padding: 0.5rem 1rem !important;
+}
+
+#modal-timer.fullscreen-mode .timer-controls button {
+  font-size: 1.3rem !important;
+  padding: 0.75rem !important;
+  max-width: 300px;
+}
+
+#modal-timer.fullscreen-mode .modal-header h3 {
+  font-size: 1.5rem !important;
+}
+
+/* ==========================================================================
+   QUICK CALLER (HIZLI ÖĞRENCİ ÇAĞIRMA) STİLLERİ
+   ========================================================================== */
+
+#modal-quick-caller .caller-display-card {
+  transition: all var(--transition-normal) ease;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.02);
+}
+
+#modal-quick-caller .caller-display-card.winner {
+  background: rgba(99, 102, 241, 0.08) !important;
+  border: 2px solid var(--primary) !important;
+  box-shadow: 0 10px 25px rgba(99, 102, 241, 0.15) !important;
+  transform: scale(1.02);
+}
+
+#modal-quick-caller #caller-student-name {
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+#modal-quick-caller #caller-student-avatar {
+  transition: all var(--transition-normal) ease;
+}
+
+#modal-quick-caller .caller-display-card.winner #caller-student-avatar,
+#modal-quick-caller .caller-display-card.winner #caller-student-photo-container img {
+  animation: avatar-celebrate 0.5s ease-out;
+}
+
+@keyframes avatar-celebrate {
+  0% { transform: scale(0.8) rotate(-10deg); }
+  50% { transform: scale(1.15) rotate(10deg); }
+  100% { transform: scale(1) rotate(0); }
+}
+
+/* Pulsing badge on dashboard caller button */
+#btn-dash-caller.draw-active {
+  animation: button-pulse-caller 1.5s infinite alternate;
+}
+
+@keyframes button-pulse-caller {
+  0% {
+    box-shadow: 0 0 0 0px rgba(99, 102, 241, 0.4);
+  }
+  100% {
+    box-shadow: 0 0 0 8px rgba(99, 102, 241, 0);
+  }
+}
+
+/* Lisans Kısıtlama (Pasif Kart) Tasarımları */
+.passive-locked {
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+.passive-locked > *:not(.lock-overlay) {
+  opacity: 0.45 !important;
+  filter: grayscale(85%) blur(0.5px) !important;
+  pointer-events: none !important;
+}
+
+.lock-overlay {
+  position: absolute !important;
+  inset: 0 !important;
+  background: rgba(15, 23, 42, 0.4) !important;
+  backdrop-filter: blur(1.5px) !important;
+  -webkit-backdrop-filter: blur(1.5px) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  align-items: center !important;
+  z-index: 100 !important;
+  color: #fff !important;
+  gap: 0.5rem !important;
+  border-radius: inherit !important;
+  cursor: pointer !important;
+  transition: background 0.3s !important;
+  pointer-events: auto !important;
+}
+
+.lock-overlay:hover {
+  background: rgba(15, 23, 42, 0.55) !important;
+}
+
+.lock-overlay i, .lock-overlay svg {
+  width: 28px !important;
+  height: 28px !important;
+  color: #f59e0b !important; /* amber color for lock */
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5)) !important;
+}
+
+.lock-overlay span {
+  font-size: 0.78rem !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+  background: linear-gradient(135deg, #fef08a, #f59e0b) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.4) !important;
+}
+
+/* ==========================================================================
+   Öğrenci Gelişim Raporu Yazdırma Stilleri
+   ========================================================================== */
+.student-reports-print {
+  display: none;
+  background: white;
+}
+
+@media print {
+  body.print-reports .student-reports-print {
+    display: block !important;
+  }
+
+  .student-report-page {
+    width: 210mm;
+    min-height: 297mm;
+    box-sizing: border-box;
+    padding: 15mm 20mm;
+    margin: 0 auto;
+    background: white !important;
+    color: #1e293b !important;
+    font-family: 'Inter', system-ui, sans-serif !important;
+    page-break-after: always;
+    page-break-inside: avoid;
+    break-after: page;
+    position: relative;
+  }
+
+  .student-report-page:last-child {
+    page-break-after: avoid;
+    break-after: avoid;
+  }
+
+  .report-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 2px solid #0f172a;
+    padding-bottom: 1rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .report-header h2 {
+    font-size: 1.6rem;
+    font-weight: 800;
+    color: #0f172a;
+    margin: 0;
+    text-align: right;
+  }
+
+  .report-header p.report-date-range {
+    font-size: 0.85rem;
+    color: #475569;
+    margin: 0.25rem 0 0 0;
+    text-align: right;
+    font-weight: 500;
+  }
+
+  .report-logo {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .report-logo span {
+    font-size: 1.3rem;
+    font-weight: 800;
+    color: #4f46e5;
+  }
+
+  .student-info-card {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .student-photo-wrapper img {
+    width: 65px;
+    height: 65px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid #e2e8f0;
+  }
+
+  .student-photo-wrapper .student-avatar-placeholder {
+    width: 65px;
+    height: 65px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 1.4rem;
+    background: #e2e8f0;
+    color: #475569;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .student-meta-details h3 {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 0 0 0.25rem 0;
+  }
+
+  .student-meta-details p {
+    font-size: 0.9rem;
+    color: #475569;
+    margin: 0;
+  }
+
+  .report-sections {
+    display: flex;
+    flex-direction: column;
+    gap: 1.2rem;
+  }
+
+  .report-section-card {
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 1rem;
+    background: white;
+  }
+
+  .report-section-card h4 {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 0 0 0.75rem 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    border-bottom: 1px dashed #e2e8f0;
+    padding-bottom: 0.5rem;
+  }
+
+  .report-section-card h4 i, .report-section-card h4 svg {
+    color: #4f46e5;
+  }
+
+  .report-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 1rem;
+  }
+
+  .report-stat-box {
+    background: #f8fafc;
+    border: 1px solid #f1f5f9;
+    border-radius: 6px;
+    padding: 0.75rem;
+    text-align: center;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .report-stat-box .stat-val {
+    display: block;
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: #0f172a;
+  }
+
+  .report-stat-box .stat-val.text-success { color: #16a34a !important; }
+  .report-stat-box .stat-val.text-warning { color: #d97706 !important; }
+  .report-stat-box .stat-val.text-danger { color: #dc2626 !important; }
+  .report-stat-box .stat-val.text-primary { color: #2563eb !important; }
+
+  .report-stat-box .stat-lbl {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #64748b;
+    margin-top: 0.25rem;
+  }
+
+  .report-footer {
+    position: absolute;
+    bottom: 15mm;
+    left: 20mm;
+    right: 20mm;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    border-top: 1px solid #e2e8f0;
+    padding-top: 1rem;
+    font-size: 0.8rem;
+    color: #64748b;
+  }
+
+  .report-footer .signature-space {
+    text-align: right;
+    font-weight: 600;
+    color: #1e293b;
+  }
+}
+
+
+

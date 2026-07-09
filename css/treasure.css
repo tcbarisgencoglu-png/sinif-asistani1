@@ -1,0 +1,1083 @@
+/* Hazine Sandığı Game Stylesheet */
+
+/* Setup Screen Layout */
+.treasure-groups-setup-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.setup-group-box {
+  background: rgba(255, 255, 255, 0.4);
+  border: 2px dashed var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 1rem;
+  min-height: 150px;
+  display: flex;
+  flex-direction: column;
+  transition: all var(--transition-normal);
+  cursor: pointer;
+}
+
+[data-theme="dark"] .setup-group-box {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.setup-group-box:hover {
+  border-color: var(--primary);
+  background: rgba(79, 70, 229, 0.05);
+}
+
+.setup-group-box.active-target {
+  border-color: var(--primary);
+  background: rgba(79, 70, 229, 0.1);
+  box-shadow: 0 0 12px var(--primary-glow);
+}
+
+.setup-group-box.drag-hover {
+  border-color: var(--primary) !important;
+  background: rgba(79, 70, 229, 0.18) !important;
+  box-shadow: 0 0 18px var(--primary-glow) !important;
+  transform: scale(1.02);
+}
+
+
+.setup-group-box h5 {
+  margin: 0 0 0.75rem 0;
+  font-weight: 700;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 0.3rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.group-setup-student-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  align-content: start;
+  flex-grow: 1;
+}
+
+/* Student Chips */
+.student-chip {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  padding: 0.3rem 0.6rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  transition: all var(--transition-fast);
+}
+
+.student-chip:hover {
+  border-color: var(--primary);
+  transform: translateY(-1px);
+}
+
+.student-chip.selected {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+  box-shadow: 0 4px 10px var(--primary-glow);
+}
+
+.student-chip.dragging {
+  opacity: 0.4;
+  cursor: grabbing;
+}
+
+
+.student-chip .remove-btn {
+  font-size: 0.85rem;
+  font-weight: 700;
+  line-height: 1;
+  opacity: 0.6;
+  margin-left: 0.25rem;
+  transition: opacity var(--transition-fast);
+}
+
+.student-chip .remove-btn:hover {
+  opacity: 1;
+  color: var(--danger);
+}
+
+.unassigned-students-wrapper {
+  background: rgba(255, 255, 255, 0.4);
+  border: 1px solid var(--border-color);
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+}
+
+[data-theme="dark"] .unassigned-students-wrapper {
+  background: rgba(255, 255, 255, 0.01);
+}
+
+.unassigned-students-wrapper.drag-hover {
+  border-color: var(--primary) !important;
+  background: rgba(79, 70, 229, 0.1) !important;
+  box-shadow: 0 0 15px var(--primary-glow) !important;
+}
+
+
+/* Float Animations for Chest */
+.treasure-chest-box {
+  animation: chestFloat 2s ease-in-out infinite alternate;
+  user-select: none;
+  font-size: 5.5rem;
+  display: inline-block;
+  transform-origin: center bottom;
+  transition: transform 0.2s;
+}
+
+.treasure-chest-box:hover {
+  transform: scale(1.1);
+}
+
+.treasure-chest-box.shake-chest {
+  animation: chestShake 0.5s ease-in-out;
+}
+
+@keyframes chestFloat {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(-12px); }
+}
+
+@keyframes chestShake {
+  0%, 100% { transform: rotate(0); }
+  20%, 60% { transform: rotate(-8deg); }
+  40%, 80% { transform: rotate(8deg); }
+}
+
+/* Group active list in play zone */
+.treasure-active-group-card {
+  padding: 1rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  transition: all var(--transition-normal);
+  background: var(--bg-secondary);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.treasure-active-group-card.winning-soon {
+  border-color: var(--warning);
+  box-shadow: 0 0 15px rgba(245, 158, 11, 0.15);
+}
+
+.treasure-group-members-list {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  line-height: 1.4;
+  margin-bottom: 0.75rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.treasure-group-members-list span {
+  background: var(--bg-primary);
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+  border: 1px solid var(--border-color);
+}
+
+.treasure-score-progress-wrapper {
+  margin: 0.5rem 0;
+}
+
+.treasure-progress-bar-bg {
+  background: rgba(0, 0, 0, 0.05);
+  height: 8px;
+  border-radius: 4px;
+  overflow: hidden;
+  width: 100%;
+}
+
+[data-theme="dark"] .treasure-progress-bar-bg {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.treasure-progress-bar-fill {
+  background: var(--primary);
+  height: 100%;
+  width: 0;
+  transition: width 0.3s ease;
+  border-radius: 4px;
+}
+
+.treasure-active-group-card.winning-soon .treasure-progress-bar-fill {
+  background: var(--warning);
+}
+
+/* Score Adjust Buttons */
+.treasure-score-actions {
+  display: flex;
+  gap: 0.3rem;
+  justify-content: flex-end;
+  margin-top: 0.5rem;
+}
+
+.treasure-btn-score {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.3rem 0.5rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.treasure-btn-score:hover {
+  background: var(--primary-light);
+  color: var(--primary);
+  border-color: var(--primary);
+}
+
+.treasure-btn-score.minus:hover {
+  background: rgba(244, 63, 94, 0.1);
+  color: var(--danger);
+  border-color: var(--danger);
+}
+
+/* Ranking board */
+.treasure-ranking-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.6rem 0.8rem;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  font-size: 0.8rem;
+  font-weight: 600;
+  transition: all var(--transition-normal);
+}
+
+.treasure-ranking-item.first-place {
+  background: rgba(245, 158, 11, 0.08);
+  border-color: rgba(245, 158, 11, 0.3);
+  color: var(--warning-dark);
+}
+
+/* Pure CSS 3D Chest and Animations */
+.css-chest-wrapper {
+  position: relative;
+  width: 140px;
+  height: 120px;
+  margin: 0.5rem auto 1.5rem auto;
+  perspective: 800px;
+}
+
+.css-chest {
+  position: relative;
+  width: 140px;
+  height: 120px;
+  transform-style: preserve-3d;
+  transition: transform 0.3s ease;
+}
+
+/* Chest Lid (Top part) */
+.css-chest .chest-lid {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 52px;
+  background: linear-gradient(to right, #2d1500 0%, #5c2d06 15%, #783b0a 30%, #a15c1e 50%, #783b0a 70%, #5c2d06 85%, #2d1500 100%);
+  border-top-left-radius: 65px 48px;
+  border-top-right-radius: 65px 48px;
+  border: 2px solid #3d1c02;
+  border-bottom: none;
+  box-sizing: border-box;
+  z-index: 3;
+  transform-origin: bottom center;
+  transition: transform 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: inset 0 6px 12px rgba(255,255,255,0.1), inset 0 -4px 6px rgba(0,0,0,0.4);
+}
+
+/* Chest Lid Metal Bands */
+.css-chest .chest-lid::before,
+.css-chest .chest-lid::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  width: 12px;
+  height: 100%;
+  background: linear-gradient(to bottom, #d97706, #f59e0b, #b45309);
+  border: 1px solid #78350f;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+}
+
+.css-chest .chest-lid::before {
+  left: 22px;
+  border-top-left-radius: 20px 48px;
+}
+
+.css-chest .chest-lid::after {
+  right: 22px;
+  border-top-right-radius: 20px 48px;
+}
+
+/* Latch hanging down from the Lid */
+.css-chest .chest-latch {
+  position: absolute;
+  bottom: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 20px;
+  height: 24px;
+  background: linear-gradient(to bottom, #f59e0b, #b45309, #78350f);
+  border: 1.5px solid #451a03;
+  border-radius: 0 0 6px 6px;
+  z-index: 4;
+  box-shadow: 0 3px 6px rgba(0,0,0,0.4);
+  transform-origin: top center;
+  transition: transform 0.8s ease;
+}
+
+/* Chest Body (Bottom part) */
+.css-chest .chest-body {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 72px;
+  background: linear-gradient(to right, #2d1500 0%, #5c2d06 15%, #783b0a 30%, #92400e 50%, #783b0a 70%, #5c2d06 85%, #2d1500 100%);
+  border: 2px solid #3d1c02;
+  border-top: 2px solid #1c0a00;
+  border-radius: 0 0 10px 10px;
+  box-sizing: border-box;
+  z-index: 2;
+  box-shadow: inset 0 4px 6px rgba(255,255,255,0.05), inset 0 -6px 12px rgba(0,0,0,0.5), 0 8px 16px rgba(0,0,0,0.5);
+}
+
+/* Chest Body Metal Bands */
+.css-chest .chest-body::before,
+.css-chest .chest-body::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  width: 12px;
+  height: 100%;
+  background: linear-gradient(to bottom, #f59e0b, #d97706, #78350f);
+  border: 1px solid #78350f;
+  box-sizing: border-box;
+}
+
+.css-chest .chest-body::before {
+  left: 22px;
+}
+
+.css-chest .chest-body::after {
+  right: 22px;
+}
+
+/* Metal Corners */
+.css-chest .chest-body-corner-lh,
+.css-chest .chest-body-corner-rh {
+  position: absolute;
+  bottom: 0;
+  width: 16px;
+  height: 20px;
+  background: linear-gradient(to bottom, #f59e0b, #b45309);
+  border: 1px solid #78350f;
+  z-index: 3;
+}
+
+.css-chest .chest-body-corner-lh {
+  left: 0;
+  border-bottom-left-radius: 8px;
+}
+
+.css-chest .chest-body-corner-rh {
+  right: 0;
+  border-bottom-right-radius: 8px;
+}
+
+/* Lock Plate in Center of Body */
+.css-chest .chest-lock-plate {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 34px;
+  height: 34px;
+  background: radial-gradient(circle, #fbbf24 30%, #d97706 70%, #92400e 100%);
+  border: 2px solid #451a03;
+  border-radius: 50%;
+  z-index: 4;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.4);
+}
+
+.css-chest .chest-lock-plate::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 8px;
+  height: 12px;
+  background: #1e1b4b;
+  border-radius: 4px 4px 2px 2px;
+}
+
+/* Padlock floating/flying */
+.css-chest .chest-padlock {
+  position: absolute;
+  top: -2px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 2.2rem;
+  z-index: 5;
+  cursor: pointer;
+  filter: drop-shadow(0 4px 6px rgba(0,0,0,0.4));
+  transition: opacity 0.4s ease, transform 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+/* Radial Glow behind chest */
+.css-chest-glow {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0.6);
+  width: 140px;
+  height: 120px;
+  background: radial-gradient(circle, rgba(245, 158, 11, 0.95) 0%, rgba(217, 119, 6, 0.4) 50%, rgba(245, 158, 11, 0) 75%);
+  z-index: 1;
+  opacity: 0;
+  transition: opacity 1s ease, transform 1.2s ease;
+  filter: blur(8px);
+}
+
+/* Open State Animations for Victory Chest */
+.css-chest-wrapper.open .chest-lid {
+  transform: rotateX(-115deg) translateY(-8px);
+}
+
+/* Latch swings up when lid opens */
+.css-chest-wrapper.open .chest-latch {
+  transform: translateX(-50%) rotateX(120deg);
+}
+
+.css-chest-wrapper.open .chest-padlock {
+  transform: translate(-50%, -40px) rotate(45deg) scale(0);
+  opacity: 0;
+}
+
+.css-chest-wrapper.open .css-chest-glow {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(3.5);
+  animation: glowPulse 1.5s infinite alternate ease-in-out;
+}
+
+/* Shaking animations during countdown */
+.css-chest-wrapper.shake-gentle .css-chest {
+  animation: chestVibrate 0.15s infinite alternate ease-in-out;
+}
+
+.css-chest-wrapper.shake-intense .css-chest {
+  animation: chestVibrateIntense 0.08s infinite alternate ease-in-out;
+}
+
+.css-chest-wrapper.shake-gentle .css-chest-glow {
+  opacity: 0.3;
+  transform: translate(-50%, -50%) scale(1.2);
+}
+
+.css-chest-wrapper.shake-intense .css-chest-glow {
+  opacity: 0.7;
+  transform: translate(-50%, -50%) scale(1.8);
+  animation: glowPulse 0.4s infinite alternate ease-in-out;
+}
+
+@keyframes chestVibrate {
+  0% { transform: translate(2px, 1px) rotate(1deg); }
+  100% { transform: translate(-2px, -1px) rotate(-1deg); }
+}
+
+@keyframes chestVibrateIntense {
+  0% { transform: translate(4px, 2px) rotate(2.5deg) scale(1.03); }
+  100% { transform: translate(-4px, -2px) rotate(-2.5deg) scale(1.03); }
+}
+
+@keyframes glowPulse {
+  0% { filter: blur(4px) brightness(1); }
+  100% { filter: blur(7px) brightness(1.4); }
+}
+
+/* Victory Countdown Display Badge */
+.victory-countdown-badge {
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  background: rgba(15, 23, 42, 0.85);
+  border: 3px solid var(--warning);
+  color: var(--warning);
+  font-size: 2.2rem;
+  font-weight: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1.5rem auto;
+  box-shadow: 0 0 20px rgba(245, 158, 11, 0.4), inset 0 0 10px rgba(245, 158, 11, 0.2);
+  backdrop-filter: blur(4px);
+  animation: countdownPulse 1s infinite alternate;
+}
+
+@keyframes countdownPulse {
+  0% { transform: scale(1); box-shadow: 0 0 15px rgba(245, 158, 11, 0.4); }
+  100% { transform: scale(1.15); box-shadow: 0 0 25px rgba(245, 158, 11, 0.7); }
+}
+
+/* Parchment Scroll Container (CSS-based upgrade) */
+.parchment-scroll {
+  position: relative;
+  width: 95%;
+  max-width: 460px;
+  margin: 0 auto;
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  border: 3px solid #b45309;
+  border-radius: 16px;
+  padding: 1.5rem 2rem;
+  box-sizing: border-box;
+  opacity: 0;
+  z-index: 10;
+  text-align: center;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), inset 0 0 25px rgba(180, 83, 9, 0.25);
+  pointer-events: none;
+  
+  /* Initial state: small and sitting low inside chest body */
+  transform: translateY(60px) scale(0.01);
+  max-height: 0;
+  overflow: hidden;
+  transition: transform 1.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.8s ease, max-height 0.8s ease, margin 0.8s ease;
+}
+
+/* Roll effects on the top and bottom to make it look like a scroll */
+.parchment-scroll::before,
+.parchment-scroll::after {
+  content: '';
+  position: absolute;
+  left: -5px;
+  right: -5px;
+  height: 12px;
+  background: linear-gradient(to bottom, #d97706, #b45309, #78350f);
+  border: 1.5px solid #451a03;
+  border-radius: 6px;
+}
+
+.parchment-scroll::before {
+  top: -6px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.parchment-scroll::after {
+  bottom: -6px;
+  box-shadow: 0 -2px 4px rgba(0,0,0,0.2);
+}
+
+/* Revealed state */
+.parchment-scroll.revealed {
+  transform: translateY(-50px) scale(1);
+  opacity: 1;
+  z-index: 10;
+  pointer-events: auto;
+  max-height: 300px;
+  margin-bottom: -30px;
+  overflow: visible;
+}
+
+/* Responsive adjustments for mobile (phones) */
+@media (max-width: 768px) {
+  /* 1. Setup Screen Layout */
+  .groups-setup-layout {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 1.25rem !important;
+  }
+  
+  .unassigned-students-wrapper {
+    height: 240px !important; /* Shorter unassigned box on mobile */
+  }
+  
+  /* 2. Active Game Screen Layout */
+  #games-treasure-view .play-layout {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0.75rem !important;
+  }
+  
+  /* Compact horizontal row for chest and stats */
+  #games-treasure-view .play-student-zone .glass-card {
+    flex-direction: row !important;
+    justify-content: flex-start !important;
+    align-items: center !important;
+    padding: 0.75rem 1rem !important;
+    height: auto !important;
+    gap: 1rem !important;
+    text-align: left !important;
+  }
+  
+  #games-treasure-view .play-student-zone .css-chest-wrapper {
+    margin: 0 !important;
+    transform: scale(0.6) !important;
+    width: 84px !important;
+    height: 72px !important;
+    flex-shrink: 0 !important;
+  }
+  
+  #games-treasure-view .play-student-zone div:last-child {
+    margin-top: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0.2rem !important;
+  }
+  
+  #games-treasure-view .play-student-zone h4 {
+    font-size: 1rem !important;
+  }
+  
+  #games-treasure-view .play-student-zone p {
+    margin: 0 !important;
+    font-size: 0.75rem !important;
+  }
+
+  /* Hide the redundant ranking board during play on mobile */
+  #games-treasure-view .play-stats-zone {
+    display: none !important;
+  }
+  
+  /* Compact Active Game card */
+  #games-treasure-view .play-content .game-card {
+    padding: 1rem !important;
+    min-height: auto !important; /* override the inline 480px */
+  }
+  
+  #games-treasure-view .play-content .question-body-play {
+    padding: 0.75rem 0.5rem !important;
+  }
+  
+  #games-treasure-view #treasure-question-text {
+    font-size: 1.05rem !important;
+    margin-bottom: 0.5rem !important;
+  }
+  
+  #games-treasure-view .game-controls-container {
+    margin: 0.5rem 0 !important;
+    padding: 0.5rem !important;
+    gap: 0.75rem !important;
+  }
+  
+  /* Compact Group Scorecards */
+  #games-treasure-view .treasure-active-group-card {
+    padding: 0.75rem !important;
+  }
+  
+  /* Hide student list inside active group cards on mobile to save massive vertical space */
+  #games-treasure-view .treasure-group-members-list {
+    display: none !important;
+  }
+  
+  #games-treasure-view .treasure-score-progress-wrapper {
+    margin: 0.25rem 0 !important;
+  }
+  
+  #games-treasure-view .treasure-score-actions {
+    margin-top: 0.25rem !important;
+  }
+  
+  #games-treasure-view .treasure-btn-score {
+    padding: 0.25rem 0.4rem !important;
+    font-size: 0.7rem !important;
+  }
+
+  /* 3. Victory Screen Overlay (Compact layout on mobile) */
+  #treasure-victory-overlay .feedback-card {
+    padding: 1.25rem !important;
+    max-width: 440px !important;
+  }
+  
+  #treasure-victory-overlay .css-chest-wrapper {
+    transform: scale(0.85) !important;
+    margin-bottom: 1rem !important;
+    height: 105px !important;
+  }
+  
+  #treasure-victory-overlay .parchment-scroll {
+    padding: 1rem 1.25rem !important;
+    max-width: 380px !important;
+    transform: translateY(40px) scale(0.01) !important;
+  }
+  
+  #treasure-victory-overlay .parchment-scroll.revealed {
+    transform: translateY(-30px) scale(1) !important;
+    max-height: 200px !important;
+    margin-bottom: -15px !important;
+  }
+  
+  #treasure-victory-overlay #treasure-winner-reward {
+    font-size: 1.15rem !important;
+  }
+  
+  #treasure-victory-overlay h2 {
+    font-size: 1.35rem !important;
+    margin-top: 0.5rem !important;
+  }
+  
+  #treasure-victory-overlay p#treasure-winner-desc {
+    font-size: 0.8rem !important;
+    margin-bottom: 1rem !important;
+  }
+  
+  #treasure-victory-overlay .victory-countdown-badge {
+    width: 50px !important;
+    height: 50px !important;
+    font-size: 1.6rem !important;
+    margin-bottom: 1rem !important;
+  }
+}
+
+/* Custom Add Student Button & Dropdown Styles for Group Setup */
+.btn-setup-add-student {
+  background: var(--primary);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  box-shadow: 0 2px 6px var(--primary-glow);
+  line-height: 1;
+}
+
+.btn-setup-add-student:hover {
+  background: var(--primary-dark);
+  transform: scale(1.1);
+}
+
+.student-select-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 1000;
+  width: 200px;
+  display: flex;
+  flex-direction: column;
+  padding: 0.35rem 0;
+  margin-top: 0.25rem;
+}
+
+[data-theme="dark"] .student-select-dropdown {
+  background: var(--bg-dark-card);
+  box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+}
+
+.student-select-item {
+  padding: 0.5rem 1rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  color: var(--text-primary);
+  transition: all var(--transition-fast);
+  text-align: left;
+}
+
+.student-select-item:hover {
+  background: var(--primary-light);
+  color: var(--primary);
+}
+
+[data-theme="dark"] .student-select-item:hover {
+  background: rgba(79, 70, 229, 0.2);
+  color: var(--primary-light);
+}
+
+/* Modern Split Setup Layout */
+.groups-setup-layout-modern {
+  display: grid;
+  grid-template-columns: 1fr 380px;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+@media (max-width: 1024px) {
+  .groups-setup-layout-modern {
+    grid-template-columns: 1fr;
+  }
+}
+
+.setup-groups-column {
+  display: flex;
+  flex-direction: column;
+}
+
+.treasure-groups-setup-grid-modern {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 1rem;
+  align-content: start;
+}
+
+.setup-students-column {
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  height: 520px;
+  background: rgba(255, 255, 255, 0.4);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  box-sizing: border-box;
+}
+
+[data-theme="dark"] .setup-students-column {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.students-column-header {
+  margin-bottom: 1rem;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 0.75rem;
+}
+
+.master-students-grid-modern {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding-right: 0.25rem;
+}
+
+/* Master Student Row Card */
+.master-student-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 0.75rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
+}
+
+.master-student-row:hover {
+  border-color: var(--primary);
+  background: var(--bg-primary);
+}
+
+.master-student-row.is-assigned {
+  background: rgba(79, 70, 229, 0.03);
+  border-style: solid;
+}
+
+[data-theme="dark"] .master-student-row.is-assigned {
+  background: rgba(79, 70, 229, 0.06);
+}
+
+.student-row-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.student-row-gender-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.student-row-gender-dot.female {
+  background-color: #ec4899;
+  box-shadow: 0 0 6px rgba(236, 72, 153, 0.4);
+}
+
+.student-row-gender-dot.male {
+  background-color: #3b82f6;
+  box-shadow: 0 0 6px rgba(59, 130, 246, 0.4);
+}
+
+.student-row-gender-dot.unspecified {
+  background-color: #94a3b8;
+}
+
+.student-row-name {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.student-row-assigners {
+  display: flex;
+  gap: 0.25rem;
+  flex-shrink: 0;
+}
+
+/* Clickable assignment button inside row */
+.btn-row-assign {
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-primary);
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast);
+  user-select: none;
+}
+
+.btn-row-assign:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+  background: var(--primary-light);
+}
+
+/* Group-specific active states for buttons */
+.btn-row-assign.active-g1 {
+  background: #3b82f6 !important;
+  border-color: #3b82f6 !important;
+  color: white !important;
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
+}
+.btn-row-assign.active-g2 {
+  background: #f59e0b !important;
+  border-color: #f59e0b !important;
+  color: white !important;
+  box-shadow: 0 2px 4px rgba(245, 158, 11, 0.3);
+}
+.btn-row-assign.active-g3 {
+  background: #10b981 !important;
+  border-color: #10b981 !important;
+  color: white !important;
+  box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3);
+}
+.btn-row-assign.active-g4 {
+  background: #8b5cf6 !important;
+  border-color: #8b5cf6 !important;
+  color: white !important;
+  box-shadow: 0 2px 4px rgba(139, 92, 246, 0.3);
+}
+.btn-row-assign.active-g5 {
+  background: #ec4899 !important;
+  border-color: #ec4899 !important;
+  color: white !important;
+  box-shadow: 0 2px 4px rgba(236, 72, 153, 0.3);
+}
+.btn-row-assign.active-g6 {
+  background: #06b6d4 !important;
+  border-color: #06b6d4 !important;
+  color: white !important;
+  box-shadow: 0 2px 4px rgba(6, 182, 212, 0.3);
+}
+
+/* Kanban group box card upgrade */
+.setup-group-box-modern {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 1rem;
+  min-height: 180px;
+  display: flex;
+  flex-direction: column;
+  transition: all var(--transition-normal);
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.02);
+}
+
+[data-theme="dark"] .setup-group-box-modern {
+  background: rgba(255, 255, 255, 0.01);
+}
+
+.setup-group-box-modern::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: var(--border-color);
+}
+
+/* Group header band colors */
+.setup-group-box-modern.group-color-1::before { background: #3b82f6; }
+.setup-group-box-modern.group-color-2::before { background: #f59e0b; }
+.setup-group-box-modern.group-color-3::before { background: #10b981; }
+.setup-group-box-modern.group-color-4::before { background: #8b5cf6; }
+.setup-group-box-modern.group-color-5::before { background: #ec4899; }
+.setup-group-box-modern.group-color-6::before { background: #06b6d4; }
+
+.setup-group-box-modern h5 {
+  margin: 0 0 0.75rem 0;
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 0.4rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.group-name-input-setup {
+  border: none;
+  background: transparent;
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--text-primary);
+  width: 70%;
+  padding: 0;
+  border-bottom: 1px dashed transparent;
+  transition: border var(--transition-fast);
+}
+
+.group-name-input-setup:focus {
+  outline: none;
+  border-bottom-color: var(--primary);
+  background: rgba(0,0,0,0.02);
+}
+
+[data-theme="dark"] .group-name-input-setup:focus {
+  background: rgba(255,255,255,0.02);
+}
+
+

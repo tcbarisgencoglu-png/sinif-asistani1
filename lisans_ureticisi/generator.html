@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sınıf Asistanı - Lisans Anahtarı Üretici</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #0f172a;
+      --bg-card: #1e293b;
+      --primary: #6366f1;
+      --primary-hover: #4f46e5;
+      --success: #10b981;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --border: rgba(255, 255, 255, 0.08);
+    }
+    
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Outfit', sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 500px;
+      background-color: var(--bg-card);
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
+      padding: 2rem;
+      transition: transform 0.3s ease;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    .header h1 {
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 0.5rem;
+      background: linear-gradient(135deg, #a5b4fc, #6366f1);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .header p {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+    }
+
+    .form-group {
+      margin-bottom: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    label {
+      font-weight: 600;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    input, select {
+      width: 100%;
+      padding: 0.75rem;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background-color: rgba(15, 23, 42, 0.6);
+      color: var(--text);
+      font-size: 0.95rem;
+      outline: none;
+      transition: all 0.2s ease;
+    }
+
+    input:focus, select:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25);
+    }
+
+    .btn {
+      width: 100%;
+      padding: 0.85rem;
+      border-radius: 8px;
+      border: none;
+      background-color: var(--primary);
+      color: white;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      margin-top: 1rem;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn:hover {
+      background-color: var(--primary-hover);
+      transform: translateY(-1px);
+    }
+
+    .btn:active {
+      transform: translateY(0);
+    }
+
+    .result-container {
+      margin-top: 2rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid var(--border);
+      display: none;
+    }
+
+    .result-title {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.75rem;
+    }
+
+    .result-title h3 {
+      font-size: 0.95rem;
+      color: var(--success);
+      font-weight: 600;
+    }
+
+    .btn-copy {
+      font-size: 0.8rem;
+      padding: 0.35rem 0.75rem;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-copy:hover {
+      background: rgba(255, 255, 255, 0.15);
+    }
+
+    .btn-copy.copied {
+      background-color: var(--success);
+      color: white;
+      border-color: var(--success);
+    }
+
+    .result-key {
+      width: 100%;
+      height: 90px;
+      padding: 0.75rem;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background-color: #0f172a;
+      color: #38bdf8;
+      font-family: monospace;
+      font-size: 0.85rem;
+      resize: none;
+      outline: none;
+      word-break: break-all;
+    }
+
+    .custom-date-container {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <div class="header">
+      <h1>Lisans Anahtarı Üretici</h1>
+      <p>Sınıf Asistanı için offline aktivasyon kodları oluşturun</p>
+    </div>
+
+    <!-- Müşteri Adı -->
+    <div class="form-group">
+      <label for="txtName">Müşteri Adı / E-postası</label>
+      <input type="text" id="txtName" placeholder="Örn: Ahmet Yılmaz veya ahmet@okul.com" required>
+    </div>
+
+    <!-- Lisans Süresi -->
+    <div class="form-group">
+      <label for="selPeriod">Lisans Süresi</label>
+      <select id="selPeriod">
+        <option value="1y">1 Yıllık Lisans</option>
+        <option value="2y">2 Yıllık Lisans</option>
+        <option value="never">Ömür Boyu (Süresiz)</option>
+        <option value="custom">Özel Tarih Belirle...</option>
+      </select>
+    </div>
+
+    <!-- Özel Tarih Seçici -->
+    <div class="form-group custom-date-container" id="customDateGroup">
+      <label for="dateCustom">Lisans Bitiş Tarihi</label>
+      <input type="date" id="dateCustom">
+    </div>
+
+    <button id="btnGenerate" class="btn">Lisans Kodu Üret</button>
+
+    <!-- Sonuç Paneli -->
+    <div class="result-container" id="resultPanel">
+      <div class="result-title">
+        <h3>Lisans Anahtarı Başarıyla Üretildi</h3>
+        <button id="btnCopy" class="btn-copy">Kopyala</button>
+      </div>
+      <textarea id="txtResult" class="result-key" readonly></textarea>
+    </div>
+  </div>
+
+  <script>
+    const SECRET_SALT = 'SinifAsistani2026SecureLicensingKey_v1';
+
+    // UI Kontrolleri
+    const selPeriod = document.getElementById('selPeriod');
+    const customDateGroup = document.getElementById('customDateGroup');
+    const dateCustom = document.getElementById('dateCustom');
+    const btnGenerate = document.getElementById('btnGenerate');
+    const resultPanel = document.getElementById('resultPanel');
+    const txtResult = document.getElementById('txtResult');
+    const btnCopy = document.getElementById('btnCopy');
+    const txtName = document.getElementById('txtName');
+
+    // Özel tarih grubunu göster/gizle
+    selPeriod.addEventListener('change', () => {
+      if (selPeriod.value === 'custom') {
+        customDateGroup.style.display = 'flex';
+        // Varsayılan olarak bugünün tarihini ayarla
+        const today = new Date().toISOString().split('T')[0];
+        dateCustom.value = today;
+      } else {
+        customDateGroup.style.display = 'none';
+      }
+    });
+
+    // cyrb128 algoritması
+    function cyrb128(str) {
+      let h1 = 1779033703, h2 = 3024733165, h3 = 3362453659, h4 = 502493250;
+      for (let i = 0, k; i < str.length; i++) {
+        k = str.charCodeAt(i);
+        h1 = h2 ^ Math.imul(h1 ^ k, 597399067);
+        h2 = h3 ^ Math.imul(h2 ^ k, 2869860233);
+        h3 = h4 ^ Math.imul(h3 ^ k, 951274213);
+        h4 = h1 ^ Math.imul(h4 ^ k, 2716044179);
+      }
+      h1 = Math.imul(h3 ^ (h1 >>> 18), 597399067);
+      h2 = Math.imul(h4 ^ (h2 >>> 22), 2869860233);
+      h3 = Math.imul(h1 ^ (h3 >>> 17), 951274213);
+      h4 = Math.imul(h2 ^ (h4 >>> 19), 2716044179);
+      return [(h1^h2^h3^h4)>>>0, (h2^h1)>>>0, (h3^h1)>>>0, (h4^h1)>>>0];
+    }
+
+    // Unicode Base64
+    function encodeUtf8Base64(str) {
+      return btoa(unescape(encodeURIComponent(str)));
+    }
+
+    // İmzayı oluştur
+    function generateSignature(name, expiry) {
+      const rawData = `${name.trim().toLowerCase()}|${expiry}|${SECRET_SALT}`;
+      const hashes = cyrb128(rawData);
+      
+      const toHex = (n) => (n >>> 0).toString(16).padStart(8, '0').toUpperCase();
+      const hex = hashes.map(toHex).join('');
+      
+      return `${hex.substr(0,4)}-${hex.substr(4,4)}-${hex.substr(8,4)}-${hex.substr(12,4)}`;
+    }
+
+    // Üret Butonu Tıklaması
+    btnGenerate.addEventListener('click', () => {
+      const name = txtName.value.trim();
+      if (!name) {
+        alert('Lütfen Müşteri Adı veya E-postasını girin.');
+        return;
+      }
+
+      let expiry = 'never';
+      const period = selPeriod.value;
+
+      if (period === '1y') {
+        const date = new Date();
+        date.setFullYear(date.getFullYear() + 1);
+        expiry = date.toISOString().split('T')[0];
+      } else if (period === '2y') {
+        const date = new Date();
+        date.setFullYear(date.getFullYear() + 2);
+        expiry = date.toISOString().split('T')[0];
+      } else if (period === 'custom') {
+        expiry = dateCustom.value;
+        if (!expiry) {
+          alert('Lütfen geçerli bir bitiş tarihi seçin.');
+          return;
+        }
+      }
+
+      // Payload ve İmza oluştur
+      const payloadString = `${name}|${expiry}`;
+      const payloadBase64 = encodeUtf8Base64(payloadString);
+      const signature = generateSignature(name, expiry);
+
+      // Anahtar birleştirme
+      const licenseKey = `${payloadBase64}-${signature}`;
+
+      // Arayüzde göster
+      txtResult.value = licenseKey;
+      resultPanel.style.display = 'block';
+      
+      // Kopyalama butonunu sıfırla
+      btnCopy.textContent = 'Kopyala';
+      btnCopy.classList.remove('copied');
+    });
+
+    // Kopyalama işlemi
+    btnCopy.addEventListener('click', () => {
+      txtResult.select();
+      document.execCommand('copy');
+      btnCopy.textContent = 'Kopyalandı!';
+      btnCopy.classList.add('copied');
+      
+      setTimeout(() => {
+        btnCopy.textContent = 'Kopyala';
+        btnCopy.classList.remove('copied');
+      }, 2000);
+    });
+  </script>
+</body>
+</html>
