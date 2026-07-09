@@ -12,8 +12,7 @@ yarn-error.log*
 src-tauri/target/
 !src-tauri/target/.gitkeep
 
-# Build outputs
-dist/
+# Build artifacts (only Rust target, not dist)
 build/
 
 # IDE
