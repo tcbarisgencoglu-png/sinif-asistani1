@@ -94,3 +94,5 @@ jobs:
             src-tauri/target/release/bundle/**/*.AppImage
             src-tauri/target/release/bundle/**/*.deb
           if-no-files-found: ignore
+permissions:
+  contents: write
