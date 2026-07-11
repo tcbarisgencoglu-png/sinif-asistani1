@@ -228,4 +228,4 @@ Herhangi bir sorun yaşarsanız lütfen GitHub Issues üzerinden bildirin.
 
 ---
 
-*Sınıf Asistanı — Her öğretmenin yanında olacak dijital asistanı* 🍎
+*Sınıf Asistanı — Her öğretmenin yanında olacak dijital asistanı* 🍎.
