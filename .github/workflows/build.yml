@@ -72,7 +72,8 @@ jobs:
         if: matrix.platform == 'windows-latest'
         shell: powershell
         run: |
-          if (-not (Test-Path dist)) { New-Item -ItemType Directory -Path dist }
+          if (Test-Path dist) { Remove-Item -Recurse -Force dist }
+          New-Item -ItemType Directory -Path dist
           Copy-Item index.html dist/
           Copy-Item -Recurse css dist/
           Copy-Item -Recurse js dist/
