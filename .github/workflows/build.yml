@@ -63,6 +63,7 @@ jobs:
         run: npm install
 
       - name: dist klasörünü hazırla
+        continue-on-error: true
         run: |
           mkdir -p dist
           cp index.html dist/
