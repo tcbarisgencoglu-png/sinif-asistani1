@@ -62,13 +62,22 @@ jobs:
       - name: npm bağımlılıklarını yükle
         run: npm install
 
-      - name: dist klasörünü hazırla
-        continue-on-error: true
+      - name: dist klasörünü hazırla (Linux/Mac)
+        if: matrix.platform != 'windows-latest'
         run: |
           mkdir -p dist
           cp index.html dist/
           cp -r css dist/
           cp -r js dist/
+
+      - name: dist klasörünü hazırla (Windows)
+        if: matrix.platform == 'windows-latest'
+        shell: powershell
+        run: |
+          if (-not (Test-Path dist)) { New-Item -ItemType Directory -Path dist }
+          Copy-Item index.html dist/
+          Copy-Item -Recurse css dist/
+          Copy-Item -Recurse js dist/
 
       - name: Tauri derle
         uses: tauri-apps/tauri-action@v0
@@ -81,7 +90,6 @@ jobs:
             Bu sürümdeki değişiklikler için CHANGELOG.md dosyasına bakın.
           releaseDraft: true
           prerelease: false
-          overwrite: true
           args: ${{ matrix.args }}
 
       - name: Paketleri yükle
