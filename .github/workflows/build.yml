@@ -22,7 +22,7 @@ jobs:
           - platform: "ubuntu-22.04"
             args: ""
           - platform: "windows-latest"
-            args: ""
+            args: "--bundles nsis"
 
     runs-on: ${{ matrix.platform }}
 
@@ -79,7 +79,7 @@ jobs:
           Copy-Item -Recurse js dist/
 
       - name: Tauri derle
-        uses: tauri-apps/tauri-action@v0
+        uses: tauri-apps/tauri-action@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
