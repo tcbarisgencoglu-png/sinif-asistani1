@@ -81,6 +81,7 @@ jobs:
             Bu sürümdeki değişiklikler için CHANGELOG.md dosyasına bakın.
           releaseDraft: true
           prerelease: false
+          overwrite: true
           args: ${{ matrix.args }}
 
       - name: Paketleri yükle
