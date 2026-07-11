@@ -4,8 +4,6 @@ on:
   push:
     branches:
       - main
-    tags:
-      - "v*"
   pull_request:
     branches:
       - main
@@ -84,12 +82,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tagName: ${{ github.ref_name }}
-          releaseName: "Sınıf Asistanı v__VERSION__"
-          releaseBody: |
-            Bu sürümdeki değişiklikler için CHANGELOG.md dosyasına bakın.
-          releaseDraft: true
-          prerelease: false
           args: ${{ matrix.args }}
 
       - name: Paketleri yükle
