@@ -4,10 +4,15 @@ on:
   push:
     branches:
       - main
+    tags:
+      - "v*"
   pull_request:
     branches:
       - main
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   build-tauri:
@@ -17,12 +22,16 @@ jobs:
         include:
           - platform: "macos-latest"
             args: "--target aarch64-apple-darwin"
+            artifact_name: "mac-apple-silicon"
           - platform: "macos-latest"
             args: "--target x86_64-apple-darwin"
+            artifact_name: "mac-intel"
           - platform: "ubuntu-22.04"
             args: ""
+            artifact_name: "linux"
           - platform: "windows-latest"
             args: "--bundles nsis"
+            artifact_name: "windows"
 
     runs-on: ${{ matrix.platform }}
 
@@ -78,17 +87,46 @@ jobs:
           Copy-Item -Recurse css dist/
           Copy-Item -Recurse js dist/
 
-      - name: Tauri derle
+      - name: Tauri derle (Normal Push)
+        if: ${{ !startsWith(github.ref, 'refs/tags/') }}
         uses: tauri-apps/tauri-action@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           args: ${{ matrix.args }}
 
-      - name: Paketleri yükle
+      - name: Tauri derle ve Release oluştur (Etiket Push)
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: tauri-apps/tauri-action@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: "Sınıf Asistanı ${{ github.ref_name }}"
+          releaseBody: |
+            ## 🎉 Sınıf Asistanı ${{ github.ref_name }} Yayınlandı!
+
+            ### 📥 Kurulum Dosyaları
+
+            Aşağıdan işletim sisteminize uygun dosyayı indirin:
+
+            | Platform | Dosya |
+            |---|---|
+            | 🍎 Mac (M1/M2/M3 Apple Silicon) | `.dmg` — `aarch64` |
+            | 🍎 Mac (Intel) | `.dmg` — `x86_64` |
+            | 🪟 Windows | `.exe` (NSIS Kurulum) |
+            | 🐧 Linux | `.deb` veya `.AppImage` |
+
+            ---
+            Değişiklikler için [CHANGELOG.md](https://github.com/tcbarisgencoglu-png/sinif-asistani1/blob/main/CHANGELOG.md) dosyasına bakın.
+          releaseDraft: false
+          prerelease: false
+          args: ${{ matrix.args }}
+
+      - name: Paketleri yükle (Artifacts)
         uses: actions/upload-artifact@v4
         with:
-          name: sinif-asistani-${{ matrix.platform }}-${{ matrix.args != '' && matrix.args || 'default' }}
+          name: sinif-asistani-${{ matrix.artifact_name }}
           path: |
             src-tauri/target/release/bundle/**/*.dmg
             src-tauri/target/release/bundle/**/*.app
@@ -103,5 +141,3 @@ jobs:
             src-tauri/target/*/release/bundle/**/*.AppImage
             src-tauri/target/*/release/bundle/**/*.deb
           if-no-files-found: ignore
-permissions:
-  contents: write
