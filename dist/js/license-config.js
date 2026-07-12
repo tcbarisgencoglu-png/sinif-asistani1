@@ -104,6 +104,7 @@
       studentLimit: 5,
       planLimit: 2,
       bookLimit: 10,
+      notebookLimit: 2,
       verifyLicenseKey: verifyLicenseKey,
       generateSignature: generateSignature,
       encodeUtf8Base64: encodeUtf8Base64,

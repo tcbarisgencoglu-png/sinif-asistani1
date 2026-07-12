@@ -526,7 +526,8 @@
             Uygulama Demo sürümündedir. Aşağıdaki sınırlamalar geçerlidir:<br>
             • Öğrenci Sayısı: Maksimum <strong>${config.studentLimit}</strong> öğrenci<br>
             • Kitaplık Kitap Sayısı: Maksimum <strong>${config.bookLimit}</strong> kitap<br>
-            • Yıllık Ders Planı Sayısı: Maksimum <strong>${config.planLimit}</strong> plan
+            • Yıllık Ders Planı Sayısı: Maksimum <strong>${config.planLimit}</strong> plan<br>
+            • Defter Sayısı: Maksimum <strong>${config.notebookLimit}</strong> defter
           `;
         }
         if (btnRemove) btnRemove.style.display = 'none';

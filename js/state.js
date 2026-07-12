@@ -1369,6 +1369,17 @@ class StateManager {
         };
       }
     } else {
+      // Demo sınır kontrolü
+      if (window.LicenseConfig && window.LicenseConfig.isDemo) {
+        if (this.state.notebooks.length >= window.LicenseConfig.notebookLimit) {
+          if (window.showToast) {
+            window.showToast(`Demo sürümünde en fazla ${window.LicenseConfig.notebookLimit} defter oluşturabilirsiniz!`, 'danger');
+          } else {
+            alert(`Demo sürümünde en fazla ${window.LicenseConfig.notebookLimit} defter oluşturabilirsiniz!`);
+          }
+          return null;
+        }
+      }
       // Create new
       const newNotebook = {
         id: 'notebook_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
