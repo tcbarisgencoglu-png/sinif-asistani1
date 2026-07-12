@@ -106,19 +106,29 @@ jobs:
           releaseBody: |
             ## 🎉 Sınıf Asistanı ${{ github.ref_name }} Yayınlandı!
 
-            ### 📥 Kurulum Dosyaları
-
-            Aşağıdan işletim sisteminize uygun dosyayı indirin:
-
-            | Platform | Dosya |
-            |---|---|
-            | 🍎 Mac (M1/M2/M3 Apple Silicon) | `.dmg` — `aarch64` |
-            | 🍎 Mac (Intel) | `.dmg` — `x86_64` |
-            | 🪟 Windows | `.exe` (NSIS Kurulum) |
-            | 🐧 Linux | `.deb` veya `.AppImage` |
+            Değişiklikler için [CHANGELOG.md](https://github.com/tcbarisgencoglu-png/sinif-asistani1/blob/main/CHANGELOG.md) dosyasına bakın.
 
             ---
-            Değişiklikler için [CHANGELOG.md](https://github.com/tcbarisgencoglu-png/sinif-asistani1/blob/main/CHANGELOG.md) dosyasına bakın.
+
+            ## 📥 Hangi Dosyayı İndirmeliyim?
+
+            Aşağıdaki tablodan işletim sisteminize uygun satırı bulun ve **tam dosya adını** Assets listesinde arayın:
+
+            | İşletim Sistemi | İndirilecek Dosya |
+            |---|---|
+            | 🍎 **macOS — Apple Silicon** (M1, M2, M3, M4) | `Sinif.Asistani_X.X.X_aarch64.dmg` |
+            | 🍎 **macOS — Intel** (2019 ve öncesi Mac'ler) | `Sinif.Asistani_X.X.X_x64.dmg` |
+            | 🪟 **Windows 10 / 11** | `Sinif.Asistani_X.X.X_x64-setup.exe` |
+            | 🐧 **Linux — Ubuntu / Debian** | `Sinif.Asistani_X.X.X_amd64.deb` |
+            | 🐧 **Linux — Fedora / CentOS / RHEL** | `Sinif.Asistani_X.X.X-1.x86_64.rpm` |
+            | 🐧 **Linux — Diğer Dağıtımlar** | `Sinif.Asistani_X.X.X_amd64.AppImage` |
+
+            > **Not:** Tablodaki `X.X.X` yerine bu sürümün numarasını yazın (örn. `1.0.1`).
+
+            ### 💡 Mac'imde hangi işlemci var?
+            Sol üst köşe → Apple menüsü (🍎) → **Bu Mac Hakkında** → İşlemci/Çip satırına bakın.
+            - **Apple M1 / M2 / M3 / M4** → `aarch64.dmg`
+            - **Intel Core i5 / i7 / i9** → `x64.dmg`
           releaseDraft: false
           prerelease: false
           args: ${{ matrix.args }}
