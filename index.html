@@ -5234,6 +5234,50 @@
   <!-- BİLDİRİM TOAST KAPLARI -->
   <div class="toast-container" id="toast-container"></div>
 
+  <!-- Güncelleme Bildirim Modalı -->
+  <div class="modal" id="modal-update-checker" style="z-index: 9999;">
+    <div class="modal-content" style="max-width: 460px; border-top: 4px solid #6366f1; overflow: hidden;">
+      <div class="modal-header" style="background: linear-gradient(135deg, rgba(99,102,241,0.12), rgba(139,92,246,0.08)); border-bottom: 1px solid rgba(99,102,241,0.2); padding: 1.25rem 1.5rem; display: flex; justify-content: space-between; align-items: center;">
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+          <div style="width: 36px; height: 36px; background: linear-gradient(135deg, #6366f1, #8b5cf6); border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+            <i data-lucide="arrow-up-circle" style="width: 20px; height: 20px; color: white;"></i>
+          </div>
+          <div>
+            <h3 style="margin: 0; font-size: 1rem; font-weight: 700; color: var(--text-primary);">Yeni Güncelleme Mevcut!</h3>
+            <p style="margin: 0; font-size: 0.75rem; color: var(--text-secondary);">Sınıf Asistanı güncellendi</p>
+          </div>
+        </div>
+        <button id="btn-update-close" style="background: transparent; border: none; font-size: 1.25rem; cursor: pointer; color: var(--text-secondary); line-height: 1; padding: 0.25rem;">&times;</button>
+      </div>
+      <div class="modal-body" style="padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem;">
+        <div style="display: flex; align-items: center; justify-content: center; gap: 1rem; padding: 0.75rem 1rem; background: var(--bg-secondary); border-radius: 10px;">
+          <div style="text-align: center;">
+            <div style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.2rem;">Mevcut</div>
+            <div id="update-current-version" style="font-size: 1rem; font-weight: 700; color: var(--text-secondary);">v1.0.0</div>
+          </div>
+          <i data-lucide="arrow-right" style="width: 20px; height: 20px; color: #6366f1; flex-shrink: 0;"></i>
+          <div style="text-align: center;">
+            <div style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.2rem;">Yeni Sürüm</div>
+            <div id="update-latest-version" style="font-size: 1rem; font-weight: 700; color: #6366f1;">v1.0.1</div>
+          </div>
+        </div>
+        <div style="background: rgba(99,102,241,0.06); border: 1px solid rgba(99,102,241,0.15); border-radius: 8px; padding: 0.85rem 1rem;">
+          <div style="font-size: 0.75rem; font-weight: 600; color: #6366f1; margin-bottom: 0.4rem; display: flex; align-items: center; gap: 0.3rem;">
+            <i data-lucide="sparkles" style="width: 13px; height: 13px;"></i> Yenilikler
+          </div>
+          <p id="update-release-notes" style="margin: 0; font-size: 0.82rem; color: var(--text-secondary); line-height: 1.5;"></p>
+        </div>
+      </div>
+      <div class="modal-footer" style="padding: 1rem 1.5rem; background: var(--bg-secondary); border-top: 1px solid var(--border-color); display: flex; gap: 0.75rem; justify-content: flex-end;">
+        <button id="btn-update-snooze" class="btn btn-secondary" style="font-size: 0.82rem;">7 Gün Sonra Hatırlat</button>
+        <button id="btn-update-download" class="btn btn-primary" style="font-size: 0.82rem; display: flex; align-items: center; gap: 0.4rem;">
+          <i data-lucide="download" style="width: 15px; height: 15px;"></i>
+          Güncellemeyi İndir
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- Excel ve CSV işlemleri için SheetJS Kitaplığı -->
   <script src="js/xlsx.full.min.js"></script>
   <script src="js/chart.min.js"></script>

@@ -364,6 +364,78 @@ function initApp() {
   }
 
   window.safeCreateIcons();
+
+  // Güncelleme kontrolü — arka planda, uygulamayı bekletmeden
+  checkForUpdates();
+}
+
+// Mevcut uygulama sürümü (her güncellemede değişir)
+const APP_VERSION = '1.0.1';
+
+// GitHub'dan güncelleme kontrolü
+async function checkForUpdates() {
+  try {
+    // Kullanıcı "Daha Sonra Hatırlat" dediyse ve 7 gün geçmediyse atla
+    const snoozedUntil = localStorage.getItem('update_snoozed_until');
+    if (snoozedUntil && Date.now() < parseInt(snoozedUntil)) return;
+
+    const response = await fetch(
+      'https://raw.githubusercontent.com/tcbarisgencoglu-png/sinif-asistani1/main/version.json',
+      { cache: 'no-cache', signal: AbortSignal.timeout(8000) }
+    );
+    if (!response.ok) return;
+
+    const data = await response.json();
+    const latestVersion = data.version || '';
+    if (!latestVersion || latestVersion === APP_VERSION) return;
+
+    // Sürüm karşılaştır (x.y.z formatı)
+    const parseVer = v => v.split('.').map(Number);
+    const [lMaj, lMin, lPat] = parseVer(latestVersion);
+    const [cMaj, cMin, cPat] = parseVer(APP_VERSION);
+    const isNewer = lMaj > cMaj || (lMaj === cMaj && lMin > cMin) || (lMaj === cMaj && lMin === cMin && lPat > cPat);
+    if (!isNewer) return;
+
+    // Modal içeriğini doldur ve göster
+    const modal = document.getElementById('modal-update-checker');
+    if (!modal) return;
+
+    const elCurrent = document.getElementById('update-current-version');
+    const elLatest  = document.getElementById('update-latest-version');
+    const elNotes   = document.getElementById('update-release-notes');
+    const btnDownload = document.getElementById('btn-update-download');
+
+    if (elCurrent) elCurrent.textContent = `v${APP_VERSION}`;
+    if (elLatest)  elLatest.textContent  = `v${latestVersion}`;
+    if (elNotes)   elNotes.textContent   = data.release_notes || 'Yeni iyileştirmeler ve düzeltmeler mevcut.';
+    if (btnDownload) {
+      btnDownload.onclick = () => {
+        const url = data.release_url || 'https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/latest';
+        window.open(url, '_blank');
+        modal.classList.remove('active');
+      };
+    }
+
+    const btnSnooze = document.getElementById('btn-update-snooze');
+    if (btnSnooze) {
+      btnSnooze.onclick = () => {
+        // 7 gün sonrasını kaydet
+        localStorage.setItem('update_snoozed_until', String(Date.now() + 7 * 24 * 60 * 60 * 1000));
+        modal.classList.remove('active');
+      };
+    }
+
+    const btnClose = document.getElementById('btn-update-close');
+    if (btnClose) {
+      btnClose.onclick = () => modal.classList.remove('active');
+    }
+
+    // 2 saniye sonra göster (uygulama tamamen yüklendikten sonra)
+    setTimeout(() => modal.classList.add('active'), 2000);
+
+  } catch (_) {
+    // İnternet yoksa veya hata oluşursa sessizce geç
+  }
 }
 
 // Sekme Değiştirme
