@@ -388,7 +388,11 @@
 
 /* Defter Sayfası Başlık Alanı */
 .notebook-page-header {
-  padding: 24px 20px 12px 65px;
+  height: 80px;
+  box-sizing: border-box;
+  padding: 0 20px 0 65px;
+  display: flex;
+  align-items: center;
   background-image: linear-gradient(90deg, transparent 50px, #fca5a5 50px, #fca5a5 52px, transparent 52px);
   background-size: 100% 100%;
   border-bottom: 2px solid #fca5a5;
