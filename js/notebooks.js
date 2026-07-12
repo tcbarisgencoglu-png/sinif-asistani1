@@ -356,6 +356,7 @@
             }
           }
         }
+        adjustTopicTitleFontSize();
         triggerAutoSave();
       });
     }
@@ -477,6 +478,13 @@
 
     // Sayfa açıldığında defterleri yükle
     loadInitialNotebooks();
+
+    // Ekran boyutu değiştiğinde konu başlığı yazı boyutunu güncelle
+    window.addEventListener('resize', () => {
+      if (isActiveTab('notebooks')) {
+        adjustTopicTitleFontSize();
+      }
+    });
   }
 
   // Defterler sekmesinin aktif olup olmadığını kontrol et
@@ -697,6 +705,46 @@
         notebookFullscreenColorIndicator.style.backgroundColor = '#1e293b';
       }
     }
+    adjustTopicTitleFontSize();
+  }
+
+  // Konu başlığının yazı boyutunu otomatik sığacak şekilde ayarla
+  function adjustTopicTitleFontSize() {
+    if (!topicTitleInput) return;
+    const text = topicTitleInput.value || '';
+    
+    // Geçici ölçüm öğesini bul veya oluştur
+    let tester = document.getElementById('topic-title-width-tester');
+    if (!tester) {
+      tester = document.createElement('span');
+      tester.id = 'topic-title-width-tester';
+      tester.style.visibility = 'hidden';
+      tester.style.position = 'absolute';
+      tester.style.whiteSpace = 'pre';
+      tester.style.fontFamily = "'Comic Sans MS', 'Chalkboard SE', 'Comic Neue', sans-serif";
+      tester.style.fontWeight = '700';
+      document.body.appendChild(tester);
+    }
+    
+    tester.textContent = text || topicTitleInput.placeholder || '';
+    
+    const maxVal = 26; // Varsayılan boyut (pt)
+    const minVal = 12; // Minimum boyut (pt)
+    let currentSize = maxVal;
+    tester.style.fontSize = currentSize + 'pt';
+    
+    // İnputun genişliğini al (padding payı çıkarılarak)
+    const inputWidth = topicTitleInput.clientWidth || topicTitleInput.getBoundingClientRect().width;
+    
+    if (inputWidth > 0) {
+      // Metin genişliği input genişliğinden büyük olduğu sürece yazı boyutunu küçült
+      while (tester.getBoundingClientRect().width > inputWidth - 20 && currentSize > minVal) {
+        currentSize -= 0.5;
+        tester.style.fontSize = currentSize + 'pt';
+      }
+    }
+    
+    topicTitleInput.style.fontSize = currentSize + 'pt';
   }
 
   // Konu Ekleme Olayı
