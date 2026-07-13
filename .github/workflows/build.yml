@@ -129,6 +129,40 @@ jobs:
             Sol üst köşe → Apple menüsü (🍎) → **Bu Mac Hakkında** → İşlemci/Çip satırına bakın.
             - **Apple M1 / M2 / M3 / M4** → `aarch64.dmg`
             - **Intel Core i5 / i7 / i9** → `x64.dmg`
+
+            ---
+
+            ## 🍎 macOS Kurulum Adımları
+
+            > ⚠️ **"Hasar görmüş" hatası alıyorsanız aşağıdaki adımları uygulayın.**
+            > Bu hata uygulamanın bozuk olduğu anlamına gelmiyor — macOS'un güvenlik sistemi internetten indirilen tüm imzasız uygulamalara bunu gösteriyor.
+
+            ### Adım 1 — DMG'yi indirin ve Applications'a kopyalayın
+            `.dmg` dosyasını indirin, açın, **Sınıf Asistanı** simgesini **Applications** klasörüne sürükleyin.
+
+            ### Adım 2 — Terminal'i açın
+            Klavyede **`Command (⌘) + Boşluk`** tuşlarına basın → `Terminal` yazın → **Enter**.
+
+            ### Adım 3 — Bu komutu yapıştırın ve Enter'a basın
+
+            **Apple Silicon (M1/M2/M3/M4) için:**
+            ```
+            xattr -d com.apple.quarantine "/Applications/Sınıf Asistanı.app"
+            ```
+
+            **Intel Mac için:**
+            ```
+            xattr -d com.apple.quarantine "/Applications/Sınıf Asistanı.app"
+            ```
+
+            > Komut çalışınca hiçbir şey yazmaz — bu normaldir. ✅
+
+            ### Adım 4 — Uygulamayı açın
+            Applications klasöründen **Sınıf Asistanı**'na çift tıklayın. Artık sorunsuz açılacaktır.
+
+            ---
+
+            > 💬 **Sorun yaşıyorsanız** [Issues](https://github.com/tcbarisgencoglu-png/sinif-asistani1/issues) sayfasından bildirin.
           releaseDraft: false
           prerelease: false
           args: ${{ matrix.args }}

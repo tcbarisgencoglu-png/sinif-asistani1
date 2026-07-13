@@ -192,6 +192,36 @@ sınıf asistanı/
 
 ---
 
+## ⚠️ macOS Kurulum Uyarısı — "Hasar Görmüş" Hatası
+
+macOS, Apple tarafından imzalanmamış uygulamaları "hasar görmüş" olarak engelleyebilir. Bu bir hata değil, macOS güvenlik sistemi (Gatekeeper) tarafından uygulanan bir kısıtlamadır.
+
+**Hata mesajı:**
+> _"Sınıf Asistanı" hasar görmüş olduğu için açılamıyor. Disk görüntüsünü çıkarmalısınız._
+
+**Çözüm — 3 adım:**
+
+**1. DMG'yi indirin** ve Applications klasörüne sürükleyin (normal kurulum adımı).
+
+**2. Terminal'i açın** (Launchpad → Terminal veya `Cmd + Space` → "Terminal").
+
+**3. Aşağıdaki komutu yapıştırın ve Enter'a basın:**
+
+```bash
+sudo xattr -rd com.apple.quarantine "/Applications/Sınıf Asistanı.app"
+```
+
+> Komut çalıştıktan sonra şifrenizi girmeniz istenebilir. Mac şifrenizi girin (yazarken ekranda görünmez, bu normaldir).
+
+**4. Uygulamayı tekrar açın** — artık sorunsuz açılacaktır. ✅
+
+---
+
+> **Neden bu oluyor?**
+> macOS, App Store dışından indirilen ve Apple Developer sertifikasıyla imzalanmamış tüm uygulamalara otomatik olarak "karantina" etiketi ekler. Bu etiket, uygulamanın açılmasını engeller. `xattr` komutu bu etiketi kaldırır.
+
+---
+
 ## 🐛 Sorun Giderme
 
 ### `cargo not found` hatası
