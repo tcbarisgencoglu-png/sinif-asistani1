@@ -852,8 +852,174 @@
     window.safeCreateIcons();
   }
 
+  // ============================================
+  // ŞİFRE KONTROLÜ SEKMESİ
+  // ============================================
+
+  function timeToMinutesConfig(t) {
+    if (!t) return -1;
+    const parts = t.split(':');
+    return parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10);
+  }
+
+  function renderLockTab() {
+    const state = window.AppState ? window.AppState.state : null;
+    if (!state) return;
+
+    const appLock = state.appLock || { enabled: false, passwordHash: null, breakModeEnabled: false };
+    const hasPassword = !!(appLock.enabled && appLock.passwordHash);
+
+    // Durum badge ve metin
+    const badge = document.getElementById('lock-status-badge');
+    const statusText = document.getElementById('lock-status-text');
+    if (badge) {
+      if (hasPassword) {
+        badge.textContent = 'AKTİF';
+        badge.style.background = 'rgba(16,185,129,0.15)';
+        badge.style.color = '#10b981';
+      } else {
+        badge.textContent = 'PASİF';
+        badge.style.background = 'rgba(239,68,68,0.15)';
+        badge.style.color = '#ef4444';
+      }
+    }
+    if (statusText) {
+      statusText.textContent = hasPassword
+        ? 'Şifre koruması aktif — uygulama açılışta şifre sorar.'
+        : 'Şifre belirlenmemiş — uygulama herkese açık.';
+    }
+
+    // Şifre kaldır butonu
+    const removeSection = document.getElementById('lock-remove-section');
+    if (removeSection) removeSection.style.display = hasPassword ? 'block' : 'none';
+
+    // Teneffüs modu toggle
+    const breakToggle = document.getElementById('config-break-mode-toggle');
+    const noScheduleWarn = document.getElementById('lock-no-schedule-warning');
+    const breakSummary = document.getElementById('lock-break-summary');
+
+    const scheduleOk = window.AppLock ? window.AppLock.isScheduleConfigured() : false;
+
+    if (breakToggle) {
+      breakToggle.disabled = !hasPassword || !scheduleOk;
+      breakToggle.checked = !!(appLock.breakModeEnabled && hasPassword && scheduleOk);
+    }
+
+    // Ders programı uyarısı
+    if (noScheduleWarn) {
+      noScheduleWarn.style.display = (hasPassword && !scheduleOk) ? 'block' : 'none';
+    }
+
+    // Teneffüs saatleri özeti
+    if (breakSummary && scheduleOk && hasPassword) {
+      breakSummary.style.display = 'block';
+      const times = state.scheduleTimes;
+      const periodKeys = ['p1','p2','p3','p4','p5','p6','p7'].filter(k => times && times[k]);
+      let html = '<div style="font-size:0.78rem;color:var(--text-muted);display:flex;flex-wrap:wrap;gap:0.4rem;">';
+      html += '<span style="font-weight:600;color:var(--text-secondary);margin-right:2px;">Teneffüsler:</span>';
+      for (let i = 0; i < periodKeys.length - 1; i++) {
+        const endT = times[periodKeys[i]].end;
+        const startT = times[periodKeys[i + 1]].start;
+        const dur = timeToMinutesConfig(startT) - timeToMinutesConfig(endT);
+        if (dur > 0) {
+          html += `<span style="background:rgba(99,102,241,0.12);padding:2px 8px;border-radius:20px;">${endT}–${startT} (${dur} dk)</span>`;
+        }
+      }
+      if (times.lunch) {
+        const lDur = timeToMinutesConfig(times.lunch.end) - timeToMinutesConfig(times.lunch.start);
+        html += `<span style="background:rgba(245,158,11,0.12);padding:2px 8px;border-radius:20px;">Öğle: ${times.lunch.start}–${times.lunch.end} (${lDur} dk)</span>`;
+      }
+      html += '</div>';
+      breakSummary.innerHTML = html;
+    } else if (breakSummary) {
+      breakSummary.style.display = 'none';
+    }
+
+    window.safeCreateIcons();
+  }
+
+  function setupLockTab() {
+    // Şifre kaydet
+    const saveBtn = document.getElementById('btn-save-lock-password');
+    if (saveBtn) {
+      saveBtn.addEventListener('click', async () => {
+        const newPass = document.getElementById('config-lock-new-pass');
+        const confirmPass = document.getElementById('config-lock-confirm-pass');
+        const errEl = document.getElementById('config-lock-form-error');
+
+        const p1 = newPass ? newPass.value.trim() : '';
+        const p2 = confirmPass ? confirmPass.value.trim() : '';
+
+        if (!p1) {
+          if (errEl) { errEl.textContent = 'Şifre boş olamaz.'; errEl.style.display = 'block'; }
+          return;
+        }
+        if (p1.length < 4) {
+          if (errEl) { errEl.textContent = 'Şifre en az 4 karakter olmalıdır.'; errEl.style.display = 'block'; }
+          return;
+        }
+        if (p1 !== p2) {
+          if (errEl) { errEl.textContent = 'Şifreler eşleşmiyor.'; errEl.style.display = 'block'; }
+          return;
+        }
+
+        if (errEl) errEl.style.display = 'none';
+        await window.AppLock.savePassword(p1);
+        if (newPass) newPass.value = '';
+        if (confirmPass) confirmPass.value = '';
+
+        renderLockTab();
+        if (toastCallback) toastCallback('Şifre başarıyla kaydedildi. ✅', 'success');
+      });
+    }
+
+    // Şifreyi kaldır
+    const removeBtn = document.getElementById('btn-remove-lock-password');
+    if (removeBtn) {
+      removeBtn.addEventListener('click', () => {
+        const confirmed = confirm('Şifre korumasını kaldırmak istediğinize emin misiniz?\nBundan sonra uygulama şifresiz açılacak.');
+        if (confirmed) {
+          window.AppLock.removePassword();
+          renderLockTab();
+          if (toastCallback) toastCallback('Şifre koruması kaldırıldı.', 'info');
+        }
+      });
+    }
+
+    // Teneffüs modu toggle
+    const breakToggle = document.getElementById('config-break-mode-toggle');
+    if (breakToggle) {
+      breakToggle.addEventListener('change', () => {
+        window.AppLock.setBreakMode(breakToggle.checked);
+        renderLockTab();
+        if (toastCallback) {
+          toastCallback(
+            breakToggle.checked ? 'Teneffüs modu aktif edildi. ☕' : 'Teneffüs modu devre dışı bırakıldı.',
+            'info'
+          );
+        }
+      });
+    }
+  }
+
+  // Config sekmesi değişince lock tab'ı da render et
+  const _origRenderConfig = typeof renderConfig !== 'undefined' ? renderConfig : null;
+  document.addEventListener('DOMContentLoaded', () => {
+    setupLockTab();
+
+    // Şifre Kontrolü sekmesine tıklanınca render et
+    const lockTabBtn = document.getElementById('tab-btn-config-lock');
+    if (lockTabBtn) {
+      lockTabBtn.addEventListener('click', () => {
+        setTimeout(renderLockTab, 50);
+      });
+    }
+  });
+
   // Export globally
   window.setupConfigTab = setupConfigTab;
   window.renderConfig = renderConfig;
   window.updateConfigThemeUI = updateConfigThemeUI;
+  window.renderLockTab = renderLockTab;
 })();
+

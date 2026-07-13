@@ -60,6 +60,41 @@
 </head>
 <body>
 
+  <!-- ===== UYGULAMA KİLİT EKRANI ===== -->
+  <div id="app-lock-overlay">
+    <div id="lock-box">
+      <div class="lock-logo">
+        <i data-lucide="graduation-cap"></i>
+      </div>
+      <h2 id="lock-title">Uygulama Kilitli</h2>
+      <p class="lock-subtitle">Devam etmek için öğretmen şifresini girin.</p>
+
+      <!-- Teneffüs mesajı (sadece teneffüs kilidinde görünür) -->
+      <div id="lock-break-message" style="display:none;">
+        <i data-lucide="coffee"></i>
+        <span>Teneffüs süresi devam ediyor. Şifrenizle açabilirsiniz.</span>
+      </div>
+
+      <div class="lock-form">
+        <input
+          type="password"
+          id="lock-password-input"
+          placeholder="Şifrenizi girin..."
+          autocomplete="current-password"
+        />
+        <button id="lock-unlock-btn">
+          <i data-lucide="unlock"></i>
+          Kilidi Aç
+        </button>
+      </div>
+
+      <p id="lock-error-msg" class="lock-error" style="display:none;"></p>
+
+      <button id="lock-forgot-btn" class="lock-forgot">Şifremi Unuttum</button>
+    </div>
+  </div>
+  <!-- ===== KİLİT EKRANI SONU ===== -->
+
   <!-- Mobil Üst Bar -->
   <header class="mobile-header">
     <button id="btn-toggle-sidebar" class="mobile-menu-btn" title="Menü">
@@ -1880,6 +1915,9 @@
           <button class="sub-tab-btn" id="tab-btn-config-students" data-config-tab="config-students">
             <i data-lucide="users" style="width: 16px; height: 16px;"></i> Öğrenci Yönetimi
           </button>
+          <button class="sub-tab-btn" id="tab-btn-config-lock" data-config-tab="config-lock">
+            <i data-lucide="lock" style="width: 16px; height: 16px;"></i> Şifre Kontrolü
+          </button>
           <button class="sub-tab-btn" id="tab-btn-config-manual" data-config-tab="config-manual">
             <i data-lucide="help-circle" style="width: 16px; height: 16px;"></i> Kullanım Kılavuzu
           </button>
@@ -2177,7 +2215,80 @@
           </div>
         </div>
 
-        <!-- 5. KULLANIM KILAVUZU SEKMESİ -->
+        <!-- 5. ŞİFRE KONTROLÜ SEKMESİ -->
+        <div class="config-tab-content" id="config-lock" style="display: none;">
+          <div class="glass-card" style="padding: 1.5rem; max-width: 600px;">
+
+            <!-- Başlık -->
+            <div class="section-title" style="margin-bottom: 1.5rem;">
+              <h3 style="display:flex; align-items:center; gap:0.5rem;">
+                <i data-lucide="shield" style="width:20px;height:20px;color:var(--primary);"></i>
+                Şifre Kontrolü
+              </h3>
+              <p style="font-size:0.85rem;color:var(--text-muted);margin-top:4px;">Uygulamayı yetkisiz kullanıma karşı şifre ile koruyun.</p>
+            </div>
+
+            <div style="display:flex;flex-direction:column;gap:1.25rem;">
+
+              <!-- Şifre Durumu -->
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:0.75rem;background:rgba(255,255,255,0.05);border-radius:8px;">
+                <div>
+                  <span style="font-weight:600;display:block;">Şifre Koruması</span>
+                  <span id="lock-status-text" style="font-size:0.8rem;color:var(--text-muted);">Şifre belirlenmemiş — uygulama herkese açık.</span>
+                </div>
+                <span id="lock-status-badge" style="font-size:0.75rem;font-weight:700;padding:0.25rem 0.65rem;border-radius:20px;background:rgba(239,68,68,0.15);color:#ef4444;">PASİF</span>
+              </div>
+
+              <!-- Şifre Belirleme Formu -->
+              <div id="lock-set-form" style="display:flex;flex-direction:column;gap:0.75rem;">
+                <label style="font-weight:600;font-size:0.9rem;">Şifre Belirle / Değiştir</label>
+                <input type="password" id="config-lock-new-pass" class="form-control" placeholder="Yeni şifre (en az 4 karakter)" autocomplete="new-password">
+                <input type="password" id="config-lock-confirm-pass" class="form-control" placeholder="Şifreyi tekrar girin" autocomplete="new-password">
+                <p id="config-lock-form-error" style="display:none;font-size:0.82rem;color:#ef4444;margin:0;"></p>
+                <button id="btn-save-lock-password" class="btn btn-primary" style="width:fit-content;display:flex;align-items:center;gap:0.4rem;">
+                  <i data-lucide="save" style="width:15px;height:15px;"></i>
+                  Şifreyi Kaydet
+                </button>
+              </div>
+
+              <!-- Şifreyi Kaldır (sadece şifre varken görünür) -->
+              <div id="lock-remove-section" style="display:none;">
+                <button id="btn-remove-lock-password" class="btn" style="color:#ef4444;border:1px solid rgba(239,68,68,0.25);background:transparent;display:flex;align-items:center;gap:0.4rem;">
+                  <i data-lucide="lock-open" style="width:15px;height:15px;"></i>
+                  Şifre Korumasını Kaldır
+                </button>
+              </div>
+
+              <hr style="border:none;border-top:1px solid var(--border-color);margin:0;">
+
+              <!-- Teneffüs Modu -->
+              <div id="lock-break-mode-section">
+                <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;padding:0.75rem;background:rgba(255,255,255,0.05);border-radius:8px;">
+                  <div style="flex:1;">
+                    <span style="font-weight:600;display:block;margin-bottom:0.25rem;">
+                      <i data-lucide="coffee" style="width:14px;height:14px;display:inline;vertical-align:middle;margin-right:4px;"></i>
+                      Teneffüs Modu
+                    </span>
+                    <span style="font-size:0.8rem;color:var(--text-muted);display:block;">Teneffüs sürelerinde uygulama otomatik kilitlenir. Öğretmen şifre girerek açabilir.</span>
+                    <!-- Uyarı: ders programı yoksa -->
+                    <div id="lock-no-schedule-warning" style="display:none;margin-top:0.5rem;padding:0.5rem 0.75rem;background:rgba(245,158,11,0.12);border-radius:6px;border-left:3px solid #f59e0b;">
+                      <span style="font-size:0.78rem;color:#f59e0b;font-weight:600;">⚠ Önce Araçlar → Ders Programı → Saat Ayarları bölümünden ders saatlerinizi girin.</span>
+                    </div>
+                    <!-- Teneffüs saatleri özeti -->
+                    <div id="lock-break-summary" style="display:none;margin-top:0.5rem;"></div>
+                  </div>
+                  <label class="lock-toggle" id="lock-break-toggle-wrapper">
+                    <input type="checkbox" id="config-break-mode-toggle" disabled>
+                    <span class="lock-toggle-slider"></span>
+                  </label>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+        <!-- 6. KULLANIM KILAVUZU SEKMESİ -->
         <div class="config-tab-content" id="config-manual" style="display: none;">
           <!-- Arama Kutusu Kartı -->
           <div class="glass-card" style="padding: 1.25rem 1.5rem; margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
@@ -5305,6 +5416,7 @@
   <script src="js/exam-analysis.js?v=32"></script>
   <script src="js/reports.js?v=32"></script>
   <script src="js/notebooks.js?v=32"></script>
+  <script src="js/app-lock.js?v=1"></script>
   <script src="js/app.js?v=32"></script>
   <script src="js/test_plans.js"></script>
 </body>
