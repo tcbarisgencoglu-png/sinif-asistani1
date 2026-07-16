@@ -476,7 +476,7 @@
     if (!doc || !documentPrintArea) return;
 
     if (doc.fileType === 'pdf') {
-      window.open(doc.content, '_blank');
+      window.safeOpenURL(doc.content);
       if (toastCallbackFn) toastCallbackFn('PDF belgesi yeni sekmede açıldı. Yazdırmak için tarayıcı özelliklerini kullanabilirsiniz.', 'info');
       return;
     }

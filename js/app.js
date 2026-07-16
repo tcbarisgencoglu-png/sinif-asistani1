@@ -26,6 +26,32 @@ if (window.AndroidInterface && typeof window.AndroidInterface.printPage === 'fun
   };
 }
 
+// Tauri ve Tarayıcı Uyumlu Güvenli Link Açıcı
+window.safeOpenURL = (url) => {
+  if (window.__TAURI__) {
+    try {
+      if (window.__TAURI__.core && typeof window.__TAURI__.core.invoke === 'function') {
+        window.__TAURI__.core.invoke('plugin:opener|open', { path: url })
+          .catch(err => {
+            console.error('Tauri opener failed:', err);
+            window.open(url, '_blank');
+          });
+        return;
+      } else if (window.__TAURI__.invoke && typeof window.__TAURI__.invoke === 'function') {
+        window.__TAURI__.invoke('plugin:opener|open', { path: url })
+          .catch(err => {
+            console.error('Tauri invoke failed:', err);
+            window.open(url, '_blank');
+          });
+        return;
+      }
+    } catch (e) {
+      console.error('Tauri open error:', e);
+    }
+  }
+  window.open(url, '_blank');
+};
+
 // Global Hata Yakalayıcı ve Arayüz Bildirimi
 window.onerror = function(message, source, lineno, colno, error) {
   const errorMsg = `JS Hatası: ${message} (Satır: ${lineno})`;
@@ -411,7 +437,7 @@ async function checkForUpdates() {
     if (btnDownload) {
       btnDownload.onclick = () => {
         const url = data.release_url || 'https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/latest';
-        window.open(url, '_blank');
+        window.safeOpenURL(url);
         modal.classList.remove('active');
       };
     }

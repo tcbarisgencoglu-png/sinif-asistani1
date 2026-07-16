@@ -8,7 +8,7 @@ const btnHwPrevWeek = document.getElementById('btn-hw-prev-week');
 const btnHwNextWeek = document.getElementById('btn-hw-next-week');
 const homeworkActiveWeekDisplay = document.getElementById('homework-active-week-display');
 
-// Modallar ve Formlar
+// Modallar ve Formlar (eski modal - sadece düzenleme için korundu)
 const modalHomework = document.getElementById('modal-homework');
 const formHomework = document.getElementById('form-homework');
 const homeworkIdInput = document.getElementById('homework-id');
@@ -17,7 +17,28 @@ const homeworkDescInput = document.getElementById('homework-desc-input');
 const homeworkDueInput = document.getElementById('homework-due-input');
 const modalHomeworkTitle = document.getElementById('modal-homework-title');
 
+// Yeni: Ödev Ver Modalı
+const modalHwSend = document.getElementById('modal-hw-send');
+const formHwSend = document.getElementById('form-hw-send');
+const hwSendDateInput = document.getElementById('hw-send-date');
+const hwSendDaynameInput = document.getElementById('hw-send-dayname');
+const hwSendTitleInput = document.getElementById('hw-send-title-input');
+const hwSendDescInput = document.getElementById('hw-send-desc-input');
+const hwSendDueInput = document.getElementById('hw-send-due-input');
+const modalHwSendTitle = document.getElementById('modal-hw-send-title');
+const hwSendPreview = document.getElementById('hw-send-preview');
+const hwSendPreviewText = document.getElementById('hw-send-preview-text');
+const btnHwSendSaveOnly = document.getElementById('btn-hw-send-save-only');
 
+// Yeni: Ödev Görüntüle Modalı
+const modalHwView = document.getElementById('modal-hw-view');
+const modalHwViewTitle = document.getElementById('modal-hw-view-title');
+const hwViewTitle = document.getElementById('hw-view-title');
+const hwViewDesc = document.getElementById('hw-view-desc');
+const hwViewDescWrapper = document.getElementById('hw-view-desc-wrapper');
+const hwViewDate = document.getElementById('hw-view-date');
+const hwViewPreviewText = document.getElementById('hw-view-preview-text');
+const btnHwViewResend = document.getElementById('btn-hw-view-resend');
 
 // Rapor Elemanları
 const hwReportStart = document.getElementById('hw-report-start');
@@ -29,11 +50,218 @@ const btnPrintHwReport = document.getElementById('btn-print-homework-report');
 const homeworkPrintArea = document.querySelector('.homework-report-print');
 
 let toastCallback = null;
+// Görüntüleme modalında tekrar gönder için hafızada tutulan ödev
+let _viewingHw = null;
+let _viewingDayName = null;
 
 const STATUS_CYCLE = ['none', 'completed', 'incomplete', 'missing', 'excused'];
 const WEEKDAYS_TR = ['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma'];
 
-// Tarihten ISO Hafta Kodunu Alma (Örn: 2026-W23)
+// -------------------------------------------------------
+// Yardımcı: Tarih formatlama
+// -------------------------------------------------------
+function formatDateStr(dateStr) {
+  const parts = dateStr.split('-');
+  if (parts.length === 3) {
+    const months = ['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'];
+    const day = parseInt(parts[2]);
+    const month = months[parseInt(parts[1]) - 1];
+    const year = parts[0];
+    return `${day} ${month} ${year}`;
+  }
+  return dateStr;
+}
+
+// -------------------------------------------------------
+// WhatsApp mesajı oluştur
+// -------------------------------------------------------
+function buildWhatsAppMessage(hw, dayName) {
+  const dueFormatted = formatDateStr(hw.dueDate);
+  let msg = `*📚 ÖDEV BİLDİRİMİ*\n\n`;
+  msg += `*Gün:* ${dayName}\n`;
+  msg += `*Konu:* ${hw.title}\n`;
+  if (hw.description && hw.description.trim()) {
+    msg += `*Detay:* ${hw.description.trim()}\n`;
+  }
+  msg += `*Son Teslim:* ${dueFormatted}\n\n`;
+  msg += `_Sınıf Asistanı tarafından oluşturuldu_`;
+  return msg;
+}
+
+// -------------------------------------------------------
+// WhatsApp'ta gönder
+// -------------------------------------------------------
+function sendToWhatsApp(hw, dayName) {
+  const message = buildWhatsAppMessage(hw, dayName);
+  const encoded = encodeURIComponent(message);
+
+  const groupLink = stateManager.getWhatsappGroupLink ? stateManager.getWhatsappGroupLink() : '';
+
+  // Eğer grup davet linki varsa, önce onu açıyoruz.
+  if (groupLink && groupLink.trim().startsWith('https://chat.whatsapp.com/')) {
+    window.safeOpenURL(groupLink);
+  }
+
+  const desktopUrl = `whatsapp://send?text=${encoded}`;
+  const webUrl = `https://web.whatsapp.com/send?text=${encoded}`;
+
+  // Eğer Tauri (Masaüstü uygulaması) ortamındaysak
+  if (window.__TAURI__) {
+    // Tauri WebView içinde navigation hatası (çökme/donma) oluşmaması için direkt Opener API kullan
+    window.safeOpenURL(desktopUrl);
+    return;
+  }
+
+  // Tarayıcı ortamında akıllı yedekleme mekanizması (Desktop -> Web)
+  let didOpenApp = false;
+  const onBlur = () => {
+    didOpenApp = true;
+  };
+  window.addEventListener('blur', onBlur);
+
+  // Bilgisayarda yüklü WhatsApp uygulamasını tetiklemeyi dene
+  window.location.href = desktopUrl;
+
+  // 1.5 saniye bekleyin, eğer uygulama açılmadıysa (tarayıcı odağı kaybetmediyse) WhatsApp Web'e yönlendir
+  setTimeout(() => {
+    window.removeEventListener('blur', onBlur);
+    if (!didOpenApp) {
+      window.safeOpenURL(webUrl);
+    }
+  }, 1500);
+}
+
+// -------------------------------------------------------
+// Önizleme güncelle (Ödev Ver Modalı)
+// -------------------------------------------------------
+function updateSendPreview() {
+  const title = hwSendTitleInput ? hwSendTitleInput.value.trim() : '';
+  const desc = hwSendDescInput ? hwSendDescInput.value.trim() : '';
+  const due = hwSendDueInput ? hwSendDueInput.value : '';
+  const dayName = hwSendDaynameInput ? hwSendDaynameInput.value : '';
+
+  if (!title || !due) {
+    if (hwSendPreview) hwSendPreview.style.display = 'none';
+    return;
+  }
+
+  const fakeHw = { title, description: desc, dueDate: due };
+  const msg = buildWhatsAppMessage(fakeHw, dayName);
+  if (hwSendPreviewText) hwSendPreviewText.textContent = msg;
+  if (hwSendPreview) hwSendPreview.style.display = 'block';
+}
+
+// -------------------------------------------------------
+// Ödev Ver Modalı Aç
+// -------------------------------------------------------
+function openSendHomeworkModal(dateStr, dayName) {
+  if (!modalHwSend) return;
+
+  if (modalHwSendTitle) modalHwSendTitle.textContent = `${dayName} — Ödev Ver`;
+  if (hwSendDateInput) hwSendDateInput.value = dateStr;
+  if (hwSendDaynameInput) hwSendDaynameInput.value = dayName;
+  if (hwSendTitleInput) hwSendTitleInput.value = '';
+  if (hwSendDescInput) hwSendDescInput.value = '';
+  if (hwSendDueInput) hwSendDueInput.value = dateStr;
+  if (hwSendPreview) hwSendPreview.style.display = 'none';
+
+  modalHwSend.classList.add('active');
+
+  // Önizleme güncelleyicileri bağla
+  if (hwSendTitleInput) {
+    hwSendTitleInput.addEventListener('input', updateSendPreview);
+  }
+  if (hwSendDescInput) {
+    hwSendDescInput.addEventListener('input', updateSendPreview);
+  }
+  if (hwSendDueInput) {
+    hwSendDueInput.addEventListener('change', updateSendPreview);
+  }
+}
+
+// -------------------------------------------------------
+// Ödev kaydet (WhatsApp olmadan ya da WhatsApp ile)
+// -------------------------------------------------------
+function saveHomeworkFromSendModal(sendToWA) {
+  const dateStr = hwSendDateInput ? hwSendDateInput.value : '';
+  const dayName = hwSendDaynameInput ? hwSendDaynameInput.value : '';
+  const title = hwSendTitleInput ? hwSendTitleInput.value.trim() : '';
+  const desc = hwSendDescInput ? hwSendDescInput.value.trim() : '';
+  const due = hwSendDueInput ? hwSendDueInput.value : '';
+
+  if (!title || !due) {
+    if (toastCallback) toastCallback('Lütfen ödev konusu ve son teslim tarihini girin.', 'warning');
+    return;
+  }
+
+  const state = stateManager.loadState();
+  const selectBranch = document.getElementById('homework-select-branch');
+  const branchFilter = selectBranch ? selectBranch.value : 'all';
+
+  // Aynı tarihe ait ödev zaten var mı kontrol et
+  let hw = state.homeworks.find(h =>
+    h.dueDate === dateStr &&
+    (state.educationLevel === 'primary' || h.branch === branchFilter)
+  );
+
+  if (hw) {
+    // Güncelle
+    stateManager.updateHomework(hw.id, { title, description: desc, dueDate: due });
+    hw = { ...hw, title, description: desc, dueDate: due };
+  } else {
+    // Yeni oluştur
+    hw = stateManager.addHomework({
+      title,
+      description: desc,
+      dueDate: due,
+      branch: (state.educationLevel === 'middle') ? branchFilter : ''
+    });
+  }
+
+  if (modalHwSend) modalHwSend.classList.remove('active');
+  renderHomeworkMatrix();
+  const event = new CustomEvent('stateChanged');
+  document.dispatchEvent(event);
+
+  if (sendToWA) {
+    sendToWhatsApp(hw, dayName);
+    if (toastCallback) toastCallback('Ödev kaydedildi! WhatsApp açılıyor...', 'success');
+  } else {
+    if (toastCallback) toastCallback('Ödev başarıyla kaydedildi.', 'success');
+  }
+}
+
+// -------------------------------------------------------
+// Ödev Görüntüle Modalı Aç
+// -------------------------------------------------------
+function openViewHomeworkModal(hw, dayName) {
+  if (!modalHwView) return;
+  _viewingHw = hw;
+  _viewingDayName = dayName;
+
+  if (modalHwViewTitle) modalHwViewTitle.textContent = `${dayName} — Ödev Detayı`;
+  if (hwViewTitle) hwViewTitle.textContent = hw.title;
+
+  if (hwViewDescWrapper && hwViewDesc) {
+    if (hw.description && hw.description.trim()) {
+      hwViewDesc.textContent = hw.description;
+      hwViewDescWrapper.style.display = 'block';
+    } else {
+      hwViewDescWrapper.style.display = 'none';
+    }
+  }
+
+  if (hwViewDate) hwViewDate.textContent = formatDateStr(hw.dueDate);
+
+  const msg = buildWhatsAppMessage(hw, dayName);
+  if (hwViewPreviewText) hwViewPreviewText.textContent = msg;
+
+  modalHwView.classList.add('active');
+}
+
+// -------------------------------------------------------
+// ISO Hafta Kodunu Alma
+// -------------------------------------------------------
 function getISOWeekString(dateStr) {
   if (!dateStr) return '';
   const date = new Date(dateStr);
@@ -58,7 +286,6 @@ function getCurrentISOWeekString() {
   return `${d.getUTCFullYear()}-W${weekStr}`;
 }
 
-// ISO Haftasındaki belirli bir günü alma yardımcı fonksiyonu (1 = Pazartesi, ..., 7 = Pazar)
 function getDayInWeek(year, week, dayIndex) {
   const jan4 = new Date(year, 0, 4);
   const dayOfJan4 = jan4.getDay() || 7;
@@ -70,7 +297,6 @@ function getDayInWeek(year, week, dayIndex) {
   return targetDay;
 }
 
-// Seçilen hafta kodundaki 5 iş gününü hesaplayan fonksiyon
 function getWeekDates(weekStr) {
   const parts = weekStr.split('-W');
   if (parts.length !== 2) return [];
@@ -90,10 +316,13 @@ function getWeekDates(weekStr) {
   return dates;
 }
 
+// -------------------------------------------------------
+// Setup
+// -------------------------------------------------------
 function setupHomeworkTab(showToast) {
   toastCallback = showToast;
 
-  // Modal Kapatma Düğmeleri
+  // Eski Modal Kapatma
   document.querySelectorAll('#modal-homework .close-btn, #modal-homework .close-btn-action').forEach(btn => {
     btn.addEventListener('click', () => {
       modalHomework.classList.remove('active');
@@ -101,36 +330,104 @@ function setupHomeworkTab(showToast) {
     });
   });
 
-  // Rapor Modalı Kapatma Düğmeleri
+  // Rapor Modalı Kapatma
   document.querySelectorAll('#modal-homework-report .close-btn, #modal-homework-report .close-btn-action').forEach(btn => {
     btn.addEventListener('click', () => {
       modalHwReport.classList.remove('active');
     });
   });
 
+  // Ödev Ver Modalı Kapatma
+  if (modalHwSend) {
+    document.querySelectorAll('#modal-hw-send .close-btn, #modal-hw-send .close-btn-action').forEach(btn => {
+      btn.addEventListener('click', () => {
+        modalHwSend.classList.remove('active');
+      });
+    });
+  }
 
+  // Ödev Görüntüle Modalı Kapatma
+  if (modalHwView) {
+    document.querySelectorAll('#modal-hw-view .close-btn, #modal-hw-view .close-btn-action').forEach(btn => {
+      btn.addEventListener('click', () => {
+        modalHwView.classList.remove('active');
+      });
+    });
+  }
+
+  // Sadece Kaydet butonu
+  if (btnHwSendSaveOnly) {
+    btnHwSendSaveOnly.addEventListener('click', () => {
+      saveHomeworkFromSendModal(false);
+    });
+  }
+
+  // WhatsApp'ta Gönder (form submit)
+  if (formHwSend) {
+    formHwSend.addEventListener('submit', (e) => {
+      e.preventDefault();
+      saveHomeworkFromSendModal(true);
+    });
+  }
+
+  // Görüntüle modalından tekrar gönder
+  if (btnHwViewResend) {
+    btnHwViewResend.addEventListener('click', () => {
+      if (_viewingHw && _viewingDayName) {
+        sendToWhatsApp(_viewingHw, _viewingDayName);
+      }
+    });
+  }
+
+  // WhatsApp Ayarları — link kaydet (Puan Ayarları form submit ile birlikte çalışır)
+  const whatsappInput = document.getElementById('config-whatsapp-group-link');
+  const testBtn = document.getElementById('btn-test-whatsapp-link');
+
+  if (whatsappInput && stateManager.getWhatsappGroupLink) {
+    // Mevcut değeri yükle
+    whatsappInput.value = stateManager.getWhatsappGroupLink();
+
+    // Değişince kaydet
+    whatsappInput.addEventListener('change', () => {
+      if (stateManager.setWhatsappGroupLink) {
+        stateManager.setWhatsappGroupLink(whatsappInput.value.trim());
+      }
+    });
+    whatsappInput.addEventListener('blur', () => {
+      if (stateManager.setWhatsappGroupLink) {
+        stateManager.setWhatsappGroupLink(whatsappInput.value.trim());
+      }
+    });
+  }
+
+  if (testBtn && whatsappInput) {
+    testBtn.addEventListener('click', () => {
+      const link = whatsappInput.value.trim();
+      if (!link) {
+        if (toastCallback) toastCallback('Lütfen önce bir grup linki girin.', 'warning');
+        return;
+      }
+      window.safeOpenURL(link);
+    });
+  }
 
   // Hafta seçici başlangıç değeri
   if (homeworkSelectWeek) {
     homeworkSelectWeek.value = stateManager.getSelectedWeek();
   }
 
-  // Rapor Oluştur Buton Tıklaması
+  // Rapor Oluştur
   btnGenerateHwReport.addEventListener('click', () => {
     const startVal = hwReportStart.value;
     const endVal = hwReportEnd.value;
 
     if (!startVal || !endVal) {
-      if (toastCallback) {
-        toastCallback('Lütfen başlangıç ve bitiş tarihlerini seçin!', 'warning');
-      }
+      if (toastCallback) toastCallback('Lütfen başlangıç ve bitiş tarihlerini seçin!', 'warning');
       return;
     }
 
     if (startVal > endVal) {
-      if (toastCallback) {
-        toastCallback('Başlangıç tarihi bitiş tarihinden sonra olamaz!', 'warning');
-      }
+      if (toastCallback) toastCallback('Başlangıç tarihi bitiş tarihinden sonra olamaz!', 'warning');
       return;
     }
 
@@ -138,7 +435,6 @@ function setupHomeworkTab(showToast) {
     const selectBranch = document.getElementById('homework-select-branch');
     const branchFilter = selectBranch ? selectBranch.value : 'all';
 
-    // Ödevleri son teslim tarihine ve şubeye göre filtrele
     const filteredHws = state.homeworks.filter(hw => {
       const matchDate = hw.dueDate >= startVal && hw.dueDate <= endVal;
       const matchBranch = state.educationLevel === 'primary' || branchFilter === 'all' || hw.branch === branchFilter;
@@ -146,9 +442,7 @@ function setupHomeworkTab(showToast) {
     });
 
     if (filteredHws.length === 0) {
-      if (toastCallback) {
-        toastCallback('Seçilen tarih aralığında tanımlı ödev bulunamadı.', 'warning');
-      }
+      if (toastCallback) toastCallback('Seçilen tarih aralığında tanımlı ödev bulunamadı.', 'warning');
       return;
     }
 
@@ -156,7 +450,6 @@ function setupHomeworkTab(showToast) {
       return state.educationLevel === 'primary' || branchFilter === 'all' || student.branch === branchFilter;
     });
 
-    // Öğrenci istatistiklerini hesapla
     const studentsStats = activeStudents.map(std => {
       let completed = 0;
       let incomplete = 0;
@@ -165,40 +458,23 @@ function setupHomeworkTab(showToast) {
 
       filteredHws.forEach(hw => {
         const status = hw.status ? hw.status[std.id] : undefined;
-        if (status === 'completed') {
-          completed++;
-        } else if (status === 'incomplete') {
-          incomplete++;
-        } else if (status === 'excused') {
-          excused++;
-        } else {
-          missing++;
-        }
+        if (status === 'completed') completed++;
+        else if (status === 'incomplete') incomplete++;
+        else if (status === 'excused') excused++;
+        else missing++;
       });
 
       const expected = filteredHws.length - excused;
       const successRate = expected > 0 ? Math.round((completed / expected) * 100) : 0;
 
-      return {
-        ...std,
-        completed,
-        incomplete,
-        missing,
-        excused,
-        expected,
-        successRate
-      };
+      return { ...std, completed, incomplete, missing, excused, expected, successRate };
     });
 
-    // Öğrencileri isme göre sıralayalım
     studentsStats.sort((a, b) => a.name.localeCompare(b.name, 'tr'));
 
-    // Tarih formatı yardımı
     const formatDate = (dateStr) => {
       const parts = dateStr.split('-');
-      if (parts.length === 3) {
-        return `${parts[2]}.${parts[1]}.${parts[0]}`;
-      }
+      if (parts.length === 3) return `${parts[2]}.${parts[1]}.${parts[0]}`;
       return dateStr;
     };
 
@@ -206,7 +482,6 @@ function setupHomeworkTab(showToast) {
     const formattedEnd = formatDate(endVal);
     const todayStr = new Date().toLocaleDateString('tr-TR');
 
-    // Rapor HTML şablonu oluştur
     const reportHTML = `
       <div class="report-header" style="text-align: center; border-bottom: 2px solid var(--primary); padding-bottom: 1.5rem; margin-bottom: 2rem;">
         <h2 style="color: var(--primary); font-weight: 700; margin-bottom: 0.5rem; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
@@ -303,16 +578,9 @@ function setupHomeworkTab(showToast) {
       </div>
     `;
 
-    // HTML'leri yerleştir
     hwReportPreviewBody.innerHTML = reportHTML;
-    if (homeworkPrintArea) {
-      homeworkPrintArea.innerHTML = reportHTML;
-    }
-
-    // Lucide ikonlarını render et
+    if (homeworkPrintArea) homeworkPrintArea.innerHTML = reportHTML;
     window.safeCreateIcons();
-
-    // Modalı aç
     modalHwReport.classList.add('active');
   });
 
@@ -320,19 +588,15 @@ function setupHomeworkTab(showToast) {
   btnPrintHwReport.addEventListener('click', () => {
     document.body.classList.add('print-homework');
     window.print();
-
-    // Baskı sonrasında veya pencere kapandığında temizlik yap
     window.addEventListener('afterprint', () => {
       document.body.classList.remove('print-homework');
     }, { once: true });
-
-    // Eski tarayıcılar için fallback
     setTimeout(() => {
       document.body.classList.remove('print-homework');
     }, 500);
   });
 
-  // Ödev Form Gönderimi (Yeni Ekleme / Düzenleme)
+  // Eski Form: Düzenleme submit (sadece geriye dönük uyumluluk için)
   formHomework.addEventListener('submit', (e) => {
     e.preventDefault();
     const id = homeworkIdInput.value;
@@ -344,9 +608,7 @@ function setupHomeworkTab(showToast) {
 
     if (id) {
       stateManager.updateHomework(id, hwData);
-      if (toastCallback) {
-        toastCallback('Ödev ayrıntıları güncellendi.', 'success');
-      }
+      if (toastCallback) toastCallback('Ödev ayrıntıları güncellendi.', 'success');
     }
 
     modalHomework.classList.remove('active');
@@ -358,10 +620,12 @@ function setupHomeworkTab(showToast) {
   });
 }
 
+// -------------------------------------------------------
+// Ana Çizelge Render
+// -------------------------------------------------------
 function renderHomeworkMatrix() {
   const state = stateManager.loadState();
-  
-  // HTML'leri temizle
+
   homeworkWeeklyTableBody.innerHTML = '';
   const thead = homeworkWeeklyTable.querySelector('thead');
   if (thead) thead.innerHTML = '';
@@ -379,7 +643,6 @@ function renderHomeworkMatrix() {
     return;
   }
 
-  // Seçilen haftanın 5 iş gününü (Pazartesi-Cuma) hesapla
   const weekDates = getWeekDates(selectedWeek);
   if (weekDates.length === 0) {
     homeworkWeeklyEmptyState.style.display = 'block';
@@ -390,9 +653,9 @@ function renderHomeworkMatrix() {
   homeworkWeeklyEmptyState.style.display = 'none';
   homeworkWeeklyTable.style.display = 'table';
 
-  // 1. Tablo Başlığını (Header) Oluştur
+  // 1. Tablo Başlığı
   const headerRow = document.createElement('tr');
-  
+
   const thNo = document.createElement('th');
   thNo.className = 'th-no';
   thNo.textContent = 'No';
@@ -410,43 +673,50 @@ function renderHomeworkMatrix() {
   const branchFilter = selectBranch ? selectBranch.value : 'all';
 
   weekDates.forEach(day => {
-    const hw = state.homeworks.find(h => h.dueDate === day.dateStr && (state.educationLevel === 'primary' || h.branch === branchFilter));
+    const hw = state.homeworks.find(h =>
+      h.dueDate === day.dateStr &&
+      (state.educationLevel === 'primary' || h.branch === branchFilter)
+    );
+
     const parts = day.dateStr.split('-');
     const formattedDate = parts.length === 3 ? `${parts[2]}.${parts[1]}` : day.dateStr;
-    let subTitle = '';
+
     const defaultTitles = ['Pazartesi Ödevi', 'Salı Ödevi', 'Çarşamba Ödevi', 'Perşembe Ödevi', 'Cuma Ödevi'];
+    let subTitle = '';
     if (hw && hw.title && !defaultTitles.includes(hw.title)) {
       subTitle = hw.title;
     }
-    const editBtnTitle = hw ? "Ödevi Düzenle" : "Ödev Konusu Ekle";
-    const deleteBtnDisabled = hw ? "" : "display: none;";
 
     const thDay = document.createElement('th');
     thDay.className = 'th-day';
     thDay.style.padding = '0.5rem 0.25rem';
-    thDay.style.minWidth = '120px';
+    thDay.style.minWidth = '130px';
     thDay.style.verticalAlign = 'top';
 
     const dayCard = document.createElement('div');
     dayCard.className = 'hw-day-card';
-    dayCard.innerHTML = `
-      <div class="hw-day-name">${day.dayName}</div>
-      <div class="hw-day-date">${formattedDate}</div>
-      ${subTitle ? `<div class="hw-day-subtitle" title="${hw.description || ''}">${subTitle}</div>` : ''}
-      <div class="hw-col-actions" style="margin-top: 0.4rem; display: flex; justify-content: center; gap: 0.25rem;">
-        <button class="action-btn-sm edit-hw-btn" title="${editBtnTitle}">
-          <i data-lucide="edit-3" style="width: 12px; height: 12px;"></i>
-        </button>
-        <button class="action-btn-sm delete-hw-btn delete" style="${deleteBtnDisabled}" title="Ödevi Sıfırla / Sil">
-          <i data-lucide="trash-2" style="width: 12px; height: 12px;"></i>
-        </button>
-      </div>
-    `;
-    dayCard.querySelector('.edit-hw-btn').addEventListener('click', (e) => {
-      e.stopPropagation();
-      openEditOrCreateHomework(day.dateStr, day.dayName);
-    });
+
     if (hw) {
+      // Ödev VAR → Görüntüle + Sil butonları
+      dayCard.innerHTML = `
+        <div class="hw-day-name">${day.dayName}</div>
+        <div class="hw-day-date">${formattedDate}</div>
+        ${subTitle ? `<div class="hw-day-subtitle" title="${hw.description || ''}">${subTitle}</div>` : ''}
+        <div class="hw-col-actions" style="margin-top: 0.4rem; display: flex; justify-content: center; gap: 0.25rem;">
+          <button class="action-btn-sm hw-view-btn" title="Verilen Ödevi Görüntüle / WhatsApp'ta Paylaş" style="background: rgba(99,102,241,0.15); color: var(--primary); border: 1px solid rgba(99,102,241,0.3);">
+            <i data-lucide="eye" style="width: 12px; height: 12px;"></i>
+          </button>
+          <button class="action-btn-sm delete-hw-btn delete" title="Ödevi Sil / Sıfırla">
+            <i data-lucide="trash-2" style="width: 12px; height: 12px;"></i>
+          </button>
+        </div>
+      `;
+
+      dayCard.querySelector('.hw-view-btn').addEventListener('click', (e) => {
+        e.stopPropagation();
+        openViewHomeworkModal(hw, day.dayName);
+      });
+
       dayCard.querySelector('.delete-hw-btn').addEventListener('click', (e) => {
         e.stopPropagation();
         if (confirm(`"${day.dayName} (${formattedDate})" gününe ait ödev başlığını ve bu güne girilmiş tüm öğrenci puanlarını sıfırlamak istediğinize emin misiniz?`)) {
@@ -456,7 +726,26 @@ function renderHomeworkMatrix() {
           document.dispatchEvent(event);
         }
       });
+
+    } else {
+      // Ödev YOK → Ödev Ver butonu
+      dayCard.innerHTML = `
+        <div class="hw-day-name">${day.dayName}</div>
+        <div class="hw-day-date">${formattedDate}</div>
+        <div class="hw-col-actions" style="margin-top: 0.5rem; display: flex; justify-content: center;">
+          <button class="action-btn-sm hw-send-btn" title="Bu güne ödev ver ve WhatsApp'a gönder" style="background: rgba(37,211,102,0.15); color: #1a9e4f; border: 1px solid rgba(37,211,102,0.35); display: flex; align-items: center; gap: 0.25rem; padding: 0.25rem 0.5rem; font-size: 0.7rem; font-weight: 600; white-space: nowrap;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="#1a9e4f"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+            Ödev Ver
+          </button>
+        </div>
+      `;
+
+      dayCard.querySelector('.hw-send-btn').addEventListener('click', (e) => {
+        e.stopPropagation();
+        openSendHomeworkModal(day.dateStr, day.dayName);
+      });
     }
+
     thDay.appendChild(dayCard);
     headerRow.appendChild(thDay);
   });
@@ -468,15 +757,13 @@ function renderHomeworkMatrix() {
   thTotal.style.textAlign = 'center';
   headerRow.appendChild(thTotal);
 
-  if (thead) {
-    thead.appendChild(headerRow);
-  }
+  if (thead) thead.appendChild(headerRow);
 
   const activeStudents = state.students.filter(student => {
     return state.educationLevel === 'primary' || branchFilter === 'all' || student.branch === branchFilter;
   });
 
-  // 2. Öğrenci Satırlarını Doldur
+  // 2. Öğrenci Satırları
   if (activeStudents.length === 0) {
     const row = document.createElement('tr');
     row.innerHTML = `
@@ -486,15 +773,12 @@ function renderHomeworkMatrix() {
     `;
     homeworkWeeklyTableBody.appendChild(row);
   } else {
-    // Öğrencileri isme göre sıralayalım
     const sortedStudents = [...activeStudents].sort((a, b) => a.name.localeCompare(b.name, 'tr'));
-
     const settings = stateManager.getHomeworkSettings();
 
     sortedStudents.forEach(std => {
       const row = document.createElement('tr');
 
-      // No
       const tdNo = document.createElement('td');
       tdNo.className = 'td-no';
       tdNo.style.fontWeight = '600';
@@ -502,21 +786,21 @@ function renderHomeworkMatrix() {
       tdNo.textContent = std.number;
       row.appendChild(tdNo);
 
-      // Öğrenci Adı (Tıklanınca detay modalı açılır)
       const tdName = document.createElement('td');
       tdName.className = 'td-name';
       tdName.innerHTML = `<span class="homework-weekly-student-name">${std.name} ${std.surname}</span>`;
       tdName.querySelector('.homework-weekly-student-name').addEventListener('click', () => {
-        if (window.openStudentDetailModal) {
-          window.openStudentDetailModal(std.id);
-        }
+        if (window.openStudentDetailModal) window.openStudentDetailModal(std.id);
       });
       row.appendChild(tdName);
 
       let weeklyScoreSum = 0;
-      // Tüm günler için önceden puanları hesapla
+
       const dayData = weekDates.map(day => {
-        const hw = state.homeworks.find(h => h.dueDate === day.dateStr && (state.educationLevel === 'primary' || h.branch === branchFilter));
+        const hw = state.homeworks.find(h =>
+          h.dueDate === day.dateStr &&
+          (state.educationLevel === 'primary' || h.branch === branchFilter)
+        );
         const currentStatus = (hw && hw.status && hw.status[std.id]) || 'none';
 
         let badgeText = '-';
@@ -550,7 +834,6 @@ function renderHomeworkMatrix() {
         return { day, hw, currentStatus, labelToShow, shortName, formattedDate, cellId };
       });
 
-      // Gün Sütunları
       dayData.forEach(({ day, hw, currentStatus, labelToShow, shortName, formattedDate, cellId }) => {
         const tdDay = document.createElement('td');
         tdDay.className = 'td-day';
@@ -558,7 +841,6 @@ function renderHomeworkMatrix() {
           <div class="hw-mobile-header" style="display: none;">${shortName}<span class="hw-mobile-date"> ${formattedDate}</span></div>
           <span class="status-badge status-interactive ${currentStatus}" id="${cellId}">${labelToShow}</span>
         `;
-        // Badge tıklama
         tdDay.querySelector(`#${cellId}`).addEventListener('click', () => {
           let targetHwId = hw ? hw.id : null;
           if (!targetHwId) {
@@ -581,16 +863,12 @@ function renderHomeworkMatrix() {
         row.appendChild(tdDay);
       });
 
-      // Haftalık Toplam Puan Sütunu
       const tdTotal = document.createElement('td');
       tdTotal.className = 'hw-total-cell td-total';
-      
       let totalBadgeClass = 'zero';
       if (weeklyScoreSum > 0) totalBadgeClass = 'positive';
       else if (weeklyScoreSum < 0) totalBadgeClass = 'negative';
-
       const showSign = weeklyScoreSum >= 0 ? '+' : '';
-
       tdTotal.innerHTML = `
         <span class="weekly-total-badge ${totalBadgeClass}">
           ${showSign}${weeklyScoreSum}
@@ -602,18 +880,22 @@ function renderHomeworkMatrix() {
     });
   }
 
-  // Lucide ikonlarını güvenli şekilde yükle
   window.safeCreateIcons();
 }
 
+// -------------------------------------------------------
+// Eski fonksiyon (geriye dönük uyumluluk için korunuyor)
+// -------------------------------------------------------
 function openEditOrCreateHomework(dateStr, dayName) {
   const state = stateManager.loadState();
   const selectBranch = document.getElementById('homework-select-branch');
   const branchFilter = selectBranch ? selectBranch.value : 'all';
-  
-  let hw = state.homeworks.find(h => h.dueDate === dateStr && (state.educationLevel === 'primary' || h.branch === branchFilter));
-  
-  // Eğer henüz ödev nesnesi yoksa oluşturup kaydet
+
+  let hw = state.homeworks.find(h =>
+    h.dueDate === dateStr &&
+    (state.educationLevel === 'primary' || h.branch === branchFilter)
+  );
+
   if (!hw) {
     hw = stateManager.addHomework({
       title: `${dayName} Ödevi`,
@@ -628,7 +910,6 @@ function openEditOrCreateHomework(dateStr, dayName) {
   homeworkDescInput.value = hw.description || '';
   homeworkDueInput.value = hw.dueDate;
   homeworkDueInput.setAttribute('readonly', 'true');
-
   modalHomeworkTitle.textContent = `${dayName} Günü Ödev Detayları`;
   modalHomework.classList.add('active');
 }

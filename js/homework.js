@@ -99,12 +99,20 @@ function sendToWhatsApp(hw, dayName) {
 
   // Eğer grup davet linki varsa, önce onu açıyoruz.
   if (groupLink && groupLink.trim().startsWith('https://chat.whatsapp.com/')) {
-    window.open(groupLink, '_blank');
+    window.safeOpenURL(groupLink);
   }
 
   const desktopUrl = `whatsapp://send?text=${encoded}`;
   const webUrl = `https://web.whatsapp.com/send?text=${encoded}`;
 
+  // Eğer Tauri (Masaüstü uygulaması) ortamındaysak
+  if (window.__TAURI__) {
+    // Tauri WebView içinde navigation hatası (çökme/donma) oluşmaması için direkt Opener API kullan
+    window.safeOpenURL(desktopUrl);
+    return;
+  }
+
+  // Tarayıcı ortamında akıllı yedekleme mekanizması (Desktop -> Web)
   let didOpenApp = false;
   const onBlur = () => {
     didOpenApp = true;
@@ -118,7 +126,7 @@ function sendToWhatsApp(hw, dayName) {
   setTimeout(() => {
     window.removeEventListener('blur', onBlur);
     if (!didOpenApp) {
-      window.open(webUrl, '_blank');
+      window.safeOpenURL(webUrl);
     }
   }, 1500);
 }
@@ -399,7 +407,7 @@ function setupHomeworkTab(showToast) {
         if (toastCallback) toastCallback('Lütfen önce bir grup linki girin.', 'warning');
         return;
       }
-      window.open(link, '_blank');
+      window.safeOpenURL(link);
     });
   }
 

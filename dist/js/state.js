@@ -135,7 +135,8 @@ const DEFAULT_STATE = {
     enabled: false,
     passwordHash: null,
     breakModeEnabled: false
-  }
+  },
+  whatsappGroupLink: ''
 };
 
 class StateManager {
@@ -495,6 +496,15 @@ class StateManager {
       this.state.homeworkSettings.excused = 0;
     }
     return this.state.homeworkSettings;
+  }
+
+  getWhatsappGroupLink() {
+    return this.state.whatsappGroupLink || '';
+  }
+
+  setWhatsappGroupLink(link) {
+    this.state.whatsappGroupLink = link || '';
+    this.saveState();
   }
 
   updateHomeworkSettings(settings) {
