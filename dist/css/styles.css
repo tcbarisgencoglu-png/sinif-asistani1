@@ -4014,4 +4014,245 @@ th:hover .hw-col-actions {
 }
 
 
+/* ================================================
+   UYGULAMA KİLİT EKRANI STİLLERİ
+   ================================================ */
 
+#app-lock-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  background: rgba(10, 15, 30, 0.75);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  justify-content: center;
+  align-items: center;
+  opacity: 0;
+  transition: opacity 0.35s ease;
+}
+
+#app-lock-overlay.visible {
+  opacity: 1;
+}
+
+#lock-box {
+  background: var(--bg-glass, rgba(255,255,255,0.08));
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 20px;
+  padding: 2.5rem 2.25rem 2rem;
+  width: 100%;
+  max-width: 400px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  box-shadow: 0 25px 60px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.05);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+.lock-logo {
+  width: 72px;
+  height: 72px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, var(--primary, #6366f1), #8b5cf6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1.25rem;
+  box-shadow: 0 8px 24px rgba(99,102,241,0.4);
+}
+
+.lock-logo svg {
+  width: 36px;
+  height: 36px;
+  color: white;
+  stroke: white;
+}
+
+#lock-title {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--text-primary, #f8fafc);
+  margin: 0 0 0.35rem;
+  text-align: center;
+}
+
+.lock-subtitle {
+  font-size: 0.85rem;
+  color: var(--text-muted, #94a3b8);
+  margin: 0 0 1.5rem;
+  text-align: center;
+}
+
+#lock-break-message {
+  background: rgba(245,158,11,0.12);
+  border: 1px solid rgba(245,158,11,0.3);
+  border-radius: 10px;
+  padding: 0.65rem 1rem;
+  margin-bottom: 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.83rem;
+  color: #f59e0b;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+#lock-break-message svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  stroke: #f59e0b;
+}
+
+.lock-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  width: 100%;
+}
+
+.lock-form input[type="password"] {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.15);
+  background: rgba(255,255,255,0.07);
+  color: var(--text-primary, #f8fafc);
+  font-size: 1rem;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  box-sizing: border-box;
+  letter-spacing: 0.1em;
+}
+
+.lock-form input[type="password"]::placeholder {
+  color: var(--text-muted, #64748b);
+  letter-spacing: normal;
+}
+
+.lock-form input[type="password"]:focus {
+  border-color: var(--primary, #6366f1);
+  box-shadow: 0 0 0 3px rgba(99,102,241,0.2);
+}
+
+.lock-form button {
+  width: 100%;
+  padding: 0.8rem 1rem;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--primary, #6366f1), #8b5cf6);
+  color: white;
+  font-size: 0.95rem;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: opacity 0.2s, transform 0.15s;
+  font-family: inherit;
+}
+
+.lock-form button:hover { opacity: 0.9; transform: translateY(-1px); }
+.lock-form button:active { transform: translateY(0); }
+
+.lock-form button svg {
+  width: 17px;
+  height: 17px;
+  stroke: white;
+}
+
+.lock-error {
+  font-size: 0.82rem;
+  color: #ef4444;
+  margin: 0.5rem 0 0;
+  text-align: center;
+  min-height: 1.2em;
+}
+
+.lock-forgot {
+  margin-top: 1.25rem;
+  background: none;
+  border: none;
+  color: var(--text-muted, #64748b);
+  font-size: 0.78rem;
+  cursor: pointer;
+  text-decoration: underline;
+  font-family: inherit;
+  transition: color 0.2s;
+  padding: 0;
+}
+
+.lock-forgot:hover { color: #ef4444; }
+
+/* Shake animasyonu (yanlış şifre) */
+@keyframes lockShake {
+  0%, 100% { transform: translateX(0); }
+  15%       { transform: translateX(-8px); }
+  30%       { transform: translateX(8px); }
+  45%       { transform: translateX(-6px); }
+  60%       { transform: translateX(6px); }
+  75%       { transform: translateX(-3px); }
+  90%       { transform: translateX(3px); }
+}
+
+#lock-box.shake {
+  animation: lockShake 0.6s ease;
+}
+
+/* Toggle Switch (Teneffüs Modu) */
+.lock-toggle {
+  position: relative;
+  display: inline-block;
+  width: 48px;
+  height: 26px;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.lock-toggle input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.lock-toggle-slider {
+  position: absolute;
+  inset: 0;
+  background: rgba(255,255,255,0.15);
+  border-radius: 26px;
+  transition: background 0.25s;
+  border: 1px solid rgba(255,255,255,0.2);
+}
+
+.lock-toggle-slider::before {
+  content: '';
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  left: 2px;
+  top: 2px;
+  background: white;
+  border-radius: 50%;
+  transition: transform 0.25s;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.lock-toggle input:checked + .lock-toggle-slider {
+  background: var(--primary, #6366f1);
+  border-color: var(--primary, #6366f1);
+}
+
+.lock-toggle input:checked + .lock-toggle-slider::before {
+  transform: translateX(22px);
+}
+
+.lock-toggle input:disabled + .lock-toggle-slider {
+  opacity: 0.4;
+  cursor: not-allowed;
+}

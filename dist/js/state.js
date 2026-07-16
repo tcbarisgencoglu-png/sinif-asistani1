@@ -130,7 +130,12 @@ const DEFAULT_STATE = {
     p6: { start: '13:50', end: '14:30' },
     p7: { start: '14:40', end: '15:20' }
   },
-  scheduleGrid: {}
+  scheduleGrid: {},
+  appLock: {
+    enabled: false,
+    passwordHash: null,
+    breakModeEnabled: false
+  }
 };
 
 class StateManager {
@@ -244,7 +249,8 @@ class StateManager {
           scheduleTimes: parsed.scheduleTimes || null,
           scheduleGrid: parsed.scheduleGrid || {},
           examAnalysisExams: parsed.examAnalysisExams || [],
-          examAnalysisGrades: parsed.examAnalysisGrades || []
+          examAnalysisGrades: parsed.examAnalysisGrades || [],
+          appLock: parsed.appLock || { enabled: false, passwordHash: null, breakModeEnabled: false }
         };
       }
     } catch (e) {
@@ -1409,5 +1415,6 @@ class StateManager {
 }
 
 window.stateManager = new StateManager();
+window.AppState = window.stateManager;
 })();
 
