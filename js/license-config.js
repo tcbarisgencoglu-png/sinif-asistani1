@@ -94,7 +94,15 @@
 
   // Global yapılandırmayı oluştur
   function checkLicenseStatus() {
-    const savedKey = localStorage.getItem(STORAGE_KEY);
+    const DEFAULT_KEY = 'U8SxbsSxZiBBc2lzdGFuxLEgS3VsbGFuxLFjxLFzxLF8bmV2ZXI=-7098-1EA4-D0F9-2C4F';
+    let savedKey = localStorage.getItem(STORAGE_KEY);
+    
+    if (localStorage.getItem('sinif_asistani_license_removed') === 'true') {
+      savedKey = null;
+    } else if (!savedKey) {
+      savedKey = DEFAULT_KEY;
+    }
+    
     const verification = verifyLicenseKey(savedKey);
     
     window.LicenseConfig = {
@@ -112,6 +120,7 @@
         const check = verifyLicenseKey(key);
         if (check.isValid) {
           localStorage.setItem(STORAGE_KEY, key);
+          localStorage.removeItem('sinif_asistani_license_removed');
           checkLicenseStatus(); // Durumu güncelle
           return { success: true, licensee: check.licensee, expiryDate: check.expiryDate };
         }
@@ -119,6 +128,7 @@
       },
       removeLicense: () => {
         localStorage.removeItem(STORAGE_KEY);
+        localStorage.setItem('sinif_asistani_license_removed', 'true');
         checkLicenseStatus();
       }
     };
