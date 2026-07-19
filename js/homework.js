@@ -778,6 +778,10 @@ function renderHomeworkMatrix() {
 
     sortedStudents.forEach(std => {
       const row = document.createElement('tr');
+      const isAbsentToday = stateManager.isStudentAbsent(std.id);
+      if (isAbsentToday) {
+        row.classList.add('absent-row');
+      }
 
       const tdNo = document.createElement('td');
       tdNo.className = 'td-no';

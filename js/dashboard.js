@@ -446,21 +446,81 @@ function renderDashboardHeaderActions() {
   if (!dashboardHeaderActions) return;
   if (!document.getElementById('btn-dash-fullscreen-toggle')) {
     dashboardHeaderActions.innerHTML = `
-      <button class="btn btn-secondary" id="btn-dash-timer" title="Süre Tut" style="display: flex; align-items: center; justify-content: center; width: 38px; padding: 0.6rem 0; margin-right: 0.5rem;">
-        <i id="dash-timer-icon" data-lucide="clock"></i>
-      </button>
-      <button class="btn btn-secondary" id="btn-dash-quick-puan" title="Hızlı Puan Ver" style="display: flex; align-items: center; justify-content: center; width: 38px; padding: 0.6rem 0; margin-right: 0.5rem;">
-        <i id="dash-quick-puan-icon" data-lucide="award"></i>
-      </button>
-      <button class="btn btn-secondary" id="btn-dash-caller" title="Hızlı Öğrenci Çağır" style="display: flex; align-items: center; justify-content: center; width: 38px; padding: 0.6rem 0; margin-right: 0.5rem;">
-        <i id="dash-caller-icon" data-lucide="user-check"></i>
-      </button>
-      <button class="btn btn-secondary" id="btn-dash-flow" title="Ders ve Konu Akışı" style="display: flex; align-items: center; justify-content: center; width: 38px; padding: 0.6rem 0; margin-right: 0.5rem;">
-        <i id="dash-flow-icon" data-lucide="activity"></i>
-      </button>
-      <button class="btn btn-secondary" id="btn-dash-fullscreen-toggle" title="${document.fullscreenElement ? 'Tam Ekrandan Çık' : 'Tam Ekran Yap'}" style="display: flex; align-items: center; justify-content: center; width: 38px; padding: 0.6rem 0;">
-        <i id="dash-fullscreen-icon" data-lucide="${document.fullscreenElement ? 'minimize' : 'maximize'}"></i>
-      </button>
+      <div class="quick-menu-box" style="display: flex; flex-direction: column; align-items: flex-end; gap: 0.4rem; background: rgba(255, 255, 255, 0.05); padding: 0.5rem 0.75rem; border-radius: var(--radius-md); border: 1px solid var(--border-color); box-shadow: var(--shadow-sm);">
+        <span style="font-size: 0.75rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; margin-right: 0.2rem;">Hızlı Menü</span>
+        <div style="display: flex; gap: 0.5rem;">
+          <div class="flip-card" id="btn-dash-timer" tabindex="0" role="button" title="Süre Tut">
+            <div class="flip-card-inner">
+              <div class="flip-card-front">
+                <i id="dash-timer-icon" data-lucide="clock"></i>
+              </div>
+              <div class="flip-card-back">
+                <span>Süre Tut</span>
+              </div>
+            </div>
+          </div>
+          <div class="flip-card" id="btn-dash-quick-puan" tabindex="0" role="button" title="Hızlı Puan Ver">
+            <div class="flip-card-inner">
+              <div class="flip-card-front">
+                <i id="dash-quick-puan-icon" data-lucide="award"></i>
+              </div>
+              <div class="flip-card-back">
+                <span>Puan Ver</span>
+              </div>
+            </div>
+          </div>
+          <div class="flip-card" id="btn-dash-caller" tabindex="0" role="button" title="Hızlı Öğrenci Çağır">
+            <div class="flip-card-inner">
+              <div class="flip-card-front">
+                <i id="dash-caller-icon" data-lucide="user-check"></i>
+              </div>
+              <div class="flip-card-back">
+                <span>Öğrenci Seç</span>
+              </div>
+            </div>
+          </div>
+          <div class="flip-card" id="btn-dash-flow" tabindex="0" role="button" title="Ders ve Konu Akışı">
+            <div class="flip-card-inner">
+              <div class="flip-card-front">
+                <i id="dash-flow-icon" data-lucide="activity"></i>
+              </div>
+              <div class="flip-card-back">
+                <span>Ders Akışı</span>
+              </div>
+            </div>
+          </div>
+          <div class="flip-card" id="btn-dash-attendance" tabindex="0" role="button" title="Yoklama Al">
+            <div class="flip-card-inner">
+              <div class="flip-card-front">
+                <i id="dash-attendance-icon" data-lucide="clipboard-list"></i>
+              </div>
+              <div class="flip-card-back">
+                <span>Yoklama</span>
+              </div>
+            </div>
+          </div>
+          <div class="flip-card" id="btn-dash-reminder" tabindex="0" role="button" title="Hatırlatıcı Ekle">
+            <div class="flip-card-inner">
+              <div class="flip-card-front">
+                <i id="dash-reminder-icon" data-lucide="bell"></i>
+              </div>
+              <div class="flip-card-back">
+                <span>Hatırlatıcı</span>
+              </div>
+            </div>
+          </div>
+          <div class="flip-card" id="btn-dash-fullscreen-toggle" tabindex="0" role="button" title="${document.fullscreenElement ? 'Tam Ekrandan Çık' : 'Tam Ekran Yap'}">
+            <div class="flip-card-inner">
+              <div class="flip-card-front">
+                <i id="dash-fullscreen-icon" data-lucide="${document.fullscreenElement ? 'minimize' : 'maximize'}"></i>
+              </div>
+              <div class="flip-card-back">
+                <span>Tam Ekran</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     `;
 
     const btnFullscreenToggle = document.getElementById('btn-dash-fullscreen-toggle');
@@ -530,9 +590,63 @@ function renderDashboardHeaderActions() {
         }
       });
     }
+
+    const btnDashAttendance = document.getElementById('btn-dash-attendance');
+    if (btnDashAttendance) {
+      btnDashAttendance.addEventListener('click', (e) => {
+        e.preventDefault();
+        openAttendanceModal();
+      });
+    }
+
+    const btnDashReminder = document.getElementById('btn-dash-reminder');
+    if (btnDashReminder) {
+      btnDashReminder.addEventListener('click', (e) => {
+        e.preventDefault();
+        const reminderModal = document.getElementById('modal-reminder-add');
+        if (reminderModal) {
+          reminderModal.classList.add('active');
+          // Reset fields and set default time to now + 5 minutes
+          const noteInput = document.getElementById('reminder-note');
+          const datetimeInput = document.getElementById('reminder-datetime');
+          if (noteInput) noteInput.value = '';
+          if (datetimeInput) {
+            const now = new Date();
+            now.setMinutes(now.getMinutes() + 5);
+            const localISOTime = new Date(now.getTime() - now.getTimezoneOffset() * 60000)
+              .toISOString()
+              .slice(0, 16);
+            datetimeInput.value = localISOTime;
+          }
+        }
+      });
+    }
     
     if (window.safeCreateIcons) {
       window.safeCreateIcons();
+    }
+  }
+
+  // Yoklama Modalı Dinleyicileri
+  const modalAttendance = document.getElementById('modal-attendance');
+  if (modalAttendance) {
+    modalAttendance.querySelectorAll('.close-btn, .close-btn-action').forEach(btn => {
+      btn.addEventListener('click', () => {
+        modalAttendance.classList.remove('active');
+      });
+    });
+    
+    modalAttendance.addEventListener('click', (e) => {
+      if (e.target === modalAttendance) {
+        modalAttendance.classList.remove('active');
+      }
+    });
+    
+    const dateInput = document.getElementById('attendance-date');
+    if (dateInput) {
+      dateInput.addEventListener('change', () => {
+        renderAttendanceStudentsList();
+      });
     }
   }
 }
@@ -608,8 +722,9 @@ function renderDashboardGeneral() {
     });
     const examRatio = examCount > 0 ? Math.round(totalExamScore / examCount) : 0;
 
+    const isAbsentToday = stateManager.isStudentAbsent(student.id);
     const card = document.createElement('div');
-    card.className = `glass-card student-card ${student.gender === 'female' ? 'female' : 'male'}`;
+    card.className = `glass-card student-card ${student.gender === 'female' ? 'female' : 'male'}${isAbsentToday ? ' absent' : ''}`;
 
     const avatarHtml = student.photo 
       ? `<img src="${student.photo}" class="student-avatar" style="object-fit: cover;">`
@@ -625,6 +740,7 @@ function renderDashboardGeneral() {
         </button>
       </div>
       ${avatarHtml}
+      ${isAbsentToday ? '<span class="absent-badge">GELMEDİ</span>' : ''}
       <div class="student-info">
         <h3>${student.name} ${student.surname}</h3>
         <div class="std-no">Okul No: ${student.number}</div>
@@ -800,6 +916,10 @@ function renderDashboardWeekly() {
     if (row.totalPoints < 0) {
       tr.classList.add('negative-score-row');
     }
+    const isAbsentToday = stateManager.isStudentAbsent(student.id);
+    if (isAbsentToday) {
+      tr.classList.add('absent-row');
+    }
     
     tr.innerHTML = `
       <td style="text-align: center; font-weight: 700; font-size: 1.1rem;">${rankBadge}</td>
@@ -970,6 +1090,10 @@ function renderDashboardMonthly() {
     const tr = document.createElement('tr');
     if (row.totalPoints < 0) {
       tr.classList.add('negative-score-row');
+    }
+    const isAbsentToday = stateManager.isStudentAbsent(student.id);
+    if (isAbsentToday) {
+      tr.classList.add('absent-row');
     }
     
     tr.innerHTML = `
@@ -1661,9 +1785,101 @@ function updateFlowContent(syncWithRealTime = true) {
   }
 }
 
-window.updateFlowContent = updateFlowContent;
-window.setupDashboardTab = setupDashboardTab;
-window.renderDashboard = renderDashboard;
-window.openStudentDetailModal = openStudentDetailModal;
-window.openEditStudentModal = openEditStudentModal;
+  function openAttendanceModal() {
+    const modal = document.getElementById('modal-attendance');
+    if (!modal) return;
+    
+    const dateInput = document.getElementById('attendance-date');
+    if (dateInput && !dateInput.value) {
+      dateInput.value = window.formatLocalDate();
+    }
+    
+    modal.classList.add('active');
+    renderAttendanceStudentsList();
+  }
+
+  function renderAttendanceStudentsList() {
+    const listContainer = document.getElementById('attendance-students-list');
+    const dateInput = document.getElementById('attendance-date');
+    if (!listContainer || !dateInput) return;
+    
+    const selectedDate = dateInput.value;
+    listContainer.innerHTML = '';
+    
+    const state = stateManager.loadState();
+    const selectBranch = document.getElementById('dash-select-branch');
+    const branchFilter = selectBranch ? selectBranch.value : 'all';
+    
+    const activeStudents = state.students.filter(student => {
+      return state.educationLevel === 'primary' || branchFilter === 'all' || student.branch === branchFilter;
+    });
+
+    const sortedStudents = [...activeStudents].sort((a, b) => a.name.localeCompare(b.name, 'tr'));
+    
+    if (sortedStudents.length === 0) {
+      listContainer.innerHTML = '<div style="text-align: center; padding: 2rem; color: var(--text-muted); font-size: 0.9rem;">Sınıfta kayıtlı öğrenci yok.</div>';
+      return;
+    }
+    
+    sortedStudents.forEach(student => {
+      const isAbsent = stateManager.isStudentAbsent(student.id, selectedDate);
+      const initials = `${student.name[0] || ''}${student.surname[0] || ''}`.toUpperCase();
+      
+      const row = document.createElement('div');
+      row.style.cssText = 'display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 1rem; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-primary); transition: all 0.2s ease;';
+      
+      const avatarStyle = student.gender === 'female' 
+        ? 'background: rgba(236, 72, 153, 0.1); color: rgb(236, 72, 153);' 
+        : 'background: rgba(99, 102, 241, 0.1); color: var(--primary);';
+        
+      const avatarHtml = student.photo
+        ? `<img src="${student.photo}" style="width: 36px; height: 36px; border-radius: 50%; object-fit: cover;">`
+        : `<div class="avatar-sm" style="width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.85rem; ${avatarStyle}">${initials}</div>`;
+        
+      row.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+          ${avatarHtml}
+          <div style="display: flex; flex-direction: column;">
+            <span style="font-weight: 600; font-size: 0.9rem; color: var(--text-primary);">${student.name} ${student.surname}</span>
+            <span style="font-size: 0.75rem; color: var(--text-muted);">No: ${student.number}</span>
+          </div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <span class="attendance-status-label" style="font-size: 0.8rem; font-weight: 600; color: ${isAbsent ? 'var(--danger)' : 'var(--success)'};">${isAbsent ? 'GELMEDİ' : 'SINIFTA'}</span>
+          <label class="switch" style="position: relative; display: inline-block; width: 44px; height: 24px; margin: 0; cursor: pointer;">
+            <input type="checkbox" class="attendance-toggle" data-id="${student.id}" ${isAbsent ? 'checked' : ''} style="opacity: 0; width: 0; height: 0;">
+            <span class="slider" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: ${isAbsent ? 'var(--danger)' : 'var(--success)'}; transition: .3s; border-radius: 24px;">
+              <span class="slider-dot" style="position: absolute; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .3s; border-radius: 50%; transform: ${isAbsent ? 'translateX(20px)' : 'translateX(0)'};"></span>
+            </span>
+          </label>
+        </div>
+      `;
+      
+      const toggleInput = row.querySelector('.attendance-toggle');
+      const slider = row.querySelector('.slider');
+      const dot = row.querySelector('.slider-dot');
+      
+      toggleInput.addEventListener('change', () => {
+        stateManager.toggleAttendance(student.id, selectedDate);
+        const updatedIsAbsent = stateManager.isStudentAbsent(student.id, selectedDate);
+        row.querySelector('.attendance-status-label').textContent = updatedIsAbsent ? 'GELMEDİ' : 'SINIFTA';
+        row.querySelector('.attendance-status-label').style.color = updatedIsAbsent ? 'var(--danger)' : 'var(--success)';
+        slider.style.backgroundColor = updatedIsAbsent ? 'var(--danger)' : 'var(--success)';
+        dot.style.transform = updatedIsAbsent ? 'translateX(20px)' : 'translateX(0)';
+        
+        const event = new CustomEvent('stateChanged');
+        document.dispatchEvent(event);
+      });
+
+      listContainer.appendChild(row);
+    });
+  }
+
+  window.openAttendanceModal = openAttendanceModal;
+  window.renderAttendanceStudentsList = renderAttendanceStudentsList;
+  window.updateFlowContent = updateFlowContent;
+  window.setupDashboardTab = setupDashboardTab;
+  window.renderDashboard = renderDashboard;
+  window.openStudentDetailModal = openStudentDetailModal;
+  window.openEditStudentModal = openEditStudentModal;
 })();

@@ -391,6 +391,161 @@ function initApp() {
 
   window.safeCreateIcons();
 
+  // Yan Menü Daraltma (Sidebar Collapse) Yönetimi
+  const isCollapsed = localStorage.getItem('sidebar-collapsed') === 'true';
+  if (isCollapsed) {
+    document.body.classList.add('sidebar-collapsed');
+  }
+
+  const btnToggleSidebarCollapse = document.getElementById('btn-toggle-sidebar-collapse');
+  if (btnToggleSidebarCollapse) {
+    btnToggleSidebarCollapse.addEventListener('click', () => {
+      document.body.classList.toggle('sidebar-collapsed');
+      localStorage.setItem('sidebar-collapsed', document.body.classList.contains('sidebar-collapsed'));
+    });
+  }
+
+  // Keyboard Arrow Keys (Left / Right Arrow) collapse support
+  document.addEventListener('keydown', (e) => {
+    // Avoid triggering when user is active inside an input/textarea
+    if (document.activeElement && (
+      document.activeElement.tagName === 'INPUT' ||
+      document.activeElement.tagName === 'TEXTAREA' ||
+      document.activeElement.isContentEditable
+    )) {
+      return;
+    }
+    
+    if (e.key === 'ArrowLeft') {
+      document.body.classList.add('sidebar-collapsed');
+      localStorage.setItem('sidebar-collapsed', 'true');
+    } else if (e.key === 'ArrowRight') {
+      document.body.classList.remove('sidebar-collapsed');
+      localStorage.setItem('sidebar-collapsed', 'false');
+    }
+  });
+
+  // --- HATIRLATICI YÖNETİMİ ---
+  const modalReminderAdd = document.getElementById('modal-reminder-add');
+  const modalReminderAlert = document.getElementById('modal-reminder-alert');
+  const formReminderAdd = document.getElementById('form-reminder-add');
+  
+  // Close / Cancel add modal
+  const closeReminderAdd = () => {
+    if (modalReminderAdd) modalReminderAdd.classList.remove('active');
+  };
+  
+  const btnCloseReminderAddModal = document.getElementById('btn-close-reminder-add-modal');
+  if (btnCloseReminderAddModal) btnCloseReminderAddModal.addEventListener('click', closeReminderAdd);
+  const btnCancelReminderAdd = document.getElementById('btn-cancel-reminder-add');
+  if (btnCancelReminderAdd) btnCancelReminderAdd.addEventListener('click', closeReminderAdd);
+  
+  // Close alert modal
+  const btnCloseReminderAlert = document.getElementById('btn-close-reminder-alert');
+  if (btnCloseReminderAlert) {
+    btnCloseReminderAlert.addEventListener('click', () => {
+      if (modalReminderAlert) modalReminderAlert.classList.remove('active');
+    });
+  }
+
+  // Play audio alarm beep tone using Web Audio API
+  function playReminderAlertSound() {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const playTone = (freq, start, duration) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.frequency.setValueAtTime(freq, start);
+        gain.gain.setValueAtTime(0.12, start);
+        gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+        osc.start(start);
+        osc.stop(start + duration);
+      };
+      
+      // Triple notification chime
+      playTone(523.25, ctx.currentTime, 0.15);       // C5
+      playTone(659.25, ctx.currentTime + 0.18, 0.15);  // E5
+      playTone(783.99, ctx.currentTime + 0.36, 0.4);   // G5
+    } catch (e) {
+      console.warn("Audio Context playback failed:", e);
+    }
+  }
+
+  // Submit new reminder
+  if (formReminderAdd) {
+    formReminderAdd.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const noteInput = document.getElementById('reminder-note');
+      const datetimeInput = document.getElementById('reminder-datetime');
+      if (!noteInput || !datetimeInput) return;
+
+      const noteVal = noteInput.value.trim();
+      const datetimeVal = datetimeInput.value; // YYYY-MM-DDTHH:MM format
+
+      if (!noteVal || !datetimeVal) return;
+
+      const reminders = JSON.parse(localStorage.getItem('sinif-asistani-reminders') || '[]');
+      reminders.push({
+        id: 'rem-' + Date.now(),
+        note: noteVal,
+        datetime: datetimeVal,
+        triggered: false
+      });
+      localStorage.setItem('sinif-asistani-reminders', JSON.stringify(reminders));
+
+      closeReminderAdd();
+      if (window.showToast) {
+        window.showToast('Hatırlatıcı başarıyla eklendi.', 'success');
+      } else {
+        alert('Hatırlatıcı başarıyla eklendi.');
+      }
+    });
+  }
+
+  // Periodic Reminder Checker (runs every 2 seconds)
+  setInterval(() => {
+    const reminders = JSON.parse(localStorage.getItem('sinif-asistani-reminders') || '[]');
+    let updated = false;
+    const now = new Date();
+
+    reminders.forEach(rem => {
+      if (!rem.triggered) {
+        const remTime = new Date(rem.datetime);
+        if (remTime <= now) {
+          rem.triggered = true;
+          updated = true;
+
+          // Open Alert Modal
+          if (modalReminderAlert) {
+            const alertText = document.getElementById('reminder-alert-text');
+            const alertTime = document.getElementById('reminder-alert-time');
+            if (alertText) alertText.textContent = rem.note;
+            if (alertTime) {
+              const formattedDate = remTime.toLocaleString('tr-TR', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+              });
+              alertTime.textContent = `Tarih: ${formattedDate}`;
+            }
+            modalReminderAlert.classList.add('active');
+            
+            // Play physical chime alert
+            playReminderAlertSound();
+          }
+        }
+      }
+    });
+
+    if (updated) {
+      localStorage.setItem('sinif-asistani-reminders', JSON.stringify(reminders));
+    }
+  }, 2000);
+
   // Güncelleme kontrolü — arka planda, uygulamayı bekletmeden
   checkForUpdates();
 }
@@ -494,7 +649,30 @@ function switchTab(tabId, animate = true) {
     case 'dashboard':
       renderDashboard();
     case 'books':
-      renderBooksList();
+      {
+        const activeBooksTabBtn = document.querySelector('#books .sub-tab-menu .sub-tab-btn.active');
+        const booksTab = activeBooksTabBtn ? activeBooksTabBtn.getAttribute('data-books-tab') : 'library';
+        if (booksTab === 'library') {
+          if (window.renderLeaderboard) window.renderLeaderboard();
+        } else if (booksTab === 'student-library') {
+          if (window.initStudentLibraryTab) {
+            // Keep current selection if any
+            const select = document.getElementById('student-library-select');
+            const currentSelectedId = select ? select.value : '';
+            window.initStudentLibraryTab();
+            if (select && currentSelectedId) {
+              select.value = currentSelectedId;
+              window.renderStudentLibraryDetails(currentSelectedId);
+            }
+          }
+        } else if (booksTab === 'leaderboard') {
+          if (window.renderBooksList) window.renderBooksList();
+        } else if (booksTab === 'late') {
+          if (window.renderLateBooksList) window.renderLateBooksList();
+        } else if (booksTab === 'top20') {
+          if (window.renderTop20Leaderboard) window.renderTop20Leaderboard();
+        }
+      }
       break;
     case 'homework':
       renderHomeworkMatrix();

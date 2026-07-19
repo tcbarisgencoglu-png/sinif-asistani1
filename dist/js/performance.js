@@ -240,14 +240,21 @@
       if (weeklyScore > 0) weeklyScoreClass = 'completed';
       else if (weeklyScore < 0) weeklyScoreClass = 'missing';
 
+      const isAbsentToday = stateManager.isStudentAbsent(student.id);
       const card = document.createElement('div');
       card.className = 'quick-point-student-card';
       card.style.cssText = 'display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: var(--radius-md); background: var(--bg-secondary); cursor: pointer; transition: all var(--transition-fast); text-align: center; position: relative;';
+      if (isAbsentToday) {
+        card.style.opacity = '0.5';
+        card.style.filter = 'grayscale(50%)';
+        card.style.pointerEvents = 'none';
+      }
       card.innerHTML = `
         ${avatarHtml}
         <div style="font-weight: 600; font-size: 0.8rem; margin-top: 0.5rem; color: var(--text-primary); text-overflow: ellipsis; white-space: nowrap; overflow: hidden; width: 100%;" title="${student.name} ${student.surname}">${student.name} ${student.surname}</div>
         <div style="font-size: 0.7rem; color: var(--text-muted);">No: ${student.number}</div>
         <span class="status-badge ${weeklyScoreClass}" style="position: absolute; top: 5px; right: 5px; font-size: 0.7rem; padding: 0.1rem 0.35rem; min-width: 24px; text-align: center;">${weeklyScore >= 0 ? '+' : ''}${weeklyScore}</span>
+        ${isAbsentToday ? `<span style="position: absolute; top: 5px; left: 5px; font-size: 0.6rem; padding: 0.1rem 0.35rem; background: var(--danger); color: white; border-radius: 4px; font-weight: bold;">YOK</span>` : ''}
       `;
 
       card.addEventListener('click', () => {
@@ -329,7 +336,9 @@
       if (targetStudents.length === 0) return;
       
       targetStudents.forEach(student => {
-        stateManager.addPerformance(student.id, currentBehaviorType, behavior.point, behavior.name, activeWeekId);
+        if (!stateManager.isStudentAbsent(student.id)) {
+          stateManager.addPerformance(student.id, currentBehaviorType, behavior.point, behavior.name, activeWeekId);
+        }
       });
 
       if (behavior.point >= 0) playPointUpSound();

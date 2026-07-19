@@ -70,6 +70,10 @@
   let autoSaveTimeout = null;
   let isRedMode = false;
   let savedRange = null;
+  let currentCoverPdfId = null;
+  let currentOpenPdfId = null;
+  let currentOpenPdfUrl = null;
+
 
   // Modülü başlat
   function init() {
@@ -141,6 +145,161 @@
     }
 
     // Olay Dinleyicileri
+    const btnMaterialsNotebooks = document.getElementById('tab-btn-materials-notebooks');
+    const btnMaterialsTextbooks = document.getElementById('tab-btn-materials-textbooks');
+    const sectionMaterialsNotebooks = document.getElementById('materials-notebooks-section');
+    const sectionMaterialsTextbooks = document.getElementById('materials-textbooks-section');
+
+    if (btnMaterialsNotebooks && btnMaterialsTextbooks) {
+      btnMaterialsNotebooks.addEventListener('click', () => {
+        btnMaterialsNotebooks.classList.add('active');
+        btnMaterialsTextbooks.classList.remove('active');
+        if (sectionMaterialsNotebooks) sectionMaterialsNotebooks.style.display = 'block';
+        if (sectionMaterialsTextbooks) sectionMaterialsTextbooks.style.display = 'none';
+        
+        window.renderNotebooks();
+      });
+
+      btnMaterialsTextbooks.addEventListener('click', () => {
+        btnMaterialsNotebooks.classList.remove('active');
+        btnMaterialsTextbooks.classList.add('active');
+        if (sectionMaterialsNotebooks) sectionMaterialsNotebooks.style.display = 'none';
+        if (sectionMaterialsTextbooks) sectionMaterialsTextbooks.style.display = 'block';
+        
+        renderTextbooksList();
+      });
+    }
+
+    const btnUploadPdfTrigger = document.getElementById('btn-upload-pdf-trigger');
+    const inputUploadPdfFile = document.getElementById('input-upload-pdf-file');
+    
+    if (btnUploadPdfTrigger && inputUploadPdfFile) {
+      btnUploadPdfTrigger.addEventListener('click', () => {
+        inputUploadPdfFile.click();
+      });
+      
+      inputUploadPdfFile.addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        
+        if (file.type !== 'application/pdf') {
+          if (window.showToast) window.showToast('Lütfen sadece PDF dosyası yükleyin!', 'danger');
+          e.target.value = '';
+          return;
+        }
+        
+        const id = 'pdf_' + Date.now();
+        try {
+          if (window.showToast) window.showToast('Kitap yükleniyor, lütfen bekleyin...', 'info');
+          await savePDF(id, file.name, file);
+          if (window.showToast) window.showToast('Kitap başarıyla yüklendi.', 'success');
+          renderTextbooksList();
+        } catch (err) {
+          console.error("PDF upload error:", err);
+          if (window.showToast) window.showToast('Kitap yüklenirken hata oluştu!', 'danger');
+        }
+        e.target.value = '';
+      });
+    }
+
+    const inputUploadCoverFile = document.getElementById('input-upload-cover-file');
+    if (inputUploadCoverFile) {
+      inputUploadCoverFile.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        
+        if (!file.type.startsWith('image/')) {
+          if (window.showToast) window.showToast('Lütfen geçerli bir görsel dosyası seçin!', 'danger');
+          e.target.value = '';
+          return;
+        }
+        
+        const reader = new FileReader();
+        reader.onload = async (event) => {
+          const base64Data = event.target.result;
+          try {
+            const pdfRecord = await getPDF(currentCoverPdfId);
+            if (pdfRecord) {
+              pdfRecord.cover = base64Data;
+              await savePDFRecord(pdfRecord);
+              if (window.showToast) window.showToast('Kitap kapak resmi güncellendi.', 'success');
+              renderTextbooksList();
+            } else {
+              if (window.showToast) window.showToast('Kitap kaydı bulunamadı!', 'danger');
+            }
+          } catch (err) {
+            console.error("Cover upload error:", err);
+            if (window.showToast) window.showToast('Kapak resmi güncellenirken hata oluştu!', 'danger');
+          }
+        };
+        reader.readAsDataURL(file);
+        e.target.value = '';
+      });
+    }
+
+    const btnClosePdfViewer = document.getElementById('btn-close-pdf-viewer');
+    if (btnClosePdfViewer) {
+      btnClosePdfViewer.addEventListener('click', () => {
+        const overlay = document.getElementById('pdf-viewer-overlay');
+        const iframe = document.getElementById('pdf-viewer-iframe');
+        if (overlay) overlay.style.display = 'none';
+        if (iframe) {
+          iframe.src = '';
+        }
+        if (currentOpenPdfUrl) {
+          URL.revokeObjectURL(currentOpenPdfUrl);
+          currentOpenPdfUrl = null;
+        }
+        currentOpenPdfId = null;
+      });
+    }
+
+    const pdfViewerPageInput = document.getElementById('pdf-viewer-page-input');
+    if (pdfViewerPageInput) {
+      pdfViewerPageInput.addEventListener('change', async (e) => {
+        let pageNum = parseInt(e.target.value) || 1;
+        if (pageNum < 1) pageNum = 1;
+        e.target.value = pageNum;
+        
+        if (currentOpenPdfId) {
+          try {
+            const pdfRecord = await getPDF(currentOpenPdfId);
+            if (pdfRecord) {
+              pdfRecord.lastPage = pageNum;
+              await savePDFRecord(pdfRecord);
+              
+              const iframe = document.getElementById('pdf-viewer-iframe');
+              if (iframe && currentOpenPdfUrl) {
+                iframe.src = currentOpenPdfUrl + '#page=' + pageNum;
+              }
+            }
+          } catch (err) {
+            console.error("Save PDF page error:", err);
+          }
+        }
+      });
+    }
+
+    const btnPdfPrevPage = document.getElementById('btn-pdf-prev-page');
+    const btnPdfNextPage = document.getElementById('btn-pdf-next-page');
+    if (btnPdfPrevPage && btnPdfNextPage && pdfViewerPageInput) {
+      btnPdfPrevPage.addEventListener('click', () => {
+        let pageNum = parseInt(pdfViewerPageInput.value) || 1;
+        if (pageNum > 1) {
+          pageNum--;
+          pdfViewerPageInput.value = pageNum;
+          pdfViewerPageInput.dispatchEvent(new Event('change'));
+        }
+      });
+
+      btnPdfNextPage.addEventListener('click', () => {
+        let pageNum = parseInt(pdfViewerPageInput.value) || 1;
+        pageNum++;
+        pdfViewerPageInput.value = pageNum;
+        pdfViewerPageInput.dispatchEvent(new Event('change'));
+      });
+    }
+
     if (btnAddNotebookTrigger) {
       btnAddNotebookTrigger.addEventListener('click', openAddModal);
     }
@@ -1365,22 +1524,245 @@
     );
   }
 
+  const DB_NAME = 'TextbooksDB';
+  const DB_VERSION = 1;
+  const STORE_NAME = 'pdfs';
+
+  function openDB() {
+    return new Promise((resolve, reject) => {
+      const request = indexedDB.open(DB_NAME, DB_VERSION);
+      request.onupgradeneeded = (e) => {
+        const db = e.target.result;
+        if (!db.objectStoreNames.contains(STORE_NAME)) {
+          db.createObjectStore(STORE_NAME, { keyPath: 'id' });
+        }
+      };
+      request.onsuccess = (e) => resolve(e.target.result);
+      request.onerror = (e) => reject(e.target.error);
+    });
+  }
+
+  async function savePDF(id, name, blob) {
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(STORE_NAME, 'readwrite');
+      const store = transaction.objectStore(STORE_NAME);
+      const data = {
+        id,
+        name,
+        blob,
+        uploadedAt: new Date().toISOString(),
+        size: blob.size
+      };
+      const request = store.put(data);
+      request.onsuccess = () => resolve(true);
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  async function getAllPDFs() {
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(STORE_NAME, 'readonly');
+      const store = transaction.objectStore(STORE_NAME);
+      const request = store.getAll();
+      request.onsuccess = (e) => resolve(e.target.result);
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  async function deletePDF(id) {
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(STORE_NAME, 'readwrite');
+      const store = transaction.objectStore(STORE_NAME);
+      const request = store.delete(id);
+      request.onsuccess = () => resolve(true);
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  async function getPDF(id) {
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(STORE_NAME, 'readonly');
+      const store = transaction.objectStore(STORE_NAME);
+      const request = store.get(id);
+      request.onsuccess = (e) => resolve(e.target.result);
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  async function savePDFRecord(record) {
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(STORE_NAME, 'readwrite');
+      const store = transaction.objectStore(STORE_NAME);
+      const request = store.put(record);
+      request.onsuccess = () => resolve(true);
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  async function renderTextbooksList() {
+    const grid = document.getElementById('textbooks-grid');
+    if (!grid) return;
+    grid.innerHTML = '';
+    
+    try {
+      const pdfs = await getAllPDFs();
+      if (pdfs.length === 0) {
+        grid.innerHTML = `
+          <div style="grid-column: 1 / -1; text-align: center; padding: 3rem 2rem; color: var(--text-muted); display: flex; flex-direction: column; align-items: center; justify-content: center;">
+            <div style="background: rgba(245, 158, 11, 0.05); color: var(--warning); width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem auto;">
+              <i data-lucide="book-open" style="width: 30px; height: 30px;"></i>
+            </div>
+            <h4 style="font-size: 1rem; font-weight: 600; margin-bottom: 0.25rem; color: var(--text-primary);">Ders Kitabı Yüklenmemiş</h4>
+            <p style="font-size: 0.85rem; margin-bottom: 1.5rem;">Ders esnasında açıp kullanmak istediğiniz ders kitaplarını PDF olarak yükleyin.</p>
+            <button class="btn btn-primary" id="btn-empty-upload-trigger" style="display: flex; align-items: center; gap: 0.5rem; margin: 0 auto;">
+              <i data-lucide="file-plus"></i> Kitap Yükle (PDF)
+            </button>
+          </div>
+        `;
+        
+        const btnEmptyTrigger = grid.querySelector('#btn-empty-upload-trigger');
+        const inputUploadPdfFile = document.getElementById('input-upload-pdf-file');
+        if (btnEmptyTrigger && inputUploadPdfFile) {
+          btnEmptyTrigger.addEventListener('click', () => {
+            inputUploadPdfFile.click();
+          });
+        }
+        
+        window.safeCreateIcons();
+        return;
+      }
+      
+      // Sort by uploaded date descending
+      pdfs.sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt));
+      
+      pdfs.forEach(pdf => {
+        const card = document.createElement('div');
+        card.className = 'glass-card book-card';
+        card.style.cssText = 'position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 1.5rem; text-align: center; gap: 0.5rem; min-height: 200px;';
+        card.innerHTML = `
+          <div class="student-actions" style="position: absolute; top: 10px; right: 10px;">
+            <button class="action-btn-sm delete btn-delete-pdf" data-id="${pdf.id}" title="Sil">
+              <i data-lucide="trash-2"></i>
+            </button>
+          </div>
+          <div class="book-cover-container" style="position: relative; width: 100px; height: 130px; margin-bottom: 0.5rem; border-radius: var(--radius-sm); overflow: hidden; box-shadow: var(--shadow-sm); border: 1px solid var(--border-color);">
+            ${pdf.cover 
+              ? `<img src="${pdf.cover}" style="width: 100%; height: 100%; object-fit: cover;">`
+              : `<div class="book-cover" style="background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%); width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; color: white; font-size: 2rem;">
+                  <i data-lucide="file-text"></i>
+                 </div>`
+            }
+            <button class="btn-change-cover" data-id="${pdf.id}" style="position: absolute; bottom: 5px; right: 5px; background: rgba(0,0,0,0.65); color: white; border: none; border-radius: 50%; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all var(--transition-fast);" title="Kapak Resmi Yükle">
+              <i data-lucide="camera" style="width: 12px; height: 12px;"></i>
+            </button>
+          </div>
+          <strong style="display: block; font-size: 0.85rem; color: var(--text-primary); text-overflow: ellipsis; white-space: nowrap; overflow: hidden; width: 100%;" title="${pdf.name}">${pdf.name}</strong>
+          <span style="font-size: 0.75rem; color: var(--text-muted);">${(pdf.size / (1024 * 1024)).toFixed(2)} MB</span>
+          <button class="btn btn-sm btn-primary btn-open-pdf" data-id="${pdf.id}" style="margin-top: 0.5rem; width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.25rem;">
+            <i data-lucide="eye" style="width: 14px; height: 14px;"></i> Kitabı Aç
+          </button>
+        `;
+        
+        // Bind Kapak Resmi Yükle button click
+        card.querySelector('.btn-change-cover').addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          currentCoverPdfId = pdf.id;
+          const inputUploadCoverFile = document.getElementById('input-upload-cover-file');
+          if (inputUploadCoverFile) {
+            inputUploadCoverFile.click();
+          }
+        });
+
+        // Bind Sil button click
+        card.querySelector('.btn-delete-pdf').addEventListener('click', async (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          if (confirm(`"${pdf.name}" kitabını silmek istediğinize emin misiniz?`)) {
+            try {
+              await deletePDF(pdf.id);
+              if (window.showToast) window.showToast('Kitap silindi.', 'success');
+              renderTextbooksList();
+            } catch (err) {
+              console.error("Delete PDF error:", err);
+              if (window.showToast) window.showToast('Kitap silinirken hata oluştu!', 'danger');
+            }
+          }
+        });
+        
+        // Bind Kitabı Aç click
+        card.querySelector('.btn-open-pdf').addEventListener('click', async (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          try {
+            if (window.showToast) window.showToast('Kitap açılıyor...', 'info');
+            const data = await getPDF(pdf.id);
+            if (data && data.blob) {
+              const overlay = document.getElementById('pdf-viewer-overlay');
+              const iframe = document.getElementById('pdf-viewer-iframe');
+              const title = document.getElementById('pdf-viewer-title');
+              const pageInput = document.getElementById('pdf-viewer-page-input');
+              
+              currentOpenPdfId = pdf.id;
+              
+              if (overlay && iframe && title) {
+                const lastPage = data.lastPage || 1;
+                if (pageInput) {
+                  pageInput.value = lastPage;
+                }
+                
+                currentOpenPdfUrl = URL.createObjectURL(data.blob);
+                iframe.src = currentOpenPdfUrl + '#page=' + lastPage;
+                title.textContent = pdf.name;
+                overlay.style.display = 'flex';
+              }
+            } else {
+              if (window.showToast) window.showToast('Kitap verisi yüklenemedi!', 'danger');
+            }
+          } catch (err) {
+            console.error("Open PDF error:", err);
+            if (window.showToast) window.showToast('Kitap açılırken hata oluştu!', 'danger');
+          }
+        });
+        
+        grid.appendChild(card);
+      });
+      
+      window.safeCreateIcons();
+    } catch (err) {
+      console.error("Load textbooks error:", err);
+      grid.innerHTML = '<div style="grid-column: 1 / -1; text-align: center; padding: 2rem; color: var(--text-muted);">Kitaplar yüklenirken hata oluştu.</div>';
+    }
+  }
+
   // Global Metot Olarak Tanımla (app.js çağırabilmesi için)
   window.renderNotebooks = () => {
     // DOM hazır değilse init çağır
     if (!notebookGrid) {
       init();
     } else {
-      if (currentNotebookId) {
-        const notebooks = window.stateManager ? window.stateManager.getNotebooks() : [];
-        const notebook = notebooks.find(nb => nb.id === currentNotebookId);
-        if (notebook) {
-          renderTopicList(notebook);
+      const activeMaterialsTabBtn = document.querySelector('.sub-tab-menu button[data-materials-tab].active');
+      const activeTab = activeMaterialsTabBtn ? activeMaterialsTabBtn.getAttribute('data-materials-tab') : 'notebooks';
+      
+      if (activeTab === 'notebooks') {
+        if (currentNotebookId) {
+          const notebooks = window.stateManager ? window.stateManager.getNotebooks() : [];
+          const notebook = notebooks.find(nb => nb.id === currentNotebookId);
+          if (notebook) {
+            renderTopicList(notebook);
+          } else {
+            showGridView();
+          }
         } else {
           showGridView();
         }
-      } else {
-        showGridView();
+      } else if (activeTab === 'textbooks') {
+        renderTextbooksList();
       }
     }
   };

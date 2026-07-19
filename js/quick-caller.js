@@ -113,6 +113,9 @@
       allStudents = allStudents.filter(s => s.branch === branchFilter);
     }
 
+    // Devamsız öğrencileri havuzdan çıkar
+    allStudents = allStudents.filter(s => !stateManager.isStudentAbsent(s.id));
+
     if (allStudents.length === 0) {
       return { allStudents, pool: [], called: [] };
     }

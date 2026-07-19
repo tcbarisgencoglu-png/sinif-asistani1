@@ -367,7 +367,9 @@
     }
 
     const filteredStudents = activeStudents.filter(student => {
-      return state.educationLevel === 'primary' || branchFilter === 'all' || student.branch === branchFilter;
+      const matchesBranch = state.educationLevel === 'primary' || branchFilter === 'all' || student.branch === branchFilter;
+      const isAbsent = stateManager.isStudentAbsent(student.id);
+      return matchesBranch && !isAbsent;
     });
 
     const currentList = filteredStudents.map(s => `${s.name} ${s.surname}`.trim());
@@ -422,7 +424,9 @@
     }
 
     const filteredStudents = activeStudents.filter(student => {
-      return state.educationLevel === 'primary' || branchFilter === 'all' || student.branch === branchFilter;
+      const matchesBranch = state.educationLevel === 'primary' || branchFilter === 'all' || student.branch === branchFilter;
+      const isAbsent = stateManager.isStudentAbsent(student.id);
+      return matchesBranch && !isAbsent;
     });
 
     const currentList = filteredStudents.map(s => `${s.name} ${s.surname}`.trim());
@@ -921,7 +925,9 @@
           activeStudents = activeStudents.slice(0, window.LicenseConfig.studentLimit);
         }
         const filteredStudents = activeStudents.filter(student => {
-          return state.educationLevel === 'primary' || branchFilter === 'all' || student.branch === branchFilter;
+          const matchesBranch = state.educationLevel === 'primary' || branchFilter === 'all' || student.branch === branchFilter;
+          const isAbsent = stateManager.isStudentAbsent(student.id);
+          return matchesBranch && !isAbsent;
         });
         const currentNames = filteredStudents.map(s => `${s.name} ${s.surname}`.trim());
         
@@ -967,7 +973,9 @@
           activeStudents = activeStudents.slice(0, window.LicenseConfig.studentLimit);
         }
         const filteredStudents = activeStudents.filter(student => {
-          return state.educationLevel === 'primary' || branchFilter === 'all' || student.branch === branchFilter;
+          const matchesBranch = state.educationLevel === 'primary' || branchFilter === 'all' || student.branch === branchFilter;
+          const isAbsent = stateManager.isStudentAbsent(student.id);
+          return matchesBranch && !isAbsent;
         });
         const currentNames = filteredStudents.map(s => `${s.name} ${s.surname}`.trim());
         
@@ -1298,7 +1306,11 @@
   }
 
   function selectRandomStudent() {
-    const currentList = quizSelectedStudentNames;
+    const state = stateManager.loadState();
+    const currentList = quizSelectedStudentNames.filter(name => {
+      const student = state.students.find(s => `${s.name} ${s.surname}`.trim() === name);
+      return student ? !stateManager.isStudentAbsent(student.id) : true;
+    });
     if (currentList.length === 0) {
       alert("Lütfen önce yarışmaya katılacak en az bir öğrenci seçin!");
       return;
@@ -1337,7 +1349,11 @@
 
   function slowRaffleRoll(remainingSteps, displayEl, btnEl) {
     let delay = 100;
-    const currentList = quizSelectedStudentNames;
+    const state = stateManager.loadState();
+    const currentList = quizSelectedStudentNames.filter(name => {
+      const student = state.students.find(s => `${s.name} ${s.surname}`.trim() === name);
+      return student ? !stateManager.isStudentAbsent(student.id) : true;
+    });
     
     function nextStep(stepsLeft) {
       if (stepsLeft === 0) {
@@ -1359,7 +1375,11 @@
   }
 
   function finalizeRaffle(displayEl, btnEl) {
-    const currentList = quizSelectedStudentNames;
+    const state = stateManager.loadState();
+    const currentList = quizSelectedStudentNames.filter(name => {
+      const student = state.students.find(s => `${s.name} ${s.surname}`.trim() === name);
+      return student ? !stateManager.isStudentAbsent(student.id) : true;
+    });
     if (unselectedStudents.length === 0) {
       unselectedStudents = [...currentList];
     }
@@ -3017,7 +3037,11 @@
   }
 
   function selectRandomMultStudent() {
-    const currentList = multSelectedStudentNames;
+    const state = stateManager.loadState();
+    const currentList = multSelectedStudentNames.filter(name => {
+      const student = state.students.find(s => `${s.name} ${s.surname}`.trim() === name);
+      return student ? !stateManager.isStudentAbsent(student.id) : true;
+    });
     if (currentList.length === 0) {
       alert("Lütfen önce oyuna katılacak en az bir öğrenci seçin!");
       return;
@@ -3057,7 +3081,11 @@
 
   function slowMultRaffleRoll(remainingSteps, displayEl, btnEl) {
     let delay = 100;
-    const currentList = multSelectedStudentNames;
+    const state = stateManager.loadState();
+    const currentList = multSelectedStudentNames.filter(name => {
+      const student = state.students.find(s => `${s.name} ${s.surname}`.trim() === name);
+      return student ? !stateManager.isStudentAbsent(student.id) : true;
+    });
     
     function nextStep(stepsLeft) {
       if (stepsLeft === 0) {
@@ -3081,7 +3109,11 @@
   }
 
   function finalizeMultRaffle(displayEl, btnEl) {
-    const currentList = multSelectedStudentNames;
+    const state = stateManager.loadState();
+    const currentList = multSelectedStudentNames.filter(name => {
+      const student = state.students.find(s => `${s.name} ${s.surname}`.trim() === name);
+      return student ? !stateManager.isStudentAbsent(student.id) : true;
+    });
     if (multUnselectedStudents.length === 0) {
       multUnselectedStudents = [...currentList];
     }

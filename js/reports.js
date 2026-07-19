@@ -1,7 +1,7 @@
 (() => {
   // DOM Elements
   let modal, startDateInput, endDateInput, btnGenerate, selectBranch, branchContainer;
-  let chkBooks, chkHomeworks, chkEvaluations, chkTasks;
+  let chkBooks, chkHomeworks, chkEvaluations, chkTasks, chkAttendance;
   let btnOpenWizardHeader, btnOpenWizardBody, btnCloseHeader, btnCloseFooter;
 
   function initDOMElements() {
@@ -16,6 +16,7 @@
     chkHomeworks = document.getElementById('chk-report-homeworks');
     chkEvaluations = document.getElementById('chk-report-evaluations');
     chkTasks = document.getElementById('chk-report-tasks');
+    chkAttendance = document.getElementById('chk-report-attendance');
 
     btnOpenWizardHeader = document.getElementById('btn-open-report-wizard');
     btnOpenWizardBody = document.getElementById('btn-open-report-wizard-body');
@@ -131,8 +132,9 @@
     const showHomeworks = chkHomeworks ? chkHomeworks.checked : false;
     const showEvaluations = chkEvaluations ? chkEvaluations.checked : false;
     const showTasks = chkTasks ? chkTasks.checked : false;
+    const showAttendance = chkAttendance ? chkAttendance.checked : false;
 
-    if (!showBooks && !showHomeworks && !showEvaluations && !showTasks) {
+    if (!showBooks && !showHomeworks && !showEvaluations && !showTasks && !showAttendance) {
       if (window.showToast) window.showToast('Lütfen rapora eklenecek en az bir alan seçin!', 'warning');
       return;
     }
@@ -171,6 +173,7 @@
         : `<div class="student-avatar-placeholder" style="${avatarStyle}">${initials}</div>`;
 
       const branchLabel = isMiddle ? ` | <strong>Sınıf/Şube:</strong> ${student.branch || '-'}` : '';
+      const absenceCount = stateManager.getStudentAbsenceCount(student.id, startVal, endVal);
       let studentInfoHtml = `
         <div class="student-info-card">
           <div class="student-photo-wrapper">
@@ -178,7 +181,7 @@
           </div>
           <div class="student-meta-details">
             <h3>${student.name} ${student.surname}</h3>
-            <p><strong>Okul Numarası:</strong> ${student.number || '-'}${branchLabel}</p>
+            <p><strong>Okul Numarası:</strong> ${student.number || '-'}${branchLabel} | <strong>Devamsızlık:</strong> ${absenceCount} Gün</p>
           </div>
         </div>
       `;
@@ -279,65 +282,99 @@
 
       // C. Değerlendirme İstatistikleri
       if (showEvaluations) {
-        const perfRecords = (state.performance || []).filter(p => {
-          if (p.studentId !== student.id) return false;
-          const pDate = new Date(p.date || Date.now());
-          return pDate >= startDate && pDate <= endDate;
-        });
-
-        let positivePoints = 0;
-        let negativePoints = 0;
-        perfRecords.forEach(p => {
-          if (p.point >= 0) {
-            positivePoints += p.point;
-          } else {
-            negativePoints += p.point;
-          }
-        });
-        const netPerformance = positivePoints + negativePoints;
-
         // Sınav Notu Hesaplamaları
-        const exams = (state.weeklyEvaluations || []).filter(e => {
+        const relevantExams = (state.weeklyEvaluations || []).filter(e => {
           if (!e.createdAt) return false;
           const examDate = new Date(e.createdAt);
-          return examDate >= startDate && examDate <= endDate;
+          const isDateInRange = examDate >= startDate && examDate <= endDate;
+          const isRelevantBranch = !isMiddle || !e.branch || student.branch === e.branch;
+          return isDateInRange && isRelevantBranch;
         });
 
+        let participatedCount = 0;
+        let missedCount = 0;
         let totalExamScore = 0;
-        let examCount = 0;
 
-        exams.forEach(e => {
-          const result = (e.studentResults && e.studentResults[student.id]);
-          if (result && result.score !== undefined) {
-            totalExamScore += parseFloat(result.score);
-            examCount++;
+        relevantExams.forEach(e => {
+          let score = undefined;
+          if (e.studentResults && e.studentResults[student.id]) {
+            score = e.studentResults[student.id].score;
           } else if (e.examScores && e.examScores[student.id] !== undefined) {
-            totalExamScore += parseFloat(e.examScores[student.id]);
-            examCount++;
+            score = e.examScores[student.id];
+          }
+
+          if (score !== undefined && score !== null && score !== '') {
+            participatedCount++;
+            totalExamScore += parseFloat(score);
+          } else {
+            missedCount++;
           }
         });
 
-        const avgExamScore = examCount > 0 ? (totalExamScore / examCount).toFixed(1) + ' Puan' : 'Girilmedi';
+        const avgExamScore = participatedCount > 0 ? (totalExamScore / participatedCount).toFixed(1) + ' Puan' : 'Girilmedi';
+
+        // Sınıftaki başarı sıralaması hesaplama
+        const classGrades = filteredStudents.map(s => {
+          let sParticipated = 0;
+          let sTotalScore = 0;
+          
+          relevantExams.forEach(e => {
+            let score = undefined;
+            if (e.studentResults && e.studentResults[s.id]) {
+              score = e.studentResults[s.id].score;
+            } else if (e.examScores && e.examScores[s.id] !== undefined) {
+              score = e.examScores[s.id];
+            }
+            if (score !== undefined && score !== null && score !== '') {
+              sParticipated++;
+              sTotalScore += parseFloat(score);
+            }
+          });
+          
+          const sAvg = sParticipated > 0 ? (sTotalScore / sParticipated) : 0;
+          return {
+            studentId: s.id,
+            avgScore: sAvg,
+            participated: sParticipated
+          };
+        });
+
+        classGrades.sort((a, b) => {
+          if (b.avgScore !== a.avgScore) {
+            return b.avgScore - a.avgScore;
+          }
+          if (b.participated !== a.participated) {
+            return b.participated - a.participated;
+          }
+          const studentA = state.students.find(s => s.id === a.studentId) || { name: '', surname: '' };
+          const studentB = state.students.find(s => s.id === b.studentId) || { name: '', surname: '' };
+          const nameA = `${studentA.name} ${studentA.surname}`;
+          const nameB = `${studentB.name} ${studentB.surname}`;
+          return nameA.localeCompare(nameB, 'tr');
+        });
+
+        const rankIndex = classGrades.findIndex(g => g.studentId === student.id);
+        const examRank = rankIndex !== -1 ? rankIndex + 1 : '-';
 
         sectionsHtml += `
           <div class="report-section-card">
-            <h4><i data-lucide="award"></i> Davranış ve Sınav Değerlendirmeleri</h4>
+            <h4><i data-lucide="award"></i> Sınav Değerlendirmesi</h4>
             <div class="report-stats-grid">
               <div class="report-stat-box">
-                <span class="stat-val text-success">+${positivePoints}</span>
-                <span class="stat-lbl">Olumlu Davranış Puanı</span>
+                <span class="stat-val text-success">${participatedCount}</span>
+                <span class="stat-lbl">Katıldığı Sınav</span>
               </div>
               <div class="report-stat-box">
-                <span class="stat-val text-danger">${negativePoints}</span>
-                <span class="stat-lbl">Geliştirilmeli Puanı</span>
-              </div>
-              <div class="report-stat-box">
-                <span class="stat-val">${netPerformance >= 0 ? '+' : ''}${netPerformance}</span>
-                <span class="stat-lbl">Net Davranış Skoru</span>
+                <span class="stat-val text-danger">${missedCount}</span>
+                <span class="stat-lbl">Katılmadığı Sınav</span>
               </div>
               <div class="report-stat-box">
                 <span class="stat-val text-primary">${avgExamScore}</span>
-                <span class="stat-lbl">Sınav Not Ortalaması</span>
+                <span class="stat-lbl">Ortalama Not Oranı</span>
+              </div>
+              <div class="report-stat-box">
+                <span class="stat-val" style="color: #ec4899;">#${examRank} / ${filteredStudents.length}</span>
+                <span class="stat-lbl">Sınıf Başarı Sırası</span>
               </div>
             </div>
           </div>
@@ -373,6 +410,22 @@
               <div class="report-stat-box">
                 <span class="stat-val">${studentTasks.length}</span>
                 <span class="stat-lbl">Toplam Atanan Görev</span>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      // E. Devamsızlık Bilgisi
+      if (showAttendance) {
+        const absenceCount = stateManager.getStudentAbsenceCount(student.id, startVal, endVal);
+        sectionsHtml += `
+          <div class="report-section-card">
+            <h4><i data-lucide="calendar-x"></i> Devamsızlık İstatistikleri</h4>
+            <div class="report-stats-grid" style="grid-template-columns: 1fr;">
+              <div class="report-stat-box">
+                <span class="stat-val" style="color: var(--danger); font-weight: 800;">${absenceCount} Gün</span>
+                <span class="stat-lbl">Seçili Dönemdeki Toplam Devamsızlık</span>
               </div>
             </div>
           </div>

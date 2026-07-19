@@ -5,6 +5,19 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Sınıf Asistanı - Dijital Öğretmen Yardımcısı</title>
   
+  <!-- PWA Manifest & Service Worker -->
+  <link rel="manifest" href="manifest.json">
+  <link rel="shortcut icon" href="icons/icon-128.png" type="image/png">
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js')
+          .then(reg => console.log('Service Worker registered:', reg.scope))
+          .catch(err => console.error('Service Worker registration failed:', err));
+      });
+    }
+  </script>
+  
   <link rel="stylesheet" href="css/styles.css?v=30">
   <link rel="stylesheet" href="css/games.css?v=30">
   <link rel="stylesheet" href="css/treasure.css?v=30">
@@ -111,6 +124,11 @@
     
     <!-- Yan Menü (Sidebar) -->
     <aside class="sidebar">
+      <!-- Yan Menü Daraltma Ok Butonu -->
+      <button id="btn-toggle-sidebar-collapse" class="sidebar-collapse-toggle-btn" title="Menüyü Daralt/Genişlet">
+        <i data-lucide="chevron-left" style="width: 16px; height: 16px;"></i>
+      </button>
+
       <div class="logo-container">
         <div class="logo-icon">
           <i data-lucide="graduation-cap"></i>
@@ -126,33 +144,34 @@
       
       <nav class="nav-menu">
         <li class="nav-item active" data-tab="dashboard">
-          <a class="nav-link"><i data-lucide="layout-dashboard"></i> Dashboard</a>
+          <a class="nav-link"><i data-lucide="layout-dashboard"></i> <span>Performans</span></a>
+        </li>
         <li class="nav-item" data-tab="books">
-          <a class="nav-link"><i data-lucide="book-open"></i> Kitap Takip</a>
+          <a class="nav-link"><i data-lucide="book-open"></i> <span>Kitap Takip</span></a>
         </li>
         <li class="nav-item" data-tab="homework">
-          <a class="nav-link"><i data-lucide="clipboard-list"></i> Ödev Takip</a>
+          <a class="nav-link"><i data-lucide="clipboard-list"></i> <span>Ödev Takip</span></a>
         </li>
         <li class="nav-item" data-tab="weekly">
-          <a class="nav-link"><i data-lucide="calendar"></i> Haftalık Değ.</a>
+          <a class="nav-link"><i data-lucide="calendar"></i> <span>Haftalık Değ.</span></a>
         </li>
         <li class="nav-item" data-tab="games">
-          <a class="nav-link"><i data-lucide="gamepad-2"></i> Oyunlar</a>
+          <a class="nav-link"><i data-lucide="gamepad-2"></i> <span>Oyunlar</span></a>
         </li>
         <li class="nav-item" data-tab="tasks">
-          <a class="nav-link"><i data-lucide="check-square"></i> Görevler</a>
+          <a class="nav-link"><i data-lucide="check-square"></i> <span>Görevler</span></a>
         </li>
         <li class="nav-item" data-tab="tools">
-          <a class="nav-link"><i data-lucide="wrench"></i> Araçlar</a>
+          <a class="nav-link"><i data-lucide="wrench"></i> <span>Araçlar</span></a>
         </li>
         <li class="nav-item" data-tab="reports">
-          <a class="nav-link"><i data-lucide="printer"></i> Raporlar</a>
+          <a class="nav-link"><i data-lucide="printer"></i> <span>Raporlar</span></a>
         </li>
         <li class="nav-item" data-tab="notebooks">
-          <a class="nav-link"><i data-lucide="notebook"></i> Defterler</a>
+          <a class="nav-link"><i data-lucide="notebook"></i> <span>Ders Materyalleri</span></a>
         </li>
         <li class="nav-item" data-tab="assistant-config">
-          <a class="nav-link"><i data-lucide="settings"></i> Asistan Konfigrasyonu</a>
+          <a class="nav-link"><i data-lucide="settings"></i> <span>Asistan Konfigürasyonu</span></a>
         </li>
       </nav>
       
@@ -336,6 +355,9 @@
           <button class="sub-tab-btn active" id="tab-btn-books-library" data-books-tab="library">
             <i data-lucide="book-open" style="width: 16px; height: 16px;"></i> Ödünç & Liderlik Tablosu
           </button>
+          <button class="sub-tab-btn" id="tab-btn-books-student-library" data-books-tab="student-library">
+            <i data-lucide="contact-2" style="width: 16px; height: 16px;"></i> Öğrenci Kitaplığı
+          </button>
           <button class="sub-tab-btn" id="tab-btn-books-top20" data-books-tab="top20" style="display: none;">
             <i data-lucide="award" style="width: 16px; height: 16px;"></i> En İyi 20 Okuyucu
           </button>
@@ -449,6 +471,50 @@
                   <!-- JS ile doldurulacak -->
                 </tbody>
               </table>
+            </div>
+          </div>
+        </div>
+
+        <div class="books-tab-content" id="books-student-library-section" style="display: none;">
+          <div class="glass-card" style="padding: 1.5rem; margin-bottom: 1.5rem;">
+            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; margin-bottom: 0px;">
+              <h3 style="display: flex; align-items: center; gap: 0.5rem; color: var(--warning); margin: 0; font-size: 1.1rem; font-weight: 700;">
+                <i data-lucide="contact-2"></i> Öğrenci Kitaplığı
+              </h3>
+              <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <label for="student-library-select" style="font-weight: 600; font-size: 0.85rem; color: var(--text-secondary); margin: 0; white-space: nowrap;">Öğrenci Seçin:</label>
+                <select class="form-control" id="student-library-select" style="width: 220px; height: 35px; padding: 0.25rem 0.5rem; font-size: 0.85rem;">
+                  <!-- Öğrenciler dinamik yüklenecek -->
+                </select>
+              </div>
+            </div>
+            
+            <!-- Okuma İstatistikleri -->
+            <div id="student-library-stats" style="display: none; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-top: 1.5rem; border-top: 1px solid var(--border-color); padding-top: 1.5rem;">
+              <!-- Dinamik yüklenecek -->
+            </div>
+          </div>
+
+          <!-- Okunan / Okunmayan Kitaplar Listeleri -->
+          <div id="student-library-lists" style="display: none; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem;">
+            <!-- Okuduğu Kitaplar -->
+            <div class="glass-card" style="padding: 1.5rem; display: flex; flex-direction: column;">
+              <h4 style="display: flex; align-items: center; gap: 0.5rem; color: var(--success); margin-bottom: 1rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; font-size: 0.95rem; font-weight: 700; margin-top: 0;">
+                <i data-lucide="check-circle-2" style="width: 18px; height: 18px;"></i> Okuduğu Kitaplar (<span id="count-read-books">0</span>)
+              </h4>
+              <div id="list-read-books" style="max-height: 400px; overflow-y: auto; display: flex; flex-direction: column; gap: 0.75rem; padding-right: 0.25rem;">
+                <!-- Dinamik liste -->
+              </div>
+            </div>
+
+            <!-- Okumadığı Kitaplar -->
+            <div class="glass-card" style="padding: 1.5rem; display: flex; flex-direction: column;">
+              <h4 style="display: flex; align-items: center; gap: 0.5rem; color: var(--danger); margin-bottom: 1rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; font-size: 0.95rem; font-weight: 700; margin-top: 0;">
+                <i data-lucide="x-circle" style="width: 18px; height: 18px;"></i> Okumadığı Kitaplar (<span id="count-unread-books">0</span>)
+              </h4>
+              <div id="list-unread-books" style="max-height: 400px; overflow-y: auto; display: flex; flex-direction: column; gap: 0.75rem; padding-right: 0.25rem;">
+                <!-- Dinamik liste -->
+              </div>
             </div>
           </div>
         </div>
@@ -3621,7 +3687,18 @@
 
       <!-- Defterler Sekmesi -->
       <section id="notebooks" class="content-section">
-        <!-- Defterler Grid Görünümü (Ana Görünüm) -->
+        <div class="sub-tab-menu" style="margin-bottom: 1.5rem;">
+          <button class="sub-tab-btn active" id="tab-btn-materials-notebooks" data-materials-tab="notebooks">
+            <i data-lucide="notebook" style="width: 16px; height: 16px;"></i> Öğrenci Defterleri
+          </button>
+          <button class="sub-tab-btn" id="tab-btn-materials-textbooks" data-materials-tab="textbooks">
+            <i data-lucide="book-marked" style="width: 16px; height: 16px;"></i> Ders Kitapları (PDF)
+          </button>
+        </div>
+
+        <!-- Öğrenci Defterleri Alt Sekmesi -->
+        <div class="materials-tab-content active" id="materials-notebooks-section">
+          <!-- Defterler Grid Görünümü (Ana Görünüm) -->
         <div id="notebooks-grid-view">
           <div class="page-header">
             <div class="header-title">
@@ -3815,6 +3892,33 @@
             </div>
           </div>
         </div>
+      </div>
+
+        <!-- Ders Kitapları Alt Sekmesi -->
+        <div class="materials-tab-content" id="materials-textbooks-section" style="display: none;">
+          <div class="glass-card" style="padding: 1.5rem; margin-bottom: 1.5rem;">
+            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
+              <div>
+                <h3 style="display: flex; align-items: center; gap: 0.5rem; color: var(--warning); margin: 0; font-size: 1.1rem; font-weight: 700;">
+                  <i data-lucide="book-marked"></i> Ders Kitapları (PDF)
+                </h3>
+                <p style="color: var(--text-muted); font-size: 0.8rem; margin: 0.25rem 0 0 0;">Ders esnasında açıp kullanmak istediğiniz PDF kitapları ekleyin.</p>
+              </div>
+              <div>
+                <button class="btn btn-primary" id="btn-upload-pdf-trigger" style="display: flex; align-items: center; gap: 0.5rem;">
+                  <i data-lucide="file-plus"></i> Kitap Yükle (PDF)
+                </button>
+                <input type="file" id="input-upload-pdf-file" style="display: none;" accept="application/pdf">
+                <input type="file" id="input-upload-cover-file" style="display: none;" accept="image/*">
+              </div>
+            </div>
+          </div>
+          
+          <div id="textbooks-grid" class="notebook-grid">
+            <!-- Kitap kartları dinamik yüklenecek -->
+          </div>
+        </div>
+
       </section>
 
     </main>
@@ -4013,12 +4117,17 @@
 
               <label style="display: flex; align-items: center; gap: 0.5rem; background: rgba(255,255,255,0.03); padding: 0.75rem; border-radius: 6px; border: 1px solid var(--border-color); cursor: pointer;">
                 <input type="checkbox" id="chk-report-evaluations" checked style="width: 18px; height: 18px; cursor: pointer;">
-                <span style="font-size: 0.9rem; font-weight: 500;">Değerlendirme İstatistikleri</span>
+                <span style="font-size: 0.9rem; font-weight: 500;">Sınav Değerlendirmeleri</span>
               </label>
 
               <label style="display: flex; align-items: center; gap: 0.5rem; background: rgba(255,255,255,0.03); padding: 0.75rem; border-radius: 6px; border: 1px solid var(--border-color); cursor: pointer;">
                 <input type="checkbox" id="chk-report-tasks" checked style="width: 18px; height: 18px; cursor: pointer;">
                 <span style="font-size: 0.9rem; font-weight: 500;">Görev İstatistikleri</span>
+              </label>
+
+              <label style="display: flex; align-items: center; gap: 0.5rem; background: rgba(255,255,255,0.03); padding: 0.75rem; border-radius: 6px; border: 1px solid var(--border-color); cursor: pointer;">
+                <input type="checkbox" id="chk-report-attendance" checked style="width: 18px; height: 18px; cursor: pointer;">
+                <span style="font-size: 0.9rem; font-weight: 500;">Devamsızlık Bilgisi</span>
               </label>
             </div>
           </div>
@@ -5248,6 +5357,39 @@
     </div>
   </div>
 
+  <!-- MODAL: GÜNLÜK YOKLAMA -->
+  <div class="modal" id="modal-attendance" style="--max-width: 550px;">
+    <div class="modal-content" style="max-width: 550px;">
+      <div class="modal-header" style="background: rgba(99, 102, 241, 0.1); color: var(--primary);">
+        <h3 style="display: flex; align-items: center; gap: 0.5rem; font-size: 1.1rem; font-weight: 700; margin: 0;">
+          <i data-lucide="clipboard-list" style="width: 18px; height: 18px;"></i> Sınıf Yoklaması
+        </h3>
+        <button class="close-btn" id="btn-close-attendance">&times;</button>
+      </div>
+      <div class="modal-body" style="padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem;">
+        
+        <!-- Tarih Seçici -->
+        <div class="form-group" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem; border-bottom: 1px solid var(--border-color); padding-bottom: 1rem;">
+          <label for="attendance-date" style="margin-bottom: 0; font-weight: 600; color: var(--text-primary);">Yoklama Tarihi:</label>
+          <input type="date" id="attendance-date" class="form-control" style="width: auto; height: 38px; padding: 0.25rem 0.5rem; font-size: 0.9rem;">
+        </div>
+
+        <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.5rem;">
+          Lütfen sınıfta <strong>olmayan</strong> (gelmeyen) öğrencileri işaretleyin. İşaretlenen öğrenciler o gün için pasif duruma gelecektir.
+        </div>
+
+        <!-- Öğrenci Listesi -->
+        <div id="attendance-students-list" style="max-height: 350px; overflow-y: auto; display: flex; flex-direction: column; gap: 0.75rem; padding-right: 0.25rem;">
+          <!-- JS ile doldurulacak -->
+        </div>
+
+      </div>
+      <div class="modal-footer" style="padding: 1rem 1.5rem; border-top: 1px solid var(--border-color); display: flex; justify-content: flex-end; gap: 0.75rem;">
+        <button class="btn btn-secondary close-btn-action" id="btn-close-attendance-footer">Kapat</button>
+      </div>
+    </div>
+  </div>
+
   <!-- MODAL: HIZLI ÖĞRENCİ ÇAĞIRMA (QUICK CALLER) -->
   <div class="modal" id="modal-quick-caller" style="--max-width: 500px;">
     <div class="modal-content" style="max-width: 500px; text-align: center;">
@@ -5503,6 +5645,55 @@
     </div>
   </div>
 
+  <!-- MODAL: YENİ HATIRLATICI EKLE -->
+  <div class="modal" id="modal-reminder-add" style="--max-width: 500px;">
+    <div class="modal-content" style="max-width: 500px;">
+      <div class="modal-header" style="background: rgba(99, 102, 241, 0.1); color: var(--primary);">
+        <h3 style="display: flex; align-items: center; gap: 0.5rem; font-size: 1.1rem; font-weight: 700; margin: 0;">
+          <i data-lucide="bell" style="width: 18px; height: 18px;"></i> Hatırlatıcı Ekle
+        </h3>
+        <button class="close-btn" id="btn-close-reminder-add-modal">&times;</button>
+      </div>
+      <form id="form-reminder-add">
+        <div class="modal-body" style="padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem;">
+          <div class="form-group">
+            <label for="reminder-note" style="font-weight: 600; font-size: 0.85rem; margin-bottom: 0.5rem; display: block; color: var(--text-primary);">Hatırlatıcı Notu</label>
+            <textarea id="reminder-note" class="form-control" rows="3" placeholder="Hatırlatılmasını istediğiniz notu yazın..." required style="resize: vertical;"></textarea>
+          </div>
+          <div class="form-group">
+            <label for="reminder-datetime" style="font-weight: 600; font-size: 0.85rem; margin-bottom: 0.5rem; display: block; color: var(--text-primary);">Hatırlatma Tarihi ve Saati</label>
+            <input type="datetime-local" id="reminder-datetime" class="form-control" required style="color-scheme: dark light;">
+          </div>
+        </div>
+        <div class="modal-footer" style="padding: 1rem 1.5rem; background: rgba(0, 0, 0, 0.02); border-top: 1px solid var(--border-color); display: flex; justify-content: flex-end; gap: 0.5rem;">
+          <button type="button" class="btn btn-secondary" id="btn-cancel-reminder-add">Vazgeç</button>
+          <button type="submit" class="btn btn-primary">Kaydet</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: HATIRLATICI BİLDİRİMİ -->
+  <div class="modal" id="modal-reminder-alert" style="--max-width: 500px; z-index: 1000000 !important;">
+    <div class="modal-content" style="max-width: 500px; border: 2px solid var(--warning); box-shadow: 0 10px 30px rgba(245, 158, 11, 0.25);">
+      <div class="modal-header" style="background: rgba(245, 158, 11, 0.1); color: var(--warning);">
+        <h3 style="display: flex; align-items: center; gap: 0.5rem; font-size: 1.2rem; font-weight: 800; margin: 0;">
+          <i data-lucide="bell-ring" style="width: 22px; height: 22px;"></i> Hatırlatıcı Alarmı!
+        </h3>
+      </div>
+      <div class="modal-body" style="padding: 2rem 1.5rem; text-align: center; display: flex; flex-direction: column; gap: 1.5rem; align-items: center;">
+        <div style="width: 60px; height: 60px; border-radius: var(--radius-full); background: rgba(245, 158, 11, 0.15); display: flex; align-items: center; justify-content: center; color: var(--warning); margin-bottom: 0.5rem;">
+          <i data-lucide="bell" style="width: 32px; height: 32px;"></i>
+        </div>
+        <p id="reminder-alert-text" style="font-size: 1.1rem; font-weight: 600; color: var(--text-primary); line-height: 1.5; margin: 0; word-break: break-word; white-space: pre-wrap;"></p>
+        <span id="reminder-alert-time" style="font-size: 0.8rem; color: var(--text-muted);"></span>
+      </div>
+      <div class="modal-footer" style="padding: 1rem 1.5rem; background: rgba(0, 0, 0, 0.02); border-top: 1px solid var(--border-color); display: flex; justify-content: center;">
+        <button type="button" class="btn btn-warning" id="btn-close-reminder-alert" style="width: 100%; font-weight: 700; padding: 0.75rem;">Tamam, Anlaşıldı (Kapat)</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Excel ve CSV işlemleri için SheetJS Kitaplığı -->
   <script src="js/xlsx.full.min.js"></script>
   <script src="js/chart.min.js"></script>
@@ -5533,5 +5724,34 @@
   <script src="js/app-lock.js?v=1"></script>
   <script src="js/app.js?v=32"></script>
   <script src="js/test_plans.js"></script>
+  <div id="pdf-viewer-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: var(--bg-primary); z-index: 9999; flex-direction: column;">
+    <div style="height: 60px; background: var(--bg-secondary); border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; padding: 0 1.5rem;">
+      <div style="display: flex; align-items: center; gap: 0.5rem; flex: 1;">
+        <i data-lucide="book-open" style="color: var(--primary);"></i>
+        <span id="pdf-viewer-title" style="font-weight: 700; color: var(--text-primary); font-size: 1.1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 300px;">Ders Kitabı</span>
+      </div>
+      
+      <!-- Kaldığı Sayfa Takibi -->
+      <div style="display: flex; align-items: center; gap: 0.5rem; background: rgba(255, 255, 255, 0.05); padding: 0.35rem 0.75rem; border-radius: 20px; border: 1px solid var(--border-color);">
+        <button id="btn-pdf-prev-page" style="background: transparent; border: none; color: var(--text-primary); cursor: pointer; display: flex; align-items: center; padding: 0.1rem; outline: none;" title="Önceki Sayfa">
+          <i data-lucide="chevron-left" style="width: 16px; height: 16px;"></i>
+        </button>
+        <span style="font-size: 0.85rem; font-weight: 600; color: var(--text-secondary);">Sayfa:</span>
+        <input type="number" id="pdf-viewer-page-input" min="1" value="1" style="width: 50px; background: transparent; border: none; color: var(--text-primary); font-weight: 700; font-size: 0.9rem; outline: none; text-align: center;">
+        <button id="btn-pdf-next-page" style="background: transparent; border: none; color: var(--text-primary); cursor: pointer; display: flex; align-items: center; padding: 0.1rem; outline: none;" title="Sonraki Sayfa">
+          <i data-lucide="chevron-right" style="width: 16px; height: 16px;"></i>
+        </button>
+      </div>
+
+      <div style="flex: 1; display: flex; justify-content: flex-end;">
+        <button class="btn btn-secondary" id="btn-close-pdf-viewer" style="display: flex; align-items: center; gap: 0.25rem;">
+          <i data-lucide="x"></i> Kapat
+        </button>
+      </div>
+    </div>
+    <div style="flex: 1; position: relative; background: #525659;">
+      <iframe id="pdf-viewer-iframe" style="width: 100%; height: 100%; border: none;" src=""></iframe>
+    </div>
+  </div>
 </body>
 </html>

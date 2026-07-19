@@ -70,6 +70,7 @@ const DEFAULT_STATE = {
   documents: [],
   examAnalysisExams: [],
   examAnalysisGrades: [],
+  attendance: {},
   homeworkSettings: {
     completed: 4,
     incomplete: 2,
@@ -251,7 +252,8 @@ class StateManager {
           scheduleGrid: parsed.scheduleGrid || {},
           examAnalysisExams: parsed.examAnalysisExams || [],
           examAnalysisGrades: parsed.examAnalysisGrades || [],
-          appLock: parsed.appLock || { enabled: false, passwordHash: null, breakModeEnabled: false }
+          appLock: parsed.appLock || { enabled: false, passwordHash: null, breakModeEnabled: false },
+          attendance: parsed.attendance || {}
         };
       }
     } catch (e) {
@@ -406,7 +408,50 @@ class StateManager {
     if (this.state.tasks) {
       this.state.tasks = this.state.tasks.filter(t => t.studentId !== id);
     }
+    // Yoklamalardan bu öğrenciyi sil
+    if (this.state.attendance) {
+      for (const date in this.state.attendance) {
+        if (Array.isArray(this.state.attendance[date])) {
+          this.state.attendance[date] = this.state.attendance[date].filter(sid => sid !== id);
+        }
+      }
+    }
     this.saveState();
+  }
+
+  // YOKLAMA İŞLEMLERİ
+  toggleAttendance(studentId, date = window.formatLocalDate()) {
+    if (!this.state.attendance) {
+      this.state.attendance = {};
+    }
+    if (!this.state.attendance[date]) {
+      this.state.attendance[date] = [];
+    }
+    const index = this.state.attendance[date].indexOf(studentId);
+    if (index === -1) {
+      this.state.attendance[date].push(studentId);
+    } else {
+      this.state.attendance[date].splice(index, 1);
+    }
+    this.saveState();
+  }
+
+  isStudentAbsent(studentId, date = window.formatLocalDate()) {
+    if (!this.state.attendance || !this.state.attendance[date]) return false;
+    return this.state.attendance[date].includes(studentId);
+  }
+
+  getStudentAbsenceCount(studentId, startDateStr, endDateStr) {
+    if (!this.state.attendance) return 0;
+    let count = 0;
+    for (const date in this.state.attendance) {
+      if (date >= startDateStr && date <= endDateStr) {
+        if (Array.isArray(this.state.attendance[date]) && this.state.attendance[date].includes(studentId)) {
+          count++;
+        }
+      }
+    }
+    return count;
   }
 
   // PERFORMANS İŞLEMLERİ

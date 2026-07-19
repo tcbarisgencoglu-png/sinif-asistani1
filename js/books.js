@@ -342,6 +342,27 @@ let toastCallback = null;
 function setupBooksTab(showToast) {
   toastCallback = showToast;
 
+  function updateBooksHeaderActions(activeTab) {
+    const btnAddBook = document.getElementById('btn-add-book');
+    const btnDownloadTemplate = document.getElementById('btn-download-book-template');
+    const btnUploadTrigger = document.getElementById('btn-upload-books-trigger');
+    
+    if (btnAddBook && btnDownloadTemplate && btnUploadTrigger) {
+      if (activeTab === 'leaderboard') {
+        btnAddBook.style.display = 'inline-flex';
+        btnDownloadTemplate.style.display = 'inline-flex';
+        btnUploadTrigger.style.display = 'inline-flex';
+      } else {
+        btnAddBook.style.display = 'none';
+        btnDownloadTemplate.style.display = 'none';
+        btnUploadTrigger.style.display = 'none';
+      }
+    }
+  }
+
+  // Set initial state (default tab is library)
+  updateBooksHeaderActions('library');
+
   // Excel Kitap Şablonu İndirme ve Yükleme Olayları
   const btnDownloadBookTemplate = document.getElementById('btn-download-book-template');
   if (btnDownloadBookTemplate) {
@@ -701,11 +722,13 @@ function setupBooksTab(showToast) {
   const btnLeaderboardTab = document.getElementById('tab-btn-books-leaderboard');
   const btnLateTab = document.getElementById('tab-btn-books-late');
   const btnTop20Tab = document.getElementById('tab-btn-books-top20');
+  const btnStudentLibraryTab = document.getElementById('tab-btn-books-student-library');
   
   const sectionLibrary = document.getElementById('books-library-section');
   const sectionLeaderboard = document.getElementById('books-leaderboard-section');
   const sectionLate = document.getElementById('books-late-section');
   const sectionTop20 = document.getElementById('books-top20-section');
+  const sectionStudentLibrary = document.getElementById('books-student-library-section');
 
   if (btnLibraryTab && btnLeaderboardTab && btnLateTab) {
     btnLibraryTab.addEventListener('click', () => {
@@ -713,11 +736,16 @@ function setupBooksTab(showToast) {
       btnLeaderboardTab.classList.remove('active');
       btnLateTab.classList.remove('active');
       if (btnTop20Tab) btnTop20Tab.classList.remove('active');
+      if (btnStudentLibraryTab) btnStudentLibraryTab.classList.remove('active');
+      
       sectionLibrary.style.display = 'block';
       sectionLeaderboard.style.display = 'none';
       sectionLate.style.display = 'none';
       if (sectionTop20) sectionTop20.style.display = 'none';
+      if (sectionStudentLibrary) sectionStudentLibrary.style.display = 'none';
+      
       renderLeaderboard();
+      updateBooksHeaderActions('library');
       window.safeCreateIcons();
     });
 
@@ -726,11 +754,16 @@ function setupBooksTab(showToast) {
       btnLeaderboardTab.classList.add('active');
       btnLateTab.classList.remove('active');
       if (btnTop20Tab) btnTop20Tab.classList.remove('active');
+      if (btnStudentLibraryTab) btnStudentLibraryTab.classList.remove('active');
+      
       sectionLibrary.style.display = 'none';
       sectionLeaderboard.style.display = 'block';
       sectionLate.style.display = 'none';
       if (sectionTop20) sectionTop20.style.display = 'none';
+      if (sectionStudentLibrary) sectionStudentLibrary.style.display = 'none';
+      
       renderBooksList();
+      updateBooksHeaderActions('leaderboard');
       window.safeCreateIcons();
     });
 
@@ -739,11 +772,16 @@ function setupBooksTab(showToast) {
       btnLeaderboardTab.classList.remove('active');
       btnLateTab.classList.add('active');
       if (btnTop20Tab) btnTop20Tab.classList.remove('active');
+      if (btnStudentLibraryTab) btnStudentLibraryTab.classList.remove('active');
+      
       sectionLibrary.style.display = 'none';
       sectionLeaderboard.style.display = 'none';
       sectionLate.style.display = 'block';
       if (sectionTop20) sectionTop20.style.display = 'none';
+      if (sectionStudentLibrary) sectionStudentLibrary.style.display = 'none';
+      
       renderLateBooksList();
+      updateBooksHeaderActions('late');
       window.safeCreateIcons();
     });
 
@@ -753,11 +791,36 @@ function setupBooksTab(showToast) {
         btnLeaderboardTab.classList.remove('active');
         btnLateTab.classList.remove('active');
         btnTop20Tab.classList.add('active');
+        if (btnStudentLibraryTab) btnStudentLibraryTab.classList.remove('active');
+        
         sectionLibrary.style.display = 'none';
         sectionLeaderboard.style.display = 'none';
         sectionLate.style.display = 'none';
         sectionTop20.style.display = 'block';
+        if (sectionStudentLibrary) sectionStudentLibrary.style.display = 'none';
+        
         renderTop20Leaderboard();
+        updateBooksHeaderActions('top20');
+        window.safeCreateIcons();
+      });
+    }
+
+    if (btnStudentLibraryTab && sectionStudentLibrary) {
+      btnStudentLibraryTab.addEventListener('click', () => {
+        btnLibraryTab.classList.remove('active');
+        btnLeaderboardTab.classList.remove('active');
+        btnLateTab.classList.remove('active');
+        if (btnTop20Tab) btnTop20Tab.classList.remove('active');
+        btnStudentLibraryTab.classList.add('active');
+        
+        sectionLibrary.style.display = 'none';
+        sectionLeaderboard.style.display = 'none';
+        sectionLate.style.display = 'none';
+        if (sectionTop20) sectionTop20.style.display = 'none';
+        sectionStudentLibrary.style.display = 'block';
+        
+        initStudentLibraryTab();
+        updateBooksHeaderActions('student-library');
         window.safeCreateIcons();
       });
     }
@@ -1936,10 +1999,12 @@ function renderStudentDetailPanel() {
 }
 
 function showQuickReborrow(studentId, studentName) {
-  const state = stateManager.loadState();
   const container = document.getElementById('quick-reborrow-container');
   const title = document.getElementById('quick-reborrow-title');
   const tbody = document.getElementById('quick-reborrow-tbody');
+  if (!container || !title || !tbody) return;
+
+  const state = stateManager.loadState();
 
   title.innerHTML = `<i data-lucide="sparkles" style="color: var(--warning);"></i> <strong>${studentName}</strong> İçin Yeni Ödünç Kitap Seçin`;
   tbody.innerHTML = '';
@@ -2173,9 +2238,229 @@ function renderTop20Leaderboard() {
   });
 }
 
+function initStudentLibraryTab() {
+  const select = document.getElementById('student-library-select');
+  const statsContainer = document.getElementById('student-library-stats');
+  const listsContainer = document.getElementById('student-library-lists');
+  
+  if (!select || !statsContainer || !listsContainer) return;
+  
+  // Save current select value to restore it after loading
+  const currentSelectedId = select.value;
+  
+  // Clear previous options
+  select.innerHTML = '<option value="">-- Öğrenci Seçin --</option>';
+  statsContainer.style.display = 'none';
+  listsContainer.style.display = 'none';
+  
+  const state = stateManager.loadState();
+  const selectBranch = document.getElementById('books-select-branch');
+  const branchFilter = selectBranch ? selectBranch.value : 'all';
+  
+  const activeStudents = state.students.filter(student => {
+    return state.educationLevel === 'primary' || branchFilter === 'all' || student.branch === branchFilter;
+  });
+  
+  const sortedStudents = [...activeStudents].sort((a, b) => a.name.localeCompare(b.name, 'tr'));
+  
+  sortedStudents.forEach(student => {
+    const opt = document.createElement('option');
+    opt.value = student.id;
+    opt.textContent = `${student.name} ${student.surname} (${student.number})`;
+    select.appendChild(opt);
+  });
+  
+  // Restore select value if it still exists
+  if (currentSelectedId && activeStudents.some(s => s.id === currentSelectedId)) {
+    select.value = currentSelectedId;
+    statsContainer.style.display = 'grid';
+    listsContainer.style.display = 'grid';
+    renderStudentLibraryDetails(currentSelectedId);
+  }
+  
+  select.onchange = () => {
+    const studentId = select.value;
+    if (studentId) {
+      statsContainer.style.display = 'grid';
+      listsContainer.style.display = 'grid';
+      renderStudentLibraryDetails(studentId);
+    } else {
+      statsContainer.style.display = 'none';
+      listsContainer.style.display = 'none';
+    }
+  };
+}
+
+function renderStudentLibraryDetails(studentId) {
+  const state = stateManager.loadState();
+  const student = state.students.find(s => s.id === studentId);
+  if (!student) return;
+  
+  const selectBranch = document.getElementById('books-select-branch');
+  const branchFilter = selectBranch ? selectBranch.value : 'all';
+  const activeStudents = state.students.filter(s => {
+    return state.educationLevel === 'primary' || branchFilter === 'all' || s.branch === branchFilter;
+  });
+  
+  // 1. Her öğrenci için okuma verilerini topla (Sıralama hesabı için)
+  const studentData = activeStudents.map(s => {
+    const returnedTx = state.books.transactions.filter(t => t.studentId === s.id && t.status === 'returned');
+    let totalPages = 0;
+    returnedTx.forEach(t => {
+      const book = state.books.library.find(b => b.id === t.bookId);
+      if (book) {
+        totalPages += book.pages || 0;
+      }
+    });
+    return {
+      studentId: s.id,
+      bookCount: returnedTx.length,
+      totalPages
+    };
+  });
+  
+  // Liderlik tablosundaki gibi sırala
+  studentData.sort((a, b) => {
+    if (b.totalPages !== a.totalPages) {
+      return b.totalPages - a.totalPages;
+    }
+    if (b.bookCount !== a.bookCount) {
+      return b.bookCount - a.bookCount;
+    }
+    const studentA = state.students.find(s => s.id === a.studentId) || { name: '', surname: '' };
+    const studentB = state.students.find(s => s.id === b.studentId) || { name: '', surname: '' };
+    const nameA = `${studentA.name} ${studentA.surname}`;
+    const nameB = `${studentB.name} ${studentB.surname}`;
+    return nameA.localeCompare(nameB, 'tr');
+  });
+  
+  const rankIndex = studentData.findIndex(d => d.studentId === studentId);
+  const rank = rankIndex !== -1 ? rankIndex + 1 : '-';
+  
+  // 2. Seçili öğrencinin istatistiklerini hesapla
+  const returnedTransactions = state.books.transactions.filter(t => t.studentId === studentId && t.status === 'returned');
+  const readBookIds = new Set(returnedTransactions.map(t => t.bookId));
+  
+  let totalPages = 0;
+  returnedTransactions.forEach(t => {
+    const book = state.books.library.find(b => b.id === t.bookId);
+    if (book) {
+      totalPages += book.pages || 0;
+    }
+  });
+  
+  const readCount = returnedTransactions.length;
+  const totalLibraryCount = state.books.library.length;
+  const uniqueReadCount = readBookIds.size;
+  const readingRatio = totalLibraryCount > 0 ? Math.round((uniqueReadCount / totalLibraryCount) * 100) : 0;
+  
+  // 3. İstatistik kartlarını çiz
+  const statsContainer = document.getElementById('student-library-stats');
+  if (statsContainer) {
+    statsContainer.innerHTML = `
+      <div class="report-stat-box" style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 1rem; text-align: center; display: flex; flex-direction: column; gap: 0.25rem;">
+        <span style="font-size: 1.5rem; font-weight: 800; color: var(--success);">${readCount}</span>
+        <span style="font-size: 0.75rem; font-weight: 600; color: var(--text-secondary);">Okunan Kitap</span>
+      </div>
+      <div class="report-stat-box" style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 1rem; text-align: center; display: flex; flex-direction: column; gap: 0.25rem;">
+        <span style="font-size: 1.5rem; font-weight: 800; color: var(--primary);">${totalPages}</span>
+        <span style="font-size: 0.75rem; font-weight: 600; color: var(--text-secondary);">Toplam Sayfa</span>
+      </div>
+      <div class="report-stat-box" style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 1rem; text-align: center; display: flex; flex-direction: column; gap: 0.25rem;">
+        <span style="font-size: 1.5rem; font-weight: 800; color: var(--warning);">%${readingRatio}</span>
+        <span style="font-size: 0.75rem; font-weight: 600; color: var(--text-secondary);">Kitaplık Okuma Oranı</span>
+      </div>
+      <div class="report-stat-box" style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 1rem; text-align: center; display: flex; flex-direction: column; gap: 0.25rem;">
+        <span style="font-size: 1.5rem; font-weight: 800; color: #ec4899;">#${rank} / ${activeStudents.length}</span>
+        <span style="font-size: 0.75rem; font-weight: 600; color: var(--text-secondary);">Sınıftaki Sırası</span>
+      </div>
+    `;
+  }
+  
+  // 4. Okunan / Okunmayan kitap listelerini oluştur
+  const readContainer = document.getElementById('list-read-books');
+  const unreadContainer = document.getElementById('list-unread-books');
+  const countReadSpan = document.getElementById('count-read-books');
+  const countUnreadSpan = document.getElementById('count-unread-books');
+  
+  if (readContainer && unreadContainer) {
+    readContainer.innerHTML = '';
+    unreadContainer.innerHTML = '';
+    
+    let readHtml = '';
+    let unreadHtml = '';
+    let readTotal = 0;
+    let unreadTotal = 0;
+    
+    const sortedLibrary = [...state.books.library].sort((a, b) => a.title.localeCompare(b.title, 'tr'));
+    
+    sortedLibrary.forEach(book => {
+      const userTxForBook = returnedTransactions.filter(t => t.bookId === book.id);
+      
+      if (userTxForBook.length > 0) {
+        // Okudu
+        readTotal++;
+        const latestTx = userTxForBook.sort((a,b) => new Date(b.borrowDate) - new Date(a.borrowDate))[0];
+        const returnDateFormatted = latestTx && latestTx.returnDate 
+          ? new Date(latestTx.returnDate).toLocaleDateString('tr-TR')
+          : '-';
+          
+        readHtml += `
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: var(--radius-md); background: rgba(255,255,255,0.01);">
+            <div>
+              <strong style="display: block; font-size: 0.85rem; color: var(--text-primary);">${book.title}</strong>
+              <span style="font-size: 0.75rem; color: var(--text-muted);">${book.author || 'Bilinmeyen Yazar'} | ${book.pages || 0} Sayfa</span>
+            </div>
+            <span style="font-size: 0.75rem; color: var(--success); font-weight: 600;">İade: ${returnDateFormatted}</span>
+          </div>
+        `;
+      } else {
+        // Okumadı
+        unreadTotal++;
+        const activeTx = state.books.transactions.find(t => t.bookId === book.id && t.status === 'reading');
+        let statusBadge = '';
+        if (activeTx) {
+          const borrower = state.students.find(s => s.id === activeTx.studentId);
+          const borrowerName = borrower ? `${borrower.name} ${borrower.surname}` : 'Başka Bir Öğrenci';
+          statusBadge = `<span class="badge" style="background: rgba(245, 158, 11, 0.08); color: var(--warning); border: 1px solid rgba(245, 158, 11, 0.2); font-size: 0.7rem; padding: 0.25rem 0.5rem; border-radius: 4px; font-weight: 600; max-width: 140px; text-overflow: ellipsis; white-space: nowrap; overflow: hidden;" title="Ödünç alan öğrenci: ${borrowerName}">${borrowerName}</span>`;
+        } else {
+          statusBadge = `<span class="badge" style="background: rgba(16, 185, 129, 0.08); color: var(--success); border: 1px solid rgba(16, 185, 129, 0.2); font-size: 0.7rem; padding: 0.25rem 0.5rem; border-radius: 4px; font-weight: 600;">Kitaplıkta</span>`;
+        }
+        
+        unreadHtml += `
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: var(--radius-md); background: rgba(255,255,255,0.01);">
+            <div style="flex: 1; min-width: 0; padding-right: 0.5rem;">
+              <strong style="display: block; font-size: 0.85rem; color: var(--text-primary); text-overflow: ellipsis; white-space: nowrap; overflow: hidden;" title="${book.title}">${book.title}</strong>
+              <span style="font-size: 0.75rem; color: var(--text-muted); text-overflow: ellipsis; white-space: nowrap; overflow: hidden; display: block;" title="${book.author || 'Bilinmeyen Yazar'}">${book.author || 'Bilinmeyen Yazar'} | ${book.pages || 0} Sayfa</span>
+            </div>
+            ${statusBadge}
+          </div>
+        `;
+      }
+    });
+    
+    if (readTotal === 0) {
+      readContainer.innerHTML = '<div style="text-align: center; padding: 2rem; color: var(--text-muted); font-size: 0.85rem;">Okunan kitap bulunmuyor.</div>';
+    } else {
+      readContainer.innerHTML = readHtml;
+    }
+    
+    if (unreadTotal === 0) {
+      unreadContainer.innerHTML = '<div style="text-align: center; padding: 2rem; color: var(--text-muted); font-size: 0.85rem;">Kütüphanede okunmamış kitap kalmadı! 🎉</div>';
+    } else {
+      unreadContainer.innerHTML = unreadHtml;
+    }
+    
+    if (countReadSpan) countReadSpan.textContent = readTotal;
+    if (countUnreadSpan) countUnreadSpan.textContent = unreadTotal;
+  }
+}
+
 window.setupBooksTab = setupBooksTab;
 window.renderBooksList = renderBooksList;
 window.renderLateBooksList = renderLateBooksList;
 window.renderLeaderboard = renderLeaderboard;
 window.renderTop20Leaderboard = renderTop20Leaderboard;
+window.initStudentLibraryTab = initStudentLibraryTab;
+window.renderStudentLibraryDetails = renderStudentLibraryDetails;
 })();

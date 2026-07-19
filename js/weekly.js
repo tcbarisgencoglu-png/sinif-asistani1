@@ -820,6 +820,10 @@ function renderActiveExamTable() {
     };
 
     const row = document.createElement('tr');
+    const isAbsentToday = stateManager.isStudentAbsent(student.id);
+    if (isAbsentToday) {
+      row.classList.add('absent-row');
+    }
     const initials = `${student.name[0] || ''}${student.surname[0] || ''}`;
     const avatarHtml = student.photo
       ? `<img src="${student.photo}" class="avatar-sm" style="width: 32px; height: 32px; object-fit: cover; border-radius: 50%; margin: 0;">`
