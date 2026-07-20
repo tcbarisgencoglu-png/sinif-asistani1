@@ -1323,6 +1323,24 @@ body {
 }
 
 @media (max-width: 768px) {
+  /* Mobil Ekran Taşmalarını Önleme */
+  html, body {
+    max-width: 100vw !important;
+    overflow-x: hidden !important;
+  }
+
+  /* Mobilde Kenar Menü Kapatma Butonunu Gizle */
+  .sidebar-collapse-toggle-btn {
+    display: none !important;
+  }
+
+  /* Hızlı Menü Butonlarının Mobilde Alt Satırlara Sığmasını Sağla */
+  .quick-menu-box > div {
+    flex-wrap: wrap !important;
+    justify-content: flex-end !important;
+    gap: 0.5rem !important;
+  }
+
   body, .app-container {
     flex-direction: column;
   }
@@ -4551,128 +4569,131 @@ th:hover .hw-col-actions {
   transition: transform var(--transition-normal);
 }
 
-/* Daralmış Yan Menü (Sidebar Collapsed) Kuralları */
-body.sidebar-collapsed .sidebar {
-  width: 80px !important;
-  padding: 2rem 0.75rem !important;
+/* Desktop-Only Daralmış Yan Menü (Sidebar Collapsed) Kuralları */
+@media (min-width: 769px) {
+  body.sidebar-collapsed .sidebar {
+    width: 80px !important;
+    padding: 2rem 0.75rem !important;
+  }
+  
+  body.sidebar-collapsed .main-content {
+    margin-left: 80px !important;
+    max-width: calc(100vw - 80px) !important;
+  }
+  
+  /* Kapatma Butonu İkonunu Çevir */
+  body.sidebar-collapsed .sidebar-collapse-toggle-btn i {
+    transform: rotate(180deg);
+  }
+  
+  /* Yazıları ve Detayları Gizle */
+  body.sidebar-collapsed .sidebar .logo-text {
+    opacity: 0 !important;
+    pointer-events: none !important;
+    width: 0 !important;
+    height: 0 !important;
+    overflow: hidden !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    display: none !important;
+  }
+  
+  /* İkonları Ortala */
+  body.sidebar-collapsed .sidebar .logo-container {
+    justify-content: center !important;
+    padding: 0.85rem 0 !important;
+  }
+  
+  body.sidebar-collapsed .sidebar .logo-icon {
+    margin: 0 !important;
+  }
+  
+  body.sidebar-collapsed .sidebar .sidebar-footer {
+    padding: 1.5rem 0 0 0 !important;
+  }
+  
+  /* Yan Menü Daraltıldığında Menü Bağlantıları ve Alt Butonlar Flip Card Olur */
+  body.sidebar-collapsed .sidebar .nav-link,
+  body.sidebar-collapsed .sidebar .theme-toggle-btn,
+  body.sidebar-collapsed .sidebar .backup-btn {
+    width: 44px !important;
+    height: 44px !important;
+    padding: 0 !important;
+    margin: 0 auto !important;
+    position: relative !important;
+    perspective: 1000px !important;
+    transform-style: preserve-3d !important;
+    transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+  
+  /* Hover durumunda 3D döndürme */
+  body.sidebar-collapsed .sidebar .nav-item:hover .nav-link,
+  body.sidebar-collapsed .sidebar .theme-toggle-btn:hover,
+  body.sidebar-collapsed .sidebar .backup-btn:hover {
+    transform: rotateY(180deg) !important;
+  }
+  
+  /* Kart Yüzeyleri */
+  body.sidebar-collapsed .sidebar .nav-link i,
+  body.sidebar-collapsed .sidebar .nav-link span,
+  body.sidebar-collapsed .sidebar .theme-toggle-btn i,
+  body.sidebar-collapsed .sidebar .theme-toggle-btn span,
+  body.sidebar-collapsed .sidebar .backup-btn i,
+  body.sidebar-collapsed .sidebar .backup-btn span {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    -webkit-backface-visibility: hidden !important;
+    backface-visibility: hidden !important;
+    border-radius: var(--radius-sm) !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    box-shadow: var(--shadow-sm) !important;
+    margin: 0 !important;
+  }
+  
+  /* Ön Yüz: İkon */
+  body.sidebar-collapsed .sidebar .nav-link i,
+  body.sidebar-collapsed .sidebar .theme-toggle-btn i,
+  body.sidebar-collapsed .sidebar .backup-btn i {
+    background-color: rgba(255, 255, 255, 0.05) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    color: rgba(255, 255, 255, 0.7) !important;
+    z-index: 2 !important;
+    transform: rotateY(0deg) !important;
+  }
+  
+  /* Aktif Ön Yüz Vurgusu */
+  body.sidebar-collapsed .sidebar .nav-item.active .nav-link i {
+    background-color: var(--primary) !important;
+    border-color: var(--primary) !important;
+    color: white !important;
+  }
+  
+  /* Arka Yüz: Yazı */
+  body.sidebar-collapsed .sidebar .nav-link span,
+  body.sidebar-collapsed .sidebar .theme-toggle-btn span,
+  body.sidebar-collapsed .sidebar .backup-btn span {
+    background-color: var(--primary) !important;
+    border: 1px solid var(--primary) !important;
+    color: white !important;
+    transform: rotateY(180deg) !important;
+    font-size: 0.58rem !important;
+    font-weight: 700 !important;
+    line-height: 1.1 !important;
+    padding: 4px !important;
+    text-align: center !important;
+    white-space: normal !important;
+    z-index: 1 !important;
+  }
 }
 
-body.sidebar-collapsed .main-content {
-  margin-left: 80px !important;
-  max-width: calc(100vw - 80px) !important;
-}
-
-/* Kapatma Butonu İkonunu Çevir */
-body.sidebar-collapsed .sidebar-collapse-toggle-btn i {
-  transform: rotate(180deg);
-}
-
-/* Yazıları ve Detayları Gizle (nav-link, theme-toggle ve backup-btn span'leri hariç, çünkü onlar kartın arkasında görünecek) */
-body.sidebar-collapsed .sidebar .logo-text {
-  opacity: 0 !important;
-  pointer-events: none !important;
-  width: 0 !important;
-  height: 0 !important;
-  overflow: hidden !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  display: none !important;
-}
-
-/* İkonları Ortala */
-body.sidebar-collapsed .sidebar .logo-container {
-  justify-content: center !important;
-  padding: 0.85rem 0 !important;
-}
-
-body.sidebar-collapsed .sidebar .logo-icon {
-  margin: 0 !important;
-}
-
-body.sidebar-collapsed .sidebar .sidebar-footer {
-  padding: 1.5rem 0 0 0 !important;
-}
-
-/* Yan Menü Daraltıldığında Menü Bağlantıları ve Alt Butonlar Flip Card Olur */
-body.sidebar-collapsed .sidebar .nav-link,
-body.sidebar-collapsed .sidebar .theme-toggle-btn,
-body.sidebar-collapsed .sidebar .backup-btn {
-  width: 44px !important;
-  height: 44px !important;
-  padding: 0 !important;
-  margin: 0 auto !important;
-  position: relative !important;
-  perspective: 1000px !important;
-  transform-style: preserve-3d !important;
-  transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1) !important;
-  background: transparent !important;
-  border: none !important;
-  box-shadow: none !important;
-}
-
-/* Hover durumunda 3D döndürme */
-body.sidebar-collapsed .sidebar .nav-item:hover .nav-link,
-body.sidebar-collapsed .sidebar .theme-toggle-btn:hover,
-body.sidebar-collapsed .sidebar .backup-btn:hover {
-  transform: rotateY(180deg) !important;
-}
-
-/* Kart Yüzeyleri */
-body.sidebar-collapsed .sidebar .nav-link i,
-body.sidebar-collapsed .sidebar .nav-link span,
-body.sidebar-collapsed .sidebar .theme-toggle-btn i,
-body.sidebar-collapsed .sidebar .theme-toggle-btn span,
-body.sidebar-collapsed .sidebar .backup-btn i,
-body.sidebar-collapsed .sidebar .backup-btn span {
-  position: absolute !important;
-  top: 0 !important;
-  left: 0 !important;
-  width: 100% !important;
-  height: 100% !important;
-  -webkit-backface-visibility: hidden !important;
-  backface-visibility: hidden !important;
-  border-radius: var(--radius-sm) !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  box-shadow: var(--shadow-sm) !important;
-  margin: 0 !important;
-}
-
-/* Ön Yüz: İkon */
-body.sidebar-collapsed .sidebar .nav-link i,
-body.sidebar-collapsed .sidebar .theme-toggle-btn i,
-body.sidebar-collapsed .sidebar .backup-btn i {
-  background-color: rgba(255, 255, 255, 0.05) !important;
-  border: 1px solid rgba(255, 255, 255, 0.1) !important;
-  color: rgba(255, 255, 255, 0.7) !important;
-  z-index: 2 !important;
-  transform: rotateY(0deg) !important;
-}
-
-/* Aktif Ön Yüz Vurgusu */
-body.sidebar-collapsed .sidebar .nav-item.active .nav-link i {
-  background-color: var(--primary) !important;
-  border-color: var(--primary) !important;
-  color: white !important;
-}
-
-/* Arka Yüz: Yazı */
-body.sidebar-collapsed .sidebar .nav-link span,
-body.sidebar-collapsed .sidebar .theme-toggle-btn span,
-body.sidebar-collapsed .sidebar .backup-btn span {
-  background-color: var(--primary) !important;
-  border: 1px solid var(--primary) !important;
-  color: white !important;
-  transform: rotateY(180deg) !important;
-  font-size: 0.58rem !important;
-  font-weight: 700 !important;
-  line-height: 1.1 !important;
-  padding: 4px !important;
-  text-align: center !important;
-  white-space: normal !important;
-  z-index: 1 !important;
-}
 
 /* Sınıf Kontrol Paneli Yazı Rengi */
 #dashboard .header-title h2 {
