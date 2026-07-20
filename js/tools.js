@@ -156,7 +156,7 @@ function setupToolsTab(toastCallback) {
 
       setTimeout(() => {
         document.body.classList.remove('print-roster');
-      }, 500);
+      }, 10000);
     });
   }
 }

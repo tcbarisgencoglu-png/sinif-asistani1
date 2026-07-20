@@ -208,10 +208,14 @@
         // Yazdır
         window.print();
         
-        // Yazdırma sonrası sınıfı kaldır
+        window.addEventListener('afterprint', () => {
+          document.body.classList.remove('print-written-exam');
+        }, { once: true });
+
+        // Yazdırma sonrası sınıfı kaldır (Fallback)
         setTimeout(() => {
           document.body.classList.remove('print-written-exam');
-        }, 500);
+        }, 10000);
       });
     }
   }
