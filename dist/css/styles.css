@@ -1394,12 +1394,14 @@ body {
     z-index: 1000 !important;
     transform: translateX(-100%);
     transition: transform var(--transition-normal) ease-in-out;
-    background: var(--bg-secondary) !important;
+    background: #0f172a !important;
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
     box-shadow: var(--shadow-lg);
     display: flex !important;
     flex-direction: column !important;
     padding: 1.5rem !important;
-    border-right: 1px solid var(--border-color);
+    border-right: 1px solid rgba(255, 255, 255, 0.1) !important;
     border-bottom: none;
     overflow-y: auto !important;
     -webkit-overflow-scrolling: touch !important;
@@ -1413,7 +1415,6 @@ body {
     display: flex !important;
     background: none;
     border: none;
-    color: var(--text-muted);
     cursor: pointer;
     margin-left: auto;
     padding: 0.25rem;
