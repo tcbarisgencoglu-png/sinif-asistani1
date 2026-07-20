@@ -55,14 +55,59 @@ window.formatWeekTR = formatWeekTR;
 
 const DEFAULT_STATE = {
   educationLevel: 'primary',
-  students: [],
-  homeworks: [],
+  students: [
+    { id: 'std_1', name: 'Ahmet', surname: 'Yılmaz', number: '101', gender: 'male', parentPhone: '05551112233', notes: 'Matematik dersinde çok başarılı.', createdAt: new Date().toISOString() },
+    { id: 'std_2', name: 'Elif', surname: 'Kaya', number: '102', gender: 'female', parentPhone: '05552223344', notes: 'Sınıf kitaplık sorumlusu.', createdAt: new Date().toISOString() },
+    { id: 'std_3', name: 'Can', surname: 'Demir', number: '103', gender: 'male', parentPhone: '05553334455', notes: 'Gitar çalıyor, müzik kolunda.', createdAt: new Date().toISOString() },
+    { id: 'std_4', name: 'Merve', surname: 'Çelik', number: '104', gender: 'female', parentPhone: '05554445566', notes: 'Resim yeteneği çok yüksek.', createdAt: new Date().toISOString() },
+    { id: 'std_5', name: 'Yiğit', surname: 'Öztürk', number: '105', gender: 'male', parentPhone: '05555556677', notes: 'Biraz çekingen ama derse katılıyor.', createdAt: new Date().toISOString() }
+  ],
+  homeworks: [
+    {
+      id: 'hw_1',
+      title: 'Matematik - Kesirler Çalışması',
+      description: 'Çalışma kağıdındaki ilk 10 soru çözülecektir.',
+      dueDate: new Date(Date.now() + 86400000 * 3).toISOString().slice(0, 10), // 3 gün sonra
+      status: { 'std_1': 'completed', 'std_2': 'completed', 'std_3': 'incomplete', 'std_4': 'completed', 'std_5': 'missing' },
+      createdAt: new Date(Date.now() - 86400000 * 2).toISOString()
+    },
+    {
+      id: 'hw_2',
+      title: 'Türkçe - Kitap Özeti Çıkarma',
+      description: 'Okunan son kitabın ana fikri yazılacaktır.',
+      dueDate: new Date(Date.now() + 86400000 * 5).toISOString().slice(0, 10), // 5 gün sonra
+      status: { 'std_1': 'completed', 'std_2': 'completed', 'std_3': 'completed', 'std_4': 'excused', 'std_5': 'incomplete' },
+      createdAt: new Date(Date.now() - 86400000 * 1).toISOString()
+    }
+  ],
   books: {
-    library: [],
-    transactions: []
+    library: [
+      { id: 'book_1', title: 'Küçük Prens', author: 'Antoine de Saint-Exupéry', pages: 96, createdAt: new Date().toISOString() },
+      { id: 'book_2', title: 'Şeker Portakalı', author: 'José Mauro de Vasconcelos', pages: 182, createdAt: new Date().toISOString() },
+      { id: 'book_3', title: 'Sol Ayağım', author: 'Christy Brown', pages: 192, createdAt: new Date().toISOString() },
+      { id: 'book_4', title: 'Define Adası', author: 'Robert Louis Stevenson', pages: 224, createdAt: new Date().toISOString() }
+    ],
+    transactions: [
+      { id: 'tx_1', studentId: 'std_1', bookId: 'book_1', borrowDate: new Date(Date.now() - 86400000 * 10).toISOString().slice(0, 10), returnDate: new Date(Date.now() - 86400000 * 4).toISOString().slice(0, 10), status: 'returned' },
+      { id: 'tx_2', studentId: 'std_2', bookId: 'book_2', borrowDate: new Date(Date.now() - 86400000 * 5).toISOString().slice(0, 10), returnDate: null, status: 'reading' },
+      { id: 'tx_3', studentId: 'std_3', bookId: 'book_3', borrowDate: new Date(Date.now() - 86400000 * 2).toISOString().slice(0, 10), returnDate: null, status: 'reading' }
+    ]
   },
-  performance: [],
-  weeklyEvaluations: [],
+  performance: [
+    { id: 'perf_1', studentId: 'std_1', type: 'positive', point: 1, reason: 'Derse Katılım', date: new Date(Date.now() - 3600000 * 2).toISOString() },
+    { id: 'perf_2', studentId: 'std_2', type: 'positive', point: 2, reason: 'Arkadaşlık / Yardımlaşma', date: new Date(Date.now() - 3600000 * 4).toISOString() },
+    { id: 'perf_3', studentId: 'std_3', type: 'development', point: -1, reason: 'Derse Geç Kalma', date: new Date(Date.now() - 3600000 * 24).toISOString() },
+    { id: 'perf_4', studentId: 'std_4', type: 'positive', point: 3, reason: 'Örnek Davranış', date: new Date(Date.now() - 3600000 * 30).toISOString() },
+    { id: 'perf_5', studentId: 'std_1', type: 'positive', point: 2, reason: 'Kitap Okuma Tamamlandı: Küçük Prens', date: new Date(Date.now() - 86400000 * 4).toISOString() }
+  ],
+  weeklyEvaluations: [
+    {
+      weekId: '2026-W22',
+      ratings: { behavior: 4, cleanliness: 5, participation: 4 },
+      notes: 'Sınıf genelinde bu hafta kesirler konusuna ilgi yüksekti. Temizlik sıralamasında okuldaki en temiz sınıf seçildik!',
+      updatedAt: new Date().toISOString()
+    }
+  ],
   tasks: [],
   notebooks: [],
   dutyRoster: null,
@@ -142,8 +187,12 @@ const DEFAULT_STATE = {
 
 class StateManager {
   constructor() {
+    const data = localStorage.getItem(STORAGE_KEY);
     this.state = this.loadState();
     this.subscribers = [];
+    if (!data) {
+      this.saveState(); // Seeding database instantly on first run
+    }
   }
 
   loadState() {
