@@ -201,6 +201,14 @@ class StateManager {
       if (data) {
         const parsed = JSON.parse(data);
         
+        // Eğer veritabanı boşsa (0 öğrenci ve 0 kitap varsa), demo verilerini otomatik olarak yükle
+        if ((!parsed.students || parsed.students.length === 0) && 
+            (!parsed.books || !parsed.books.library || parsed.books.library.length === 0)) {
+          const seeded = JSON.parse(JSON.stringify(DEFAULT_STATE));
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(seeded));
+          return seeded;
+        }
+        
         // Ensure all transaction IDs are unique (Migration)
         const transactions = (parsed.books && parsed.books.transactions) || [];
         const txIds = new Set();

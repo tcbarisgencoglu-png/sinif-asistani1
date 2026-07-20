@@ -511,7 +511,7 @@
       const detailInfo = document.getElementById('license-detail-info');
 
       if (config.isDemo) {
-        if (topBanner) topBanner.style.display = 'flex';
+        if (topBanner) topBanner.style.display = 'none';
         if (sidebarContainer) {
           sidebarContainer.innerHTML = `<div class="sidebar-demo-badge">Demo Sürüm (Limitli)</div>`;
         }
