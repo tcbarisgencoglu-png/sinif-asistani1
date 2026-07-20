@@ -557,24 +557,36 @@
     updateLicenseUI();
 
     if (btnActivate && txtKey) {
-      btnActivate.addEventListener('click', () => {
+      btnActivate.addEventListener('click', async () => {
         const key = txtKey.value.trim();
         if (!key) {
           if (toastCallback) toastCallback('Lütfen bir lisans anahtarı girin!', 'warning');
           return;
         }
 
-        const res = window.LicenseConfig.saveLicense(key);
-        if (res.success) {
-          txtKey.value = '';
-          updateLicenseUI();
-          if (toastCallback) toastCallback(`Tebrikler! Lisans başarıyla doğrulandı. Sınırsız sürüm aktif edildi. Lisans Sahibi: ${res.licensee}`, 'success');
-          
-          // Durum değiştiğinde diğer sekmeleri de tetikle
-          const event = new CustomEvent('stateChanged');
-          document.dispatchEvent(event);
-        } else {
-          if (toastCallback) toastCallback(`Aktivasyon Hatası: ${res.reason}`, 'danger');
+        btnActivate.disabled = true;
+        const originalText = btnActivate.textContent;
+        btnActivate.textContent = 'Doğrulanıyor...';
+
+        try {
+          const res = await window.LicenseConfig.saveLicense(key);
+          if (res.success) {
+            txtKey.value = '';
+            updateLicenseUI();
+            if (toastCallback) toastCallback(`Tebrikler! Lisans başarıyla doğrulandı. Sınırsız sürüm aktif edildi. Lisans Sahibi: ${res.licensee}`, 'success');
+            
+            // Durum değiştiğinde diğer sekmeleri de tetikle
+            const event = new CustomEvent('stateChanged');
+            document.dispatchEvent(event);
+          } else {
+            if (toastCallback) toastCallback(`Aktivasyon Hatası: ${res.reason}`, 'danger');
+          }
+        } catch (err) {
+          console.error(err);
+          if (toastCallback) toastCallback(`Bağlantı hatası oluştu. Lütfen internetinizi kontrol edin.`, 'danger');
+        } finally {
+          btnActivate.disabled = false;
+          btnActivate.textContent = originalText;
         }
       });
     }

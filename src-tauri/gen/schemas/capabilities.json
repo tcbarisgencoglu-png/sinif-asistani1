@@ -1,1 +1,1 @@
-{}
+{"default-capability":{"identifier":"default-capability","description":"Default permissions for Sınıf Asistanı","local":true,"windows":["main"],"permissions":["core:default","opener:default"]}}

@@ -92,6 +92,92 @@
     };
   }
 
+  // Cihaz kimliğini al (Tauri'de anakart UUID'si, Web'de LocalStorage benzersiz UUID'si)
+  async function getDeviceId() {
+    let devId = localStorage.getItem('sinif_asistani_device_uuid');
+    if (window.__TAURI__) {
+      try {
+        const invoke = (window.__TAURI__.core && window.__TAURI__.core.invoke) || window.__TAURI__.invoke;
+        if (invoke) {
+          const nativeId = await invoke('get_machine_id');
+          if (nativeId && nativeId !== 'unknown_machine') {
+            return 'desktop_' + nativeId;
+          }
+        }
+      } catch (e) {
+        console.error("Tauri get_machine_id invoke failed:", e);
+      }
+    }
+    if (!devId) {
+      devId = 'web_' + Math.random().toString(36).substr(2, 9) + Date.now();
+      localStorage.setItem('sinif_asistani_device_uuid', devId);
+    }
+    return devId;
+  }
+
+  // Supabase API istek yardımcı fonksiyonu
+  async function supabaseRequest(method, path, body = null) {
+    if (!window.SupabaseConfig) {
+      console.error("Supabase Config is missing.");
+      return null;
+    }
+    const url = `${window.SupabaseConfig.url}/rest/v1/${path}`;
+    const headers = {
+      'apikey': window.SupabaseConfig.anonKey,
+      'Authorization': `Bearer ${window.SupabaseConfig.anonKey}`,
+      'Content-Type': 'application/json'
+    };
+    const options = { method, headers };
+    if (body) {
+      options.body = JSON.stringify(body);
+    }
+    try {
+      const response = await fetch(url, options);
+      if (response.ok) {
+        const text = await response.text();
+        return text ? JSON.parse(text) : { success: true };
+      }
+      console.error("Supabase API error:", response.status, await response.text());
+      return null;
+    } catch (e) {
+      console.error("Supabase connection error:", e);
+      return null;
+    }
+  }
+
+  // Çevrimiçi arka plan lisans sorgulaması (Farklı cihazda aktivasyon kontrolü)
+  async function checkLicenseStatusOnline() {
+    const savedKey = localStorage.getItem(STORAGE_KEY);
+    if (!savedKey) return;
+    
+    const localCheck = verifyLicenseKey(savedKey);
+    if (!localCheck.isValid) return;
+    
+    const devId = await getDeviceId();
+    
+    // Supabase'den lisans durumunu sorgula
+    const data = await supabaseRequest('GET', `licenses?license_key=eq.${encodeURIComponent(savedKey)}&select=*`);
+    if (!data || data.length === 0) return; // Ağ hatası durumunda offline çalışmaya devam et
+    
+    const dbLicense = data[0];
+    if (dbLicense.device_id && dbLicense.device_id !== devId) {
+      // Lisans başka bir cihazda aktif edilmiş! Yerel lisansı iptal et.
+      localStorage.removeItem(STORAGE_KEY);
+      checkLicenseStatus();
+      
+      const alertMsg = "Lisansınız İptal Edildi: Bu ürün anahtarı başka bir bilgisayarda aktif edilmiştir!";
+      if (window.showToast) {
+        window.showToast(alertMsg, "danger");
+      } else {
+        alert(alertMsg);
+      }
+      
+      setTimeout(() => {
+        window.location.reload();
+      }, 3000);
+    }
+  }
+
   // Global yapılandırmayı oluştur
   function checkLicenseStatus() {
     const savedKey = localStorage.getItem(STORAGE_KEY);
@@ -108,14 +194,45 @@
       verifyLicenseKey: verifyLicenseKey,
       generateSignature: generateSignature,
       encodeUtf8Base64: encodeUtf8Base64,
-      saveLicense: (key) => {
-        const check = verifyLicenseKey(key);
-        if (check.isValid) {
-          localStorage.setItem(STORAGE_KEY, key);
-          checkLicenseStatus(); // Durumu güncelle
-          return { success: true, licensee: check.licensee, expiryDate: check.expiryDate };
+      saveLicense: async (key) => {
+        // 1. Yerel imza doğrulaması
+        const localCheck = verifyLicenseKey(key);
+        if (!localCheck.isValid) {
+          return { success: false, reason: localCheck.reason };
         }
-        return { success: false, reason: check.reason };
+        
+        // 2. Cihaz ID ve Supabase doğrulaması
+        const devId = await getDeviceId();
+        const data = await supabaseRequest('GET', `licenses?license_key=eq.${encodeURIComponent(key)}&select=*`);
+        
+        if (!data) {
+          return { success: false, reason: 'Aktivasyon için internet bağlantısı gereklidir!' };
+        }
+        if (data.length === 0) {
+          return { success: false, reason: 'Geçersiz ürün anahtarı! (Bulut veritabanında bulunamadı)' };
+        }
+        
+        const dbLicense = data[0];
+        
+        // Cihaz eşleştirme mantığı
+        if (!dbLicense.device_id) {
+          // İlk aktivasyon: Cihazı kilitle
+          const update = await supabaseRequest('PATCH', `licenses?license_key=eq.${encodeURIComponent(key)}`, {
+            device_id: devId,
+            activated_at: new Date().toISOString()
+          });
+          if (!update) {
+            return { success: false, reason: 'Cihaz kilitleme işlemi veritabanına kaydedilemedi!' };
+          }
+        } else if (dbLicense.device_id !== devId) {
+          // Zaten başka bir cihaza kilitli!
+          return { success: false, reason: 'Bu ürün anahtarı zaten başka bir bilgisayarda aktif edilmiştir!' };
+        }
+        
+        // 3. Başarılı: Yerel depolamaya kaydet ve durumu güncelle
+        localStorage.setItem(STORAGE_KEY, key);
+        checkLicenseStatus();
+        return { success: true, licensee: localCheck.licensee, expiryDate: localCheck.expiryDate };
       },
       removeLicense: () => {
         localStorage.removeItem(STORAGE_KEY);
@@ -126,4 +243,9 @@
 
   // İlk yüklemede lisans durumunu kontrol et
   checkLicenseStatus();
+  
+  // Arka planda çevrimiçi kontrolü tetikle
+  setTimeout(() => {
+    checkLicenseStatusOnline();
+  }, 1000);
 })();
