@@ -350,8 +350,9 @@
       </div>
 
       <div class="form-group">
-        <label for="txtDbKey">Service Role Key (Admin Şifresi)</label>
-        <input type="text" id="txtDbKey" placeholder="sb_secret_xxxx..." autocomplete="off" style="-webkit-text-security: disc; -moz-text-security: disc; text-security: disc;">
+        <label for="sa_token_field">Bağlantı Belirteci (Token)</label>
+        <input type="text" id="sa_token_field" placeholder="Giriş yapın..." autocomplete="off" style="-webkit-text-security: disc; -moz-text-security: disc; text-security: disc;">
+        <p id="keyPreview" style="font-size: 0.8rem; color: var(--success); margin-top: 4px; font-weight: 600; display: none;"></p>
         <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px;">* Bu anahtar sadece bu bilgisayarın yerel tarayıcısında saklanır. Kod dosyasına yazılmaz.</p>
       </div>
 
@@ -383,18 +384,35 @@
     const btnSaveSettings = document.getElementById('btnSaveSettings');
     const btnCloseSettings = document.getElementById('btnCloseSettings');
     const txtDbUrl = document.getElementById('txtDbUrl');
-    const txtDbKey = document.getElementById('txtDbKey');
+    const sa_token_field = document.getElementById('sa_token_field');
+
+    // Aktif anahtar önizlemesini güncelle
+    function updateKeyPreview() {
+      const key = localStorage.getItem('sa_gen_supabase_key') || '';
+      const previewEl = document.getElementById('keyPreview');
+      if (key) {
+        const masked = key.length > 10 ? `${key.substring(0, 10)}...${key.slice(-8)}` : 'Geçerli Anahtar';
+        previewEl.textContent = `Aktif Anahtar: ${masked}`;
+        previewEl.style.display = 'block';
+      } else {
+        previewEl.style.display = 'none';
+      }
+    }
 
     // Sayfa açıldığında ayarları yükle
     window.addEventListener('DOMContentLoaded', () => {
       const savedUrl = localStorage.getItem('sa_gen_supabase_url') || 'https://tzwewboqhjsmoezriadg.supabase.co';
       const savedKey = localStorage.getItem('sa_gen_supabase_key') || '';
       txtDbUrl.value = savedUrl;
-      txtDbKey.value = savedKey;
+      sa_token_field.value = savedKey;
+      updateKeyPreview();
     });
 
     // Modal Kontrolleri
     btnSettings.addEventListener('click', () => {
+      // Yeniden yükle (değişiklikleri garantiye almak için)
+      sa_token_field.value = localStorage.getItem('sa_gen_supabase_key') || '';
+      updateKeyPreview();
       settingsModal.style.display = 'flex';
     });
 
@@ -404,7 +422,7 @@
 
     btnSaveSettings.addEventListener('click', () => {
       const url = txtDbUrl.value.trim();
-      const key = txtDbKey.value.trim();
+      const key = sa_token_field.value.trim();
       
       if (!url || !key) {
         alert('Lütfen her iki alanı da doldurun.');
@@ -414,6 +432,7 @@
       localStorage.setItem('sa_gen_supabase_url', url);
       localStorage.setItem('sa_gen_supabase_key', key);
       
+      updateKeyPreview();
       alert('Ayarlar başarıyla kaydedildi!');
       settingsModal.style.display = 'none';
     });
