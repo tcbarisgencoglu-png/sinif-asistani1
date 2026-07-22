@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Sınıf Asistanı - Lisans Anahtarı Üretici</title>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <script src="../js/supabase-config.js"></script>
   <style>
     :root {
       --bg-dark: #0f172a;
@@ -537,8 +538,16 @@
       const data = calculateLicenseData();
       if (!data) return;
 
-      let url = (localStorage.getItem('sa_gen_supabase_url') || '').trim();
-      const key = (localStorage.getItem('sa_gen_supabase_key') || '').trim();
+      let url = '';
+      let key = '';
+
+      if (window.SupabaseConfig && window.SupabaseConfig.url) {
+        url = window.SupabaseConfig.url.trim();
+        key = window.SupabaseConfig.anonKey.trim();
+      } else {
+        url = (localStorage.getItem('sa_gen_supabase_url') || '').trim();
+        key = (localStorage.getItem('sa_gen_supabase_key') || '').trim();
+      }
 
       if (url) {
         url = url.replace(/\/+$/, "").replace(/\/rest\/v1$/, "");
@@ -547,7 +556,7 @@
       if (!url || !key) {
         dbStatusBanner.style.display = 'block';
         dbStatusBanner.className = 'db-status-banner error';
-        dbStatusBanner.textContent = 'Hata: Supabase bağlantı ayarları girilmemiş! Sağ üstteki Çark simgesine tıklayıp bilgilerinizi kaydedin.';
+        dbStatusBanner.textContent = 'Hata: Supabase bağlantı ayarları bulunamadı!';
         return;
       }
 
