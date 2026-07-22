@@ -518,8 +518,12 @@
       const data = calculateLicenseData();
       if (!data) return;
 
-      const url = localStorage.getItem('sa_gen_supabase_url');
-      const key = localStorage.getItem('sa_gen_supabase_key');
+      let url = (localStorage.getItem('sa_gen_supabase_url') || '').trim();
+      const key = (localStorage.getItem('sa_gen_supabase_key') || '').trim();
+
+      if (url) {
+        url = url.replace(/\/+$/, "").replace(/\/rest\/v1$/, "");
+      }
 
       if (!url || !key) {
         dbStatusBanner.style.display = 'block';
