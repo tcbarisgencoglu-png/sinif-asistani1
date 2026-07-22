@@ -582,9 +582,15 @@
           const errText = await response.text();
           console.error("Supabase error response:", errText);
           
+          let cleanErrMsg = errText;
+          try {
+            const errObj = JSON.parse(errText);
+            cleanErrMsg = errObj.message || errText;
+          } catch(e) {}
+          
           dbStatusBanner.style.display = 'block';
           dbStatusBanner.className = 'db-status-banner error';
-          dbStatusBanner.textContent = `Veritabanı Hatası: ${response.status} - Lisans eklenemedi. Bilgileri kontrol edin.`;
+          dbStatusBanner.textContent = `Veritabanı Hatası: ${response.status} (${cleanErrMsg})`;
         }
       } catch (err) {
         console.error("Connection error:", err);
