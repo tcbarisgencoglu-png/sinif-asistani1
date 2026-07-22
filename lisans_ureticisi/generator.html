@@ -545,8 +545,15 @@
         url = window.SupabaseConfig.url.trim();
         key = window.SupabaseConfig.anonKey.trim();
       } else {
-        url = (localStorage.getItem('sa_gen_supabase_url') || '').trim();
+        url = (localStorage.getItem('sa_gen_supabase_url') || '').trim() || 'https://tzwewboqhjsmoezriadg.supabase.co';
         key = (localStorage.getItem('sa_gen_supabase_key') || '').trim();
+      }
+
+      // Tarayıcı güvenlik engelini (Forbidden use of secret API key) aşmak için:
+      // Eğer anahtar boşsa veya "sb_secret_" ile başlayan yönetici anahtarıysa,
+      // tarayıcıların kabul ettiği genel anonKey ile otomatik olarak değiştir.
+      if (!key || key.startsWith('sb_secret_')) {
+        key = 'sb_publishable_FVth3wbbG-2XZiJmpO0-rw_mNiU0_Ci';
       }
 
       if (url) {
