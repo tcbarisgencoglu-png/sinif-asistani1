@@ -12,6 +12,7 @@
       --primary: #6366f1;
       --primary-hover: #4f46e5;
       --success: #10b981;
+      --danger: #ef4444;
       --text: #f8fafc;
       --text-muted: #94a3b8;
       --border: rgba(255, 255, 255, 0.08);
@@ -35,6 +36,7 @@
     }
 
     .container {
+      position: relative;
       width: 100%;
       max-width: 500px;
       background-color: var(--bg-card);
@@ -45,9 +47,32 @@
       transition: transform 0.3s ease;
     }
 
+    .settings-btn {
+      position: absolute;
+      top: 1.5rem;
+      right: 1.5rem;
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 8px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+    }
+
+    .settings-btn:hover {
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.08);
+      transform: rotate(45deg);
+    }
+
     .header {
       text-align: center;
       margin-bottom: 2rem;
+      padding-right: 20px;
     }
 
     .header h1 {
@@ -104,11 +129,11 @@
       border: none;
       background-color: var(--primary);
       color: white;
-      font-size: 1rem;
+      font-size: 0.95rem;
       font-weight: 600;
       cursor: pointer;
       transition: all 0.2s ease;
-      margin-top: 1rem;
+      margin-top: 0.75rem;
       display: flex;
       justify-content: center;
       align-items: center;
@@ -122,6 +147,16 @@
 
     .btn:active {
       transform: translateY(0);
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.12);
     }
 
     .result-container {
@@ -183,14 +218,85 @@
     .custom-date-container {
       display: none;
     }
+
+    /* Modal / Ayarlar */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(6px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      padding: 20px;
+    }
+
+    .modal-content {
+      width: 100%;
+      max-width: 450px;
+      background-color: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 2rem;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+    }
+
+    .modal-title {
+      font-size: 1.3rem;
+      font-weight: 700;
+      margin-bottom: 1.5rem;
+      color: var(--text);
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 0.75rem;
+    }
+
+    .button-group {
+      display: flex;
+      gap: 12px;
+      margin-top: 1.5rem;
+    }
+
+    .db-status-banner {
+      margin-top: 1rem;
+      padding: 0.75rem;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      display: none;
+      text-align: center;
+    }
+
+    .db-status-banner.success {
+      background: rgba(16, 185, 129, 0.12);
+      color: var(--success);
+      border: 1px solid rgba(16, 185, 129, 0.2);
+    }
+
+    .db-status-banner.error {
+      background: rgba(239, 68, 68, 0.12);
+      color: var(--danger);
+      border: 1px solid rgba(239, 68, 68, 0.2);
+    }
   </style>
 </head>
 <body>
 
   <div class="container">
+    <!-- Ayarlar Butonu (Gear) -->
+    <button class="settings-btn" id="btnSettings" title="Supabase Bağlantı Ayarları">
+      <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="3"></circle>
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+      </svg>
+    </button>
+
     <div class="header">
       <h1>Lisans Anahtarı Üretici</h1>
-      <p>Sınıf Asistanı için offline aktivasyon kodları oluşturun</p>
+      <p>Sınıf Asistanı için bulut entegrasyonlu aktivasyon kodları</p>
     </div>
 
     <!-- Müşteri Adı -->
@@ -205,7 +311,7 @@
       <select id="selPeriod">
         <option value="1y">1 Yıllık Lisans</option>
         <option value="2y">2 Yıllık Lisans</option>
-        <option value="never">Ömür Boyu (Süresiz)</option>
+        <option value="never" selected>Ömür Boyu (Süresiz)</option>
         <option value="custom">Özel Tarih Belirle...</option>
       </select>
     </div>
@@ -216,36 +322,106 @@
       <input type="date" id="dateCustom">
     </div>
 
-    <button id="btnGenerate" class="btn">Lisans Kodu Üret</button>
+    <!-- İki Farklı Üretim Butonu -->
+    <button id="btnGenerate" class="btn">Üret ve Supabase Veritabanına Ekle</button>
+    <button id="btnGenerateOffline" class="btn btn-secondary">Sadece Çevrimdışı Lisans Kodu Üret</button>
+
+    <!-- Bulut Bildirim Alanı -->
+    <div id="dbStatusBanner" class="db-status-banner"></div>
 
     <!-- Sonuç Paneli -->
     <div class="result-container" id="resultPanel">
       <div class="result-title">
-        <h3>Lisans Anahtarı Başarıyla Üretildi</h3>
+        <h3>Lisans Anahtarı</h3>
         <button id="btnCopy" class="btn-copy">Kopyala</button>
       </div>
       <textarea id="txtResult" class="result-key" readonly></textarea>
     </div>
   </div>
 
+  <!-- Ayarlar Modal Arayüzü -->
+  <div class="modal-overlay" id="settingsModal">
+    <div class="modal-content">
+      <div class="modal-title">Supabase Bağlantı Ayarları</div>
+      
+      <div class="form-group">
+        <label for="txtDbUrl">Supabase Proje Adresi (URL)</label>
+        <input type="text" id="txtDbUrl" placeholder="https://xxxx.supabase.co">
+      </div>
+
+      <div class="form-group">
+        <label for="txtDbKey">Service Role Key (Admin Şifresi)</label>
+        <input type="password" id="txtDbKey" placeholder="sb_secret_xxxx...">
+        <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px;">* Bu anahtar sadece bu bilgisayarın yerel tarayıcısında saklanır. Kod dosyasına yazılmaz.</p>
+      </div>
+
+      <div class="button-group">
+        <button class="btn" id="btnSaveSettings" style="margin-top:0;">Kaydet</button>
+        <button class="btn btn-secondary" id="btnCloseSettings" style="margin-top:0;">Kapat</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     const SECRET_SALT = 'SinifAsistani2026SecureLicensingKey_v1';
 
-    // UI Kontrolleri
+    // UI Elemanları
     const selPeriod = document.getElementById('selPeriod');
     const customDateGroup = document.getElementById('customDateGroup');
     const dateCustom = document.getElementById('dateCustom');
     const btnGenerate = document.getElementById('btnGenerate');
+    const btnGenerateOffline = document.getElementById('btnGenerateOffline');
+    const dbStatusBanner = document.getElementById('dbStatusBanner');
     const resultPanel = document.getElementById('resultPanel');
     const txtResult = document.getElementById('txtResult');
     const btnCopy = document.getElementById('btnCopy');
     const txtName = document.getElementById('txtName');
 
+    // Modal Elemanları
+    const btnSettings = document.getElementById('btnSettings');
+    const settingsModal = document.getElementById('settingsModal');
+    const btnSaveSettings = document.getElementById('btnSaveSettings');
+    const btnCloseSettings = document.getElementById('btnCloseSettings');
+    const txtDbUrl = document.getElementById('txtDbUrl');
+    const txtDbKey = document.getElementById('txtDbKey');
+
+    // Sayfa açıldığında ayarları yükle
+    window.addEventListener('DOMContentLoaded', () => {
+      const savedUrl = localStorage.getItem('sa_gen_supabase_url') || 'https://tzwewboqhjsmoezriadg.supabase.co';
+      const savedKey = localStorage.getItem('sa_gen_supabase_key') || '';
+      txtDbUrl.value = savedUrl;
+      txtDbKey.value = savedKey;
+    });
+
+    // Modal Kontrolleri
+    btnSettings.addEventListener('click', () => {
+      settingsModal.style.display = 'flex';
+    });
+
+    btnCloseSettings.addEventListener('click', () => {
+      settingsModal.style.display = 'none';
+    });
+
+    btnSaveSettings.addEventListener('click', () => {
+      const url = txtDbUrl.value.trim();
+      const key = txtDbKey.value.trim();
+      
+      if (!url || !key) {
+        alert('Lütfen her iki alanı da doldurun.');
+        return;
+      }
+
+      localStorage.setItem('sa_gen_supabase_url', url);
+      localStorage.setItem('sa_gen_supabase_key', key);
+      
+      alert('Ayarlar başarıyla kaydedildi!');
+      settingsModal.style.display = 'none';
+    });
+
     // Özel tarih grubunu göster/gizle
     selPeriod.addEventListener('change', () => {
       if (selPeriod.value === 'custom') {
         customDateGroup.style.display = 'flex';
-        // Varsayılan olarak bugünün tarihini ayarla
         const today = new Date().toISOString().split('T')[0];
         dateCustom.value = today;
       } else {
@@ -270,28 +446,24 @@
       return [(h1^h2^h3^h4)>>>0, (h2^h1)>>>0, (h3^h1)>>>0, (h4^h1)>>>0];
     }
 
-    // Unicode Base64
     function encodeUtf8Base64(str) {
       return btoa(unescape(encodeURIComponent(str)));
     }
 
-    // İmzayı oluştur
     function generateSignature(name, expiry) {
       const rawData = `${name.trim().toLowerCase()}|${expiry}|${SECRET_SALT}`;
       const hashes = cyrb128(rawData);
-      
       const toHex = (n) => (n >>> 0).toString(16).padStart(8, '0').toUpperCase();
       const hex = hashes.map(toHex).join('');
-      
       return `${hex.substr(0,4)}-${hex.substr(4,4)}-${hex.substr(8,4)}-${hex.substr(12,4)}`;
     }
 
-    // Üret Butonu Tıklaması
-    btnGenerate.addEventListener('click', () => {
+    // Ortak Lisans Hesaplama Mantığı
+    function calculateLicenseData() {
       const name = txtName.value.trim();
       if (!name) {
         alert('Lütfen Müşteri Adı veya E-postasını girin.');
-        return;
+        return null;
       }
 
       let expiry = 'never';
@@ -309,25 +481,97 @@
         expiry = dateCustom.value;
         if (!expiry) {
           alert('Lütfen geçerli bir bitiş tarihi seçin.');
-          return;
+          return null;
         }
       }
 
-      // Payload ve İmza oluştur
       const payloadString = `${name}|${expiry}`;
       const payloadBase64 = encodeUtf8Base64(payloadString);
       const signature = generateSignature(name, expiry);
-
-      // Anahtar birleştirme
       const licenseKey = `${payloadBase64}-${signature}`;
 
-      // Arayüzde göster
-      txtResult.value = licenseKey;
+      return { licenseKey, name, expiry };
+    }
+
+    // Gösterim yardımcı fonksiyonu
+    function displayResult(key) {
+      txtResult.value = key;
       resultPanel.style.display = 'block';
-      
-      // Kopyalama butonunu sıfırla
       btnCopy.textContent = 'Kopyala';
       btnCopy.classList.remove('copied');
+    }
+
+    // 1. Yol: Sadece Çevrimdışı Lisans Üret (Veritabanına eklemez)
+    btnGenerateOffline.addEventListener('click', () => {
+      const data = calculateLicenseData();
+      if (!data) return;
+      
+      displayResult(data.licenseKey);
+      
+      dbStatusBanner.style.display = 'block';
+      dbStatusBanner.className = 'db-status-banner success';
+      dbStatusBanner.textContent = 'Çevrimdışı lisans başarıyla üretildi (Veritabanına kaydedilmedi).';
+    });
+
+    // 2. Yol: Üret ve Supabase Veritabanına Kaydet
+    btnGenerate.addEventListener('click', async () => {
+      const data = calculateLicenseData();
+      if (!data) return;
+
+      const url = localStorage.getItem('sa_gen_supabase_url');
+      const key = localStorage.getItem('sa_gen_supabase_key');
+
+      if (!url || !key) {
+        dbStatusBanner.style.display = 'block';
+        dbStatusBanner.className = 'db-status-banner error';
+        dbStatusBanner.textContent = 'Hata: Supabase bağlantı ayarları girilmemiş! Sağ üstteki Çark simgesine tıklayıp bilgilerinizi kaydedin.';
+        return;
+      }
+
+      // Butonu ve bildirim alanını yükleniyor yap
+      btnGenerate.disabled = true;
+      const originalText = btnGenerate.textContent;
+      btnGenerate.textContent = 'Veritabanına Ekleniyor...';
+      dbStatusBanner.style.display = 'none';
+
+      try {
+        const response = await fetch(`${url}/rest/v1/licenses`, {
+          method: 'POST',
+          headers: {
+            'apikey': key,
+            'Authorization': `Bearer ${key}`,
+            'Content-Type': 'application/json',
+            'Prefer': 'return=representation'
+          },
+          body: JSON.stringify({
+            license_key: data.licenseKey,
+            licensee_name: data.name,
+            expiry_date: data.expiry
+          })
+        });
+
+        if (response.ok) {
+          displayResult(data.licenseKey);
+          dbStatusBanner.style.display = 'block';
+          dbStatusBanner.className = 'db-status-banner success';
+          dbStatusBanner.textContent = 'Lisans başarıyla üretildi ve Supabase veritabanına eklendi! 🎉';
+        } else {
+          const errText = await response.text();
+          console.error("Supabase error response:", errText);
+          
+          dbStatusBanner.style.display = 'block';
+          dbStatusBanner.className = 'db-status-banner error';
+          dbStatusBanner.textContent = `Veritabanı Hatası: ${response.status} - Lisans eklenemedi. Bilgileri kontrol edin.`;
+        }
+      } catch (err) {
+        console.error("Connection error:", err);
+        dbStatusBanner.style.display = 'block';
+        dbStatusBanner.className = 'db-status-banner error';
+        dbStatusBanner.textContent = 'Ağ Hatası: Supabase bağlantısı kurulamadı. İnternetinizi kontrol edin.';
+      } finally {
+        btnGenerate.disabled = false;
+        btnGenerate.textContent = originalText;
+      }
     });
 
     // Kopyalama işlemi
