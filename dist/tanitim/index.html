@@ -1,0 +1,1443 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sınıf Asistanı – Öğretmenin Dijital Yardımcısı</title>
+  <meta name="description" content="Sınıf Asistanı, ilkokul ve ortaokul öğretmenleri için tasarlanmış kapsamlı bir sınıf yönetim uygulamasıdır. Ödev, sınav, performans ve kitap takibi tek ekranda." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --primary: #4f46e5;
+      --primary-light: #818cf8;
+      --primary-dark: #3730a3;
+      --accent: #f59e0b;
+      --accent2: #10b981;
+      --bg: #0f0e1a;
+      --bg2: #16152a;
+      --bg3: #1e1d35;
+      --card: #1a1930;
+      --border: rgba(255,255,255,0.08);
+      --text: #f1f0ff;
+      --text-muted: #94a3b8;
+      --gradient: linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #a855f7 100%);
+      --glow: 0 0 60px rgba(79,70,229,0.35);
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      overflow-x: hidden;
+      line-height: 1.6;
+    }
+
+    /* ───── SCROLLBAR ───── */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--primary); border-radius: 3px; }
+
+    /* ───── NAV ───── */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0.8rem 2.5rem;
+      background: rgba(15,14,26,0.85);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+      transition: all .3s;
+    }
+
+    .nav-logo {
+      display: flex; align-items: center; gap: .75rem;
+      font-size: 1.25rem; font-weight: 800; color: var(--text);
+      text-decoration: none;
+    }
+    .nav-logo-icon {
+      width: 40px; height: 40px; border-radius: 12px;
+      background: var(--gradient);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.3rem; box-shadow: var(--glow);
+    }
+
+    .nav-links-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 50px;
+      padding: 0.25rem;
+    }
+    .nav-links {
+      display: flex;
+      position: relative;
+      z-index: 2;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+    .nav-link-item {
+      display: block;
+      padding: 0.5rem 1.2rem;
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.875rem;
+      font-weight: 600;
+      transition: color 0.3s ease, opacity 0.3s ease;
+      opacity: 0.5;
+      cursor: pointer;
+    }
+    .nav-link-item:hover {
+      color: var(--text);
+      opacity: 0.8;
+    }
+    .nav-link-item.active {
+      color: #fff;
+      opacity: 1;
+    }
+    .nav-indicator {
+      position: absolute;
+      left: 0.25rem;
+      top: 0.25rem;
+      bottom: 0.25rem;
+      background: var(--gradient);
+      border-radius: 50px;
+      transition: all 0.4s cubic-bezier(0.25, 1, 0.3, 1);
+      z-index: 1;
+      box-shadow: 0 4px 15px rgba(124, 58, 237, 0.4);
+    }
+
+    .nav-cta {
+      background: var(--gradient); color: #fff;
+      padding: .55rem 1.4rem; border-radius: 50px;
+      font-size: .875rem; font-weight: 600;
+      text-decoration: none; border: none;
+      box-shadow: 0 4px 15px rgba(79,70,229,.4);
+      transition: transform .2s, box-shadow .2s;
+    }
+    /* ───── HERO FULLSCREEN IMAGE & TYPEWRITER OVERLAY ───── */
+    .hero-full-bg {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+      overflow: hidden;
+    }
+    .main-fullscreen-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover; /* covers the screen completely, leaving no gaps */
+      object-position: center;
+      animation: fadeIn 0.8s ease-out both;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    .hero-overlay-box {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      width: 100%;
+      background: rgba(56, 189, 248, 0.35); /* 35% opacity light blue (Sky-400) */
+      backdrop-filter: blur(15px);
+      -webkit-backdrop-filter: blur(15px);
+      border-top: 1px solid rgba(56, 189, 248, 0.25);
+      border-left: none;
+      border-right: none;
+      border-bottom: none;
+      border-radius: 0;
+      padding: 1.8rem 10% 2.2rem;
+      z-index: 10;
+      text-align: left;
+      box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.5);
+      opacity: 0;
+      animation: slideUpBox 0.8s 0.8s cubic-bezier(0.25, 1, 0.3, 1) forwards;
+    }
+    @keyframes slideUpBox {
+      from { transform: translateY(100%); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+    .overlay-title {
+      font-size: 1.45rem;
+      font-weight: 800;
+      color: #032b45; /* Dark indigo-navy blue */
+      margin-bottom: 0.5rem;
+    }
+    .overlay-text {
+      font-size: 1.05rem;
+      color: #0d3852; /* Dark ocean blue for excellent readability */
+      font-weight: 600; /* slightly bolder for readability on glass background */
+      line-height: 1.55;
+      min-height: 5.5rem;
+    }
+
+    /* ───── SLIDER LAYOUT ───── */
+    html, body {
+      height: 100vh;
+      overflow: hidden;
+    }
+    .horizontal-slider {
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      position: relative;
+    }
+    .slider-track {
+      display: flex;
+      width: 800vw;
+      height: 100%;
+      transition: transform 0.8s cubic-bezier(0.25, 1, 0.3, 1);
+    }
+    .slide-item {
+      width: 100vw;
+      height: 100%;
+      flex-shrink: 0;
+      overflow: hidden; /* Strict no scrollbars! */
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      position: relative;
+    }
+
+    /* Full-screen backgrounds for slide-items to cover the gaps */
+    .slide-item[data-title="Giriş"] { background: var(--bg); }
+    .slide-item[data-title="Kitap Asistanı"] { background: var(--bg); }
+    .slide-item[data-title="Ödev Asistanı"] { background: var(--bg); }
+    .slide-item[data-title="Sınav Asistanı"] { background: var(--bg3); }
+    .slide-item[data-title="Sınıf Oyunları"] { background: var(--bg2); }
+    .slide-item[data-title="Görev Asistanı"] { background: var(--bg); }
+    .slide-item[data-title="Araçlar"] { background: var(--bg); }
+    .slide-item[data-title="Ders Materyalleri"] { background: var(--bg); }
+
+    /* Make inner elements transparent/borderless so slide background covers screen */
+    .slide-item section,
+    .slide-item .quote-section,
+    .slide-item footer {
+      background: transparent !important;
+      border: none !important;
+      box-shadow: none !important;
+      width: 100%;
+    }
+
+    /* Strict 100vh compact styling overrides */
+    .slide-item section {
+      padding: 0 !important;
+      min-height: auto !important;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
+    .slide-item .container {
+      padding: 0 !important;
+      max-width: 1100px;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
+
+    /* Section titles compact styling */
+    .section-title {
+      font-size: clamp(1.4rem, 3.2vw, 2.0rem) !important;
+      margin-bottom: 0.3rem !important;
+      line-height: 1.2 !important;
+    }
+    .section-desc {
+      font-size: 0.8rem !important;
+      margin-bottom: 0.8rem !important;
+    }
+    .section-label {
+      margin-bottom: 0.2rem !important;
+      font-size: 0.75rem !important;
+    }
+
+    /* Hero Slide 1 */
+    .hero {
+      max-width: 900px;
+    }
+    .hero h1 {
+      font-size: clamp(1.8rem, 4.5vw, 2.8rem) !important;
+      margin-bottom: 0.5rem !important;
+    }
+    .hero-badge {
+      margin-bottom: 0.5rem !important;
+    }
+    .hero-features-grid {
+      margin: 1rem auto !important;
+      gap: 0.6rem !important;
+    }
+    .hero-feature-card {
+      padding: 0.6rem 0.8rem !important;
+      border-radius: 12px !important;
+      gap: 0.75rem !important;
+    }
+    .hero-feature-card h4 {
+      font-size: 0.82rem !important;
+      margin-bottom: 0.1rem !important;
+    }
+    .hero-feature-card p {
+      font-size: 0.72rem !important;
+    }
+    .h-card-icon {
+      font-size: 1.3rem !important;
+      width: 34px !important;
+      height: 34px !important;
+      border-radius: 8px !important;
+    }
+    .kademe-badges {
+      margin-bottom: 1rem !important;
+    }
+    .kademe-badge {
+      padding: 0.35rem 0.8rem !important;
+      font-size: 0.75rem !important;
+    }
+
+    /* Gallery Slide 2 */
+    .phones-strip-container {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    .phones-strip {
+      padding: 1.5rem 0 !important;
+    }
+
+    /* Kademeler Slide 3 */
+    .kademe-grid {
+      gap: 1.25rem !important;
+      margin-top: 0.75rem !important;
+      max-width: 860px;
+    }
+    .kademe-card {
+      padding: 1rem !important;
+      border-radius: 16px !important;
+    }
+    .kademe-card h3 {
+      font-size: 1rem !important;
+      margin-bottom: 0.3rem !important;
+    }
+    .kademe-card p {
+      font-size: 0.78rem !important;
+      line-height: 1.35 !important;
+      margin-bottom: 0.5rem !important;
+    }
+    .kademe-card ul {
+      gap: 0.25rem !important;
+    }
+    .kademe-card li {
+      font-size: 0.75rem !important;
+    }
+    .kademe-icon {
+      font-size: 1.8rem !important;
+      margin-bottom: 0.35rem !important;
+    }
+
+    /* Features Slide 4 */
+    .features-grid {
+      gap: 0.6rem !important;
+      margin-top: 0.75rem !important;
+      max-width: 900px !important;
+    }
+    .feature-card {
+      padding: 0.75rem 1rem !important;
+      border-radius: 12px !important;
+    }
+    .feature-icon {
+      font-size: 1.3rem !important;
+      margin-bottom: 0.35rem !important;
+      width: 34px !important;
+      height: 34px !important;
+      border-radius: 8px !important;
+    }
+    .feature-card h3 {
+      font-size: 0.88rem !important;
+      margin-bottom: 0.15rem !important;
+    }
+    .feature-card p {
+      font-size: 0.72rem !important;
+      line-height: 1.3 !important;
+    }
+
+    /* Showcase Slide 5 */
+    .showcase-content {
+      display: grid !important;
+      grid-template-columns: 1.25fr 1fr !important;
+      gap: 3rem !important;
+      margin-top: 1rem !important;
+      max-width: 1000px !important;
+      width: 100% !important;
+      align-items: center !important;
+    }
+    .showcase-phone {
+      width: 100% !important;
+      max-width: 480px !important;
+      margin: 0 auto !important;
+    }
+    .showcase-phone img {
+      display: block !important;
+      width: 100% !important;
+      height: auto !important;
+      max-height: 42vh !important;
+      object-fit: contain !important;
+      border-radius: 20px !important;
+    }
+    .showcase-tabs {
+      gap: 0.4rem !important;
+      margin-bottom: 0.75rem !important;
+    }
+    .tab-btn {
+      padding: 0.35rem 0.8rem !important;
+      font-size: 0.75rem !important;
+    }
+    .showcase-info h3 {
+      font-size: 1.15rem !important;
+      margin-bottom: 0.3rem !important;
+    }
+    .showcase-info p {
+      font-size: 0.78rem !important;
+      line-height: 1.45 !important;
+      margin-bottom: 0.6rem !important;
+    }
+    .showcase-chips {
+      gap: 0.35rem !important;
+    }
+    .showcase-chips .chip {
+      padding: 0.2rem 0.6rem !important;
+      font-size: 0.7rem !important;
+    }
+
+    /* Nasıl Çalışır Slide 6 */
+    .steps-grid {
+      grid-template-columns: repeat(4, 1fr) !important;
+      gap: 0.75rem !important;
+      margin-top: 1rem !important;
+      max-width: 960px !important;
+    }
+    .step-card {
+      padding: 1rem !important;
+      border-radius: 14px !important;
+    }
+    .step-icon {
+      font-size: 1.5rem !important;
+      margin-bottom: 0.4rem !important;
+    }
+    .step-card h3 {
+      font-size: 0.85rem !important;
+      margin-bottom: 0.2rem !important;
+    }
+    .step-card p {
+      font-size: 0.72rem !important;
+      line-height: 1.3 !important;
+    }
+    .step-card::before {
+      font-size: 2.2rem !important;
+      top: 0.5rem !important;
+      right: 0.5rem !important;
+    }
+
+    /* Stats + Quote + Footer Slide 7 */
+    .slide-item-summary {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      height: 100%;
+      width: 100%;
+      max-width: 900px;
+    }
+    .stats {
+      width: 100%;
+      background: transparent !important;
+    }
+    .stats-grid {
+      margin-top: 0.75rem !important;
+      gap: 1.25rem !important;
+    }
+    .stat-num {
+      font-size: 2rem !important;
+    }
+    .stat-label {
+      font-size: 0.72rem !important;
+      line-height: 1.25 !important;
+    }
+    .quote-section {
+      padding: 1.25rem 1rem !important;
+      margin: 0.75rem 0 !important;
+      border-radius: 18px;
+      width: 100%;
+      background: rgba(26, 25, 48, 0.4) !important;
+      border: 1px solid rgba(255, 255, 255, 0.03);
+    }
+    .quote-text {
+      font-size: 1rem !important;
+      margin-bottom: 0.4rem !important;
+    }
+    footer {
+      width: 100%;
+      background: transparent !important;
+      border-top: 1px solid rgba(255, 255, 255, 0.05) !important;
+      padding: 0.75rem 0 !important;
+    }
+    footer p {
+      font-size: 0.72rem !important;
+    }
+
+    /* Fixed Slider Arrows */
+    .slider-arrow {
+      position: fixed;
+      top: 52%;
+      transform: translateY(-50%);
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: rgba(26, 25, 48, 0.6);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: var(--text);
+      font-size: 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      z-index: 90;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    }
+    .slider-arrow:hover {
+      background: var(--gradient);
+      border-color: transparent;
+      box-shadow: 0 10px 30px rgba(124, 58, 237, 0.45);
+      transform: translateY(-50%) scale(1.1);
+    }
+    .slider-arrow.arrow-left {
+      left: 2rem;
+    }
+    .slider-arrow.arrow-right {
+      right: 2rem;
+    }
+    .slider-arrow.disabled {
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(-50%) scale(0.8);
+    }
+
+    @media (max-width: 900px) {
+      nav {
+        padding: 0.8rem 1rem;
+      }
+      .nav-links-wrapper {
+        display: none; /* Hide navigation strip on mobile/tablet */
+      }
+      .slider-arrow {
+        width: 48px;
+        height: 48px;
+        font-size: 1.25rem;
+      }
+      .slider-arrow.arrow-left { left: 0.5rem; }
+      .slider-arrow.arrow-right { right: 0.5rem; }
+    }
+
+    /* ───── HERO ───── */
+    .hero {
+      min-height: 100vh;
+      display: flex; align-items: center; justify-content: center;
+      padding: 7rem 2rem 4rem;
+      position: relative; overflow: hidden;
+      text-align: center;
+    }
+
+    /* Animated background blobs */
+    .blob {
+      position: absolute; border-radius: 50%; filter: blur(80px); pointer-events: none;
+      animation: float 8s ease-in-out infinite;
+    }
+    .blob-1 { width: 500px; height: 500px; background: rgba(79,70,229,.25); top:-100px; left:-100px; }
+    .blob-2 { width: 400px; height: 400px; background: rgba(168,85,247,.2); bottom:-80px; right:-80px; animation-delay:-3s; }
+    .blob-3 { width: 300px; height: 300px; background: rgba(16,185,129,.15); top:40%; left:50%; transform:translateX(-50%); animation-delay:-5s; }
+
+    @keyframes float {
+      0%,100% { transform: translateY(0) scale(1); }
+      50% { transform: translateY(-30px) scale(1.05); }
+    }
+
+    .hero-inner { position: relative; z-index: 1; max-width: 960px; }
+
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: .5rem;
+      background: rgba(79,70,229,.15); border: 1px solid rgba(79,70,229,.3);
+      color: var(--primary-light); padding: .4rem 1rem; border-radius: 50px;
+      font-size: .8rem; font-weight: 600; margin-bottom: 1.5rem;
+      animation: fadeUp .6s ease both;
+    }
+
+    .hero h1 {
+      font-size: clamp(2.5rem, 6vw, 4.5rem);
+      font-weight: 900; line-height: 1.1;
+      margin-bottom: 1.25rem;
+      animation: fadeUp .6s .1s ease both;
+    }
+    .hero h1 span {
+      background: var(--gradient); -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent; background-clip: text;
+    }
+
+    .hero-sub {
+      font-size: 1.15rem; color: var(--text-muted); max-width: 580px;
+      margin: 0 auto 1rem;
+      animation: fadeUp .6s .2s ease both;
+    }
+
+    /* Hero Features Grid Style */
+    .hero-features-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.25rem;
+      margin: 2.5rem auto;
+      max-width: 900px;
+      animation: fadeUp .6s .2s ease both;
+    }
+    .hero-feature-card {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      background: rgba(26, 25, 48, 0.45);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 18px;
+      padding: 1.1rem;
+      text-align: left;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .hero-feature-card:hover {
+      transform: translateY(-5px);
+      border-color: rgba(124, 58, 237, 0.4);
+      background: rgba(30, 29, 53, 0.8);
+      box-shadow: 0 10px 30px rgba(124, 58, 237, 0.15);
+    }
+    .h-card-icon {
+      font-size: 1.7rem;
+      width: 46px;
+      height: 46px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 12px;
+      flex-shrink: 0;
+      transition: transform 0.3s ease;
+    }
+    .hero-feature-card:hover .h-card-icon {
+      transform: scale(1.1);
+    }
+    .hero-feature-card:nth-child(1) .h-card-icon { background: rgba(79, 70, 229, 0.15); color: #818cf8; }
+    .hero-feature-card:nth-child(2) .h-card-icon { background: rgba(245, 158, 11, 0.15); color: #fbbf24; }
+    .hero-feature-card:nth-child(3) .h-card-icon { background: rgba(16, 185, 129, 0.15); color: #34d399; }
+    .hero-feature-card:nth-child(4) .h-card-icon { background: rgba(236, 72, 153, 0.15); color: #f472b6; }
+    .hero-feature-card:nth-child(5) .h-card-icon { background: rgba(59, 130, 246, 0.15); color: #60a5fa; }
+    .hero-feature-card:nth-child(6) .h-card-icon { background: rgba(20, 184, 166, 0.15); color: #2dd4bf; }
+
+    .h-card-text h4 {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 0.25rem;
+    }
+    .h-card-text p {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      line-height: 1.35;
+    }
+
+    @media (max-width: 768px) {
+      .hero-features-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
+        padding: 0 1rem;
+      }
+    }
+    @media (max-width: 480px) {
+      .hero-features-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .kademe-badges {
+      display: flex; justify-content: center; gap: 1rem; margin-bottom: 2.25rem;
+      animation: fadeUp .6s .25s ease both;
+      flex-wrap: wrap;
+    }
+    .kademe-badge {
+      display: inline-flex; align-items: center; gap: .45rem;
+      padding: .5rem 1.2rem; border-radius: 50px;
+      font-size: .875rem; font-weight: 700;
+    }
+    .kademe-badge.ilkokul {
+      background: rgba(16,185,129,.15); border: 1px solid rgba(16,185,129,.35);
+      color: #34d399;
+    }
+    .kademe-badge.ortaokul {
+      background: rgba(245,158,11,.15); border: 1px solid rgba(245,158,11,.35);
+      color: #fbbf24;
+    }
+
+    .hero-actions {
+      display: flex; justify-content: center; gap: 1rem; flex-wrap: wrap;
+      animation: fadeUp .6s .3s ease both;
+    }
+
+    .btn-primary {
+      background: var(--gradient); color: #fff;
+      padding: .9rem 2rem; border-radius: 50px;
+      font-size: 1rem; font-weight: 700;
+      text-decoration: none; display: inline-flex; align-items: center; gap: .5rem;
+      box-shadow: 0 8px 30px rgba(79,70,229,.45);
+      transition: transform .2s, box-shadow .2s;
+    }
+    .btn-primary:hover { transform: translateY(-3px); box-shadow: 0 15px 40px rgba(79,70,229,.55); }
+
+    .btn-ghost {
+      background: transparent; color: var(--text);
+      padding: .9rem 2rem; border-radius: 50px;
+      font-size: 1rem; font-weight: 600;
+      text-decoration: none; display: inline-flex; align-items: center; gap: .5rem;
+      border: 1px solid var(--border);
+      transition: background .2s, border-color .2s;
+    }
+    .btn-ghost:hover { background: rgba(255,255,255,.05); border-color: var(--primary-light); }
+
+    @keyframes fadeUp {
+      from { opacity:0; transform:translateY(30px); }
+      to   { opacity:1; transform:translateY(0); }
+    }
+
+    /* ───── PHONE MOCKUP STRIP ───── */
+    .phones-strip {
+      padding: 4rem 0 6rem;
+      overflow: hidden;
+      position: relative;
+    }
+    .phones-strip::before {
+      content:''; position:absolute; inset:0;
+      background: linear-gradient(to bottom, var(--bg) 0%, transparent 20%, transparent 80%, var(--bg) 100%);
+      pointer-events:none; z-index:2;
+    }
+
+    .phones-track {
+      display: flex; gap: 2rem; align-items: flex-end;
+      width: max-content;
+      animation: slideLeft 25s linear infinite;
+    }
+    .phones-track:hover { animation-play-state: paused; }
+
+    @keyframes slideLeft {
+      from { transform: translateX(0); }
+      to   { transform: translateX(-50%); }
+    }
+
+    .phone-card {
+      flex-shrink: 0; width: 220px;
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 28px; overflow: hidden;
+      box-shadow: 0 20px 60px rgba(0,0,0,.5);
+      transition: transform .3s;
+    }
+    .phone-card:hover { transform: scale(1.04) translateY(-8px); }
+    .phone-card img {
+      width: 100%; display: block;
+    }
+    .phone-card-label {
+      padding: .75rem 1rem; font-size: .8rem; font-weight: 600;
+      color: var(--text-muted); text-align: center;
+      border-top: 1px solid var(--border);
+    }
+
+    /* ───── SECTION COMMON ───── */
+    section { padding: 6rem 2rem; }
+
+    .container { max-width: 1100px; margin: 0 auto; }
+
+    .section-label {
+      display: inline-block; font-size: .78rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: .1em;
+      color: var(--primary-light); margin-bottom: .75rem;
+    }
+    .section-title {
+      font-size: clamp(1.8rem, 3.5vw, 2.8rem); font-weight: 800;
+      line-height: 1.2; margin-bottom: 1rem;
+    }
+    .section-desc { color: var(--text-muted); font-size: 1.05rem; max-width: 550px; }
+
+    /* ───── KADEME SECTION ───── */
+    .kademe-section { background: var(--bg2); }
+
+    .kademe-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 2rem; margin-top: 3rem;
+    }
+
+    .kademe-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 24px; padding: 2rem;
+      position: relative; overflow: hidden;
+      transition: transform .3s, box-shadow .3s;
+    }
+    .kademe-card:hover { transform: translateY(-6px); box-shadow: 0 20px 50px rgba(0,0,0,.4); }
+
+    .kademe-card::before {
+      content: ''; position: absolute; top:0; left:0; right:0; height:4px;
+    }
+    .kademe-card.green::before { background: linear-gradient(90deg, #10b981, #34d399); }
+    .kademe-card.amber::before { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
+
+    .kademe-icon {
+      font-size: 2.5rem; margin-bottom: 1rem;
+    }
+    .kademe-card h3 { font-size: 1.3rem; font-weight: 800; margin-bottom: .5rem; }
+    .kademe-card p { color: var(--text-muted); font-size: .95rem; line-height: 1.7; }
+
+    .kademe-card ul {
+      margin-top: 1rem; padding-left: 0; list-style: none;
+      display: flex; flex-direction: column; gap: .5rem;
+    }
+    .kademe-card ul li {
+      display: flex; align-items: flex-start; gap: .6rem;
+      font-size: .9rem; color: var(--text-muted);
+    }
+    .kademe-card ul li::before {
+      content: '✓'; font-weight: 700; flex-shrink: 0; margin-top: .05rem;
+    }
+    .kademe-card.green ul li::before { color: #34d399; }
+    .kademe-card.amber ul li::before { color: #fbbf24; }
+
+    /* ───── FEATURES ───── */
+    .features-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 1.5rem; margin-top: 3rem;
+    }
+
+    .feature-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 20px; padding: 1.75rem;
+      display: flex; flex-direction: column; gap: .75rem;
+      transition: transform .3s, border-color .3s, box-shadow .3s;
+    }
+    .feature-card:hover {
+      transform: translateY(-5px);
+      border-color: rgba(79,70,229,.4);
+      box-shadow: 0 15px 40px rgba(79,70,229,.15);
+    }
+
+    .feature-icon {
+      width: 52px; height: 52px; border-radius: 14px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.5rem;
+    }
+    .fi-purple { background: rgba(79,70,229,.15); }
+    .fi-green  { background: rgba(16,185,129,.15); }
+    .fi-amber  { background: rgba(245,158,11,.15); }
+    .fi-pink   { background: rgba(236,72,153,.15); }
+    .fi-blue   { background: rgba(59,130,246,.15); }
+    .fi-teal   { background: rgba(20,184,166,.15); }
+
+    .feature-card h3 { font-size: 1.05rem; font-weight: 700; }
+    .feature-card p  { font-size: .9rem; color: var(--text-muted); line-height: 1.65; }
+
+    /* ───── SCREENSHOT SHOWCASE ───── */
+    .showcase { background: var(--bg3); }
+
+    .showcase-tabs {
+      display: flex; gap: .75rem; margin-bottom: 3rem;
+      flex-wrap: wrap;
+    }
+    .tab-btn {
+      padding: .55rem 1.2rem; border-radius: 50px;
+      border: 1px solid var(--border); background: transparent;
+      color: var(--text-muted); font-size: .85rem; font-weight: 600;
+      cursor: pointer; transition: all .2s; font-family: inherit;
+    }
+    .tab-btn.active, .tab-btn:hover {
+      background: var(--primary); border-color: var(--primary);
+      color: #fff;
+    }
+
+    .showcase-content {
+      display: grid; grid-template-columns: 1fr 1.6fr; gap: 4rem;
+      align-items: center;
+    }
+    @media(max-width:700px){ .showcase-content { grid-template-columns:1fr; } }
+
+    .showcase-phone {
+      position: relative; max-width: 612px; margin: 0 auto;
+    }
+    .showcase-phone img {
+      width: 100%; border-radius: 36px;
+      border: 2px solid var(--border);
+      box-shadow: 0 30px 80px rgba(0,0,0,.6), var(--glow);
+      transition: all .4s;
+    }
+
+    .showcase-info h3 { font-size: 1.6rem; font-weight: 800; margin-bottom: .75rem; }
+    .showcase-info p  { color: var(--text-muted); line-height: 1.75; margin-bottom: 1.5rem; }
+
+    .showcase-chips {
+      display: flex; flex-wrap: wrap; gap: .6rem;
+    }
+    .chip {
+      padding: .35rem .9rem; border-radius: 50px;
+      background: rgba(79,70,229,.12); border: 1px solid rgba(79,70,229,.25);
+      color: var(--primary-light); font-size: .8rem; font-weight: 600;
+    }
+
+    /* ───── STATS ───── */
+    .stats { background: var(--bg2); }
+    .stats-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 2rem; margin-top: 3rem; text-align: center;
+    }
+    .stat-item {}
+    .stat-num {
+      font-size: 3rem; font-weight: 900;
+      background: var(--gradient); -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .stat-label { color: var(--text-muted); font-size: .9rem; margin-top: .25rem; }
+
+    /* ───── TESTIMONIAL / QUOTE ───── */
+    .quote-section {
+      text-align: center; padding: 6rem 2rem;
+      background: linear-gradient(135deg, #0f0e1a 0%, #1a1040 50%, #0f0e1a 100%);
+    }
+    .quote-text {
+      font-size: clamp(1.3rem, 2.5vw, 2rem);
+      font-weight: 700; max-width: 750px; margin: 0 auto 1.5rem;
+      line-height: 1.5;
+    }
+    .quote-text span { color: var(--primary-light); }
+
+    /* ───── HOW IT WORKS ───── */
+    .steps-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 2rem; margin-top: 3rem;
+      counter-reset: steps;
+    }
+    .step-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 20px; padding: 1.75rem;
+      counter-increment: steps;
+      position: relative;
+    }
+    .step-card::before {
+      content: counter(steps);
+      position: absolute; top: 1.25rem; right: 1.25rem;
+      font-size: 3.5rem; font-weight: 900; line-height: 1;
+      color: rgba(255,255,255,.04);
+    }
+    .step-card h3 { font-size: 1rem; font-weight: 700; margin-bottom: .5rem; }
+    .step-card p  { color: var(--text-muted); font-size: .9rem; line-height: 1.65; }
+    .step-icon { font-size: 2rem; margin-bottom: 1rem; }
+
+    /* ───── FOOTER ───── */
+    footer {
+      background: var(--bg2); border-top: 1px solid var(--border);
+      padding: 3rem 2rem; text-align: center;
+    }
+    .footer-logo {
+      display: flex; align-items: center; justify-content: center; gap: .75rem;
+      font-size: 1.2rem; font-weight: 800; margin-bottom: 1rem;
+    }
+    .footer-logo-icon {
+      width: 36px; height: 36px; border-radius: 10px;
+      background: var(--gradient);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.1rem;
+    }
+    footer p { color: var(--text-muted); font-size: .875rem; }
+
+    /* ───── REVEAL ANIMATION ───── */
+    .reveal {
+      opacity: 0; transform: translateY(40px);
+      transition: opacity .7s ease, transform .7s ease;
+    }
+    .reveal.visible { opacity: 1; transform: translateY(0); }
+
+    /* ───── DIVIDER ───── */
+    .divider {
+      height: 1px; background: var(--border); margin: 0;
+    }
+
+    /* ───── MOBILE NAV ───── */
+    @media(max-width:768px){
+      .nav-links { display: none; }
+      nav { padding: 1rem 1.5rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a href="#" class="nav-logo" onclick="goToSlide(0); return false;">
+    <div class="nav-logo-icon">🎓</div>
+    Sınıf Asistanı
+  </a>
+  <div class="nav-links-wrapper">
+    <div class="nav-indicator"></div>
+    <ul class="nav-links">
+      <li><a href="#" class="nav-link-item active" data-index="0">Giriş</a></li>
+      <li><a href="#" class="nav-link-item" data-index="1">Kitap Asistanı</a></li>
+      <li><a href="#" class="nav-link-item" data-index="2">Ödev Asistanı</a></li>
+      <li><a href="#" class="nav-link-item" data-index="3">Sınav Asistanı</a></li>
+      <li><a href="#" class="nav-link-item" data-index="4">Sınıf Oyunları</a></li>
+      <li><a href="#" class="nav-link-item" data-index="5">Görev Asistanı</a></li>
+      <li><a href="#" class="nav-link-item" data-index="6">Araçlar</a></li>
+      <li><a href="#" class="nav-link-item" data-index="7">Ders Materyalleri</a></li>
+    </ul>
+  </div>
+  <a href="/uygulama" class="nav-cta">Uygulamaya Git →</a>
+</nav>
+
+<div class="horizontal-slider">
+  <div class="slider-track" id="sliderTrack">
+    <!-- Slide 1: Giriş -->
+    <div class="slide-item" data-title="Giriş" style="padding: 0; overflow: hidden; position: relative;">
+      <div class="hero-full-bg">
+        <img src="images/screen_dashboard.png?v=3" alt="Sınıf Kontrol Paneli" class="main-fullscreen-img">
+      </div>
+      <div class="hero-overlay-box">
+        <h3 class="overlay-title">Sınıf Kontrol Paneli</h3>
+        <p class="overlay-text" id="typewriterText"></p>
+      </div>
+    </div> <!-- Close Slide 1: Giriş -->
+
+<!-- Slide 2: Kitap Asistanı -->
+<div class="slide-item" data-title="Kitap Asistanı" style="padding: 0; overflow: hidden; position: relative;">
+  <div class="hero-full-bg">
+    <img src="images/screen_books.png?v=1" alt="Kitap Asistanı" class="main-fullscreen-img">
+  </div>
+  <div class="hero-overlay-box">
+    <h3 class="overlay-title">Kitap Takip Asistanı</h3>
+    <p class="overlay-text" id="typewriterTextBooks"></p>
+  </div>
+</div> <!-- Close Slide 2: Kitap Asistanı -->
+
+<!-- Slide 3: Ödev Asistanı -->
+<div class="slide-item" data-title="Ödev Asistanı" style="padding: 0; overflow: hidden; position: relative;">
+  <div class="hero-full-bg">
+    <img src="images/screen_homework.png?v=1" alt="Ödev Asistanı" class="main-fullscreen-img">
+  </div>
+  <div class="hero-overlay-box">
+    <h3 class="overlay-title">Ödev Takip Asistanı</h3>
+    <p class="overlay-text" id="typewriterTextHomework"></p>
+  </div>
+</div> <!-- Close Slide 3: Ödev Asistanı -->
+
+<!-- Slide 4: Sınav Asistanı -->
+<div class="slide-item" data-title="Sınav Asistanı" style="padding: 0; overflow: hidden; position: relative;">
+  <div class="hero-full-bg">
+    <img src="images/screen_exam.png?v=1" alt="Sınav Asistanı" class="main-fullscreen-img">
+  </div>
+  <div class="hero-overlay-box">
+    <h3 class="overlay-title">Sınav Takip Asistanı</h3>
+    <p class="overlay-text" id="typewriterTextExam"></p>
+  </div>
+</div> <!-- Close Slide 4: Sınav Asistanı -->
+
+<!-- Slide 5: Sınıf Oyunları -->
+<div class="slide-item" data-title="Sınıf Oyunları" style="padding: 0; overflow: hidden; position: relative;">
+  <div class="hero-full-bg">
+    <img src="images/screen_games.png?v=1" alt="Sınıf Oyunları" class="main-fullscreen-img">
+  </div>
+  <div class="hero-overlay-box">
+    <h3 class="overlay-title">Sınıf Oyunları Modülü</h3>
+    <p class="overlay-text" id="typewriterTextGames"></p>
+  </div>
+</div> <!-- Close Slide 5: Sınıf Oyunları -->
+
+<!-- Slide 6: Görev Asistanı -->
+<div class="slide-item" data-title="Görev Asistanı" style="padding: 0; overflow: hidden; position: relative;">
+  <div class="hero-full-bg">
+    <img src="images/screen_tasks.png?v=1" alt="Görev Asistanı" class="main-fullscreen-img">
+  </div>
+  <div class="hero-overlay-box">
+    <h3 class="overlay-title">Görev Takip Asistanı</h3>
+    <p class="overlay-text" id="typewriterTextTasks"></p>
+  </div>
+</div> <!-- Close Slide 6: Görev Asistanı -->
+
+<!-- Slide 7: Araçlar -->
+<div class="slide-item" data-title="Araçlar" style="padding: 0; overflow: hidden; position: relative;">
+  <div class="hero-full-bg">
+    <img src="images/screen_tools.png?v=1" alt="Araçlar" class="main-fullscreen-img">
+  </div>
+  <div class="hero-overlay-box">
+    <h3 class="overlay-title">Sınıf Yardımcı Araçları</h3>
+    <p class="overlay-text" id="typewriterTextTools"></p>
+  </div>
+</div> <!-- Close Slide 7: Araçlar -->
+
+<!-- Slide 8: Ders Materyalleri -->
+<div class="slide-item" data-title="Ders Materyalleri" style="padding: 0; overflow: hidden; position: relative;">
+  <div class="hero-full-bg">
+    <img src="images/screen_notebooks.png?v=1" alt="Ders Materyalleri" class="main-fullscreen-img">
+  </div>
+  <div class="hero-overlay-box">
+    <h3 class="overlay-title">Ders Materyalleri ve Kitaplar</h3>
+    <p class="overlay-text" id="typewriterTextMaterials"></p>
+  </div>
+</div> <!-- Close Slide 8: Ders Materyalleri -->
+    </div> <!-- Close slider-track -->
+  </div> <!-- Close horizontal-slider -->
+
+  <!-- Navigation Arrows -->
+  <button class="slider-arrow arrow-left disabled" id="prevSlideBtn" aria-label="Önceki Sayfa">
+    <span>&larr;</span>
+  </button>
+  <button class="slider-arrow arrow-right" id="nextSlideBtn" aria-label="Sonraki Sayfa">
+    <span>&rarr;</span>
+  </button>
+
+<script>
+  // ── Scroll Reveal ──
+  const reveals = document.querySelectorAll('.reveal');
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(e => { if(e.isIntersecting){ e.target.classList.add('visible'); io.unobserve(e.target); } });
+  }, { threshold: 0.12 });
+  reveals.forEach(r => io.observe(r));
+
+
+
+  // ── Horizontal Slider System ──
+  let currentSlide = 0;
+  const totalSlides = 8;
+  const sliderTrack = document.getElementById('sliderTrack');
+  const navLinkItems = document.querySelectorAll('.nav-link-item');
+  const prevBtn = document.getElementById('prevSlideBtn');
+  const nextBtn = document.getElementById('nextSlideBtn');
+
+  function updateNavIndicator() {
+    const activeLink = document.querySelector('.nav-link-item.active');
+    const indicator = document.querySelector('.nav-indicator');
+    if (activeLink && indicator) {
+      const parent = activeLink.closest('.nav-links-wrapper');
+      const parentRect = parent.getBoundingClientRect();
+      const linkRect = activeLink.getBoundingClientRect();
+      
+      const relativeLeft = linkRect.left - parentRect.left;
+      const relativeWidth = linkRect.width;
+      
+      indicator.style.left = `${relativeLeft}px`;
+      indicator.style.width = `${relativeWidth}px`;
+    }
+  }
+
+  // ── Typewriter Animation Logic ──
+  const fullText = "Öğrencilerinizin kitap okuma, ödev yapma, görev tamamlama ve sınav başarıları gibi tüm olumlu davranışlarını anlık performans puanlarıyla ödüllendirin. Sınıf içi motivasyonu zirveye çıkararak öğrenme sürecini heyecan verici bir başarı yolculuğuna dönüştürün!";
+  const fullTextBooks = "Kitap Takip Asistanı ile sınıf kitaplığında ödünç alıp-verme süreçlerini yönetmek artık çok kolay! Program, her öğrenciye kendi seviyesine en uygun kitapları akıllı algoritmasıyla önerir. Yapay zeka destekli mini sınavlar sayesinde öğrencilerin kitabı okuyup anlamadığını doğrular ve elde edilen tüm verilerle kapsamlı bir kitap okuma karnesi hazırlar.";
+  const fullTextHomework = "Ödev Takip Asistanı ile öğrencilerin ödevlerini haftalık olarak kolayca kontrol edin, performans puanları atayın. Sistem, her pazartesi otomatik olarak yeni takip haftasına geçer. Ödevleri doğrudan veli WhatsApp gruplarına iletebilir, dilediğiniz tarih aralığında detaylı ödev raporları alıp yazdırabilirsiniz.";
+  const fullTextExam = "Sınav Takip Asistanı ile sınıfınızda yaptığınız tüm sınavları kolayca değerlendirin, öğrencilere performans puanları atayın. Yıl boyunca düzenlenen tüm sınavların istatistiksel analizini yaparak her öğrencinin akademik gelişimini ve yıllık performans eğrisini tek tıkla izleyin.";
+  const fullTextGames = "Sınıf Oyunları Modülü ile istediğiniz konuda yapay zeka destekli quizleri saniyeler içinde hazırlayıp derse heyecan katın! Çoktan seçmeli, boşluk doldurma ve doğru/yanlış yarışmalarının yanı sıra grup oyunları ve eğlenceli çarpım tablosu mücadeleleriyle sınıfta tatlı bir rekabet ortamı oluşturun.";
+  const fullTextTasks = "Görev Takip Asistanı ile öğrencilerinize belirli teslim sürelerine sahip özel görevler tanımlayın ve başarılarını performans puanlarıyla ödüllendirin! Böylece öğrencileriniz sınıf içi performanslarını yükseltmek ve hedeflerine ulaşmak için verilen her görevi büyük bir titizlikle tamamlasın.";
+  const fullTextTools = "Sınıf Yardımcı Araçları ile öğretmenliğin getirdiği rutin evrak yüklerini en aza indirin! Tek tıkla sınıf nöbet listesi hazırlayın, ders planınızı takip ederek konu tamamlama oranlarını izleyin, belgelerinizi güvenli depoda saklayın ve dakikalar içinde yazılı sınav hazırlayıp kazanım analizleri oluşturun. Üstelik uygulama, seçeceğiniz ilkokul veya ortaokul moduna göre tamamen sizin ihtiyaçlarınıza göre biçimlenir.";
+  const fullTextMaterials = "Ders Materyalleri ve PDF Modülü ile sınıfınız için özel öğrenci defterleri oluşturun, ders kitaplarını PDF formatında sisteme yükleyin! Entegre metin editörü ve zengin biçimlendirme araçları sayesinde defterlerinizi dilediğiniz gibi tasarlayarak derslerinizi daha etkileşimli hale getirin.";
+  
+  let typewriterInterval;
+  let typewriterIntervalBooks;
+  let typewriterIntervalHomework;
+  let typewriterIntervalExam;
+  let typewriterIntervalGames;
+  let typewriterIntervalTasks;
+  let typewriterIntervalTools;
+  let typewriterIntervalMaterials;
+
+  function runTypewriter() {
+    const el = document.getElementById('typewriterText');
+    if (!el) return;
+    clearInterval(typewriterInterval);
+    el.textContent = "";
+    let index = 0;
+    typewriterInterval = setInterval(() => {
+      if (index < fullText.length) {
+        el.textContent += fullText.charAt(index);
+        index++;
+      } else {
+        clearInterval(typewriterInterval);
+      }
+    }, 20);
+  }
+
+  function runTypewriterBooks() {
+    const el = document.getElementById('typewriterTextBooks');
+    if (!el) return;
+    clearInterval(typewriterIntervalBooks);
+    el.textContent = "";
+    let index = 0;
+    typewriterIntervalBooks = setInterval(() => {
+      if (index < fullTextBooks.length) {
+        el.textContent += fullTextBooks.charAt(index);
+        index++;
+      } else {
+        clearInterval(typewriterIntervalBooks);
+      }
+    }, 20);
+  }
+
+  function runTypewriterHomework() {
+    const el = document.getElementById('typewriterTextHomework');
+    if (!el) return;
+    clearInterval(typewriterIntervalHomework);
+    el.textContent = "";
+    let index = 0;
+    typewriterIntervalHomework = setInterval(() => {
+      if (index < fullTextHomework.length) {
+        el.textContent += fullTextHomework.charAt(index);
+        index++;
+      } else {
+        clearInterval(typewriterIntervalHomework);
+      }
+    }, 20);
+  }
+
+  function runTypewriterExam() {
+    const el = document.getElementById('typewriterTextExam');
+    if (!el) return;
+    clearInterval(typewriterIntervalExam);
+    el.textContent = "";
+    let index = 0;
+    typewriterIntervalExam = setInterval(() => {
+      if (index < fullTextExam.length) {
+        el.textContent += fullTextExam.charAt(index);
+        index++;
+      } else {
+        clearInterval(typewriterIntervalExam);
+      }
+    }, 20);
+  }
+
+  function runTypewriterGames() {
+    const el = document.getElementById('typewriterTextGames');
+    if (!el) return;
+    clearInterval(typewriterIntervalGames);
+    el.textContent = "";
+    let index = 0;
+    typewriterIntervalGames = setInterval(() => {
+      if (index < fullTextGames.length) {
+        el.textContent += fullTextGames.charAt(index);
+        index++;
+      } else {
+        clearInterval(typewriterIntervalGames);
+      }
+    }, 20);
+  }
+
+  function runTypewriterTasks() {
+    const el = document.getElementById('typewriterTextTasks');
+    if (!el) return;
+    clearInterval(typewriterIntervalTasks);
+    el.textContent = "";
+    let index = 0;
+    typewriterIntervalTasks = setInterval(() => {
+      if (index < fullTextTasks.length) {
+        el.textContent += fullTextTasks.charAt(index);
+        index++;
+      } else {
+        clearInterval(typewriterIntervalTasks);
+      }
+    }, 20);
+  }
+
+  function runTypewriterTools() {
+    const el = document.getElementById('typewriterTextTools');
+    if (!el) return;
+    clearInterval(typewriterIntervalTools);
+    el.textContent = "";
+    let index = 0;
+    typewriterIntervalTools = setInterval(() => {
+      if (index < fullTextTools.length) {
+        el.textContent += fullTextTools.charAt(index);
+        index++;
+      } else {
+        clearInterval(typewriterIntervalTools);
+      }
+    }, 20);
+  }
+
+  function runTypewriterMaterials() {
+    const el = document.getElementById('typewriterTextMaterials');
+    if (!el) return;
+    clearInterval(typewriterIntervalMaterials);
+    el.textContent = "";
+    let index = 0;
+    typewriterIntervalMaterials = setInterval(() => {
+      if (index < fullTextMaterials.length) {
+        el.textContent += fullTextMaterials.charAt(index);
+        index++;
+      } else {
+        clearInterval(typewriterIntervalMaterials);
+      }
+    }, 20);
+  }
+
+
+
+  function goToSlide(idx) {
+    if (idx < 0 || idx >= totalSlides) return;
+    currentSlide = idx;
+    
+    // Slide transition
+    sliderTrack.style.transform = `translateX(-${currentSlide * 100}vw)`;
+    
+    // Update navigation states
+    navLinkItems.forEach((link, i) => {
+      link.classList.toggle('active', i === currentSlide);
+    });
+    
+    // Update indicator pos with slide animation
+    updateNavIndicator();
+    
+    // Update button states
+    prevBtn.classList.toggle('disabled', currentSlide === 0);
+    nextBtn.classList.toggle('disabled', currentSlide === totalSlides - 1);
+    
+    // Trigger reveals in active slide
+    const activeSlideEl = sliderTrack.children[currentSlide];
+    if (activeSlideEl) {
+      const revealsInActive = activeSlideEl.querySelectorAll('.reveal');
+      revealsInActive.forEach(r => r.classList.add('visible'));
+    }
+
+    // Trigger typewriter when entering Slide 1 (Giriş)
+    if (idx === 0) {
+      setTimeout(runTypewriter, 1400);
+    } else {
+      clearInterval(typewriterInterval);
+    }
+
+    // Trigger typewriter when entering Slide 2 (Kitap Asistanı)
+    if (idx === 1) {
+      setTimeout(runTypewriterBooks, 1400);
+    } else {
+      clearInterval(typewriterIntervalBooks);
+    }
+
+    // Trigger typewriter when entering Slide 3 (Ödev Asistanı)
+    if (idx === 2) {
+      setTimeout(runTypewriterHomework, 1400);
+    } else {
+      clearInterval(typewriterIntervalHomework);
+    }
+
+    // Trigger typewriter when entering Slide 4 (Sınav Asistanı)
+    if (idx === 3) {
+      setTimeout(runTypewriterExam, 1400);
+    } else {
+      clearInterval(typewriterIntervalExam);
+    }
+
+    // Trigger typewriter when entering Slide 5 (Sınıf Oyunları)
+    if (idx === 4) {
+      setTimeout(runTypewriterGames, 1400);
+    } else {
+      clearInterval(typewriterIntervalGames);
+    }
+
+    // Trigger typewriter when entering Slide 6 (Görev Asistanı)
+    if (idx === 5) {
+      setTimeout(runTypewriterTasks, 1400);
+    } else {
+      clearInterval(typewriterIntervalTasks);
+    }
+
+    // Trigger typewriter when entering Slide 7 (Araçlar)
+    if (idx === 6) {
+      setTimeout(runTypewriterTools, 1400);
+    } else {
+      clearInterval(typewriterIntervalTools);
+    }
+
+    // Trigger typewriter when entering Slide 8 (Ders Materyalleri)
+    if (idx === 7) {
+      setTimeout(runTypewriterMaterials, 1400);
+    } else {
+      clearInterval(typewriterIntervalMaterials);
+    }
+
+
+  }
+
+  // Bind navigation links
+  navLinkItems.forEach((item) => {
+    item.addEventListener('click', (e) => {
+      e.preventDefault();
+      const idx = parseInt(item.getAttribute('data-index'));
+      goToSlide(idx);
+    });
+  });
+
+  // Bind arrows
+  prevBtn.addEventListener('click', () => {
+    if (currentSlide > 0) goToSlide(currentSlide - 1);
+  });
+
+  nextBtn.addEventListener('click', () => {
+    if (currentSlide < totalSlides - 1) goToSlide(currentSlide + 1);
+  });
+
+  // Keyboard navigation
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowLeft') {
+      if (currentSlide > 0) goToSlide(currentSlide - 1);
+    } else if (e.key === 'ArrowRight') {
+      if (currentSlide < totalSlides - 1) goToSlide(currentSlide + 1);
+    }
+  });
+
+  // Swipe gesture support
+  let touchStartX = 0;
+  let touchEndX = 0;
+
+  document.addEventListener('touchstart', e => {
+    touchStartX = e.changedTouches[0].screenX;
+  }, {passive: true});
+
+  document.addEventListener('touchend', e => {
+    touchEndX = e.changedTouches[0].screenX;
+    handleGesture();
+  }, {passive: true});
+
+  function handleGesture() {
+    const threshold = 50;
+    if (touchEndX < touchStartX - threshold) {
+      if (currentSlide < totalSlides - 1) goToSlide(currentSlide + 1);
+    }
+    if (touchEndX > touchStartX + threshold) {
+      if (currentSlide > 0) goToSlide(currentSlide - 1);
+    }
+  }
+
+  // Handle window resizing to keep indicator aligned
+  window.addEventListener('resize', updateNavIndicator);
+
+  // Initialize indicator position and typewriter on load
+  window.addEventListener('load', () => {
+    setTimeout(updateNavIndicator, 300);
+    setTimeout(runTypewriter, 1500); // Initial run typewriter on page load
+  });
+
+  // Expose function globally for inline onclick handlers
+  window.goToSlide = goToSlide;
+</script>
+</body>
+</html>
