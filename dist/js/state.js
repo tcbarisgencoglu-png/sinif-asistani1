@@ -109,7 +109,32 @@ const DEFAULT_STATE = {
     }
   ],
   tasks: [],
-  notebooks: [],
+  notebooks: [
+    {
+      id: "notebook_1783807882134_2hrnzujhx",
+      title: "Matematik Defteri",
+      type: "grid",
+      content: "",
+      createdAt: "2026-07-11T22:11:22.134Z",
+      updatedAt: "2026-07-24T14:26:24.245Z",
+      topics: [
+        {
+          id: "topic_default_notebook_1783807882134_2hrnzujhx",
+          title: "ılarlklklklklkklşlşlşk",
+          content: "<font color=\"#ef4444\">Tanım:</font>&nbsp;Bir sayının&nbsp;<div>lllşkljkghgddsAASSDFGHJKLKJHGFDSDFGHJKJGSDFGHJK</div><div><br></div><div>&nbsp;n n n n n</div><div><br></div>",
+          createdAt: "2026-07-11T22:11:22.134Z",
+          updatedAt: "2026-07-24T14:26:24.245Z"
+        },
+        {
+          id: "topic_1783807992934_4rs0a",
+          title: "Kesirler",
+          content: "<br>",
+          createdAt: "2026-07-11T22:13:12.934Z",
+          updatedAt: "2026-07-11T22:13:50.455Z"
+        }
+      ]
+    }
+  ],
   dutyRoster: null,
   plans: [],
   documents: [],
