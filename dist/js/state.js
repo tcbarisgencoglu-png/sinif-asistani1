@@ -78,6 +78,30 @@ const DEFAULT_STATE = {
       dueDate: new Date(Date.now() + 86400000 * 5).toISOString().slice(0, 10), // 5 gün sonra
       status: { 'std_1': 'completed', 'std_2': 'completed', 'std_3': 'completed', 'std_4': 'excused', 'std_5': 'incomplete' },
       createdAt: new Date(Date.now() - 86400000 * 1).toISOString()
+    },
+    {
+      id: 'hw_3',
+      title: 'Fen Bilimleri - Güneş Sistemi Projesi',
+      description: 'Güneş sistemi gezegen maketi yapılacaktır.',
+      dueDate: new Date(Date.now() + 86400000 * 7).toISOString().slice(0, 10), // 7 gün sonra
+      status: { 'std_1': 'incomplete', 'std_2': 'completed', 'std_3': 'completed', 'std_4': 'completed', 'std_5': 'completed' },
+      createdAt: new Date(Date.now() - 86400000 * 3).toISOString()
+    },
+    {
+      id: 'hw_4',
+      title: 'Sosyal Bilgiler - Ülkemizin Bölgeleri',
+      description: 'Coğrafi bölgelerin özellikleri özetlenecektir.',
+      dueDate: new Date(Date.now() + 86400000 * 10).toISOString().slice(0, 10), // 10 gün sonra
+      status: { 'std_1': 'missing', 'std_2': 'completed', 'std_3': 'completed', 'std_4': 'completed', 'std_5': 'completed' },
+      createdAt: new Date(Date.now() - 86400000 * 4).toISOString()
+    },
+    {
+      id: 'hw_5',
+      title: 'İngilizce - Vocabulary Quiz Hazırlığı',
+      description: 'Ünite kelimeleri kartlara yazılıp çalışılacaktır.',
+      dueDate: new Date(Date.now() + 86400000 * 12).toISOString().slice(0, 10), // 12 gün sonra
+      status: { 'std_1': 'excused', 'std_2': 'completed', 'std_3': 'completed', 'std_4': 'completed', 'std_5': 'completed' },
+      createdAt: new Date(Date.now() - 86400000 * 5).toISOString()
     }
   ],
   books: {
@@ -239,8 +263,8 @@ class StateManager {
       if (data) {
         const parsed = JSON.parse(data);
         
-        // Migration v2: Set default educationLevel to middle, add default task, default book transaction for std_1, and ensure Matematik Defteri exists
-        if (!localStorage.getItem('sinif_asistani_migration_v2')) {
+        // Migration v3: Set default educationLevel to middle, add default task, default book transaction for std_1, Matematik Defteri, and add default homeworks with all statuses for std_1
+        if (!localStorage.getItem('sinif_asistani_migration_v3')) {
           parsed.educationLevel = 'middle';
           
           // 1. Add default task if no tasks exist
@@ -269,8 +293,17 @@ class StateManager {
             parsed.notebooks = JSON.parse(JSON.stringify(DEFAULT_STATE.notebooks));
           }
           
+          // 4. Add default homeworks for std_1 (Tam, Yarım, Yapmadı, Muaf)
+          if (parsed.homeworks) {
+            const existingHwIds = new Set(parsed.homeworks.map(h => h.id));
+            const newHws = JSON.parse(JSON.stringify(DEFAULT_STATE.homeworks)).filter(h => !existingHwIds.has(h.id));
+            parsed.homeworks.push(...newHws);
+          } else {
+            parsed.homeworks = JSON.parse(JSON.stringify(DEFAULT_STATE.homeworks));
+          }
+          
           localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
-          localStorage.setItem('sinif_asistani_migration_v2', 'true');
+          localStorage.setItem('sinif_asistani_migration_v3', 'true');
         }
         
         // Eğer veritabanı boşsa (0 öğrenci ve 0 kitap varsa), demo verilerini otomatik olarak yükle
