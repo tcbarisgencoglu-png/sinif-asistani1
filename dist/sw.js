@@ -1,6 +1,5 @@
-const CACHE_NAME = 'sinif-asistani-cache-v1';
+const CACHE_NAME = 'sinif-asistani-cache-v2';
 const ASSETS = [
-  './',
   './index.html',
   './manifest.json',
   './css/styles.css',
