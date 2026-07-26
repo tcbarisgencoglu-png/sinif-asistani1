@@ -54,7 +54,7 @@ window.formatWeekTR = formatWeekTR;
 
 
 const DEFAULT_STATE = {
-  educationLevel: 'primary',
+  educationLevel: 'middle',
   students: [
     { id: 'std_1', name: 'Ahmet', surname: 'Yılmaz', number: '101', gender: 'male', parentPhone: '05551112233', notes: 'Matematik dersinde çok başarılı.', createdAt: new Date().toISOString() },
     { id: 'std_2', name: 'Elif', surname: 'Kaya', number: '102', gender: 'female', parentPhone: '05552223344', notes: 'Sınıf kitaplık sorumlusu.', createdAt: new Date().toISOString() },
@@ -90,7 +90,8 @@ const DEFAULT_STATE = {
     transactions: [
       { id: 'tx_1', studentId: 'std_1', bookId: 'book_1', borrowDate: new Date(Date.now() - 86400000 * 10).toISOString().slice(0, 10), returnDate: new Date(Date.now() - 86400000 * 4).toISOString().slice(0, 10), status: 'returned' },
       { id: 'tx_2', studentId: 'std_2', bookId: 'book_2', borrowDate: new Date(Date.now() - 86400000 * 5).toISOString().slice(0, 10), returnDate: null, status: 'reading' },
-      { id: 'tx_3', studentId: 'std_3', bookId: 'book_3', borrowDate: new Date(Date.now() - 86400000 * 2).toISOString().slice(0, 10), returnDate: null, status: 'reading' }
+      { id: 'tx_3', studentId: 'std_3', bookId: 'book_3', borrowDate: new Date(Date.now() - 86400000 * 2).toISOString().slice(0, 10), returnDate: null, status: 'reading' },
+      { id: 'tx_4', studentId: 'std_1', bookId: 'book_4', borrowDate: new Date(Date.now() - 86400000 * 3).toISOString().slice(0, 10), returnDate: null, status: 'reading' }
     ]
   },
   performance: [
@@ -108,7 +109,19 @@ const DEFAULT_STATE = {
       updatedAt: new Date().toISOString()
     }
   ],
-  tasks: [],
+  tasks: [
+    {
+      id: 'task_asm_default',
+      studentId: 'std_1',
+      description: 'Sınıf Kitaplığını Düzenleme Görevi',
+      points: 5,
+      dueDate: new Date(Date.now() + 86400000 * 5).toISOString().slice(0, 10),
+      status: 'active',
+      completedDate: null,
+      performanceId: null,
+      createdAt: new Date().toISOString()
+    }
+  ],
   notebooks: [
     {
       id: "notebook_1783807882134_2hrnzujhx",
@@ -225,6 +238,40 @@ class StateManager {
       const data = localStorage.getItem(STORAGE_KEY);
       if (data) {
         const parsed = JSON.parse(data);
+        
+        // Migration v2: Set default educationLevel to middle, add default task, default book transaction for std_1, and ensure Matematik Defteri exists
+        if (!localStorage.getItem('sinif_asistani_migration_v2')) {
+          parsed.educationLevel = 'middle';
+          
+          // 1. Add default task if no tasks exist
+          if (!parsed.tasks || parsed.tasks.length === 0) {
+            parsed.tasks = JSON.parse(JSON.stringify(DEFAULT_STATE.tasks));
+          }
+          
+          // 2. Add book transaction for Ahmet Yilmaz (std_1) borrowing Define Adasi (book_4)
+          if (parsed.books) {
+            if (!parsed.books.transactions) parsed.books.transactions = [];
+            const hasAhmetActive = parsed.books.transactions.some(t => t.studentId === 'std_1' && t.status === 'reading');
+            if (!hasAhmetActive) {
+              parsed.books.transactions.push({
+                id: 'tx_default_ahmet',
+                studentId: 'std_1',
+                bookId: 'book_4',
+                borrowDate: new Date(Date.now() - 86400000 * 3).toISOString().slice(0, 10),
+                returnDate: null,
+                status: 'reading'
+              });
+            }
+          }
+          
+          // 3. Ensure notebooks has Matematik Defteri
+          if (!parsed.notebooks || parsed.notebooks.length === 0) {
+            parsed.notebooks = JSON.parse(JSON.stringify(DEFAULT_STATE.notebooks));
+          }
+          
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
+          localStorage.setItem('sinif_asistani_migration_v2', 'true');
+        }
         
         // Eğer veritabanı boşsa (0 öğrenci ve 0 kitap varsa), demo verilerini otomatik olarak yükle
         if ((!parsed.students || parsed.students.length === 0) && 
