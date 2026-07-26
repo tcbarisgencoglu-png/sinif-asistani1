@@ -978,10 +978,104 @@
       height: 1px; background: var(--border); margin: 0;
     }
 
-    /* ───── MOBILE NAV ───── */
-    @media(max-width:768px){
-      .nav-links { display: none; }
-      nav { padding: 1rem 1.5rem; }
+    /* ───── MOBILE RESPONSIVE OVERRIDES ───── */
+    @media (max-width: 768px) {
+      html, body {
+        height: auto !important;
+        overflow-y: auto !important;
+        overflow-x: hidden !important;
+      }
+      .horizontal-slider {
+        height: auto !important;
+        overflow: visible !important;
+      }
+      .slider-track {
+        display: flex !important;
+        flex-direction: column !important;
+        width: 100% !important;
+        height: auto !important;
+        transform: none !important;
+      }
+      .slide-item {
+        width: 100% !important;
+        height: auto !important;
+        min-height: 100vh;
+        padding: 6rem 1rem 4rem !important;
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: center !important;
+        align-items: center !important;
+        gap: 1.5rem;
+        border-bottom: 1px solid var(--border);
+      }
+      .hero-full-bg {
+        position: relative !important;
+        width: 100% !important;
+        height: auto !important;
+        max-width: 480px;
+        order: 2;
+      }
+      .main-fullscreen-img {
+        width: 100% !important;
+        height: auto !important;
+        object-fit: contain !important;
+        border-radius: 16px;
+        border: 2px solid var(--border);
+        box-shadow: 0 15px 40px rgba(0, 0, 0, 0.6);
+      }
+      .hero-overlay-box {
+        position: relative !important;
+        width: 100% !important;
+        max-width: 600px;
+        background: rgba(255, 255, 255, 0.04) !important;
+        backdrop-filter: blur(15px) !important;
+        -webkit-backdrop-filter: blur(15px) !important;
+        border: 1px solid rgba(255, 255, 255, 0.08) !important;
+        border-radius: 20px !important;
+        padding: 1.5rem !important;
+        margin-bottom: 0 !important;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3) !important;
+        order: 1;
+        animation: none !important;
+        opacity: 1 !important;
+      }
+      .overlay-title {
+        font-size: 1.4rem !important;
+        color: var(--text) !important;
+        text-align: center;
+        margin-bottom: 0.75rem !important;
+      }
+      .overlay-text {
+        font-size: 0.88rem !important;
+        color: var(--text-muted) !important;
+        font-weight: 400 !important;
+        line-height: 1.6 !important;
+        text-align: center;
+        min-height: auto !important;
+      }
+      .slider-arrow {
+        display: none !important;
+      }
+      nav {
+        padding: 0.6rem 0.75rem !important;
+      }
+      .nav-logo {
+        font-size: 1.05rem !important;
+        gap: 0.5rem !important;
+      }
+      .nav-logo-icon {
+        width: 32px !important;
+        height: 32px !important;
+        font-size: 1.1rem !important;
+        border-radius: 8px !important;
+      }
+      .nav-cta {
+        padding: 0.45rem 1rem !important;
+        font-size: 0.8rem !important;
+      }
+      .nav-links-wrapper {
+        display: none !important;
+      }
     }
   </style>
 </head>
@@ -1296,6 +1390,14 @@
     if (idx < 0 || idx >= totalSlides) return;
     currentSlide = idx;
     
+    if (window.innerWidth <= 768) {
+      const targetSlide = sliderTrack.children[idx];
+      if (targetSlide) {
+        targetSlide.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+      return;
+    }
+    
     // Slide transition
     sliderTrack.style.transform = `translateX(-${currentSlide * 100}vw)`;
     
@@ -1433,7 +1535,19 @@
   // Initialize indicator position and typewriter on load
   window.addEventListener('load', () => {
     setTimeout(updateNavIndicator, 300);
-    setTimeout(runTypewriter, 1500); // Initial run typewriter on page load
+    if (window.innerWidth <= 768) {
+      // Mobile: fill all texts immediately
+      const elText = document.getElementById('typewriterText'); if (elText) elText.textContent = fullText;
+      const elBooks = document.getElementById('typewriterTextBooks'); if (elBooks) elBooks.textContent = fullTextBooks;
+      const elHomework = document.getElementById('typewriterTextHomework'); if (elHomework) elHomework.textContent = fullTextHomework;
+      const elExam = document.getElementById('typewriterTextExam'); if (elExam) elExam.textContent = fullTextExam;
+      const elGames = document.getElementById('typewriterTextGames'); if (elGames) elGames.textContent = fullTextGames;
+      const elTasks = document.getElementById('typewriterTextTasks'); if (elTasks) elTasks.textContent = fullTextTasks;
+      const elTools = document.getElementById('typewriterTextTools'); if (elTools) elTools.textContent = fullTextTools;
+      const elMaterials = document.getElementById('typewriterTextMaterials'); if (elMaterials) elMaterials.textContent = fullTextMaterials;
+    } else {
+      setTimeout(runTypewriter, 1500); // Desktop: run typewriter on first slide
+    }
   });
 
   // Expose function globally for inline onclick handlers
