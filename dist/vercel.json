@@ -14,7 +14,7 @@
     },
     {
       "source": "/uygulama",
-      "destination": "/index.html"
+      "destination": "/index"
     }
   ]
 }
