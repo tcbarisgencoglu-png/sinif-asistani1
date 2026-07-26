@@ -56,11 +56,25 @@ window.formatWeekTR = formatWeekTR;
 const DEFAULT_STATE = {
   educationLevel: 'middle',
   students: [
-    { id: 'std_1', name: 'Ahmet', surname: 'Yılmaz', number: '101', gender: 'male', parentPhone: '05551112233', notes: 'Matematik dersinde çok başarılı.', createdAt: new Date().toISOString() },
-    { id: 'std_2', name: 'Elif', surname: 'Kaya', number: '102', gender: 'female', parentPhone: '05552223344', notes: 'Sınıf kitaplık sorumlusu.', createdAt: new Date().toISOString() },
-    { id: 'std_3', name: 'Can', surname: 'Demir', number: '103', gender: 'male', parentPhone: '05553334455', notes: 'Gitar çalıyor, müzik kolunda.', createdAt: new Date().toISOString() },
-    { id: 'std_4', name: 'Merve', surname: 'Çelik', number: '104', gender: 'female', parentPhone: '05554445566', notes: 'Resim yeteneği çok yüksek.', createdAt: new Date().toISOString() },
-    { id: 'std_5', name: 'Yiğit', surname: 'Öztürk', number: '105', gender: 'male', parentPhone: '05555556677', notes: 'Biraz çekingen ama derse katılıyor.', createdAt: new Date().toISOString() }
+    { id: 'std_1', name: 'Ahmet', surname: 'Yılmaz', number: '101', gender: 'male', parentPhone: '05551112233', notes: 'Matematik dersinde çok başarılı.', schoolLevel: 'primary', createdAt: new Date().toISOString() },
+    { id: 'std_2', name: 'Elif', surname: 'Kaya', number: '102', gender: 'female', parentPhone: '05552223344', notes: 'Sınıf kitaplık sorumlusu.', schoolLevel: 'primary', createdAt: new Date().toISOString() },
+    { id: 'std_3', name: 'Can', surname: 'Demir', number: '103', gender: 'male', parentPhone: '05553334455', notes: 'Gitar çalıyor, müzik kolunda.', schoolLevel: 'primary', createdAt: new Date().toISOString() },
+    { id: 'std_4', name: 'Merve', surname: 'Çelik', number: '104', gender: 'female', parentPhone: '05554445566', notes: 'Resim yeteneği çok yüksek.', schoolLevel: 'primary', createdAt: new Date().toISOString() },
+    { id: 'std_5', name: 'Yiğit', surname: 'Öztürk', number: '105', gender: 'male', parentPhone: '05555556677', notes: 'Biraz çekingen ama derse katılıyor.', schoolLevel: 'primary', createdAt: new Date().toISOString() },
+    
+    // 5/A Şubesi (Ortaokul Test Öğrencileri)
+    { id: 'std_m1', name: 'Hakan', surname: 'Yıldız', number: '501', gender: 'male', parentPhone: '05559998877', notes: 'Matematik dersini çok seviyor.', branch: '5/A', schoolLevel: 'middle', createdAt: new Date().toISOString() },
+    { id: 'std_m2', name: 'Zeynep', surname: 'Demir', number: '502', gender: 'female', parentPhone: '05558887766', notes: 'Grup çalışmalarında liderlik yapıyor.', branch: '5/A', schoolLevel: 'middle', createdAt: new Date().toISOString() },
+    { id: 'std_m3', name: 'Ömer', surname: 'Aslan', number: '503', gender: 'male', parentPhone: '05557776655', notes: 'Kitap okuma hızı çok yüksek.', branch: '5/A', schoolLevel: 'middle', createdAt: new Date().toISOString() },
+    { id: 'std_m4', name: 'Ceren', surname: 'Yılmaz', number: '504', gender: 'female', parentPhone: '05556665544', notes: 'Resim yarışmasında ödül aldı.', branch: '5/A', schoolLevel: 'middle', createdAt: new Date().toISOString() },
+    { id: 'std_m5', name: 'Kerem', surname: 'Kaya', number: '505', gender: 'male', parentPhone: '05555554433', notes: 'Fen projelerinde çok başarılı.', branch: '5/A', schoolLevel: 'middle', createdAt: new Date().toISOString() },
+    
+    // 6/B Şubesi (Ortaokul Test Öğrencileri)
+    { id: 'std_m6', name: 'Melis', surname: 'Şahin', number: '601', gender: 'female', parentPhone: '05554443322', notes: 'İngilizce konuşma kulübünde.', branch: '6/B', schoolLevel: 'middle', createdAt: new Date().toISOString() },
+    { id: 'std_m7', name: 'Burak', surname: 'Çelik', number: '602', gender: 'male', parentPhone: '05553332211', notes: 'Sınıf içi kurallara çok uyuyor.', branch: '6/B', schoolLevel: 'middle', createdAt: new Date().toISOString() },
+    { id: 'std_m8', name: 'Eda', surname: 'Öztürk', number: '603', gender: 'female', parentPhone: '05552221100', notes: 'Ders notları düzenli ve temiz.', branch: '6/B', schoolLevel: 'middle', createdAt: new Date().toISOString() },
+    { id: 'std_m9', name: 'Mert', surname: 'Aydın', number: '604', gender: 'male', parentPhone: '05551110099', notes: 'Satranç kulübünde aktif rol alıyor.', branch: '6/B', schoolLevel: 'middle', createdAt: new Date().toISOString() },
+    { id: 'std_m10', name: 'Selin', surname: 'Koç', number: '605', gender: 'female', parentPhone: '05550009988', notes: 'Müzik yeteneği var, flüt çalıyor.', branch: '6/B', schoolLevel: 'middle', createdAt: new Date().toISOString() }
   ],
   homeworks: [
     {
@@ -247,24 +261,56 @@ const DEFAULT_STATE = {
   whatsappGroupLink: ''
 };
 
+function wrapState(parsed, unfiltered = false) {
+  if (!parsed) return null;
+  const stateObj = {
+    ...parsed,
+    rawStudents: parsed.students || []
+  };
+  
+  if (unfiltered) {
+    stateObj.students = stateObj.rawStudents;
+  } else {
+    Object.defineProperty(stateObj, 'students', {
+      get() {
+        const currentLevel = this.educationLevel || 'primary';
+        return this.rawStudents.filter(s => {
+          const isMiddleStudent = s.schoolLevel === 'middle' || (s.branch && ['5', '6', '7', '8'].includes(s.branch.trim()[0]));
+          if (currentLevel === 'middle') {
+            return isMiddleStudent;
+          } else {
+            return !isMiddleStudent;
+          }
+        });
+      },
+      set(value) {
+        this.rawStudents = value;
+      },
+      configurable: true,
+      enumerable: true
+    });
+  }
+  return stateObj;
+}
+
 class StateManager {
   constructor() {
     const data = localStorage.getItem(STORAGE_KEY);
-    this.state = this.loadState();
+    this.state = this.loadState(true); // Load unfiltered for internal state to prevent data loss
     this.subscribers = [];
     if (!data) {
       this.saveState(); // Seeding database instantly on first run
     }
   }
 
-  loadState() {
+  loadState(unfiltered = false) {
     try {
       const data = localStorage.getItem(STORAGE_KEY);
       if (data) {
         const parsed = JSON.parse(data);
         
-        // Migration v3: Set default educationLevel to middle, add default task, default book transaction for std_1, Matematik Defteri, and add default homeworks with all statuses for std_1
-        if (!localStorage.getItem('sinif_asistani_migration_v3')) {
+        // Migration v4: Set default educationLevel to middle, add default task, default book transaction for std_1, Matematik Defteri, add default homeworks with all statuses for std_1, migrate existing student schoolLevel, and inject 10 middle school test students
+        if (!localStorage.getItem('sinif_asistani_migration_v4')) {
           parsed.educationLevel = 'middle';
           
           // 1. Add default task if no tasks exist
@@ -302,8 +348,24 @@ class StateManager {
             parsed.homeworks = JSON.parse(JSON.stringify(DEFAULT_STATE.homeworks));
           }
           
+          // 5. Migrate schoolLevel of existing students and inject middle school test students
+          if (parsed.students) {
+            parsed.students.forEach(s => {
+              if (!s.schoolLevel) {
+                const isMiddle = s.branch && ['5', '6', '7', '8'].includes(s.branch.trim()[0]);
+                s.schoolLevel = isMiddle ? 'middle' : 'primary';
+              }
+            });
+            
+            const existingStudentIds = new Set(parsed.students.map(s => s.id));
+            const middleTestStudents = JSON.parse(JSON.stringify(DEFAULT_STATE.students)).filter(s => s.schoolLevel === 'middle' && !existingStudentIds.has(s.id));
+            parsed.students.push(...middleTestStudents);
+          } else {
+            parsed.students = JSON.parse(JSON.stringify(DEFAULT_STATE.students));
+          }
+          
           localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
-          localStorage.setItem('sinif_asistani_migration_v3', 'true');
+          localStorage.setItem('sinif_asistani_migration_v4', 'true');
         }
         
         // Eğer veritabanı boşsa (0 öğrenci ve 0 kitap varsa), demo verilerini otomatik olarak yükle
@@ -311,7 +373,7 @@ class StateManager {
             (!parsed.books || !parsed.books.library || parsed.books.library.length === 0)) {
           const seeded = JSON.parse(JSON.stringify(DEFAULT_STATE));
           localStorage.setItem(STORAGE_KEY, JSON.stringify(seeded));
-          return seeded;
+          return wrapState(seeded, unfiltered);
         }
         
         // Ensure all transaction IDs are unique (Migration)
@@ -390,7 +452,7 @@ class StateManager {
           pb.positive.push({ name: 'Kitap Aferinleri', point: 0, icon: '📖' });
         }
 
-        return {
+        const loaded = {
           educationLevel: parsed.educationLevel || 'primary',
           students: parsed.students || [],
           homeworks: parsed.homeworks || [],
@@ -417,16 +479,19 @@ class StateManager {
           appLock: parsed.appLock || { enabled: false, passwordHash: null, breakModeEnabled: false },
           attendance: parsed.attendance || {}
         };
+        return wrapState(loaded, unfiltered);
       }
     } catch (e) {
       console.error("Veri yüklenirken hata oluştu:", e);
     }
-    return JSON.parse(JSON.stringify(DEFAULT_STATE));
+    return wrapState(JSON.parse(JSON.stringify(DEFAULT_STATE)), unfiltered);
   }
 
   saveState() {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(this.state));
+      const toSave = { ...this.state };
+      delete toSave.rawStudents;
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
       this.notify();
     } catch (e) {
       console.error("Veri kaydedilirken hata oluştu:", e);
@@ -462,28 +527,9 @@ class StateManager {
     try {
       const parsed = JSON.parse(jsonString);
       if (parsed && typeof parsed === 'object') {
-        this.state = {
-          educationLevel: parsed.educationLevel || 'primary',
-          students: parsed.students || [],
-          homeworks: parsed.homeworks || [],
-          books: {
-            library: (parsed.books && parsed.books.library) || [],
-            transactions: (parsed.books && parsed.books.transactions) || []
-          },
-          performance: parsed.performance || [],
-          weeklyEvaluations: parsed.weeklyEvaluations || [],
-          tasks: parsed.tasks || [],
-          homeworkSettings: parsed.homeworkSettings || this.state.homeworkSettings,
-          weeklyExamSettings: parsed.weeklyExamSettings || this.state.weeklyExamSettings,
-          bookSettings: parsed.bookSettings || this.state.bookSettings,
-          performanceBehaviors: parsed.performanceBehaviors || this.state.performanceBehaviors,
-          dutyRoster: parsed.dutyRoster || null,
-          plans: parsed.plans || [],
-          documents: parsed.documents || [],
-          examAnalysisExams: parsed.examAnalysisExams || [],
-          examAnalysisGrades: parsed.examAnalysisGrades || []
-        };
-        this.saveState();
+        localStorage.setItem(STORAGE_KEY, jsonString);
+        this.state = this.loadState(true);
+        this.notify();
         return true;
       }
     } catch (e) {
@@ -507,7 +553,7 @@ class StateManager {
     if (theme) {
       localStorage.setItem('theme', theme);
     }
-    this.state = JSON.parse(JSON.stringify(DEFAULT_STATE));
+    this.state = this.loadState(true);
     this.saveState();
   }
 
@@ -533,6 +579,7 @@ class StateManager {
       parentPhone: studentData.parentPhone || '',
       notes: studentData.notes || '',
       branch: studentData.branch || '',
+      schoolLevel: this.state.educationLevel,
       createdAt: new Date().toISOString()
     };
     this.state.students.push(student);
