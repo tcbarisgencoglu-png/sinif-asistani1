@@ -3937,9 +3937,15 @@
         <table class="table" style="font-size: 0.95rem; width: 100%;">
           <thead>
             <tr>
-              <th style="width: 15%; text-align: center; border-bottom: 2px solid #ccc; background: #f1f5f9;">No</th>
-              <th style="width: 55%; border-bottom: 2px solid #ccc; text-align: left; background: #f1f5f9;">Adı Soyadı</th>
-              <th style="width: 30%; text-align: center; border-bottom: 2px solid #ccc; background: #f1f5f9;">Sınav Puanı</th>
+              <th style="width: 8%; text-align: center; border-bottom: 2px solid #ccc; background: #f1f5f9; padding: 0.5rem 0.25rem;">Sıra No</th>
+              <th style="width: 25%; border-bottom: 2px solid #ccc; text-align: left; background: #f1f5f9; padding: 0.5rem;">Adı Soyadı</th>
+              <th style="width: 10%; text-align: center; border-bottom: 2px solid #ccc; background: #f1f5f9; padding: 0.5rem 0.25rem;">Şubesi</th>
+              <th style="width: 9%; text-align: center; border-bottom: 2px solid #ccc; background: #f1f5f9; padding: 0.5rem 0.25rem;">DOĞRU</th>
+              <th style="width: 9%; text-align: center; border-bottom: 2px solid #ccc; background: #f1f5f9; padding: 0.5rem 0.25rem;">YANLIŞ</th>
+              <th style="width: 9%; text-align: center; border-bottom: 2px solid #ccc; background: #f1f5f9; padding: 0.5rem 0.25rem;">BOŞ</th>
+              <th style="width: 10%; text-align: center; border-bottom: 2px solid #ccc; background: #f1f5f9; padding: 0.5rem 0.25rem;">NET</th>
+              <th style="width: 10%; text-align: center; border-bottom: 2px solid #ccc; background: #f1f5f9; padding: 0.5rem 0.25rem;">PUAN</th>
+              <th style="width: 10%; text-align: center; border-bottom: 2px solid #ccc; background: #f1f5f9; padding: 0.5rem 0.25rem;">YÖN</th>
             </tr>
           </thead>
           <tbody id="print-exam-scores-tbody">
@@ -4136,6 +4142,34 @@
       <div class="modal-footer" style="background: rgba(255, 255, 255, 0.02); border-top: 1px solid var(--border-color); padding: 1rem 1.5rem; display: flex; justify-content: flex-end; gap: 0.75rem;">
         <button class="btn btn-secondary" id="btn-close-report-modal-footer">Kapat</button>
         <button class="btn btn-primary" id="btn-generate-report" style="display: flex; align-items: center; gap: 0.25rem;">
+          <i data-lucide="printer" style="width: 16px; height: 16px;"></i> Rapor Oluştur & Yazdır
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: SINAV SONUÇ RAPORU HAZIRLAMA (YAZDIRMA) PENCERESİ -->
+  <div class="modal" id="modal-print-weekly-exam-report" style="--max-width: 500px; z-index: 1050;">
+    <div class="modal-content" style="max-width: 500px;">
+      <div class="modal-header" style="background: rgba(99, 102, 241, 0.1); color: var(--primary); display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.5rem; border-bottom: 1px solid var(--border-color);">
+        <h3 style="display: flex; align-items: center; gap: 0.5rem; font-size: 1.1rem; font-weight: 700; margin: 0;">
+          <i data-lucide="printer" style="width: 18px; height: 18px;"></i> Sınav Raporu Sihirbazı
+        </h3>
+        <button class="close-btn" id="btn-close-print-exam-modal" style="background: transparent; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-secondary);">&times;</button>
+      </div>
+      <div class="modal-body" style="padding: 1.5rem; display: flex; flex-direction: column; gap: 1.25rem;">
+        <form id="form-print-weekly-exam-report" onsubmit="return false;">
+          <div style="margin-bottom: 1rem;">
+            <label style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.5rem; color: var(--text-secondary);">Rapor Türü ve Sınav Seçimi</label>
+            <select id="print-exam-select" class="form-control" style="width: 100%; height: 38px; padding: 0.25rem 0.5rem; font-size: 0.9rem; border-radius: var(--radius-sm); border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary);">
+              <!-- JS ile dinamik doldurulacak -->
+            </select>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer" style="background: rgba(255, 255, 255, 0.02); border-top: 1px solid var(--border-color); padding: 1rem 1.5rem; display: flex; justify-content: flex-end; gap: 0.75rem;">
+        <button class="btn btn-secondary" id="btn-close-print-exam-modal-footer">Kapat</button>
+        <button class="btn btn-primary" id="btn-confirm-print-exam" style="display: flex; align-items: center; gap: 0.25rem;">
           <i data-lucide="printer" style="width: 16px; height: 16px;"></i> Rapor Oluştur & Yazdır
         </button>
       </div>

@@ -26,6 +26,11 @@ const btnCloseActiveExam = document.getElementById('btn-close-active-exam');
 
 // Yazdırma Butonu
 const btnPrintReport = document.getElementById('btn-print-report');
+const modalPrintWeeklyExamReport = document.getElementById('modal-print-weekly-exam-report');
+const btnClosePrintExamModal = document.getElementById('btn-close-print-exam-modal');
+const btnClosePrintExamModalFooter = document.getElementById('btn-close-print-exam-modal-footer');
+const btnConfirmPrintExam = document.getElementById('btn-confirm-print-exam');
+const printExamSelect = document.getElementById('print-exam-select');
 
 // Optik Form Elemanları
 const btnPrintOpticalForms = document.getElementById('btn-print-optical-forms');
@@ -236,17 +241,125 @@ function setupWeeklyTab(showToast) {
     });
   }
 
-  // Yazdır / PDF Al Butonu
+  // Yazdır / PDF Al Butonu (Seçim Modalı Açma)
   if (btnPrintReport) {
     btnPrintReport.addEventListener('click', () => {
-      if (!activeExam) {
-        if (toastCallback) toastCallback('Yazdırmak için lütfen önce bir sınav seçin!', 'warning');
+      openPrintWeeklyExamReportModal();
+    });
+  }
+
+  // Rapor Seçim Modalı Kapatma
+  const closePrintExamModalFn = () => {
+    if (modalPrintWeeklyExamReport) modalPrintWeeklyExamReport.classList.remove('active');
+  };
+
+  if (btnClosePrintExamModal) btnClosePrintExamModal.addEventListener('click', closePrintExamModalFn);
+  if (btnClosePrintExamModalFooter) btnClosePrintExamModalFooter.addEventListener('click', closePrintExamModalFn);
+  if (modalPrintWeeklyExamReport) {
+    modalPrintWeeklyExamReport.addEventListener('click', (e) => {
+      if (e.target === modalPrintWeeklyExamReport) {
+        closePrintExamModalFn();
+      }
+    });
+  }
+
+  function openPrintWeeklyExamReportModal() {
+    if (!printExamSelect) return;
+    printExamSelect.innerHTML = '';
+
+    const state = stateManager.loadState();
+    const selectedWeek = stateManager.getSelectedWeek();
+    const weekExams = (state.weeklyEvaluations || []).filter(e => e.weekId === selectedWeek);
+
+    if (weekExams.length === 0) {
+      if (toastCallback) toastCallback('Seçili haftada tanımlı sınav bulunmuyor!', 'warning');
+      return;
+    }
+
+    // 1. Sınavları Listele
+    weekExams.forEach(ex => {
+      const opt = document.createElement('option');
+      opt.value = ex.id;
+      opt.textContent = `${ex.examName} (${ex.totalQuestions} Soru)`;
+      if (activeExam && activeExam.id === ex.id) {
+        opt.selected = true;
+      }
+      printExamSelect.appendChild(opt);
+    });
+
+    // 2. Haftalık Ortalama seçeneği
+    const optWeekAvg = document.createElement('option');
+    optWeekAvg.value = 'week_avg';
+    optWeekAvg.textContent = 'Tüm Sınavların Ortalaması (Seçili Hafta)';
+    printExamSelect.appendChild(optWeekAvg);
+
+    // 3. Genel Ortalama seçeneği
+    const optAllAvg = document.createElement('option');
+    optAllAvg.value = 'all_avg';
+    optAllAvg.textContent = 'Tüm Sınavların Ortalaması (Tüm Sınavlar)';
+    printExamSelect.appendChild(optAllAvg);
+
+    if (modalPrintWeeklyExamReport) {
+      modalPrintWeeklyExamReport.classList.add('active');
+    }
+  }
+
+  if (btnConfirmPrintExam) {
+    btnConfirmPrintExam.addEventListener('click', () => {
+      const selectedValue = printExamSelect.value;
+      if (!selectedValue) return;
+
+      const state = stateManager.loadState();
+      const selectedWeek = stateManager.getSelectedWeek();
+
+      let examsToPrint = [];
+      let isAverageReport = false;
+      let reportTitle = '';
+      let reportSubtitle = '';
+      let examDetailText = '';
+      let notes = '';
+
+      if (selectedValue === 'week_avg') {
+        isAverageReport = true;
+        examsToPrint = (state.weeklyEvaluations || []).filter(e => e.weekId === selectedWeek);
+        const parts = selectedWeek.split('-W');
+        const formattedWeek = parts.length === 2 ? `${parts[0]} Yılı, ${parts[1]}. Hafta` : selectedWeek;
+        reportTitle = 'SINAV ORTALAMA RAPORU (SEÇİLİ HAFTA)';
+        reportSubtitle = `Uygulama Dönemi: ${formattedWeek} | Rapor Tarihi: ${new Date().toLocaleDateString('tr-TR')}`;
+        examDetailText = `Toplam ${examsToPrint.length} Sınavın Ortalaması`;
+        notes = "Bu haftaki tüm sınavların başarı ortalamalarını içerir.";
+      } else if (selectedValue === 'all_avg') {
+        isAverageReport = true;
+        examsToPrint = state.weeklyEvaluations || [];
+        reportTitle = 'SINAV ORTALAMA RAPORU (TÜM ZAMANLAR)';
+        reportSubtitle = `Tüm Dönem Sınavları | Rapor Tarihi: ${new Date().toLocaleDateString('tr-TR')}`;
+        examDetailText = `Toplam ${examsToPrint.length} Sınavın Ortalaması`;
+        notes = "Dönem başından bu yana yapılan tüm sınavların başarı ortalamalarını içerir.";
+      } else {
+        const targetExam = (state.weeklyEvaluations || []).find(e => e.id === selectedValue);
+        if (!targetExam) return;
+        examsToPrint = [targetExam];
+        isAverageReport = false;
+        
+        const parts = targetExam.weekId.split('-W');
+        const formattedWeek = parts.length === 2 ? `${parts[0]} Yılı, ${parts[1]}. Hafta` : targetExam.weekId;
+        reportTitle = 'SINAV SONUÇ RAPORU';
+        reportSubtitle = `Uygulama Dönemi: ${formattedWeek} | Rapor Tarihi: ${new Date().toLocaleDateString('tr-TR')}`;
+        const penaltyText = targetExam.wrongAffects ? `${targetExam.penaltyRate} Yanlış 1 Doğruyu Götürür` : 'Yanlışlar Doğruları Etkilemez';
+        examDetailText = `Sınav: ${targetExam.examName} (${targetExam.totalQuestions} Soru | ${targetExam.duration} Dk | ${penaltyText})`;
+        notes = targetExam.notes || "Bu sınav için öğretmen tarafından eklenmiş bir değerlendirme notu bulunmuyor.";
+      }
+
+      if (examsToPrint.length === 0) {
+        if (toastCallback) toastCallback('Raporlanacak sınav verisi bulunamadı!', 'warning');
         return;
       }
-      preparePrintLayout();
+
+      prepareAdvancedPrintLayout(reportTitle, reportSubtitle, examDetailText, notes, examsToPrint, isAverageReport, selectedValue);
+
       document.body.classList.add('print-weekly');
       window.print();
-      
+
       window.addEventListener('afterprint', () => {
         document.body.classList.remove('print-weekly');
       }, { once: true });
@@ -254,6 +367,8 @@ function setupWeeklyTab(showToast) {
       setTimeout(() => {
         document.body.classList.remove('print-weekly');
       }, 500);
+
+      closePrintExamModalFn();
     });
   }
 
@@ -972,52 +1087,222 @@ function getPreviousExamScore(studentId) {
   return null;
 }
 
-function preparePrintLayout() {
-  if (!activeExam) return;
-
+function prepareAdvancedPrintLayout(reportTitle, reportSubtitle, examDetailText, notes, examsToPrint, isAverageReport, selectedValue) {
   const state = stateManager.loadState();
   const printTitle = document.getElementById('print-title');
   const printWeekSubtitle = document.getElementById('print-week-subtitle');
   const printExamName = document.getElementById('print-exam-name');
   
-  const parts = activeExam.weekId.split('-W');
-  const formattedWeek = parts.length === 2 ? `${parts[0]} Yılı, ${parts[1]}. Hafta` : activeExam.weekId;
-
-  printTitle.textContent = `SINAV SONUÇ RAPORU`;
-  printWeekSubtitle.textContent = `Uygulama Dönemi: ${formattedWeek} | Rapor Tarihi: ${new Date().toLocaleDateString('tr-TR')}`;
-  
-  const penaltyText = activeExam.wrongAffects ? `${activeExam.penaltyRate} Yanlış 1 Doğruyu Götürür` : 'Yanlışlar Doğruları Etkilemez';
-  printExamName.textContent = `Sınav: ${activeExam.examName} (${activeExam.totalQuestions} Soru | ${activeExam.duration} Dk | ${penaltyText})`;
+  if (printTitle) printTitle.textContent = reportTitle;
+  if (printWeekSubtitle) printWeekSubtitle.textContent = reportSubtitle;
+  if (printExamName) printExamName.textContent = examDetailText;
 
   const notesContent = document.getElementById('print-notes-content');
-  const activeNotesVal = activeExamNotes ? activeExamNotes.value.trim() : '';
-  notesContent.textContent = activeNotesVal || activeExam.notes || "Bu sınav için öğretmen tarafından eklenmiş bir değerlendirme notu bulunmuyor.";
+  if (notesContent) notesContent.textContent = notes;
 
   const printTbody = document.getElementById('print-exam-scores-tbody');
+  if (!printTbody) return;
   printTbody.innerHTML = '';
 
   if (state.students.length === 0) {
-    printTbody.innerHTML = '<tr><td colspan="3" style="text-align: center; padding: 1.5rem; color: var(--text-muted);">Öğrenci bulunamadı.</td></tr>';
-  } else {
-    // Öğrencileri alfabetik sıraya göre sırala
-    const sortedStudents = [...state.students].sort((a, b) => a.name.localeCompare(b.name, 'tr'));
-
-    sortedStudents.forEach(std => {
-      const result = (activeExam.studentResults && activeExam.studentResults[std.id]) || null;
-      let scoreVal = '-';
-      if (result) {
-        scoreVal = `${result.score} Puan (D: ${result.correct}, Y: ${result.wrong}, B: ${result.blank}, N: ${result.net})`;
-      }
-
-      const row = document.createElement('tr');
-      row.innerHTML = `
-        <td style="text-align: center; padding: 0.5rem; border-bottom: 1px solid #eee;">${std.number}</td>
-        <td style="padding: 0.5rem; border-bottom: 1px solid #eee;"><strong>${std.name} ${std.surname}</strong></td>
-        <td style="text-align: center; padding: 0.5rem; border-bottom: 1px solid #eee; font-weight: 700;">${scoreVal}</td>
-      `;
-      printTbody.appendChild(row);
-    });
+    printTbody.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 1.5rem; color: var(--text-muted);">Öğrenci bulunamadı.</td></tr>';
+    return;
   }
+
+  const participants = [];
+  const nonParticipants = [];
+
+  if (isAverageReport) {
+    // 1. Ortalama Raporu Hesaplama
+    state.students.forEach(std => {
+      let totalCorrect = 0;
+      let totalWrong = 0;
+      let totalBlank = 0;
+      let totalNet = 0;
+      let totalScore = 0;
+      let examCount = 0;
+
+      examsToPrint.forEach(ex => {
+        const res = (ex.studentResults && ex.studentResults[std.id]) || null;
+        if (res && (res.correct !== undefined || res.score !== undefined)) {
+          totalCorrect += res.correct || 0;
+          totalWrong += res.wrong || 0;
+          totalBlank += res.blank || 0;
+          totalNet += res.net || 0;
+          totalScore += res.score || 0;
+          examCount++;
+        }
+      });
+
+      if (examCount > 0) {
+        participants.push({
+          student: std,
+          correct: Number((totalCorrect / examCount).toFixed(2)),
+          wrong: Number((totalWrong / examCount).toFixed(2)),
+          blank: Number((totalBlank / examCount).toFixed(2)),
+          net: Number((totalNet / examCount).toFixed(2)),
+          score: Number((totalScore / examCount).toFixed(2)),
+          directionHtml: '<span style="color: #64748b;">-</span>'
+        });
+      } else {
+        nonParticipants.push(std);
+      }
+    });
+
+    // Başarı sıralamasına göre sırala
+    participants.sort((a, b) => {
+      if (b.net !== a.net) return b.net - a.net;
+      if (b.score !== a.score) return b.score - a.score;
+      return a.student.name.localeCompare(b.student.name, 'tr');
+    });
+
+    nonParticipants.sort((a, b) => a.name.localeCompare(b.name, 'tr'));
+
+  } else {
+    // 2. Tek Sınav Raporu Hesaplama
+    const currentExam = examsToPrint[0];
+
+    // Bir önceki sınavı tespit et (aynı şube)
+    const sameBranchExams = (state.weeklyEvaluations || []).filter(e => e.branch === currentExam.branch);
+    sameBranchExams.sort((a, b) => {
+      const getTimestamp = (examItem) => {
+        if (examItem.createdAt) return new Date(examItem.createdAt).getTime();
+        return parseInt(examItem.id.replace('exam_', '')) || 0;
+      };
+      return getTimestamp(a) - getTimestamp(b);
+    });
+
+    const currentIdx = sameBranchExams.findIndex(e => e.id === currentExam.id);
+    let prevExam = null;
+    if (currentIdx > 0) {
+      prevExam = sameBranchExams[currentIdx - 1];
+    }
+
+    // Bir önceki sınavdaki sıralamaları çıkar
+    const prevRankMap = {};
+    if (prevExam) {
+      const prevParticipants = [];
+      state.students.forEach(std => {
+        const res = (prevExam.studentResults && prevExam.studentResults[std.id]) || null;
+        if (res && (res.correct !== undefined || res.score !== undefined)) {
+          prevParticipants.push({
+            studentId: std.id,
+            net: res.net || 0,
+            score: res.score || 0
+          });
+        }
+      });
+      prevParticipants.sort((a, b) => {
+        if (b.net !== a.net) return b.net - a.net;
+        if (b.score !== a.score) return b.score - a.score;
+        return 0;
+      });
+      prevParticipants.forEach((p, idx) => {
+        prevRankMap[p.studentId] = idx + 1;
+      });
+    }
+
+    // Bu sınavdaki sıralamaları çıkar
+    const currentParticipantsList = [];
+    state.students.forEach(std => {
+      const res = (currentExam.studentResults && currentExam.studentResults[std.id]) || null;
+      if (res && (res.correct !== undefined || res.score !== undefined)) {
+        currentParticipantsList.push({
+          studentId: std.id,
+          net: res.net || 0,
+          score: res.score || 0
+        });
+      }
+    });
+    currentParticipantsList.sort((a, b) => {
+      if (b.net !== a.net) return b.net - a.net;
+      if (b.score !== a.score) return b.score - a.score;
+      return 0;
+    });
+    const currentRankMap = {};
+    currentParticipantsList.forEach((p, idx) => {
+      currentRankMap[p.studentId] = idx + 1;
+    });
+
+    // Öğrenci listesini oluştur
+    state.students.forEach(std => {
+      const res = (currentExam.studentResults && currentExam.studentResults[std.id]) || null;
+      if (res && (res.correct !== undefined || res.score !== undefined)) {
+        // Yön göstergesi hesapla
+        let directionHtml = '<span style="color: #64748b;">-</span>';
+        const curRank = currentRankMap[std.id];
+        const prevRank = prevRankMap[std.id];
+
+        if (prevRank && curRank) {
+          const diff = prevRank - curRank; // Örn: 5.likten 2.liğe = 3 (Yükseldi)
+          if (diff > 0) {
+            directionHtml = `<span style="color: #10b981; font-weight: bold;">▲ ${diff}</span>`;
+          } else if (diff < 0) {
+            directionHtml = `<span style="color: #ef4444; font-weight: bold;">▼ ${Math.abs(diff)}</span>`;
+          } else {
+            directionHtml = `<span style="color: #94a3b8; font-weight: bold;">=</span>`;
+          }
+        }
+
+        participants.push({
+          student: std,
+          correct: res.correct || 0,
+          wrong: res.wrong || 0,
+          blank: res.blank || 0,
+          net: res.net || 0,
+          score: res.score || 0,
+          directionHtml: directionHtml
+        });
+      } else {
+        nonParticipants.push(std);
+      }
+    });
+
+    // Başarı sıralamasına göre sırala
+    participants.sort((a, b) => {
+      if (b.net !== a.net) return b.net - a.net;
+      if (b.score !== a.score) return b.score - a.score;
+      return a.student.name.localeCompare(b.student.name, 'tr');
+    });
+
+    nonParticipants.sort((a, b) => a.name.localeCompare(b.name, 'tr'));
+  }
+
+  // 3. Tablo Satırlarını Render Et
+  let ranking = 1;
+  participants.forEach(p => {
+    const row = document.createElement('tr');
+    row.innerHTML = `
+      <td style="text-align: center; padding: 0.5rem 0.25rem; border-bottom: 1px solid #ddd; font-weight: bold; background: rgba(0,0,0,0.01);">${ranking}</td>
+      <td style="padding: 0.5rem; border-bottom: 1px solid #ddd;"><strong>${p.student.name} ${p.student.surname}</strong></td>
+      <td style="text-align: center; padding: 0.5rem 0.25rem; border-bottom: 1px solid #ddd;">${p.student.branch || '-'}</td>
+      <td style="text-align: center; padding: 0.5rem 0.25rem; border-bottom: 1px solid #ddd; color: #10b981; font-weight: 500;">${p.correct}</td>
+      <td style="text-align: center; padding: 0.5rem 0.25rem; border-bottom: 1px solid #ddd; color: #ef4444; font-weight: 500;">${p.wrong}</td>
+      <td style="text-align: center; padding: 0.5rem 0.25rem; border-bottom: 1px solid #ddd; color: #f59e0b; font-weight: 500;">${p.blank}</td>
+      <td style="text-align: center; padding: 0.5rem 0.25rem; border-bottom: 1px solid #ddd; font-weight: bold;">${p.net}</td>
+      <td style="text-align: center; padding: 0.5rem 0.25rem; border-bottom: 1px solid #ddd; font-weight: bold; color: var(--primary);">${p.score}</td>
+      <td style="text-align: center; padding: 0.5rem 0.25rem; border-bottom: 1px solid #ddd;">${p.directionHtml}</td>
+    `;
+    printTbody.appendChild(row);
+    ranking++;
+  });
+
+  // Sınava girmeyenleri ekle
+  nonParticipants.forEach(std => {
+    const row = document.createElement('tr');
+    row.innerHTML = `
+      <td style="text-align: center; padding: 0.5rem 0.25rem; border-bottom: 1px solid #eee; color: var(--text-muted); font-style: italic;">-</td>
+      <td style="padding: 0.5rem; border-bottom: 1px solid #eee; color: var(--text-muted);"><strong>${std.name} ${std.surname}</strong> <span style="font-size: 0.75rem; font-style: italic; color: #f59e0b; margin-left: 0.25rem;">(Katılmadı)</span></td>
+      <td style="text-align: center; padding: 0.5rem 0.25rem; border-bottom: 1px solid #eee; color: var(--text-muted);">${std.branch || '-'}</td>
+      <td style="text-align: center; padding: 0.5rem 0.25rem; border-bottom: 1px solid #eee; color: var(--text-muted);">-</td>
+      <td style="text-align: center; padding: 0.5rem 0.25rem; border-bottom: 1px solid #eee; color: var(--text-muted);">-</td>
+      <td style="text-align: center; padding: 0.5rem 0.25rem; border-bottom: 1px solid #eee; color: var(--text-muted);">-</td>
+      <td style="text-align: center; padding: 0.5rem 0.25rem; border-bottom: 1px solid #eee; color: var(--text-muted);">-</td>
+      <td style="text-align: center; padding: 0.5rem 0.25rem; border-bottom: 1px solid #eee; color: var(--text-muted);">-</td>
+      <td style="text-align: center; padding: 0.5rem 0.25rem; border-bottom: 1px solid #eee; color: var(--text-muted);">-</td>
+    `;
+    printTbody.appendChild(row);
+  });
 }
 
 
