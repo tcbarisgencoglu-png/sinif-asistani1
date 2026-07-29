@@ -520,7 +520,10 @@
   // Tarayıcı yazdırma kısayolu (Cmd+P / Ctrl+P) veya tarayıcı menüsüyle yazdırma desteği
   window.addEventListener('beforeprint', () => {
     const scheduleView = document.getElementById('tools-schedule-view');
-    if (scheduleView && scheduleView.style.display !== 'none') {
+    const toolsSection = document.getElementById('tools');
+    const isScheduleActive = scheduleView && scheduleView.style.display !== 'none' && 
+                             toolsSection && toolsSection.classList.contains('active');
+    if (isScheduleActive) {
       prepareSchedulePrintArea();
       document.body.classList.add('print-schedule');
     }
