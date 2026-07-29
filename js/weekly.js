@@ -1090,21 +1090,28 @@ function getPreviousExamScore(studentId) {
 function prepareAdvancedPrintLayout(reportTitle, reportSubtitle, examDetailText, notes, examsToPrint, isAverageReport, selectedValue) {
   const state = stateManager.loadState();
   const printTitle = document.getElementById('print-title');
-  const printWeekSubtitle = document.getElementById('print-week-subtitle');
-  const printExamName = document.getElementById('print-exam-name');
-  
-  if (printTitle) printTitle.textContent = reportTitle;
-  if (printWeekSubtitle) printWeekSubtitle.textContent = reportSubtitle;
-  if (printExamName) printExamName.textContent = examDetailText;
-
-  const notesContent = document.getElementById('print-notes-content');
-  if (notesContent) notesContent.textContent = notes;
-
   const printTbody = document.getElementById('print-exam-scores-tbody');
+  
   if (!printTbody) return;
   printTbody.innerHTML = '';
 
-  if (state.students.length === 0) {
+  let students = [...state.students];
+
+  if (state.educationLevel === 'middle') {
+    if (isAverageReport) {
+      const activeBranch = document.getElementById('dash-select-branch') ? document.getElementById('dash-select-branch').value : 'all';
+      if (activeBranch && activeBranch !== 'all') {
+        students = students.filter(s => s.branch === activeBranch);
+      }
+    } else {
+      const currentExam = examsToPrint[0];
+      if (currentExam && currentExam.branch) {
+        students = students.filter(s => s.branch === currentExam.branch);
+      }
+    }
+  }
+
+  if (students.length === 0) {
     printTbody.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 1.5rem; color: var(--text-muted);">Öğrenci bulunamadı.</td></tr>';
     return;
   }
@@ -1114,7 +1121,7 @@ function prepareAdvancedPrintLayout(reportTitle, reportSubtitle, examDetailText,
 
   if (isAverageReport) {
     // 1. Ortalama Raporu Hesaplama
-    state.students.forEach(std => {
+    students.forEach(std => {
       let totalCorrect = 0;
       let totalWrong = 0;
       let totalBlank = 0;
@@ -1158,6 +1165,34 @@ function prepareAdvancedPrintLayout(reportTitle, reportSubtitle, examDetailText,
 
     nonParticipants.sort((a, b) => a.name.localeCompare(b.name, 'tr'));
 
+    // Meta box contents for average reports
+    const selectedWeek = stateManager.getSelectedWeek();
+    const parts = selectedWeek.split('-W');
+    const formattedWeek = parts.length === 2 ? `${parts[0]} Yılı, ${parts[1]}. Hafta` : selectedWeek;
+
+    const examDateText = selectedValue === 'week_avg' ? formattedWeek : 'Tüm Dönem';
+    
+    const questionCounts = [...new Set(examsToPrint.map(e => e.totalQuestions))];
+    const questionsText = questionCounts.length === 1 ? `${questionCounts[0]} Soru` : 'Değişken';
+
+    const durations = [...new Set(examsToPrint.map(e => e.duration))];
+    const durationText = durations.length === 1 ? `${durations[0]} Dk` : 'Değişken';
+
+    const totalScoresSum = participants.reduce((sum, p) => sum + p.score, 0);
+    const avgScoreText = participants.length > 0 ? (totalScoresSum / participants.length).toFixed(2) + ' Puan' : '0 Puan';
+
+    if (printTitle) printTitle.textContent = selectedValue === 'week_avg' ? 'HAFTALIK SINAV ORTALAMALARI SINAV SONUÇ RAPORU' : 'TÜM SINAVLARIN GENEL ORTALAMASI SINAV SONUÇ RAPORU';
+    
+    const metaDate = document.getElementById('print-meta-date');
+    const metaQuestions = document.getElementById('print-meta-questions');
+    const metaDuration = document.getElementById('print-meta-duration');
+    const metaAverage = document.getElementById('print-meta-average');
+
+    if (metaDate) metaDate.textContent = examDateText;
+    if (metaQuestions) metaQuestions.textContent = questionsText;
+    if (metaDuration) metaDuration.textContent = durationText;
+    if (metaAverage) metaAverage.textContent = avgScoreText;
+
   } else {
     // 2. Tek Sınav Raporu Hesaplama
     const currentExam = examsToPrint[0];
@@ -1182,7 +1217,7 @@ function prepareAdvancedPrintLayout(reportTitle, reportSubtitle, examDetailText,
     const prevRankMap = {};
     if (prevExam) {
       const prevParticipants = [];
-      state.students.forEach(std => {
+      students.forEach(std => {
         const res = (prevExam.studentResults && prevExam.studentResults[std.id]) || null;
         if (res && (res.correct !== undefined || res.score !== undefined)) {
           prevParticipants.push({
@@ -1204,7 +1239,7 @@ function prepareAdvancedPrintLayout(reportTitle, reportSubtitle, examDetailText,
 
     // Bu sınavdaki sıralamaları çıkar
     const currentParticipantsList = [];
-    state.students.forEach(std => {
+    students.forEach(std => {
       const res = (currentExam.studentResults && currentExam.studentResults[std.id]) || null;
       if (res && (res.correct !== undefined || res.score !== undefined)) {
         currentParticipantsList.push({
@@ -1225,7 +1260,7 @@ function prepareAdvancedPrintLayout(reportTitle, reportSubtitle, examDetailText,
     });
 
     // Öğrenci listesini oluştur
-    state.students.forEach(std => {
+    students.forEach(std => {
       const res = (currentExam.studentResults && currentExam.studentResults[std.id]) || null;
       if (res && (res.correct !== undefined || res.score !== undefined)) {
         // Yön göstergesi hesapla
@@ -1266,6 +1301,37 @@ function prepareAdvancedPrintLayout(reportTitle, reportSubtitle, examDetailText,
     });
 
     nonParticipants.sort((a, b) => a.name.localeCompare(b.name, 'tr'));
+
+    // Meta box contents for specific exam
+    let examDateText = '-';
+    if (currentExam.createdAt) {
+      try {
+        examDateText = new Date(currentExam.createdAt).toLocaleDateString('tr-TR');
+      } catch(e) {}
+    } else {
+      try {
+        const ts = parseInt(currentExam.id.replace('exam_', ''));
+        if (ts) examDateText = new Date(ts).toLocaleDateString('tr-TR');
+      } catch(e) {}
+    }
+
+    const questionsText = `${currentExam.totalQuestions} Soru`;
+    const durationText = `${currentExam.duration} Dk`;
+    
+    const totalScoresSum = participants.reduce((sum, p) => sum + p.score, 0);
+    const avgScoreText = participants.length > 0 ? (totalScoresSum / participants.length).toFixed(2) + ' Puan' : '0 Puan';
+
+    if (printTitle) printTitle.textContent = `${currentExam.examName} SINAV SONUÇ RAPORU`;
+
+    const metaDate = document.getElementById('print-meta-date');
+    const metaQuestions = document.getElementById('print-meta-questions');
+    const metaDuration = document.getElementById('print-meta-duration');
+    const metaAverage = document.getElementById('print-meta-average');
+
+    if (metaDate) metaDate.textContent = examDateText;
+    if (metaQuestions) metaQuestions.textContent = questionsText;
+    if (metaDuration) metaDuration.textContent = durationText;
+    if (metaAverage) metaAverage.textContent = avgScoreText;
   }
 
   // 3. Tablo Satırlarını Render Et
