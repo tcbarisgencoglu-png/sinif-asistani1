@@ -686,7 +686,7 @@
       const tempDets = { ...detectedCols };
 
       for (let c = 0; c < row.length; c++) {
-        const val = String(row[c]).toLowerCase().trim();
+        const val = String(row[c]).toLocaleLowerCase('tr-TR').trim();
         if (!val) continue;
 
         for (const key in keywords) {
@@ -737,7 +737,7 @@
       rawText = String(weekVal).trim();
     }
 
-    const cleaned = rawText.toLowerCase();
+    const cleaned = rawText.toLocaleLowerCase('tr-TR');
     for (const key in TURKISH_MONTHS) {
       if (cleaned.includes(key)) {
         return key.charAt(0).toUpperCase() + key.slice(1);
@@ -773,7 +773,7 @@
 
   function parseWeekNumbers(text) {
     if (!text) return [];
-    const cleaned = text.replace(/\s+/g, '').toLowerCase();
+    const cleaned = text.replace(/\s+/g, '').toLocaleLowerCase('tr-TR');
     
     const weekPattern = /(\d+(?:-\d+)+)\.?hafta/i;
     const match = cleaned.match(weekPattern);
@@ -800,7 +800,7 @@
   }
 
   function detectIsHoliday(weekText, contentText) {
-    const text = ((weekText || '') + ' ' + (contentText || '')).toLowerCase();
+    const text = ((weekText || '') + ' ' + (contentText || '')).toLocaleLowerCase('tr-TR');
     const holidayKeywords = ['ara tatil', 'yarıyıl', 'yarı yıl', 'sömestr', 'somestr', 'faaliyet haftası', 'tatili', 'tatil'];
     return holidayKeywords.some(kw => text.includes(kw));
   }
@@ -851,7 +851,7 @@
 
     if (!text) return { startDate, endDate, isDateParsed };
 
-    const cleaned = text.toLowerCase().replace(/\s+/g, ' ').trim();
+    const cleaned = text.toLocaleLowerCase('tr-TR').replace(/\s+/g, ' ').trim();
     
     // Scenario 1: dd.mm.yyyy
     const fullDateRegex = /(\d{1,2})[\.\/\-](\d{1,2})[\.\/\-](\d{4})/g;
@@ -901,19 +901,49 @@
     const foundMonths = [];
     
     for (const key in TURKISH_MONTHS) {
-      const idx = cleaned.indexOf(key);
-      if (idx !== -1) {
-        foundMonths.push({ name: key, index: TURKISH_MONTHS[key], charPos: idx });
+      if (key === 'ara' && (cleaned.includes('ara tatil') || cleaned.includes('tatil'))) {
+        continue;
+      }
+      let startIdx = 0;
+      while (true) {
+        const idx = cleaned.indexOf(key, startIdx);
+        if (idx === -1) break;
+        
+        const charBefore = idx > 0 ? cleaned[idx - 1] : '';
+        const charAfter = idx + key.length < cleaned.length ? cleaned[idx + key.length] : '';
+        
+        const isWordBefore = /[a-z0-9çğıöşü]/.test(charBefore);
+        const isWordAfter = /[a-z0-9çğıöşü]/.test(charAfter);
+        
+        if (!isWordBefore && !isWordAfter) {
+          foundMonths.push({ name: key, index: TURKISH_MONTHS[key], charPos: idx });
+        }
+        startIdx = idx + 1;
       }
     }
-    foundMonths.sort((a, b) => a.charPos - b.charPos);
 
-    if (numMatches && numMatches.length >= 1 && foundMonths.length >= 1) {
+    // Filter out subset matches
+    const uniqueMatches = [];
+    foundMonths.forEach(m1 => {
+      const isSubset = foundMonths.some(m2 => {
+        if (m1 === m2) return false;
+        return m2.charPos <= m1.charPos && 
+               (m2.charPos + m2.name.length) >= (m1.charPos + m1.name.length) &&
+               m2.name.length > m1.name.length;
+      });
+      if (!isSubset) {
+        uniqueMatches.push(m1);
+      }
+    });
+    
+    uniqueMatches.sort((a, b) => a.charPos - b.charPos);
+
+    if (numMatches && numMatches.length >= 1 && uniqueMatches.length >= 1) {
       const startDay = parseInt(numMatches[0]);
       const endDay = numMatches.length >= 2 ? parseInt(numMatches[1]) : startDay + 4;
       
-      const startMonthIndex = foundMonths[0].index;
-      const endMonthIndex = foundMonths.length >= 2 ? foundMonths[1].index : startMonthIndex;
+      const startMonthIndex = uniqueMatches[0].index;
+      const endMonthIndex = uniqueMatches.length >= 2 ? uniqueMatches[1].index : startMonthIndex;
 
       const startY = startMonthIndex >= 9 ? startYear : startYear + 1;
       const endY = endMonthIndex >= 9 ? startYear : startYear + 1;
@@ -1383,6 +1413,34 @@
   function renderPlansList() {
     const state = stateManager.loadState();
     const plans = state.plans || [];
+
+    // Auto-migrate/correct plans in localStorage
+    const statePlans = stateManager.state.plans || [];
+    let stateChanged = false;
+    statePlans.forEach(plan => {
+      const startYear = parseInt(plan.educationYear.split('-')[0]) || 2025;
+      const schedule = plan.weeklySchedule || plan.weeks || [];
+      schedule.forEach(week => {
+        if (week.dateRange) {
+          const { startDate, endDate, isDateParsed } = parseTurkishDateRange(week.dateRange, startYear);
+          if (isDateParsed && startDate && endDate) {
+            const sDateStr = startDate.toISOString().slice(0, 10);
+            const eDateStr = endDate.toISOString().slice(0, 10);
+            const computedIsoWeek = window.getISOWeek(startDate);
+            
+            if (week.startDate !== sDateStr || week.endDate !== eDateStr || week.isoWeek !== computedIsoWeek) {
+              week.startDate = sDateStr;
+              week.endDate = eDateStr;
+              week.isoWeek = computedIsoWeek;
+              stateChanged = true;
+            }
+          }
+        }
+      });
+    });
+    if (stateChanged) {
+      stateManager.saveState();
+    }
 
     if (!plansSelectedWeekCode) {
       plansSelectedWeekCode = stateManager.getSelectedWeek();
