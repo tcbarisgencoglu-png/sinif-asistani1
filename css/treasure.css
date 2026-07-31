@@ -19,7 +19,8 @@
   cursor: pointer;
 }
 
-[data-theme="dark"] .setup-group-box {
+[data-theme="dark"] .setup-group-box,
+[data-theme="pastel"] .setup-group-box {
   background: rgba(255, 255, 255, 0.02);
 }
 
@@ -123,7 +124,8 @@
   -ms-user-select: none;
 }
 
-[data-theme="dark"] .unassigned-students-wrapper {
+[data-theme="dark"] .unassigned-students-wrapper,
+[data-theme="pastel"] .unassigned-students-wrapper {
   background: rgba(255, 255, 255, 0.01);
 }
 
@@ -209,7 +211,8 @@
   width: 100%;
 }
 
-[data-theme="dark"] .treasure-progress-bar-bg {
+[data-theme="dark"] .treasure-progress-bar-bg,
+[data-theme="pastel"] .treasure-progress-bar-bg {
   background: rgba(255, 255, 255, 0.05);
 }
 
@@ -797,8 +800,9 @@
   margin-top: 0.25rem;
 }
 
-[data-theme="dark"] .student-select-dropdown {
-  background: var(--bg-dark-card);
+[data-theme="dark"] .student-select-dropdown,
+[data-theme="pastel"] .student-select-dropdown {
+  background: var(--bg-dark-card, var(--bg-secondary));
   box-shadow: 0 10px 25px rgba(0,0,0,0.3);
 }
 
@@ -817,7 +821,8 @@
   color: var(--primary);
 }
 
-[data-theme="dark"] .student-select-item:hover {
+[data-theme="dark"] .student-select-item:hover,
+[data-theme="pastel"] .student-select-item:hover {
   background: rgba(79, 70, 229, 0.2);
   color: var(--primary-light);
 }
@@ -859,7 +864,8 @@
   box-sizing: border-box;
 }
 
-[data-theme="dark"] .setup-students-column {
+[data-theme="dark"] .setup-students-column,
+[data-theme="pastel"] .setup-students-column {
   background: rgba(255, 255, 255, 0.02);
 }
 
@@ -900,7 +906,8 @@
   border-style: solid;
 }
 
-[data-theme="dark"] .master-student-row.is-assigned {
+[data-theme="dark"] .master-student-row.is-assigned,
+[data-theme="pastel"] .master-student-row.is-assigned {
   background: rgba(79, 70, 229, 0.06);
 }
 
@@ -1024,7 +1031,8 @@
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.02);
 }
 
-[data-theme="dark"] .setup-group-box-modern {
+[data-theme="dark"] .setup-group-box-modern,
+[data-theme="pastel"] .setup-group-box-modern {
   background: rgba(255, 255, 255, 0.01);
 }
 
@@ -1076,7 +1084,8 @@
   background: rgba(0,0,0,0.02);
 }
 
-[data-theme="dark"] .group-name-input-setup:focus {
+[data-theme="dark"] .group-name-input-setup:focus,
+[data-theme="pastel"] .group-name-input-setup:focus {
   background: rgba(255,255,255,0.02);
 }
 

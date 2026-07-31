@@ -74,18 +74,16 @@
     });
 
     // --- 1. Genel Ayarlar (General Settings) ---
-    const configThemeToggle = document.getElementById('config-theme-toggle');
-    const configThemeIcon = document.getElementById('config-theme-icon');
-    const configThemeText = document.getElementById('config-theme-text');
+    const configThemeSelect = document.getElementById('config-theme-select');
     const configBackupExport = document.getElementById('config-backup-export');
     const configBackupImportTrigger = document.getElementById('config-backup-import-trigger');
     const configBackupImportFile = document.getElementById('config-backup-import-file');
     const configSystemReset = document.getElementById('config-system-reset');
 
-    if (configThemeToggle) {
-      configThemeToggle.addEventListener('click', () => {
-        if (window.toggleTheme) {
-          window.toggleTheme();
+    if (configThemeSelect) {
+      configThemeSelect.addEventListener('change', () => {
+        if (window.setTheme) {
+          window.setTheme(configThemeSelect.value);
           updateConfigThemeUI();
         }
       });
@@ -688,18 +686,11 @@
   }
 
   function updateConfigThemeUI() {
-    const configThemeIcon = document.getElementById('config-theme-icon');
-    const configThemeText = document.getElementById('config-theme-text');
+    const configThemeSelect = document.getElementById('config-theme-select');
     const theme = document.body.getAttribute('data-theme') || 'light';
 
-    if (configThemeIcon && configThemeText) {
-      if (theme === 'dark') {
-        configThemeIcon.setAttribute('data-lucide', 'sun');
-        configThemeText.textContent = 'Açık Tema';
-      } else {
-        configThemeIcon.setAttribute('data-lucide', 'moon');
-        configThemeText.textContent = 'Koyu Tema';
-      }
+    if (configThemeSelect) {
+      configThemeSelect.value = theme;
     }
   }
 

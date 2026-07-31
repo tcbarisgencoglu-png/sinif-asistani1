@@ -124,7 +124,8 @@
   position: relative;
 }
 
-[data-theme="dark"] #games .student-display-area {
+[data-theme="dark"] #games .student-display-area,
+[data-theme="pastel"] #games .student-display-area {
   background: rgba(0, 0, 0, 0.2);
 }
 
@@ -164,7 +165,8 @@
   border-radius: var(--radius-md);
 }
 
-[data-theme="dark"] #games .top-student-item {
+[data-theme="dark"] #games .top-student-item,
+[data-theme="pastel"] #games .top-student-item {
   background: rgba(255, 255, 255, 0.02);
 }
 
@@ -281,7 +283,8 @@
   background: rgba(0, 0, 0, 0.05);
 }
 
-[data-theme="dark"] #games .btn-icon:hover {
+[data-theme="dark"] #games .btn-icon:hover,
+[data-theme="pastel"] #games .btn-icon:hover {
   background: rgba(255, 255, 255, 0.05);
 }
 
@@ -324,7 +327,8 @@
   stroke-width: 8;
 }
 
-[data-theme="dark"] #games .timer-track {
+[data-theme="dark"] #games .timer-track,
+[data-theme="pastel"] #games .timer-track {
   stroke: rgba(255, 255, 255, 0.05);
 }
 
@@ -369,7 +373,8 @@
   border: 1px solid var(--border-color);
 }
 
-[data-theme="dark"] #games .game-controls-container {
+[data-theme="dark"] #games .game-controls-container,
+[data-theme="pastel"] #games .game-controls-container {
   background: rgba(255, 255, 255, 0.01);
 }
 
@@ -680,7 +685,8 @@
   transition: all var(--transition-fast);
 }
 
-[data-theme="dark"] #games .file-drop-area {
+[data-theme="dark"] #games .file-drop-area,
+[data-theme="pastel"] #games .file-drop-area {
   background: rgba(255, 255, 255, 0.01);
 }
 
@@ -876,7 +882,8 @@
   gap: 0.5rem;
 }
 
-[data-theme="dark"] #games .mode-card {
+[data-theme="dark"] #games .mode-card,
+[data-theme="pastel"] #games .mode-card {
   background: rgba(255, 255, 255, 0.02);
 }
 
@@ -935,7 +942,8 @@
   text-align: center;
 }
 
-[data-theme="dark"] #games .btn-mult-num {
+[data-theme="dark"] #games .btn-mult-num,
+[data-theme="pastel"] #games .btn-mult-num {
   background: rgba(255, 255, 255, 0.02);
 }
 
@@ -968,7 +976,8 @@
   align-items: center;
 }
 
-[data-theme="dark"] #games .multiplication-question-card {
+[data-theme="dark"] #games .multiplication-question-card,
+[data-theme="pastel"] #games .multiplication-question-card {
   background: rgba(255, 255, 255, 0.03);
 }
 
@@ -982,7 +991,8 @@
   margin: 0;
 }
 
-[data-theme="dark"] #games .multiplication-question-text {
+[data-theme="dark"] #games .multiplication-question-text,
+[data-theme="pastel"] #games .multiplication-question-text {
   text-shadow: 0 4px 15px rgba(255, 255, 255, 0.05);
 }
 
@@ -1038,7 +1048,8 @@
   width: 100%;
 }
 
-[data-theme="dark"] #games .students-checkbox-grid {
+[data-theme="dark"] #games .students-checkbox-grid,
+[data-theme="pastel"] #games .students-checkbox-grid {
   background: rgba(255, 255, 255, 0.01);
 }
 
@@ -1058,7 +1069,8 @@
   color: var(--text-primary);
 }
 
-[data-theme="dark"] #games .student-checkbox-item {
+[data-theme="dark"] #games .student-checkbox-item,
+[data-theme="pastel"] #games .student-checkbox-item {
   background: rgba(255, 255, 255, 0.02);
 }
 

@@ -482,101 +482,115 @@ function setupHomeworkTab(showToast) {
     const formattedEnd = formatDate(endVal);
     const todayStr = new Date().toLocaleDateString('tr-TR');
 
-    const reportHTML = `
-      <div class="report-header" style="text-align: center; border-bottom: 2px solid var(--primary); padding-bottom: 1.5rem; margin-bottom: 2rem;">
-        <h2 style="color: var(--primary); font-weight: 700; margin-bottom: 0.5rem; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
-          <i data-lucide="clipboard-check" style="width: 28px; height: 28px;"></i>
-          Ödev Takip Dönem Raporu
-        </h2>
-        <p style="color: var(--text-muted); font-size: 0.95rem; font-weight: 500;">
-          Rapor Dönemi: <strong>${formattedStart}</strong> - <strong>${formattedEnd}</strong> | Hazırlama Tarihi: <strong>${todayStr}</strong>
-        </p>
-        <div style="display: flex; justify-content: center; gap: 2rem; margin-top: 1rem; flex-wrap: wrap;">
-          <div class="glass-card" style="padding: 0.75rem 1.5rem; border-radius: 8px; flex: 1; min-width: 150px; text-align: center; background: rgba(99, 102, 241, 0.05); border: 1px solid var(--border-color);">
-            <span style="font-size: 0.8rem; color: var(--text-secondary); display: block; margin-bottom: 0.25rem;">Toplam Ödev Sayısı</span>
-            <strong style="font-size: 1.5rem; color: var(--primary);">${filteredHws.length}</strong>
+    const reportHTML = studentsStats.map((std, index) => {
+      const initials = `${std.name ? std.name[0] : ''}${std.surname ? std.surname[0] : ''}`.toUpperCase();
+      const avatarHtml = std.photo
+        ? `<img src="${std.photo}" style="width: 70px; height: 70px; border-radius: 50%; object-fit: cover; border: 2px solid var(--primary); box-shadow: var(--shadow-sm);">`
+        : `<div class="student-avatar" style="width: 70px; height: 70px; border-radius: 50%; font-size: 1.6rem; display: flex; align-items: center; justify-content: center; background: var(--primary-light); color: var(--primary); font-weight: 700; border: 2px solid var(--primary);">${initials}</div>`;
+
+      return `
+        <div class="student-hw-report-card" style="page-break-after: ${index === studentsStats.length - 1 ? 'avoid' : 'always'}; border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: 1.75rem; margin-bottom: 2rem; background: var(--bg-secondary); box-shadow: var(--shadow-md); position: relative;">
+          <!-- Header with Student Info and Photo -->
+          <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid var(--primary); padding-bottom: 1.25rem; margin-bottom: 1.25rem; flex-wrap: wrap; gap: 1rem;">
+            <div style="display: flex; align-items: center; gap: 1.25rem;">
+              ${avatarHtml}
+              <div>
+                <h2 style="color: var(--text-primary); font-size: 1.4rem; font-weight: 700; margin: 0;">${std.name} ${std.surname}</h2>
+                <p style="color: var(--text-muted); font-size: 0.9rem; margin: 2px 0 0 0;">
+                  Okul No: <strong>${std.number}</strong> | Şube: <strong>${std.branch || '-'}</strong>
+                </p>
+              </div>
+            </div>
+            <div style="text-align: right; min-width: 200px;">
+              <h3 style="color: var(--primary); font-size: 1.15rem; font-weight: 700; margin: 0; display: flex; align-items: center; justify-content: flex-end; gap: 0.25rem;">
+                <i data-lucide="clipboard-check" style="width: 18px; height: 18px;"></i>
+                Ödev Takip Raporu
+              </h3>
+              <p style="color: var(--text-muted); font-size: 0.8rem; margin: 4px 0 0 0;">
+                Dönem: <strong>${formattedStart}</strong> - <strong>${formattedEnd}</strong>
+              </p>
+            </div>
           </div>
-          <div class="glass-card" style="padding: 0.75rem 1.5rem; border-radius: 8px; flex: 1; min-width: 150px; text-align: center; background: rgba(16, 185, 129, 0.05); border: 1px solid var(--border-color);">
-            <span style="font-size: 0.8rem; color: var(--text-secondary); display: block; margin-bottom: 0.25rem;">Sınıf Mevcudu</span>
-            <strong style="font-size: 1.5rem; color: var(--success);">${state.students.length}</strong>
+
+          <!-- Stats Grid -->
+          <div style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 0.75rem; margin-bottom: 1.25rem;">
+            <div class="glass-card" style="padding: 0.5rem; border-radius: 8px; text-align: center; background: rgba(0,0,0,0.02); border: 1px solid var(--border-color); transform: none !important; box-shadow: none !important;">
+              <span style="font-size: 0.7rem; color: var(--text-secondary); display: block; margin-bottom: 0.25rem;">Toplam Ödev</span>
+              <strong style="font-size: 1.15rem; color: var(--text-primary);">${filteredHws.length}</strong>
+            </div>
+            <div class="glass-card" style="padding: 0.5rem; border-radius: 8px; text-align: center; background: rgba(16, 185, 129, 0.05); border: 1px solid var(--border-color); transform: none !important; box-shadow: none !important;">
+              <span style="font-size: 0.7rem; color: var(--success); display: block; margin-bottom: 0.25rem;">Yapıldı</span>
+              <strong style="font-size: 1.15rem; color: var(--success);">${std.completed}</strong>
+            </div>
+            <div class="glass-card" style="padding: 0.5rem; border-radius: 8px; text-align: center; background: rgba(245, 158, 11, 0.05); border: 1px solid var(--border-color); transform: none !important; box-shadow: none !important;">
+              <span style="font-size: 0.7rem; color: var(--warning); display: block; margin-bottom: 0.25rem;">Eksik</span>
+              <strong style="font-size: 1.15rem; color: var(--warning);">${std.incomplete}</strong>
+            </div>
+            <div class="glass-card" style="padding: 0.5rem; border-radius: 8px; text-align: center; background: rgba(244, 63, 94, 0.05); border: 1px solid var(--border-color); transform: none !important; box-shadow: none !important;">
+              <span style="font-size: 0.7rem; color: var(--danger); display: block; margin-bottom: 0.25rem;">Yapılmadı</span>
+              <strong style="font-size: 1.15rem; color: var(--danger);">${std.missing}</strong>
+            </div>
+            <div class="glass-card" style="padding: 0.5rem; border-radius: 8px; text-align: center; background: rgba(6, 182, 212, 0.05); border: 1px solid var(--border-color); transform: none !important; box-shadow: none !important;">
+              <span style="font-size: 0.7rem; color: var(--info); display: block; margin-bottom: 0.25rem;">Muaf</span>
+              <strong style="font-size: 1.15rem; color: var(--info);">${std.excused}</strong>
+            </div>
+            <div class="glass-card" style="padding: 0.5rem; border-radius: 8px; text-align: center; background: var(--primary-light); border: 1px solid var(--border-color); transform: none !important; box-shadow: none !important;">
+              <span style="font-size: 0.7rem; color: var(--primary); display: block; margin-bottom: 0.25rem; font-weight: 600;">Başarı</span>
+              <strong style="font-size: 1.15rem; color: var(--primary);">%${std.successRate}</strong>
+            </div>
           </div>
-        </div>
-      </div>
 
-      <div class="report-section" style="margin-bottom: 2.5rem;">
-        <h3 style="font-size: 1.1rem; font-weight: 700; color: var(--text-primary); margin-bottom: 1rem; border-left: 4px solid var(--primary); padding-left: 0.5rem; display: flex; align-items: center; gap: 0.25rem;">
-          <i data-lucide="list" style="width: 18px; height: 18px;"></i>
-          Rapor Kapsamındaki Ödevler
-        </h3>
-        <div class="table-wrapper">
-          <table class="table" style="font-size: 0.9rem;">
-            <thead>
-              <tr>
-                <th style="width: 25%;">Ödev Konusu</th>
-                <th>Açıklama</th>
-                <th style="width: 20%; text-align: center;">Son Teslim Tarihi</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${filteredHws.map(hw => `
-                <tr>
-                  <td><strong>${hw.title}</strong></td>
-                  <td style="color: var(--text-secondary); font-style: italic;">${hw.description || '-'}</td>
-                  <td style="text-align: center; font-weight: 500;">${formatDate(hw.dueDate)}</td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <div class="report-section">
-        <h3 style="font-size: 1.1rem; font-weight: 700; color: var(--text-primary); margin-bottom: 1rem; border-left: 4px solid var(--success); padding-left: 0.5rem; display: flex; align-items: center; gap: 0.25rem;">
-          <i data-lucide="users" style="width: 18px; height: 18px;"></i>
-          Öğrenci Bazında Performans Özeti
-        </h3>
-        <div class="table-wrapper">
-          <table class="table" style="font-size: 0.9rem;">
-            <thead>
-              <tr>
-                <th style="text-align: center; width: 80px;">No</th>
-                <th>Adı Soyadı</th>
-                <th style="text-align: center; width: 80px;">Beklenen</th>
-                <th style="text-align: center; width: 70px; color: var(--success);">Yapıldı</th>
-                <th style="text-align: center; width: 70px; color: var(--warning);">Eksik</th>
-                <th style="text-align: center; width: 70px; color: var(--danger);">Yapılmadı</th>
-                <th style="text-align: center; width: 70px; color: var(--info);">Muaf</th>
-                <th style="text-align: center; font-weight: 700; width: 110px;">Başarı</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${studentsStats.map(std => {
-                let pctClass = 'missing';
-                if (std.successRate >= 80) pctClass = 'completed';
-                else if (std.successRate >= 50) pctClass = 'incomplete';
-
-                return `
+          <!-- Detailed Homework List -->
+          <div class="hw-list-section">
+            <h4 style="font-size: 0.95rem; font-weight: 700; color: var(--text-primary); margin-bottom: 0.5rem; border-left: 3px solid var(--primary); padding-left: 0.5rem; display: flex; align-items: center; gap: 0.25rem;">
+              <i data-lucide="list-todo" style="width: 14px; height: 14px;"></i>
+              Ödev Başarı Detayları
+            </h4>
+            <div class="table-wrapper">
+              <table class="table" style="font-size: 0.8rem; width: 100%;">
+                <thead>
                   <tr>
-                    <td style="text-align: center; font-weight: 600;">${std.number}</td>
-                    <td><strong>${std.name} ${std.surname}</strong></td>
-                    <td style="text-align: center; font-weight: 500;">${std.expected}</td>
-                    <td style="text-align: center; font-weight: 600; color: var(--success);">${std.completed}</td>
-                    <td style="text-align: center; font-weight: 600; color: var(--warning);">${std.incomplete}</td>
-                    <td style="text-align: center; font-weight: 600; color: var(--danger);">${std.missing}</td>
-                    <td style="text-align: center; font-weight: 600; color: var(--info);">${std.excused}</td>
-                    <td style="text-align: center;">
-                      <span class="status-badge ${pctClass}" style="font-weight: 700; width: 50px; text-align: center;">
-                        %${std.successRate}
-                      </span>
-                    </td>
+                    <th>Ödev Başlığı</th>
+                    <th>Açıklama</th>
+                    <th style="width: 20%; text-align: center;">Teslim Tarihi</th>
+                    <th style="width: 20%; text-align: center;">Durum</th>
                   </tr>
-                `;
-              }).join('')}
-            </tbody>
-          </table>
+                </thead>
+                <tbody>
+                  ${filteredHws.map(hw => {
+                    const status = hw.status ? hw.status[std.id] : undefined;
+                    let statusText = 'Yapılmadı';
+                    let badgeClass = 'missing';
+                    if (status === 'completed') {
+                      statusText = 'Yapıldı';
+                      badgeClass = 'completed';
+                    } else if (status === 'incomplete') {
+                      statusText = 'Eksik';
+                      badgeClass = 'incomplete';
+                    } else if (status === 'excused') {
+                      statusText = 'Muaf';
+                      badgeClass = 'info';
+                    }
+                    return `
+                      <tr>
+                        <td><strong>${hw.title}</strong></td>
+                        <td style="color: var(--text-secondary); font-style: italic;">${hw.description || '-'}</td>
+                        <td style="text-align: center;">${formatDate(hw.dueDate)}</td>
+                        <td style="text-align: center;">
+                          <span class="status-badge ${badgeClass}" style="font-weight: 700; padding: 0.15rem 0.4rem; border-radius: 4px; font-size: 0.7rem;">
+                            ${statusText}
+                          </span>
+                        </td>
+                      </tr>
+                    `;
+                  }).join('')}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
-      </div>
-    `;
+      `;
+    }).join('');
 
     hwReportPreviewBody.innerHTML = reportHTML;
     if (homeworkPrintArea) homeworkPrintArea.innerHTML = reportHTML;

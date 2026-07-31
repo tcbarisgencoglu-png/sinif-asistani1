@@ -2001,12 +2001,14 @@
               <div style="display: flex; align-items: center; justify-content: space-between; padding: 0.75rem; background: rgba(255, 255, 255, 0.05); border-radius: 8px;">
                 <div>
                   <span style="font-weight: 600; display: block;">Uygulama Teması</span>
-                  <span style="font-size: 0.8rem; color: var(--text-muted);">Koyu ve açık tema arasında geçiş yapın.</span>
+                  <span style="font-size: 0.8rem; color: var(--text-muted);">Uygulamanın görünüm temasını seçin.</span>
                 </div>
-                <button class="btn btn-secondary" id="config-theme-toggle" style="width: 160px; justify-content: center; gap: 0.5rem;">
-                  <i data-lucide="moon" id="config-theme-icon"></i>
-                  <span id="config-theme-text">Koyu Tema</span>
-                </button>
+                <select id="config-theme-select" style="width: 160px; padding: 0.5rem; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-secondary); color: var(--text-primary); font-size: 0.95rem; font-weight: 700; cursor: pointer;">
+                  <option value="light" style="color: initial; font-size: 0.95rem; font-weight: 600;">Açık Tema</option>
+                  <option value="dark" style="color: initial; font-size: 0.95rem; font-weight: 600;">Koyu Tema</option>
+                  <option value="vibrant" style="color: initial; font-size: 0.95rem; font-weight: 600;">Canlı Tema</option>
+                  <option value="pastel" style="color: initial; font-size: 0.95rem; font-weight: 600;">Pastel Tema</option>
+                </select>
               </div>
 
               <!-- Eğitim Kademesi -->
@@ -5715,11 +5717,40 @@
             <input type="datetime-local" id="reminder-datetime" class="form-control" required style="color-scheme: dark light;">
           </div>
         </div>
-        <div class="modal-footer" style="padding: 1rem 1.5rem; background: rgba(0, 0, 0, 0.02); border-top: 1px solid var(--border-color); display: flex; justify-content: flex-end; gap: 0.5rem;">
+        <div class="modal-footer" style="padding: 1rem 1.5rem; background: rgba(0, 0, 0, 0.02); border-top: 1px solid var(--border-color); display: flex; justify-content: flex-end; gap: 0.5rem; flex-wrap: wrap;">
+          <button type="button" class="btn btn-outline-primary" id="btn-show-all-reminders" style="margin-right: auto; display: flex; align-items: center; gap: 0.35rem; font-size: 0.85rem; font-weight: 600;">
+            <i data-lucide="sticky-note" style="width: 15px; height: 15px;"></i>
+            Tüm Notları Gör
+          </button>
           <button type="button" class="btn btn-secondary" id="btn-cancel-reminder-add">Vazgeç</button>
           <button type="submit" class="btn btn-primary">Kaydet</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- MODAL: HATIRLATICILAR LİSTESİ (SARI STICKY NOTES) -->
+  <div class="modal" id="modal-reminders-list" style="--max-width: 600px;">
+    <div class="modal-content" style="max-width: 600px; background: var(--bg-primary); border-radius: var(--radius-lg); overflow: hidden;">
+      <div class="modal-header" style="background: rgba(245, 158, 11, 0.1); color: var(--warning);">
+        <h3 style="display: flex; align-items: center; gap: 0.5rem; font-size: 1.15rem; font-weight: 700; margin: 0;">
+          <i data-lucide="bell" style="width: 20px; height: 20px;"></i> Eklenen Hatırlatıcı Notları
+        </h3>
+        <button class="close-btn" id="btn-close-reminders-list-modal">&times;</button>
+      </div>
+      <div class="modal-body" style="padding: 2rem 1.5rem; max-height: 70vh; overflow-y: auto;">
+        <!-- Sarı Not Kağıtları Container -->
+        <div id="reminders-sticky-notes-container" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1.5rem; justify-items: center;">
+          <!-- JS ile doldurulacaktır -->
+        </div>
+        <div id="reminders-empty-message" style="text-align: center; display: none; padding: 2rem; color: var(--text-muted);">
+          <i data-lucide="sticky-note" style="width: 48px; height: 48px; stroke-width: 1.5; margin-bottom: 0.5rem;"></i>
+          <p style="margin: 0; font-weight: 500;">Henüz eklenmiş hatırlatıcı bulunmuyor.</p>
+        </div>
+      </div>
+      <div class="modal-footer" style="padding: 1rem 1.5rem; background: rgba(0, 0, 0, 0.02); border-top: 1px solid var(--border-color); display: flex; justify-content: flex-end;">
+        <button type="button" class="btn btn-secondary" id="btn-close-reminders-list-footer">Kapat</button>
+      </div>
     </div>
   </div>
 

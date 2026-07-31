@@ -504,6 +504,91 @@ function initApp() {
     });
   }
 
+  // --- HATIRLATICI LİSTESİ MANTIĞI ---
+  const btnShowAllReminders = document.getElementById('btn-show-all-reminders');
+  const modalRemindersList = document.getElementById('modal-reminders-list');
+  const btnCloseRemindersListModal = document.getElementById('btn-close-reminders-list-modal');
+  const btnCloseRemindersListFooter = document.getElementById('btn-close-reminders-list-footer');
+  const remindersStickyNotesContainer = document.getElementById('reminders-sticky-notes-container');
+  const remindersEmptyMessage = document.getElementById('reminders-empty-message');
+
+  const openRemindersListModal = () => {
+    // Close the add modal first
+    closeReminderAdd();
+    
+    // Render notes
+    renderReminderStickyNotes();
+    
+    // Open list modal
+    if (modalRemindersList) modalRemindersList.classList.add('active');
+  };
+
+  const closeRemindersListModal = () => {
+    if (modalRemindersList) modalRemindersList.classList.remove('active');
+  };
+
+  if (btnShowAllReminders) btnShowAllReminders.addEventListener('click', openRemindersListModal);
+  if (btnCloseRemindersListModal) btnCloseRemindersListModal.addEventListener('click', closeRemindersListModal);
+  if (btnCloseRemindersListFooter) btnCloseRemindersListFooter.addEventListener('click', closeRemindersListModal);
+
+  function renderReminderStickyNotes() {
+    if (!remindersStickyNotesContainer) return;
+    
+    const reminders = JSON.parse(localStorage.getItem('sinif-asistani-reminders') || '[]');
+    
+    if (reminders.length === 0) {
+      remindersStickyNotesContainer.style.display = 'none';
+      if (remindersEmptyMessage) remindersEmptyMessage.style.display = 'block';
+      return;
+    }
+    
+    remindersStickyNotesContainer.style.display = 'grid';
+    if (remindersEmptyMessage) remindersEmptyMessage.style.display = 'none';
+    
+    // Sort reminders: closest in time first (chronological order)
+    reminders.sort((a, b) => new Date(a.datetime) - new Date(b.datetime));
+    
+    remindersStickyNotesContainer.innerHTML = reminders.map(rem => {
+      const remTime = new Date(rem.datetime);
+      const formattedDate = remTime.toLocaleString('tr-TR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+      
+      const isPast = remTime < new Date();
+      const statusBadge = isPast 
+        ? `<span style="font-size: 0.65rem; padding: 2px 6px; background: rgba(0,0,0,0.06); border-radius: 4px; color: #475569; font-weight: 700; margin-left: auto;">Geçti</span>`
+        : `<span style="font-size: 0.65rem; padding: 2px 6px; background: rgba(16, 185, 129, 0.1); border-radius: 4px; color: #10b981; font-weight: 700; margin-left: auto;">Bekliyor</span>`;
+      
+      return `
+        <div class="sticky-note">
+          <div class="sticky-note-pin"></div>
+          <button class="sticky-note-delete-btn" onclick="deleteReminderItem('${rem.id}')" title="Hatırlatıcıyı Sil">&times;</button>
+          <div class="sticky-note-text">${rem.note}</div>
+          <div class="sticky-note-time">
+            <i data-lucide="calendar" style="width: 12px; height: 12px; stroke-width: 2.5;"></i>
+            <span>${formattedDate}</span>
+            ${statusBadge}
+          </div>
+        </div>
+      `;
+    }).join('');
+    
+    if (window.safeCreateIcons) window.safeCreateIcons();
+  }
+
+  // Delete reminder item function
+  window.deleteReminderItem = (id) => {
+    let reminders = JSON.parse(localStorage.getItem('sinif-asistani-reminders') || '[]');
+    reminders = reminders.filter(rem => rem.id !== id);
+    localStorage.setItem('sinif-asistani-reminders', JSON.stringify(reminders));
+    renderReminderStickyNotes();
+    if (window.showToast) window.showToast('Hatırlatıcı silindi.', 'info');
+  };
+
   // Periodic Reminder Checker (runs every 2 seconds)
   setInterval(() => {
     const reminders = JSON.parse(localStorage.getItem('sinif-asistani-reminders') || '[]');
@@ -738,35 +823,43 @@ function initTheme() {
   updateThemeUI(savedTheme);
 }
 
-function toggleTheme() {
-  const currentTheme = document.body.getAttribute('data-theme') || 'light';
-  const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+function setTheme(newTheme) {
   document.body.setAttribute('data-theme', newTheme);
   localStorage.setItem('theme', newTheme);
   updateThemeUI(newTheme);
-  showToast(`${newTheme === 'dark' ? 'Koyu' : 'Açık'} tema aktif edildi.`, 'primary');
+  const themeNames = { light: 'Açık', dark: 'Koyu', vibrant: 'Canlı', pastel: 'Pastel' };
+  showToast(`${themeNames[newTheme] || newTheme} tema aktif edildi.`, 'primary');
+}
+
+function toggleTheme() {
+  const currentTheme = document.body.getAttribute('data-theme') || 'light';
+  const themes = ['light', 'dark', 'vibrant', 'pastel'];
+  let nextIndex = (themes.indexOf(currentTheme) + 1) % themes.length;
+  if (nextIndex === -1) nextIndex = 0;
+  const newTheme = themes[nextIndex];
+  setTheme(newTheme);
 }
 
 function updateThemeUI(theme) {
   if (themeIcon) {
-    if (theme === 'dark') {
+    if (theme === 'dark' || theme === 'pastel') {
       themeIcon.setAttribute('data-lucide', 'sun');
     } else {
       themeIcon.setAttribute('data-lucide', 'moon');
     }
   }
   if (themeText) {
-    if (theme === 'dark') {
-      themeText.textContent = 'Açık Tema';
-    } else {
-      themeText.textContent = 'Koyu Tema';
-    }
+    const themeNames = { light: 'Açık', dark: 'Koyu', vibrant: 'Canlı', pastel: 'Pastel' };
+    themeText.textContent = `${themeNames[theme] || theme} Tema`;
   }
   if (window.updateConfigThemeUI) {
     window.updateConfigThemeUI();
   }
   window.safeCreateIcons();
 }
+
+window.setTheme = setTheme;
+window.toggleTheme = toggleTheme;
 
 function updateVisibilityByEducationLevel() {
   const state = stateManager.loadState();

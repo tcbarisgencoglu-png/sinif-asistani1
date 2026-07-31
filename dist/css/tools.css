@@ -70,7 +70,8 @@
 }
 
 /* Karanlık modda bile baskı önizleme kağıdı beyaz kalmalıdır */
-[data-theme="dark"] .preview-paper-container {
+[data-theme="dark"] .preview-paper-container,
+[data-theme="pastel"] .preview-paper-container {
   background: #ffffff !important;
   color: #1e293b !important;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
@@ -548,7 +549,8 @@
   overflow: hidden;
 }
 
-[data-theme="dark"] .plan-card .progress-bar-bg {
+[data-theme="dark"] .plan-card .progress-bar-bg,
+[data-theme="pastel"] .plan-card .progress-bar-bg {
   background: rgba(255, 255, 255, 0.08);
 }
 
@@ -1094,7 +1096,8 @@
   border-left: 2px dashed rgba(255, 255, 255, 0.08) !important;
 }
 
-[data-theme="light"] .month-collapse-body {
+[data-theme="light"] .month-collapse-body,
+[data-theme="vibrant"] .month-collapse-body {
   border-left: 2px dashed rgba(0, 0, 0, 0.08) !important;
 }
 
@@ -1118,7 +1121,8 @@
   box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.35);
 }
 
-[data-theme="light"] .general-plan-progress-bg {
+[data-theme="light"] .general-plan-progress-bg,
+[data-theme="vibrant"] .general-plan-progress-bg {
   background: rgba(0, 0, 0, 0.06);
 }
 
@@ -1363,7 +1367,8 @@
 .schedule-cell-select:hover {
   background-color: rgba(0, 0, 0, 0.03);
 }
-[data-theme="dark"] .schedule-cell-select:hover {
+[data-theme="dark"] .schedule-cell-select:hover,
+[data-theme="pastel"] .schedule-cell-select:hover {
   background-color: rgba(255, 255, 255, 0.05);
 }
 
