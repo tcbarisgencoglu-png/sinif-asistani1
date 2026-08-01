@@ -3673,7 +3673,7 @@
           </div>
         </div>
 
-        <div class="glass-card" style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 400px; text-align: center; padding: 3rem 2rem; margin: 2rem auto; max-width: 800px;">
+        <div id="reports-empty-state" class="glass-card" style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 400px; text-align: center; padding: 3rem 2rem; margin: 2rem auto; max-width: 800px;">
           <div style="background: rgba(99, 102, 241, 0.1); color: var(--primary); width: 80px; height: 80px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 1.5rem;">
             <i data-lucide="printer" style="width: 40px; height: 40px;"></i>
           </div>
@@ -3684,6 +3684,10 @@
           <button class="btn btn-primary" id="btn-open-report-wizard-body" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1.75rem; font-weight: 600; font-size: 0.95rem; border-radius: var(--radius-md);">
             <i data-lucide="file-plus"></i> Rapor Sihirbazını Başlat
           </button>
+        </div>
+
+        <div id="reports-list-view" style="display: none; width: 100%;">
+          <!-- Raporlar listesi dinamik doldurulacak -->
         </div>
       </section>
 
@@ -4160,8 +4164,59 @@
       <div class="modal-footer" style="background: rgba(255, 255, 255, 0.02); border-top: 1px solid var(--border-color); padding: 1rem 1.5rem; display: flex; justify-content: flex-end; gap: 0.75rem;">
         <button class="btn btn-secondary" id="btn-close-report-modal-footer">Kapat</button>
         <button class="btn btn-primary" id="btn-generate-report" style="display: flex; align-items: center; gap: 0.25rem;">
-          <i data-lucide="printer" style="width: 16px; height: 16px;"></i> Rapor Oluştur & Yazdır
+          <i data-lucide="save" style="width: 16px; height: 16px;"></i> Raporu Kaydet
         </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: WHATSAPP RAPOR GÖNDERİM SİHİRBAZI -->
+  <div class="modal" id="modal-whatsapp-report-wizard" style="--max-width: 750px; z-index: 1050;">
+    <div class="modal-content" style="max-width: 750px;">
+      <div class="modal-header" style="background: rgba(37, 211, 102, 0.1); color: #1a9e4f; display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.5rem; border-bottom: 1px solid var(--border-color);">
+        <h3 style="display: flex; align-items: center; gap: 0.5rem; font-size: 1.1rem; font-weight: 700; margin: 0;">
+          <i data-lucide="send" style="width: 18px; height: 18px; color: #25d366;"></i> WhatsApp Rapor Gönderim Sihirbazı
+        </h3>
+        <button class="close-btn" id="btn-close-wp-wizard-modal" style="background: transparent; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-secondary);">&times;</button>
+      </div>
+      <div class="modal-body" style="padding: 1.5rem; display: flex; flex-direction: column; gap: 1.25rem; max-height: 60vh; overflow-y: auto;">
+        
+        <!-- Üst Bilgi ve Kılavuz -->
+        <div style="background: rgba(37, 211, 102, 0.05); border: 1px solid rgba(37, 211, 102, 0.2); padding: 1rem; border-radius: var(--radius-md); display: flex; flex-direction: column; gap: 0.5rem;">
+          <h4 style="margin: 0; font-size: 0.95rem; font-weight: 700; color: #1a9e4f; display: flex; align-items: center; gap: 0.25rem;">
+            <i data-lucide="help-circle" style="width: 16px; height: 16px;"></i> Gönderim Kılavuzu
+          </h4>
+          <p style="margin: 0; font-size: 0.85rem; line-height: 1.5; color: var(--text-muted);">
+            Velilere özel gelişim raporu mesajı gönderebilirsiniz. 
+            Her öğrenci için <strong>WhatsApp'ı Aç</strong> butonuna tıkladığınızda o velinin sohbet penceresi mesaj hazır doldurulmuş şekilde açılır. Sohbet ekranında gönder tuşuna basarak işlemi tamamlayabilirsiniz.
+          </p>
+          <div id="wp-wizard-auto-helper" style="display: flex; align-items: center; justify-content: space-between; margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px dashed rgba(37,211,102,0.2);">
+            <span style="font-size: 0.85rem; font-weight: 600; color: var(--text-primary);" id="wp-wizard-next-student-info">Sıradaki: -</span>
+            <button class="btn btn-success btn-sm" id="btn-wp-wizard-send-next" style="display: flex; align-items: center; gap: 0.35rem; font-weight: 600; font-size: 0.8rem; background: #25d366; border-color: #25d366;">
+              <i data-lucide="play" style="width: 14px; height: 14px;"></i> Sıradakini Gönder
+            </button>
+          </div>
+        </div>
+
+        <!-- Öğrenci Gönderim Tablosu -->
+        <div class="table-responsive" style="border: 1px solid var(--border-color); border-radius: var(--radius-md);">
+          <table class="table" style="margin-bottom: 0; font-size: 0.85rem;">
+            <thead>
+              <tr style="background: rgba(255, 255, 255, 0.02);">
+                <th style="padding: 0.75rem;">Öğrenci</th>
+                <th style="padding: 0.75rem;">Veli Telefon</th>
+                <th style="padding: 0.75rem; text-align: center;">Durum</th>
+                <th style="padding: 0.75rem; text-align: right;">Aksiyon</th>
+              </tr>
+            </thead>
+            <tbody id="wp-wizard-students-list">
+              <!-- JS ile dinamik doldurulacak -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer" style="background: rgba(255, 255, 255, 0.02); border-top: 1px solid var(--border-color); padding: 1rem 1.5rem; display: flex; justify-content: flex-end; gap: 0.75rem;">
+        <button class="btn btn-secondary" id="btn-close-wp-wizard-modal-footer">Kapat</button>
       </div>
     </div>
   </div>

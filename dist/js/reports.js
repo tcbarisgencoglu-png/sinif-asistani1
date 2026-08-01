@@ -4,6 +4,10 @@
   let chkBooks, chkHomeworks, chkEvaluations, chkTasks, chkAttendance;
   let btnOpenWizardHeader, btnOpenWizardBody, btnCloseHeader, btnCloseFooter;
 
+  // WhatsApp Wizard State
+  let wizardStudents = [];
+  let currentWizardIndex = -1;
+
   function initDOMElements() {
     modal = document.getElementById('modal-create-report');
     startDateInput = document.getElementById('report-start-date');
@@ -27,7 +31,140 @@
   window.renderReports = function() {
     initDOMElements();
     setupListeners();
+    renderReportsList();
   };
+
+  function renderReportsList() {
+    const state = stateManager.loadState();
+    const reports = state.reports || [];
+    const emptyState = document.getElementById('reports-empty-state');
+    const listView = document.getElementById('reports-list-view');
+
+    if (!emptyState || !listView) return;
+
+    if (reports.length === 0) {
+      emptyState.style.display = 'flex';
+      listView.style.display = 'none';
+      return;
+    }
+
+    emptyState.style.display = 'none';
+    listView.style.display = 'block';
+
+    // Sort reports: newest first
+    const sortedReports = [...reports].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+    let html = `
+      <div class="glass-card" style="padding: 1.5rem; margin: 1.5rem auto; max-width: 1000px;">
+        <div class="table-responsive">
+          <table class="table" style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
+            <thead>
+              <tr style="border-bottom: 2px solid var(--border-color); text-align: left;">
+                <th style="padding: 0.75rem; color: var(--text-secondary); font-weight: 600;">Rapor Tarih Aralığı</th>
+                <th style="padding: 0.75rem; color: var(--text-secondary); font-weight: 600;">Sayfa Sayısı</th>
+                <th style="padding: 0.75rem; text-align: center; color: var(--text-secondary); font-weight: 600;">Görüntüle</th>
+                <th style="padding: 0.75rem; text-align: center; color: var(--text-secondary); font-weight: 600;">Gönder</th>
+                <th style="padding: 0.75rem; text-align: center; color: var(--text-secondary); font-weight: 600;">Sil</th>
+              </tr>
+            </thead>
+            <tbody>
+    `;
+
+    sortedReports.forEach(report => {
+      const formattedStart = new Date(report.startDate).toLocaleDateString('tr-TR');
+      const formattedEnd = new Date(report.endDate).toLocaleDateString('tr-TR');
+      const pageCount = report.pageCount || 0;
+      
+      html += `
+        <tr style="border-bottom: 1px solid var(--border-color);">
+          <td style="padding: 0.75rem; font-weight: 600; color: var(--text-primary); vertical-align: middle;">${formattedStart} - ${formattedEnd}</td>
+          <td style="padding: 0.75rem; color: var(--text-primary); vertical-align: middle; font-weight: 500;">${pageCount} Sayfa</td>
+          <td style="padding: 0.75rem; text-align: center; vertical-align: middle;">
+            <button class="btn btn-outline-primary btn-sm btn-view-report" data-id="${report.id}" style="display: inline-flex; align-items: center; gap: 0.25rem; font-size: 0.8rem; padding: 0.35rem 0.75rem; font-weight: 600; border-radius: var(--radius-sm);">
+              <i data-lucide="printer" style="width: 14px; height: 14px;"></i> Görüntüle
+            </button>
+          </td>
+          <td style="padding: 0.75rem; text-align: center; vertical-align: middle;">
+            <button class="btn btn-success btn-sm btn-send-report" data-id="${report.id}" style="display: inline-flex; align-items: center; gap: 0.25rem; font-size: 0.8rem; padding: 0.35rem 0.75rem; font-weight: 600; background: #25d366; border-color: #25d366; color: white; border-radius: var(--radius-sm);">
+              <i data-lucide="send" style="width: 14px; height: 14px;"></i> Gönder
+            </button>
+          </td>
+          <td style="padding: 0.75rem; text-align: center; vertical-align: middle;">
+            <button class="btn btn-outline-danger btn-sm btn-delete-report" data-id="${report.id}" style="display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; padding: 0; border-radius: var(--radius-sm);" title="Sil">
+              <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i>
+            </button>
+          </td>
+        </tr>
+      `;
+    });
+
+    html += `
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
+
+    listView.innerHTML = html;
+
+    // Bind event listeners
+    listView.querySelectorAll('.btn-view-report').forEach(btn => {
+      btn.onclick = () => {
+        const id = btn.getAttribute('data-id');
+        viewReport(id);
+      };
+    });
+    
+    listView.querySelectorAll('.btn-send-report').forEach(btn => {
+      btn.onclick = () => {
+        const id = btn.getAttribute('data-id');
+        openWhatsAppWizard(id);
+      };
+    });
+
+    listView.querySelectorAll('.btn-delete-report').forEach(btn => {
+      btn.onclick = () => {
+        const id = btn.getAttribute('data-id');
+        deleteReport(id);
+      };
+    });
+
+    if (window.safeCreateIcons) {
+      window.safeCreateIcons();
+    }
+  }
+
+  function viewReport(reportId) {
+    const state = stateManager.loadState();
+    const reports = state.reports || [];
+    const report = reports.find(r => r.id === reportId);
+    if (!report) {
+      if (window.showToast) window.showToast('Rapor bulunamadı!', 'danger');
+      return;
+    }
+
+    const students = state.students || [];
+    const isMiddle = state.educationLevel === 'middle';
+    
+    const filteredStudents = students.filter(s => {
+      return !isMiddle || report.branch === 'all' || s.branch === report.branch;
+    });
+
+    if (filteredStudents.length === 0) {
+      if (window.showToast) window.showToast('Seçilen şubede öğrenci bulunamadı!', 'warning');
+      return;
+    }
+
+    printReport(filteredStudents, report.startDate, report.endDate, report.criteria);
+  }
+
+  function deleteReport(reportId) {
+    if (!confirm('Bu raporu silmek istediğinize emin misiniz?')) return;
+
+    stateManager.deleteReport(reportId);
+    renderReportsList();
+    if (window.showToast) window.showToast('Rapor silindi.', 'success');
+  }
 
   function setupListeners() {
     if (!startDateInput || !endDateInput) return;
@@ -42,7 +179,6 @@
 
     // Modal open action
     const openModalFn = () => {
-      // Set default dates (past 30 days)
       const today = new Date();
       const thirtyDaysAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
       
@@ -81,6 +217,35 @@
       btnGenerate.onclick = () => {
         generateReports();
         closeModalFn();
+      };
+    }
+
+    // WhatsApp Wizard Closers
+    const modalWp = document.getElementById('modal-whatsapp-report-wizard');
+    const btnCloseWpH = document.getElementById('btn-close-wp-wizard-modal');
+    const btnCloseWpF = document.getElementById('btn-close-wp-wizard-modal-footer');
+    const btnSendNext = document.getElementById('btn-wp-wizard-send-next');
+
+    const closeWpModalFn = () => {
+      if (modalWp) modalWp.classList.remove('active');
+    };
+
+    if (btnCloseWpH) btnCloseWpH.onclick = closeWpModalFn;
+    if (btnCloseWpF) btnCloseWpF.onclick = closeWpModalFn;
+    
+    if (modalWp) {
+      modalWp.onclick = (e) => {
+        if (e.target === modalWp) {
+          closeWpModalFn();
+        }
+      };
+    }
+
+    if (btnSendNext) {
+      btnSendNext.onclick = () => {
+        if (currentWizardIndex !== -1) {
+          triggerSendAtIndex(currentWizardIndex);
+        }
       };
     }
   }
@@ -123,11 +288,6 @@
       return;
     }
 
-    // Prepare print container
-    const printContainer = document.getElementById('student-reports-print');
-    if (!printContainer) return;
-    printContainer.innerHTML = '';
-
     const showBooks = chkBooks ? chkBooks.checked : false;
     const showHomeworks = chkHomeworks ? chkHomeworks.checked : false;
     const showEvaluations = chkEvaluations ? chkEvaluations.checked : false;
@@ -138,6 +298,49 @@
       if (window.showToast) window.showToast('Lütfen rapora eklenecek en az bir alan seçin!', 'warning');
       return;
     }
+
+    const criteria = {
+      books: showBooks,
+      homeworks: showHomeworks,
+      evaluations: showEvaluations,
+      tasks: showTasks,
+      attendance: showAttendance
+    };
+
+    // Save report to state
+    const newReport = {
+      id: 'rep_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+      startDate: startVal,
+      endDate: endVal,
+      branch: branchFilter,
+      criteria: criteria,
+      pageCount: filteredStudents.length,
+      createdAt: new Date().toISOString()
+    };
+
+    stateManager.addReport(newReport);
+
+    if (window.showToast) {
+      window.showToast('Rapor başarıyla kaydedildi.', 'success');
+    }
+
+    // Refresh UI list
+    renderReportsList();
+  }
+
+  function printReport(filteredStudents, startVal, endVal, criteria) {
+    const state = stateManager.loadState();
+    const isMiddle = state.educationLevel === 'middle';
+    
+    // Prepare print container
+    const printContainer = document.getElementById('student-reports-print');
+    if (!printContainer) return;
+    printContainer.innerHTML = '';
+
+    const { books: showBooks, homeworks: showHomeworks, evaluations: showEvaluations, tasks: showTasks, attendance: showAttendance } = criteria;
+
+    const startDate = new Date(startVal + 'T00:00:00');
+    const endDate = new Date(endVal + 'T23:59:59');
 
     const formattedStartDate = new Date(startVal).toLocaleDateString('tr-TR');
     const formattedEndDate = new Date(endVal).toLocaleDateString('tr-TR');
@@ -282,7 +485,6 @@
 
       // C. Değerlendirme İstatistikleri
       if (showEvaluations) {
-        // Sınav Notu Hesaplamaları
         const relevantExams = (state.weeklyEvaluations || []).filter(e => {
           if (!e.createdAt) return false;
           const examDate = new Date(e.createdAt);
@@ -372,7 +574,7 @@
                 <span class="stat-val text-primary">${avgExamScore}</span>
                 <span class="stat-lbl">Ortalama Not Oranı</span>
               </div>
-              <div class="report-stat-box">
+              <div class="report-stat-box" style="color: #ec4899;">
                 <span class="stat-val" style="color: #ec4899;">#${examRank} / ${filteredStudents.length}</span>
                 <span class="stat-lbl">Sınıf Başarı Sırası</span>
               </div>
@@ -446,7 +648,6 @@
       printContainer.appendChild(page);
     });
 
-    // Run lucide icons conversion on print layout before calling browser print dialog
     if (window.safeCreateIcons) {
       window.safeCreateIcons();
     }
@@ -455,15 +656,318 @@
     document.body.classList.add('print-reports');
     window.print();
 
-    // Cleanup print classes after printing is done
     window.addEventListener('afterprint', () => {
       document.body.classList.remove('print-reports');
       printContainer.innerHTML = '';
     }, { once: true });
 
-    // Fallback cleanup
     setTimeout(() => {
       document.body.classList.remove('print-reports');
     }, 1000);
+  }
+
+  // WHATSAPP PRIVATE MESSAGE BUILDER
+  function buildStudentReportMessage(student, startDateStr, endDateStr, criteria, state) {
+    const startDate = new Date(startDateStr + 'T00:00:00');
+    const endDate = new Date(endDateStr + 'T23:59:59');
+    
+    const formattedStartDate = new Date(startDateStr).toLocaleDateString('tr-TR');
+    const formattedEndDate = new Date(endDateStr).toLocaleDateString('tr-TR');
+    const reportDateStr = new Date().toLocaleDateString('tr-TR');
+    
+    let msg = `*ÖĞRENCİ GELİŞİM RAPORU*\n`;
+    msg += `*Dönem:* ${formattedStartDate} - ${formattedEndDate}\n`;
+    msg += `*Öğrenci:* ${student.name} ${student.surname}`;
+    if (student.number) msg += ` (No: ${student.number})`;
+    if (student.branch) msg += ` | Sınıf: ${student.branch}`;
+    msg += `\n----------------------------------------\n`;
+
+    // 1. Kitap Okuma
+    if (criteria.books) {
+      const returnTx = (state.books.transactions || []).filter(t => {
+        if (t.studentId !== student.id || !t.returnDate) return false;
+        const returnD = new Date(t.returnDate);
+        return returnD >= startDate && returnD <= endDate;
+      });
+
+      let readPages = 0;
+      returnTx.forEach(t => {
+        const book = (state.books.library || []).find(b => b.id === t.bookId);
+        if (book) {
+          readPages += parseInt(book.pages) || 0;
+        }
+      });
+      msg += `📚 *Kitap Okuma:* ${returnTx.length} Kitap (${readPages} Sayfa)\n`;
+    }
+
+    // 2. Ödev
+    if (criteria.homeworks) {
+      const assignedHomeworks = (state.homeworks || []).filter(hw => {
+        const isMiddle = state.educationLevel === 'middle';
+        const matchBranch = !isMiddle || !hw.branch || hw.branch === student.branch;
+        const hwDate = new Date(hw.dueDate);
+        return matchBranch && hwDate >= startDate && hwDate <= endDate;
+      });
+
+      let hwCompleted = 0;
+      let hwIncomplete = 0;
+      let hwMissing = 0;
+      let hwExcused = 0;
+
+      assignedHomeworks.forEach(hw => {
+        const status = hw.status ? hw.status[student.id] : undefined;
+        if (status === 'completed') hwCompleted++;
+        else if (status === 'incomplete') hwIncomplete++;
+        else if (status === 'missing') hwMissing++;
+        else if (status === 'excused') hwExcused++;
+      });
+
+      msg += `📝 *Ödev Takibi:* ${hwCompleted} Tamam, ${hwIncomplete} Eksik, ${hwMissing} Yapılmayan`;
+      if (hwExcused > 0) msg += `, ${hwExcused} Muaf`;
+      msg += `\n`;
+    }
+
+    // 3. Sınav Değerlendirmeleri
+    if (criteria.evaluations) {
+      const relevantExams = (state.weeklyEvaluations || []).filter(e => {
+        if (!e.createdAt) return false;
+        const examDate = new Date(e.createdAt);
+        const isDateInRange = examDate >= startDate && examDate <= endDate;
+        const isMiddle = state.educationLevel === 'middle';
+        const isRelevantBranch = !isMiddle || !e.branch || student.branch === e.branch;
+        return isDateInRange && isRelevantBranch;
+      });
+
+      let participatedCount = 0;
+      let totalExamScore = 0;
+
+      relevantExams.forEach(e => {
+        let score = undefined;
+        if (e.studentResults && e.studentResults[student.id]) {
+          score = e.studentResults[student.id].score;
+        } else if (e.examScores && e.examScores[student.id] !== undefined) {
+          score = e.examScores[student.id];
+        }
+
+        if (score !== undefined && score !== null && score !== '') {
+          participatedCount++;
+          totalExamScore += parseFloat(score);
+        }
+      });
+
+      const avgExamScore = participatedCount > 0 ? (totalExamScore / participatedCount).toFixed(1) + ' Puan' : 'Girilmedi';
+      msg += `🏆 *Sınav Ortalaması:* ${avgExamScore}\n`;
+    }
+
+    // 4. Görevler
+    if (criteria.tasks) {
+      const studentTasks = (state.tasks || []).filter(t => t.studentId === student.id);
+      const completedTasks = studentTasks.filter(t => {
+        if (t.status !== 'completed' || !t.completedDate) return false;
+        const compD = new Date(t.completedDate);
+        return compD >= startDate && compD <= endDate;
+      });
+      const pendingTasks = studentTasks.filter(t => {
+        if (t.status === 'completed') return false;
+        const dueD = new Date(t.dueDate || t.createdAt);
+        return dueD >= startDate && dueD <= endDate;
+      });
+
+      msg += `🎯 *Görev ve Sorumluluk:* ${completedTasks.length} Tamam, ${pendingTasks.length} Bekleyen\n`;
+    }
+
+    // 5. Devamsızlık
+    if (criteria.attendance) {
+      const absenceCount = stateManager.getStudentAbsenceCount(student.id, startDateStr, endDateStr);
+      msg += `📅 *Devamsızlık:* ${absenceCount} Gün\n`;
+    }
+
+    msg += `----------------------------------------\n`;
+    msg += `*Rapor Tarihi:* ${reportDateStr}\n`;
+    msg += `Sınıf Asistanı ile Gönderilmiştir.`;
+    return msg;
+  }
+
+  // SEND PRIVATE WHATSAPP MESSAGE
+  function sendPrivateWhatsApp(phone, message) {
+    if (!phone) {
+      if (window.showToast) window.showToast('Veli telefon numarası bulunamadı!', 'warning');
+      return;
+    }
+    
+    // Clean phone number
+    let cleanedPhone = phone.replace(/\D/g, '');
+    if (cleanedPhone.startsWith('0') && cleanedPhone.length === 11) {
+      cleanedPhone = '90' + cleanedPhone.substring(1);
+    } else if (cleanedPhone.length === 10) {
+      cleanedPhone = '90' + cleanedPhone;
+    }
+
+    const encoded = encodeURIComponent(message);
+    const desktopUrl = `whatsapp://send?phone=${cleanedPhone}&text=${encoded}`;
+    const webUrl = `https://web.whatsapp.com/send?phone=${cleanedPhone}&text=${encoded}`;
+
+    if (window.__TAURI__) {
+      window.safeOpenURL(desktopUrl);
+      return;
+    }
+
+    let didOpenApp = false;
+    const onBlur = () => {
+      didOpenApp = true;
+    };
+    window.addEventListener('blur', onBlur);
+
+    // Try desktop app deep link
+    window.location.href = desktopUrl;
+
+    setTimeout(() => {
+      window.removeEventListener('blur', onBlur);
+      if (!didOpenApp) {
+        window.safeOpenURL(webUrl);
+      }
+    }, 1500);
+  }
+
+  // WHATSAPP SENDING WIZARD MODAL POPULATION
+  function openWhatsAppWizard(reportId) {
+    const state = stateManager.loadState();
+    const reports = state.reports || [];
+    const report = reports.find(r => r.id === reportId);
+    if (!report) {
+      if (window.showToast) window.showToast('Rapor bulunamadı!', 'danger');
+      return;
+    }
+
+    const students = state.students || [];
+    const isMiddle = state.educationLevel === 'middle';
+    
+    const filteredStudents = students.filter(s => {
+      return !isMiddle || report.branch === 'all' || s.branch === report.branch;
+    });
+
+    if (filteredStudents.length === 0) {
+      if (window.showToast) window.showToast('Gönderilecek öğrenci bulunamadı!', 'warning');
+      return;
+    }
+
+    // Sort alphabetically
+    filteredStudents.sort((a, b) => a.name.localeCompare(b.name, 'tr'));
+
+    // Populate state
+    wizardStudents = filteredStudents.map(student => {
+      const message = buildStudentReportMessage(student, report.startDate, report.endDate, report.criteria, state);
+      return {
+        student: student,
+        message: message,
+        sent: false
+      };
+    });
+
+    // Reset index
+    currentWizardIndex = findNextPendingIndex();
+
+    // Open Modal
+    const wizardModal = document.getElementById('modal-whatsapp-report-wizard');
+    if (wizardModal) {
+      wizardModal.classList.add('active');
+    }
+
+    renderWizardStudentsList();
+    updateWizardHelper();
+  }
+
+  function renderWizardStudentsList() {
+    const tbody = document.getElementById('wp-wizard-students-list');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+
+    wizardStudents.forEach((item, index) => {
+      const s = item.student;
+      const row = document.createElement('tr');
+      row.style.borderBottom = '1px solid var(--border-color)';
+      
+      const statusBadge = item.sent 
+        ? `<span class="badge" style="background: rgba(16, 185, 129, 0.1); color: #10b981; font-size: 0.75rem; padding: 0.2rem 0.5rem; border-radius: 4px;">Gönderildi</span>`
+        : `<span class="badge" style="background: rgba(245, 158, 11, 0.1); color: #f59e0b; font-size: 0.75rem; padding: 0.2rem 0.5rem; border-radius: 4px;">Bekliyor</span>`;
+
+      const phoneDisplay = s.parentPhone ? s.parentPhone : '<span style="color: var(--danger); font-size: 0.8rem;">Girilmemiş</span>';
+      const branchDisplay = s.branch ? ` | Şube: ${s.branch}` : '';
+
+      row.innerHTML = `
+        <td style="padding: 0.75rem; vertical-align: middle;">
+          <div style="font-weight: 600; color: var(--text-primary);">${s.name} ${s.surname}</div>
+          <div style="font-size: 0.75rem; color: var(--text-muted);">No: ${s.number || '-'}${branchDisplay}</div>
+        </td>
+        <td style="padding: 0.75rem; vertical-align: middle; color: var(--text-primary); font-family: monospace;">${phoneDisplay}</td>
+        <td style="padding: 0.75rem; text-align: center; vertical-align: middle;">${statusBadge}</td>
+        <td style="padding: 0.75rem; text-align: right; vertical-align: middle;">
+          <button class="btn btn-success btn-sm btn-open-wp-chat" data-index="${index}" style="display: inline-flex; align-items: center; gap: 0.25rem; font-size: 0.8rem; background: #25d366; border-color: #25d366; color: white; border-radius: var(--radius-sm);">
+            <i data-lucide="external-link" style="width: 14px; height: 14px;"></i> WhatsApp'ı Aç
+          </button>
+        </td>
+      `;
+
+      tbody.appendChild(row);
+    });
+
+    tbody.querySelectorAll('.btn-open-wp-chat').forEach(btn => {
+      btn.onclick = () => {
+        const index = parseInt(btn.getAttribute('data-index'));
+        triggerSendAtIndex(index);
+      };
+    });
+
+    if (window.safeCreateIcons) {
+      window.safeCreateIcons();
+    }
+  }
+
+  function triggerSendAtIndex(index) {
+    if (index < 0 || index >= wizardStudents.length) return;
+    const item = wizardStudents[index];
+    if (!item.student.parentPhone) {
+      if (window.showToast) window.showToast(`${item.student.name} öğrencisinin veli telefonu kayıtlı değil!`, 'warning');
+      return;
+    }
+
+    sendPrivateWhatsApp(item.student.parentPhone, item.message);
+    item.sent = true;
+
+    // Refresh table list
+    renderWizardStudentsList();
+
+    // Advance wizard index
+    if (index === currentWizardIndex) {
+      currentWizardIndex = findNextPendingIndex();
+    }
+    updateWizardHelper();
+  }
+
+  function findNextPendingIndex() {
+    for (let i = 0; i < wizardStudents.length; i++) {
+      if (!wizardStudents[i].sent && wizardStudents[i].student.parentPhone) {
+        return i;
+      }
+    }
+    return -1;
+  }
+
+  function updateWizardHelper() {
+    const nextInfoSpan = document.getElementById('wp-wizard-next-student-info');
+    const sendNextBtn = document.getElementById('btn-wp-wizard-send-next');
+    
+    if (!nextInfoSpan || !sendNextBtn) return;
+
+    if (currentWizardIndex === -1) {
+      nextInfoSpan.innerHTML = '✨ <strong>Tüm gönderimler tamamlandı!</strong>';
+      sendNextBtn.disabled = true;
+      sendNextBtn.style.opacity = '0.5';
+    } else {
+      const item = wizardStudents[currentWizardIndex];
+      nextInfoSpan.innerHTML = `Sıradaki: <strong>${item.student.name} ${item.student.surname}</strong> (${item.student.parentPhone})`;
+      sendNextBtn.disabled = false;
+      sendNextBtn.style.opacity = '1';
+    }
   }
 })();

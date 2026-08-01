@@ -107,17 +107,17 @@
 
 /* Pastel Tema Değişkenleri (Pastel Dark) */
 [data-theme="pastel"] {
-  --bg-primary: #0d111d;
-  --bg-secondary: #161e2e;
-  --bg-glass: rgba(22, 30, 46, 0.75);
-  --border-color: rgba(96, 165, 250, 0.2);
-  --border-glass: rgba(96, 165, 250, 0.15);
+  --bg-primary: #1b2d42; /* Pastel koyu mavi arkaplan */
+  --bg-secondary: #4e2d30; /* Pastel koyu kırmızı pencereler */
+  --bg-glass: rgba(78, 45, 48, 0.8); /* Saydam pencereler için pastel kırmızı */
+  --border-color: #3d1416; /* Çok koyu kırmızı kontur çizgisi */
+  --border-glass: rgba(61, 20, 22, 0.85); /* Saydam pencereler için çok koyu kırmızı kontur */
 
-  --text-primary: #f8fafc;
-  --text-secondary: #cbd5e1;
-  --text-muted: #94a3b8;
+  --text-primary: #ffffff; /* Yazılar beyaz */
+  --text-secondary: #f1f5f9;
+  --text-muted: #cbd5e1;
 
-  --primary: #ff8585;
+  --primary: #ff8585; /* Pastel mercan kırmızısı */
   --primary-hover: #ff6b6b;
   --primary-light: rgba(255, 133, 133, 0.15);
   --primary-glow: rgba(255, 133, 133, 0.25);
@@ -135,6 +135,27 @@
   --shadow-md: 0 4px 20px -2px rgba(0, 0, 0, 0.5), 0 2px 8px -1px rgba(0, 0, 0, 0.3);
   --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.6), 0 8px 10px -6px rgba(0, 0, 0, 0.4);
   --shadow-primary: 0 10px 15px -3px rgba(255, 133, 133, 0.25);
+}
+
+/* Pastel Temada Pencerelerin Çizgilerini Kalınlaştır (2px) */
+[data-theme="pastel"] .glass-card,
+[data-theme="pastel"] .stat-card,
+[data-theme="pastel"] .section-card,
+[data-theme="pastel"] .student-card,
+[data-theme="pastel"] .sidebar,
+[data-theme="pastel"] .page-header,
+[data-theme="pastel"] .modal-content,
+[data-theme="pastel"] .hw-day-card,
+[data-theme="pastel"] .exam-card,
+[data-theme="pastel"] .setup-group-box,
+[data-theme="pastel"] .setup-group-box-modern,
+[data-theme="pastel"] .unassigned-students-wrapper,
+[data-theme="pastel"] .setup-students-column,
+[data-theme="pastel"] #games .mode-card,
+[data-theme="pastel"] #games .multiplication-question-card,
+[data-theme="pastel"] #games .game-controls-container,
+[data-theme="pastel"] #games .student-display-area {
+  border-width: 2px !important;
 }
 
 /* Sıfırlama (Reset) */
@@ -413,10 +434,14 @@ body {
   -webkit-backdrop-filter: blur(10px) !important;
 }
 
-[data-theme="dark"] .page-header,
-[data-theme="pastel"] .page-header {
+[data-theme="dark"] .page-header {
   background-color: rgba(30, 41, 59, 0.6) !important; /* Koyu slate/mavi %60 saydam */
   border-color: rgba(56, 189, 248, 0.2) !important; /* Açık mavi %20 saydam */
+}
+
+[data-theme="pastel"] .page-header {
+  background-color: rgba(27, 38, 59, 0.6) !important; /* Pastel koyu mavi %60 saydam */
+  border-color: #3d1416 !important; /* Çok koyu kırmızı kontur çizgisi */
 }
 
 .header-title h2 {
@@ -588,15 +613,20 @@ body {
   box-shadow: 0 10px 20px rgba(56, 189, 248, 0.15) !important;
 }
 
-[data-theme="dark"] .student-card,
-[data-theme="pastel"] .student-card {
+[data-theme="dark"] .student-card {
   border-color: rgba(56, 189, 248, 0.25) !important;
 }
+[data-theme="pastel"] .student-card {
+  border-color: #3d1416 !important; /* Çok koyu kırmızı kontur çizgisi */
+}
 
-[data-theme="dark"] .student-card:hover,
-[data-theme="pastel"] .student-card:hover {
+[data-theme="dark"] .student-card:hover {
   border-color: rgba(56, 189, 248, 0.6) !important;
   box-shadow: 0 10px 20px rgba(56, 189, 248, 0.1) !important;
+}
+[data-theme="pastel"] .student-card:hover {
+  border-color: #a82e33 !important; /* Daha belirgin kırmızı kontur çizgisi */
+  box-shadow: 0 10px 20px rgba(107, 33, 37, 0.25) !important;
 }
 
 .student-avatar {
@@ -4001,7 +4031,7 @@ th:hover .hw-col-actions {
     width: 210mm;
     min-height: 297mm;
     box-sizing: border-box;
-    padding: 15mm 20mm;
+    padding: 10mm 15mm;
     margin: 0 auto;
     background: white !important;
     color: #1e293b !important;
@@ -4022,8 +4052,8 @@ th:hover .hw-col-actions {
     justify-content: space-between;
     align-items: center;
     border-bottom: 2px solid #0f172a;
-    padding-bottom: 1rem;
-    margin-bottom: 1.5rem;
+    padding-bottom: 0.75rem;
+    margin-bottom: 1rem;
   }
 
   .report-header h2 {
@@ -4104,16 +4134,28 @@ th:hover .hw-col-actions {
   }
 
   .report-sections {
-    display: flex;
-    flex-direction: column;
-    gap: 1.2rem;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+  }
+
+  /* Layout optimization using has for odd numbers of cards */
+  .report-sections:has(> :nth-child(1):last-child) > :nth-child(1) {
+    grid-column: span 2 !important;
+  }
+  .report-sections:has(> :nth-child(3):last-child) > :nth-child(3),
+  .report-sections:has(> :nth-child(5):last-child) > :nth-child(5) {
+    grid-column: span 2 !important;
   }
 
   .report-section-card {
     border: 1px solid #e2e8f0;
     border-radius: 8px;
-    padding: 1rem;
+    padding: 0.75rem 1rem;
     background: white;
+    box-sizing: border-box;
+    page-break-inside: avoid;
+    break-inside: avoid;
   }
 
   .report-section-card h4 {
@@ -4789,9 +4831,11 @@ th:hover .hw-col-actions {
   color: #1e3a8a !important; /* Koyu Mavi */
 }
 
-[data-theme="dark"] #dashboard .header-title h2,
-[data-theme="pastel"] #dashboard .header-title h2 {
+[data-theme="dark"] #dashboard .header-title h2 {
   color: #38bdf8 !important; /* Açık Mavi (Koyu temada okunabilirlik için) */
+}
+[data-theme="pastel"] #dashboard .header-title h2 {
+  color: #ffffff !important; /* Beyaz */
 }
 
 /* ===== SARI NOT KAĞITLARI (STICKY NOTES WITH PIN) ===== */

@@ -258,7 +258,8 @@ const DEFAULT_STATE = {
     passwordHash: null,
     breakModeEnabled: false
   },
-  whatsappGroupLink: ''
+  whatsappGroupLink: '',
+  reports: []
 };
 
 function wrapState(parsed, unfiltered = false) {
@@ -477,7 +478,8 @@ class StateManager {
           examAnalysisExams: parsed.examAnalysisExams || [],
           examAnalysisGrades: parsed.examAnalysisGrades || [],
           appLock: parsed.appLock || { enabled: false, passwordHash: null, breakModeEnabled: false },
-          attendance: parsed.attendance || {}
+          attendance: parsed.attendance || {},
+          reports: parsed.reports || []
         };
         return wrapState(loaded, unfiltered);
       }
@@ -741,6 +743,22 @@ class StateManager {
     // Ödeve ait tüm performans kayıtlarını sil
     this.state.performance = this.state.performance.filter(p => p.homeworkId !== id);
     this.saveState();
+  }
+
+  // RAPOR İŞLEMLERİ
+  addReport(report) {
+    if (!this.state.reports) {
+      this.state.reports = [];
+    }
+    this.state.reports.push(report);
+    this.saveState();
+  }
+
+  deleteReport(id) {
+    if (this.state.reports) {
+      this.state.reports = this.state.reports.filter(r => r.id !== id);
+      this.saveState();
+    }
   }
 
   getHomeworkSettings() {
