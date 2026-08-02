@@ -2916,6 +2916,18 @@
                 <i data-lucide="play" style="width: 16px; height: 16px;"></i> Aracı Başlat
               </button>
             </div>
+
+            <!-- Araç 7: Sınıf Oturma Planı -->
+            <div class="game-landing-card glass-card" style="padding: 1.5rem; border-radius: 12px; background: var(--bg-secondary); border: 1px solid var(--border-color); display: flex; flex-direction: column; justify-content: space-between; min-height: 220px; transition: transform 0.2s ease;">
+              <div>
+                <div style="font-size: 2rem; margin-bottom: 0.5rem;">🪑</div>
+                <h3 style="font-size: 1.15rem; font-weight: 700; margin-bottom: 0.5rem;">Sınıf Oturma Planı</h3>
+                <p style="font-size: 0.85rem; color: var(--text-secondary); line-height: 1.4; margin-bottom: 1rem;">Sıraları dilediğiniz gibi yerleştirin, öğrencileri oturtun ve oturma planını yazdırın.</p>
+              </div>
+              <button class="btn btn-primary btn-full" id="btn-launch-seating" style="width: 100%; display: flex; justify-content: center; gap: 0.5rem;">
+                <i data-lucide="play" style="width: 16px; height: 16px;"></i> Aracı Başlat
+              </button>
+            </div>
           </div>
         </div>
 
@@ -3655,7 +3667,74 @@
 
               </div>
             </div>
+          </div>
+        </div>
 
+        <!-- Sınıf Oturma Planı Paneli (Başlangıçta Gizli) -->
+        <div id="tools-seating-view" style="display: none;">
+          <div class="page-header" style="margin-bottom: 1.5rem;">
+            <div class="header-title" style="display: flex; align-items: center; gap: 1rem;">
+              <button class="btn btn-secondary btn-sm" id="btn-back-to-tools-from-seating" style="padding: 0.35rem 0.75rem; font-size: 0.85rem; height: 35px;">
+                <i data-lucide="arrow-left" style="width: 16px; height: 16px;"></i> Geri Dön
+              </button>
+              <div>
+                <h2 style="font-size: 1.5rem; margin-bottom: 0;">Sınıf Oturma Planı</h2>
+                <p style="margin-top: 0;">Sıraları dilediğiniz gibi sürükleyip bırakarak yerleştirin, öğrencileri atayın ve çıktı alın.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="seating-layout" style="display: flex; gap: 1.5rem; flex-wrap: wrap;">
+            <!-- Sol Kontrol Paneli -->
+            <div class="glass-card tools-config-card" style="width: 280px; padding: 1.25rem; display: flex; flex-direction: column; gap: 1.25rem; flex-shrink: 0;">
+              <h3 style="font-size: 1.05rem; font-weight: 700; color: var(--primary); border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; margin-bottom: 0; display: flex; align-items: center; gap: 0.25rem;">
+                <i data-lucide="plus-circle" style="width: 16px; height: 16px;"></i> Öğe Ekle
+              </h3>
+              
+              <button class="btn btn-outline-primary btn-sm" id="btn-seating-add-single" style="display: flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.5rem; width: 100%;">
+                <i data-lucide="square" style="width: 16px; height: 16px;"></i> Tekli Sıra Ekle
+              </button>
+              <button class="btn btn-outline-primary btn-sm" id="btn-seating-add-double" style="display: flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.5rem; width: 100%;">
+                <i data-lucide="columns-2" style="width: 16px; height: 16px;"></i> İki Kişilik Sıra Ekle
+              </button>
+              
+              <div style="border-top: 1px solid var(--border-color); padding-top: 1rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                  <span style="font-size: 0.85rem; font-weight: 600; color: var(--text-secondary);">Yazı Tahtası:</span>
+                  <label class="switch">
+                    <input type="checkbox" id="seating-toggle-board" checked>
+                    <span class="slider"></span>
+                  </label>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                  <span style="font-size: 0.85rem; font-weight: 600; color: var(--text-secondary);">Öğretmen Masası:</span>
+                  <label class="switch">
+                    <input type="checkbox" id="seating-toggle-teacher-desk" checked>
+                    <span class="slider"></span>
+                  </label>
+                </div>
+              </div>
+
+              <div style="border-top: 1px solid var(--border-color); padding-top: 1rem; display: flex; flex-direction: column; gap: 0.5rem;">
+                <button class="btn btn-primary btn-sm" id="btn-seating-print" style="display: flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.5rem; width: 100%;">
+                  <i data-lucide="printer" style="width: 16px; height: 16px;"></i> Planı Yazdır
+                </button>
+                <button class="btn btn-outline-danger btn-sm" id="btn-seating-clear-all" style="display: flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.5rem; width: 100%;">
+                  <i data-lucide="trash-2" style="width: 16px; height: 16px;"></i> Planı Temizle
+                </button>
+              </div>
+
+              <div style="font-size: 0.75rem; color: var(--text-muted); line-height: 1.4; border-top: 1px solid var(--border-color); padding-top: 1rem;">
+                💡 <strong>İpucu:</strong> Eklediğiniz sıraları ve öğretmen masasını sınıf içerisinde dilediğiniz gibi sürükleyip yerleştirebilirsiniz. Öğrenci atamak için sıradaki "+" simgesine tıklayın.
+              </div>
+            </div>
+
+            <!-- Sağ Sınıf Görünümü Canvası -->
+            <div style="flex: 1; min-width: 500px; display: flex; flex-direction: column; gap: 1rem;">
+              <div id="seating-canvas" style="position: relative; width: 100%; height: 580px; background: rgba(255,255,255,0.01); border: 2px dashed var(--border-color); border-radius: 12px; overflow: hidden; user-select: none;">
+                <!-- Yazı Tahtası ve Öğretmen Masası Canvas'ın içindedir (Mutlak konumlu ve sürüklenebilir) -->
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -5830,6 +5909,28 @@
     </div>
   </div>
 
+  <!-- MODAL: OTURMA PLANI ÖĞRENCİ SEÇİMİ -->
+  <div class="modal" id="modal-seating-student-select" style="--max-width: 450px; z-index: 1100;">
+    <div class="modal-content" style="max-width: 450px;">
+      <div class="modal-header" style="background: rgba(99, 102, 241, 0.1); color: var(--primary); display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.5rem; border-bottom: 1px solid var(--border-color);">
+        <h3 style="display: flex; align-items: center; gap: 0.5rem; font-size: 1.15rem; font-weight: 700; margin: 0;">
+          <i data-lucide="user-check" style="width: 18px; height: 18px;"></i> Öğrenci Seç
+        </h3>
+        <button class="close-btn" id="btn-close-seating-select-modal" style="background: transparent; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-secondary); outline: none;">&times;</button>
+      </div>
+      <div class="modal-body" style="padding: 1rem 1.5rem; max-height: 50vh; overflow-y: auto;">
+        <div id="seating-select-branch-info" style="font-size: 0.85rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 0.75rem;">Şube: -</div>
+        <div id="seating-students-list-group" style="display: flex; flex-direction: column; gap: 0.5rem;">
+          <!-- JS ile doldurulacak -->
+        </div>
+      </div>
+      <div class="modal-footer" style="background: rgba(255, 255, 255, 0.02); border-top: 1px solid var(--border-color); padding: 1rem 1.5rem; display: flex; justify-content: flex-end; gap: 0.75rem;">
+        <button class="btn btn-secondary" id="btn-close-seating-select-modal-footer">Kapat</button>
+        <button class="btn btn-outline-danger" id="btn-seating-clear-seat">Koltuktan Çıkar</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Excel ve CSV işlemleri için SheetJS Kitaplığı -->
   <script src="js/xlsx.full.min.js"></script>
   <script src="js/chart.min.js"></script>
@@ -5857,6 +5958,7 @@
   <script src="js/written-exam.js?v=32"></script>
   <script src="js/exam-analysis.js?v=32"></script>
   <script src="js/reports.js?v=32"></script>
+  <script src="js/seating.js?v=32"></script>
   <script src="js/notebooks.js?v=32"></script>
   <script src="js/app-lock.js?v=1"></script>
   <script src="js/app.js?v=32"></script>

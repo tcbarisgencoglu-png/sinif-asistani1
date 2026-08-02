@@ -208,6 +208,9 @@ function initApp() {
   if (window.setupExamAnalysisTool) {
     setupExamAnalysisTool(showToast);
   }
+  if (window.renderSeating) {
+    renderSeating();
+  }
 
   // 4. Varsayılan Dashboard Görünümünü Yükle
   updateVisibilityByEducationLevel();
@@ -215,7 +218,11 @@ function initApp() {
 
   // Register branch select listeners
   const selectIdsWithCallbacks = [
-    { id: 'dash-select-branch', callback: () => renderDashboard() },
+    { id: 'dash-select-branch', callback: () => {
+        renderDashboard();
+        if (window.refreshSeatingCanvas) window.refreshSeatingCanvas();
+      }
+    },
     { id: 'books-select-branch', callback: () => { if (window.renderLeaderboard) window.renderLeaderboard(); } },
     { id: 'homework-select-branch', callback: () => { if (window.renderHomeworkMatrix) window.renderHomeworkMatrix(); } },
     { id: 'quiz-select-branch', callback: () => { if (window.renderQuizStudentSelection) window.renderQuizStudentSelection(); } },

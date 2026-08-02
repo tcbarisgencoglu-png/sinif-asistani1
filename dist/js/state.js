@@ -259,7 +259,8 @@ const DEFAULT_STATE = {
     breakModeEnabled: false
   },
   whatsappGroupLink: '',
-  reports: []
+  reports: [],
+  seatingPlans: {}
 };
 
 function wrapState(parsed, unfiltered = false) {
@@ -479,7 +480,8 @@ class StateManager {
           examAnalysisGrades: parsed.examAnalysisGrades || [],
           appLock: parsed.appLock || { enabled: false, passwordHash: null, breakModeEnabled: false },
           attendance: parsed.attendance || {},
-          reports: parsed.reports || []
+          reports: parsed.reports || [],
+          seatingPlans: parsed.seatingPlans || {}
         };
         return wrapState(loaded, unfiltered);
       }
@@ -757,6 +759,22 @@ class StateManager {
   deleteReport(id) {
     if (this.state.reports) {
       this.state.reports = this.state.reports.filter(r => r.id !== id);
+      this.saveState();
+    }
+  }
+
+  // OTURMA PLANI İŞLEMLERİ
+  saveSeatingPlan(branch, planData) {
+    if (!this.state.seatingPlans) {
+      this.state.seatingPlans = {};
+    }
+    this.state.seatingPlans[branch] = planData;
+    this.saveState();
+  }
+
+  clearSeatingPlan(branch) {
+    if (this.state.seatingPlans) {
+      delete this.state.seatingPlans[branch];
       this.saveState();
     }
   }
