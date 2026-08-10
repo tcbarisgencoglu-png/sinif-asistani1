@@ -172,6 +172,24 @@ function initApp() {
   // 2. Temayı Yükle
   initTheme();
 
+  // 2.5. Önceki yüklenen planları otomatik olarak tanımlı ders adlarına eşitle (Eşleşme Düzeltmesi)
+  const state = stateManager.state;
+  if (state && state.plans && state.plans.length > 0 && state.definedLessons && window.isLessonPlanMatch) {
+    let stateUpdated = false;
+    state.plans.forEach(plan => {
+      const matched = state.definedLessons.find(l => l && window.isLessonPlanMatch(plan.courseName || plan.title, l.name));
+      if (matched && plan.courseName !== matched.name) {
+        console.log(`Otomatik plan ismi düzeltildi: "${plan.courseName}" -> "${matched.name}"`);
+        plan.courseName = matched.name;
+        if (plan.title) plan.title = matched.name;
+        stateUpdated = true;
+      }
+    });
+    if (stateUpdated) {
+      stateManager.saveState();
+    }
+  }
+
   // 3. Modül Tetikleyicilerini Kaydet
   setupDashboardTab(showToast);
   setupPerformanceTab(showToast);

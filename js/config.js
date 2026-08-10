@@ -917,7 +917,9 @@
     if (breakSummary && scheduleOk && hasPassword) {
       breakSummary.style.display = 'block';
       const times = state.scheduleTimes;
-      const periodKeys = ['p1','p2','p3','p4','p5','p6','p7'].filter(k => times && times[k]);
+      const isMiddle = state.educationLevel === 'middle';
+      const maxPeriods = isMiddle ? ['p1','p2','p3','p4','p5','p6','p7'] : ['p1','p2','p3','p4','p5','p6'];
+      const periodKeys = maxPeriods.filter(k => times && times[k]);
       let html = '<div style="font-size:0.78rem;color:var(--text-muted);display:flex;flex-wrap:wrap;gap:0.4rem;">';
       html += '<span style="font-weight:600;color:var(--text-secondary);margin-right:2px;">Teneffüsler:</span>';
       for (let i = 0; i < periodKeys.length - 1; i++) {

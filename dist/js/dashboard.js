@@ -409,9 +409,34 @@ function setupDashboardTab(showToast) {
       }
     });
   }
+
+  // İlk yüklemede başlık ders bilgisini çek ve periyodik güncelleyiciyi başlat (30 saniyede bir)
+  if (typeof updateDashboardHeaderLessonInfo === 'function') {
+    updateDashboardHeaderLessonInfo();
+  }
+  setInterval(() => {
+    const dashboardSection = document.getElementById('dashboard');
+    if (dashboardSection && dashboardSection.classList.contains('active')) {
+      if (typeof updateDashboardHeaderLessonInfo === 'function') {
+        updateDashboardHeaderLessonInfo();
+      }
+    }
+    const flowModal = document.getElementById('modal-flow-info');
+    if (flowModal && flowModal.classList.contains('active')) {
+      const statusBadge = document.getElementById('flow-current-status');
+      if (statusBadge && statusBadge.style.display !== 'none' && window.updateFlowContent) {
+        window.updateFlowContent(true);
+      }
+    }
+  }, 30000);
 }
 
 function renderDashboard() {
+  // Sayfa başlığındaki canlı ders bilgisini güncelle
+  if (typeof updateDashboardHeaderLessonInfo === 'function') {
+    updateDashboardHeaderLessonInfo();
+  }
+
   // Sekme butonlarını ve içerik alanlarının görünürlüğünü aktif alt sekmeye göre senkronize et
   const dashTabButtons = document.querySelectorAll('[data-dash-tab]');
   const dashTabContents = document.querySelectorAll('.dash-tab-content');
@@ -1437,28 +1462,163 @@ function openStudentDetailModal(id) {
 }
 
 // --- Hızlı Akış Bilgisi Hesaplama ve Güncelleme Fonksiyonları ---
+function extractWeekTopicText(activeWeek) {
+  if (!activeWeek) return '';
+
+  // 1. topics alanı (Dizi veya Metin)
+  if (activeWeek.topics) {
+    if (Array.isArray(activeWeek.topics)) {
+      const validTopics = activeWeek.topics.map(t => String(t || '').trim()).filter(t => t.length > 0);
+      if (validTopics.length > 0) {
+        return validTopics.join(', ');
+      }
+    } else if (typeof activeWeek.topics === 'string' && activeWeek.topics.trim()) {
+      return activeWeek.topics.trim();
+    }
+  }
+
+  // 2. tekil topic alanı
+  if (activeWeek.topic && typeof activeWeek.topic === 'string' && activeWeek.topic.trim()) {
+    return activeWeek.topic.trim();
+  }
+
+  // 3. learningOutcomes (Kazanımlar)
+  if (activeWeek.learningOutcomes) {
+    if (Array.isArray(activeWeek.learningOutcomes)) {
+      const validOutcomes = activeWeek.learningOutcomes.map(o => String(o || '').trim()).filter(o => o.length > 0);
+      if (validOutcomes.length > 0) {
+        return validOutcomes.join(', ');
+      }
+    } else if (typeof activeWeek.learningOutcomes === 'string' && activeWeek.learningOutcomes.trim()) {
+      return activeWeek.learningOutcomes.trim();
+    }
+  }
+
+  // 4. unitName (Ünite Adı / Konu)
+  if (activeWeek.unitName && String(activeWeek.unitName).trim()) {
+    const unitNoStr = activeWeek.unitNo ? `${activeWeek.unitNo}. Ünite: ` : '';
+    return `${unitNoStr}${String(activeWeek.unitName).trim()}`;
+  }
+
+  // 5. descriptions (Açıklamalar)
+  if (activeWeek.descriptions) {
+    if (Array.isArray(activeWeek.descriptions)) {
+      const validDesc = activeWeek.descriptions.map(d => String(d || '').trim()).filter(d => d.length > 0);
+      if (validDesc.length > 0) {
+        return validDesc.join(', ');
+      }
+    } else if (typeof activeWeek.descriptions === 'string' && activeWeek.descriptions.trim()) {
+      return activeWeek.descriptions.trim();
+    }
+  }
+
+  // 6. content alanı
+  if (activeWeek.content && String(activeWeek.content).trim()) {
+    return String(activeWeek.content).trim();
+  }
+
+  return '';
+}
+
 function getActiveWeekIndexLocal(weeklySchedule) {
   if (!weeklySchedule || weeklySchedule.length === 0) return 0;
   const today = new Date();
   today.setHours(0, 0, 0, 0);
+  const todayM = today.getMonth(); // 0-11
+  const todayD = today.getDate(); // 1-31
 
-  // 1. Tarih aralığına göre tam eşleşme kontrolü
+  const parseFlexibleDate = (dateVal) => {
+    if (!dateVal) return null;
+    if (dateVal instanceof Date && !isNaN(dateVal.getTime())) return dateVal;
+    if (typeof dateVal === 'string') {
+      const str = dateVal.trim();
+      if (/^\d{4}-\d{2}-\d{2}/.test(str)) {
+        const parts = str.split('T')[0].split('-');
+        return new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+      }
+      if (/^\d{1,2}[\.\/\-]\d{1,2}[\.\/\-]\d{4}/.test(str)) {
+        const parts = str.split(/[\.\/\-]/);
+        return new Date(parseInt(parts[2], 10), parseInt(parts[1], 10) - 1, parseInt(parts[0], 10));
+      }
+      if (/^\d{1,2}[\.\/\-]\d{1,2}$/.test(str)) {
+        const parts = str.split(/[\.\/\-]/);
+        return new Date(today.getFullYear(), parseInt(parts[1], 10) - 1, parseInt(parts[0], 10));
+      }
+      const parsed = new Date(str);
+      if (!isNaN(parsed.getTime())) return parsed;
+    }
+    return null;
+  };
+
+  // 1. Seviye: startDate - endDate aralık kontrolü
   for (let i = 0; i < weeklySchedule.length; i++) {
     const week = weeklySchedule[i];
     if (week.startDate && week.endDate) {
-      const sDate = new Date(week.startDate);
-      sDate.setHours(0, 0, 0, 0);
-      const eDate = new Date(week.endDate);
-      eDate.setHours(23, 59, 59, 999);
-      eDate.setDate(eDate.getDate() + 2); // Hafta sonu toleransı (Cuma akşamı/Cumartesi rahatlığı için)
-      
-      if (today >= sDate && today <= eDate) {
-        return i;
+      const sDate = parseFlexibleDate(week.startDate);
+      const eDate = parseFlexibleDate(week.endDate);
+      if (sDate && eDate) {
+        sDate.setHours(0, 0, 0, 0);
+        eDate.setHours(23, 59, 59, 999);
+        const eDateExtended = new Date(eDate.getTime());
+        eDateExtended.setDate(eDateExtended.getDate() + 2); // Hafta sonu toleransı
+        
+        // a) Tam zaman karşılaştırması
+        if (today >= sDate && today <= eDateExtended) {
+          return i;
+        }
+
+        // b) Yıl farkı toleransı (Ay ve gün aralığı eşleştirmesi)
+        const sM = sDate.getMonth();
+        const eM = eDate.getMonth();
+        const sD = sDate.getDate();
+        const eD = eDate.getDate() + 2;
+        if (sM === eM && todayM === sM) {
+          if (todayD >= sD && todayD <= eD) {
+            return i;
+          }
+        } else if (sM !== eM) {
+          if ((todayM === sM && todayD >= sD) || (todayM === eM && todayD <= eD)) {
+            return i;
+          }
+        }
       }
     }
   }
 
-  // 2. ISO Hafta koduna göre eşleşme kontrolü
+  // 2. Seviye: dateRange metninden Türkçe ay ve gün aralığı kontrolü
+  const TURKISH_MONTH_MAP = {
+    'ocak': 0, 'şubat': 1, 'subat': 1, 'mart': 2, 'nisan': 3,
+    'mayıs': 4, 'mayis': 4, 'haziran': 5, 'temmuz': 6,
+    'ağustos': 7, 'agustos': 7, 'eylül': 8, 'eylul': 8,
+    'ekim': 9, 'kasım': 10, 'kasim': 10, 'aralık': 11, 'aralik': 11
+  };
+
+  for (let i = 0; i < weeklySchedule.length; i++) {
+    const week = weeklySchedule[i];
+    const rawText = `${week.dateRange || ''} ${week.month || ''}`.toLocaleLowerCase('tr');
+    if (!rawText.trim()) continue;
+
+    let matchedMonthIdx = -1;
+    for (const [mName, mIdx] of Object.entries(TURKISH_MONTH_MAP)) {
+      if (rawText.includes(mName)) {
+        matchedMonthIdx = mIdx;
+        break;
+      }
+    }
+
+    if (matchedMonthIdx === todayM) {
+      const numMatches = rawText.match(/\b\d{1,2}\b/g);
+      if (numMatches && numMatches.length >= 1) {
+        const startDay = parseInt(numMatches[0], 10);
+        const endDay = numMatches.length >= 2 ? parseInt(numMatches[1], 10) + 2 : startDay + 4 + 2;
+        if (todayD >= startDay && todayD <= endDay) {
+          return i;
+        }
+      }
+    }
+  }
+
+  // 3. Seviye: ISO Hafta kodu eşleşmesi
   const currentISOWeek = window.getISOWeek ? window.getISOWeek(today) : '';
   if (currentISOWeek) {
     for (let i = 0; i < weeklySchedule.length; i++) {
@@ -1466,9 +1626,17 @@ function getActiveWeekIndexLocal(weeklySchedule) {
         return i;
       }
     }
+    const weekPart = currentISOWeek.includes('-W') ? currentISOWeek.split('-W')[1] : '';
+    if (weekPart) {
+      for (let i = 0; i < weeklySchedule.length; i++) {
+        if (weeklySchedule[i].isoWeek && weeklySchedule[i].isoWeek.endsWith(`-W${weekPart}`)) {
+          return i;
+        }
+      }
+    }
   }
 
-  // 3. Fallback: Tamamlanmamış ilk normal haftayı seç
+  // 4. Seviye: Tamamlanmamış ilk normal haftayı seç
   for (let i = 0; i < weeklySchedule.length; i++) {
     if (!weeklySchedule[i].isHoliday && !weeklySchedule[i].isCompleted) {
       return i;
@@ -1480,27 +1648,87 @@ function getActiveWeekIndexLocal(weeklySchedule) {
 
 function normalizeLessonName(text) {
   if (!text) return '';
-  return text
-    .toLocaleLowerCase('tr')
-    // Remove class levels like "5. Sınıf", "5-A", "3/A", "5 Sınıf"
-    .replace(/\b\d+([.\-/]sınıf|\s+sınıf|[.\-/][a-z])?\b/gi, '')
-    // Remove standalone numbers
-    .replace(/\b\d+\b/g, '')
-    // Remove all non-alphanumeric Turkish characters
-    .replace(/[^a-z0-9ışğçöü]/gi, '')
-    .trim();
+  try {
+    let textStr = String(text);
+    textStr = textStr
+      .toLocaleLowerCase('tr')
+      // Remove class levels like "5. Sınıf", "5-A", "3/A", "5 Sınıf"
+      .replace(/\b\d+([.\-/]sınıf|\s+sınıf|[.\-/][a-z])?\b/gi, '')
+      // Remove standalone numbers
+      .replace(/\b\d+\b/g, '')
+      // Remove all non-alphanumeric Turkish characters
+      .replace(/[^a-z0-9ışğçöü]/gi, '')
+      .trim();
+
+    // Eşdeğer ders adlarını normalize et (Sinonim Eşleştirmesi)
+    if (textStr.includes('fenbilimleri') || textStr.includes('fenbilgisi') || textStr.includes('fenbilgi') || textStr.includes('fenve') || textStr === 'fen') {
+      return 'fenbilimleri';
+    }
+    if (textStr.includes('bedenegitimi') || textStr.includes('beden') || textStr.includes('sporegitimi')) {
+      return 'bedenegitimi';
+    }
+    if (textStr.includes('gorselsanatlar') || textStr.includes('resim') || textStr.includes('gorsel')) {
+      return 'gorselsanatlar';
+    }
+    if (textStr.includes('dinkulturu') || textStr.includes('dinkulturuveahlakbilgisi') || textStr === 'din') {
+      return 'dinkulturu';
+    }
+    if (textStr.includes('turkce') || textStr.includes('turkdiliveedebiyati')) {
+      return 'turkce';
+    }
+    if (textStr.includes('hayatbilgisi') || textStr.includes('hayat')) {
+      return 'hayatbilgisi';
+    }
+    if (textStr.includes('sosyalbilgiler') || textStr.includes('sosyal')) {
+      return 'sosyalbilgiler';
+    }
+    if (textStr.includes('ingilizce') || textStr === 'ing') {
+      return 'ingilizce';
+    }
+    if (textStr.includes('matematik') || textStr === 'mat') {
+      return 'matematik';
+    }
+    if (textStr.includes('muzik') || textStr === 'muz') {
+      return 'muzik';
+    }
+    if (textStr.includes('bilisim') || textStr.includes('bilgisayar') || textStr.includes('yazilim')) {
+      return 'bilisim';
+    }
+
+    return textStr;
+  } catch (e) {
+    console.error("normalizeLessonName error:", e);
+    return '';
+  }
 }
 
 function isLessonPlanMatch(planName, lessonName) {
+  if (!planName || !lessonName) return false;
+  const pStr = String(planName).toLocaleLowerCase('tr').trim();
+  const lStr = String(lessonName).toLocaleLowerCase('tr').trim();
+
+  // Doğrudan içerik kontrolü
+  if (pStr.includes(lStr) || lStr.includes(pStr)) return true;
+
   const normPlan = normalizeLessonName(planName);
   const normLesson = normalizeLessonName(lessonName);
-  if (!normPlan || !normLesson) return false;
-  return normPlan.includes(normLesson) || normLesson.includes(normPlan);
+  if (normPlan && normLesson) {
+    if (normPlan.includes(normLesson) || normLesson.includes(normPlan)) return true;
+  }
+
+  // Kelime bazlı kesişim kontrolü
+  const pWords = pStr.split(/[\s\-_\/,\.]+/).filter(w => w.length >= 3);
+  const lWords = lStr.split(/[\s\-_\/,\.]+/).filter(w => w.length >= 3);
+  const commonWords = pWords.filter(w => lWords.includes(w));
+  if (commonWords.length > 0) return true;
+
+  return false;
 }
 
 function getTopicForLesson(lessonName, plans) {
+  if (!plans || !plans.length) return 'Yıllık plan yüklenmemiş.';
   const matchedPlan = plans.find(p => {
-    return isLessonPlanMatch(p.courseName || p.title, lessonName);
+    return p && isLessonPlanMatch(p.courseName || p.title, lessonName);
   });
 
   if (matchedPlan) {
@@ -1511,7 +1739,8 @@ function getTopicForLesson(lessonName, plans) {
       if (activeWeek.isHoliday) {
         return 'Resmi Tatil / Ara Tatil';
       }
-      return activeWeek.topics && activeWeek.topics.length ? activeWeek.topics.join(', ') : 'Konu bilgisi girilmemiş.';
+      const topic = extractWeekTopicText(activeWeek);
+      return topic || 'Bu hafta için ders konusu girilmemiş.';
     }
   }
   return 'Yıllık plan yüklenmemiş.';
@@ -1747,11 +1976,18 @@ function updateFlowContent(syncWithRealTime = true) {
             flowPlanTopic.textContent = `🌴 Resmi Tatil / Ara Tatil: ${activeWeek.dateRange || ''}`;
             if (flowPlanOutcomesContainer) flowPlanOutcomesContainer.style.display = 'none';
           } else {
-            const topicText = activeWeek.topics && activeWeek.topics.length ? activeWeek.topics.join('\n') : 'Bu hafta için konu bilgisi girilmemiş.';
-            flowPlanTopic.textContent = topicText;
+            const topicText = extractWeekTopicText(activeWeek);
+            flowPlanTopic.textContent = topicText || 'Bu hafta için ders konusu girilmemiş.';
 
-            const outcomesText = activeWeek.learningOutcomes && activeWeek.learningOutcomes.length ? activeWeek.learningOutcomes.join('\n') : '';
-            if (outcomesText) {
+            let outcomesText = '';
+            if (activeWeek.learningOutcomes) {
+              if (Array.isArray(activeWeek.learningOutcomes)) {
+                outcomesText = activeWeek.learningOutcomes.map(o => String(o || '').trim()).filter(o => o).join('\n');
+              } else if (typeof activeWeek.learningOutcomes === 'string') {
+                outcomesText = activeWeek.learningOutcomes.trim();
+              }
+            }
+            if (outcomesText && outcomesText !== topicText) {
               if (flowPlanOutcomes) flowPlanOutcomes.textContent = outcomesText;
               if (flowPlanOutcomesContainer) flowPlanOutcomesContainer.style.display = 'block';
             } else {
@@ -1875,6 +2111,307 @@ function updateFlowContent(syncWithRealTime = true) {
     });
   }
 
+  function getCurrentLessonInfo() {
+    const state = stateManager.loadState();
+    const times = state.scheduleTimes || {};
+    const grid = state.scheduleGrid || {};
+    const lessons = state.definedLessons || [];
+    
+    const now = new Date();
+    const dayOfWeek = now.getDay(); // 0: Pazar, 1: Pzt, ..., 6: Cmt
+    const daysOfWeekEnums = ['Pazar', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi'];
+    const dayName = daysOfWeekEnums[dayOfWeek];
+
+    const parseTimeToMinutes = (timeStr) => {
+      if (!timeStr) return 0;
+      const parts = timeStr.split(':');
+      return parseInt(parts[0]) * 60 + parseInt(parts[1]);
+    };
+
+    const curTimeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    const curMin = parseTimeToMinutes(curTimeStr);
+
+    const isMiddle = state.educationLevel === 'middle';
+    const pKeys = isMiddle 
+      ? ['p1', 'p2', 'p3', 'p4', 'p5', 'p6', 'p7']
+      : ['p1', 'p2', 'p3', 'p4', 'p5', 'p6'];
+
+    let periodNum = '';
+    let lessonName = '';
+    let lessonColor = '';
+    let statusType = 'outside'; // 'lesson', 'break', 'lunch', 'outside'
+    let lessonTopic = 'Konu bilgisi bulunamadı veya ders boş.';
+    let remainingMinutes = null;
+    let remainingText = '';
+
+    if (dayOfWeek >= 1 && dayOfWeek <= 5) {
+      // 1. Check if inside a lesson period
+      let resolvedPeriod = null;
+      let resolvedEndMin = 0;
+      for (let i = 0; i < pKeys.length; i++) {
+        const pKey = pKeys[i];
+        const pData = times[pKey];
+        if (pData && pData.start && pData.end) {
+          const pStart = parseTimeToMinutes(pData.start);
+          const pEnd = parseTimeToMinutes(pData.end);
+          if (curMin >= pStart && curMin <= pEnd) {
+            resolvedPeriod = pKey;
+            resolvedEndMin = pEnd;
+            break;
+          }
+        }
+      }
+
+      lessonTopic = 'Konu bilgisi bulunamadı veya ders boş.';
+      const plans = state.plans || [];
+
+      if (resolvedPeriod) {
+        statusType = 'lesson';
+        periodNum = resolvedPeriod.replace('p', '') + '. Ders';
+        remainingMinutes = Math.max(0, resolvedEndMin - curMin);
+        remainingText = remainingMinutes === 0 ? 'teneffüse 1 dakikadan az kaldı' : `teneffüse ${remainingMinutes} dakika kaldı`;
+
+        const gridKey = `${dayOfWeek}-${resolvedPeriod}`;
+        const lessonId = grid[gridKey] || '';
+        const lesson = lessons.find(l => l.id === lessonId);
+        if (lesson) {
+          lessonName = lesson.name;
+          lessonColor = lesson.color;
+
+          // Yıllık plandaki dersi ve konuyu eşleştir
+          const matchedPlan = plans.find(p => {
+            return p && isLessonPlanMatch(p.courseName || p.title, lesson.name);
+          });
+
+          if (matchedPlan) {
+            const schedule = matchedPlan.weeklySchedule || matchedPlan.weeks || [];
+            const activeWeekIndex = getActiveWeekIndexLocal(schedule);
+            const activeWeek = schedule[activeWeekIndex];
+
+            if (activeWeek) {
+              if (activeWeek.isHoliday) {
+                lessonTopic = `Tatil: ${activeWeek.dateRange || ''}`;
+              } else {
+                const topic = extractWeekTopicText(activeWeek);
+                lessonTopic = topic || 'Bu hafta için ders konusu girilmemiş.';
+              }
+            } else {
+              lessonTopic = 'Bu hafta için plan konusu bulunamadı.';
+            }
+          } else {
+            lessonTopic = 'Yıllık plan bulunamadı.';
+          }
+        } else {
+          lessonName = 'Boş Ders';
+          lessonTopic = 'Boş ders saati.';
+        }
+      } else {
+        // 2. Check if inside lunch break
+        const lunchData = times['lunch'];
+        let isLunch = false;
+        let lunchEndMin = 0;
+        if (lunchData && lunchData.start && lunchData.end) {
+          const lStart = parseTimeToMinutes(lunchData.start);
+          const lEnd = parseTimeToMinutes(lunchData.end);
+          if (curMin >= lStart && curMin <= lEnd) {
+            isLunch = true;
+            lunchEndMin = lEnd;
+          }
+        }
+
+        if (isLunch) {
+          statusType = 'lunch';
+          periodNum = 'Öğle Arası';
+          lessonName = 'Öğle Yemeği / Dinlenme 🍽️';
+          lessonTopic = 'Yemek ve dinlenme zamanı.';
+          remainingMinutes = Math.max(0, lunchEndMin - curMin);
+          remainingText = remainingMinutes === 0 ? 'derse 1 dakikadan az kaldı' : `derse ${remainingMinutes} dakika kaldı`;
+        } else {
+          // 3. Check if inside a regular break (teneffüs)
+          let breakNextPeriod = null;
+          let breakEndMin = 0;
+          for (let i = 0; i < pKeys.length - 1; i++) {
+            const currentPKey = pKeys[i];
+            const nextPKey = pKeys[i + 1];
+            const currentEnd = times[currentPKey] ? parseTimeToMinutes(times[currentPKey].end) : 0;
+            const nextStart = times[nextPKey] ? parseTimeToMinutes(times[nextPKey].start) : 0;
+            
+            if (currentEnd && nextStart && curMin > currentEnd && curMin < nextStart) {
+              breakNextPeriod = nextPKey;
+              breakEndMin = nextStart;
+              break;
+            }
+          }
+
+          if (breakNextPeriod) {
+            statusType = 'break';
+            periodNum = 'Teneffüs';
+            remainingMinutes = Math.max(0, breakEndMin - curMin);
+            remainingText = remainingMinutes === 0 ? 'derse 1 dakikadan az kaldı' : `derse ${remainingMinutes} dakika kaldı`;
+
+            const gridKey = `${dayOfWeek}-${breakNextPeriod}`;
+            const nextLessonId = grid[gridKey] || '';
+            const nextLesson = lessons.find(l => l.id === nextLessonId);
+            if (nextLesson) {
+              lessonName = `Sıradaki: ${nextLesson.name}`;
+              lessonColor = nextLesson.color;
+
+              // Sıradaki dersin konusunu çek
+              const matchedPlan = plans.find(p => {
+                return p && isLessonPlanMatch(p.courseName || p.title, nextLesson.name);
+              });
+
+              if (matchedPlan) {
+                const schedule = matchedPlan.weeklySchedule || matchedPlan.weeks || [];
+                const activeWeekIndex = getActiveWeekIndexLocal(schedule);
+                const activeWeek = schedule[activeWeekIndex];
+
+                if (activeWeek) {
+                  if (activeWeek.isHoliday) {
+                    lessonTopic = 'Sıradaki ders tatil.';
+                  } else {
+                    const topic = extractWeekTopicText(activeWeek);
+                    lessonTopic = topic ? `Sıradaki Konu: ${topic}` : 'Sıradaki ders konusu girilmemiş.';
+                  }
+                } else {
+                  lessonTopic = 'Sıradaki ders plan konusu bulunamadı.';
+                }
+              } else {
+                lessonTopic = 'Sıradaki ders için plan bulunamadı.';
+              }
+            } else {
+              lessonName = 'Sıradaki Ders Boş';
+              lessonTopic = 'Teneffüsten sonra ders boş.';
+            }
+          } else {
+            statusType = 'outside';
+            periodNum = 'Ders Saati Dışı';
+            lessonName = 'Serbest Zaman';
+            lessonTopic = 'Ders saatleri dışındasınız.';
+          }
+        }
+      }
+    } else {
+      statusType = 'outside';
+      periodNum = 'Hafta Sonu';
+      lessonName = 'Dinlenme Günü';
+      lessonTopic = 'Hafta sonu tatili.';
+    }
+
+    const selectedWeek = stateManager.getSelectedWeek() || (window.getISOWeek ? window.getISOWeek(now) : '');
+    let weekText = '';
+    if (selectedWeek) {
+      const parts = selectedWeek.split('-W');
+      if (parts.length === 2) {
+        weekText = `${parts[1]}. Hafta`;
+      } else {
+        weekText = selectedWeek;
+      }
+    }
+
+    return {
+      dayName,
+      periodNum,
+      lessonName,
+      lessonColor,
+      statusType,
+      weekText,
+      lessonTopic,
+      remainingMinutes,
+      remainingText
+    };
+  }
+
+  function updateDashboardHeaderLessonInfo() {
+    const headerTitle = document.getElementById('dashboard-header-title');
+    if (!headerTitle) return;
+
+    const info = getCurrentLessonInfo();
+    
+    // Style the badge based on lesson color if available
+    let lessonBadgeStyle = '';
+    if (info.lessonColor) {
+      lessonBadgeStyle = `background: ${info.lessonColor}1a; color: ${info.lessonColor}; border: 1px solid ${info.lessonColor}33;`;
+    } else {
+      lessonBadgeStyle = `background: var(--bg-secondary); color: var(--text-secondary); border: 1px solid var(--border-color);`;
+    }
+
+    let statusIcon = 'book-open';
+    if (info.statusType === 'lunch') statusIcon = 'utensils';
+    else if (info.statusType === 'break') statusIcon = 'bell';
+    else if (info.statusType === 'outside') statusIcon = 'moon';
+
+    const safeTopic = (info.lessonTopic || '').replace(/"/g, '&quot;');
+
+    headerTitle.innerHTML = `
+      <div class="current-lesson-highlight-box">
+        <!-- Üst Satır: Ders Saati ve Ders Adı -->
+        <div class="highlight-row top-row">
+          <div class="info-item period-item">
+            <i data-lucide="clock"></i>
+            <span>${info.periodNum}</span>
+          </div>
+          <div class="divider"></div>
+          <div class="info-item lesson-item">
+            <i data-lucide="${statusIcon}"></i>
+            <span class="lesson-badge" style="${lessonBadgeStyle}">${info.lessonName.toUpperCase()}</span>
+          </div>
+        </div>
+        
+        <!-- Alt Satır: Hafta ve Kalan Süre -->
+        <div class="highlight-row bottom-row">
+          ${info.weekText ? `
+            <div class="info-item week-item">
+              <i data-lucide="calendar-days"></i>
+              <span>${info.weekText}</span>
+            </div>
+          ` : ''}
+          ${info.remainingText ? `
+            ${info.weekText ? '<div class="divider"></div>' : ''}
+            <div class="info-item remaining-item" title="Dersin / Aranın bitmesine kalan süre">
+              <i data-lucide="hourglass" class="remaining-icon"></i>
+              <span class="remaining-text">${info.remainingText}</span>
+            </div>
+          ` : ''}
+        </div>
+      </div>
+
+      <!-- Sağdaki Kutu: Aktif Ders Konusu (Sabit Boyutlu, Göz İkonlu) -->
+      <div class="lesson-topic-highlight-box" id="btn-open-topic-modal" style="cursor: pointer;" title="Tüm konuyu ve akış detayını görüntülemek için tıklayın">
+        <div class="topic-header">
+          <div class="topic-title-group">
+            <i data-lucide="book-open"></i>
+            <span>AKTİF DERS KONUSU</span>
+          </div>
+          <button type="button" class="btn-topic-eye" id="btn-topic-eye" title="Tüm konuyu ve kazanımları görüntüle">
+            <i data-lucide="eye"></i>
+          </button>
+        </div>
+        <div class="topic-content" title="${safeTopic}">
+          ${info.lessonTopic}
+        </div>
+      </div>
+    `;
+
+    const openTopicBtn = document.getElementById('btn-open-topic-modal');
+    if (openTopicBtn) {
+      openTopicBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        const flowModal = document.getElementById('modal-flow-info');
+        if (flowModal) {
+          flowModal.classList.add('active');
+          if (window.updateFlowContent) {
+            window.updateFlowContent(true);
+          }
+        }
+      });
+    }
+
+    if (window.safeCreateIcons) {
+      window.safeCreateIcons();
+    }
+  }
+
   window.openAttendanceModal = openAttendanceModal;
   window.renderAttendanceStudentsList = renderAttendanceStudentsList;
   window.updateFlowContent = updateFlowContent;
@@ -1882,4 +2419,8 @@ function updateFlowContent(syncWithRealTime = true) {
   window.renderDashboard = renderDashboard;
   window.openStudentDetailModal = openStudentDetailModal;
   window.openEditStudentModal = openEditStudentModal;
+  window.updateDashboardHeaderLessonInfo = updateDashboardHeaderLessonInfo;
+  window.getCurrentLessonInfo = getCurrentLessonInfo;
+  window.normalizeLessonName = normalizeLessonName;
+  window.isLessonPlanMatch = isLessonPlanMatch;
 })();

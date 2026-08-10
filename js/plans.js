@@ -485,7 +485,24 @@
     if (!file) return;
 
     const baseName = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
-    if (planCourseNameInput) planCourseNameInput.value = baseName;
+    
+    // Automatically match defined lesson from state
+    if (window.isLessonPlanMatch) {
+      const state = stateManager.loadState();
+      const lessons = state.definedLessons || [];
+      const matched = lessons.find(l => l && window.isLessonPlanMatch(baseName, l.name));
+      if (matched && planCourseNameSelect) {
+        planCourseNameSelect.value = matched.name;
+        if (planCourseNameInput) planCourseNameInput.value = matched.name;
+        if (planCourseNameInputContainer) planCourseNameInputContainer.style.display = 'none';
+      } else {
+        if (planCourseNameSelect) planCourseNameSelect.value = 'custom';
+        if (planCourseNameInput) planCourseNameInput.value = baseName;
+        if (planCourseNameInputContainer) planCourseNameInputContainer.style.display = 'block';
+      }
+    } else {
+      if (planCourseNameInput) planCourseNameInput.value = baseName;
+    }
 
     const isDocx = file.name.toLowerCase().endsWith('.docx');
 
@@ -1358,35 +1375,121 @@
   }
 
   function getActiveWeekIndex(weeklySchedule) {
+    if (!weeklySchedule || weeklySchedule.length === 0) return 0;
     const today = new Date();
     today.setHours(0, 0, 0, 0);
+    const todayM = today.getMonth(); // 0-11
+    const todayD = today.getDate(); // 1-31
 
-    // 1. Exact Date range check
+    const parseFlexibleDate = (dateVal) => {
+      if (!dateVal) return null;
+      if (dateVal instanceof Date && !isNaN(dateVal.getTime())) return dateVal;
+      if (typeof dateVal === 'string') {
+        const str = dateVal.trim();
+        if (/^\d{4}-\d{2}-\d{2}/.test(str)) {
+          const parts = str.split('T')[0].split('-');
+          return new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+        }
+        if (/^\d{1,2}[\.\/\-]\d{1,2}[\.\/\-]\d{4}/.test(str)) {
+          const parts = str.split(/[\.\/\-]/);
+          return new Date(parseInt(parts[2], 10), parseInt(parts[1], 10) - 1, parseInt(parts[0], 10));
+        }
+        if (/^\d{1,2}[\.\/\-]\d{1,2}$/.test(str)) {
+          const parts = str.split(/[\.\/\-]/);
+          return new Date(today.getFullYear(), parseInt(parts[1], 10) - 1, parseInt(parts[0], 10));
+        }
+        const parsed = new Date(str);
+        if (!isNaN(parsed.getTime())) return parsed;
+      }
+      return null;
+    };
+
+    // 1. Seviye: startDate - endDate aralık kontrolü
     for (let i = 0; i < weeklySchedule.length; i++) {
       const week = weeklySchedule[i];
       if (week.startDate && week.endDate) {
-        const sDate = new Date(week.startDate);
-        sDate.setHours(0, 0, 0, 0);
-        const eDate = new Date(week.endDate);
-        eDate.setHours(23, 59, 59, 999);
-        // Extend Friday to Sunday for weekend comfort
-        eDate.setDate(eDate.getDate() + 2);
-        
-        if (today >= sDate && today <= eDate) {
-          return i;
+        const sDate = parseFlexibleDate(week.startDate);
+        const eDate = parseFlexibleDate(week.endDate);
+        if (sDate && eDate) {
+          sDate.setHours(0, 0, 0, 0);
+          eDate.setHours(23, 59, 59, 999);
+          const eDateExtended = new Date(eDate.getTime());
+          eDateExtended.setDate(eDateExtended.getDate() + 2); // Hafta sonu toleransı
+          
+          if (today >= sDate && today <= eDateExtended) {
+            return i;
+          }
+
+          // Yıl toleransı (Ay ve gün aralığı kontrolü)
+          const sM = sDate.getMonth();
+          const eM = eDate.getMonth();
+          const sD = sDate.getDate();
+          const eD = eDate.getDate() + 2;
+          if (sM === eM && todayM === sM) {
+            if (todayD >= sD && todayD <= eD) {
+              return i;
+            }
+          } else if (sM !== eM) {
+            if ((todayM === sM && todayD >= sD) || (todayM === eM && todayD <= eD)) {
+              return i;
+            }
+          }
         }
       }
     }
 
-    // 2. ISO Week code check
-    const currentISOWeek = window.getISOWeek(today);
+    // 2. Seviye: dateRange metninden Türkçe ay ve gün aralığı kontrolü
+    const TURKISH_MONTH_MAP = {
+      'ocak': 0, 'şubat': 1, 'subat': 1, 'mart': 2, 'nisan': 3,
+      'mayıs': 4, 'mayis': 4, 'haziran': 5, 'temmuz': 6,
+      'ağustos': 7, 'agustos': 7, 'eylül': 8, 'eylul': 8,
+      'ekim': 9, 'kasım': 10, 'kasim': 10, 'aralık': 11, 'aralik': 11
+    };
+
     for (let i = 0; i < weeklySchedule.length; i++) {
-      if (weeklySchedule[i].isoWeek === currentISOWeek) {
-        return i;
+      const week = weeklySchedule[i];
+      const rawText = `${week.dateRange || ''} ${week.month || ''}`.toLocaleLowerCase('tr');
+      if (!rawText.trim()) continue;
+
+      let matchedMonthIdx = -1;
+      for (const [mName, mIdx] of Object.entries(TURKISH_MONTH_MAP)) {
+        if (rawText.includes(mName)) {
+          matchedMonthIdx = mIdx;
+          break;
+        }
+      }
+
+      if (matchedMonthIdx === todayM) {
+        const numMatches = rawText.match(/\b\d{1,2}\b/g);
+        if (numMatches && numMatches.length >= 1) {
+          const startDay = parseInt(numMatches[0], 10);
+          const endDay = numMatches.length >= 2 ? parseInt(numMatches[1], 10) + 2 : startDay + 4 + 2;
+          if (todayD >= startDay && todayD <= endDay) {
+            return i;
+          }
+        }
       }
     }
 
-    // 3. First incomplete week fallback
+    // 3. Seviye: ISO Hafta kodu kontrolü
+    const currentISOWeek = window.getISOWeek ? window.getISOWeek(today) : '';
+    if (currentISOWeek) {
+      for (let i = 0; i < weeklySchedule.length; i++) {
+        if (weeklySchedule[i].isoWeek === currentISOWeek) {
+          return i;
+        }
+      }
+      const weekPart = currentISOWeek.includes('-W') ? currentISOWeek.split('-W')[1] : '';
+      if (weekPart) {
+        for (let i = 0; i < weeklySchedule.length; i++) {
+          if (weeklySchedule[i].isoWeek && weeklySchedule[i].isoWeek.endsWith(`-W${weekPart}`)) {
+            return i;
+          }
+        }
+      }
+    }
+
+    // 4. Seviye: Tamamlanmamış ilk normal haftayı seç
     for (let i = 0; i < weeklySchedule.length; i++) {
       if (!weeklySchedule[i].isHoliday && !weeklySchedule[i].isCompleted) {
         return i;

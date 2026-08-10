@@ -193,9 +193,8 @@
       
       <section id="dashboard" class="content-section active">
         <div class="page-header">
-          <div class="header-title">
-            <h2>Sınıf Kontrol Paneli</h2>
-            <p>Sınıfınızın genel performansı ve haftalık akademik analizi.</p>
+          <div class="header-title" id="dashboard-header-title">
+            <!-- Dinamik olarak ders ve gün bilgisi yüklenecektir -->
           </div>
           <div class="header-actions" id="dashboard-header-actions">
             <!-- JS ile dinamik butonlar yüklenecektir -->
@@ -4107,14 +4106,14 @@
 
   <!-- MODAL: DERS AKIŞ BİLGİSİ -->
   <div class="modal" id="modal-flow-info" style="--max-width: 550px;">
-    <div class="modal-content" style="max-width: 550px;">
-      <div class="modal-header" style="background: rgba(99, 102, 241, 0.1); color: var(--primary); display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.5rem; border-bottom: 1px solid var(--border-color);">
+    <div class="modal-content" style="max-width: 550px; width: 95%; max-height: 85vh; display: flex; flex-direction: column;">
+      <div class="modal-header" style="background: rgba(99, 102, 241, 0.1); color: var(--primary); display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.5rem; border-bottom: 1px solid var(--border-color); flex-shrink: 0;">
         <h3 style="display: flex; align-items: center; gap: 0.5rem; font-size: 1.1rem; font-weight: 700; margin: 0;">
           <i data-lucide="activity" style="width: 18px; height: 18px;"></i> Ders ve Konu Akışı
         </h3>
         <button class="close-btn" id="btn-close-flow-info" style="background: transparent; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-secondary);">&times;</button>
       </div>
-      <div class="modal-body" style="padding: 1.5rem; display: flex; flex-direction: column; gap: 1.25rem;">
+      <div class="modal-body" style="padding: 1.5rem; display: flex; flex-direction: column; gap: 1.25rem; overflow-y: auto; max-height: calc(85vh - 70px);">
         
         <!-- Manuel Sorgulama Paneli -->
         <div style="background: var(--bg-secondary); padding: 1rem; border-radius: var(--radius-md); border: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 0.75rem;">

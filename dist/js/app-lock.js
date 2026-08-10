@@ -23,8 +23,9 @@
   function getCurrentBreakId() {
     const state = window.AppState ? window.AppState.state : null;
     if (!state || !state.scheduleTimes) return null;
-    const times = state.scheduleTimes;
-    const periodKeys = ['p1','p2','p3','p4','p5','p6','p7'].filter(k => times[k]);
+    const isMiddle = state.educationLevel === 'middle';
+    const maxPeriods = isMiddle ? ['p1','p2','p3','p4','p5','p6','p7'] : ['p1','p2','p3','p4','p5','p6'];
+    const periodKeys = maxPeriods.filter(k => times[k]);
     const now = new Date();
     const curMin = now.getHours() * 60 + now.getMinutes();
     const dayOfWeek = now.getDay();
