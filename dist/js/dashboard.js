@@ -1024,11 +1024,14 @@ function renderDashboardMonthly() {
     const perfRecords = state.performance.filter(p => {
       if (p.studentId !== student.id) return false;
       
-      // Kaydın tarihini/ayını bul
+      // Kaydın ait olduğu ayı bul (Önce weekId/homeworkId, sonra date kontrol edilir)
       let recordMonth = '';
-      if (p.date) {
-        const d = new Date(p.date);
-        if (!isNaN(d.getTime())) {
+      if (p.weekId) {
+        const parts = p.weekId.split('-W');
+        if (parts.length === 2) {
+          const year = parseInt(parts[0]);
+          const week = parseInt(parts[1]);
+          const d = getDayInWeek(year, week, 4);
           const yyyy = d.getFullYear();
           const mm = String(d.getMonth() + 1).padStart(2, '0');
           recordMonth = `${yyyy}-${mm}`;
@@ -1043,12 +1046,9 @@ function renderDashboardMonthly() {
             recordMonth = `${yyyy}-${mm}`;
           }
         }
-      } else if (p.weekId) {
-        const parts = p.weekId.split('-W');
-        if (parts.length === 2) {
-          const year = parseInt(parts[0]);
-          const week = parseInt(parts[1]);
-          const d = getDayInWeek(year, week, 4);
+      } else if (p.date) {
+        const d = new Date(p.date);
+        if (!isNaN(d.getTime())) {
           const yyyy = d.getFullYear();
           const mm = String(d.getMonth() + 1).padStart(2, '0');
           recordMonth = `${yyyy}-${mm}`;
