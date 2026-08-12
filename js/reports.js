@@ -394,6 +394,46 @@
 
       // A. Kitap İstatistikleri
       if (showBooks) {
+        // Sınıftaki okuma başarı sıralaması hesaplama (seçili tarih aralığındaki sayfa sayısı ve kitap sayısına göre)
+        const classBookStats = filteredStudents.map(s => {
+          const sReturnTx = (state.books.transactions || []).filter(t => {
+            if (t.studentId !== s.id || !t.returnDate) return false;
+            const returnD = new Date(t.returnDate);
+            return returnD >= startDate && returnD <= endDate;
+          });
+
+          let sReadPages = 0;
+          sReturnTx.forEach(t => {
+            const book = (state.books.library || []).find(b => b.id === t.bookId);
+            if (book) {
+              sReadPages += parseInt(book.pages) || 0;
+            }
+          });
+
+          return {
+            studentId: s.id,
+            bookCount: sReturnTx.length,
+            totalPages: sReadPages
+          };
+        });
+
+        classBookStats.sort((a, b) => {
+          if (b.totalPages !== a.totalPages) {
+            return b.totalPages - a.totalPages;
+          }
+          if (b.bookCount !== a.bookCount) {
+            return b.bookCount - a.bookCount;
+          }
+          const studentA = state.students.find(s => s.id === a.studentId) || { name: '', surname: '' };
+          const studentB = state.students.find(s => s.id === b.studentId) || { name: '', surname: '' };
+          const nameA = `${studentA.name} ${studentA.surname}`;
+          const nameB = `${studentB.name} ${studentB.surname}`;
+          return nameA.localeCompare(nameB, 'tr');
+        });
+
+        const bookRankIndex = classBookStats.findIndex(b => b.studentId === student.id);
+        const bookRank = bookRankIndex !== -1 ? bookRankIndex + 1 : '-';
+
         const returnTx = (state.books.transactions || []).filter(t => {
           if (t.studentId !== student.id || !t.returnDate) return false;
           const returnD = new Date(t.returnDate);
@@ -431,6 +471,10 @@
               <div class="report-stat-box">
                 <span class="stat-val">%${readPercentage}</span>
                 <span class="stat-lbl">Kütüphane Okuma Oranı</span>
+              </div>
+              <div class="report-stat-box" style="color: #6366f1;">
+                <span class="stat-val" style="color: #6366f1;">#${bookRank} / ${filteredStudents.length}</span>
+                <span class="stat-lbl">Sınıf Okuma Sırası</span>
               </div>
             </div>
           </div>
@@ -684,6 +728,51 @@
 
     // 1. Kitap Okuma
     if (criteria.books) {
+      const isMiddle = state.educationLevel === 'middle';
+      const branchFilter = student.branch;
+      const classStudents = (state.students || []).filter(s => {
+        return !isMiddle || !branchFilter || s.branch === branchFilter;
+      });
+
+      const classBookStats = classStudents.map(s => {
+        const sReturnTx = (state.books.transactions || []).filter(t => {
+          if (t.studentId !== s.id || !t.returnDate) return false;
+          const returnD = new Date(t.returnDate);
+          return returnD >= startDate && returnD <= endDate;
+        });
+
+        let sReadPages = 0;
+        sReturnTx.forEach(t => {
+          const book = (state.books.library || []).find(b => b.id === t.bookId);
+          if (book) {
+            sReadPages += parseInt(book.pages) || 0;
+          }
+        });
+
+        return {
+          studentId: s.id,
+          bookCount: sReturnTx.length,
+          totalPages: sReadPages
+        };
+      });
+
+      classBookStats.sort((a, b) => {
+        if (b.totalPages !== a.totalPages) {
+          return b.totalPages - a.totalPages;
+        }
+        if (b.bookCount !== a.bookCount) {
+          return b.bookCount - a.bookCount;
+        }
+        const studentA = state.students.find(s => s.id === a.studentId) || { name: '', surname: '' };
+        const studentB = state.students.find(s => s.id === b.studentId) || { name: '', surname: '' };
+        const nameA = `${studentA.name} ${studentA.surname}`;
+        const nameB = `${studentB.name} ${studentB.surname}`;
+        return nameA.localeCompare(nameB, 'tr');
+      });
+
+      const bookRankIndex = classBookStats.findIndex(b => b.studentId === student.id);
+      const bookRank = bookRankIndex !== -1 ? bookRankIndex + 1 : '-';
+
       const returnTx = (state.books.transactions || []).filter(t => {
         if (t.studentId !== student.id || !t.returnDate) return false;
         const returnD = new Date(t.returnDate);
@@ -697,7 +786,7 @@
           readPages += parseInt(book.pages) || 0;
         }
       });
-      msg += `📚 *Kitap Okuma:* ${returnTx.length} Kitap (${readPages} Sayfa)\n`;
+      msg += `📚 *Kitap Okuma:* ${returnTx.length} Kitap (${readPages} Sayfa) | Sınıf Sırası: #${bookRank}/${classStudents.length}\n`;
     }
 
     // 2. Ödev

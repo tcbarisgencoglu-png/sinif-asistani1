@@ -1615,6 +1615,62 @@ body {
   .header-title {
     width: 100% !important;
   }
+
+  /* Mobil görünüm için başlık kutularının dikey dizilimi ve kayma engelleme */
+  #dashboard-header-title {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 0.75rem !important;
+    margin-right: 0 !important;
+    width: 100% !important;
+  }
+
+  .current-lesson-highlight-box,
+  .lesson-topic-highlight-box {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    height: auto !important;
+    min-height: 72px !important;
+    padding: 0.65rem 1rem !important;
+    box-sizing: border-box !important;
+  }
+
+  .current-lesson-highlight-box .top-row {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    align-items: center !important;
+    gap: 0.5rem !important;
+  }
+
+  .current-lesson-highlight-box .lesson-progress-container {
+    margin-top: 0.35rem !important;
+    width: 100% !important;
+  }
+
+  .lesson-topic-highlight-box .topic-content {
+    white-space: normal !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+  }
+
+  .quick-menu-box {
+    align-items: center !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .quick-menu-box > span {
+    align-self: flex-start !important;
+  }
+
+  .quick-menu-box > div {
+    width: 100% !important;
+    justify-content: center !important;
+    flex-wrap: wrap !important;
+    gap: 0.5rem !important;
+  }
   
   .header-actions {
     display: flex !important;
@@ -5402,20 +5458,21 @@ input:checked + .slider:before {
 .current-lesson-highlight-box .info-item {
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: 0.35rem;
   white-space: nowrap;
 }
 
 .current-lesson-highlight-box .top-row .info-item {
-  font-size: 0.95rem;
-  color: var(--text-primary);
+  font-size: 0.78rem;
+  color: var(--text-secondary);
   font-weight: 700;
+  letter-spacing: 0.02em;
 }
 
 .current-lesson-highlight-box .top-row .info-item i,
 .current-lesson-highlight-box .top-row .info-item svg {
-  width: 16px;
-  height: 16px;
+  width: 13px;
+  height: 13px;
   color: var(--primary);
   opacity: 0.9;
   flex-shrink: 0;
@@ -5426,74 +5483,124 @@ input:checked + .slider:before {
   color: var(--info);
 }
 
-.current-lesson-highlight-box .bottom-row .info-item {
-  font-size: 0.82rem;
-  color: var(--text-secondary);
-  font-weight: 600;
-}
-
-.current-lesson-highlight-box .bottom-row .info-item i,
-.current-lesson-highlight-box .bottom-row .info-item svg {
-  width: 14px;
-  height: 14px;
-  color: var(--primary);
-  opacity: 0.8;
-  flex-shrink: 0;
-}
-
-[data-theme="dark"] .current-lesson-highlight-box .bottom-row .info-item i,
-[data-theme="dark"] .current-lesson-highlight-box .bottom-row .info-item svg {
-  color: var(--info);
-}
-
-.current-lesson-highlight-box .bottom-row .remaining-item {
-  color: #f59e0b;
-  font-weight: 700;
-}
-
-.current-lesson-highlight-box .bottom-row .remaining-item i,
-.current-lesson-highlight-box .bottom-row .remaining-item svg {
-  color: #f59e0b !important;
-  opacity: 1 !important;
-}
-
-[data-theme="dark"] .current-lesson-highlight-box .bottom-row .remaining-item {
-  color: #fbbf24;
-}
-
-[data-theme="dark"] .current-lesson-highlight-box .bottom-row .remaining-item i,
-[data-theme="dark"] .current-lesson-highlight-box .bottom-row .remaining-item svg {
-  color: #fbbf24 !important;
-}
-
 .current-lesson-highlight-box .top-row .divider {
-  width: 1.5px;
-  height: 14px;
-  background-color: var(--border-color);
-  opacity: 0.7;
-}
-
-.current-lesson-highlight-box .bottom-row .divider {
   width: 1.5px;
   height: 11px;
   background-color: var(--border-color);
-  opacity: 0.5;
+  opacity: 0.6;
 }
 
-.current-lesson-highlight-box .lesson-badge {
-  padding: 0.2rem 0.6rem;
-  border-radius: var(--radius-sm);
-  font-size: 0.82rem;
-  font-weight: 800;
-  letter-spacing: 0.03em;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
-  display: inline-flex;
+/* Kalan Süre Azalan Çubuk ve Ders Adı Kapsayıcısı */
+.current-lesson-highlight-box .lesson-progress-container {
+  position: relative;
+  width: 100%;
+  height: 32px;
+  border-radius: var(--radius-sm, 7px);
+  overflow: hidden;
+  display: flex;
   align-items: center;
-  justify-content: center;
-  max-width: 180px;
+  border: 1.5px solid rgba(99, 102, 241, 0.25);
+  background: rgba(0, 0, 0, 0.03);
+  box-sizing: border-box;
+}
+
+[data-theme="dark"] .current-lesson-highlight-box .lesson-progress-container {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+[data-theme="pastel"] .current-lesson-highlight-box .lesson-progress-container {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+.current-lesson-highlight-box .lesson-progress-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  background: linear-gradient(90deg, rgba(99, 102, 241, 0.2), rgba(99, 102, 241, 0.45));
+  border-right: 2.5px solid var(--primary);
+  border-radius: var(--radius-sm, 7px) 0 0 var(--radius-sm, 7px);
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 1;
+  pointer-events: none;
+}
+
+.current-lesson-highlight-box .lesson-progress-content {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 0.65rem;
+  gap: 0.5rem;
+}
+
+.current-lesson-highlight-box .lesson-progress-name {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 0;
+  flex: 1;
+}
+
+.current-lesson-highlight-box .lesson-progress-name i,
+.current-lesson-highlight-box .lesson-progress-name svg {
+  width: 15px;
+  height: 15px;
+  color: var(--primary);
+  flex-shrink: 0;
+}
+
+[data-theme="dark"] .current-lesson-highlight-box .lesson-progress-name i,
+[data-theme="dark"] .current-lesson-highlight-box .lesson-progress-name svg {
+  color: var(--info);
+}
+
+.current-lesson-highlight-box .lesson-progress-name .lesson-name-text {
+  font-size: 0.86rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: var(--text-primary);
+  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.current-lesson-highlight-box .lesson-progress-time {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  flex-shrink: 0;
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: #d97706;
+  background: rgba(245, 158, 11, 0.12);
+  padding: 0.15rem 0.45rem;
+  border-radius: 5px;
+  border: 1px solid rgba(245, 158, 11, 0.25);
   white-space: nowrap;
+}
+
+.current-lesson-highlight-box .lesson-progress-time i,
+.current-lesson-highlight-box .lesson-progress-time svg {
+  width: 12px;
+  height: 12px;
+  color: #d97706;
+  flex-shrink: 0;
+}
+
+[data-theme="dark"] .current-lesson-highlight-box .lesson-progress-time {
+  color: #fbbf24;
+  background: rgba(245, 158, 11, 0.18);
+  border-color: rgba(251, 191, 36, 0.3);
+}
+
+[data-theme="dark"] .current-lesson-highlight-box .lesson-progress-time i,
+[data-theme="dark"] .current-lesson-highlight-box .lesson-progress-time svg {
+  color: #fbbf24;
 }
 
 /* Dashboard Header Layout for 2 Boxes */

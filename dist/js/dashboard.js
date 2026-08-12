@@ -2168,8 +2168,16 @@ function updateFlowContent(syncWithRealTime = true) {
       if (resolvedPeriod) {
         statusType = 'lesson';
         periodNum = resolvedPeriod.replace('p', '') + '. Ders';
+        const pData = times[resolvedPeriod];
+        let totalDuration = 40;
+        if (pData && pData.start && pData.end) {
+          const pStart = parseTimeToMinutes(pData.start);
+          const pEnd = parseTimeToMinutes(pData.end);
+          totalDuration = Math.max(1, pEnd - pStart);
+        }
         remainingMinutes = Math.max(0, resolvedEndMin - curMin);
-        remainingText = remainingMinutes === 0 ? 'teneffüse 1 dakikadan az kaldı' : `teneffüse ${remainingMinutes} dakika kaldı`;
+        remainingPercent = Math.max(0, Math.min(100, Math.round((remainingMinutes / totalDuration) * 100)));
+        remainingText = remainingMinutes === 0 ? '1 dakikadan az kaldı' : `${remainingMinutes} dakika kaldı`;
 
         const gridKey = `${dayOfWeek}-${resolvedPeriod}`;
         const lessonId = grid[gridKey] || '';
@@ -2210,11 +2218,13 @@ function updateFlowContent(syncWithRealTime = true) {
         const lunchData = times['lunch'];
         let isLunch = false;
         let lunchEndMin = 0;
+        let lunchStartMin = 0;
         if (lunchData && lunchData.start && lunchData.end) {
           const lStart = parseTimeToMinutes(lunchData.start);
           const lEnd = parseTimeToMinutes(lunchData.end);
           if (curMin >= lStart && curMin <= lEnd) {
             isLunch = true;
+            lunchStartMin = lStart;
             lunchEndMin = lEnd;
           }
         }
@@ -2224,11 +2234,14 @@ function updateFlowContent(syncWithRealTime = true) {
           periodNum = 'Öğle Arası';
           lessonName = 'Öğle Yemeği / Dinlenme 🍽️';
           lessonTopic = 'Yemek ve dinlenme zamanı.';
+          const totalDuration = Math.max(1, lunchEndMin - lunchStartMin);
           remainingMinutes = Math.max(0, lunchEndMin - curMin);
-          remainingText = remainingMinutes === 0 ? 'derse 1 dakikadan az kaldı' : `derse ${remainingMinutes} dakika kaldı`;
+          remainingPercent = Math.max(0, Math.min(100, Math.round((remainingMinutes / totalDuration) * 100)));
+          remainingText = remainingMinutes === 0 ? '1 dakikadan az kaldı' : `${remainingMinutes} dakika kaldı`;
         } else {
           // 3. Check if inside a regular break (teneffüs)
           let breakNextPeriod = null;
+          let breakStartMin = 0;
           let breakEndMin = 0;
           for (let i = 0; i < pKeys.length - 1; i++) {
             const currentPKey = pKeys[i];
@@ -2238,6 +2251,7 @@ function updateFlowContent(syncWithRealTime = true) {
             
             if (currentEnd && nextStart && curMin > currentEnd && curMin < nextStart) {
               breakNextPeriod = nextPKey;
+              breakStartMin = currentEnd;
               breakEndMin = nextStart;
               break;
             }
@@ -2246,8 +2260,10 @@ function updateFlowContent(syncWithRealTime = true) {
           if (breakNextPeriod) {
             statusType = 'break';
             periodNum = 'Teneffüs';
+            const totalDuration = Math.max(1, breakEndMin - breakStartMin);
             remainingMinutes = Math.max(0, breakEndMin - curMin);
-            remainingText = remainingMinutes === 0 ? 'derse 1 dakikadan az kaldı' : `derse ${remainingMinutes} dakika kaldı`;
+            remainingPercent = Math.max(0, Math.min(100, Math.round((remainingMinutes / totalDuration) * 100)));
+            remainingText = remainingMinutes === 0 ? '1 dakikadan az kaldı' : `${remainingMinutes} dakika kaldı`;
 
             const gridKey = `${dayOfWeek}-${breakNextPeriod}`;
             const nextLessonId = grid[gridKey] || '';
@@ -2288,6 +2304,7 @@ function updateFlowContent(syncWithRealTime = true) {
             periodNum = 'Ders Saati Dışı';
             lessonName = 'Serbest Zaman';
             lessonTopic = 'Ders saatleri dışındasınız.';
+            remainingPercent = null;
           }
         }
       }
@@ -2296,6 +2313,7 @@ function updateFlowContent(syncWithRealTime = true) {
       periodNum = 'Hafta Sonu';
       lessonName = 'Dinlenme Günü';
       lessonTopic = 'Hafta sonu tatili.';
+      remainingPercent = null;
     }
 
     const selectedWeek = stateManager.getSelectedWeek() || (window.getISOWeek ? window.getISOWeek(now) : '');
@@ -2318,6 +2336,7 @@ function updateFlowContent(syncWithRealTime = true) {
       weekText,
       lessonTopic,
       remainingMinutes,
+      remainingPercent,
       remainingText
     };
   }
@@ -2328,12 +2347,23 @@ function updateFlowContent(syncWithRealTime = true) {
 
     const info = getCurrentLessonInfo();
     
-    // Style the badge based on lesson color if available
-    let lessonBadgeStyle = '';
+    // Style the progress container & bar based on lesson color or status
+    let containerStyle = '';
+    let progressBarStyle = '';
+    let iconStyle = '';
+
     if (info.lessonColor) {
-      lessonBadgeStyle = `background: ${info.lessonColor}1a; color: ${info.lessonColor}; border: 1px solid ${info.lessonColor}33;`;
+      containerStyle = `border-color: ${info.lessonColor}4d; background: ${info.lessonColor}0d;`;
+      progressBarStyle = `background: linear-gradient(90deg, ${info.lessonColor}2e, ${info.lessonColor}66); border-right: 2.5px solid ${info.lessonColor};`;
+      iconStyle = `color: ${info.lessonColor};`;
+    } else if (info.statusType === 'break' || info.statusType === 'lunch') {
+      containerStyle = `border-color: rgba(245, 158, 11, 0.4); background: rgba(245, 158, 11, 0.08);`;
+      progressBarStyle = `background: linear-gradient(90deg, rgba(245, 158, 11, 0.25), rgba(245, 158, 11, 0.5)); border-right: 2.5px solid #f59e0b;`;
+      iconStyle = `color: #f59e0b;`;
     } else {
-      lessonBadgeStyle = `background: var(--bg-secondary); color: var(--text-secondary); border: 1px solid var(--border-color);`;
+      containerStyle = `border-color: var(--border-color); background: rgba(0, 0, 0, 0.03);`;
+      progressBarStyle = `background: linear-gradient(90deg, rgba(99, 102, 241, 0.18), rgba(99, 102, 241, 0.4)); border-right: 2.5px solid var(--primary);`;
+      iconStyle = `color: var(--primary);`;
     }
 
     let statusIcon = 'book-open';
@@ -2345,34 +2375,38 @@ function updateFlowContent(syncWithRealTime = true) {
 
     headerTitle.innerHTML = `
       <div class="current-lesson-highlight-box">
-        <!-- Üst Satır: Ders Saati ve Ders Adı -->
+        <!-- Üst Satır: Ders Saati ve Hafta Bilgisi -->
         <div class="highlight-row top-row">
           <div class="info-item period-item">
             <i data-lucide="clock"></i>
             <span>${info.periodNum}</span>
           </div>
-          <div class="divider"></div>
-          <div class="info-item lesson-item">
-            <i data-lucide="${statusIcon}"></i>
-            <span class="lesson-badge" style="${lessonBadgeStyle}">${info.lessonName.toUpperCase()}</span>
-          </div>
-        </div>
-        
-        <!-- Alt Satır: Hafta ve Kalan Süre -->
-        <div class="highlight-row bottom-row">
           ${info.weekText ? `
+            <div class="divider"></div>
             <div class="info-item week-item">
               <i data-lucide="calendar-days"></i>
               <span>${info.weekText}</span>
             </div>
           ` : ''}
-          ${info.remainingText ? `
-            ${info.weekText ? '<div class="divider"></div>' : ''}
-            <div class="info-item remaining-item" title="Dersin / Aranın bitmesine kalan süre">
-              <i data-lucide="hourglass" class="remaining-icon"></i>
-              <span class="remaining-text">${info.remainingText}</span>
-            </div>
+        </div>
+        
+        <!-- Alt Kutu: Ders Adı ve Azalan Kalan Zaman Çubuğu (Aynı Kutu İçinde) -->
+        <div class="lesson-progress-container" style="${containerStyle}" title="${info.remainingText ? 'Kalan Süre: ' + info.remainingText : info.lessonName}">
+          ${info.remainingPercent !== null ? `
+            <div class="lesson-progress-bar" style="width: ${info.remainingPercent}%; ${progressBarStyle}"></div>
           ` : ''}
+          <div class="lesson-progress-content">
+            <div class="lesson-progress-name">
+              <i data-lucide="${statusIcon}" style="${iconStyle}"></i>
+              <span class="lesson-name-text">${info.lessonName.toUpperCase()}</span>
+            </div>
+            ${info.remainingText ? `
+              <div class="lesson-progress-time">
+                <i data-lucide="hourglass" class="remaining-icon"></i>
+                <span class="remaining-text">${info.remainingText}</span>
+              </div>
+            ` : ''}
+          </div>
         </div>
       </div>
 
