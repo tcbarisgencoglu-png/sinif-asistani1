@@ -302,6 +302,26 @@ class StateManager {
     this.subscribers = [];
     if (!data) {
       this.saveState(); // Seeding database instantly on first run
+      this.loadDefaultStateFromServer();
+    }
+  }
+
+  async loadDefaultStateFromServer() {
+    try {
+      const response = await fetch('js/default_state.json');
+      if (response.ok) {
+        const defaultData = await response.json();
+        if (defaultData && typeof defaultData === 'object') {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(defaultData));
+          this.state = this.loadState(true);
+          this.saveState();
+          const event = new CustomEvent('stateChanged');
+          document.dispatchEvent(event);
+          console.log("Varsayılan veri başarıyla sunucudan yüklendi.");
+        }
+      }
+    } catch (e) {
+      console.error("Varsayılan sunucu verisi yükleme hatası:", e);
     }
   }
 
@@ -558,7 +578,6 @@ class StateManager {
       localStorage.setItem('theme', theme);
     }
     this.state = this.loadState(true);
-    this.saveState();
   }
 
   // ÖĞRENCİ İŞLEMLERİ
