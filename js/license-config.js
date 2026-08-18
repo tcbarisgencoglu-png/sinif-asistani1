@@ -274,13 +274,19 @@
               </div>
               <div style="flex: 1; font-size: 0.84rem; line-height: 1.45;">
                 <div style="font-weight: 700; color: var(--text-primary); margin-bottom: 0.3rem;">Ücretin Yatırılması (FAST / Havale)</div>
-                <div style="color: var(--text-muted); margin-bottom: 0.5rem;">Aşağıdaki IBAN hesabına <strong>200 TL</strong> lisans ücretini yatırınız:</div>
+                <div style="color: var(--text-muted); margin-bottom: 0.5rem;">Aşağıdaki banka hesabına <strong>200 TL</strong> lisans ücretini yatırınız:</div>
                 
-                <div style="background: rgba(0,0,0,0.25); border: 1px dashed rgba(255,255,255,0.2); border-radius: 6px; padding: 0.5rem 0.75rem; display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; flex-wrap: wrap;">
-                  <code style="font-family: monospace; font-size: 0.88rem; font-weight: 700; color: #38bdf8; letter-spacing: 0.05em;">TR10 0009 9021 7127 0400 1000 10</code>
-                  <button type="button" class="btn btn-sm btn-secondary" onclick="window.copyLicenseIban(this)" style="font-size: 0.75rem; padding: 0.25rem 0.6rem; display: flex; align-items: center; gap: 0.3rem; cursor: pointer;">
-                    <i data-lucide="copy" style="width: 13px; height: 13px;"></i> IBAN'ı Kopyala
-                  </button>
+                <div style="background: rgba(0,0,0,0.25); border: 1px dashed rgba(255,255,255,0.2); border-radius: 6px; padding: 0.6rem 0.75rem; display: flex; flex-direction: column; gap: 0.4rem;">
+                  <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; font-size: 0.82rem;">
+                    <span style="color: var(--text-muted);">Alıcı / Hesap Sahibi:</span>
+                    <strong style="color: var(--text-primary); font-size: 0.88rem; letter-spacing: 0.02em;">Barış GENÇOĞLU</strong>
+                  </div>
+                  <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; flex-wrap: wrap; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 0.35rem;">
+                    <code style="font-family: monospace; font-size: 0.88rem; font-weight: 700; color: #38bdf8; letter-spacing: 0.05em;">TR10 0009 9021 7127 0400 1000 10</code>
+                    <button type="button" class="btn btn-sm btn-secondary" onclick="window.copyLicenseIban(this)" style="font-size: 0.75rem; padding: 0.25rem 0.6rem; display: flex; align-items: center; gap: 0.3rem; cursor: pointer;">
+                      <i data-lucide="copy" style="width: 13px; height: 13px;"></i> IBAN'ı Kopyala
+                    </button>
+                  </div>
                 </div>
                 <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.35rem;">* Açıklama alanına <strong>Adınız Soyadınız</strong> ve <strong>Sınıf Asistanı Lisans</strong> yazınız.</div>
               </div>
