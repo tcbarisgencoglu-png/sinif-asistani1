@@ -4568,11 +4568,12 @@ th:hover .hw-col-actions {
 /* Hızlı Menü Kart Döndürme Efekti (Flip Cards) */
 .flip-card {
   background-color: transparent;
-  width: 48px;
-  height: 44px;
+  width: 40px;
+  height: 38px;
   perspective: 1000px;
   cursor: pointer;
   outline: none;
+  flex-shrink: 0;
 }
 
 .flip-card-inner {
@@ -5414,15 +5415,15 @@ input:checked + .slider:before {
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border-radius: var(--radius-md);
-  padding: 0.65rem 1.25rem;
+  padding: 0.55rem 0.85rem;
   display: flex;
   flex-direction: column;
   justify-content: center;
   box-shadow: var(--shadow-sm);
   animation: fadeIn 0.4s ease;
   flex: 1 1 0;
-  min-width: 250px;
-  max-width: 450px;
+  min-width: 160px;
+  max-width: 420px;
   height: 72px;
   box-sizing: border-box;
   overflow: hidden;
@@ -5605,18 +5606,43 @@ input:checked + .slider:before {
 
 /* Dashboard Header Layout for 2 Boxes */
 #dashboard-header-title {
-  flex: 1;
-  margin-right: 1.5rem;
+  flex: 1 1 auto;
+  min-width: 0;
+  margin-right: 1rem;
   display: flex;
-  gap: 1.25rem;
+  gap: 1rem;
 }
 
-@media (max-width: 992px) {
+#dashboard-header-actions {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+
+.quick-menu-box {
+  flex-shrink: 0;
+  box-sizing: border-box;
+}
+
+@media (max-width: 1250px) {
+  .page-header {
+    flex-wrap: wrap !important;
+    gap: 1rem !important;
+  }
+
   #dashboard-header-title {
-    margin-right: 0;
-    flex-direction: column;
-    align-items: stretch;
-    gap: 1rem;
+    flex: 1 1 100% !important;
+    margin-right: 0 !important;
+    width: 100% !important;
+  }
+
+  #dashboard-header-actions {
+    width: 100% !important;
+    justify-content: flex-end !important;
+  }
+
+  .quick-menu-box {
+    align-items: flex-end !important;
   }
 }
 

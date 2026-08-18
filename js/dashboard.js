@@ -471,9 +471,9 @@ function renderDashboardHeaderActions() {
   if (!dashboardHeaderActions) return;
   if (!document.getElementById('btn-dash-fullscreen-toggle')) {
     dashboardHeaderActions.innerHTML = `
-      <div class="quick-menu-box" style="display: flex; flex-direction: column; align-items: flex-end; gap: 0.4rem; background: rgba(255, 255, 255, 0.05); padding: 0.5rem 0.75rem; border-radius: var(--radius-md); border: 1px solid var(--border-color); box-shadow: var(--shadow-sm);">
-        <span style="font-size: 0.75rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; margin-right: 0.2rem;">Hızlı Menü</span>
-        <div style="display: flex; gap: 0.5rem;">
+      <div class="quick-menu-box" style="display: flex; flex-direction: column; align-items: flex-end; gap: 0.3rem; background: rgba(255, 255, 255, 0.05); padding: 0.4rem 0.6rem; border-radius: var(--radius-md); border: 1px solid var(--border-color); box-shadow: var(--shadow-sm); flex-shrink: 0;">
+        <span style="font-size: 0.7rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; margin-right: 0.2rem;">Hızlı Menü</span>
+        <div style="display: flex; gap: 0.35rem; flex-wrap: nowrap;">
           <div class="flip-card" id="btn-dash-timer" tabindex="0" role="button" title="Süre Tut">
             <div class="flip-card-inner">
               <div class="flip-card-front">
