@@ -804,9 +804,10 @@ function renderDashboardGeneral() {
     });
 
     // Sil butonu
-    card.querySelector('.delete').addEventListener('click', (e) => {
+    card.querySelector('.delete').addEventListener('click', async (e) => {
       e.stopPropagation();
-      if (confirm(`${student.name} ${student.surname} adlı öğrenciyi ve ona ait tüm verileri (puan, kitap, ödev) silmek istediğinize emin misiniz?`)) {
+      const confirmed = await window.confirmAsync(`${student.name} ${student.surname} adlı öğrenciyi ve ona ait tüm verileri (puan, kitap, ödev) silmek istediğinize emin misiniz?`);
+      if (confirmed) {
         stateManager.deleteStudent(student.id);
         const event = new CustomEvent('stateChanged');
         document.dispatchEvent(event);
@@ -1229,8 +1230,9 @@ function openStudentDetailModal(id) {
         </td>
       `;
 
-      row.querySelector('.delete-perf').addEventListener('click', () => {
-        if (confirm('Bu puan kaydını silmek istiyor musunuz?')) {
+      row.querySelector('.delete-perf').addEventListener('click', async () => {
+        const confirmed = await window.confirmAsync('Bu puan kaydını silmek istiyor musunuz?');
+        if (confirmed) {
           stateManager.deletePerformance(p.id);
           openStudentDetailModal(id); // Yenile
           const event = new CustomEvent('stateChanged');

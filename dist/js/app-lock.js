@@ -184,8 +184,8 @@
 
     const forgotBtn = document.getElementById('lock-forgot-btn');
     if (forgotBtn) {
-      forgotBtn.addEventListener('click', () => {
-        const confirmed = window.confirm(
+      forgotBtn.addEventListener('click', async () => {
+        const confirmed = await window.confirmAsync(
           'UYARI: Şifrenizi sıfırlamak için TÜM VERİLERİNİZ SİLİNECEK.\n\n' +
           'Öğrenci bilgileri, notlar, ödevler dahil her şey kalıcı olarak silinir.\n\n' +
           'Devam etmek istiyor musunuz?'

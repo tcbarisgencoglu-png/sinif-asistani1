@@ -52,6 +52,87 @@ window.safeOpenURL = (url) => {
   window.open(url, '_blank');
 };
 
+// Özelleştirilmiş ve tüm platformlarda çalışan Asenkron Onay Kutusu (Tauri macOS için confirm() alternatifi)
+window.confirmAsync = function(message) {
+  return new Promise((resolve) => {
+    const modal = document.createElement('div');
+    modal.className = 'modal active';
+    modal.style.zIndex = '9999';
+    
+    const content = document.createElement('div');
+    content.className = 'modal-content';
+    content.style.maxWidth = '450px';
+    content.style.padding = '1.5rem';
+    content.style.display = 'flex';
+    content.style.flexDirection = 'column';
+    content.style.gap = '1.25rem';
+    content.style.borderRadius = 'var(--radius-lg)';
+    content.style.backgroundColor = 'var(--bg-secondary)';
+    content.style.border = '1px solid var(--border-color)';
+    
+    const header = document.createElement('div');
+    header.style.display = 'flex';
+    header.style.alignItems = 'center';
+    header.style.gap = '0.5rem';
+    header.style.fontSize = '1.1rem';
+    header.style.fontWeight = '600';
+    header.style.color = 'var(--text-primary)';
+    header.innerHTML = `<i data-lucide="help-circle" style="color: var(--primary); width: 20px; height: 20px;"></i> <span>Sistem Onayı</span>`;
+    
+    const body = document.createElement('div');
+    body.style.fontSize = '0.95rem';
+    body.style.color = 'var(--text-secondary)';
+    body.style.lineHeight = '1.5';
+    body.innerText = message;
+    
+    const footer = document.createElement('div');
+    footer.style.display = 'flex';
+    footer.style.justifyContent = 'flex-end';
+    footer.style.gap = '0.75rem';
+    
+    const cancelButton = document.createElement('button');
+    cancelButton.className = 'btn btn-secondary';
+    cancelButton.innerText = 'İptal';
+    cancelButton.style.padding = '0.5rem 1rem';
+    
+    const confirmButton = document.createElement('button');
+    confirmButton.className = 'btn btn-danger';
+    confirmButton.innerText = 'Evet';
+    confirmButton.style.padding = '0.5rem 1rem';
+    
+    footer.appendChild(cancelButton);
+    footer.appendChild(confirmButton);
+    
+    content.appendChild(header);
+    content.appendChild(body);
+    content.appendChild(footer);
+    modal.appendChild(content);
+    
+    document.body.appendChild(modal);
+    
+    if (window.safeCreateIcons) {
+      window.safeCreateIcons();
+    }
+    
+    const cleanup = (result) => {
+      modal.classList.remove('active');
+      setTimeout(() => {
+        modal.remove();
+      }, 200);
+      resolve(result);
+    };
+    
+    confirmButton.addEventListener('click', () => cleanup(true));
+    cancelButton.addEventListener('click', () => cleanup(false));
+    
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        cleanup(false);
+      }
+    });
+  });
+};
+
 // Global Hata Yakalayıcı ve Arayüz Bildirimi
 window.onerror = function(message, source, lineno, colno, error) {
   const errorMsg = `JS Hatası: ${message} (Satır: ${lineno})`;

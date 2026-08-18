@@ -590,8 +590,9 @@
     }
 
     if (btnRemove) {
-      btnRemove.addEventListener('click', () => {
-        if (confirm('Mevcut lisansı kaldırmak istediğinize emin misiniz? Uygulama tekrar Demo sürümüne dönecektir.')) {
+      btnRemove.addEventListener('click', async () => {
+        const confirmed = await window.confirmAsync('Mevcut lisansı kaldırmak istediğinize emin misiniz? Uygulama tekrar Demo sürümüne dönecektir.');
+        if (confirmed) {
           window.LicenseConfig.removeLicense();
           updateLicenseUI();
           if (toastCallback) toastCallback('Lisans kaldırıldı. Uygulama demo moduna geri döndü.', 'warning');
@@ -839,8 +840,9 @@
       });
 
       // Bind delete event
-      tr.querySelector('.delete-btn').addEventListener('click', () => {
-        if (confirm(`${student.name} ${student.surname} adlı öğrenciyi ve ona ait tüm verileri (puan, kitap, ödev) silmek istediğinize emin misiniz?`)) {
+      tr.querySelector('.delete-btn').addEventListener('click', async () => {
+        const confirmed = await window.confirmAsync(`${student.name} ${student.surname} adlı öğrenciyi ve ona ait tüm verileri (puan, kitap, ödev) silmek istediğinize emin misiniz?`);
+        if (confirmed) {
           stateManager.deleteStudent(student.id);
           if (toastCallback) toastCallback('Öğrenci silindi.', 'success');
           
@@ -981,8 +983,8 @@
     // Şifreyi kaldır
     const removeBtn = document.getElementById('btn-remove-lock-password');
     if (removeBtn) {
-      removeBtn.addEventListener('click', () => {
-        const confirmed = confirm('Şifre korumasını kaldırmak istediğinize emin misiniz?\nBundan sonra uygulama şifresiz açılacak.');
+      removeBtn.addEventListener('click', async () => {
+        const confirmed = await window.confirmAsync('Şifre korumasını kaldırmak istediğinize emin misiniz?\nBundan sonra uygulama şifresiz açılacak.');
         if (confirmed) {
           window.AppLock.removePassword();
           renderLockTab();
