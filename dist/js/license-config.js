@@ -313,7 +313,7 @@
               <div style="flex: 1; font-size: 0.84rem; line-height: 1.45;">
                 <div style="font-weight: 700; color: var(--text-primary); margin-bottom: 0.2rem;">Lisans Kodunun Teslimi ve Tam Sürüm</div>
                 <div style="color: var(--text-muted);">
-                  WhatsApp üzerinden sizinle iletişime geçilerek adınıza özel üretilen <strong>Lisans Anahtarı</strong> hemen iletilir. Lisans kodunu uygulamaya yapıştırarak sınırsız sürüme anında geçebilirsiniz.
+                  WhatsApp üzerinden sizinle iletişime geçilerek adınıza özel üretilen <strong>Lisans Anahtarı</strong> gün içinde saat 16.00'a kadar iletilir. Lisans kodunu uygulamaya yapıştırarak sınırsız sürüme anında geçebilirsiniz.
                 </div>
               </div>
             </div>
