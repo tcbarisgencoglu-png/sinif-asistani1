@@ -178,16 +178,11 @@
     }
   }
 
-  // WhatsApp ile lisans satın alma yönlendiricisi
-  window.openLicensePurchase = function(reason = '') {
+  // WhatsApp ile doğrudan mesaj açıcı (isteğe bağlı direkt çağrılar için)
+  window.openWhatsAppDirect = function(customText = '') {
     const phone = '905058856785';
-    let text = 'Merhaba, Sınıf Asistanı programı için tam sürüm lisansı satın almak istiyorum.';
-    if (reason) {
-      text += ` (Konu: ${reason})`;
-    }
-    const encoded = encodeURIComponent(text);
-    const url = `https://wa.me/${phone}?text=${encoded}`;
-    
+    const text = customText || 'Merhaba, Sınıf Asistanı 200 TL yıllık tam sürüm lisansı için ödememi yaptım. Lisans için dekont ve bilgilerimi paylaşmak istiyorum.';
+    const url = `https://wa.me/${phone}?text=${encodeURIComponent(text)}`;
     if (window.safeOpenURL) {
       window.safeOpenURL(url);
     } else {
@@ -195,42 +190,139 @@
     }
   };
 
-  // Demo kısıtına takılan öğretmenler için şık bilgilendirme ve satın alma penceresi
-  function showLicensePromptModal(feature = 'Öğrenci Yönetimi', limit = 5) {
-    let modal = document.getElementById('modal-license-prompt');
+  // IBAN kopyalama fonksiyonu
+  window.copyLicenseIban = function(btnElement) {
+    const iban = 'TR100009902171270400100010';
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(iban).then(() => {
+        if (btnElement) {
+          const origHtml = btnElement.innerHTML;
+          btnElement.innerHTML = `<i data-lucide="check" style="width: 14px; height: 14px;"></i> Kopyalandı!`;
+          btnElement.style.background = '#10b981';
+          btnElement.style.color = '#ffffff';
+          if (window.safeCreateIcons) window.safeCreateIcons();
+          setTimeout(() => {
+            btnElement.innerHTML = origHtml;
+            btnElement.style.background = '';
+            btnElement.style.color = '';
+            if (window.safeCreateIcons) window.safeCreateIcons();
+          }, 2000);
+        }
+        if (window.showToast) window.showToast('IBAN panoya kopyalandı! ✅', 'success');
+      }).catch(() => fallbackCopy(iban));
+    } else {
+      fallbackCopy(iban);
+    }
+
+    function fallbackCopy(text) {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      if (window.showToast) window.showToast('IBAN panoya kopyalandı! ✅', 'success');
+    }
+  };
+
+  // Tam Sürüm Lisans Satın Alma ve Bilgilendirme Rehberi Modalı
+  function showLicensePurchaseGuideModal(featureName = '') {
+    let modal = document.getElementById('modal-license-purchase-guide');
     if (!modal) {
       modal = document.createElement('div');
       modal.className = 'modal';
-      modal.id = 'modal-license-prompt';
-      modal.style.zIndex = '9999';
+      modal.id = 'modal-license-purchase-guide';
+      modal.style.zIndex = '10000';
       modal.innerHTML = `
-        <div class="modal-content" style="max-width: 480px; padding: 1.75rem; border-radius: var(--radius-lg); background: var(--bg-secondary); border: 1px solid var(--border-color); box-shadow: 0 20px 40px rgba(0,0,0,0.35);">
-          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem;">
-            <div style="display: flex; align-items: center; gap: 0.6rem;">
-              <div style="width: 42px; height: 42px; border-radius: 10px; background: rgba(99, 102, 241, 0.15); display: flex; align-items: center; justify-content: center; color: var(--primary);">
-                <i data-lucide="sparkles" style="width: 22px; height: 22px;"></i>
+        <div class="modal-content" style="max-width: 560px; max-height: 90vh; overflow-y: auto; padding: 1.75rem; border-radius: var(--radius-lg); background: var(--bg-secondary); border: 1.5px solid var(--border-color); box-shadow: 0 25px 50px rgba(0,0,0,0.4);">
+          
+          <!-- Başlık & Kapatma -->
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.9rem;">
+            <div style="display: flex; align-items: center; gap: 0.75rem;">
+              <div style="width: 44px; height: 44px; border-radius: 12px; background: rgba(99, 102, 241, 0.15); display: flex; align-items: center; justify-content: center; color: var(--primary);">
+                <i data-lucide="crown" style="width: 24px; height: 24px; color: #f59e0b;"></i>
               </div>
               <div>
-                <h3 style="margin: 0; font-size: 1.15rem; font-weight: 700; color: var(--text-primary);">Tam Sürüme Yükseltin 🚀</h3>
-                <span style="font-size: 0.75rem; color: #f59e0b; font-weight: 600;">Demo Sürüm Sınırına Ulaşıldı</span>
+                <h3 style="margin: 0; font-size: 1.2rem; font-weight: 700; color: var(--text-primary);">Sınıf Asistanı — Tam Sürüm Lisans</h3>
+                <span style="font-size: 0.8rem; color: var(--text-muted);">Sınırsız Öğrenci, Kitap ve Yıllık Plan Erişimi</span>
               </div>
             </div>
-            <button class="btn-close-license-prompt" style="background: none; border: none; font-size: 1.5rem; color: var(--text-muted); cursor: pointer; line-height: 1;">&times;</button>
+            <button class="btn-close-license-guide" style="background: none; border: none; font-size: 1.6rem; color: var(--text-muted); cursor: pointer; line-height: 1; padding: 0.25rem;">&times;</button>
           </div>
 
-          <div style="background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.25); border-radius: 8px; padding: 0.9rem; margin-bottom: 1.25rem; font-size: 0.85rem; color: var(--text-secondary); line-height: 1.5;">
-            <span id="license-prompt-desc">Demo sürüm sınırına ulaştınız. Tüm sınıfınızı eklemek ve sınırsız özelliklere erişmek için tam sürüm lisansı edinebilirsiniz.</span>
+          <!-- Açıklama ve Fiyat Kutusu -->
+          <div style="background: rgba(99, 102, 241, 0.08); border: 1px solid rgba(99, 102, 241, 0.25); border-radius: 10px; padding: 1rem; margin-bottom: 1.5rem; line-height: 1.55;">
+            <p style="margin: 0 0 0.6rem 0; font-size: 0.88rem; color: var(--text-secondary);">
+              Değerli Öğretmenimiz; <strong>Sınıf Asistanı</strong> uygulamasının geliştirme masraflarının karşılanabilmesi, yeni özelliklerin eklenmesi ve güncellemelerin kesintisiz devam edebilmesi için cüzi bir yıllık lisans ücreti talep edilmektedir.
+            </p>
+            <div style="display: flex; align-items: center; justify-content: space-between; background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.3); padding: 0.6rem 1rem; border-radius: 8px;">
+              <span style="font-size: 0.9rem; font-weight: 600; color: var(--text-primary);">Yıllık Tam Sürüm Bedeli:</span>
+              <span style="font-size: 1.15rem; font-weight: 800; color: #10b981;">200 TL <small style="font-size: 0.75rem; font-weight: normal; color: var(--text-muted);">/ 1 Yıl</small></span>
+            </div>
           </div>
 
-          <div style="display: flex; flex-direction: column; gap: 0.75rem;">
-            <button type="button" id="btn-license-prompt-whatsapp" class="btn" style="background: #25D366; color: white; display: flex; align-items: center; justify-content: center; gap: 0.5rem; font-weight: 600; padding: 0.75rem; border-radius: 8px; text-decoration: none; border: none; cursor: pointer; box-shadow: 0 4px 12px rgba(37, 211, 102, 0.25);">
+          <!-- 3 Adımda Lisans Alma Rehberi -->
+          <div style="display: flex; flex-direction: column; gap: 1rem; margin-bottom: 1.5rem;">
+            <div style="font-size: 0.85rem; font-weight: 700; color: var(--text-primary); text-transform: uppercase; letter-spacing: 0.04em;">
+              Adım Adım Lisans Aktifleştirme:
+            </div>
+
+            <!-- Adım 1 -->
+            <div style="display: flex; gap: 0.85rem; padding: 0.85rem; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-color); border-radius: 8px;">
+              <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(99, 102, 241, 0.2); color: var(--primary); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.95rem; flex-shrink: 0;">
+                1
+              </div>
+              <div style="flex: 1; font-size: 0.84rem; line-height: 1.45;">
+                <div style="font-weight: 700; color: var(--text-primary); margin-bottom: 0.3rem;">Ücretin Yatırılması (FAST / Havale)</div>
+                <div style="color: var(--text-muted); margin-bottom: 0.5rem;">Aşağıdaki IBAN hesabına <strong>200 TL</strong> lisans ücretini yatırınız:</div>
+                
+                <div style="background: rgba(0,0,0,0.25); border: 1px dashed rgba(255,255,255,0.2); border-radius: 6px; padding: 0.5rem 0.75rem; display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; flex-wrap: wrap;">
+                  <code style="font-family: monospace; font-size: 0.88rem; font-weight: 700; color: #38bdf8; letter-spacing: 0.05em;">TR10 0009 9021 7127 0400 1000 10</code>
+                  <button type="button" class="btn btn-sm btn-secondary" onclick="window.copyLicenseIban(this)" style="font-size: 0.75rem; padding: 0.25rem 0.6rem; display: flex; align-items: center; gap: 0.3rem; cursor: pointer;">
+                    <i data-lucide="copy" style="width: 13px; height: 13px;"></i> IBAN'ı Kopyala
+                  </button>
+                </div>
+                <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.35rem;">* Açıklama alanına <strong>Adınız Soyadınız</strong> ve <strong>Sınıf Asistanı Lisans</strong> yazınız.</div>
+              </div>
+            </div>
+
+            <!-- Adım 2 -->
+            <div style="display: flex; gap: 0.85rem; padding: 0.85rem; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-color); border-radius: 8px;">
+              <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(37, 211, 102, 0.2); color: #25D366; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.95rem; flex-shrink: 0;">
+                2
+              </div>
+              <div style="flex: 1; font-size: 0.84rem; line-height: 1.45;">
+                <div style="font-weight: 700; color: var(--text-primary); margin-bottom: 0.2rem;">Dekont ve Bilgilerin İletilmesi</div>
+                <div style="color: var(--text-muted);">
+                  Ödeme dekontunuzu ve lisans için gerekli bilgileri (<strong>Adınız Soyadınız, Okulunuz</strong>) <strong>0505 885 67 85</strong> nolu WhatsApp hattımıza gönderiniz.
+                </div>
+              </div>
+            </div>
+
+            <!-- Adım 3 -->
+            <div style="display: flex; gap: 0.85rem; padding: 0.85rem; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-color); border-radius: 8px;">
+              <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(245, 158, 11, 0.2); color: #f59e0b; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.95rem; flex-shrink: 0;">
+                3
+              </div>
+              <div style="flex: 1; font-size: 0.84rem; line-height: 1.45;">
+                <div style="font-weight: 700; color: var(--text-primary); margin-bottom: 0.2rem;">Lisans Kodunun Teslimi ve Tam Sürüm</div>
+                <div style="color: var(--text-muted);">
+                  WhatsApp üzerinden sizinle iletişime geçilerek adınıza özel üretilen <strong>Lisans Anahtarı</strong> hemen iletilir. Lisans kodunu uygulamaya yapıştırarak sınırsız sürüme anında geçebilirsiniz.
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Aksiyon Butonları -->
+          <div style="display: flex; flex-direction: column; gap: 0.65rem;">
+            <button type="button" id="btn-guide-open-whatsapp" class="btn" style="background: #25D366; color: white; display: flex; align-items: center; justify-content: center; gap: 0.5rem; font-weight: 700; padding: 0.8rem; border-radius: 8px; text-decoration: none; border: none; cursor: pointer; font-size: 0.95rem; box-shadow: 0 4px 14px rgba(37, 211, 102, 0.35);">
               <i data-lucide="message-circle" style="width: 20px; height: 20px;"></i>
-              WhatsApp ile Lisans Satın Al (0505 885 67 85)
+              WhatsApp ile Dekont / Bilgi Gönder (0505 885 67 85)
             </button>
 
-            <button type="button" id="btn-license-prompt-enter-key" class="btn btn-secondary" style="display: flex; align-items: center; justify-content: center; gap: 0.5rem; font-weight: 600; padding: 0.6rem; border-radius: 8px;">
-              <i data-lucide="key" style="width: 18px; height: 18px;"></i>
-              Lisans Anahtarım Var, Kodu Gir
+            <button type="button" id="btn-guide-enter-key" class="btn btn-secondary" style="display: flex; align-items: center; justify-content: center; gap: 0.5rem; font-weight: 600; padding: 0.65rem; border-radius: 8px; font-size: 0.85rem;">
+              <i data-lucide="key" style="width: 16px; height: 16px;"></i>
+              Lisans Anahtarım Var, Kodu Yapıştır
             </button>
           </div>
         </div>
@@ -238,15 +330,14 @@
       document.body.appendChild(modal);
 
       const closeModal = () => modal.classList.remove('active');
-      modal.querySelector('.btn-close-license-prompt').addEventListener('click', closeModal);
+      modal.querySelector('.btn-close-license-guide').addEventListener('click', closeModal);
       modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
 
-      document.getElementById('btn-license-prompt-whatsapp').addEventListener('click', (e) => {
-        e.preventDefault();
-        window.openLicensePurchase('Lisans Satın Alma Talebi');
+      document.getElementById('btn-guide-open-whatsapp').addEventListener('click', () => {
+        window.openWhatsAppDirect();
       });
 
-      document.getElementById('btn-license-prompt-enter-key').addEventListener('click', () => {
+      document.getElementById('btn-guide-enter-key').addEventListener('click', () => {
         closeModal();
         if (window.switchTab) {
           window.switchTab('assistant-config');
@@ -263,14 +354,11 @@
       });
     }
 
-    const descElem = modal.querySelector('#license-prompt-desc');
-    if (descElem) {
-      descElem.innerHTML = `Demo sürümde <strong>${feature}</strong> için <strong>en fazla ${limit}</strong> limit tanımlıdır.<br>Tüm sınıfınızı yönetmek ve sınırsız özelliklere erişmek için tam sürüm lisansı edinebilirsiniz.`;
-    }
-
     modal.classList.add('active');
     if (window.safeCreateIcons) window.safeCreateIcons();
   }
+
+  window.openLicensePurchase = showLicensePurchaseGuideModal;
 
   // Global yapılandırmayı oluştur
   function checkLicenseStatus() {
@@ -286,7 +374,7 @@
       bookLimit: 10,
       notebookLimit: 2,
       contactPhone: '05058856785',
-      showPrompt: showLicensePromptModal,
+      showPrompt: showLicensePurchaseGuideModal,
       verifyLicenseKey: verifyLicenseKey,
       generateSignature: generateSignature,
       encodeUtf8Base64: encodeUtf8Base64,
