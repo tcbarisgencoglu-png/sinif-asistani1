@@ -511,7 +511,12 @@
       if (config.isDemo) {
         if (topBanner) topBanner.style.display = 'none';
         if (sidebarContainer) {
-          sidebarContainer.innerHTML = `<div class="sidebar-demo-badge">Demo Sürüm (Limitli)</div>`;
+          sidebarContainer.innerHTML = `<div class="sidebar-demo-badge" style="cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.35rem;" title="Lisans Satın Almak veya Kodu Girmek İçin Tıklayın"><i data-lucide="sparkles" style="width: 13px; height: 13px;"></i> Demo Sürüm (Limitli)</div>`;
+          sidebarContainer.onclick = () => {
+            if (window.LicenseConfig && typeof window.LicenseConfig.showPrompt === 'function') {
+              window.LicenseConfig.showPrompt('Sınıf Asistanı', window.LicenseConfig.studentLimit);
+            }
+          };
         }
         if (lblStatus) {
           lblStatus.textContent = 'Demo Sürüm';
@@ -549,10 +554,20 @@
         }
         if (btnRemove) btnRemove.style.display = 'block';
       }
+      if (window.safeCreateIcons) window.safeCreateIcons();
     }
 
     // İlk yüklemede UI'ı güncelle
     updateLicenseUI();
+
+    const btnBuyWhatsapp = document.getElementById('btn-buy-license-whatsapp');
+    if (btnBuyWhatsapp) {
+      btnBuyWhatsapp.addEventListener('click', () => {
+        if (window.openLicensePurchase) {
+          window.openLicensePurchase('Lisans Satın Alma');
+        }
+      });
+    }
 
     if (btnActivate && txtKey) {
       btnActivate.addEventListener('click', async () => {

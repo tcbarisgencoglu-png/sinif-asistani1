@@ -1285,10 +1285,10 @@ function renderBooksList() {
         lockOverlay.addEventListener('click', (e) => {
           e.stopPropagation();
           e.preventDefault();
-          if (window.showToast) {
-            window.showToast("Lisans süreniz dolduğu için bu kitap pasif durumdadır. Lütfen lisansınızı yenileyin.", "warning");
-          } else {
-            alert("Lisans süreniz dolduğu için bu kitap pasif durumdadır. Lütfen lisansınızı yenileyin.");
+          if (window.LicenseConfig && typeof window.LicenseConfig.showPrompt === 'function') {
+            window.LicenseConfig.showPrompt('Kitaplık', window.LicenseConfig.bookLimit);
+          } else if (window.openLicensePurchase) {
+            window.openLicensePurchase('Kitaplık Limiti');
           }
         });
         card.appendChild(lockOverlay);

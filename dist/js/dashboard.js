@@ -825,10 +825,10 @@ function renderDashboardGeneral() {
       lockOverlay.addEventListener('click', (e) => {
         e.stopPropagation();
         e.preventDefault();
-        if (window.showToast) {
-          window.showToast("Lisans süreniz dolduğu için bu öğrenci pasif durumdadır. Lütfen lisansınızı yenileyin.", "warning");
-        } else {
-          alert("Lisans süreniz dolduğu için bu öğrenci pasif durumdadır. Lütfen lisansınızı yenileyin.");
+        if (window.LicenseConfig && typeof window.LicenseConfig.showPrompt === 'function') {
+          window.LicenseConfig.showPrompt('Öğrenci Yönetimi', window.LicenseConfig.studentLimit);
+        } else if (window.openLicensePurchase) {
+          window.openLicensePurchase('Öğrenci Limiti');
         }
       });
       card.appendChild(lockOverlay);

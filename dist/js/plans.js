@@ -1771,10 +1771,10 @@
         lockOverlay.addEventListener('click', (e) => {
           e.stopPropagation();
           e.preventDefault();
-          if (window.showToast) {
-            window.showToast("Lisans süreniz dolduğu için bu plan pasif durumdadır. Lütfen lisansınızı yenileyin.", "warning");
-          } else {
-            alert("Lisans süreniz dolduğu için bu plan pasif durumdadır. Lütfen lisansınızı yenileyin.");
+          if (window.LicenseConfig && typeof window.LicenseConfig.showPrompt === 'function') {
+            window.LicenseConfig.showPrompt('Yıllık Planlar', window.LicenseConfig.planLimit);
+          } else if (window.openLicensePurchase) {
+            window.openLicensePurchase('Yıllık Plan Limiti');
           }
         });
         card.appendChild(lockOverlay);
@@ -2117,10 +2117,10 @@
         lockOverlay.addEventListener('click', (e) => {
           e.stopPropagation();
           e.preventDefault();
-          if (window.showToast) {
-            window.showToast("Lisans süreniz dolduğu için bu plan pasif durumdadır. Lütfen lisansınızı yenileyin.", "warning");
-          } else {
-            alert("Lisans süreniz dolduğu için bu plan pasif durumdadır. Lütfen lisansınızı yenileyin.");
+          if (window.LicenseConfig && typeof window.LicenseConfig.showPrompt === 'function') {
+            window.LicenseConfig.showPrompt('Yıllık Planlar', window.LicenseConfig.planLimit);
+          } else if (window.openLicensePurchase) {
+            window.openLicensePurchase('Yıllık Plan Limiti');
           }
         });
         planCard.appendChild(lockOverlay);

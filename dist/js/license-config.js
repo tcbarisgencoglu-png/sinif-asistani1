@@ -178,6 +178,100 @@
     }
   }
 
+  // WhatsApp ile lisans satın alma yönlendiricisi
+  window.openLicensePurchase = function(reason = '') {
+    const phone = '905058856785';
+    let text = 'Merhaba, Sınıf Asistanı programı için tam sürüm lisansı satın almak istiyorum.';
+    if (reason) {
+      text += ` (Konu: ${reason})`;
+    }
+    const encoded = encodeURIComponent(text);
+    const url = `https://wa.me/${phone}?text=${encoded}`;
+    
+    if (window.safeOpenURL) {
+      window.safeOpenURL(url);
+    } else {
+      window.open(url, '_blank');
+    }
+  };
+
+  // Demo kısıtına takılan öğretmenler için şık bilgilendirme ve satın alma penceresi
+  function showLicensePromptModal(feature = 'Öğrenci Yönetimi', limit = 5) {
+    let modal = document.getElementById('modal-license-prompt');
+    if (!modal) {
+      modal = document.createElement('div');
+      modal.className = 'modal';
+      modal.id = 'modal-license-prompt';
+      modal.style.zIndex = '9999';
+      modal.innerHTML = `
+        <div class="modal-content" style="max-width: 480px; padding: 1.75rem; border-radius: var(--radius-lg); background: var(--bg-secondary); border: 1px solid var(--border-color); box-shadow: 0 20px 40px rgba(0,0,0,0.35);">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem;">
+            <div style="display: flex; align-items: center; gap: 0.6rem;">
+              <div style="width: 42px; height: 42px; border-radius: 10px; background: rgba(99, 102, 241, 0.15); display: flex; align-items: center; justify-content: center; color: var(--primary);">
+                <i data-lucide="sparkles" style="width: 22px; height: 22px;"></i>
+              </div>
+              <div>
+                <h3 style="margin: 0; font-size: 1.15rem; font-weight: 700; color: var(--text-primary);">Tam Sürüme Yükseltin 🚀</h3>
+                <span style="font-size: 0.75rem; color: #f59e0b; font-weight: 600;">Demo Sürüm Sınırına Ulaşıldı</span>
+              </div>
+            </div>
+            <button class="btn-close-license-prompt" style="background: none; border: none; font-size: 1.5rem; color: var(--text-muted); cursor: pointer; line-height: 1;">&times;</button>
+          </div>
+
+          <div style="background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.25); border-radius: 8px; padding: 0.9rem; margin-bottom: 1.25rem; font-size: 0.85rem; color: var(--text-secondary); line-height: 1.5;">
+            <span id="license-prompt-desc">Demo sürüm sınırına ulaştınız. Tüm sınıfınızı eklemek ve sınırsız özelliklere erişmek için tam sürüm lisansı edinebilirsiniz.</span>
+          </div>
+
+          <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+            <button type="button" id="btn-license-prompt-whatsapp" class="btn" style="background: #25D366; color: white; display: flex; align-items: center; justify-content: center; gap: 0.5rem; font-weight: 600; padding: 0.75rem; border-radius: 8px; text-decoration: none; border: none; cursor: pointer; box-shadow: 0 4px 12px rgba(37, 211, 102, 0.25);">
+              <i data-lucide="message-circle" style="width: 20px; height: 20px;"></i>
+              WhatsApp ile Lisans Satın Al (0505 885 67 85)
+            </button>
+
+            <button type="button" id="btn-license-prompt-enter-key" class="btn btn-secondary" style="display: flex; align-items: center; justify-content: center; gap: 0.5rem; font-weight: 600; padding: 0.6rem; border-radius: 8px;">
+              <i data-lucide="key" style="width: 18px; height: 18px;"></i>
+              Lisans Anahtarım Var, Kodu Gir
+            </button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modal);
+
+      const closeModal = () => modal.classList.remove('active');
+      modal.querySelector('.btn-close-license-prompt').addEventListener('click', closeModal);
+      modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
+
+      document.getElementById('btn-license-prompt-whatsapp').addEventListener('click', (e) => {
+        e.preventDefault();
+        window.openLicensePurchase('Lisans Satın Alma Talebi');
+      });
+
+      document.getElementById('btn-license-prompt-enter-key').addEventListener('click', () => {
+        closeModal();
+        if (window.switchTab) {
+          window.switchTab('assistant-config');
+          const tabGeneralBtn = document.getElementById('tab-btn-config-general');
+          if (tabGeneralBtn) tabGeneralBtn.click();
+          setTimeout(() => {
+            const txtKey = document.getElementById('txt-license-key');
+            if (txtKey) {
+              txtKey.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              txtKey.focus();
+            }
+          }, 150);
+        }
+      });
+    }
+
+    const descElem = modal.querySelector('#license-prompt-desc');
+    if (descElem) {
+      descElem.innerHTML = `Demo sürümde <strong>${feature}</strong> için <strong>en fazla ${limit}</strong> limit tanımlıdır.<br>Tüm sınıfınızı yönetmek ve sınırsız özelliklere erişmek için tam sürüm lisansı edinebilirsiniz.`;
+    }
+
+    modal.classList.add('active');
+    if (window.safeCreateIcons) window.safeCreateIcons();
+  }
+
   // Global yapılandırmayı oluştur
   function checkLicenseStatus() {
     const savedKey = localStorage.getItem(STORAGE_KEY);
@@ -191,6 +285,8 @@
       planLimit: 2,
       bookLimit: 10,
       notebookLimit: 2,
+      contactPhone: '05058856785',
+      showPrompt: showLicensePromptModal,
       verifyLicenseKey: verifyLicenseKey,
       generateSignature: generateSignature,
       encodeUtf8Base64: encodeUtf8Base64,
