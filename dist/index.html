@@ -209,17 +209,26 @@
           </select>
         </div>
 
-        <!-- Alt Sekme Menüsü -->
-        <div class="sub-tab-menu" style="margin-bottom: 1.5rem;">
-          <button class="sub-tab-btn active" id="tab-btn-dash-general" data-dash-tab="general">
-            <i data-lucide="users" style="width: 16px; height: 16px;"></i> Genel Performans
-          </button>
-          <button class="sub-tab-btn" id="tab-btn-dash-weekly" data-dash-tab="weekly">
-            <i data-lucide="calendar" style="width: 16px; height: 16px;"></i> Haftalık Performans
-          </button>
-          <button class="sub-tab-btn" id="tab-btn-dash-monthly" data-dash-tab="monthly">
-            <i data-lucide="calendar-days" style="width: 16px; height: 16px;"></i> Aylık Performans
-          </button>
+        <!-- Alt Sekme Menüsü ve Masaüstü İndir Butonu -->
+        <div class="dash-subtab-header-row" style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1.5px solid var(--border-color); margin-bottom: 1.5rem; flex-wrap: wrap; gap: 0.75rem;">
+          <div class="sub-tab-menu" style="border-bottom: none; margin-bottom: 0; padding-bottom: 0;">
+            <button class="sub-tab-btn active" id="tab-btn-dash-general" data-dash-tab="general">
+              <i data-lucide="users" style="width: 16px; height: 16px;"></i> Genel Performans
+            </button>
+            <button class="sub-tab-btn" id="tab-btn-dash-weekly" data-dash-tab="weekly">
+              <i data-lucide="calendar" style="width: 16px; height: 16px;"></i> Haftalık Performans
+            </button>
+            <button class="sub-tab-btn" id="tab-btn-dash-monthly" data-dash-tab="monthly">
+              <i data-lucide="calendar-days" style="width: 16px; height: 16px;"></i> Aylık Performans
+            </button>
+          </div>
+
+          <div id="dash-download-app-tab-container" style="padding-bottom: 0.35rem;">
+            <button type="button" id="btn-dash-download-app-tab" class="btn" style="background: linear-gradient(135deg, #4f46e5, #7c3aed); color: #ffffff; border: none; padding: 0.45rem 1rem; border-radius: var(--radius-md); font-weight: 700; font-size: 0.85rem; display: flex; align-items: center; gap: 0.45rem; box-shadow: 0 4px 12px rgba(79, 70, 229, 0.25); cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;">
+              <i data-lucide="download" style="width: 16px; height: 16px;"></i>
+              <span>Masaüstü Uygulamasını İndir</span>
+            </button>
+          </div>
         </div>
 
         <!-- 1. GENEL PERFORMANS SEKMESİ -->
@@ -6088,7 +6097,7 @@
   <script src="js/books.js?v=32"></script>
   <script src="js/homework.js?v=32"></script>
   <script src="js/weekly.js?v=32"></script>
-  <script src="js/dashboard.js?v=33"></script>
+  <script src="js/dashboard.js?v=34"></script>
   <script src="js/timer.js?v=32"></script>
   <script src="js/quick-caller.js?v=32"></script>
   <script src="js/games.js?v=32"></script>
@@ -6106,7 +6115,7 @@
   <script src="js/seating.js?v=32"></script>
   <script src="js/notebooks.js?v=32"></script>
   <script src="js/app-lock.js?v=1"></script>
-  <script src="js/app.js?v=33"></script>
+  <script src="js/app.js?v=34"></script>
   <script src="js/test_plans.js"></script>
   <div id="pdf-viewer-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: var(--bg-primary); z-index: 9999; flex-direction: column;">
     <div style="height: 60px; background: var(--bg-secondary); border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; padding: 0 1.5rem;">

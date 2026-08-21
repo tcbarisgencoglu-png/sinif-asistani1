@@ -78,6 +78,21 @@ function setupDashboardTab(showToast) {
   const dashTabButtons = document.querySelectorAll('[data-dash-tab]');
   const dashTabContents = document.querySelectorAll('.dash-tab-content');
 
+  // Masaüstü İndir Butonu (Alt sekme satırı sağ tarafı)
+  const dashDownloadAppContainer = document.getElementById('dash-download-app-tab-container');
+  const btnDashDownloadAppTab = document.getElementById('btn-dash-download-app-tab');
+  if (dashDownloadAppContainer && window.__TAURI__) {
+    dashDownloadAppContainer.style.display = 'none';
+  }
+  if (btnDashDownloadAppTab) {
+    btnDashDownloadAppTab.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (window.openDownloadDesktopAppModal) {
+        window.openDownloadDesktopAppModal();
+      }
+    });
+  }
+
   dashTabButtons.forEach(btn => {
     btn.addEventListener('click', () => {
       activeSubTab = btn.getAttribute('data-dash-tab');
@@ -534,18 +549,6 @@ function renderDashboardHeaderActions() {
               </div>
             </div>
           </div>
-          ${!window.__TAURI__ ? `
-          <div class="flip-card" id="btn-dash-download-app" tabindex="0" role="button" title="Masaüstü Uygulamasını İndir (Pardus / Windows / Mac)" style="background: rgba(99, 102, 241, 0.15); border: 1px solid rgba(99, 102, 241, 0.4);">
-            <div class="flip-card-inner">
-              <div class="flip-card-front" style="color: #6366f1;">
-                <i id="dash-download-app-icon" data-lucide="download"></i>
-              </div>
-              <div class="flip-card-back" style="background: var(--primary); color: #fff;">
-                <span style="font-size: 0.65rem; font-weight: 700;">Uygulama</span>
-              </div>
-            </div>
-          </div>
-          ` : ''}
           <div class="flip-card" id="btn-dash-fullscreen-toggle" tabindex="0" role="button" title="${document.fullscreenElement ? 'Tam Ekrandan Çık' : 'Tam Ekran Yap'}">
             <div class="flip-card-inner">
               <div class="flip-card-front">
@@ -572,16 +575,6 @@ function renderDashboardHeaderActions() {
           if (document.exitFullscreen) {
             document.exitFullscreen();
           }
-        }
-      });
-    }
-
-    const btnDashDownloadApp = document.getElementById('btn-dash-download-app');
-    if (btnDashDownloadApp) {
-      btnDashDownloadApp.addEventListener('click', (e) => {
-        e.preventDefault();
-        if (window.openDownloadDesktopAppModal) {
-          window.openDownloadDesktopAppModal();
         }
       });
     }
