@@ -18,7 +18,7 @@
     }
   </script>
   
-  <link rel="stylesheet" href="css/styles.css?v=30">
+  <link rel="stylesheet" href="css/styles.css?v=33">
   <link rel="stylesheet" href="css/games.css?v=30">
   <link rel="stylesheet" href="css/treasure.css?v=30">
   <link rel="stylesheet" href="css/tools.css?v=30">
@@ -5952,6 +5952,130 @@
     </div>
   </div>
 
+  <!-- MODAL: MASAÜSTÜ UYGULAMASI İNDİR -->
+  <div class="modal" id="modal-download-desktop-app" style="--max-width: 720px;">
+    <div class="modal-content" style="max-width: 720px; background: var(--bg-primary); border-radius: var(--radius-lg); overflow: hidden; border: 1px solid var(--border-color); box-shadow: var(--shadow-lg);">
+      <div class="modal-header" style="background: linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(168, 85, 247, 0.15)); padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+          <div style="width: 40px; height: 40px; border-radius: 10px; background: linear-gradient(135deg, #6366f1, #a855f7); display: flex; align-items: center; justify-content: center; color: white; flex-shrink: 0;">
+            <i data-lucide="download" style="width: 22px; height: 22px;"></i>
+          </div>
+          <div>
+            <h3 style="margin: 0; font-size: 1.2rem; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+              Sınıf Asistanı Masaüstü Uygulaması
+              <span id="download-app-version-badge" class="badge" style="font-size: 0.75rem; background: var(--primary); color: white; padding: 0.2rem 0.5rem; border-radius: 6px; font-weight: 600;">v1.0.1 (En Son)</span>
+            </h3>
+            <p style="margin: 0; font-size: 0.85rem; color: var(--text-secondary);">Akıllı tahta ve bilgisayarınızda internet olmadan da tam performans çalışın.</p>
+          </div>
+        </div>
+        <button class="close-btn" id="btn-close-download-app-modal" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-secondary);">&times;</button>
+      </div>
+      <div class="modal-body" style="padding: 1.5rem;">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; margin-bottom: 1.25rem;">
+          
+          <!-- 1. Pardus / MEB Akıllı Tahta (.deb) -->
+          <div class="download-platform-card" style="border: 2px solid rgba(239, 68, 68, 0.4); background: rgba(239, 68, 68, 0.04); border-radius: var(--radius-md); padding: 1.25rem; display: flex; flex-direction: column; justify-content: space-between; transition: all 0.2s ease;">
+            <div>
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem;">
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                  <span style="font-size: 1.5rem;">🐧</span>
+                  <div>
+                    <h4 style="margin: 0; font-size: 1rem; font-weight: 700; color: var(--text-primary);">Pardus / MEB Tahta</h4>
+                    <span style="font-size: 0.75rem; color: var(--text-muted);">Debian / ETAP (.deb)</span>
+                  </div>
+                </div>
+                <span style="background: #ef4444; color: white; font-size: 0.7rem; padding: 0.2rem 0.45rem; border-radius: 4px; font-weight: 700;">MEB Uyumlu</span>
+              </div>
+              <p style="font-size: 0.82rem; color: var(--text-secondary); margin-bottom: 1rem; line-height: 1.4;">
+                Fatih Projesi akıllı tahtaları ve Pardus yüklü tüm bilgisayarlar için doğrudan kurulabilir paket.
+              </p>
+            </div>
+            <a id="btn-download-deb" href="https://github.com/tcbarisgencoglu-png/sinifasistani-indir/releases/latest/download/Sinif.Asistani_1.0.1_amd64.deb" target="_blank" class="btn btn-primary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem; background: #ef4444; border-color: #ef4444; font-weight: 600;">
+              <i data-lucide="download" style="width: 16px; height: 16px;"></i> Pardus (.deb) İndir
+            </a>
+          </div>
+
+          <!-- 2. Windows (.exe) -->
+          <div class="download-platform-card" style="border: 2px solid rgba(2, 132, 199, 0.4); background: rgba(2, 132, 199, 0.04); border-radius: var(--radius-md); padding: 1.25rem; display: flex; flex-direction: column; justify-content: space-between; transition: all 0.2s ease;">
+            <div>
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem;">
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                  <span style="font-size: 1.5rem;">🪟</span>
+                  <div>
+                    <h4 style="margin: 0; font-size: 1rem; font-weight: 700; color: var(--text-primary);">Windows</h4>
+                    <span style="font-size: 0.75rem; color: var(--text-muted);">Windows 10 / 11 (.exe)</span>
+                  </div>
+                </div>
+                <span style="background: #0284c7; color: white; font-size: 0.7rem; padding: 0.2rem 0.45rem; border-radius: 4px; font-weight: 700;">64-bit</span>
+              </div>
+              <p style="font-size: 0.82rem; color: var(--text-secondary); margin-bottom: 1rem; line-height: 1.4;">
+                Kişisel bilgisayarınız veya Windows yüklü akıllı tahtalar için tek tıkla otomatik kurulum sihirbazı.
+              </p>
+            </div>
+            <a id="btn-download-exe" href="https://github.com/tcbarisgencoglu-png/sinifasistani-indir/releases/latest/download/Sinif.Asistani_1.0.1_x64-setup.exe" target="_blank" class="btn btn-primary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem; background: #0284c7; border-color: #0284c7; font-weight: 600;">
+              <i data-lucide="download" style="width: 16px; height: 16px;"></i> Windows (.exe) İndir
+            </a>
+          </div>
+
+          <!-- 3. macOS (.dmg) -->
+          <div class="download-platform-card" style="border: 2px solid rgba(139, 92, 246, 0.4); background: rgba(139, 92, 246, 0.04); border-radius: var(--radius-md); padding: 1.25rem; display: flex; flex-direction: column; justify-content: space-between; transition: all 0.2s ease;">
+            <div>
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem;">
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                  <span style="font-size: 1.5rem;">🍏</span>
+                  <div>
+                    <h4 style="margin: 0; font-size: 1rem; font-weight: 700; color: var(--text-primary);">macOS</h4>
+                    <span style="font-size: 0.75rem; color: var(--text-muted);">Apple Silicon & Intel (.dmg)</span>
+                  </div>
+                </div>
+                <span style="background: #8b5cf6; color: white; font-size: 0.7rem; padding: 0.2rem 0.45rem; border-radius: 4px; font-weight: 700;">Mac</span>
+              </div>
+              <p style="font-size: 0.82rem; color: var(--text-secondary); margin-bottom: 1rem; line-height: 1.4;">
+                Apple M1/M2/M3/M4 ve Intel işlemcili tüm Mac bilgisayarlar için optimize edilmiş disk kalıbı.
+              </p>
+            </div>
+            <a id="btn-download-dmg" href="https://github.com/tcbarisgencoglu-png/sinifasistani-indir/releases/latest/download/Sinif.Asistani_1.0.1_aarch64.dmg" target="_blank" class="btn btn-primary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem; background: #8b5cf6; border-color: #8b5cf6; font-weight: 600;">
+              <i data-lucide="download" style="width: 16px; height: 16px;"></i> Mac (.dmg) İndir
+            </a>
+          </div>
+
+          <!-- 4. Linux AppImage (.AppImage) -->
+          <div class="download-platform-card" style="border: 2px solid rgba(16, 185, 129, 0.4); background: rgba(16, 185, 129, 0.04); border-radius: var(--radius-md); padding: 1.25rem; display: flex; flex-direction: column; justify-content: space-between; transition: all 0.2s ease;">
+            <div>
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem;">
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                  <span style="font-size: 1.5rem;">🚀</span>
+                  <div>
+                    <h4 style="margin: 0; font-size: 1rem; font-weight: 700; color: var(--text-primary);">Linux Taşınabilir</h4>
+                    <span style="font-size: 0.75rem; color: var(--text-muted);">Kurulumsuz (.AppImage)</span>
+                  </div>
+                </div>
+                <span style="background: #10b981; color: white; font-size: 0.7rem; padding: 0.2rem 0.45rem; border-radius: 4px; font-weight: 700;">Taşınabilir</span>
+              </div>
+              <p style="font-size: 0.82rem; color: var(--text-secondary); margin-bottom: 1rem; line-height: 1.4;">
+                Ubuntu, Fedora, Arch veya Pardus fark etmeksizin kurulum yapmadan tek tıkla çalıştırın.
+              </p>
+            </div>
+            <a id="btn-download-appimage" href="https://github.com/tcbarisgencoglu-png/sinifasistani-indir/releases/latest/download/Sinif.Asistani_1.0.1_amd64.AppImage" target="_blank" class="btn btn-primary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem; background: #10b981; border-color: #10b981; font-weight: 600;">
+              <i data-lucide="download" style="width: 16px; height: 16px;"></i> AppImage İndir
+            </a>
+          </div>
+
+        </div>
+
+        <div style="background: rgba(255, 255, 255, 0.04); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 0.85rem 1rem; display: flex; align-items: center; justify-content: space-between; font-size: 0.82rem; flex-wrap: wrap; gap: 0.5rem;">
+          <div style="display: flex; align-items: center; gap: 0.5rem; color: var(--text-secondary);">
+            <i data-lucide="shield-check" style="color: var(--success); width: 18px; height: 18px; flex-shrink: 0;"></i>
+            <span>Tüm sürümler resmi GitHub sunucusu üzerinden doğrudan ve güvenle indirilir.</span>
+          </div>
+          <a href="https://github.com/tcbarisgencoglu-png/sinifasistani-indir/releases" target="_blank" style="color: var(--primary); text-decoration: none; font-weight: 600; display: flex; align-items: center; gap: 0.25rem;">
+            Tüm Sürümler & Notlar <i data-lucide="external-link" style="width: 14px; height: 14px;"></i>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Excel ve CSV işlemleri için SheetJS Kitaplığı -->
   <script src="js/xlsx.full.min.js"></script>
   <script src="js/chart.min.js"></script>
@@ -5964,7 +6088,7 @@
   <script src="js/books.js?v=32"></script>
   <script src="js/homework.js?v=32"></script>
   <script src="js/weekly.js?v=32"></script>
-  <script src="js/dashboard.js?v=32"></script>
+  <script src="js/dashboard.js?v=33"></script>
   <script src="js/timer.js?v=32"></script>
   <script src="js/quick-caller.js?v=32"></script>
   <script src="js/games.js?v=32"></script>
@@ -5982,7 +6106,7 @@
   <script src="js/seating.js?v=32"></script>
   <script src="js/notebooks.js?v=32"></script>
   <script src="js/app-lock.js?v=1"></script>
-  <script src="js/app.js?v=32"></script>
+  <script src="js/app.js?v=33"></script>
   <script src="js/test_plans.js"></script>
   <div id="pdf-viewer-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: var(--bg-primary); z-index: 9999; flex-direction: column;">
     <div style="height: 60px; background: var(--bg-secondary); border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; padding: 0 1.5rem;">

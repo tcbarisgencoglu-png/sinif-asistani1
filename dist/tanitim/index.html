@@ -1100,7 +1100,12 @@
       <li><a href="#" class="nav-link-item" data-index="7">Ders Materyalleri</a></li>
     </ul>
   </div>
-  <a href="/uygulama" class="nav-cta">Uygulamaya Git →</a>
+  <div style="display: flex; align-items: center; gap: 0.6rem; z-index: 10;">
+    <button id="btn-tanitim-download" class="nav-cta" style="background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.2); box-shadow: none; display: flex; align-items: center; gap: 0.4rem; cursor: pointer;">
+      <span>📥 Masaüstü İndir</span>
+    </button>
+    <a href="/uygulama" class="nav-cta">Uygulamaya Git →</a>
+  </div>
 </nav>
 
 <div class="horizontal-slider">
@@ -1552,6 +1557,155 @@
 
   // Expose function globally for inline onclick handlers
   window.goToSlide = goToSlide;
+
+  // Masaüstü İndir Modalı Kontrolleri
+  const btnTanitimDownload = document.getElementById('btn-tanitim-download');
+  const modalTanitimDownload = document.getElementById('modal-tanitim-download');
+  const btnCloseTanitimDownload = document.getElementById('btn-close-tanitim-download');
+
+  if (btnTanitimDownload && modalTanitimDownload) {
+    btnTanitimDownload.addEventListener('click', async (e) => {
+      e.preventDefault();
+      modalTanitimDownload.style.display = 'flex';
+      
+      try {
+        const response = await fetch('https://api.github.com/repos/tcbarisgencoglu-png/sinifasistani-indir/releases/latest');
+        if (response.ok) {
+          const release = await response.json();
+          const tagName = release.tag_name || 'v1.0.1';
+          const badge = document.getElementById('tanitim-download-badge');
+          if (badge) badge.textContent = `${tagName} (En Son)`;
+
+          if (Array.isArray(release.assets)) {
+            release.assets.forEach(asset => {
+              const name = (asset.name || '').toLowerCase();
+              const url = asset.browser_download_url;
+              if (!url) return;
+              if (name.endsWith('.deb')) {
+                const btn = document.getElementById('tanitim-btn-deb');
+                if (btn) btn.href = url;
+              } else if (name.endsWith('.exe')) {
+                const btn = document.getElementById('tanitim-btn-exe');
+                if (btn) btn.href = url;
+              } else if (name.endsWith('.dmg')) {
+                const btn = document.getElementById('tanitim-btn-dmg');
+                if (btn) btn.href = url;
+              } else if (name.endsWith('.appimage')) {
+                const btn = document.getElementById('tanitim-btn-appimage');
+                if (btn) btn.href = url;
+              }
+            });
+          }
+        }
+      } catch (err) {
+        console.warn('GitHub release verisi alınamadı:', err);
+      }
+    });
+  }
+
+  if (btnCloseTanitimDownload && modalTanitimDownload) {
+    btnCloseTanitimDownload.addEventListener('click', () => {
+      modalTanitimDownload.style.display = 'none';
+    });
+  }
+  if (modalTanitimDownload) {
+    modalTanitimDownload.addEventListener('click', (e) => {
+      if (e.target === modalTanitimDownload) {
+        modalTanitimDownload.style.display = 'none';
+      }
+    });
+  }
 </script>
+
+<!-- TANITIM MASAÜSTÜ İNDİR MODAL -->
+<div id="modal-tanitim-download" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.75); backdrop-filter: blur(8px); z-index: 99999; align-items: center; justify-content: center; padding: 1rem;">
+  <div style="background: #1a1930; border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; max-width: 680px; width: 100%; box-shadow: 0 20px 50px rgba(0,0,0,0.6); overflow: hidden; color: #fff; font-family: 'Inter', sans-serif;">
+    <div style="background: linear-gradient(135deg, rgba(79,70,229,0.3), rgba(168,85,247,0.3)); padding: 1.25rem 1.5rem; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.08);">
+      <div style="display: flex; align-items: center; gap: 0.75rem;">
+        <div style="width: 40px; height: 40px; border-radius: 12px; background: linear-gradient(135deg, #4f46e5, #a855f7); display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">
+          📥
+        </div>
+        <div>
+          <h3 style="margin: 0; font-size: 1.15rem; font-weight: 800; display: flex; align-items: center; gap: 0.5rem;">
+            Sınıf Asistanı Masaüstü
+            <span id="tanitim-download-badge" style="background: #4f46e5; color: #fff; font-size: 0.7rem; padding: 0.15rem 0.5rem; border-radius: 6px; font-weight: 700;">v1.0.1 (En Son)</span>
+          </h3>
+          <p style="margin: 0; font-size: 0.8rem; color: #94a3b8;">Akıllı tahta ve kişisel bilgisayarınız için resmi kurulum dosyaları.</p>
+        </div>
+      </div>
+      <button id="btn-close-tanitim-download" style="background: none; border: none; font-size: 1.6rem; color: #94a3b8; cursor: pointer; padding: 0.2rem 0.5rem; line-height: 1;">&times;</button>
+    </div>
+    
+    <div style="padding: 1.5rem;">
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1rem; margin-bottom: 1.25rem;">
+        
+        <!-- Pardus -->
+        <div style="background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 12px; padding: 1.1rem; display: flex; flex-direction: column; justify-content: space-between;">
+          <div>
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
+              <div style="display: flex; align-items: center; gap: 0.4rem;">
+                <span style="font-size: 1.3rem;">🐧</span>
+                <strong style="font-size: 0.95rem;">Pardus / MEB Tahta</strong>
+              </div>
+              <span style="background: #ef4444; color: #fff; font-size: 0.65rem; padding: 0.15rem 0.4rem; border-radius: 4px; font-weight: 700;">MEB</span>
+            </div>
+            <p style="font-size: 0.78rem; color: #cbd5e1; margin-bottom: 0.85rem; line-height: 1.4;">Fatih Projesi akıllı tahtaları ve Debian/Pardus için doğrudan `.deb` paketi.</p>
+          </div>
+          <a id="tanitim-btn-deb" href="https://github.com/tcbarisgencoglu-png/sinifasistani-indir/releases/latest/download/Sinif.Asistani_1.0.1_amd64.deb" target="_blank" style="background: #ef4444; color: #fff; text-decoration: none; text-align: center; padding: 0.55rem; border-radius: 8px; font-weight: 700; font-size: 0.82rem; display: block;">Pardus (.deb) İndir</a>
+        </div>
+
+        <!-- Windows -->
+        <div style="background: rgba(2, 132, 199, 0.08); border: 1px solid rgba(2, 132, 199, 0.3); border-radius: 12px; padding: 1.1rem; display: flex; flex-direction: column; justify-content: space-between;">
+          <div>
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
+              <div style="display: flex; align-items: center; gap: 0.4rem;">
+                <span style="font-size: 1.3rem;">🪟</span>
+                <strong style="font-size: 0.95rem;">Windows 10 / 11</strong>
+              </div>
+              <span style="background: #0284c7; color: #fff; font-size: 0.65rem; padding: 0.15rem 0.4rem; border-radius: 4px; font-weight: 700;">64-bit</span>
+            </div>
+            <p style="font-size: 0.78rem; color: #cbd5e1; margin-bottom: 0.85rem; line-height: 1.4;">Windows bilgisayarlar için tek tıkla otomatik kurulum sihirbazı.</p>
+          </div>
+          <a id="tanitim-btn-exe" href="https://github.com/tcbarisgencoglu-png/sinifasistani-indir/releases/latest/download/Sinif.Asistani_1.0.1_x64-setup.exe" target="_blank" style="background: #0284c7; color: #fff; text-decoration: none; text-align: center; padding: 0.55rem; border-radius: 8px; font-weight: 700; font-size: 0.82rem; display: block;">Windows (.exe) İndir</a>
+        </div>
+
+        <!-- macOS -->
+        <div style="background: rgba(139, 92, 246, 0.08); border: 1px solid rgba(139, 92, 246, 0.3); border-radius: 12px; padding: 1.1rem; display: flex; flex-direction: column; justify-content: space-between;">
+          <div>
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
+              <div style="display: flex; align-items: center; gap: 0.4rem;">
+                <span style="font-size: 1.3rem;">🍏</span>
+                <strong style="font-size: 0.95rem;">macOS</strong>
+              </div>
+              <span style="background: #8b5cf6; color: #fff; font-size: 0.65rem; padding: 0.15rem 0.4rem; border-radius: 4px; font-weight: 700;">Mac</span>
+            </div>
+            <p style="font-size: 0.78rem; color: #cbd5e1; margin-bottom: 0.85rem; line-height: 1.4;">Apple Silicon (M1/M2/M3/M4) ve Intel işlemcili Mac'ler için.</p>
+          </div>
+          <a id="tanitim-btn-dmg" href="https://github.com/tcbarisgencoglu-png/sinifasistani-indir/releases/latest/download/Sinif.Asistani_1.0.1_aarch64.dmg" target="_blank" style="background: #8b5cf6; color: #fff; text-decoration: none; text-align: center; padding: 0.55rem; border-radius: 8px; font-weight: 700; font-size: 0.82rem; display: block;">Mac (.dmg) İndir</a>
+        </div>
+
+        <!-- AppImage -->
+        <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 12px; padding: 1.1rem; display: flex; flex-direction: column; justify-content: space-between;">
+          <div>
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
+              <div style="display: flex; align-items: center; gap: 0.4rem;">
+                <span style="font-size: 1.3rem;">🚀</span>
+                <strong style="font-size: 0.95rem;">Linux Taşınabilir</strong>
+              </div>
+              <span style="background: #10b981; color: #fff; font-size: 0.65rem; padding: 0.15rem 0.4rem; border-radius: 4px; font-weight: 700;">Taşınabilir</span>
+            </div>
+            <p style="font-size: 0.78rem; color: #cbd5e1; margin-bottom: 0.85rem; line-height: 1.4;">Kurulum gerektirmeyen tek tıkla çalıştırılabilir AppImage paketi.</p>
+          </div>
+          <a id="tanitim-btn-appimage" href="https://github.com/tcbarisgencoglu-png/sinifasistani-indir/releases/latest/download/Sinif.Asistani_1.0.1_amd64.AppImage" target="_blank" style="background: #10b981; color: #fff; text-decoration: none; text-align: center; padding: 0.55rem; border-radius: 8px; font-weight: 700; font-size: 0.82rem; display: block;">AppImage İndir</a>
+        </div>
+
+      </div>
+
+      <div style="text-align: center; font-size: 0.78rem; color: #94a3b8; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 0.75rem;">
+        Resmi GitHub Dağıtım Deposu: <a href="https://github.com/tcbarisgencoglu-png/sinifasistani-indir/releases" target="_blank" style="color: #818cf8; text-decoration: none; font-weight: 600;">tcbarisgencoglu-png/sinifasistani-indir</a>
+      </div>
+    </div>
+  </div>
+</div>
 </body>
 </html>

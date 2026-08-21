@@ -534,6 +534,18 @@ function renderDashboardHeaderActions() {
               </div>
             </div>
           </div>
+          ${!window.__TAURI__ ? `
+          <div class="flip-card" id="btn-dash-download-app" tabindex="0" role="button" title="Masaüstü Uygulamasını İndir (Pardus / Windows / Mac)" style="background: rgba(99, 102, 241, 0.15); border: 1px solid rgba(99, 102, 241, 0.4);">
+            <div class="flip-card-inner">
+              <div class="flip-card-front" style="color: #6366f1;">
+                <i id="dash-download-app-icon" data-lucide="download"></i>
+              </div>
+              <div class="flip-card-back" style="background: var(--primary); color: #fff;">
+                <span style="font-size: 0.65rem; font-weight: 700;">Uygulama</span>
+              </div>
+            </div>
+          </div>
+          ` : ''}
           <div class="flip-card" id="btn-dash-fullscreen-toggle" tabindex="0" role="button" title="${document.fullscreenElement ? 'Tam Ekrandan Çık' : 'Tam Ekran Yap'}">
             <div class="flip-card-inner">
               <div class="flip-card-front">
@@ -560,6 +572,16 @@ function renderDashboardHeaderActions() {
           if (document.exitFullscreen) {
             document.exitFullscreen();
           }
+        }
+      });
+    }
+
+    const btnDashDownloadApp = document.getElementById('btn-dash-download-app');
+    if (btnDashDownloadApp) {
+      btnDashDownloadApp.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (window.openDownloadDesktopAppModal) {
+          window.openDownloadDesktopAppModal();
         }
       });
     }
@@ -2448,6 +2470,65 @@ function updateFlowContent(syncWithRealTime = true) {
     }
   }
 
+  async function openDownloadDesktopAppModal() {
+    const modal = document.getElementById('modal-download-desktop-app');
+    if (!modal) return;
+    modal.classList.add('active');
+    if (window.safeCreateIcons) window.safeCreateIcons();
+
+    // Dinamik olarak GitHub API'den en son sürüm bilgilerini al
+    try {
+      const response = await fetch('https://api.github.com/repos/tcbarisgencoglu-png/sinifasistani-indir/releases/latest');
+      if (response.ok) {
+        const release = await response.json();
+        const tagName = release.tag_name || 'v1.0.1';
+        
+        const badge = document.getElementById('download-app-version-badge');
+        if (badge) badge.textContent = `${tagName} (En Son)`;
+
+        if (Array.isArray(release.assets)) {
+          release.assets.forEach(asset => {
+            const name = (asset.name || '').toLowerCase();
+            const url = asset.browser_download_url;
+            if (!url) return;
+            
+            if (name.endsWith('.deb')) {
+              const btn = document.getElementById('btn-download-deb');
+              if (btn) btn.href = url;
+            } else if (name.endsWith('.exe')) {
+              const btn = document.getElementById('btn-download-exe');
+              if (btn) btn.href = url;
+            } else if (name.endsWith('.dmg')) {
+              const btn = document.getElementById('btn-download-dmg');
+              if (btn) btn.href = url;
+            } else if (name.endsWith('.appimage')) {
+              const btn = document.getElementById('btn-download-appimage');
+              if (btn) btn.href = url;
+            }
+          });
+        }
+      }
+    } catch (err) {
+      console.warn('GitHub son sürüm bilgisi alınırken hata oluştu:', err);
+    }
+  }
+
+  // Modal Kapatma Dinleyicisi
+  const modalDownloadApp = document.getElementById('modal-download-desktop-app');
+  if (modalDownloadApp) {
+    modalDownloadApp.querySelectorAll('.close-btn, #btn-close-download-app-modal').forEach(btn => {
+      btn.addEventListener('click', () => {
+        modalDownloadApp.classList.remove('active');
+      });
+    });
+    modalDownloadApp.addEventListener('click', (e) => {
+      if (e.target === modalDownloadApp) {
+        modalDownloadApp.classList.remove('active');
+      }
+    });
+  }
+
+  window.openDownloadDesktopAppModal = openDownloadDesktopAppModal;
   window.openAttendanceModal = openAttendanceModal;
   window.renderAttendanceStudentsList = renderAttendanceStudentsList;
   window.updateFlowContent = updateFlowContent;
