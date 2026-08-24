@@ -275,7 +275,7 @@ function wrapState(parsed, unfiltered = false) {
   } else {
     Object.defineProperty(stateObj, 'students', {
       get() {
-        const currentLevel = this.educationLevel || 'primary';
+        const currentLevel = this.educationLevel || 'middle';
         return this.rawStudents.filter(s => {
           const isMiddleStudent = s.schoolLevel === 'middle' || (s.branch && ['5', '6', '7', '8'].includes(s.branch.trim()[0]));
           if (currentLevel === 'middle') {
@@ -475,7 +475,7 @@ class StateManager {
         }
 
         const loaded = {
-          educationLevel: parsed.educationLevel || 'primary',
+          educationLevel: parsed.educationLevel || 'middle',
           students: parsed.students || [],
           homeworks: parsed.homeworks || [],
           books: {

@@ -671,7 +671,7 @@
     updateConfigThemeUI();
     const configEducationLevel = document.getElementById('config-education-level');
     if (configEducationLevel) {
-      configEducationLevel.value = stateManager.loadState().educationLevel || 'primary';
+      configEducationLevel.value = stateManager.loadState().educationLevel || 'middle';
     }
     
     // 1. Load Puan Ayarları inputs
