@@ -6,7 +6,8 @@
     "tauri": "tauri",
     "sync": "rsync -av --delete --exclude='*.DS_Store' index.html css js manifest.json sw.js icons tanitim vercel.json dist/",
     "dev": "npm run sync && tauri dev",
-    "build": "npm run sync && tauri build"
+    "build": "npm run sync",
+    "build:tauri": "npm run sync && tauri build"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2.0.0"
