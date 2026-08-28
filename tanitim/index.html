@@ -8,6 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <script src="../js/supabase-config.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -1220,7 +1221,10 @@
       <li><a href="#" class="nav-link-item" data-index="7">Ders Materyalleri</a></li>
     </ul>
   </div>
-  <div style="display: flex; align-items: center; gap: 0.6rem; z-index: 10;">
+  <div style="display: flex; align-items: center; gap: 0.6rem; z-index: 10; flex-wrap: wrap;">
+    <button type="button" id="btn-tanitim-demo" onclick="window.openDemoLicenseModal(event)" class="nav-cta" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); border: 1px solid rgba(52, 211, 153, 0.4); box-shadow: 0 4px 15px rgba(16, 185, 129, 0.35); display: flex; align-items: center; gap: 0.4rem; cursor: pointer;">
+      <span>🎁 1 Ay Ücretsiz Dene</span>
+    </button>
     <button type="button" id="btn-tanitim-download" onclick="window.openTanitimDownloadModal(event)" class="nav-cta" style="background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.2); box-shadow: none; display: flex; align-items: center; gap: 0.4rem; cursor: pointer;">
       <span>📥 Masaüstü İndir</span>
     </button>
@@ -1236,7 +1240,12 @@
         <img src="images/screen_dashboard.png?v=3" alt="Sınıf Asistanı Nedir?" class="main-fullscreen-img">
       </div>
       <div class="hero-overlay-box">
-        <h3 class="overlay-title">Sınıf Asistanı Nedir?</h3>
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: 0.5rem;">
+          <h3 class="overlay-title" style="margin: 0;">Sınıf Asistanı Nedir?</h3>
+          <button type="button" onclick="window.openDemoLicenseModal(event)" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #fff; border: none; border-radius: 50px; padding: 0.45rem 1.1rem; font-size: 0.82rem; font-weight: 700; display: inline-flex; align-items: center; gap: 0.4rem; cursor: pointer; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.4); font-family: inherit;">
+            <span>🎁 1 Aylık Ücretsiz Deneme Lisansı Al</span>
+          </button>
+        </div>
         <p class="overlay-text" id="typewriterText"></p>
       </div>
     </div> <!-- Close Slide 1 -->
@@ -1661,7 +1670,8 @@
   window.addEventListener('wheel', (e) => {
     // If user is inside an open modal, do not intercept wheel
     const modal = document.getElementById('modal-tanitim-download');
-    if (modal && modal.style.display === 'flex') return;
+    const demoModal = document.getElementById('modal-demo-license');
+    if ((modal && modal.style.display === 'flex') || (demoModal && demoModal.style.display === 'flex')) return;
 
     if (isWheelThrottled) return;
     if (Math.abs(e.deltaY) > 20) {
@@ -1805,7 +1815,470 @@
     const modal = document.getElementById('modal-tanitim-download');
     if (modal) modal.style.display = 'none';
   };
+
+  // ── 1 Aylık Ücretsiz Demo Lisans Üretim ve Supabase Entegrasyonu ──
+  const DEMO_SECRET_SALT = 'SinifAsistani2026SecureLicensingKey_v1';
+
+  function demoCyrb128(str) {
+    let h1 = 1779033703, h2 = 3024733165, h3 = 3362453659, h4 = 502493250;
+    for (let i = 0, k; i < str.length; i++) {
+      k = str.charCodeAt(i);
+      h1 = h2 ^ Math.imul(h1 ^ k, 597399067);
+      h2 = h3 ^ Math.imul(h2 ^ k, 2869860233);
+      h3 = Math.imul(h3 ^ k, 951274213);
+      h4 = h1 ^ Math.imul(h4 ^ k, 2716044179);
+    }
+    h1 = Math.imul(h3 ^ (h1 >>> 18), 597399067);
+    h2 = Math.imul(h4 ^ (h2 >>> 22), 2869860233);
+    h3 = Math.imul(h1 ^ (h3 >>> 17), 951274213);
+    h4 = Math.imul(h2 ^ (h4 >>> 19), 2716044179);
+    return [(h1^h2^h3^h4)>>>0, (h2^h1)>>>0, (h3^h1)>>>0, (h4^h1)>>>0];
+  }
+
+  function demoEncodeUtf8Base64(str) {
+    return btoa(unescape(encodeURIComponent(str)));
+  }
+
+  function demoGenerateSignature(name, expiry) {
+    const rawData = `${name.trim().toLowerCase()}|${expiry}|${DEMO_SECRET_SALT}`;
+    const hashes = demoCyrb128(rawData);
+    const toHex = (n) => (n >>> 0).toString(16).padStart(8, '0').toUpperCase();
+    const hex = hashes.map(toHex).join('');
+    return `${hex.substr(0,4)}-${hex.substr(4,4)}-${hex.substr(8,4)}-${hex.substr(12,4)}`;
+  }
+
+  window.openDemoLicenseModal = function(e) {
+    if (e && e.preventDefault) e.preventDefault();
+    const modal = document.getElementById('modal-demo-license');
+    if (!modal) return;
+    modal.style.display = 'flex';
+    
+    // Check if user already generated a license before on this device
+    const cachedDataStr = localStorage.getItem('sa_demo_license_saved');
+    if (cachedDataStr) {
+      try {
+        const cached = JSON.parse(cachedDataStr);
+        if (cached && cached.licenseKey) {
+          showDemoSuccessView(cached.licenseKey, cached.name, cached.expiryDate, true);
+          return;
+        }
+      } catch(err) {}
+    }
+    
+    // Default: show form
+    showDemoFormView();
+  };
+
+  window.closeDemoLicenseModal = function() {
+    const modal = document.getElementById('modal-demo-license');
+    if (modal) modal.style.display = 'none';
+  };
+
+  function showDemoFormView() {
+    const formSection = document.getElementById('demo-form-section');
+    const successSection = document.getElementById('demo-success-section');
+    const banner = document.getElementById('demo-error-banner');
+    if (formSection) formSection.style.display = 'block';
+    if (successSection) successSection.style.display = 'none';
+    if (banner) { banner.style.display = 'none'; banner.textContent = ''; }
+  }
+
+  function showDemoSuccessView(licenseKey, name, expiryDate, isCached) {
+    const formSection = document.getElementById('demo-form-section');
+    const successSection = document.getElementById('demo-success-section');
+    if (formSection) formSection.style.display = 'none';
+    if (successSection) successSection.style.display = 'block';
+
+    const keyField = document.getElementById('txt-demo-license-result');
+    if (keyField) keyField.value = licenseKey;
+
+    const nameEl = document.getElementById('demo-result-name');
+    if (nameEl) nameEl.textContent = name || 'Değerli Öğretmenimiz';
+
+    const dateEl = document.getElementById('demo-result-expiry');
+    if (dateEl) {
+      const parts = expiryDate ? expiryDate.split('-') : [];
+      if (parts.length === 3) {
+        dateEl.textContent = `${parts[2]}.${parts[1]}.${parts[0]} (30 Gün)`;
+      } else {
+        dateEl.textContent = expiryDate;
+      }
+    }
+
+    const cachedNotice = document.getElementById('demo-result-cached-notice');
+    if (cachedNotice) {
+      cachedNotice.style.display = isCached ? 'block' : 'none';
+    }
+
+    // Reset copy button
+    const btnCopy = document.getElementById('btn-copy-demo-license');
+    if (btnCopy) {
+      btnCopy.innerHTML = `<span>📋 Kodu Kopyala</span>`;
+      btnCopy.style.background = '#4f46e5';
+    }
+  }
+
+  window.resetDemoLicenseForm = function() {
+    localStorage.removeItem('sa_demo_license_saved');
+    showDemoFormView();
+  };
+
+  window.copyDemoLicenseKey = function(btn) {
+    const keyField = document.getElementById('txt-demo-license-result');
+    if (!keyField) return;
+    
+    keyField.select();
+    keyField.setSelectionRange(0, 99999);
+    
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(keyField.value).then(onSuccess).catch(() => {
+        document.execCommand('copy');
+        onSuccess();
+      });
+    } else {
+      document.execCommand('copy');
+      onSuccess();
+    }
+
+    function onSuccess() {
+      if (btn) {
+        btn.innerHTML = `<span>✓ Kopyalandı!</span>`;
+        btn.style.background = '#10b981';
+        setTimeout(() => {
+          btn.innerHTML = `<span>📋 Kodu Kopyala</span>`;
+          btn.style.background = '#4f46e5';
+        }, 2500);
+      }
+    }
+  };
+
+  window.submitDemoLicense = async function(e) {
+    if (e && e.preventDefault) e.preventDefault();
+
+    const txtName = document.getElementById('demo-input-name');
+    const txtPhone = document.getElementById('demo-input-phone');
+    const txtSchool = document.getElementById('demo-input-school');
+    const banner = document.getElementById('demo-error-banner');
+    const btnSubmit = document.getElementById('btn-submit-demo-license');
+
+    const name = (txtName ? txtName.value : '').trim();
+    const phone = (txtPhone ? txtPhone.value : '').trim();
+    const school = (txtSchool ? txtSchool.value : '').trim();
+
+    if (!name || name.length < 3) {
+      if (banner) {
+        banner.textContent = 'Lütfen geçerli bir Ad ve Soyad giriniz.';
+        banner.style.display = 'block';
+      }
+      if (txtName) txtName.focus();
+      return;
+    }
+
+    const cleanPhone = phone.replace(/\D/g, '');
+    if (!cleanPhone || cleanPhone.length < 10) {
+      if (banner) {
+        banner.textContent = 'Lütfen geçerli bir telefon numarası (en az 10 hane) giriniz.';
+        banner.style.display = 'block';
+      }
+      if (txtPhone) txtPhone.focus();
+      return;
+    }
+
+    if (banner) {
+      banner.style.display = 'none';
+      banner.textContent = '';
+    }
+
+    if (btnSubmit) {
+      btnSubmit.disabled = true;
+      btnSubmit.innerHTML = `<span>⏳ Lisansınız Oluşturuluyor...</span>`;
+    }
+
+    try {
+      // 1. Expiry Date (Tam 30 gün sonrası)
+      const now = new Date();
+      const expiryDateObj = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+      const expiryDate = expiryDateObj.toISOString().split('T')[0];
+
+      // 2. Offline İmza ve Lisans Kodu Üretimi
+      const payloadName = `${name}`;
+      const payloadString = `${payloadName}|${expiryDate}`;
+      const payloadBase64 = demoEncodeUtf8Base64(payloadString);
+      const signature = demoGenerateSignature(payloadName, expiryDate);
+      const licenseKey = `${payloadBase64}-${signature}`;
+
+      // 3. Supabase Bulut Veritabanına Kaydet
+      const url = (window.SupabaseConfig && window.SupabaseConfig.url) || 'https://tzwewboqhjsmoezriadg.supabase.co';
+      const key = (window.SupabaseConfig && window.SupabaseConfig.anonKey) || 'sb_publishable_FVth3wbbG-2XZiJmpO0-rw_mNiU0_Ci';
+
+      const fullLicenseeInfo = `${name} (${phone}) - ${school || 'Öğretmen'} [Web 1 Aylık Demo]`;
+
+      try {
+        await fetch(`${url}/rest/v1/licenses`, {
+          method: 'POST',
+          headers: {
+            'apikey': key,
+            'Authorization': `Bearer ${key}`,
+            'Content-Type': 'application/json',
+            'Prefer': 'return=representation'
+          },
+          body: JSON.stringify({
+            license_key: licenseKey,
+            licensee_name: fullLicenseeInfo,
+            expiry_date: expiryDate
+          })
+        });
+      } catch(apiErr) {
+        console.warn("Supabase background save notice:", apiErr);
+      }
+
+      // 4. Yerel Depolamaya Kaydet
+      localStorage.setItem('sa_demo_license_saved', JSON.stringify({
+        licenseKey: licenseKey,
+        name: name,
+        phone: phone,
+        school: school,
+        expiryDate: expiryDate,
+        createdAt: new Date().toISOString()
+      }));
+
+      // 5. Başarı Görünümünü Göster
+      showDemoSuccessView(licenseKey, name, expiryDate, false);
+
+    } catch (err) {
+      console.error("Demo license creation error:", err);
+      if (banner) {
+        banner.textContent = 'Lisans oluşturulurken beklenmeyen bir hata oluştu. Lütfen tekrar deneyin.';
+        banner.style.display = 'block';
+      }
+    } finally {
+      if (btnSubmit) {
+        btnSubmit.disabled = false;
+        btnSubmit.innerHTML = `<span>30 Günlük Lisansımı Hemen Oluştur 🚀</span>`;
+      }
+    }
+  };
 </script>
+
+<!-- TANITIM MASAÜSTÜ İNDİR MODAL -->
+<div id="modal-tanitim-download" onclick="if(event.target === this) window.closeTanitimDownloadModal()" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.75); backdrop-filter: blur(8px); z-index: 999999; align-items: center; justify-content: center; padding: 1rem;">
+  <div style="background: #1a1930; border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; max-width: 680px; width: 100%; box-shadow: 0 20px 50px rgba(0,0,0,0.6); overflow: hidden; color: #fff; font-family: 'Inter', sans-serif;">
+    <div style="background: linear-gradient(135deg, rgba(79,70,229,0.3), rgba(168,85,247,0.3)); padding: 1.25rem 1.5rem; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.08);">
+      <div style="display: flex; align-items: center; gap: 0.75rem;">
+        <div style="width: 40px; height: 40px; border-radius: 12px; background: linear-gradient(135deg, #4f46e5, #a855f7); display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">
+          📥
+        </div>
+        <div>
+          <h3 style="margin: 0; font-size: 1.15rem; font-weight: 800; display: flex; align-items: center; gap: 0.5rem;">
+            Sınıf Asistanı Masaüstü
+            <span id="tanitim-download-badge" style="background: #4f46e5; color: #fff; font-size: 0.7rem; padding: 0.15rem 0.5rem; border-radius: 6px; font-weight: 700;">v1.0.1 (En Son)</span>
+          </h3>
+          <p style="margin: 0; font-size: 0.8rem; color: #94a3b8;">Akıllı tahta ve kişisel bilgisayarınız için resmi kurulum dosyaları.</p>
+        </div>
+      </div>
+      <button type="button" id="btn-close-tanitim-download" onclick="window.closeTanitimDownloadModal()" style="background: none; border: none; font-size: 1.6rem; color: #94a3b8; cursor: pointer; padding: 0.2rem 0.5rem; line-height: 1;">&times;</button>
+    </div>
+    
+    <div style="padding: 1.5rem;">
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1rem; margin-bottom: 1.25rem;">
+        
+        <!-- Pardus -->
+        <div style="background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 12px; padding: 1.1rem; display: flex; flex-direction: column; justify-content: space-between;">
+          <div>
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
+              <div style="display: flex; align-items: center; gap: 0.4rem;">
+                <span style="font-size: 1.3rem;">🐧</span>
+                <strong style="font-size: 0.95rem;">Pardus / MEB Tahta</strong>
+              </div>
+              <span style="background: #ef4444; color: #fff; font-size: 0.65rem; padding: 0.15rem 0.4rem; border-radius: 4px; font-weight: 700;">MEB</span>
+            </div>
+            <p style="font-size: 0.78rem; color: #cbd5e1; margin-bottom: 0.85rem; line-height: 1.4;">Fatih Projesi akıllı tahtaları ve Debian/Pardus için doğrudan `.deb` paketi.</p>
+          </div>
+          <a id="tanitim-btn-deb" href="https://github.com/tcbarisgencoglu-png/sinifasistani-indir/releases/latest/download/Sinif.Asistani_1.0.1_amd64.deb" target="_blank" style="background: #ef4444; color: #fff; text-decoration: none; text-align: center; padding: 0.55rem; border-radius: 8px; font-weight: 700; font-size: 0.82rem; display: block;">Pardus (.deb) İndir</a>
+        </div>
+
+        <!-- Windows -->
+        <div style="background: rgba(2, 132, 199, 0.08); border: 1px solid rgba(2, 132, 199, 0.3); border-radius: 12px; padding: 1.1rem; display: flex; flex-direction: column; justify-content: space-between;">
+          <div>
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
+              <div style="display: flex; align-items: center; gap: 0.4rem;">
+                <span style="font-size: 1.3rem;">🪟</span>
+                <strong style="font-size: 0.95rem;">Windows 10 / 11</strong>
+              </div>
+              <span style="background: #0284c7; color: #fff; font-size: 0.65rem; padding: 0.15rem 0.4rem; border-radius: 4px; font-weight: 700;">64-bit</span>
+            </div>
+            <p style="font-size: 0.78rem; color: #cbd5e1; margin-bottom: 0.85rem; line-height: 1.4;">Windows bilgisayarlar için tek tıkla otomatik kurulum sihirbazı.</p>
+          </div>
+          <a id="tanitim-btn-exe" href="https://github.com/tcbarisgencoglu-png/sinifasistani-indir/releases/latest/download/Sinif.Asistani_1.0.1_x64-setup.exe" target="_blank" style="background: #0284c7; color: #fff; text-decoration: none; text-align: center; padding: 0.55rem; border-radius: 8px; font-weight: 700; font-size: 0.82rem; display: block;">Windows (.exe) İndir</a>
+        </div>
+
+        <!-- macOS -->
+        <div style="background: rgba(139, 92, 246, 0.08); border: 1px solid rgba(139, 92, 246, 0.3); border-radius: 12px; padding: 1.1rem; display: flex; flex-direction: column; justify-content: space-between;">
+          <div>
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
+              <div style="display: flex; align-items: center; gap: 0.4rem;">
+                <span style="font-size: 1.3rem;">🍏</span>
+                <strong style="font-size: 0.95rem;">macOS</strong>
+              </div>
+              <span style="background: #8b5cf6; color: #fff; font-size: 0.65rem; padding: 0.15rem 0.4rem; border-radius: 4px; font-weight: 700;">Mac</span>
+            </div>
+            <p style="font-size: 0.78rem; color: #cbd5e1; margin-bottom: 0.85rem; line-height: 1.4;">Apple Silicon (M1/M2/M3/M4) ve Intel işlemcili Mac'ler için.</p>
+          </div>
+          <a id="tanitim-btn-dmg" href="https://github.com/tcbarisgencoglu-png/sinifasistani-indir/releases/latest/download/Sinif.Asistani_1.0.1_aarch64.dmg" target="_blank" style="background: #8b5cf6; color: #fff; text-decoration: none; text-align: center; padding: 0.55rem; border-radius: 8px; font-weight: 700; font-size: 0.82rem; display: block;">Mac (.dmg) İndir</a>
+        </div>
+
+        <!-- AppImage -->
+        <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 12px; padding: 1.1rem; display: flex; flex-direction: column; justify-content: space-between;">
+          <div>
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
+              <div style="display: flex; align-items: center; gap: 0.4rem;">
+                <span style="font-size: 1.3rem;">🚀</span>
+                <strong style="font-size: 0.95rem;">Linux Taşınabilir</strong>
+              </div>
+              <span style="background: #10b981; color: #fff; font-size: 0.65rem; padding: 0.15rem 0.4rem; border-radius: 4px; font-weight: 700;">Taşınabilir</span>
+            </div>
+            <p style="font-size: 0.78rem; color: #cbd5e1; margin-bottom: 0.85rem; line-height: 1.4;">Kurulum gerektirmeyen tek tıkla çalıştırılabilir AppImage paketi.</p>
+          </div>
+          <a id="tanitim-btn-appimage" href="https://github.com/tcbarisgencoglu-png/sinifasistani-indir/releases/latest/download/Sinif.Asistani_1.0.1_amd64.AppImage" target="_blank" style="background: #10b981; color: #fff; text-decoration: none; text-align: center; padding: 0.55rem; border-radius: 8px; font-weight: 700; font-size: 0.82rem; display: block;">AppImage İndir</a>
+        </div>
+
+      </div>
+
+      <div style="text-align: center; font-size: 0.78rem; color: #94a3b8; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 0.75rem;">
+        Resmi GitHub Dağıtım Deposu: <a href="https://github.com/tcbarisgencoglu-png/sinifasistani-indir/releases" target="_blank" style="color: #818cf8; text-decoration: none; font-weight: 600;">tcbarisgencoglu-png/sinifasistani-indir</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 1 AYLIK ÜCRETSİZ DEMO LİSANS ALMA MODALI -->
+<div id="modal-demo-license" onclick="if(event.target === this) window.closeDemoLicenseModal()" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.78); backdrop-filter: blur(8px); z-index: 999999; align-items: center; justify-content: center; padding: 1rem;">
+  <div style="background: #1a1930; border: 1.5px solid rgba(16, 185, 129, 0.35); border-radius: 20px; max-width: 540px; width: 100%; max-height: 90vh; overflow-y: auto; box-shadow: 0 25px 60px rgba(0,0,0,0.7), 0 0 35px rgba(16, 185, 129, 0.2); color: #fff; font-family: 'Inter', sans-serif;">
+    
+    <!-- Modal Header -->
+    <div style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.25), rgba(79, 70, 229, 0.25)); padding: 1.25rem 1.5rem; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.08);">
+      <div style="display: flex; align-items: center; gap: 0.75rem;">
+        <div style="width: 44px; height: 44px; border-radius: 12px; background: linear-gradient(135deg, #10b981, #059669); display: flex; align-items: center; justify-content: center; font-size: 1.35rem; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4); flex-shrink: 0;">
+          🎁
+        </div>
+        <div>
+          <h3 style="margin: 0; font-size: 1.18rem; font-weight: 800; color: #fff;">1 Aylık Ücretsiz Deneme Lisansı</h3>
+          <p style="margin: 0; font-size: 0.8rem; color: #cbd5e1;">Tüm özellikleri 30 gün boyunca sınırsız deneyin.</p>
+        </div>
+      </div>
+      <button type="button" onclick="window.closeDemoLicenseModal()" style="background: none; border: none; font-size: 1.6rem; color: #94a3b8; cursor: pointer; padding: 0.2rem 0.5rem; line-height: 1;">&times;</button>
+    </div>
+
+    <!-- Modal Body -->
+    <div style="padding: 1.5rem;">
+      
+      <!-- FORM BÖLÜMÜ -->
+      <div id="demo-form-section">
+        <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 12px; padding: 0.85rem 1rem; margin-bottom: 1.25rem; font-size: 0.84rem; line-height: 1.5; color: #e2e8f0;">
+          ✨ Bilgilerinizi girin, <strong>30 günlük tam sürüm aktivasyon kodunuz</strong> anında bu ekranda üretilsin. Kredi kartı veya ödeme gerekmez!
+        </div>
+
+        <form onsubmit="window.submitDemoLicense(event);" style="display: flex; flex-direction: column; gap: 1rem;">
+          <div>
+            <label style="display: block; font-size: 0.8rem; font-weight: 700; color: #cbd5e1; margin-bottom: 0.35rem; text-transform: uppercase; letter-spacing: 0.04em;">
+              Adınız Soyadınız <span style="color: #ef4444;">*</span>
+            </label>
+            <input type="text" id="demo-input-name" placeholder="Örn: Ayşe Yılmaz" required style="width: 100%; box-sizing: border-box; background: rgba(15, 14, 26, 0.7); border: 1px solid rgba(255,255,255,0.15); border-radius: 10px; padding: 0.75rem 1rem; color: #fff; font-size: 0.92rem; outline: none; font-family: inherit;">
+          </div>
+
+          <div>
+            <label style="display: block; font-size: 0.8rem; font-weight: 700; color: #cbd5e1; margin-bottom: 0.35rem; text-transform: uppercase; letter-spacing: 0.04em;">
+              Telefon Numaranız (WhatsApp) <span style="color: #ef4444;">*</span>
+            </label>
+            <input type="tel" id="demo-input-phone" placeholder="Örn: 0555 123 45 67" required style="width: 100%; box-sizing: border-box; background: rgba(15, 14, 26, 0.7); border: 1px solid rgba(255,255,255,0.15); border-radius: 10px; padding: 0.75rem 1rem; color: #fff; font-size: 0.92rem; outline: none; font-family: inherit;">
+          </div>
+
+          <div>
+            <label style="display: block; font-size: 0.8rem; font-weight: 700; color: #cbd5e1; margin-bottom: 0.35rem; text-transform: uppercase; letter-spacing: 0.04em;">
+              Okulunuz / Branşınız <span style="font-weight: 400; color: #94a3b8;">(İsteğe bağlı)</span>
+            </label>
+            <input type="text" id="demo-input-school" placeholder="Örn: Atatürk İlkokulu / Sınıf Öğretmeni" style="width: 100%; box-sizing: border-box; background: rgba(15, 14, 26, 0.7); border: 1px solid rgba(255,255,255,0.15); border-radius: 10px; padding: 0.75rem 1rem; color: #fff; font-size: 0.92rem; outline: none; font-family: inherit;">
+          </div>
+
+          <div id="demo-error-banner" style="display: none; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); border-radius: 8px; padding: 0.65rem 0.9rem; font-size: 0.82rem; color: #fca5a5;"></div>
+
+          <button type="submit" id="btn-submit-demo-license" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #fff; border: none; border-radius: 10px; padding: 0.85rem; font-size: 0.95rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem; box-shadow: 0 4px 16px rgba(16, 185, 129, 0.4); margin-top: 0.4rem; font-family: inherit;">
+            <span>30 Günlük Lisansımı Hemen Oluştur 🚀</span>
+          </button>
+        </form>
+      </div>
+
+      <!-- SONUÇ / BAŞARI BÖLÜMÜ -->
+      <div id="demo-success-section" style="display: none;">
+        <div id="demo-result-cached-notice" style="display: none; background: rgba(99, 102, 241, 0.12); border: 1px solid rgba(99, 102, 241, 0.3); border-radius: 8px; padding: 0.5rem 0.75rem; font-size: 0.78rem; color: #a5b4fc; margin-bottom: 1rem; text-align: center;">
+          ℹ️ Bu cihazda daha önce oluşturulmuş aktif deneme lisansınız görüntüleniyor.
+        </div>
+
+        <div style="text-align: center; margin-bottom: 1.25rem;">
+          <div style="font-size: 2.2rem; margin-bottom: 0.25rem;">🎉</div>
+          <h4 style="margin: 0 0 0.35rem 0; font-size: 1.2rem; font-weight: 800; color: #34d399;">1 Aylık Deneme Lisansınız Hazır!</h4>
+          <p style="margin: 0; font-size: 0.82rem; color: #cbd5e1;">Aşağıdaki lisans anahtarını kopyalayarak uygulamada aktifleştirebilirsiniz.</p>
+        </div>
+
+        <!-- Lisans Anahtarı Kutusu -->
+        <div style="background: rgba(15, 14, 26, 0.95); border: 1.5px dashed rgba(52, 211, 153, 0.5); border-radius: 12px; padding: 1rem; margin-bottom: 1.25rem;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
+            <span style="font-size: 0.75rem; font-weight: 700; color: #94a3b8; text-transform: uppercase;">Aktivasyon Anahtarınız</span>
+            <span style="font-size: 0.72rem; color: #34d399; font-weight: 600;">● Tam Sürüm 30 Gün</span>
+          </div>
+          
+          <textarea id="txt-demo-license-result" readonly style="width: 100%; box-sizing: border-box; height: 60px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 0.5rem 0.75rem; color: #38bdf8; font-family: monospace; font-size: 0.84rem; resize: none; outline: none; word-break: break-all;"></textarea>
+          
+          <button type="button" id="btn-copy-demo-license" onclick="window.copyDemoLicenseKey(this);" style="width: 100%; margin-top: 0.65rem; background: #4f46e5; color: #fff; border: none; border-radius: 8px; padding: 0.65rem; font-size: 0.88rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.4rem; font-family: inherit; transition: background 0.2s;">
+            <span>📋 Kodu Kopyala</span>
+          </button>
+        </div>
+
+        <!-- Bilgi Özeti -->
+        <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 10px; padding: 0.75rem 1rem; margin-bottom: 1.25rem; font-size: 0.8rem; display: flex; flex-direction: column; gap: 0.4rem;">
+          <div style="display: flex; justify-content: space-between;">
+            <span style="color: #94a3b8;">👤 Lisans Sahibi:</span>
+            <strong id="demo-result-name" style="color: #fff;">-</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between;">
+            <span style="color: #94a3b8;">📅 Geçerlilik Süresi:</span>
+            <strong id="demo-result-expiry" style="color: #34d399;">-</strong>
+          </div>
+        </div>
+
+        <!-- 3 Adımda Kolay Kurulum Rehberi -->
+        <div style="background: rgba(79, 70, 229, 0.08); border: 1px solid rgba(79, 70, 229, 0.25); border-radius: 10px; padding: 0.85rem 1rem; margin-bottom: 1.25rem;">
+          <div style="font-size: 0.78rem; font-weight: 700; color: #a5b4fc; text-transform: uppercase; margin-bottom: 0.5rem; letter-spacing: 0.04em;">
+            Nasıl Kullanılır? (3 Adım)
+          </div>
+          <ol style="margin: 0; padding-left: 1.2rem; font-size: 0.8rem; line-height: 1.6; color: #cbd5e1;">
+            <li>Sınıf Asistanı uygulamasını açın (Web veya Masaüstü).</li>
+            <li>Sol menüden <strong>Ayarlar (⚙️) &gt; Lisans</strong> sekmesine gidin.</li>
+            <li>Yukarıdaki kodu yapıştırıp <strong>"Kaydet / Aktifleştir"</strong> butonuna basın.</li>
+          </ol>
+        </div>
+
+        <!-- Aksiyon Butonları -->
+        <div style="display: flex; flex-direction: column; gap: 0.6rem;">
+          <a href="/uygulama" class="btn-primary" style="text-align: center; justify-content: center; padding: 0.75rem; border-radius: 10px; font-size: 0.9rem; text-decoration: none;">
+            🚀 Hemen Web Sürümünde Aç ve Kodu Gir
+          </a>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem;">
+            <button type="button" onclick="window.closeDemoLicenseModal(); window.openTanitimDownloadModal(event);" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.15); color: #fff; border-radius: 8px; padding: 0.6rem; font-size: 0.8rem; font-weight: 600; cursor: pointer;">
+              📥 Masaüstü İndir
+            </button>
+            <button type="button" onclick="window.resetDemoLicenseForm();" style="background: transparent; border: 1px solid rgba(255,255,255,0.1); color: #94a3b8; border-radius: 8px; padding: 0.6rem; font-size: 0.8rem; cursor: pointer;">
+              🔄 Yeni Kod Üret
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+</div>
+
 
 <!-- TANITIM MASAÜSTÜ İNDİR MODAL -->
 <div id="modal-tanitim-download" onclick="if(event.target === this) window.closeTanitimDownloadModal()" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.75); backdrop-filter: blur(8px); z-index: 999999; align-items: center; justify-content: center; padding: 1rem;">
