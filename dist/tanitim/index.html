@@ -541,14 +541,14 @@
       bottom: 1.5rem;
       left: 50%;
       transform: translateX(-50%);
-      z-index: 999;
+      z-index: 9999;
       display: flex;
       flex-direction: column;
       align-items: center;
       gap: 5px;
       cursor: pointer;
-      background: rgba(15, 14, 26, 0.85);
-      border: 1px solid rgba(255, 255, 255, 0.25);
+      background: rgba(15, 14, 26, 0.9);
+      border: 1.5px solid rgba(129, 140, 248, 0.5);
       backdrop-filter: blur(16px);
       -webkit-backdrop-filter: blur(16px);
       padding: 9px 20px 8px;
@@ -556,7 +556,7 @@
       box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6), 0 0 25px rgba(79, 70, 229, 0.5);
       transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
       user-select: none;
-      animation: floatIndicator 2.4s ease-in-out infinite, fadeIn 0.8s 0.6s ease-out both;
+      animation: floatIndicator 2.4s ease-in-out infinite;
     }
     .scroll-indicator-container:hover {
       background: var(--gradient);
@@ -1173,6 +1173,29 @@
       .nav-links-wrapper {
         display: none !important;
       }
+      .scroll-indicator-container {
+        position: fixed !important;
+        bottom: max(1.2rem, calc(env(safe-area-inset-bottom, 0px) + 1rem)) !important;
+        left: 50% !important;
+        transform: translateX(-50%) !important;
+        z-index: 999999 !important;
+        display: flex !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+        padding: 8px 18px 7px !important;
+        background: rgba(15, 14, 26, 0.94) !important;
+        border: 1.5px solid rgba(129, 140, 248, 0.8) !important;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.85), 0 0 25px rgba(79, 70, 229, 0.7) !important;
+        border-radius: 30px !important;
+        pointer-events: auto !important;
+      }
+      .scroll-indicator-container .scroll-mouse {
+        width: 16px !important;
+        height: 24px !important;
+      }
+      .scroll-indicator-container .scroll-text {
+        font-size: 0.7rem !important;
+      }
     }
   </style>
 </head>
@@ -1306,7 +1329,7 @@
   </button>
 
   <!-- Animated Mouse & Scroll Down Indicator -->
-  <div class="scroll-indicator-container" id="scrollIndicator" onclick="if(currentSlide < totalSlides - 1) goToSlide(currentSlide + 1);" title="Sonraki bölüme geçmek için tıklayın veya aşağı kaydırın">
+  <div class="scroll-indicator-container" id="scrollIndicator" onclick="window.handleScrollIndicatorClick(event)" title="Sonraki bölüme geçmek için tıklayın veya aşağı kaydırın">
     <div class="scroll-mouse">
       <div class="scroll-wheel"></div>
     </div>
@@ -1704,6 +1727,38 @@
 
   // Expose function globally for inline onclick handlers
   window.goToSlide = goToSlide;
+
+  window.handleScrollIndicatorClick = function(e) {
+    if (e && e.preventDefault) e.preventDefault();
+    if (window.innerWidth <= 768) {
+      const slides = document.querySelectorAll('.slide-item');
+      const scrollPos = window.scrollY || window.pageYOffset;
+      let targetY = scrollPos + window.innerHeight * 0.85;
+      for (let s of slides) {
+        const top = s.offsetTop;
+        if (top > scrollPos + 60) {
+          targetY = top - 20;
+          break;
+        }
+      }
+      window.scrollTo({ top: targetY, behavior: 'smooth' });
+    } else {
+      if (currentSlide < totalSlides - 1) {
+        goToSlide(currentSlide + 1);
+      }
+    }
+  };
+
+  // Mobile scroll: update/hide indicator when reaching near the bottom
+  window.addEventListener('scroll', () => {
+    if (window.innerWidth <= 768) {
+      const scrollInd = document.getElementById('scrollIndicator');
+      if (scrollInd) {
+        const isNearBottom = (window.innerHeight + window.scrollY) >= (document.documentElement.scrollHeight - 150);
+        scrollInd.style.display = isNearBottom ? 'none' : 'flex';
+      }
+    }
+  }, { passive: true });
 
   // Masaüstü İndir Modalı Kontrolleri
   window.openTanitimDownloadModal = async function(e) {
