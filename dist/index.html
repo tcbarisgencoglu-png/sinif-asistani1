@@ -2105,10 +2105,16 @@
                       <div style="font-size: 0.8rem; color: var(--text-muted);">Ödeme ve aktivasyon adımları için tıklayın</div>
                     </div>
                   </div>
-                  <button type="button" id="btn-buy-license-whatsapp" class="btn" style="background: #25D366; color: white; display: flex; align-items: center; gap: 0.4rem; font-weight: 700; padding: 0.55rem 1rem; font-size: 0.85rem; border-radius: 8px; text-decoration: none; border: none; cursor: pointer; box-shadow: 0 2px 10px rgba(37, 211, 102, 0.35);">
-                    <i data-lucide="help-circle" style="width: 16px; height: 16px;"></i>
-                    Nasıl Alınır? (Satın Alma Rehberi)
-                  </button>
+                  <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                    <button type="button" onclick="if(window.openAppDemoLicense) window.openAppDemoLicense();" class="btn" style="background: linear-gradient(135deg, #10b981, #059669); color: white; display: flex; align-items: center; gap: 0.4rem; font-weight: 700; padding: 0.55rem 1rem; font-size: 0.85rem; border-radius: 8px; border: none; cursor: pointer; box-shadow: 0 2px 10px rgba(16, 185, 129, 0.35);">
+                      <i data-lucide="gift" style="width: 16px; height: 16px;"></i>
+                      1 Ay Ücretsiz Dene 🎁
+                    </button>
+                    <button type="button" id="btn-buy-license-whatsapp" class="btn" style="background: #25D366; color: white; display: flex; align-items: center; gap: 0.4rem; font-weight: 700; padding: 0.55rem 1rem; font-size: 0.85rem; border-radius: 8px; text-decoration: none; border: none; cursor: pointer; box-shadow: 0 2px 10px rgba(37, 211, 102, 0.35);">
+                      <i data-lucide="help-circle" style="width: 16px; height: 16px;"></i>
+                      Satın Alma Rehberi
+                    </button>
+                  </div>
                 </div>
               </div>
 

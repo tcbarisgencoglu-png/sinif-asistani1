@@ -250,6 +250,21 @@
             <button class="btn-close-license-guide" style="background: none; border: none; font-size: 1.6rem; color: var(--text-muted); cursor: pointer; line-height: 1; padding: 0.25rem;">&times;</button>
           </div>
 
+          <!-- 1 Aylık Ücretsiz Deneme Lisansı Bannerı -->
+          <div style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(99, 102, 241, 0.15)); border: 1.5px solid rgba(16, 185, 129, 0.4); border-radius: 12px; padding: 1rem; margin-bottom: 1.25rem; display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap;">
+            <div>
+              <div style="font-weight: 800; font-size: 0.95rem; color: #10b981; display: flex; align-items: center; gap: 0.4rem;">
+                <i data-lucide="gift" style="width: 18px; height: 18px;"></i> 1 Aylık Ücretsiz Deneme Lisansı
+              </div>
+              <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 0.2rem;">
+                Henüz satın almadan önce tüm özellikleri 30 gün boyunca ücretsiz deneyin.
+              </div>
+            </div>
+            <button type="button" id="btn-guide-get-demo-license" class="btn" style="background: linear-gradient(135deg, #10b981, #059669); color: white; border: none; font-weight: 700; padding: 0.55rem 1rem; border-radius: 8px; font-size: 0.82rem; cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.35);">
+              <span>1 Ay Ücretsiz Başlat 🚀</span>
+            </button>
+          </div>
+
           <!-- Açıklama ve Fiyat Kutusu -->
           <div style="background: rgba(99, 102, 241, 0.08); border: 1px solid rgba(99, 102, 241, 0.25); border-radius: 10px; padding: 1rem; margin-bottom: 1.5rem; line-height: 1.55;">
             <p style="margin: 0 0 0.6rem 0; font-size: 0.88rem; color: var(--text-secondary);">
@@ -343,6 +358,14 @@
         window.openWhatsAppDirect();
       });
 
+      const btnGuideGetDemo = document.getElementById('btn-guide-get-demo-license');
+      if (btnGuideGetDemo) {
+        btnGuideGetDemo.addEventListener('click', () => {
+          closeModal();
+          showAppDemoLicenseModal();
+        });
+      }
+
       document.getElementById('btn-guide-enter-key').addEventListener('click', () => {
         closeModal();
         if (window.switchTab) {
@@ -363,6 +386,156 @@
     modal.classList.add('active');
     if (window.safeCreateIcons) window.safeCreateIcons();
   }
+
+  // Uygulama İçi 1 Aylık Ücretsiz Demo Lisansı Modalı
+  function showAppDemoLicenseModal() {
+    let modal = document.getElementById('modal-app-demo-license');
+    if (!modal) {
+      modal = document.createElement('div');
+      modal.className = 'modal';
+      modal.id = 'modal-app-demo-license';
+      modal.style.zIndex = '10005';
+      modal.innerHTML = `
+        <div class="modal-content" style="max-width: 500px; max-height: 90vh; overflow-y: auto; padding: 1.75rem; border-radius: var(--radius-lg); background: var(--bg-secondary); border: 1.5px solid rgba(16, 185, 129, 0.4); box-shadow: 0 25px 50px rgba(0,0,0,0.5);">
+          
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.9rem;">
+            <div style="display: flex; align-items: center; gap: 0.75rem;">
+              <div style="width: 44px; height: 44px; border-radius: 12px; background: linear-gradient(135deg, #10b981, #059669); display: flex; align-items: center; justify-content: center; color: white;">
+                <i data-lucide="gift" style="width: 22px; height: 22px;"></i>
+              </div>
+              <div>
+                <h3 style="margin: 0; font-size: 1.15rem; font-weight: 700; color: var(--text-primary);">1 Aylık Ücretsiz Deneme Lisansı</h3>
+                <span style="font-size: 0.78rem; color: var(--text-muted);">Sınırsız Özellikler • 30 Gün Ücretsiz</span>
+              </div>
+            </div>
+            <button class="btn-close-app-demo" style="background: none; border: none; font-size: 1.6rem; color: var(--text-muted); cursor: pointer; line-height: 1; padding: 0.25rem;">&times;</button>
+          </div>
+
+          <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 10px; padding: 0.85rem 1rem; margin-bottom: 1.25rem; font-size: 0.82rem; line-height: 1.5; color: var(--text-secondary);">
+            ✨ Bilgilerinizi girerek <strong>30 günlük tam sürüm lisansınızı</strong> anında bu cihazda aktifleştirebilirsiniz. Kredi kartı veya ödeme gerekmez!
+          </div>
+
+          <form id="form-app-demo-license" style="display: flex; flex-direction: column; gap: 1rem;">
+            <div class="form-group" style="margin-bottom: 0;">
+              <label style="font-size: 0.8rem; font-weight: 700; color: var(--text-secondary); margin-bottom: 0.35rem; display: block;">
+                Adınız Soyadınız <span style="color: #ef4444;">*</span>
+              </label>
+              <input type="text" id="app-demo-name" class="form-control" placeholder="Örn: Ayşe Yılmaz" required style="width: 100%; padding: 0.7rem 0.9rem; font-size: 0.9rem;">
+            </div>
+
+            <div class="form-group" style="margin-bottom: 0;">
+              <label style="font-size: 0.8rem; font-weight: 700; color: var(--text-secondary); margin-bottom: 0.35rem; display: block;">
+                Telefon Numaranız (WhatsApp) <span style="color: #ef4444;">*</span>
+              </label>
+              <input type="tel" id="app-demo-phone" class="form-control" placeholder="Örn: 0555 123 45 67" required style="width: 100%; padding: 0.7rem 0.9rem; font-size: 0.9rem;">
+            </div>
+
+            <div class="form-group" style="margin-bottom: 0;">
+              <label style="font-size: 0.8rem; font-weight: 700; color: var(--text-secondary); margin-bottom: 0.35rem; display: block;">
+                Okulunuz / Branşınız <span style="font-weight: 400; color: var(--text-muted);">(İsteğe bağlı)</span>
+              </label>
+              <input type="text" id="app-demo-school" class="form-control" placeholder="Örn: Atatürk İlkokulu / Sınıf Öğretmeni" style="width: 100%; padding: 0.7rem 0.9rem; font-size: 0.9rem;">
+            </div>
+
+            <div id="app-demo-error" style="display: none; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 8px; padding: 0.6rem 0.8rem; font-size: 0.8rem; color: #fca5a5;"></div>
+
+            <button type="submit" id="btn-submit-app-demo" class="btn" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; font-weight: 700; padding: 0.8rem; border-radius: 8px; font-size: 0.92rem; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35); margin-top: 0.3rem;">
+              <span>30 Günlük Lisansı Oluştur ve Aktifleştir 🚀</span>
+            </button>
+          </form>
+        </div>
+      `;
+      document.body.appendChild(modal);
+
+      const closeModal = () => modal.classList.remove('active');
+      modal.querySelector('.btn-close-app-demo').addEventListener('click', closeModal);
+      modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
+
+      document.getElementById('form-app-demo-license').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const txtName = document.getElementById('app-demo-name');
+        const txtPhone = document.getElementById('app-demo-phone');
+        const txtSchool = document.getElementById('app-demo-school');
+        const errEl = document.getElementById('app-demo-error');
+        const btnSubmit = document.getElementById('btn-submit-app-demo');
+
+        const name = (txtName ? txtName.value : '').trim();
+        const phone = (txtPhone ? txtPhone.value : '').trim();
+        const school = (txtSchool ? txtSchool.value : '').trim();
+
+        if (!name || name.length < 3) {
+          if (errEl) { errEl.textContent = 'Lütfen geçerli bir Ad ve Soyad giriniz.'; errEl.style.display = 'block'; }
+          return;
+        }
+        const cleanPhone = phone.replace(/\D/g, '');
+        if (!cleanPhone || cleanPhone.length < 10) {
+          if (errEl) { errEl.textContent = 'Lütfen geçerli bir telefon numarası giriniz.'; errEl.style.display = 'block'; }
+          return;
+        }
+
+        if (errEl) { errEl.style.display = 'none'; errEl.textContent = ''; }
+        btnSubmit.disabled = true;
+        const origBtnText = btnSubmit.innerHTML;
+        btnSubmit.innerHTML = `<span>⏳ Aktifleştiriliyor...</span>`;
+
+        try {
+          const now = new Date();
+          const expiryDateObj = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+          const expiryDate = expiryDateObj.toISOString().split('T')[0];
+
+          const payloadName = `${name}`;
+          const payloadString = `${payloadName}|${expiryDate}`;
+          const payloadBase64 = encodeUtf8Base64(payloadString);
+          const signature = generateSignature(payloadName, expiryDate);
+          const licenseKey = `${payloadBase64}-${signature}`;
+
+          // Supabase kaydet
+          await supabaseRequest('POST', 'licenses', {
+            license_key: licenseKey,
+            licensee_name: `${name} (${phone}) - ${school || 'Öğretmen'} [Uygulama İçi Demo]`,
+            expiry_date: expiryDate
+          });
+
+          // Otomatik yerel aktifleştir
+          const actResult = await window.LicenseConfig.saveLicense(licenseKey);
+          if (actResult.success) {
+            closeModal();
+            const guideModal = document.getElementById('modal-license-purchase-guide');
+            if (guideModal) guideModal.classList.remove('active');
+
+            const alertMsg = `🎉 Tebrikler! 1 Aylık Tam Sürüm Lisansınız Başarıyla Aktifleştirildi! (Bitiş: ${expiryDate})`;
+            if (window.showToast) {
+              window.showToast(alertMsg, 'success');
+            } else {
+              alert(alertMsg);
+            }
+
+            const event = new CustomEvent('stateChanged');
+            document.dispatchEvent(event);
+          } else {
+            if (errEl) {
+              errEl.textContent = `Aktivasyon Hatası: ${actResult.reason}`;
+              errEl.style.display = 'block';
+            }
+          }
+        } catch (err) {
+          console.error(err);
+          if (errEl) {
+            errEl.textContent = 'Bir hata oluştu. İnternet bağlantınızı kontrol edin.';
+            errEl.style.display = 'block';
+          }
+        } finally {
+          btnSubmit.disabled = false;
+          btnSubmit.innerHTML = origBtnText;
+        }
+      });
+    }
+
+    modal.classList.add('active');
+    if (window.safeCreateIcons) window.safeCreateIcons();
+  }
+
+  window.openAppDemoLicense = showAppDemoLicenseModal;
 
   window.openLicensePurchase = showLicensePurchaseGuideModal;
 
