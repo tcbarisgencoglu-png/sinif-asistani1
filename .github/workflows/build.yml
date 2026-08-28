@@ -4,11 +4,23 @@ on:
   push:
     branches:
       - main
+    paths-ignore:
+      - "tanitim/**"
+      - "dist/tanitim/**"
+      - "*.md"
+      - ".gitignore"
+      - "LICENSE*"
     tags:
       - "v*"
   pull_request:
     branches:
       - main
+    paths-ignore:
+      - "tanitim/**"
+      - "dist/tanitim/**"
+      - "*.md"
+      - ".gitignore"
+      - "LICENSE*"
   workflow_dispatch:
 
 permissions:
@@ -169,17 +181,17 @@ jobs:
 
       - name: Paketleri yükle (Artifacts)
         uses: actions/upload-artifact@v4
+        continue-on-error: true
         with:
           name: sinif-asistani-${{ matrix.artifact_name }}
+          retention-days: 1
           path: |
             src-tauri/target/release/bundle/**/*.dmg
-            src-tauri/target/release/bundle/**/*.app
             src-tauri/target/release/bundle/**/*.msi
             src-tauri/target/release/bundle/**/*.exe
             src-tauri/target/release/bundle/**/*.AppImage
             src-tauri/target/release/bundle/**/*.deb
             src-tauri/target/*/release/bundle/**/*.dmg
-            src-tauri/target/*/release/bundle/**/*.app
             src-tauri/target/*/release/bundle/**/*.msi
             src-tauri/target/*/release/bundle/**/*.exe
             src-tauri/target/*/release/bundle/**/*.AppImage

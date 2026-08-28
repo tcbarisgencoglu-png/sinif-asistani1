@@ -535,6 +535,98 @@
       transform: translateY(-50%) scale(0.8);
     }
 
+    /* ───── SCROLL DOWN / EXPLORE INDICATOR ───── */
+    .scroll-indicator-container {
+      position: fixed;
+      bottom: 2rem;
+      right: 3rem;
+      z-index: 95;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 5px;
+      cursor: pointer;
+      background: rgba(15, 14, 26, 0.78);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      padding: 9px 18px 8px;
+      border-radius: 30px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45), 0 0 20px rgba(79, 70, 229, 0.35);
+      transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+      user-select: none;
+      animation: floatIndicator 2.4s ease-in-out infinite, fadeIn 0.8s 0.6s ease-out both;
+    }
+    .scroll-indicator-container:hover {
+      background: var(--gradient);
+      border-color: rgba(255, 255, 255, 0.4);
+      transform: translateY(-4px) scale(1.06);
+      box-shadow: 0 15px 35px rgba(124, 58, 237, 0.55);
+    }
+    .scroll-indicator-container.hidden {
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(20px) scale(0.8);
+    }
+    .scroll-mouse {
+      width: 18px;
+      height: 28px;
+      border: 2px solid #fff;
+      border-radius: 10px;
+      position: relative;
+      display: flex;
+      justify-content: center;
+    }
+    .scroll-wheel {
+      width: 3px;
+      height: 6px;
+      background: #fff;
+      border-radius: 2px;
+      position: absolute;
+      top: 4px;
+      animation: mouseWheel 1.5s ease-in-out infinite;
+    }
+    @keyframes mouseWheel {
+      0% { transform: translateY(0); opacity: 1; }
+      50% { transform: translateY(8px); opacity: 0.15; }
+      100% { transform: translateY(0); opacity: 1; }
+    }
+    .scroll-chevrons {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1px;
+      margin-top: -1px;
+    }
+    .scroll-chevrons span {
+      display: block;
+      width: 7px;
+      height: 7px;
+      border-bottom: 2px solid #fff;
+      border-right: 2px solid #fff;
+      transform: rotate(45deg);
+      animation: chevronBounce 1.5s infinite;
+    }
+    .scroll-chevrons span:nth-child(2) {
+      animation-delay: 0.2s;
+    }
+    @keyframes chevronBounce {
+      0% { opacity: 0; transform: rotate(45deg) translate(-3px, -3px); }
+      50% { opacity: 1; }
+      100% { opacity: 0; transform: rotate(45deg) translate(3px, 3px); }
+    }
+    .scroll-text {
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: 0.03em;
+      white-space: nowrap;
+    }
+    @keyframes floatIndicator {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-6px); }
+    }
+
     @media (max-width: 900px) {
       nav {
         padding: 0.8rem 1rem;
@@ -549,6 +641,19 @@
       }
       .slider-arrow.arrow-left { left: 0.5rem; }
       .slider-arrow.arrow-right { right: 0.5rem; }
+      .scroll-indicator-container {
+        bottom: 1rem;
+        right: 50%;
+        transform: translateX(50%);
+        padding: 7px 15px;
+      }
+      .scroll-indicator-container:hover {
+        transform: translateX(50%) translateY(-3px);
+      }
+      @keyframes floatIndicator {
+        0%, 100% { transform: translateX(50%) translateY(0); }
+        50% { transform: translateX(50%) translateY(-5px); }
+      }
     }
 
     /* ───── HERO ───── */
@@ -1208,6 +1313,18 @@
     <span>&rarr;</span>
   </button>
 
+  <!-- Animated Mouse & Scroll Down Indicator -->
+  <div class="scroll-indicator-container" id="scrollIndicator" onclick="if(currentSlide < totalSlides - 1) goToSlide(currentSlide + 1);" title="Sonraki bölüme geçmek için tıklayın veya aşağı kaydırın">
+    <div class="scroll-mouse">
+      <div class="scroll-wheel"></div>
+    </div>
+    <div class="scroll-chevrons">
+      <span></span>
+      <span></span>
+    </div>
+    <span class="scroll-text">Aşağı Kaydırın</span>
+  </div>
+
 <script>
   // ── Scroll Reveal ──
   const reveals = document.querySelectorAll('.reveal');
@@ -1418,6 +1535,12 @@
     prevBtn.classList.toggle('disabled', currentSlide === 0);
     nextBtn.classList.toggle('disabled', currentSlide === totalSlides - 1);
     
+    // Update scroll indicator visibility (hidden on the last slide)
+    const scrollInd = document.getElementById('scrollIndicator');
+    if (scrollInd) {
+      scrollInd.classList.toggle('hidden', currentSlide === totalSlides - 1);
+    }
+    
     // Trigger reveals in active slide
     const activeSlideEl = sliderTrack.children[currentSlide];
     if (activeSlideEl) {
@@ -1502,14 +1625,46 @@
     if (currentSlide < totalSlides - 1) goToSlide(currentSlide + 1);
   });
 
-  // Keyboard navigation
+  // Keyboard navigation (Supports Arrows, PageUp/Down, Space)
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'ArrowLeft') {
-      if (currentSlide > 0) goToSlide(currentSlide - 1);
-    } else if (e.key === 'ArrowRight') {
-      if (currentSlide < totalSlides - 1) goToSlide(currentSlide + 1);
+    if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName)) return;
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowUp' || e.key === 'PageUp') {
+      if (currentSlide > 0) {
+        e.preventDefault();
+        goToSlide(currentSlide - 1);
+      }
+    } else if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === 'PageDown' || e.key === ' ') {
+      if (currentSlide < totalSlides - 1) {
+        e.preventDefault();
+        goToSlide(currentSlide + 1);
+      }
     }
   });
+
+  // Mouse Wheel / Scroll Navigation
+  let isWheelThrottled = false;
+  window.addEventListener('wheel', (e) => {
+    // If user is inside an open modal, do not intercept wheel
+    const modal = document.getElementById('modal-tanitim-download');
+    if (modal && modal.style.display === 'flex') return;
+
+    if (isWheelThrottled) return;
+    if (Math.abs(e.deltaY) > 20) {
+      if (e.deltaY > 0) {
+        if (currentSlide < totalSlides - 1) {
+          goToSlide(currentSlide + 1);
+          isWheelThrottled = true;
+          setTimeout(() => { isWheelThrottled = false; }, 750);
+        }
+      } else {
+        if (currentSlide > 0) {
+          goToSlide(currentSlide - 1);
+          isWheelThrottled = true;
+          setTimeout(() => { isWheelThrottled = false; }, 750);
+        }
+      }
+    }
+  }, { passive: true });
 
   // Swipe gesture support
   let touchStartX = 0;
