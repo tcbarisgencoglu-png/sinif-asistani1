@@ -3,7 +3,7 @@
   const SECRET_SALT = 'SinifAsistani2026SecureLicensingKey_v1';
   const STORAGE_KEY = 'sinif_asistani_license_key';
 
-  // Hızlı ve bağımsız 128-bit hash fonksiyonu
+  // Standart 128-bit hash fonksiyonu
   function cyrb128(str) {
     let h1 = 1779033703, h2 = 3024733165, h3 = 3362453659, h4 = 502493250;
     for (let i = 0, k; i < str.length; i++) {
@@ -20,38 +20,82 @@
     return [(h1^h2^h3^h4)>>>0, (h2^h1)>>>0, (h3^h1)>>>0, (h4^h1)>>>0];
   }
 
-  // Unicode güvenli Base64 Çözücü
+  // Web tanıtım sitesinden üretilmiş önceki anahtarlarla geriye dönük tam uyumluluk sağlayan hash fonksiyonu
+  function cyrb128Legacy(str) {
+    let h1 = 1779033703, h2 = 3024733165, h3 = 3362453659, h4 = 502493250;
+    for (let i = 0, k; i < str.length; i++) {
+      k = str.charCodeAt(i);
+      h1 = h2 ^ Math.imul(h1 ^ k, 597399067);
+      h2 = h3 ^ Math.imul(h2 ^ k, 2869860233);
+      h3 = Math.imul(h3 ^ k, 951274213);
+      h4 = h1 ^ Math.imul(h4 ^ k, 2716044179);
+    }
+    h1 = Math.imul(h3 ^ (h1 >>> 18), 597399067);
+    h2 = Math.imul(h4 ^ (h2 >>> 22), 2869860233);
+    h3 = Math.imul(h1 ^ (h3 >>> 17), 951274213);
+    h4 = Math.imul(h2 ^ (h4 >>> 19), 2716044179);
+    return [(h1^h2^h3^h4)>>>0, (h2^h1)>>>0, (h3^h1)>>>0, (h4^h1)>>>0];
+  }
+
+  // Unicode ve Türkçe karakter güvenli Base64 Çözücü
   function decodeUtf8Base64(base64Str) {
+    if (!base64Str) return null;
+    base64Str = base64Str.trim().replace(/\s+/g, '');
+    while (base64Str.length % 4 !== 0) {
+      base64Str += '=';
+    }
     try {
-      return decodeURIComponent(escape(atob(base64Str)));
-    } catch (e) {
-      return null;
+      const binary = atob(base64Str);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) {
+        bytes[i] = binary.charCodeAt(i);
+      }
+      return new TextDecoder('utf-8').decode(bytes);
+    } catch (e1) {
+      try {
+        return decodeURIComponent(escape(atob(base64Str)));
+      } catch (e2) {
+        try {
+          return atob(base64Str);
+        } catch (e3) {
+          return null;
+        }
+      }
     }
   }
 
-  // Unicode güvenli Base64 Kodlayıcı (doğrulama testi için)
+  // Unicode ve Türkçe karakter güvenli Base64 Kodlayıcı
   function encodeUtf8Base64(str) {
-    return btoa(unescape(encodeURIComponent(str)));
+    try {
+      const bytes = new TextEncoder().encode(str);
+      let binary = '';
+      for (let i = 0; i < bytes.length; i++) {
+        binary += String.fromCharCode(bytes[i]);
+      }
+      return btoa(binary);
+    } catch (e) {
+      return btoa(unescape(encodeURIComponent(str)));
+    }
   }
+
+  const toHex = (n) => (n >>> 0).toString(16).padStart(8, '0').toUpperCase();
+  const formatSig = (hashes) => {
+    const hex = hashes.map(toHex).join('');
+    return `${hex.substr(0,4)}-${hex.substr(4,4)}-${hex.substr(8,4)}-${hex.substr(12,4)}`;
+  };
 
   // Lisans imza üretim fonksiyonu
   function generateSignature(name, expiry) {
     const rawData = `${name.trim().toLowerCase()}|${expiry}|${SECRET_SALT}`;
-    const hashes = cyrb128(rawData);
-    
-    // Hash değerlerini Hex bloklarına dönüştür
-    const toHex = (n) => (n >>> 0).toString(16).padStart(8, '0').toUpperCase();
-    const hex = hashes.map(toHex).join('');
-    
-    // XXXX-XXXX-XXXX-XXXX formatına getir
-    return `${hex.substr(0,4)}-${hex.substr(4,4)}-${hex.substr(8,4)}-${hex.substr(12,4)}`;
+    return formatSig(cyrb128(rawData));
   }
 
   // Lisans anahtarını doğrula
   function verifyLicenseKey(key) {
     if (!key || typeof key !== 'string') return { isValid: false, reason: 'Lisans kodu girilmedi.' };
     
-    key = key.trim();
+    // Görünmez karakterleri, tırnakları, boşlukları ve gereksiz çift tireleri temizle
+    key = key.trim().replace(/[\u200B-\u200D\uFEFF"']/g, '').replace(/\s+/g, '');
     
     // XXXX-XXXX-XXXX-XXXX formatındaki 19 karakterlik imzayı ve payload'ı esnek ayrıştır
     let payloadBase64 = '';
@@ -62,9 +106,9 @@
       signature = sigMatch[0].toUpperCase();
       payloadBase64 = key.substring(0, sigMatch.index).replace(/-+$/, '').trim();
     } else {
-      const dashIdx = key.indexOf('-');
+      const dashIdx = key.lastIndexOf('-');
       if (dashIdx === -1) return { isValid: false, reason: 'Geçersiz lisans formatı.' };
-      payloadBase64 = key.substring(0, dashIdx).trim();
+      payloadBase64 = key.substring(0, dashIdx).replace(/-+$/, '').trim();
       signature = key.substring(dashIdx + 1).replace(/^-+/, '').trim().toUpperCase();
     }
     
@@ -77,9 +121,24 @@
     const name = parts[0];
     const expiry = parts[1]; // YYYY-MM-DD veya "never"
     
-    // İmzayı yeniden hesapla ve karşılaştır
-    const expectedSignature = generateSignature(name, expiry);
-    if (signature !== expectedSignature) {
+    // Türkçe ve uluslararası karakter dönüşüm varyasyonlarını destekle
+    const nameVariants = [
+      name.trim().toLowerCase(),
+      name.trim().toLocaleLowerCase('tr-TR'),
+      name.trim().toLocaleLowerCase('en-US'),
+      name.trim()
+    ];
+    
+    let sigValid = false;
+    for (const n of nameVariants) {
+      const raw = `${n}|${expiry}|${SECRET_SALT}`;
+      if (signature === formatSig(cyrb128(raw)) || signature === formatSig(cyrb128Legacy(raw))) {
+        sigValid = true;
+        break;
+      }
+    }
+
+    if (!sigValid) {
       return { isValid: false, reason: 'Lisans imzası uyuşmuyor.' };
     }
     

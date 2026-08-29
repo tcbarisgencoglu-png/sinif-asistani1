@@ -2,6 +2,15 @@
 
 Bu dosya, Sınıf Asistanı uygulamasının tüm sürüm geçmişini içerir.
 
+## [v1.0.4] — 2026-08-29
+
+### 🔧 Düzeltmeler & Lisans Doğrulama İyileştirmeleri
+- Web tanıtım sitesinde üretilen deneme lisansı hash algoritması düzeltildi ve geriye dönük tam uyumluluk sağlandı.
+- Masaüstü (macOS, Windows, Linux) ve Web uygulamalarında lisans anahtarı doğrulayıcısı tüm Türkçe karakter setleri ve eski/yeni imza varyasyonlarını destekleyecek şekilde güncellendi.
+- Lisans anahtarı kopyala/yapıştır sırasındaki çift tire (`--`), tırnak ve görünmez karakterler otomatik olarak temizlenir.
+
+---
+
 ## [v1.0.3] — 2026-08-29
 
 ### 🔧 Düzeltmeler & İyileştirmeler
