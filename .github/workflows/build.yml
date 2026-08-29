@@ -173,12 +173,17 @@ jobs:
           args: ${{ matrix.args }}
 
       - name: Derlenen paketleri sinifasistani-indir deposuna otomatik aktar
-        if: startsWith(github.ref, 'refs/tags/') && env.PUBLIC_RELEASE_TOKEN != ''
+        if: startsWith(github.ref, 'refs/tags/')
         shell: bash
         env:
           PUBLIC_RELEASE_TOKEN: ${{ secrets.PUBLIC_RELEASE_TOKEN }}
           GH_TOKEN: ${{ secrets.PUBLIC_RELEASE_TOKEN }}
         run: |
+          if [ -z "$PUBLIC_RELEASE_TOKEN" ]; then
+            echo "PUBLIC_RELEASE_TOKEN secret'ı tanımlanmamış, aktarım adımı atlanıyor."
+            exit 0
+          fi
+
           TAG="${{ github.ref_name }}"
           TARGET_REPO="tcbarisgencoglu-png/sinifasistani-indir"
           echo "Hedef depo: $TARGET_REPO | Sürüm: $TAG"
