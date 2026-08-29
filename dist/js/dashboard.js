@@ -2474,7 +2474,7 @@ function updateFlowContent(syncWithRealTime = true) {
       const response = await fetch('https://api.github.com/repos/tcbarisgencoglu-png/sinif-asistani1/releases/latest');
       if (response.ok) {
         const release = await response.json();
-        const tagName = release.tag_name || 'v1.0.2';
+        const tagName = release.tag_name || 'v1.0.3';
         
         const badge = document.getElementById('download-app-version-badge');
         if (badge) badge.textContent = `${tagName} (En Son)`;

@@ -735,6 +735,8 @@ function initApp() {
     if (updated) {
       localStorage.setItem('sinif-asistani-reminders', JSON.stringify(reminders));
     }
+  }, 2000);
+
   // URL parametresinden otomatik lisans aktifleştirme (?license=...)
   try {
     const urlParams = new URLSearchParams(window.location.search);
@@ -764,7 +766,7 @@ function initApp() {
 }
 
 // Mevcut uygulama sürümü (her güncellemede değişir)
-const APP_VERSION = '1.0.2';
+const APP_VERSION = '1.0.3';
 
 // GitHub'dan güncelleme kontrolü
 async function checkForUpdates() {
