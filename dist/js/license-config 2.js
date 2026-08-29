@@ -51,22 +51,11 @@
   function verifyLicenseKey(key) {
     if (!key || typeof key !== 'string') return { isValid: false, reason: 'Lisans kodu girilmedi.' };
     
-    key = key.trim();
+    const dashIdx = key.indexOf('-');
+    if (dashIdx === -1) return { isValid: false, reason: 'Geçersiz lisans formatı.' };
     
-    // XXXX-XXXX-XXXX-XXXX formatındaki 19 karakterlik imzayı ve payload'ı esnek ayrıştır
-    let payloadBase64 = '';
-    let signature = '';
-    
-    const sigMatch = key.match(/[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}$/);
-    if (sigMatch) {
-      signature = sigMatch[0].toUpperCase();
-      payloadBase64 = key.substring(0, sigMatch.index).replace(/-+$/, '').trim();
-    } else {
-      const dashIdx = key.indexOf('-');
-      if (dashIdx === -1) return { isValid: false, reason: 'Geçersiz lisans formatı.' };
-      payloadBase64 = key.substring(0, dashIdx).trim();
-      signature = key.substring(dashIdx + 1).replace(/^-+/, '').trim().toUpperCase();
-    }
+    const payloadBase64 = key.substring(0, dashIdx);
+    const signature = key.substring(dashIdx + 1);
     
     const decodedPayload = decodeUtf8Base64(payloadBase64);
     if (!decodedPayload) return { isValid: false, reason: 'Lisans verisi çözülemedi.' };

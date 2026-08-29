@@ -570,18 +570,8 @@
     }
 
     if (btnActivate && txtKey) {
-      // Yapıştırma veya yazma anında otomatik temizlik yap
-      txtKey.addEventListener('input', () => {
-        let val = txtKey.value;
-        // Çift tire veya boşlukları otomatik düzelt
-        val = val.replace(/[\u200B-\u200D\uFEFF]/g, '').replace(/--+/g, '-').trim();
-      });
-
       btnActivate.addEventListener('click', async () => {
-        let key = txtKey.value.trim();
-        // Otomatik temizleme: tırnaklar, görünmez karakterler, çift tireler
-        key = key.replace(/[\u200B-\u200D\uFEFF"']/g, '').replace(/\s+/g, '').replace(/--+/g, '-').trim();
-
+        const key = txtKey.value.trim();
         if (!key) {
           if (toastCallback) toastCallback('Lütfen bir lisans anahtarı girin!', 'warning');
           return;

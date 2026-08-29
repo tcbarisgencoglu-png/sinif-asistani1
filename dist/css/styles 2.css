@@ -1,0 +1,5740 @@
+/* Google Fonts Import */
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
+
+/* Tasarım Sistemi Değişkenleri (CSS Variables) */
+:root {
+  /* Renkler (Açık Tema - Varsayılan) */
+  --bg-primary: #f8fafc;
+  --bg-secondary: #ffffff;
+  --bg-glass: rgba(255, 255, 255, 0.7);
+  --border-color: rgba(226, 232, 240, 0.8);
+  --border-glass: rgba(255, 255, 255, 0.5);
+
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #94a3b8;
+
+  --primary: #4f46e5;
+  --primary-hover: #4338ca;
+  --primary-light: rgba(79, 70, 229, 0.1);
+  --primary-glow: rgba(79, 70, 229, 0.15);
+
+  --success: #10b981;
+  --success-light: rgba(16, 185, 129, 0.1);
+  --danger: #f43f5e;
+  --danger-light: rgba(244, 63, 94, 0.1);
+  --warning: #f59e0b;
+  --warning-light: rgba(245, 158, 11, 0.1);
+  --info: #06b6d4;
+  --info-light: rgba(6, 182, 212, 0.1);
+
+  /* Gölgeler ve Köşeler */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+  --radius-full: 9999px;
+  
+  --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 20px -2px rgba(0, 0, 0, 0.05), 0 2px 8px -1px rgba(0, 0, 0, 0.03);
+  --shadow-lg: 0 20px 25px -5px rgba(79, 70, 229, 0.05), 0 8px 10px -6px rgba(79, 70, 229, 0.05);
+  --shadow-primary: 0 10px 15px -3px rgba(79, 70, 229, 0.2);
+
+  /* Animasyon Geçişleri */
+  --transition-fast: 0.15s ease;
+  --transition-normal: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Layout Genişlikleri */
+  --sidebar-width: 260px;
+  --max-width: 1400px;
+}
+
+/* Koyu Tema Değişkenleri */
+[data-theme="dark"] {
+  --bg-primary: #0b0f19;
+  --bg-secondary: #111827;
+  --bg-glass: rgba(17, 24, 39, 0.7);
+  --border-color: rgba(37, 99, 235, 0.1);
+  --border-glass: rgba(31, 41, 55, 0.5);
+
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+
+  --primary: #6366f1;
+  --primary-hover: #4f46e5;
+  --primary-light: rgba(99, 102, 241, 0.15);
+  --primary-glow: rgba(99, 102, 241, 0.25);
+
+  --border-color: #1f2937;
+  --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 4px 20px -2px rgba(0, 0, 0, 0.3), 0 2px 8px -1px rgba(0, 0, 0, 0.2);
+  --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.4), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
+  --shadow-primary: 0 10px 15px -3px rgba(99, 102, 241, 0.3);
+}
+
+/* Canlı Tema Değişkenleri (Vibrant Light) */
+[data-theme="vibrant"] {
+  --bg-primary: #f5f3ff;
+  --bg-secondary: #ffffff;
+  --bg-glass: rgba(255, 255, 255, 0.75);
+  --border-color: rgba(139, 92, 246, 0.2);
+  --border-glass: rgba(255, 255, 255, 0.6);
+
+  --text-primary: #1e1b4b;
+  --text-secondary: #4c1d95;
+  --text-muted: #8b5cf6;
+
+  --primary: #8b5cf6;
+  --primary-hover: #7c3aed;
+  --primary-light: rgba(139, 92, 246, 0.15);
+  --primary-glow: rgba(139, 92, 246, 0.25);
+
+  --success: #10b981;
+  --success-light: rgba(16, 185, 129, 0.15);
+  --danger: #ff007f;
+  --danger-light: rgba(255, 0, 127, 0.15);
+  --warning: #f59e0b;
+  --warning-light: rgba(245, 158, 11, 0.15);
+  --info: #06b6d4;
+  --info-light: rgba(6, 182, 212, 0.15);
+
+  --shadow-sm: 0 1px 3px rgba(139, 92, 246, 0.05);
+  --shadow-md: 0 4px 20px -2px rgba(139, 92, 246, 0.1), 0 2px 8px -1px rgba(139, 92, 246, 0.05);
+  --shadow-lg: 0 20px 25px -5px rgba(139, 92, 246, 0.15), 0 8px 10px -6px rgba(139, 92, 246, 0.1);
+  --shadow-primary: 0 10px 15px -3px rgba(139, 92, 246, 0.3);
+}
+
+/* Pastel Tema Değişkenleri (Pastel Dark) */
+[data-theme="pastel"] {
+  --bg-primary: #1b2d42; /* Pastel koyu mavi arkaplan */
+  --bg-secondary: #4e2d30; /* Pastel koyu kırmızı pencereler */
+  --bg-glass: rgba(78, 45, 48, 0.8); /* Saydam pencereler için pastel kırmızı */
+  --border-color: #3d1416; /* Çok koyu kırmızı kontur çizgisi */
+  --border-glass: rgba(61, 20, 22, 0.85); /* Saydam pencereler için çok koyu kırmızı kontur */
+
+  --text-primary: #ffffff; /* Yazılar beyaz */
+  --text-secondary: #f1f5f9;
+  --text-muted: #cbd5e1;
+
+  --primary: #ff8585; /* Pastel mercan kırmızısı */
+  --primary-hover: #ff6b6b;
+  --primary-light: rgba(255, 133, 133, 0.15);
+  --primary-glow: rgba(255, 133, 133, 0.25);
+
+  --success: #86efac;
+  --success-light: rgba(134, 239, 172, 0.15);
+  --danger: #ff6b6b;
+  --danger-light: rgba(255, 107, 107, 0.15);
+  --warning: #fef08a;
+  --warning-light: rgba(254, 240, 138, 0.15);
+  --info: #93c5fd;
+  --info-light: rgba(147, 197, 253, 0.15);
+
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 20px -2px rgba(0, 0, 0, 0.5), 0 2px 8px -1px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.6), 0 8px 10px -6px rgba(0, 0, 0, 0.4);
+  --shadow-primary: 0 10px 15px -3px rgba(255, 133, 133, 0.25);
+}
+
+/* Pastel Temada Pencerelerin Çizgilerini Kalınlaştır (2px) */
+[data-theme="pastel"] .glass-card,
+[data-theme="pastel"] .stat-card,
+[data-theme="pastel"] .section-card,
+[data-theme="pastel"] .student-card,
+[data-theme="pastel"] .sidebar,
+[data-theme="pastel"] .page-header,
+[data-theme="pastel"] .modal-content,
+[data-theme="pastel"] .hw-day-card,
+[data-theme="pastel"] .exam-card,
+[data-theme="pastel"] .setup-group-box,
+[data-theme="pastel"] .setup-group-box-modern,
+[data-theme="pastel"] .unassigned-students-wrapper,
+[data-theme="pastel"] .setup-students-column,
+[data-theme="pastel"] #games .mode-card,
+[data-theme="pastel"] #games .multiplication-question-card,
+[data-theme="pastel"] #games .game-controls-container,
+[data-theme="pastel"] #games .student-display-area {
+  border-width: 2px !important;
+}
+
+/* Sıfırlama (Reset) */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: 'Outfit', sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  min-height: 100vh;
+  display: flex;
+  overflow-x: hidden;
+  transition: background-color var(--transition-normal), color var(--transition-normal);
+}
+
+/* Kaydırma Çubuğu (Scrollbar) */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-primary);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--text-muted);
+  border-radius: var(--radius-full);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-secondary);
+}
+
+/* Mobil Üst Bar ve Backdrop Varsayılan Durumu (Masaüstünde Gizli) */
+.mobile-header {
+  display: none;
+}
+.sidebar-backdrop {
+  display: none;
+}
+.mobile-close-btn {
+  display: none;
+}
+
+/* Arayüz Düzeni (Layout) */
+.app-container {
+  display: flex;
+  width: 100%;
+  max-width: 100vw;
+  position: relative;
+}
+
+/* Yan Menü (Sidebar) */
+.sidebar {
+  width: var(--sidebar-width);
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.6) !important;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 2rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 100;
+  transition: transform var(--transition-normal), background-color var(--transition-normal), border-color var(--transition-normal), width var(--transition-normal);
+}
+
+/* Force light colors inside sidebar for high contrast on transparent black */
+.sidebar .logo-text h1 {
+  background: linear-gradient(135deg, #ffffff 0%, #a5b4fc 100%) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+}
+
+.sidebar .logo-text span {
+  color: rgba(255, 255, 255, 0.5) !important;
+}
+
+.sidebar .nav-link {
+  color: rgba(255, 255, 255, 0.7) !important;
+}
+
+.sidebar .nav-link:hover {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  color: #ffffff !important;
+}
+
+.sidebar .nav-item.active .nav-link {
+  background-color: var(--primary) !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3) !important;
+}
+
+.sidebar .sidebar-footer {
+  border-top-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+.sidebar .mobile-close-btn {
+  color: rgba(255, 255, 255, 0.7) !important;
+}
+
+.sidebar .theme-toggle-btn, .sidebar .backup-btn {
+  color: rgba(255, 255, 255, 0.7) !important;
+  border-color: rgba(255, 255, 255, 0.15) !important;
+}
+
+.sidebar .theme-toggle-btn:hover, .sidebar .backup-btn:hover {
+  background-color: rgba(255, 255, 255, 0.08) !important;
+  color: #ffffff !important;
+}
+
+
+.logo-container {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 2.5rem;
+}
+
+.logo-icon {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%);
+  color: white;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-primary);
+}
+
+.logo-text h1 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, var(--text-primary) 0%, var(--primary) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.logo-text span {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  display: block;
+}
+
+/* Menü Linkleri */
+.nav-menu {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  flex: 1;
+}
+
+.nav-item {
+  width: 100%;
+}
+
+.nav-link {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.85rem 1rem;
+  color: var(--text-secondary);
+  text-decoration: none;
+  font-weight: 500;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.nav-link:hover {
+  background-color: var(--bg-primary);
+  color: var(--primary);
+}
+
+.nav-item.active .nav-link {
+  background-color: var(--primary);
+  color: white;
+  box-shadow: var(--shadow-primary);
+}
+
+.nav-link i {
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Alt Ayarlar */
+.sidebar-footer {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border-color);
+}
+
+.theme-toggle-btn, .backup-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--border-color);
+  background-color: transparent;
+  color: var(--text-secondary);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: all var(--transition-fast);
+}
+
+.theme-toggle-btn:hover, .backup-btn:hover {
+  background-color: var(--primary-light);
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.backup-btn.reset-btn {
+  color: var(--danger);
+  border-color: rgba(244, 63, 94, 0.2);
+}
+
+.backup-btn.reset-btn:hover {
+  background-color: var(--danger-light);
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+/* Ana İçerik Alanı */
+.main-content {
+  margin-left: var(--sidebar-width);
+  flex: 1;
+  min-height: 100vh;
+  padding: 2rem 3rem;
+  max-width: calc(100vw - var(--sidebar-width));
+  transition: margin-left var(--transition-normal), max-width var(--transition-normal);
+}
+
+.content-section {
+  display: none;
+  animation: fadeIn var(--transition-normal);
+}
+
+.content-section.active {
+  display: block;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Sayfa Başlığı */
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  background-color: rgba(186, 230, 253, 0.6) !important; /* Açık mavi %60 saydam */
+  border: 1.5px solid rgba(29, 78, 216, 0.2) !important; /* Koyu mavi %20 saydam */
+  border-radius: var(--radius-md) !important;
+  padding: 1.25rem 1.75rem !important;
+  box-shadow: var(--shadow-sm) !important;
+  backdrop-filter: blur(10px) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
+}
+
+[data-theme="dark"] .page-header {
+  background-color: rgba(30, 41, 59, 0.6) !important; /* Koyu slate/mavi %60 saydam */
+  border-color: rgba(56, 189, 248, 0.2) !important; /* Açık mavi %20 saydam */
+}
+
+[data-theme="pastel"] .page-header {
+  background-color: rgba(27, 38, 59, 0.6) !important; /* Pastel koyu mavi %60 saydam */
+  border-color: #3d1416 !important; /* Çok koyu kırmızı kontur çizgisi */
+}
+
+.header-title h2 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.header-title p {
+  color: var(--text-muted);
+  font-size: 0.875rem;
+  margin-top: 0.25rem;
+}
+
+.header-actions {
+  display: flex;
+  gap: 0.75rem;
+}
+
+/* Buton Stilleri */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.65rem 1.25rem;
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  border: none;
+  transition: all var(--transition-fast);
+}
+
+.btn-primary {
+  background-color: var(--primary);
+  color: white;
+}
+
+.btn-primary:hover {
+  background-color: var(--primary-hover);
+  box-shadow: var(--shadow-primary);
+}
+
+.btn-secondary {
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+}
+
+.btn-secondary:hover {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+.btn-danger {
+  background-color: var(--danger);
+  color: white;
+}
+
+.btn-danger:hover {
+  background-color: #e11d48;
+}
+
+.btn-success {
+  background-color: var(--success);
+  color: white;
+}
+
+.btn-success:hover {
+  background-color: #059669;
+}
+
+/* Cam Efektli Kartlar (Glassmorphic Cards) */
+.glass-card {
+  background: var(--bg-glass);
+  backdrop-filter: blur(12px) saturate(120%);
+  -webkit-backdrop-filter: blur(12px) saturate(120%);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  box-shadow: var(--shadow-md);
+  transition: transform var(--transition-normal), box-shadow var(--transition-normal);
+}
+
+.glass-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+/* Dashboard Kartları Grid */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.stat-card {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+}
+
+.stat-icon {
+  width: 50px;
+  height: 50px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+}
+
+.stat-icon.primary { background-color: var(--primary-light); color: var(--primary); }
+.stat-icon.success { background-color: var(--success-light); color: var(--success); }
+.stat-icon.warning { background-color: var(--warning-light); color: var(--warning); }
+.stat-icon.info { background-color: var(--info-light); color: var(--info); }
+
+.stat-info .stat-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.stat-info .stat-label {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+}
+
+/* İki Sütunlu Grid */
+.main-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 1.5rem;
+}
+
+.section-card {
+  margin-bottom: 1.5rem;
+}
+
+.section-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 1.25rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* Öğrenci Kartları Listesi */
+.students-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 1.25rem;
+}
+
+.student-card {
+  text-align: center;
+  position: relative;
+  cursor: pointer;
+  padding: 1.75rem 1rem;
+  border: 1.5px solid rgba(56, 189, 248, 0.4) !important; /* Açık mavi belirgin çerçeve */
+  transition: transform var(--transition-normal), box-shadow var(--transition-normal), border-color var(--transition-normal);
+}
+
+.student-card:hover {
+  border-color: rgba(14, 165, 233, 0.8) !important;
+  box-shadow: 0 10px 20px rgba(56, 189, 248, 0.15) !important;
+}
+
+[data-theme="dark"] .student-card {
+  border-color: rgba(56, 189, 248, 0.25) !important;
+}
+[data-theme="pastel"] .student-card {
+  border-color: #3d1416 !important; /* Çok koyu kırmızı kontur çizgisi */
+}
+
+[data-theme="dark"] .student-card:hover {
+  border-color: rgba(56, 189, 248, 0.6) !important;
+  box-shadow: 0 10px 20px rgba(56, 189, 248, 0.1) !important;
+}
+[data-theme="pastel"] .student-card:hover {
+  border-color: #a82e33 !important; /* Daha belirgin kırmızı kontur çizgisi */
+  box-shadow: 0 10px 20px rgba(107, 33, 37, 0.25) !important;
+}
+
+.student-avatar {
+  width: 65px;
+  height: 65px;
+  border-radius: var(--radius-full);
+  margin: 0 auto 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 1.5rem;
+  border: 2px solid var(--border-color);
+  background: linear-gradient(135deg, var(--primary-light) 0%, var(--bg-primary) 100%);
+  color: var(--primary);
+  text-transform: uppercase;
+  object-fit: cover;
+}
+
+.student-card.female .student-avatar {
+  background: linear-gradient(135deg, var(--danger-light) 0%, var(--bg-primary) 100%);
+  color: var(--danger);
+}
+
+.student-info h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.student-info .std-no {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-weight: 500;
+  margin-top: 0.15rem;
+}
+
+.student-score-badge {
+  display: inline-block;
+  margin-top: 0.75rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: var(--radius-full);
+  font-size: 0.75rem;
+  font-weight: 700;
+  background-color: var(--primary-light);
+  color: var(--primary);
+}
+
+.student-score-badge.positive {
+  background-color: var(--success-light);
+  color: var(--success);
+}
+
+.student-score-badge.negative {
+  background-color: var(--danger-light);
+  color: var(--danger);
+}
+
+.student-actions {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  display: flex;
+  gap: 0.25rem;
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+}
+
+.student-card:hover .student-actions {
+  opacity: 1;
+}
+
+.action-btn-sm {
+  width: 26px;
+  height: 26px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border-color);
+  background-color: var(--bg-secondary);
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 0.75rem;
+  transition: all var(--transition-fast);
+}
+
+.action-btn-sm:hover {
+  background-color: var(--primary);
+  color: white;
+  border-color: var(--primary);
+}
+
+.action-btn-sm.delete:hover {
+  background-color: var(--danger);
+  color: white;
+  border-color: var(--danger);
+}
+
+/* Modallar (Popup Windows) */
+.modal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(15, 23, 42, 0.4);
+  backdrop-filter: blur(8px);
+  z-index: 1000;
+  justify-content: center;
+  align-items: center;
+  animation: fadeIn var(--transition-fast);
+}
+
+.modal-content {
+  width: 100%;
+  max-width: var(--max-width, 500px);
+  max-height: 90vh;
+  overflow-y: auto;
+  border-radius: var(--radius-lg);
+  background-color: var(--bg-secondary);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--border-color);
+  transform: scale(0.95);
+  transition: transform var(--transition-fast);
+}
+
+.modal.active {
+  display: flex;
+}
+
+.modal.active .modal-content {
+  transform: scale(1);
+}
+
+.modal-header {
+  padding: 1.5rem;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal-header h3 {
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 1.25rem;
+  cursor: pointer;
+  color: var(--text-muted);
+}
+
+.close-btn:hover {
+  color: var(--text-primary);
+}
+
+.modal-body {
+  padding: 1.5rem;
+}
+
+.modal-footer {
+  padding: 1.5rem;
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+/* Form Elemanları */
+.form-group {
+  margin-bottom: 1.25rem;
+}
+
+.form-group label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 0.5rem;
+}
+
+.form-control {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--border-color);
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  border-radius: var(--radius-md);
+  outline: none;
+  font-size: 0.9rem;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.form-control:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-glow);
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+/* Filtreleme ve Arama Barı */
+.search-filter-bar {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.search-wrapper {
+  position: relative;
+  flex: 1;
+}
+
+.search-wrapper i {
+  position: absolute;
+  left: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+}
+
+.search-wrapper .form-control {
+  padding-left: 2.75rem;
+}
+
+/* ClassDojo Tarzı Performans Puanlama Ekranı */
+.dojo-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+
+.dojo-students {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 0.75rem;
+  max-height: 65vh;
+  overflow-y: auto;
+  padding: 0.25rem;
+}
+
+.dojo-student-card {
+  padding: 1rem 0.5rem;
+  text-align: center;
+  border-radius: var(--radius-md);
+  border: 2px solid transparent;
+  cursor: pointer;
+  background-color: var(--bg-secondary);
+  box-shadow: var(--shadow-sm);
+  transition: all var(--transition-fast);
+}
+
+.dojo-student-card.selected {
+  border-color: var(--primary);
+  background-color: var(--primary-light);
+}
+
+.dojo-student-card .avatar-sm {
+  width: 45px;
+  height: 45px;
+  border-radius: var(--radius-full);
+  margin: 0 auto 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 1.1rem;
+  background-color: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  text-transform: uppercase;
+}
+
+.dojo-student-card.selected .avatar-sm {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.dojo-student-card span {
+  font-size: 0.8rem;
+  font-weight: 500;
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Davranış Kartları */
+.behavior-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 0.5rem;
+}
+
+.behavior-tab-btn {
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius-sm);
+  border: none;
+  background: none;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.behavior-tab-btn.active {
+  background-color: var(--primary-light);
+  color: var(--primary);
+}
+
+.behavior-tab-btn.positive-tab.active {
+  background-color: var(--success-light);
+  color: var(--success);
+}
+
+.behavior-tab-btn.development-tab.active {
+  background-color: var(--danger-light);
+  color: var(--danger);
+}
+
+.behavior-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.75rem;
+}
+
+.behavior-card {
+  padding: 1rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  background-color: var(--bg-secondary);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.5rem;
+  transition: all var(--transition-fast);
+}
+
+.behavior-card:hover {
+  transform: translateY(-2px);
+}
+
+.behavior-card.positive {
+  border-color: rgba(16, 185, 129, 0.2);
+}
+.behavior-card.positive:hover {
+  background-color: var(--success-light);
+  border-color: var(--success);
+}
+.behavior-card.development {
+  border-color: rgba(244, 63, 94, 0.2);
+}
+.behavior-card.development:hover {
+  background-color: var(--danger-light);
+  border-color: var(--danger);
+}
+
+.behavior-icon {
+  font-size: 1.25rem;
+}
+
+.behavior-name {
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.behavior-points {
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.15rem 0.5rem;
+  border-radius: var(--radius-full);
+}
+
+.positive .behavior-points { background-color: var(--success-light); color: var(--success); }
+.development .behavior-points { background-color: var(--danger-light); color: var(--danger); }
+
+/* Ödev Matrisi ve Çizelge */
+.table-wrapper {
+  overflow-x: auto;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.table th, .table td {
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.table th {
+  background-color: var(--bg-primary);
+  font-weight: 600;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.table tbody tr:hover td {
+  background-color: rgba(79, 70, 229, 0.02);
+}
+
+/* Durum Seçici (Homework Status Badges) */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.65rem;
+  border-radius: var(--radius-full);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+}
+
+.status-badge.completed { background-color: var(--success-light); color: var(--success); }
+.status-badge.incomplete { background-color: var(--warning-light); color: var(--warning); }
+.status-badge.missing { background-color: var(--danger-light); color: var(--danger); }
+.status-badge.excused { background-color: var(--info-light); color: var(--info); }
+.status-badge.none { background-color: var(--bg-primary); color: var(--text-muted); border: 1px dashed var(--border-color); }
+
+/* Ödev Ayrıntıları Matrisi */
+.homework-matrix-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.matrix-card {
+  padding: 1.25rem;
+}
+
+.matrix-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+}
+
+.matrix-header h3 {
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.matrix-progress {
+  width: 100%;
+  height: 6px;
+  background-color: var(--border-color);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+  margin: 0.5rem 0 1rem;
+}
+
+.matrix-progress-bar {
+  height: 100%;
+  background-color: var(--success);
+  width: 0%;
+  transition: width var(--transition-normal);
+}
+
+/* Kitap Takip Kitaplık ve Listeler */
+.books-container {
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: 1.5rem;
+}
+
+.book-card-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 0.75rem;
+}
+
+.book-card {
+  padding: 0.65rem;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.book-cover {
+  width: 100%;
+  height: 140px;
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%);
+  border-radius: var(--radius-sm) var(--radius-md) var(--radius-md) var(--radius-sm);
+  border-left: 4px solid rgba(0, 0, 0, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  margin-bottom: 0.5rem;
+  position: relative;
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+
+.book-cover::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 10px;
+  height: 100%;
+  background: linear-gradient(to right, rgba(0,0,0,0.25) 0%, rgba(0,0,0,0.05) 50%, rgba(255,255,255,0.15) 100%);
+}
+
+.book-cover i {
+  font-size: 2.2rem;
+  opacity: 0.8;
+}
+
+.book-title {
+  font-size: 0.9rem;
+  font-weight: 700;
+  margin-bottom: 0.25rem;
+  line-height: 1.2;
+}
+
+.book-author {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  margin-bottom: auto;
+}
+
+.book-pages {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 0.5rem;
+}
+
+/* Haftalık Değerlendirme Bölümü */
+.weekly-container {
+  max-width: 800px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.rating-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.rating-card {
+  text-align: center;
+  padding: 1.25rem;
+}
+
+.rating-label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+}
+
+.stars-container {
+  display: flex;
+  justify-content: center;
+  gap: 0.35rem;
+}
+
+.star {
+  font-size: 1.5rem;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: color var(--transition-fast);
+}
+
+.star:hover, .star.active {
+  color: var(--warning);
+}
+
+/* Öğrenci Detay Modalı Profili */
+.student-detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 1.5rem;
+}
+
+.student-detail-sidebar {
+  text-align: center;
+  border-right: 1px solid var(--border-color);
+  padding-right: 1.5rem;
+}
+
+.student-detail-main {
+  max-height: 60vh;
+  overflow-y: auto;
+  padding-right: 0.5rem;
+}
+
+.detail-tab-menu {
+  display: flex;
+  gap: 0.5rem;
+  border-bottom: 1px solid var(--border-color);
+  margin-bottom: 1rem;
+}
+
+.detail-tab-btn {
+  padding: 0.5rem 1rem;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--text-muted);
+  border-bottom: 2px solid transparent;
+}
+
+.detail-tab-btn.active {
+  color: var(--primary);
+  border-bottom-color: var(--primary);
+}
+
+.detail-tab-content {
+  display: none;
+}
+
+.detail-tab-content.active {
+  display: block;
+}
+
+/* Bildirimler (Toast Alerts) */
+.toast-container {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  z-index: 2000;
+  pointer-events: none;
+}
+
+.toast {
+  pointer-events: auto;
+  background: var(--bg-secondary);
+  border-left: 4px solid var(--primary);
+  color: var(--text-primary);
+  padding: 1rem 1.5rem;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-weight: 500;
+  font-size: 0.875rem;
+  animation: slideIn var(--transition-fast);
+}
+
+.toast.success { border-left-color: var(--success); }
+.toast.danger { border-left-color: var(--danger); }
+.toast.warning { border-left-color: var(--warning); }
+
+@keyframes slideIn {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+/* Yazdırma Stilleri (Print Layouts) */
+@media print {
+  body {
+    background-color: white;
+    color: black;
+  }
+
+  .sidebar, .page-header, .header-actions, .toast-container, .modal {
+    display: none !important;
+  }
+
+  .main-content {
+    margin-left: 0 !important;
+    padding: 0 !important;
+    max-width: 100% !important;
+  }
+
+  .glass-card {
+    border: 1px solid #ccc !important;
+    box-shadow: none !important;
+    background: white !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    page-break-inside: avoid;
+  }
+
+  .table th, .table td {
+    border-bottom: 1px solid #ddd !important;
+  }
+  
+  .table th {
+    background-color: #f5f5f5 !important;
+    color: #333 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .status-badge {
+    border: 1px solid #ccc !important;
+    background: transparent !important;
+    color: black !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .status-badge.completed {
+    border-color: #10b981 !important;
+    color: #10b981 !important;
+  }
+
+  .status-badge.incomplete {
+    border-color: #f59e0b !important;
+    color: #f59e0b !important;
+  }
+
+  .status-badge.missing {
+    border-color: #ef4444 !important;
+    color: #ef4444 !important;
+  }
+
+  .status-badge.excused {
+    border-color: #3b82f6 !important;
+    color: #3b82f6 !important;
+  }
+
+
+  body.print-weekly .weekly-report-print {
+    display: block !important;
+  }
+  body.print-homework .homework-report-print {
+    display: block !important;
+    padding: 0 !important;
+  }
+  body.print-homework .student-hw-report-card {
+    page-break-after: always !important;
+    page-break-inside: avoid !important;
+    border: none !important;
+    box-shadow: none !important;
+    margin: 0 0 2rem 0 !important;
+    padding: 0 !important;
+    background: transparent !important;
+    color: black !important;
+  }
+  body.print-homework .student-hw-report-card:last-child {
+    page-break-after: avoid !important;
+  }
+  body.print-performance .performance-report-print {
+    display: block !important;
+  }
+}
+
+.print-only {
+  display: none;
+}
+
+.weekly-report-print {
+  padding: 2rem;
+}
+
+.print-header {
+  text-align: center;
+  border-bottom: 2px solid #000;
+  padding-bottom: 1rem;
+  margin-bottom: 2rem;
+}
+
+.print-header h1 {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+}
+
+.print-row {
+  margin-bottom: 1.5rem;
+}
+
+/* Mobil Uyumlu Düzenlemeler */
+@media (max-width: 1024px) {
+  .dashboard-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .main-grid, .books-container, .dojo-container {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  /* Mobil Ekran Taşmalarını Önleme */
+  html, body {
+    max-width: 100vw !important;
+    overflow-x: hidden !important;
+  }
+
+  /* Mobilde Kenar Menü Kapatma Butonunu Gizle */
+  .sidebar-collapse-toggle-btn {
+    display: none !important;
+  }
+
+  /* Hızlı Menü Butonlarının Mobilde Alt Satırlara Sığmasını Sağla */
+  .quick-menu-box > div {
+    flex-wrap: wrap !important;
+    justify-content: flex-end !important;
+    gap: 0.5rem !important;
+  }
+
+  body, .app-container {
+    flex-direction: column;
+  }
+  
+  /* Mobil Üst Bar Görünümü */
+  .mobile-header {
+    display: flex;
+    height: 56px;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border-color);
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 1rem;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 900;
+  }
+
+  .mobile-menu-btn {
+    background: none;
+    border: none;
+    color: var(--text-primary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem;
+    border-radius: var(--radius-sm);
+    transition: background var(--transition-fast);
+  }
+
+  .mobile-menu-btn:hover {
+    background: var(--bg-primary);
+  }
+
+  .mobile-header-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--primary);
+  }
+
+  /* Sidebar Drawer Görünümü */
+  .sidebar {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 280px !important;
+    height: 100vh !important;
+    z-index: 1000 !important;
+    transform: translateX(-100%);
+    transition: transform var(--transition-normal) ease-in-out;
+    background: #0f172a !important;
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    box-shadow: var(--shadow-lg);
+    display: flex !important;
+    flex-direction: column !important;
+    padding: 1.5rem !important;
+    border-right: 1px solid rgba(255, 255, 255, 0.1) !important;
+    border-bottom: none;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  .sidebar.open {
+    transform: translateX(0);
+  }
+
+  .mobile-close-btn {
+    display: flex !important;
+    background: none;
+    border: none;
+    cursor: pointer;
+    margin-left: auto;
+    padding: 0.25rem;
+    border-radius: var(--radius-sm);
+  }
+
+  .logo-container {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    margin-bottom: 1.5rem !important;
+  }
+
+  .nav-menu {
+    flex-direction: column !important;
+    overflow-x: visible !important;
+    padding-bottom: 0 !important;
+    gap: 0.5rem;
+  }
+
+  .nav-link {
+    white-space: normal !important;
+    padding: 0.75rem 1rem !important;
+  }
+
+  .sidebar-backdrop {
+    display: block;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(2px);
+    z-index: 999;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--transition-normal);
+  }
+
+  .sidebar-backdrop.active {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .sidebar-footer {
+    display: flex !important;
+    margin-top: 1.5rem !important;
+    padding-top: 1rem !important;
+    padding-bottom: 1.5rem !important;
+  }
+
+  .main-content {
+    margin-left: 0 !important;
+    max-width: 100% !important;
+    padding: 1.5rem 1rem !important;
+    padding-top: calc(56px + 1.5rem) !important; /* Top bar yüksekliği + padding */
+  }
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+  .rating-grid {
+    grid-template-columns: 1fr;
+  }
+  .student-detail-grid {
+    grid-template-columns: 1fr;
+  }
+  .student-detail-sidebar {
+    border-right: none;
+    border-bottom: 1px solid var(--border-color);
+    padding-right: 0;
+    padding-bottom: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  /* Mobile Page Header & Buttons Wrap */
+  .page-header {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 1rem !important;
+    margin-bottom: 1.5rem !important;
+  }
+  
+  .header-title {
+    width: 100% !important;
+  }
+
+  /* Mobil görünüm için başlık kutularının dikey dizilimi ve kayma engelleme */
+  #dashboard-header-title {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 0.75rem !important;
+    margin-right: 0 !important;
+    width: 100% !important;
+  }
+
+  .current-lesson-highlight-box,
+  .lesson-topic-highlight-box {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    height: auto !important;
+    min-height: 72px !important;
+    padding: 0.65rem 1rem !important;
+    box-sizing: border-box !important;
+  }
+
+  .current-lesson-highlight-box .top-row {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    align-items: center !important;
+    gap: 0.5rem !important;
+  }
+
+  .current-lesson-highlight-box .lesson-progress-container {
+    margin-top: 0.35rem !important;
+    width: 100% !important;
+  }
+
+  .lesson-topic-highlight-box .topic-content {
+    white-space: normal !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+  }
+
+  .quick-menu-box {
+    align-items: center !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .quick-menu-box > span {
+    align-self: flex-start !important;
+  }
+
+  .quick-menu-box > div {
+    width: 100% !important;
+    justify-content: center !important;
+    flex-wrap: wrap !important;
+    gap: 0.5rem !important;
+  }
+  
+  .header-actions {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 0.5rem !important;
+    width: 100% !important;
+  }
+  
+  .header-actions .btn {
+    flex: 1 1 calc(50% - 0.25rem) !important;
+    font-size: 0.8rem !important;
+    padding: 0.5rem 0.75rem !important;
+  }
+
+  /* Search & Filter Bar responsiveness */
+  .search-filter-bar {
+    flex-direction: column !important;
+    gap: 0.75rem !important;
+  }
+  
+  .search-filter-bar select, 
+  .search-filter-bar .form-control,
+  .search-filter-bar select.form-control {
+    width: 100% !important;
+  }
+
+  /* Modal responsive adjustment */
+  .modal-content {
+    width: calc(100% - 2rem) !important;
+    margin: 1rem !important;
+  }
+
+  /* Student Card actions visibility on touch devices */
+  .student-actions {
+    opacity: 1 !important;
+  }
+
+  /* Mobil Uyumlu Kitap Takip ve Genel Tablo Tasarımları */
+  .table th, .table td {
+    padding: 0.5rem 0.4rem !important;
+    font-size: 0.8rem !important;
+  }
+
+  .glass-card {
+    padding: 1rem !important;
+  }
+
+  #books-student-detail-panel {
+    padding: 1rem !important;
+    gap: 1rem !important;
+  }
+
+  #books-student-detail-panel .glass-card {
+    padding: 0.75rem !important;
+    margin-bottom: 0 !important;
+  }
+
+  .student-book-item {
+    padding: 0.6rem !important;
+  }
+
+  .status-badge {
+    padding: 0.2rem 0.45rem !important;
+    font-size: 0.75rem !important;
+  }
+
+  /* Dashboard Haftalık ve Aylık Performans Tablosu Mobil Görünümü */
+  #dash-weekly-section .table-wrapper,
+  #dash-monthly-section .table-wrapper {
+    border: none !important;
+    background: transparent !important;
+  }
+  #dash-weekly-section .section-title,
+  #dash-monthly-section .section-title {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 0.35rem !important;
+  }
+  #dash-weekly-section .search-filter-bar,
+  #dash-monthly-section .search-filter-bar {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 0.75rem !important;
+  }
+  #dash-weekly-section .search-filter-bar > div,
+  #dash-monthly-section .search-filter-bar > div {
+    display: flex !important;
+    justify-content: center !important;
+    width: 100% !important;
+    flex-wrap: wrap !important;
+    gap: 0.5rem !important;
+  }
+  #dash-select-week,
+  #dash-select-month {
+    flex: 1 !important;
+    width: auto !important;
+    max-width: 200px !important;
+  }
+  #btn-weekly-perf-settings {
+    width: 100% !important;
+    justify-content: center !important;
+  }
+  #dash-weekly-table,
+  #dash-monthly-table {
+    border: none !important;
+    background: transparent !important;
+  }
+  #dash-weekly-table thead,
+  #dash-monthly-table thead {
+    display: none !important;
+  }
+  #dash-weekly-table tbody,
+  #dash-monthly-table tbody {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0.75rem !important;
+  }
+  #dash-weekly-table tr,
+  #dash-monthly-table tr {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    align-items: center !important;
+    padding: 0.75rem !important;
+    background: var(--bg-glass) !important;
+    border: 1px solid var(--border-color) !important;
+    border-radius: var(--radius-md) !important;
+    gap: 0.5rem 0 !important;
+    position: relative !important;
+  }
+  #dash-weekly-table tr.negative-score-row,
+  #dash-monthly-table tr.negative-score-row {
+    background-color: rgba(239, 68, 68, 0.04) !important;
+    border-left: 4px solid var(--danger) !important;
+  }
+  #dash-weekly-table tr.negative-score-row td,
+  #dash-monthly-table tr.negative-score-row td {
+    background-color: transparent !important;
+  }
+  #dash-weekly-table tr.negative-score-row td:first-child,
+  #dash-monthly-table tr.negative-score-row td:first-child {
+    box-shadow: none !important;
+  }
+  #dash-weekly-table td:nth-child(1),
+  #dash-monthly-table td:nth-child(1) {
+    width: 12% !important;
+    padding: 0 0.25rem !important;
+    border: none !important;
+    text-align: center !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+  }
+  #dash-weekly-table td:nth-child(2),
+  #dash-monthly-table td:nth-child(2) {
+    width: 12% !important;
+    height: auto !important;
+    padding: 0 !important;
+    border: none !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+  }
+  #dash-weekly-table td:nth-child(3),
+  #dash-monthly-table td:nth-child(3) {
+    width: 56% !important;
+    padding: 0 0.5rem !important;
+    border: none !important;
+    text-align: left !important;
+    display: flex !important;
+    align-items: center !important;
+  }
+  #dash-weekly-table td:nth-child(9),
+  #dash-monthly-table td:nth-child(9) {
+    width: 20% !important;
+    padding: 0 !important;
+    border: none !important;
+    text-align: right !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+  }
+  #dash-weekly-table td:nth-child(4),
+  #dash-monthly-table td:nth-child(4) {
+    display: none !important; /* Okul No Gizle */
+  }
+  #dash-weekly-table tr::after,
+  #dash-monthly-table tr::after {
+    content: '' !important;
+    width: 100% !important;
+    height: 1px !important;
+    background: var(--border-color) !important;
+    margin: 0.5rem 0 0.25rem 0 !important;
+    order: 4 !important;
+  }
+  #dash-weekly-table td:nth-child(5),
+  #dash-weekly-table td:nth-child(6),
+  #dash-weekly-table td:nth-child(7),
+  #dash-weekly-table td:nth-child(8),
+  #dash-monthly-table td:nth-child(5),
+  #dash-monthly-table td:nth-child(6),
+  #dash-monthly-table td:nth-child(7),
+  #dash-monthly-table td:nth-child(8) {
+    width: 25% !important;
+    padding: 0.25rem 0.1rem !important;
+    border: none !important;
+    text-align: center !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    font-size: 0.75rem !important;
+    order: 5 !important;
+  }
+  #dash-weekly-table td:nth-child(5)::before,
+  #dash-monthly-table td:nth-child(5)::before { content: 'Dojo' !important; font-weight: 700 !important; font-size: 0.65rem !important; color: var(--text-muted) !important; margin-bottom: 0.15rem !important; }
+  #dash-weekly-table td:nth-child(6)::before,
+  #dash-monthly-table td:nth-child(6)::before { content: 'Kitap' !important; font-weight: 700 !important; font-size: 0.65rem !important; color: var(--text-muted) !important; margin-bottom: 0.15rem !important; }
+  #dash-weekly-table td:nth-child(7)::before,
+  #dash-monthly-table td:nth-child(7)::before { content: 'Ödev' !important; font-weight: 700 !important; font-size: 0.65rem !important; color: var(--text-muted) !important; margin-bottom: 0.15rem !important; }
+  #dash-weekly-table td:nth-child(8)::before,
+  #dash-monthly-table td:nth-child(8)::before { content: 'Sınav' !important; font-weight: 700 !important; font-size: 0.65rem !important; color: var(--text-muted) !important; margin-bottom: 0.15rem !important; }
+
+  /* Performance Takip Sayfası Mobil Görünümü */
+  #performance .table-wrapper {
+    border: none !important;
+    background: transparent !important;
+  }
+  #performance .section-title {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 0.35rem !important;
+  }
+  #performance-students-table {
+    border: none !important;
+    background: transparent !important;
+  }
+  #performance-students-table thead {
+    display: none !important;
+  }
+  #performance-students-table tbody {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0.75rem !important;
+  }
+  #performance-students-table tr {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    align-items: center !important;
+    padding: 0.75rem !important;
+    background: var(--bg-glass) !important;
+    border: 1px solid var(--border-color) !important;
+    border-radius: var(--radius-md) !important;
+    gap: 0.5rem 0 !important;
+    position: relative !important;
+  }
+  #performance-students-table tr.negative-score-row {
+    background-color: rgba(239, 68, 68, 0.04) !important;
+    border-left: 4px solid var(--danger) !important;
+  }
+  #performance-students-table tr.negative-score-row td {
+    background-color: transparent !important;
+  }
+  #performance-students-table tr.negative-score-row td:first-child {
+    box-shadow: none !important;
+  }
+  #performance-students-table td:nth-child(1) {
+    width: 10% !important;
+    padding: 0 !important;
+    border: none !important;
+    text-align: center !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+  }
+  #performance-students-table td:nth-child(2) {
+    width: 12% !important;
+    padding: 0 !important;
+    border: none !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+  }
+  #performance-students-table td:nth-child(3) {
+    width: 12% !important;
+    height: auto !important;
+    padding: 0 !important;
+    border: none !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+  }
+  #performance-students-table td:nth-child(4) {
+    width: 46% !important;
+    padding: 0 0.5rem !important;
+    border: none !important;
+    text-align: left !important;
+    display: flex !important;
+    align-items: center !important;
+  }
+  #performance-students-table td:nth-child(6) {
+    width: 20% !important;
+    padding: 0 !important;
+    border: none !important;
+    text-align: right !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+  }
+  #performance-students-table td:nth-child(5) {
+    display: none !important; /* Okul No Gizle */
+  }
+  #performance-students-table tr::after {
+    content: '' !important;
+    width: 100% !important;
+    height: 1px !important;
+    background: var(--border-color) !important;
+    margin: 0.5rem 0 0.25rem 0 !important;
+    order: 4 !important;
+  }
+  #performance-students-table td:nth-child(7) {
+    width: 40% !important;
+    padding: 0.25rem 0.1rem !important;
+    border: none !important;
+    text-align: left !important;
+    display: flex !important;
+    align-items: center !important;
+    font-size: 0.75rem !important;
+    order: 5 !important;
+  }
+  #performance-students-table td:nth-child(7)::before {
+    content: 'Genel: ' !important;
+    font-weight: 700 !important;
+    font-size: 0.65rem !important;
+    color: var(--text-muted) !important;
+    margin-right: 0.25rem !important;
+  }
+  #performance-students-table td:nth-child(8) {
+    width: 60% !important;
+    padding: 0.25rem 0.1rem !important;
+    border: none !important;
+    text-align: left !important;
+    display: block !important;
+    font-size: 0.75rem !important;
+    order: 5 !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    margin-right: 0.25rem !important;
+  }
+
+  /* Ödev Takip Sayfası Mobil Görünümü */
+  #homework .search-filter-bar {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 0.75rem !important;
+  }
+  #homework .search-filter-bar > div {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    width: 100% !important;
+    gap: 0.5rem !important;
+  }
+  #homework .search-filter-bar > div > span {
+    width: 100% !important;
+  }
+  .hw-report-dates-wrapper {
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.5rem !important;
+    width: 100% !important;
+  }
+  .hw-report-dates-wrapper .form-control {
+    width: auto !important;
+    flex: 1 !important;
+  }
+  #btn-generate-hw-report {
+    width: 100% !important;
+    justify-content: center !important;
+  }
+}
+
+/* Haftalık Ödev Çizelgesi Ek Tasarımları */
+#homework-weekly-table {
+  border-collapse: separate;
+  border-spacing: 0;
+  width: 100%;
+}
+
+#homework-weekly-table th {
+  text-align: center;
+  vertical-align: middle;
+  border-bottom: 2px solid var(--border-color);
+  padding: 0.75rem 0.5rem;
+}
+
+#homework-weekly-table th.th-no {
+  text-align: center;
+  width: 50px;
+}
+
+#homework-weekly-table th.th-name {
+  text-align: left;
+  min-width: 180px;
+}
+
+#homework-weekly-table th.th-total {
+  text-align: center;
+  width: 80px;
+}
+
+#homework-weekly-table td {
+  text-align: center;
+  vertical-align: middle;
+  padding: 0.75rem 0.5rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+#homework-weekly-table td.td-no {
+  text-align: center;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+#homework-weekly-table td.td-name {
+  text-align: left;
+}
+
+#homework-weekly-table td.td-day {
+  text-align: center;
+}
+
+#homework-weekly-table td.td-total {
+  text-align: center;
+}
+
+/* Gün Başlık Kartı Tasarımı */
+.hw-day-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 0.6rem 0.4rem;
+  text-align: center;
+  box-shadow: var(--shadow-sm);
+  transition: all var(--transition-fast);
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  align-items: center;
+  justify-content: center;
+}
+
+.hw-day-card:hover {
+  border-color: var(--primary);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  background: var(--bg-glass);
+}
+
+.hw-day-name {
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: var(--text-primary);
+}
+
+.hw-day-date {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.hw-day-subtitle {
+  font-size: 0.7rem;
+  color: var(--primary);
+  font-weight: 600;
+  margin-top: 0.2rem;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 1px 4px;
+  background: rgba(99, 102, 241, 0.08);
+  border-radius: 4px;
+}
+
+.hw-col-actions {
+  margin-top: 0.4rem;
+  display: flex;
+  justify-content: center;
+  gap: 0.25rem;
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+}
+
+th:hover .hw-col-actions {
+  opacity: 1;
+}
+
+.weekly-total-badge {
+  padding: 0.25rem 0.65rem;
+  border-radius: var(--radius-sm);
+  font-weight: 700;
+  font-size: 0.85rem;
+  display: inline-block;
+}
+
+.weekly-total-badge.positive {
+  background-color: var(--success-light);
+  color: var(--success);
+}
+
+.weekly-total-badge.negative {
+  background-color: var(--danger-light);
+  color: var(--danger);
+}
+
+.weekly-total-badge.zero {
+  background-color: var(--bg-primary);
+  color: var(--text-muted);
+  border: 1px solid var(--border-color);
+}
+
+.status-badge.status-interactive {
+  transition: all var(--transition-fast);
+  border: 1px solid transparent;
+  min-width: 80px;
+  justify-content: center;
+}
+
+.status-badge.status-interactive:hover {
+  transform: scale(1.05);
+  box-shadow: var(--shadow-sm);
+  border-color: var(--primary);
+}
+
+.homework-weekly-student-name {
+  font-weight: 600;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: color var(--transition-fast);
+}
+
+.homework-weekly-student-name:hover {
+  color: var(--primary);
+  text-decoration: underline;
+}
+
+/* Alt Sekme Menüsü (Sub-tab menu) */
+.sub-tab-menu {
+  display: flex;
+  gap: 0.5rem;
+  border-bottom: 1.5px solid var(--border-color);
+  margin-bottom: 1.5rem;
+  padding-bottom: 0.25rem;
+  overflow-x: auto;
+  flex-wrap: nowrap;
+  -webkit-overflow-scrolling: touch;
+}
+
+.sub-tab-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1.2rem;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  border-bottom: 3px solid transparent;
+  transition: all var(--transition-fast);
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.sub-tab-btn:hover {
+  color: var(--primary);
+  background-color: rgba(79, 70, 229, 0.05);
+}
+
+.sub-tab-btn.active {
+  color: var(--primary);
+  border-bottom-color: var(--primary);
+  background-color: var(--primary-light);
+}
+
+.books-tab-content {
+  display: none;
+}
+
+.books-tab-content.active {
+  display: block;
+}
+
+/* Liderlik Tablosu Süslemeleri */
+.leaderboard-rank {
+  font-size: 1.1rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+}
+
+.leaderboard-rank.rank-1 {
+  background-color: #fef08a; /* Soft Gold */
+  color: #854d0e;
+  box-shadow: 0 2px 8px rgba(234, 179, 8, 0.2);
+}
+
+.leaderboard-rank.rank-2 {
+  background-color: #f1f5f9; /* Soft Silver */
+  color: #475569;
+  box-shadow: 0 2px 8px rgba(148, 163, 184, 0.15);
+}
+
+.leaderboard-rank.rank-3 {
+  background-color: #ffedd5; /* Soft Bronze */
+  color: #9a3412;
+  box-shadow: 0 2px 8px rgba(249, 115, 22, 0.15);
+}
+
+.leaderboard-student-link {
+  color: var(--primary);
+  text-decoration: none;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color var(--transition-fast);
+}
+
+.leaderboard-student-link:hover {
+  color: var(--primary-hover);
+  text-decoration: underline;
+}
+
+.leaderboard-row {
+  transition: background-color var(--transition-fast);
+}
+
+.leaderboard-row:hover {
+  background-color: rgba(79, 70, 229, 0.02);
+}
+
+.leaderboard-row.active-student-row {
+  background-color: var(--primary-light) !important;
+  border-left: 3px solid var(--primary);
+}
+
+/* Soru Geçiş Animasyonu */
+.question-fade {
+  animation: questionFadeIn 0.35s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes questionFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.book-title.book-title-question-link {
+  cursor: pointer;
+  transition: color var(--transition-fast);
+}
+.book-title.book-title-question-link:hover {
+  color: var(--primary);
+  text-decoration: underline;
+}
+
+.book-title-question-link {
+  cursor: pointer;
+  color: var(--primary);
+  font-weight: 700;
+  text-decoration: none;
+  transition: all var(--transition-fast);
+}
+.book-title-question-link:hover {
+  color: var(--primary-hover);
+  text-decoration: underline;
+}
+
+/* Yeni Performans Sayfası Tasarımı Stilleri */
+.btn-give-point-circle {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  color: var(--primary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  box-shadow: var(--shadow-sm);
+  padding: 0;
+}
+
+.btn-give-point-circle:hover {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+  transform: scale(1.1);
+  box-shadow: var(--shadow-md);
+}
+
+.performance-rank-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  font-weight: 700;
+  font-size: 0.85rem;
+  background-color: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+}
+
+.performance-rank-badge.rank-1 {
+  background-color: rgba(245, 158, 11, 0.1);
+  border-color: #f59e0b;
+  color: #d97706;
+}
+
+.performance-rank-badge.rank-2 {
+  background-color: rgba(148, 163, 184, 0.1);
+  border-color: #94a3b8;
+  color: #475569;
+}
+
+.performance-rank-badge.rank-3 {
+  background-color: rgba(180, 83, 9, 0.1);
+  border-color: #b45309;
+  color: #78350f;
+}
+
+#modal-give-point .behavior-tabs .behavior-tab-btn {
+  flex: 1;
+  text-align: center;
+}
+
+#modal-give-point .behavior-tabs .behavior-tab-btn.active.positive-tab {
+  background-color: var(--success-light);
+  color: var(--success);
+}
+
+#modal-give-point .behavior-tabs .behavior-tab-btn.active.development-tab {
+  background-color: var(--danger-light);
+  color: var(--danger);
+}
+
+/* Sınav Takip Stilleri */
+.exam-card {
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 1.25rem;
+  background: var(--bg-secondary);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.exam-card:hover {
+  transform: translateY(-3px);
+  border-color: var(--primary);
+  box-shadow: var(--shadow-md);
+}
+
+.exam-card.active-card {
+  border-color: var(--primary);
+  background: rgba(79, 70, 229, 0.03);
+  box-shadow: 0 0 0 2px var(--primary-glow);
+}
+
+.exam-card-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.exam-card-meta {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.exam-card-average {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: var(--primary);
+}
+
+.exam-card-topstudents {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.exam-table-input {
+  width: 75px;
+  text-align: center;
+  margin: 0 auto;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.85rem;
+  height: 30px;
+}
+
+.score-change-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  font-weight: 700;
+  font-size: 0.75rem;
+  padding: 0.15rem 0.45rem;
+  border-radius: var(--radius-full);
+}
+
+.score-change-badge.score-up {
+  background-color: var(--success-light);
+  color: var(--success);
+}
+
+.score-change-badge.score-down {
+  background-color: var(--danger-light);
+  color: var(--danger);
+}
+
+.score-change-badge.score-stable {
+  background-color: var(--bg-primary);
+  color: var(--text-muted);
+  border: 1px dashed var(--border-color);
+}
+
+/* Öğrenci Kart İstatistikleri */
+.student-card-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+  margin-top: 1.25rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border-color);
+  font-size: 0.8rem;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.stat-item span {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.stat-item strong {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.stat-item i {
+  width: 14px;
+  height: 14px;
+  opacity: 0.8;
+}
+
+.dash-tab-content {
+  animation: tabFadeIn 0.35s ease forwards;
+}
+
+@keyframes tabFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Haftalık performansta eksi puan alan öğrencilerin görselleştirilmesi */
+.table tbody tr.negative-score-row td {
+  background-color: rgba(239, 68, 68, 0.04) !important;
+}
+.table tbody tr.negative-score-row:hover td {
+  background-color: rgba(239, 68, 68, 0.07) !important;
+}
+.table tbody tr.negative-score-row td:first-child {
+  box-shadow: inset 5px 0 0 0 var(--danger) !important;
+}
+
+/* Optical Form Student Selection List */
+.optical-student-checkbox-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.5rem;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background-color var(--transition-fast);
+  color: var(--text-primary);
+}
+
+.optical-student-checkbox-item:hover {
+  background-color: var(--bg-secondary);
+}
+
+.optical-student-checkbox-item input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+/* Print Optical Form Styles */
+@media print {
+  body.print-optical {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: white !important;
+    color: black !important;
+  }
+  
+  body.print-optical .app-container,
+  body.print-weekly .app-container,
+  body.print-homework .app-container,
+  body.print-performance .app-container,
+  body.print-reports .app-container {
+    display: none !important;
+  }
+  body.print-schedule > *:not(#schedule-print-area) {
+    display: none !important;
+  }
+  
+  body.print-optical .optical-forms-print {
+    display: block !important;
+  }
+  
+  .optical-page {
+    width: 210mm !important;
+    height: 297mm !important;
+    padding: 10mm !important;
+    margin: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+    page-break-after: always !important;
+    box-sizing: border-box !important;
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    grid-auto-rows: max-content !important;
+    gap: 12px !important;
+    aspect-ratio: auto !important;
+    background: white !important;
+  }
+}
+
+.optical-forms-print {
+  display: none;
+  background-color: white;
+  width: 100%;
+}
+
+.optical-page {
+  background-color: white;
+  border: 1px solid #ccc;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+  box-sizing: border-box;
+  aspect-ratio: 210 / 297;
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  grid-auto-rows: max-content;
+  gap: 8px;
+  padding: 10px;
+  margin-bottom: 20px;
+  position: relative;
+}
+
+.optical-form-card {
+  border: 1.5px dashed #000;
+  border-radius: 6px;
+  padding: 8px 10px;
+  background-color: white;
+  color: black;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  page-break-inside: avoid;
+  box-sizing: border-box;
+}
+
+.optical-form-header {
+  border-bottom: 1.5px solid #000;
+  padding-bottom: 4px;
+  margin-bottom: 8px;
+  text-align: center;
+}
+
+.optical-form-header h4 {
+  margin: 0 0 2px 0;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  color: #000;
+  text-transform: uppercase;
+}
+
+.optical-student-info {
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  gap: 4px;
+  font-size: 9px;
+  text-align: left;
+  color: #000;
+}
+
+.optical-student-info div {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.optical-form-body {
+  display: flex;
+  justify-content: space-around;
+  gap: 8px;
+  flex: 1;
+  margin-top: 4px;
+}
+
+.optical-form-column {
+  display: flex;
+  flex-direction: column;
+  gap: 2.5px;
+}
+
+.optical-form-row {
+  display: flex;
+  align-items: center;
+  font-size: 9.5px;
+  color: #000;
+}
+
+.optical-form-qnum {
+  width: 14px;
+  text-align: right;
+  margin-right: 4px;
+  font-weight: 700;
+}
+
+.optical-form-bubbles {
+  display: flex;
+  gap: 3px;
+}
+
+.optical-form-bubble {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  border: 1.2px solid #000;
+  border-radius: 50%;
+  font-size: 8px;
+  font-weight: 700;
+  color: #000;
+  background-color: white;
+}
+
+/* Optical Form Modal Columns styling */
+.optical-modal-body {
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: 1.5rem;
+}
+
+.optical-preview-pane {
+  display: flex;
+  flex-direction: column;
+  border-left: 1px solid var(--border-color);
+  padding-left: 1.5rem;
+}
+
+.optical-preview-container {
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 15px;
+  background-color: #f8fafc;
+  color: black;
+  flex: 1;
+  max-height: 480px; /* slightly taller for page lists */
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
+}
+
+/* Specific scaling for miniature cards inside preview pages */
+.optical-preview-container .optical-page {
+  margin-bottom: 0;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.optical-preview-container .optical-form-card {
+  padding: 4px 6px !important;
+  min-height: auto !important;
+  border-width: 1px !important;
+  border-radius: 4px !important;
+}
+
+.optical-preview-container .optical-form-header {
+  border-bottom-width: 1px !important;
+  padding-bottom: 2px !important;
+  margin-bottom: 4px !important;
+}
+
+.optical-preview-container .optical-form-header h4 {
+  font-size: 7.5px !important;
+  margin-bottom: 1px !important;
+}
+
+.optical-preview-container .optical-student-info {
+  font-size: 6.5px !important;
+  gap: 2px !important;
+}
+
+.optical-preview-container .optical-form-body {
+  gap: 4px !important;
+  margin-top: 2px !important;
+}
+
+.optical-preview-container .optical-form-column {
+  gap: 1.5px !important;
+}
+
+.optical-preview-container .optical-form-row {
+  font-size: 6.5px !important;
+}
+
+.optical-preview-container .optical-form-qnum {
+  width: 10px !important;
+  margin-right: 2px !important;
+}
+
+.optical-preview-container .optical-form-bubbles {
+  gap: 1.5px !important;
+}
+
+.optical-preview-container .optical-form-bubble {
+  width: 9px !important;
+  height: 9px !important;
+  font-size: 5.5px !important;
+  border-width: 0.8px !important;
+}
+
+@media (max-width: 768px) {
+  .optical-modal-body {
+    grid-template-columns: 1fr;
+  }
+  .optical-preview-pane {
+    border-left: none;
+    padding-left: 0;
+    margin-top: 1.5rem;
+  }
+}
+
+/* Corner anchors for camera scanning alignment */
+.optical-form-card {
+  position: relative;
+}
+
+/* 4 Black Corner squares on printed card */
+.optical-card-anchor {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  background-color: black !important;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+  border-radius: 1px;
+}
+
+.optical-card-anchor.tl { top: 0; left: 0; }
+.optical-card-anchor.tr { top: 0; right: 0; }
+.optical-card-anchor.bl { bottom: 0; left: 0; }
+.optical-card-anchor.br { bottom: 0; right: 0; }
+
+/* Student binary ID code container */
+.optical-binary-id-container {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 3px;
+  font-size: 8px;
+  margin-bottom: 4px;
+  color: black;
+  font-weight: bold;
+}
+
+.optical-binary-bubble {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 12px;
+  height: 12px;
+  border: 1px solid #000;
+  border-radius: 50%;
+  font-size: 7px;
+  font-weight: 700;
+  color: #000;
+  background-color: white;
+}
+
+/* Filled bubble styling for student ID code */
+.optical-binary-bubble.filled {
+  background-color: black !important;
+  color: black !important;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+/* Answer Key define modal styles */
+.answer-key-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.4rem 0.75rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+}
+
+.answer-key-qnum {
+  font-weight: 700;
+  font-size: 0.9rem;
+  width: 30px;
+}
+
+.answer-key-options {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.answer-key-option-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1.5px solid var(--border-color);
+  background: var(--bg-primary);
+  color: var(--text-secondary);
+  font-weight: 700;
+  font-size: 0.85rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast);
+}
+
+.answer-key-option-btn:hover {
+  border-color: var(--primary);
+  background: var(--primary-light);
+  color: var(--primary);
+}
+
+.answer-key-option-btn.selected {
+  background: var(--primary) !important;
+  color: white !important;
+  border-color: var(--primary) !important;
+}
+
+/* Scanner log styling */
+.scanner-log-item {
+  padding: 0.4rem 0.6rem;
+  border-bottom: 1px solid var(--border-color);
+  animation: fadeIn var(--transition-fast) ease;
+  border-radius: var(--radius-sm);
+  font-weight: 500;
+}
+
+.scanner-log-item.success {
+  border-left: 4px solid var(--success);
+  background-color: var(--success-light);
+  color: var(--success);
+}
+
+.scanner-log-item.error {
+  border-left: 4px solid var(--danger);
+  background-color: var(--danger-light);
+  color: var(--danger);
+}
+
+.scanner-log-item.info {
+  border-left: 4px solid var(--info);
+  background-color: var(--info-light);
+  color: var(--info);
+}
+
+/* Scaling anchors in live preview */
+.optical-preview-container .optical-card-anchor {
+  width: 5px !important;
+  height: 5px !important;
+}
+
+.optical-preview-container .optical-binary-id-container {
+  font-size: 5.5px !important;
+  gap: 1.5px !important;
+  margin-bottom: 2px !important;
+}
+
+.optical-preview-container .optical-binary-bubble {
+  width: 8px !important;
+  height: 8px !important;
+  font-size: 5px !important;
+}
+
+/* File uploader hover and dragover styles */
+.file-uploader-zone:hover, .file-uploader-zone.dragover {
+  background-color: var(--bg-primary) !important;
+  border-color: var(--primary-dark) !important;
+  box-shadow: 0 0 10px rgba(59, 130, 246, 0.15);
+}
+
+/* Weekly Exam Grade Entry Mobile Adjustments */
+@media (max-width: 768px) {
+  #active-exam-card {
+    padding: 1rem !important;
+  }
+  
+  #active-exam-card .table-wrapper {
+    border: none !important;
+    overflow-x: visible !important;
+    margin-top: 1rem !important;
+    margin-bottom: 1rem !important;
+  }
+  
+  #active-exam-table {
+    display: block !important;
+    width: 100% !important;
+    border: none !important;
+  }
+  
+  #active-exam-table thead {
+    display: none !important;
+  }
+  
+  #active-exam-table tbody {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 1rem !important;
+    width: 100% !important;
+  }
+  
+  #active-exam-table-body tr {
+    display: block !important;
+    background: rgba(255, 255, 255, 0.03) !important;
+    border: 1px solid var(--border-color) !important;
+    border-radius: var(--radius-md) !important;
+    padding: 1rem !important;
+    margin-bottom: 0 !important;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05) !important;
+  }
+  
+  /* Hide Student No to save space */
+  #active-exam-table-body td:nth-child(1) {
+    display: none !important;
+  }
+  
+  /* Student Name & Avatar Header */
+  #active-exam-table-body td:nth-child(2) {
+    display: block !important;
+    width: 100% !important;
+    padding: 0 0 0.75rem 0 !important;
+    border-bottom: 1px solid var(--border-color) !important;
+    margin-bottom: 0.75rem !important;
+    text-align: left !important;
+  }
+  
+  /* Inputs group: Doğru, Boş, Yanlış */
+  #active-exam-table-body td:nth-child(3),
+  #active-exam-table-body td:nth-child(4),
+  #active-exam-table-body td:nth-child(5) {
+    display: inline-block !important;
+    width: 31% !important;
+    margin-right: 2% !important;
+    text-align: center !important;
+    vertical-align: top !important;
+    padding: 0 !important;
+    border-bottom: none !important;
+  }
+  
+  #active-exam-table-body td:nth-child(5) {
+    margin-right: 0 !important;
+  }
+  
+  /* Inject labels for Inputs */
+  #active-exam-table-body td:nth-child(3)::before {
+    content: 'Doğru' !important;
+    display: block !important;
+    font-size: 0.75rem !important;
+    color: var(--text-muted) !important;
+    margin-bottom: 0.25rem !important;
+    font-weight: 600 !important;
+  }
+  
+  #active-exam-table-body td:nth-child(4)::before {
+    content: 'Boş' !important;
+    display: block !important;
+    font-size: 0.75rem !important;
+    color: var(--text-muted) !important;
+    margin-bottom: 0.25rem !important;
+    font-weight: 600 !important;
+  }
+  
+  #active-exam-table-body td:nth-child(5)::before {
+    content: 'Yanlış (Oto)' !important;
+    display: block !important;
+    font-size: 0.75rem !important;
+    color: var(--text-muted) !important;
+    margin-bottom: 0.25rem !important;
+    font-weight: 600 !important;
+  }
+  
+  /* Outputs/Results group: Net, Puan, Değişim */
+  #active-exam-table-body td:nth-child(6),
+  #active-exam-table-body td:nth-child(7),
+  #active-exam-table-body td:nth-child(8) {
+    display: inline-block !important;
+    width: 31% !important;
+    margin-right: 2% !important;
+    text-align: center !important;
+    vertical-align: middle !important;
+    margin-top: 0.75rem !important;
+    padding: 0 !important;
+    border-bottom: none !important;
+  }
+  
+  #active-exam-table-body td:nth-child(8) {
+    margin-right: 0 !important;
+  }
+  
+  /* Inject labels for Outputs */
+  #active-exam-table-body td:nth-child(6)::before {
+    content: 'Net' !important;
+    display: block !important;
+    font-size: 0.75rem !important;
+    color: var(--text-muted) !important;
+    margin-bottom: 0.25rem !important;
+    font-weight: 600 !important;
+  }
+  
+  #active-exam-table-body td:nth-child(7)::before {
+    content: 'Puan' !important;
+    display: block !important;
+    font-size: 0.75rem !important;
+    color: var(--text-muted) !important;
+    margin-bottom: 0.25rem !important;
+    font-weight: 600 !important;
+  }
+  
+  #active-exam-table-body td:nth-child(8)::before {
+    content: 'Değişim' !important;
+    display: block !important;
+    font-size: 0.75rem !important;
+    color: var(--text-muted) !important;
+    margin-bottom: 0.25rem !important;
+    font-weight: 600 !important;
+  }
+  
+  /* Input fields override */
+  #active-exam-table-body .exam-table-input {
+    width: 100% !important;
+    font-size: 0.9rem !important;
+    height: 38px !important;
+    border-radius: var(--radius-sm) !important;
+    padding: 0.35rem !important;
+  }
+  
+  /* Make sure the text alignment on results spans looks great */
+  #active-exam-table-body .exam-net-span,
+  #active-exam-table-body .exam-score-span,
+  #active-exam-table-body .score-change-badge {
+    display: inline-block !important;
+    margin-top: 0.25rem !important;
+  }
+}
+
+/* Homework Weekly Mobile View - Yeni CSS Grid Yapısı (No + İsim + Puan üstte, 5 gün altta yan yana) */
+@media (max-width: 768px) {
+  #homework-weekly-table {
+    min-width: 0 !important;
+    display: block !important;
+    width: 100% !important;
+    border: none !important;
+    background: transparent !important;
+  }
+  
+  #homework .table-wrapper {
+    overflow-x: visible !important;
+    border: none !important;
+    padding: 0 !important;
+  }
+
+  /* Header completely hidden on mobile since each card has day labels */
+  #homework-weekly-table thead {
+    display: none !important;
+  }
+
+  /* tbody */
+  #homework-weekly-table tbody {
+    display: block !important;
+    width: 100% !important;
+  }
+
+  /* ============ Öğrenci Satırı = Modern Grid Kartı ============ */
+  #homework-weekly-table-body tr {
+    display: grid !important;
+    grid-template-columns: repeat(5, 1fr) !important;
+    gap: 0.5rem !important;
+    background: var(--bg-secondary, rgba(255,255,255,0.04)) !important;
+    border: 1px solid var(--border-color) !important;
+    border-radius: var(--radius-md) !important;
+    padding: 0.75rem !important;
+    margin-bottom: 0.75rem !important;
+    box-shadow: var(--shadow-sm) !important;
+    box-sizing: border-box !important;
+    width: 100% !important;
+  }
+
+  /* ===== ÜST SATIR: No (1) + İsim (2) + Puan (3) ===== */
+  
+  /* Numara */
+  #homework-weekly-table-body td.td-no {
+    grid-column: span 1 / span 1 !important;
+    grid-row: 1 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    font-weight: 700 !important;
+    font-size: 0.85rem !important;
+    color: var(--text-muted) !important;
+    border-bottom: 1px solid var(--border-color) !important;
+    padding: 0 0 0.5rem 0 !important;
+    margin-bottom: 0.25rem !important;
+  }
+
+  /* Ad Soyad */
+  #homework-weekly-table-body td.td-name {
+    grid-column: span 3 / span 3 !important;
+    grid-row: 1 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    border-bottom: 1px solid var(--border-color) !important;
+    padding: 0 0 0.5rem 0 !important;
+    margin-bottom: 0.25rem !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+  }
+
+  #homework-weekly-table-body td.td-name .homework-weekly-student-name {
+    font-size: 0.9rem !important;
+    font-weight: 700 !important;
+  }
+
+  /* Haftalık Puan */
+  #homework-weekly-table-body td.td-total {
+    grid-column: span 1 / span 1 !important;
+    grid-row: 1 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    border-bottom: 1px solid var(--border-color) !important;
+    padding: 0 0 0.5rem 0 !important;
+    margin-bottom: 0.25rem !important;
+  }
+
+  /* ===== ALT SATIR: Gün Sütunları (5 tane yan yana) ===== */
+  #homework-weekly-table-body td.td-day {
+    grid-column: span 1 / span 1 !important;
+    grid-row: 2 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    border: none !important;
+    padding: 0.25rem 0 !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Gün etiketi (Pzt, Sal, vs.) - Mobilde görünür yapıyoruz */
+  #homework-weekly-table-body td.td-day .hw-mobile-header {
+    display: block !important;
+    font-size: 0.62rem !important;
+    font-weight: 700 !important;
+    color: var(--text-muted) !important;
+    margin-bottom: 0.25rem !important;
+    text-transform: uppercase !important;
+    line-height: 1.1 !important;
+    text-align: center !important;
+    white-space: nowrap !important;
+  }
+
+  #homework-weekly-table-body td.td-day .hw-mobile-date {
+    font-weight: 500 !important;
+    opacity: 0.8 !important;
+  }
+
+  /* Durum rozeti */
+  #homework-weekly-table-body td.td-day .status-badge.status-interactive {
+    width: 100% !important;
+    min-width: 0 !important;
+    font-size: 0.62rem !important;
+    padding: 0.2rem 2px !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    text-align: center !important;
+    border-radius: 6px !important;
+    box-sizing: border-box !important;
+    min-height: 26px !important;
+    line-height: 1 !important;
+  }
+
+  /* Haftalık puan rozeti */
+  #homework-weekly-table-body .weekly-total-badge {
+    font-size: 0.75rem !important;
+    padding: 0.15rem 0.35rem !important;
+  }
+
+  /* Düzenleme/silme butonları her zaman görünür */
+  .hw-col-actions {
+    opacity: 1 !important;
+  }
+}
+
+/* Modallar Mobil Genişlik Garantisi */
+@media (max-width: 768px) {
+  .modal-content {
+    width: calc(100% - 2rem) !important;
+    max-width: calc(100% - 2rem) !important;
+    margin: 1rem !important;
+  }
+}
+
+/* Sınav Listesi Gridi (Çakışmaları önleme) */
+.exams-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.25rem;
+}
+
+@media (max-width: 768px) {
+  .exams-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* Ödev Matrisi Gridi Mobil */
+@media (max-width: 768px) {
+  .homework-matrix-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* Kitaplık Mobil Düzenleme */
+@media (max-width: 768px) {
+  .book-card-list {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 0.75rem !important;
+  }
+  
+  .book-actions-footer {
+    flex-direction: column !important;
+    gap: 0.35rem !important;
+    align-items: flex-start !important;
+  }
+  
+  .book-actions-footer a,
+  .book-actions-footer button {
+    width: 100% !important;
+  }
+}
+
+/* Öğrenci Detay Modalı Sekme Menüsü (Mobil Yatay Kaydırma) */
+@media (max-width: 768px) {
+  .detail-tab-menu {
+    overflow-x: auto !important;
+    white-space: nowrap !important;
+    display: flex !important;
+    gap: 0.5rem !important;
+    -webkit-overflow-scrolling: touch !important;
+    scrollbar-width: none !important; /* Firefox */
+    border-bottom: 1px solid var(--border-color) !important;
+    padding-bottom: 2px !important;
+  }
+  
+  .detail-tab-menu::-webkit-scrollbar {
+    display: none !important; /* Chrome/Safari/Webkit */
+  }
+  
+  .detail-tab-btn {
+    flex: 0 0 auto !important;
+    white-space: nowrap !important;
+  }
+}
+
+/* Uzun İsimlerin Taşmasını Engelleme */
+@media (max-width: 768px) {
+  #dash-weekly-table td:nth-child(3) {
+    width: 56% !important;
+    padding: 0 0.5rem !important;
+    display: flex !important;
+    align-items: center !important;
+    overflow: hidden !important;
+    white-space: nowrap !important;
+    text-overflow: ellipsis !important;
+  }
+  #dash-weekly-table td:nth-child(3) strong {
+    overflow: hidden !important;
+    white-space: nowrap !important;
+    text-overflow: ellipsis !important;
+    display: inline-block !important;
+    max-width: 100% !important;
+  }
+  
+  #performance-students-table td:nth-child(4) {
+    width: 46% !important;
+    padding: 0 0.5rem !important;
+    display: flex !important;
+    align-items: center !important;
+    overflow: hidden !important;
+    white-space: nowrap !important;
+    text-overflow: ellipsis !important;
+  }
+  #performance-students-table td:nth-child(4) strong {
+    overflow: hidden !important;
+    white-space: nowrap !important;
+    text-overflow: ellipsis !important;
+    display: inline-block !important;
+    max-width: 100% !important;
+  }
+}
+
+/* Custom responsive grids for settings/modals */
+.settings-behaviors-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+.settings-homeworks-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.25rem;
+}
+.settings-books-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+}
+.behavior-buttons-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.75rem;
+}
+.form-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+
+/* Touch responsiveness optimization */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+@media (max-width: 768px) {
+  .settings-behaviors-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  .settings-homeworks-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  .settings-books-grid {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+  .behavior-buttons-grid {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+  .form-grid-2 {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+  
+  /* Remove double scroll in student detail academic profile modal */
+  .student-detail-main {
+    max-height: none !important;
+    overflow-y: visible !important;
+    padding-right: 0 !important;
+  }
+}
+
+/* Student Detail Profile Modern Styling */
+.profile-header-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.profile-name-info {
+  margin-top: 0.5rem;
+}
+
+.profile-meta-info {
+  text-align: left;
+  margin-top: 1.5rem;
+  font-size: 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.profile-notes-section {
+  margin-top: 0.25rem;
+}
+
+.student-detail-sidebar .student-avatar {
+  width: 80px;
+  height: 80px;
+  font-size: 1.8rem;
+  margin: 0 auto 0.5rem auto;
+}
+
+@media (max-width: 768px) {
+  .profile-header-card {
+    flex-direction: row !important;
+    align-items: center !important;
+    text-align: left !important;
+    gap: 1rem !important;
+    width: 100% !important;
+    border-bottom: 1px solid var(--border-color) !important;
+    padding-bottom: 0.75rem !important;
+  }
+
+  .profile-name-info {
+    margin-top: 0 !important;
+    flex: 1 !important;
+  }
+
+  .student-detail-sidebar .student-avatar {
+    width: 55px !important;
+    height: 55px !important;
+    font-size: 1.3rem !important;
+    margin: 0 !important;
+    flex-shrink: 0 !important;
+  }
+
+  .student-detail-sidebar #detail-total-score {
+    margin-top: 0 !important;
+    font-size: 0.75rem !important;
+    padding: 0.25rem 0.5rem !important;
+    white-space: nowrap !important;
+  }
+
+  .profile-meta-info {
+    margin-top: 0.75rem !important;
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 0.5rem !important;
+    border-bottom: 1px solid var(--border-color) !important;
+    padding-bottom: 0.75rem !important;
+    margin-bottom: 0.75rem !important;
+  }
+
+  .profile-notes-section {
+    grid-column: span 2 !important;
+    margin-top: 0 !important;
+  }
+
+  /* Prevent horizontal overflow of the Student Academic Profile modal on mobile viewports */
+  #modal-student-detail .modal-content {
+    width: calc(100% - 1.5rem) !important;
+    max-width: calc(100% - 1.5rem) !important;
+    margin: 0.75rem !important;
+    box-sizing: border-box !important;
+    overflow-x: hidden !important;
+  }
+
+  #modal-student-detail .student-detail-grid {
+    grid-template-columns: 1fr !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    overflow: hidden !important;
+    box-sizing: border-box !important;
+    gap: 1rem !important;
+  }
+
+  #modal-student-detail .student-detail-sidebar {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  #modal-student-detail .student-detail-main {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
+    max-height: none !important;
+    overflow-y: visible !important;
+    padding-right: 0 !important;
+  }
+
+  #modal-student-detail .detail-tab-menu {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 0.5rem !important;
+    padding-bottom: 0.75rem !important;
+    margin-bottom: 1rem !important;
+    border-bottom: 1px solid var(--border-color) !important;
+  }
+
+  #modal-student-detail .detail-tab-btn {
+    width: 100% !important;
+    text-align: center !important;
+    padding: 0.5rem 0.25rem !important;
+    font-size: 0.8rem !important;
+    border: 1px solid var(--border-color) !important;
+    border-radius: var(--radius-sm) !important;
+    background: var(--bg-primary) !important;
+    color: var(--text-muted) !important;
+    font-weight: 600 !important;
+    transition: all var(--transition-fast) !important;
+    white-space: normal !important;
+    height: 100% !important;
+    border-bottom: 1px solid var(--border-color) !important;
+  }
+
+  #modal-student-detail .detail-tab-btn.active {
+    background: var(--primary-light, rgba(99, 102, 241, 0.12)) !important;
+    color: var(--primary) !important;
+    border-color: var(--primary) !important;
+  }
+
+  #modal-student-detail .table-wrapper {
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Make General and Weekly performance sub tabs fit side-by-side on Class Control Panel */
+  #dashboard .sub-tab-menu {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    overflow-x: visible !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    gap: 0.25rem !important;
+  }
+
+  #dashboard .sub-tab-btn {
+    flex: 1 1 50% !important;
+    text-align: center !important;
+    justify-content: center !important;
+    padding: 0.6rem 0.25rem !important;
+    font-size: 0.8rem !important;
+    white-space: nowrap !important;
+    flex-shrink: 1 !important;
+  }
+
+  /* Book evaluation questions modal buttons responsiveness */
+  #modal-book-questions .modal-footer {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 0.5rem !important;
+    padding: 1rem !important;
+    justify-content: space-between !important;
+  }
+
+  #modal-book-questions .modal-footer button {
+    flex: 1 1 calc(33.3% - 0.5rem) !important;
+    min-width: 100px !important;
+    font-size: 0.75rem !important;
+    padding: 0.55rem 0.4rem !important;
+    height: auto !important;
+    margin: 0 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 0.25rem !important;
+  }
+}
+
+@media (max-width: 360px) {
+  #dashboard .sub-tab-menu {
+    flex-direction: column !important;
+    gap: 0.5rem !important;
+  }
+  #dashboard .sub-tab-btn {
+    flex: 1 1 100% !important;
+    border-radius: var(--radius-sm) !important;
+    border-bottom: 2px solid transparent !important;
+  }
+  #dashboard .sub-tab-btn.active {
+    border-bottom-color: var(--primary) !important;
+  }
+}
+
+/* Asistan Konfigürasyonu Mobil Görünüm Ayarları */
+@media (max-width: 768px) {
+  #assistant-config .sub-tab-menu {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 0.5rem !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+  
+  #assistant-config .sub-tab-btn {
+    text-align: center !important;
+    justify-content: center !important;
+    padding: 0.6rem 0.25rem !important;
+    font-size: 0.8rem !important;
+    white-space: nowrap !important;
+    border-radius: var(--radius-sm) !important;
+    border-bottom: 2px solid transparent !important;
+  }
+  
+  #assistant-config .sub-tab-btn.active {
+    border-bottom-color: var(--primary) !important;
+  }
+}
+
+/* ==========================================================================
+   GÖREVLER (TASKS) MODÜLÜ STİLLERİ
+   ========================================================================== */
+
+/* Görev Kartları Grid */
+.tasks-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.5rem;
+  margin-top: 1rem;
+}
+
+/* Görev Kartı */
+.task-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  border-left: 4px solid var(--primary);
+  position: relative;
+  transition: transform var(--transition-normal), box-shadow var(--transition-normal), border-color var(--transition-normal);
+}
+
+.task-card.active {
+  border-left-color: var(--primary);
+}
+
+.task-card.completed {
+  border-left-color: var(--success);
+  background: rgba(16, 185, 129, 0.03);
+}
+
+.task-card.overdue {
+  border-left-color: var(--danger);
+  background: rgba(244, 63, 94, 0.03);
+}
+
+/* Hover durumunda biraz öne çıkarma */
+.task-card:hover {
+  transform: translateY(-3px);
+}
+
+/* Görev kartı başlığındaki avatar */
+.task-student-avatar {
+  border: 2px solid var(--border-color);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Kart Puan ve Tarih Rozetleri */
+.task-badge-points {
+  font-family: var(--font-primary);
+}
+
+.task-date-badge {
+  background: rgba(99, 102, 241, 0.05);
+  border: 1px solid rgba(99, 102, 241, 0.15);
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+}
+
+.task-overdue-badge {
+  background: rgba(244, 63, 94, 0.05);
+  border: 1px solid rgba(244, 63, 94, 0.15);
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+}
+
+/* Mobil Uyumluluk */
+@media (max-width: 576px) {
+  .tasks-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+}
+
+/* ==========================================================================
+   TIMER (SÜRE ÖLÇER) MODÜLÜ STİLLERİ
+   ========================================================================== */
+
+#modal-timer .timer-display-container {
+  margin: 1.5rem auto;
+  filter: drop-shadow(0 10px 15px rgba(99, 102, 241, 0.15));
+}
+
+#modal-timer #timer-modal-time {
+  text-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  transition: color 0.3s ease, transform 0.2s ease;
+}
+
+#modal-timer.time-warning #timer-progress-ring {
+  stroke: var(--warning) !important;
+}
+
+#modal-timer.time-danger #timer-progress-ring {
+  stroke: var(--danger) !important;
+}
+
+#modal-timer.time-danger #timer-modal-time {
+  color: var(--danger) !important;
+  animation: timer-pulse 1s infinite alternate;
+}
+
+@keyframes timer-pulse {
+  0% {
+    transform: scale(1);
+    text-shadow: 0 0 10px rgba(244, 63, 94, 0.3);
+  }
+  100% {
+    transform: scale(1.08);
+    text-shadow: 0 0 20px rgba(244, 63, 94, 0.6);
+  }
+}
+
+/* Preset buttons hover effect */
+#modal-timer .preset-btn {
+  transition: all var(--transition-fast) ease;
+}
+#modal-timer .preset-btn:hover {
+  background: var(--primary) !important;
+  color: #fff !important;
+  border-color: var(--primary) !important;
+  transform: translateY(-2px);
+}
+
+/* Button timer start/pause styling */
+#btn-timer-start-pause {
+  transition: all var(--transition-fast) ease;
+}
+#btn-timer-start-pause.running {
+  background-color: var(--warning) !important;
+  border-color: var(--warning) !important;
+}
+#btn-timer-start-pause.running:hover {
+  filter: brightness(0.95);
+}
+
+/* Pulsing badge on dashboard timer button */
+#btn-dash-timer.active-running {
+  animation: button-pulse 1.5s infinite alternate;
+  background-color: rgba(99, 102, 241, 0.15) !important;
+  border-color: var(--primary) !important;
+}
+#btn-dash-timer.active-running i {
+  color: var(--primary) !important;
+}
+
+@keyframes button-pulse {
+  0% {
+    box-shadow: 0 0 0 0px rgba(99, 102, 241, 0.4);
+  }
+  100% {
+    box-shadow: 0 0 0 8px rgba(99, 102, 241, 0);
+  }
+}
+
+/* Fullscreen mode for timer modal */
+#modal-timer.fullscreen-mode {
+  --max-width: 100vw !important;
+  padding: 0 !important;
+  z-index: 9999 !important;
+}
+
+#modal-timer.fullscreen-mode .modal-content {
+  width: 100vw !important;
+  height: 100vh !important;
+  max-width: 100vw !important;
+  max-height: 100vh !important;
+  border-radius: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: space-between !important;
+  background: var(--bg-primary) !important;
+}
+
+#modal-timer.fullscreen-mode .modal-body {
+  flex: 1 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  align-items: center !important;
+  gap: 3rem !important;
+  padding: 2rem !important;
+}
+
+#modal-timer.fullscreen-mode .timer-display-container {
+  width: min(50vw, 50vh) !important;
+  height: min(50vw, 50vh) !important;
+}
+
+#modal-timer.fullscreen-mode #timer-modal-time {
+  font-size: min(12vw, 12vh) !important;
+}
+
+#modal-timer.fullscreen-mode .timer-presets {
+  gap: 1rem !important;
+}
+
+#modal-timer.fullscreen-mode .preset-btn {
+  font-size: 1.2rem !important;
+  padding: 0.75rem 1.5rem !important;
+}
+
+#modal-timer.fullscreen-mode .timer-adjuster {
+  gap: 1.5rem !important;
+}
+
+#modal-timer.fullscreen-mode .timer-adjuster span {
+  font-size: 1.3rem !important;
+}
+
+#modal-timer.fullscreen-mode .timer-adjuster button {
+  font-size: 1.2rem !important;
+  padding: 0.5rem 1rem !important;
+}
+
+#modal-timer.fullscreen-mode .timer-controls button {
+  font-size: 1.3rem !important;
+  padding: 0.75rem !important;
+  max-width: 300px;
+}
+
+#modal-timer.fullscreen-mode .modal-header h3 {
+  font-size: 1.5rem !important;
+}
+
+/* ==========================================================================
+   QUICK CALLER (HIZLI ÖĞRENCİ ÇAĞIRMA) STİLLERİ
+   ========================================================================== */
+
+#modal-quick-caller .caller-display-card {
+  transition: all var(--transition-normal) ease;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.02);
+}
+
+#modal-quick-caller .caller-display-card.winner {
+  background: rgba(99, 102, 241, 0.08) !important;
+  border: 2px solid var(--primary) !important;
+  box-shadow: 0 10px 25px rgba(99, 102, 241, 0.15) !important;
+  transform: scale(1.02);
+}
+
+#modal-quick-caller #caller-student-name {
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+#modal-quick-caller #caller-student-avatar {
+  transition: all var(--transition-normal) ease;
+}
+
+#modal-quick-caller .caller-display-card.winner #caller-student-avatar,
+#modal-quick-caller .caller-display-card.winner #caller-student-photo-container img {
+  animation: avatar-celebrate 0.5s ease-out;
+}
+
+@keyframes avatar-celebrate {
+  0% { transform: scale(0.8) rotate(-10deg); }
+  50% { transform: scale(1.15) rotate(10deg); }
+  100% { transform: scale(1) rotate(0); }
+}
+
+/* Pulsing badge on dashboard caller button */
+#btn-dash-caller.draw-active {
+  animation: button-pulse-caller 1.5s infinite alternate;
+}
+
+@keyframes button-pulse-caller {
+  0% {
+    box-shadow: 0 0 0 0px rgba(99, 102, 241, 0.4);
+  }
+  100% {
+    box-shadow: 0 0 0 8px rgba(99, 102, 241, 0);
+  }
+}
+
+/* Lisans Kısıtlama (Pasif Kart) Tasarımları */
+.passive-locked {
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+.passive-locked > *:not(.lock-overlay) {
+  opacity: 0.45 !important;
+  filter: grayscale(85%) blur(0.5px) !important;
+  pointer-events: none !important;
+}
+
+.lock-overlay {
+  position: absolute !important;
+  inset: 0 !important;
+  background: rgba(15, 23, 42, 0.4) !important;
+  backdrop-filter: blur(1.5px) !important;
+  -webkit-backdrop-filter: blur(1.5px) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  align-items: center !important;
+  z-index: 100 !important;
+  color: #fff !important;
+  gap: 0.5rem !important;
+  border-radius: inherit !important;
+  cursor: pointer !important;
+  transition: background 0.3s !important;
+  pointer-events: auto !important;
+}
+
+.lock-overlay:hover {
+  background: rgba(15, 23, 42, 0.55) !important;
+}
+
+.lock-overlay i, .lock-overlay svg {
+  width: 28px !important;
+  height: 28px !important;
+  color: #f59e0b !important; /* amber color for lock */
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5)) !important;
+}
+
+.lock-overlay span {
+  font-size: 0.78rem !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+  background: linear-gradient(135deg, #fef08a, #f59e0b) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.4) !important;
+}
+
+/* ==========================================================================
+   Öğrenci Gelişim Raporu Yazdırma Stilleri
+   ========================================================================== */
+.student-reports-print {
+  display: none;
+  background: white;
+}
+
+@media print {
+  body.print-reports .student-reports-print {
+    display: block !important;
+  }
+
+  .student-report-page {
+    width: 210mm;
+    min-height: 297mm;
+    box-sizing: border-box;
+    padding: 10mm 15mm;
+    margin: 0 auto;
+    background: white !important;
+    color: #1e293b !important;
+    font-family: 'Inter', system-ui, sans-serif !important;
+    page-break-after: always;
+    page-break-inside: avoid;
+    break-after: page;
+    position: relative;
+  }
+
+  .student-report-page:last-child {
+    page-break-after: avoid;
+    break-after: avoid;
+  }
+
+  .report-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 2px solid #0f172a;
+    padding-bottom: 0.75rem;
+    margin-bottom: 1rem;
+  }
+
+  .report-header h2 {
+    font-size: 1.6rem;
+    font-weight: 800;
+    color: #0f172a;
+    margin: 0;
+    text-align: right;
+  }
+
+  .report-header p.report-date-range {
+    font-size: 0.85rem;
+    color: #475569;
+    margin: 0.25rem 0 0 0;
+    text-align: right;
+    font-weight: 500;
+  }
+
+  .report-logo {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .report-logo span {
+    font-size: 1.3rem;
+    font-weight: 800;
+    color: #4f46e5;
+  }
+
+  .student-info-card {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .student-photo-wrapper img {
+    width: 65px;
+    height: 65px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid #e2e8f0;
+  }
+
+  .student-photo-wrapper .student-avatar-placeholder {
+    width: 65px;
+    height: 65px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 1.4rem;
+    background: #e2e8f0;
+    color: #475569;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .student-meta-details h3 {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 0 0 0.25rem 0;
+  }
+
+  .student-meta-details p {
+    font-size: 0.9rem;
+    color: #475569;
+    margin: 0;
+  }
+
+  .report-sections {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+  }
+
+  /* Layout optimization using has for odd numbers of cards */
+  .report-sections:has(> :nth-child(1):last-child) > :nth-child(1) {
+    grid-column: span 2 !important;
+  }
+  .report-sections:has(> :nth-child(3):last-child) > :nth-child(3),
+  .report-sections:has(> :nth-child(5):last-child) > :nth-child(5) {
+    grid-column: span 2 !important;
+  }
+
+  .report-section-card {
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    background: white;
+    box-sizing: border-box;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  .report-section-card h4 {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 0 0 0.75rem 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    border-bottom: 1px dashed #e2e8f0;
+    padding-bottom: 0.5rem;
+  }
+
+  .report-section-card h4 i, .report-section-card h4 svg {
+    color: #4f46e5;
+  }
+
+  .report-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 1rem;
+  }
+
+  .report-stat-box {
+    background: #f8fafc;
+    border: 1px solid #f1f5f9;
+    border-radius: 6px;
+    padding: 0.75rem;
+    text-align: center;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .report-stat-box .stat-val {
+    display: block;
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: #0f172a;
+  }
+
+  .report-stat-box .stat-val.text-success { color: #16a34a !important; }
+  .report-stat-box .stat-val.text-warning { color: #d97706 !important; }
+  .report-stat-box .stat-val.text-danger { color: #dc2626 !important; }
+  .report-stat-box .stat-val.text-primary { color: #2563eb !important; }
+
+  .report-stat-box .stat-lbl {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #64748b;
+    margin-top: 0.25rem;
+  }
+
+  .report-footer {
+    position: absolute;
+    bottom: 15mm;
+    left: 20mm;
+    right: 20mm;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    border-top: 1px solid #e2e8f0;
+    padding-top: 1rem;
+    font-size: 0.8rem;
+    color: #64748b;
+  }
+
+  .report-footer .signature-space {
+    text-align: right;
+    font-weight: 600;
+    color: #1e293b;
+  }
+}
+
+
+/* ================================================
+   UYGULAMA KİLİT EKRANI STİLLERİ
+   ================================================ */
+
+#app-lock-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  background: rgba(10, 15, 30, 0.75);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  justify-content: center;
+  align-items: center;
+  opacity: 0;
+  transition: opacity 0.35s ease;
+}
+
+#app-lock-overlay.visible {
+  opacity: 1;
+}
+
+#lock-box {
+  background: var(--bg-glass, rgba(255,255,255,0.08));
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 20px;
+  padding: 2.5rem 2.25rem 2rem;
+  width: 100%;
+  max-width: 400px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  box-shadow: 0 25px 60px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.05);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+.lock-logo {
+  width: 72px;
+  height: 72px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, var(--primary, #6366f1), #8b5cf6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1.25rem;
+  box-shadow: 0 8px 24px rgba(99,102,241,0.4);
+}
+
+.lock-logo svg {
+  width: 36px;
+  height: 36px;
+  color: white;
+  stroke: white;
+}
+
+#lock-title {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--text-primary, #f8fafc);
+  margin: 0 0 0.35rem;
+  text-align: center;
+}
+
+.lock-subtitle {
+  font-size: 0.85rem;
+  color: var(--text-muted, #94a3b8);
+  margin: 0 0 1.5rem;
+  text-align: center;
+}
+
+#lock-break-message {
+  background: rgba(245,158,11,0.22);
+  border: 1px solid rgba(245,158,11,0.6);
+  border-radius: 10px;
+  padding: 0.65rem 1rem;
+  margin-bottom: 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.83rem;
+  font-weight: 600;
+  color: #fde68a;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.4);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+#lock-break-message svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  stroke: #fde68a;
+}
+
+.lock-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  width: 100%;
+}
+
+.lock-form input[type="password"] {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.15);
+  background: rgba(255,255,255,0.07);
+  color: var(--text-primary, #f8fafc);
+  font-size: 1rem;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  box-sizing: border-box;
+  letter-spacing: 0.1em;
+}
+
+.lock-form input[type="password"]::placeholder {
+  color: var(--text-muted, #64748b);
+  letter-spacing: normal;
+}
+
+.lock-form input[type="password"]:focus {
+  border-color: var(--primary, #6366f1);
+  box-shadow: 0 0 0 3px rgba(99,102,241,0.2);
+}
+
+.lock-form button {
+  width: 100%;
+  padding: 0.8rem 1rem;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--primary, #6366f1), #8b5cf6);
+  color: white;
+  font-size: 0.95rem;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: opacity 0.2s, transform 0.15s;
+  font-family: inherit;
+}
+
+.lock-form button:hover { opacity: 0.9; transform: translateY(-1px); }
+.lock-form button:active { transform: translateY(0); }
+
+.lock-form button svg {
+  width: 17px;
+  height: 17px;
+  stroke: white;
+}
+
+.lock-error {
+  font-size: 0.82rem;
+  color: #ef4444;
+  margin: 0.5rem 0 0;
+  text-align: center;
+  min-height: 1.2em;
+}
+
+.lock-forgot {
+  margin-top: 1.25rem;
+  background: none;
+  border: none;
+  color: var(--text-muted, #64748b);
+  font-size: 0.78rem;
+  cursor: pointer;
+  text-decoration: underline;
+  font-family: inherit;
+  transition: color 0.2s;
+  padding: 0;
+}
+
+.lock-forgot:hover { color: #ef4444; }
+
+/* Shake animasyonu (yanlış şifre) */
+@keyframes lockShake {
+  0%, 100% { transform: translateX(0); }
+  15%       { transform: translateX(-8px); }
+  30%       { transform: translateX(8px); }
+  45%       { transform: translateX(-6px); }
+  60%       { transform: translateX(6px); }
+  75%       { transform: translateX(-3px); }
+  90%       { transform: translateX(3px); }
+}
+
+#lock-box.shake {
+  animation: lockShake 0.6s ease;
+}
+
+/* Toggle Switch (Teneffüs Modu) */
+.lock-toggle {
+  position: relative;
+  display: inline-block;
+  width: 48px;
+  height: 26px;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.lock-toggle input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.lock-toggle-slider {
+  position: absolute;
+  inset: 0;
+  background: rgba(255,255,255,0.15);
+  border-radius: 26px;
+  transition: background 0.25s;
+  border: 1px solid rgba(255,255,255,0.2);
+}
+
+.lock-toggle-slider::before {
+  content: '';
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  left: 2px;
+  top: 2px;
+  background: white;
+  border-radius: 50%;
+  transition: transform 0.25s;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.lock-toggle input:checked + .lock-toggle-slider {
+  background: var(--primary, #6366f1);
+  border-color: var(--primary, #6366f1);
+}
+
+.lock-toggle input:checked + .lock-toggle-slider::before {
+  transform: translateX(22px);
+}
+
+.lock-toggle input:disabled + .lock-toggle-slider {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Yoklama / Absent Student Styles */
+.student-card.absent {
+  opacity: 0.65;
+  filter: grayscale(40%);
+}
+
+.absent-badge {
+  position: absolute;
+  top: 0.75rem;
+  left: 0.75rem;
+  background-color: var(--danger);
+  color: white;
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+  z-index: 2;
+  box-shadow: var(--shadow-sm);
+  letter-spacing: 0.03em;
+}
+
+.absent-row {
+  opacity: 0.65;
+  background-color: rgba(239, 68, 68, 0.03) !important;
+}
+.absent-row td {
+  color: var(--text-muted) !important;
+}
+.absent-row input {
+  opacity: 0.75;
+}
+
+/* Hızlı Menü Kart Döndürme Efekti (Flip Cards) */
+.flip-card {
+  background-color: transparent;
+  width: 40px;
+  height: 38px;
+  perspective: 1000px;
+  cursor: pointer;
+  outline: none;
+  flex-shrink: 0;
+}
+
+.flip-card-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  text-align: center;
+  transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  transform-style: preserve-3d;
+}
+
+.flip-card:hover .flip-card-inner,
+.flip-card:focus-within .flip-card-inner {
+  transform: rotateY(180deg);
+}
+
+.flip-card-front, .flip-card-back {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-sm);
+}
+
+/* Ön Yüz: İkon ve Mevcut İkincil Buton Tasarımı */
+.flip-card-front {
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  transition: border-color var(--transition-fast), background-color var(--transition-fast);
+}
+
+.flip-card:hover .flip-card-front {
+  border-color: var(--primary);
+}
+
+/* Arka Yüz: Yazı ve Mor Tema Dolgusu */
+.flip-card-back {
+  background-color: var(--primary);
+  border: 1px solid var(--primary);
+  color: white;
+  transform: rotateY(180deg);
+  padding: 4px;
+}
+
+.flip-card-back span {
+  font-size: 0.58rem;
+  font-weight: 700;
+  line-height: 1.1;
+  word-break: normal;
+  overflow-wrap: normal;
+  white-space: normal;
+  display: block;
+  text-align: center;
+  width: 100%;
+}
+
+/* Alt Sekme Menüsü Butonları Renklendirmeleri (Açıktan Koyu Saydam Maviye) */
+.sub-tab-btn:nth-child(1) {
+  background-color: rgba(224, 242, 254, 0.4) !important; /* En açık mavi %40 saydam */
+  border-bottom: 3px solid transparent !important;
+}
+.sub-tab-btn:nth-child(2) {
+  background-color: rgba(186, 230, 253, 0.4) !important; /* Orta açık mavi %40 saydam */
+  border-bottom: 3px solid transparent !important;
+}
+.sub-tab-btn:nth-child(3) {
+  background-color: rgba(125, 211, 252, 0.4) !important; /* Orta mavi %40 saydam */
+  border-bottom: 3px solid transparent !important;
+}
+.sub-tab-btn:nth-child(4) {
+  background-color: rgba(96, 165, 250, 0.4) !important; /* Orta koyu mavi %40 saydam */
+  border-bottom: 3px solid transparent !important;
+}
+.sub-tab-btn:nth-child(5) {
+  background-color: rgba(56, 189, 248, 0.4) !important; /* Koyu mavi %40 saydam */
+  border-bottom: 3px solid transparent !important;
+}
+.sub-tab-btn:nth-child(6) {
+  background-color: rgba(14, 165, 233, 0.4) !important; /* En koyu mavi %40 saydam */
+  border-bottom: 3px solid transparent !important;
+}
+
+/* Aktif Sekme Durumları */
+.sub-tab-btn:nth-child(1).active {
+  border-bottom-color: #0284c7 !important;
+  color: #0369a1 !important;
+  background-color: rgba(224, 242, 254, 0.6) !important;
+}
+.sub-tab-btn:nth-child(2).active {
+  border-bottom-color: #0284c7 !important;
+  color: #0369a1 !important;
+  background-color: rgba(186, 230, 253, 0.6) !important;
+}
+.sub-tab-btn:nth-child(3).active {
+  border-bottom-color: #0284c7 !important;
+  color: #0369a1 !important;
+  background-color: rgba(125, 211, 252, 0.6) !important;
+}
+.sub-tab-btn:nth-child(4).active {
+  border-bottom-color: #0284c7 !important;
+  color: #0369a1 !important;
+  background-color: rgba(96, 165, 250, 0.6) !important;
+}
+.sub-tab-btn:nth-child(5).active {
+  border-bottom-color: #0284c7 !important;
+  color: #0369a1 !important;
+  background-color: rgba(56, 189, 248, 0.6) !important;
+}
+.sub-tab-btn:nth-child(6).active {
+  border-bottom-color: #0284c7 !important;
+  color: #0369a1 !important;
+  background-color: rgba(14, 165, 233, 0.6) !important;
+}
+
+/* Koyu Tema Uyumluluğu */
+[data-theme="dark"] .sub-tab-btn:nth-child(1),
+[data-theme="pastel"] .sub-tab-btn:nth-child(1) {
+  background-color: rgba(30, 58, 138, 0.4) !important;
+}
+[data-theme="dark"] .sub-tab-btn:nth-child(2),
+[data-theme="pastel"] .sub-tab-btn:nth-child(2) {
+  background-color: rgba(30, 64, 175, 0.4) !important;
+}
+[data-theme="dark"] .sub-tab-btn:nth-child(3),
+[data-theme="pastel"] .sub-tab-btn:nth-child(3) {
+  background-color: rgba(17, 24, 39, 0.4) !important;
+}
+[data-theme="dark"] .sub-tab-btn:nth-child(4),
+[data-theme="pastel"] .sub-tab-btn:nth-child(4) {
+  background-color: rgba(15, 23, 42, 0.4) !important;
+}
+[data-theme="dark"] .sub-tab-btn:nth-child(5),
+[data-theme="pastel"] .sub-tab-btn:nth-child(5) {
+  background-color: rgba(30, 41, 59, 0.4) !important;
+}
+[data-theme="dark"] .sub-tab-btn:nth-child(6),
+[data-theme="pastel"] .sub-tab-btn:nth-child(6) {
+  background-color: rgba(15, 23, 42, 0.4) !important;
+}
+
+[data-theme="dark"] .sub-tab-btn.active,
+[data-theme="pastel"] .sub-tab-btn.active {
+  border-bottom-color: var(--primary) !important;
+  color: white !important;
+}
+
+/* Yan Menü Daraltma (Sidebar Collapse) */
+.sidebar-collapse-toggle-btn {
+  position: absolute;
+  top: 50%;
+  right: -14px;
+  transform: translateY(-50%);
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-full);
+  background-color: var(--primary);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 110;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+  transition: all var(--transition-normal);
+  outline: none;
+}
+
+.sidebar-collapse-toggle-btn:hover {
+  background-color: var(--primary-hover);
+  transform: translateY(-50%) scale(1.15);
+}
+
+.sidebar-collapse-toggle-btn i {
+  transition: transform var(--transition-normal);
+}
+
+/* Desktop-Only Daralmış Yan Menü (Sidebar Collapsed) Kuralları */
+@media (min-width: 769px) {
+  body.sidebar-collapsed .sidebar {
+    width: 80px !important;
+    padding: 2rem 0.75rem !important;
+  }
+  
+  body.sidebar-collapsed .main-content {
+    margin-left: 80px !important;
+    max-width: calc(100vw - 80px) !important;
+  }
+  
+  /* Kapatma Butonu İkonunu Çevir */
+  body.sidebar-collapsed .sidebar-collapse-toggle-btn i {
+    transform: rotate(180deg);
+  }
+  
+  /* Yazıları ve Detayları Gizle */
+  body.sidebar-collapsed .sidebar .logo-text {
+    opacity: 0 !important;
+    pointer-events: none !important;
+    width: 0 !important;
+    height: 0 !important;
+    overflow: hidden !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    display: none !important;
+  }
+  
+  /* İkonları Ortala */
+  body.sidebar-collapsed .sidebar .logo-container {
+    justify-content: center !important;
+    padding: 0.85rem 0 !important;
+  }
+  
+  body.sidebar-collapsed .sidebar .logo-icon {
+    margin: 0 !important;
+  }
+  
+  body.sidebar-collapsed .sidebar .sidebar-footer {
+    padding: 1.5rem 0 0 0 !important;
+  }
+  
+  /* Yan Menü Daraltıldığında Menü Bağlantıları ve Alt Butonlar Flip Card Olur */
+  body.sidebar-collapsed .sidebar .nav-link,
+  body.sidebar-collapsed .sidebar .theme-toggle-btn,
+  body.sidebar-collapsed .sidebar .backup-btn {
+    width: 44px !important;
+    height: 44px !important;
+    padding: 0 !important;
+    margin: 0 auto !important;
+    position: relative !important;
+    perspective: 1000px !important;
+    transform-style: preserve-3d !important;
+    transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+  
+  /* Hover durumunda 3D döndürme */
+  body.sidebar-collapsed .sidebar .nav-item:hover .nav-link,
+  body.sidebar-collapsed .sidebar .theme-toggle-btn:hover,
+  body.sidebar-collapsed .sidebar .backup-btn:hover {
+    transform: rotateY(180deg) !important;
+  }
+  
+  /* Kart Yüzeyleri */
+  body.sidebar-collapsed .sidebar .nav-link i,
+  body.sidebar-collapsed .sidebar .nav-link span,
+  body.sidebar-collapsed .sidebar .theme-toggle-btn i,
+  body.sidebar-collapsed .sidebar .theme-toggle-btn span,
+  body.sidebar-collapsed .sidebar .backup-btn i,
+  body.sidebar-collapsed .sidebar .backup-btn span {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    -webkit-backface-visibility: hidden !important;
+    backface-visibility: hidden !important;
+    border-radius: var(--radius-sm) !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    box-shadow: var(--shadow-sm) !important;
+    margin: 0 !important;
+  }
+  
+  /* Ön Yüz: İkon */
+  body.sidebar-collapsed .sidebar .nav-link i,
+  body.sidebar-collapsed .sidebar .theme-toggle-btn i,
+  body.sidebar-collapsed .sidebar .backup-btn i {
+    background-color: rgba(255, 255, 255, 0.05) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    color: rgba(255, 255, 255, 0.7) !important;
+    z-index: 2 !important;
+    transform: rotateY(0deg) !important;
+  }
+  
+  /* Aktif Ön Yüz Vurgusu */
+  body.sidebar-collapsed .sidebar .nav-item.active .nav-link i {
+    background-color: var(--primary) !important;
+    border-color: var(--primary) !important;
+    color: white !important;
+  }
+  
+  /* Arka Yüz: Yazı */
+  body.sidebar-collapsed .sidebar .nav-link span,
+  body.sidebar-collapsed .sidebar .theme-toggle-btn span,
+  body.sidebar-collapsed .sidebar .backup-btn span {
+    background-color: var(--primary) !important;
+    border: 1px solid var(--primary) !important;
+    color: white !important;
+    transform: rotateY(180deg) !important;
+    font-size: 0.58rem !important;
+    font-weight: 700 !important;
+    line-height: 1.1 !important;
+    padding: 4px !important;
+    text-align: center !important;
+    white-space: normal !important;
+    z-index: 1 !important;
+  }
+}
+
+
+/* Sınıf Kontrol Paneli Yazı Rengi */
+#dashboard .header-title h2 {
+  color: #1e3a8a !important; /* Koyu Mavi */
+}
+
+[data-theme="dark"] #dashboard .header-title h2 {
+  color: #38bdf8 !important; /* Açık Mavi (Koyu temada okunabilirlik için) */
+}
+[data-theme="pastel"] #dashboard .header-title h2 {
+  color: #ffffff !important; /* Beyaz */
+}
+
+/* ===== SARI NOT KAĞITLARI (STICKY NOTES WITH PIN) ===== */
+.sticky-note {
+  position: relative;
+  background: #fef08a; /* Pastel sarı */
+  color: #1e293b; /* Koyu yazı rengi */
+  width: 100%;
+  max-width: 250px;
+  min-height: 180px;
+  padding: 1.75rem 1rem 1rem 1rem;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.15), 0 4px 6px -2px rgba(0, 0, 0, 0.1);
+  border-bottom-right-radius: 40px 10px;
+  font-family: 'Outfit', sans-serif;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transform: rotate(-1.5deg);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  box-sizing: border-box;
+}
+
+.sticky-note:nth-child(even) {
+  transform: rotate(1.5deg);
+}
+
+.sticky-note:hover {
+  transform: translateY(-4px) rotate(0deg);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.15);
+}
+
+/* İğne (Pin) */
+.sticky-note-pin {
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 20px;
+  height: 20px;
+  background: radial-gradient(circle, #ef4444 30%, #b91c1c 80%);
+  border-radius: 50%;
+  box-shadow: 0 4px 5px rgba(0, 0, 0, 0.4), inset 0 2px 3px rgba(255, 255, 255, 0.5);
+  z-index: 2;
+}
+
+.sticky-note-pin::after {
+  content: '';
+  position: absolute;
+  top: 15px;
+  left: 8px;
+  width: 3px;
+  height: 12px;
+  background: #64748b;
+  transform: rotate(15deg);
+  box-shadow: 1px 1px 2px rgba(0, 0, 0, 0.4);
+}
+
+.sticky-note-text {
+  font-size: 0.88rem;
+  font-weight: 550;
+  line-height: 1.4;
+  color: #0f172a;
+  word-break: break-word;
+  white-space: pre-wrap;
+  margin-bottom: 0.75rem;
+  flex-grow: 1;
+  text-align: left;
+}
+
+.sticky-note-time {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #475569;
+  border-top: 1px dashed rgba(0, 0, 0, 0.1);
+  padding-top: 0.4rem;
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.sticky-note-delete-btn {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.05);
+  border: none;
+  color: #ef4444;
+  font-size: 0.95rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0.4;
+  transition: opacity 0.2s, background-color 0.2s;
+  z-index: 5;
+}
+
+.sticky-note-delete-btn:hover {
+  opacity: 1;
+  background: rgba(239, 68, 68, 0.15);
+}
+
+/* Custom Toggle Switch for Seating Plan */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 40px;
+  height: 22px;
+}
+.switch input { 
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--border-color);
+  transition: .3s;
+  border-radius: 34px;
+}
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 14px;
+  width: 14px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: .3s;
+  border-radius: 50%;
+}
+input:checked + .slider {
+  background-color: var(--primary);
+}
+input:checked + .slider:before {
+  transform: translateX(18px);
+}
+
+/* Seating Canvas Elements */
+#seating-canvas {
+  position: relative;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+.seating-element {
+  position: absolute;
+  border-radius: 8px;
+  box-sizing: border-box;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.seating-element:hover {
+  border-color: var(--primary-light);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
+}
+
+.seating-element.dragging {
+  opacity: 0.8;
+  cursor: grabbing !important;
+  border-color: var(--primary) !important;
+  box-shadow: 0 10px 25px rgba(99, 102, 241, 0.3) !important;
+  z-index: 1000 !important;
+}
+
+/* Desk Header */
+.desk-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.25rem 0.5rem;
+  background: rgba(255, 255, 255, 0.03);
+  border-bottom: 1px solid var(--border-color);
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
+.desk-drag-handle {
+  cursor: grab;
+  flex-grow: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-weight: 600;
+}
+
+.desk-delete-btn {
+  background: transparent;
+  border: none;
+  color: var(--danger);
+  cursor: pointer;
+  padding: 0.1rem;
+  display: flex;
+  align-items: center;
+  opacity: 0.6;
+  transition: opacity 0.15s;
+}
+
+.desk-delete-btn:hover {
+  opacity: 1;
+}
+
+.desk-rotate-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 0.1rem;
+  display: flex;
+  align-items: center;
+  opacity: 0.6;
+  transition: opacity 0.15s, color 0.15s;
+}
+
+.desk-rotate-btn:hover {
+  opacity: 1;
+  color: var(--primary);
+}
+
+/* Desk Body / Seats Layout */
+.desk-body {
+  display: flex;
+  flex: 1;
+  padding: 0.4rem;
+  gap: 0.4rem;
+  background: rgba(255, 255, 255, 0.01);
+}
+
+/* Individual Seat */
+.seating-seat {
+  flex: 1;
+  height: 100%;
+  border-radius: 6px;
+  border: 1px dashed var(--border-color);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.01);
+  transition: background-color 0.15s, border-color 0.15s;
+}
+
+.seating-seat:hover {
+  background: rgba(99, 102, 241, 0.05);
+  border-color: var(--primary-light);
+}
+
+.seating-seat-empty-btn {
+  font-size: 1.25rem;
+  color: var(--text-muted);
+  font-weight: 300;
+}
+
+.seating-seat-occupied {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0.2rem;
+  gap: 0.15rem;
+  position: relative;
+}
+
+.seating-seat-photo {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid var(--border-color);
+}
+
+.seating-seat-initials {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  border: 1px solid var(--border-color);
+}
+
+.seating-seat-name {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
+  padding: 0 0.1rem;
+}
+
+/* Whiteboard & Teacher Desk */
+.seating-whiteboard {
+  background: #1e3a1e;
+  border: 4px solid #854d0e;
+  color: #f8fafc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 0.85rem;
+  letter-spacing: 2px;
+  box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
+  border-radius: 4px;
+}
+
+.seating-teacher-desk-element {
+  background: #451a03;
+  border: 2px solid #78350f;
+  color: #fed7aa;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.75rem;
+  border-radius: 6px;
+  text-transform: uppercase;
+}
+
+/* Print View Styles */
+@media print {
+  @page {
+    size: landscape;
+    margin: 10mm;
+  }
+
+  body.print-seating {
+    background: white !important;
+    color: black !important;
+  }
+  
+  body.print-seating #pdf-viewer-overlay {
+    display: none !important;
+  }
+
+  /* Hide everything except the seating plan view */
+  body.print-seating .sidebar,
+  body.print-seating .main-header,
+  body.print-seating .content-section:not(#tools),
+  body.print-seating #tools > div:not(#tools-seating-view) {
+    display: none !important;
+  }
+  
+  /* Reset container layout for printing */
+  body.print-seating .app-container,
+  body.print-seating .main-content,
+  body.print-seating #tools {
+    padding: 0 !important;
+    margin: 0 !important;
+    border: none !important;
+    background: transparent !important;
+    width: 100% !important;
+    height: 100% !important;
+    box-shadow: none !important;
+  }
+
+  body.print-seating #tools-seating-view {
+    display: block !important;
+    width: 277mm !important; /* Standard landscape workspace */
+    height: 190mm !important;
+    background: white !important;
+    color: black !important;
+    padding: 0 !important;
+    margin: 0 auto !important;
+  }
+  
+  body.print-seating #tools-seating-view .page-header {
+    display: block !important;
+    text-align: center !important;
+    border-bottom: 2px solid #000 !important;
+    padding-bottom: 0.5rem !important;
+    margin-bottom: 1.5rem !important;
+  }
+
+  body.print-seating #tools-seating-view .page-header h2 {
+    font-size: 1.8rem !important;
+    font-weight: 800 !important;
+    color: black !important;
+    margin: 0 !important;
+    text-transform: uppercase !important;
+  }
+
+  body.print-seating #tools-seating-view .page-header p {
+    display: none !important;
+  }
+
+  body.print-seating #tools-seating-view .page-header .btn-secondary {
+    display: none !important; /* Hide back button */
+  }
+  
+  body.print-seating .seating-layout {
+    display: block !important;
+  }
+  
+  body.print-seating .seating-layout > :first-child {
+    display: none !important; /* Hide left sidebar configuration panel */
+  }
+  
+  body.print-seating .seating-layout > :last-child {
+    width: 100% !important;
+    height: 100% !important;
+  }
+  
+  body.print-seating #seating-canvas {
+    border: 2px solid #475569 !important;
+    background: white !important;
+    width: 100% !important;
+    height: 165mm !important;
+    border-radius: 8px !important;
+    box-shadow: none !important;
+  }
+  
+  body.print-seating .seating-element {
+    background: white !important;
+    border: 2px solid #000 !important;
+    box-shadow: none !important;
+    color: black !important;
+  }
+
+  body.print-seating .desk-header {
+    background: #f1f5f9 !important;
+    border-bottom: 1px solid #000 !important;
+    color: black !important;
+  }
+
+  body.print-seating .desk-delete-btn,
+  body.print-seating .desk-rotate-btn {
+    display: none !important; /* Hide action buttons in print */
+  }
+
+  body.print-seating .seating-element:not(.seating-whiteboard):not(.seating-teacher-desk-element) {
+    height: 95px !important;
+  }
+
+  body.print-seating .desk-header {
+    font-size: 0.72rem !important;
+    padding: 0.15rem 0.35rem !important;
+  }
+
+  body.print-seating .desk-body {
+    padding: 0.3rem !important;
+    gap: 0.3rem !important;
+  }
+
+  body.print-seating .seating-seat {
+    border: 1.2px dashed #475569 !important;
+    background: white !important;
+    border-radius: 6px !important;
+  }
+
+  body.print-seating .seating-seat-photo {
+    width: 42px !important;
+    height: 42px !important;
+    border: 1.2px solid #000 !important;
+  }
+
+  body.print-seating .seating-seat-initials {
+    width: 42px !important;
+    height: 42px !important;
+    font-size: 1.05rem !important;
+    border: 1.2px solid #000 !important;
+  }
+
+  body.print-seating .seating-seat-name {
+    color: black !important;
+    font-size: 0.88rem !important;
+    font-weight: 700 !important;
+    margin-top: 0.15rem !important;
+  }
+
+  body.print-seating .seating-whiteboard {
+    background: #f1f5f9 !important;
+    border: 3px solid #000 !important;
+    color: black !important;
+    box-shadow: none !important;
+    font-size: 1rem !important;
+    height: 45px !important;
+  }
+
+  body.print-seating .seating-teacher-desk-element {
+    background: #f8fafc !important;
+    border: 2px solid #000 !important;
+    color: black !important;
+    font-size: 0.85rem !important;
+    height: 75px !important;
+  }
+}
+
+/* ==========================================================================
+   Dashboard Lesson & Topic Highlight Boxes (Equal Sizing)
+   ========================================================================== */
+.current-lesson-highlight-box,
+.lesson-topic-highlight-box {
+  background: var(--bg-glass);
+  border: 1.5px solid rgba(29, 78, 216, 0.15);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: var(--radius-md);
+  padding: 0.55rem 0.85rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  box-shadow: var(--shadow-sm);
+  animation: fadeIn 0.4s ease;
+  flex: 1 1 0;
+  min-width: 160px;
+  max-width: 420px;
+  height: 72px;
+  box-sizing: border-box;
+  overflow: hidden;
+  position: relative;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.current-lesson-highlight-box:hover,
+.lesson-topic-highlight-box:hover {
+  border-color: rgba(99, 102, 241, 0.35);
+  box-shadow: var(--shadow-md);
+}
+
+[data-theme="dark"] .current-lesson-highlight-box,
+[data-theme="dark"] .lesson-topic-highlight-box {
+  background: rgba(15, 23, 42, 0.55);
+  border-color: rgba(56, 189, 248, 0.2);
+}
+
+[data-theme="pastel"] .current-lesson-highlight-box,
+[data-theme="pastel"] .lesson-topic-highlight-box {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.current-lesson-highlight-box .highlight-row {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  width: 100%;
+}
+
+.current-lesson-highlight-box .info-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  white-space: nowrap;
+}
+
+.current-lesson-highlight-box .top-row .info-item {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.current-lesson-highlight-box .top-row .info-item i,
+.current-lesson-highlight-box .top-row .info-item svg {
+  width: 13px;
+  height: 13px;
+  color: var(--primary);
+  opacity: 0.9;
+  flex-shrink: 0;
+}
+
+[data-theme="dark"] .current-lesson-highlight-box .top-row .info-item i,
+[data-theme="dark"] .current-lesson-highlight-box .top-row .info-item svg {
+  color: var(--info);
+}
+
+.current-lesson-highlight-box .top-row .divider {
+  width: 1.5px;
+  height: 11px;
+  background-color: var(--border-color);
+  opacity: 0.6;
+}
+
+/* Kalan Süre Azalan Çubuk ve Ders Adı Kapsayıcısı */
+.current-lesson-highlight-box .lesson-progress-container {
+  position: relative;
+  width: 100%;
+  height: 32px;
+  border-radius: var(--radius-sm, 7px);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  border: 1.5px solid rgba(99, 102, 241, 0.25);
+  background: rgba(0, 0, 0, 0.03);
+  box-sizing: border-box;
+}
+
+[data-theme="dark"] .current-lesson-highlight-box .lesson-progress-container {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+[data-theme="pastel"] .current-lesson-highlight-box .lesson-progress-container {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+.current-lesson-highlight-box .lesson-progress-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  background: linear-gradient(90deg, rgba(99, 102, 241, 0.2), rgba(99, 102, 241, 0.45));
+  border-right: 2.5px solid var(--primary);
+  border-radius: var(--radius-sm, 7px) 0 0 var(--radius-sm, 7px);
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 1;
+  pointer-events: none;
+}
+
+.current-lesson-highlight-box .lesson-progress-content {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 0.65rem;
+  gap: 0.5rem;
+}
+
+.current-lesson-highlight-box .lesson-progress-name {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 0;
+  flex: 1;
+}
+
+.current-lesson-highlight-box .lesson-progress-name i,
+.current-lesson-highlight-box .lesson-progress-name svg {
+  width: 15px;
+  height: 15px;
+  color: var(--primary);
+  flex-shrink: 0;
+}
+
+[data-theme="dark"] .current-lesson-highlight-box .lesson-progress-name i,
+[data-theme="dark"] .current-lesson-highlight-box .lesson-progress-name svg {
+  color: var(--info);
+}
+
+.current-lesson-highlight-box .lesson-progress-name .lesson-name-text {
+  font-size: 0.86rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.current-lesson-highlight-box .lesson-progress-time {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  flex-shrink: 0;
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: #d97706;
+  background: rgba(245, 158, 11, 0.12);
+  padding: 0.15rem 0.45rem;
+  border-radius: 5px;
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  white-space: nowrap;
+}
+
+.current-lesson-highlight-box .lesson-progress-time i,
+.current-lesson-highlight-box .lesson-progress-time svg {
+  width: 12px;
+  height: 12px;
+  color: #d97706;
+  flex-shrink: 0;
+}
+
+[data-theme="dark"] .current-lesson-highlight-box .lesson-progress-time {
+  color: #fbbf24;
+  background: rgba(245, 158, 11, 0.18);
+  border-color: rgba(251, 191, 36, 0.3);
+}
+
+[data-theme="dark"] .current-lesson-highlight-box .lesson-progress-time i,
+[data-theme="dark"] .current-lesson-highlight-box .lesson-progress-time svg {
+  color: #fbbf24;
+}
+
+/* Dashboard Header Layout for 2 Boxes */
+#dashboard-header-title {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin-right: 1rem;
+  display: flex;
+  gap: 1rem;
+}
+
+#dashboard-header-actions {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+
+.quick-menu-box {
+  flex-shrink: 0;
+  box-sizing: border-box;
+}
+
+@media (max-width: 1250px) {
+  .page-header {
+    flex-wrap: wrap !important;
+    gap: 1rem !important;
+  }
+
+  #dashboard-header-title {
+    flex: 1 1 100% !important;
+    margin-right: 0 !important;
+    width: 100% !important;
+  }
+
+  #dashboard-header-actions {
+    width: 100% !important;
+    justify-content: flex-end !important;
+  }
+
+  .quick-menu-box {
+    align-items: flex-end !important;
+  }
+}
+
+.lesson-topic-highlight-box .topic-header {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  flex-shrink: 0;
+}
+
+.lesson-topic-highlight-box .topic-title-group {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.lesson-topic-highlight-box .topic-header i,
+.lesson-topic-highlight-box .topic-header svg {
+  width: 15px;
+  height: 15px;
+  color: var(--primary);
+  opacity: 0.85;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+[data-theme="dark"] .lesson-topic-highlight-box .topic-header i,
+[data-theme="dark"] .lesson-topic-highlight-box .topic-header svg {
+  color: var(--info);
+}
+
+.lesson-topic-highlight-box .btn-topic-eye {
+  background: rgba(99, 102, 241, 0.12);
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  color: var(--primary);
+  border-radius: 6px;
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.lesson-topic-highlight-box .btn-topic-eye:hover {
+  background: var(--primary);
+  color: #ffffff;
+  transform: scale(1.08);
+}
+
+.lesson-topic-highlight-box .btn-topic-eye i,
+.lesson-topic-highlight-box .btn-topic-eye svg {
+  width: 13px;
+  height: 13px;
+  color: inherit;
+  opacity: 1;
+}
+
+.lesson-topic-highlight-box .topic-content {
+  font-size: 0.95rem;
+  color: var(--text-primary);
+  font-weight: 700;
+  line-height: 1.3;
+  word-break: break-word;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: block;
+}
+
+/* Masaüstü İndirme Modalı Kartları */
+.download-platform-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease !important;
+}
+.download-platform-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+}
+
+
+

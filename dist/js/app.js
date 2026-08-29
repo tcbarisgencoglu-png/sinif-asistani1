@@ -735,7 +735,29 @@ function initApp() {
     if (updated) {
       localStorage.setItem('sinif-asistani-reminders', JSON.stringify(reminders));
     }
-  }, 2000);
+  // URL parametresinden otomatik lisans aktifleştirme (?license=...)
+  try {
+    const urlParams = new URLSearchParams(window.location.search);
+    const licenseFromUrl = urlParams.get('license');
+    if (licenseFromUrl && window.LicenseConfig && window.LicenseConfig.saveLicense) {
+      window.LicenseConfig.saveLicense(licenseFromUrl).then(res => {
+        if (res.success) {
+          const alertMsg = `🎉 Tebrikler! 1 Aylık Tam Sürüm Lisansınız Otomatik Aktifleştirildi! (Lisans Sahibi: ${res.licensee})`;
+          if (window.showToast) {
+            window.showToast(alertMsg, 'success');
+          } else {
+            alert(alertMsg);
+          }
+          const cleanUrl = window.location.pathname;
+          window.history.replaceState({}, document.title, cleanUrl);
+          const event = new CustomEvent('stateChanged');
+          document.dispatchEvent(event);
+        }
+      }).catch(err => console.error("URL license auto-activation error:", err));
+    }
+  } catch (e) {
+    console.error("URL parse error:", e);
+  }
 
   // Güncelleme kontrolü — arka planda, uygulamayı bekletmeden
   checkForUpdates();

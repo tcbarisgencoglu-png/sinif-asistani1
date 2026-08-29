@@ -1,0 +1,400 @@
+/* CSS Styles for Sınav Analiz ve Rapor Aracı */
+
+#tools-exam-analysis-view {
+  animation: fadeIn var(--transition-normal);
+}
+
+/* Tabs Navigation Inside Exam Analysis View */
+#tools-exam-analysis-view .tabs-navigation {
+  display: flex;
+  border-bottom: 2px solid var(--border-color);
+  margin-bottom: 1.5rem;
+}
+
+#tools-exam-analysis-view .tab-btn {
+  padding: 12px 20px;
+  border: none;
+  background: transparent;
+  font-family: var(--font-family-title);
+  font-weight: 600;
+  font-size: 1rem;
+  color: var(--text-muted);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  transition: all var(--transition-fast);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+#tools-exam-analysis-view .tab-btn:hover {
+  color: var(--text-main);
+  background-color: rgba(0, 0, 0, 0.02);
+}
+
+#tools-exam-analysis-view .tab-btn.active {
+  color: var(--primary);
+  border-bottom-color: var(--primary);
+}
+
+/* Section View Visibility */
+#tools-exam-analysis-view .ea-section-view {
+  display: none;
+  animation: fadeIn var(--transition-normal);
+}
+
+#tools-exam-analysis-view .ea-section-view.active {
+  display: block;
+}
+
+#tools-exam-analysis-view .ea-tab-content {
+  display: none;
+  animation: fadeIn var(--transition-normal);
+  flex-direction: column;
+  gap: 24px;
+}
+
+#tools-exam-analysis-view .ea-tab-content.active {
+  display: flex;
+}
+
+/* Grade Entry Excel-like Grid */
+#tools-exam-analysis-view .grade-grid-wrapper {
+  overflow: auto;
+  max-height: calc(100vh - 350px);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  background: var(--bg-card);
+}
+
+#tools-exam-analysis-view .grade-grid-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 0.9rem;
+}
+
+#tools-exam-analysis-view .grade-grid-table th {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background-color: var(--bg-secondary) !important;
+  color: var(--text-secondary);
+  font-weight: 600;
+  padding: 12px 14px;
+  border-bottom: 2px solid var(--border-color);
+  white-space: nowrap;
+}
+
+#tools-exam-analysis-view .grade-grid-table td {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border-color);
+  color: var(--text-main);
+  white-space: nowrap;
+  background-color: var(--bg-card);
+}
+
+#tools-exam-analysis-view .grade-grid-table tr:hover td {
+  background-color: var(--bg-secondary);
+}
+
+#tools-exam-analysis-view .grade-grid-table th:first-child,
+#tools-exam-analysis-view .grade-grid-table td:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 8;
+  background-color: var(--bg-secondary);
+  border-right: 2px solid var(--border-color);
+  font-weight: 500;
+}
+
+#tools-exam-analysis-view .grade-grid-table th:first-child {
+  z-index: 11;
+  background-color: var(--bg-secondary);
+}
+
+#tools-exam-analysis-view .grade-cell-input {
+  width: 70px;
+  padding: 6px 8px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  text-align: center;
+  font-family: var(--font-family-sans);
+  font-weight: 600;
+  outline: none;
+  background-color: var(--bg-card);
+  color: var(--text-main);
+  transition: all var(--transition-fast);
+}
+
+#tools-exam-analysis-view .grade-cell-input:focus {
+  border-color: var(--primary);
+  background-color: rgba(99, 102, 241, 0.05);
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+}
+
+#tools-exam-analysis-view .grade-cell-input.invalid {
+  border-color: var(--danger);
+  background-color: var(--danger-bg);
+  color: var(--danger);
+}
+
+#tools-exam-analysis-view .grade-row-absent td {
+  background-color: rgba(226, 232, 240, 0.4) !important;
+  color: var(--text-light) !important;
+}
+
+#tools-exam-analysis-view .grade-row-absent input {
+  background-color: rgba(226, 232, 240, 0.2);
+  color: var(--text-light);
+  border-color: #cbd5e1;
+}
+
+/* Exam Question Configurator */
+.q-config-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.q-config-item {
+  display: grid;
+  grid-template-columns: 80px 120px 1fr;
+  align-items: center;
+  gap: 16px;
+  padding: 12px;
+  background-color: var(--bg-secondary);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+}
+
+.q-config-num {
+  font-family: var(--font-family-title);
+  font-weight: 700;
+  color: var(--primary);
+}
+
+/* Analysis Layout and Charts */
+.analysis-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin-top: 1.5rem;
+}
+
+@media (max-width: 1024px) {
+  .analysis-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.chart-card {
+  height: 320px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+/* general tables styling for reports */
+#tools-exam-analysis-view table strong {
+  font-weight: 600;
+}
+
+/* ================= PRINT CONTAINER (HIDDEN ON SCREEN, VISIBLE ON PRINT) ================= */
+#ea-print-container {
+  display: none;
+}
+
+@media print {
+  body.print-exam-analysis {
+    background: white !important;
+    color: black !important;
+  }
+  
+  body.print-exam-analysis #app-container,
+  body.print-exam-analysis aside,
+  body.print-exam-analysis main,
+  body.print-exam-analysis .modal,
+  body.print-exam-analysis .toast-container {
+    display: none !important;
+  }
+  
+  body.print-exam-analysis #ea-print-container {
+    display: block !important;
+    background-color: white !important;
+    color: black !important;
+    font-family: 'Inter', system-ui, sans-serif !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+  }
+  
+  @page {
+    size: A4 portrait;
+    margin: 1.5cm 1.2cm 1.5cm 1.2cm;
+  }
+  
+  .print-page {
+    page-break-after: always;
+    position: relative;
+    box-sizing: border-box;
+    width: 100%;
+    min-height: 25.7cm;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .print-page:last-child {
+    page-break-after: avoid;
+  }
+  
+  .print-header {
+    border-bottom: 2px solid #000;
+    padding-bottom: 8px;
+    margin-bottom: 10px;
+    display: grid;
+    grid-template-columns: 120px 1fr 120px;
+    align-items: center;
+    text-align: center;
+  }
+  
+  .print-header-logo {
+    text-align: left;
+    font-size: 0.8rem;
+    font-weight: bold;
+    border: 1px solid #000;
+    padding: 6px;
+    width: 90px;
+  }
+  
+  .print-header-center h2 {
+    font-family: 'Outfit', sans-serif;
+    font-size: 1.25rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+  
+  .print-header-center h3 {
+    font-size: 0.95rem;
+    font-weight: 600;
+    margin-bottom: 2px;
+  }
+  
+  .print-header-center p {
+    font-size: 0.8rem;
+    color: #333;
+  }
+  
+  .print-header-meta {
+    text-align: right;
+    font-size: 0.8rem;
+    line-height: 1.4;
+  }
+  
+  .print-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 10px;
+    font-size: 0.8rem !important;
+  }
+  
+  .print-table th, .print-table td {
+    border: 1px solid #000 !important;
+    padding: 5px 8px !important;
+    text-align: center;
+    color: black !important;
+    background-color: transparent !important;
+    font-weight: normal;
+  }
+  
+  .print-table th {
+    font-weight: bold !important;
+    background-color: #f1f5f9 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  
+  .print-table td.text-left, .print-table th.text-left {
+    text-align: left;
+  }
+  
+  .print-section-title {
+    font-size: 0.95rem;
+    font-weight: bold;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    border-bottom: 1px solid #ccc;
+    padding-bottom: 4px;
+    display: flex;
+    justify-content: space-between;
+  }
+  
+  .print-stats-summary {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  
+  .print-stat-box {
+    border: 1px solid #000;
+    padding: 6px;
+    text-align: center;
+  }
+  
+  .print-stat-label {
+    font-size: 0.7rem;
+    color: #555;
+    margin-bottom: 2px;
+  }
+  
+  .print-stat-val {
+    font-size: 1.1rem;
+    font-weight: bold;
+  }
+  
+  .print-chart-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border: 1px solid #ccc;
+    height: 165px;
+    margin-bottom: 10px;
+    padding: 6px;
+  }
+  
+  .print-chart-img {
+    max-height: 100%;
+    max-width: 100%;
+    object-fit: contain;
+  }
+  
+  .print-signatures {
+    margin-top: 15px;
+    padding-top: 10px;
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.8rem;
+  }
+  
+  .print-signature-box {
+    width: 200px;
+    text-align: center;
+  }
+  
+  .print-signature-line {
+    margin-bottom: 4px;
+    font-weight: bold;
+  }
+  
+  .print-signature-title {
+    font-size: 0.75rem;
+    color: #444;
+  }
+}

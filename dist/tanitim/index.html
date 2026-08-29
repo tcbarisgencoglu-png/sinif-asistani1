@@ -1889,8 +1889,15 @@
     if (formSection) formSection.style.display = 'none';
     if (successSection) successSection.style.display = 'block';
 
+    const cleanKey = (licenseKey || '').trim().replace(/--+/g, '-');
+
     const keyField = document.getElementById('txt-demo-license-result');
-    if (keyField) keyField.value = licenseKey;
+    if (keyField) keyField.value = cleanKey;
+
+    const btnOpenWeb = document.getElementById('btn-open-web-app-with-license');
+    if (btnOpenWeb) {
+      btnOpenWeb.href = `/uygulama?license=${encodeURIComponent(cleanKey)}`;
+    }
 
     const nameEl = document.getElementById('demo-result-name');
     if (nameEl) nameEl.textContent = name || 'Değerli Öğretmenimiz';
@@ -1927,11 +1934,13 @@
     const keyField = document.getElementById('txt-demo-license-result');
     if (!keyField) return;
     
+    const keyVal = (keyField.value || '').trim().replace(/--+/g, '-');
+    keyField.value = keyVal;
     keyField.select();
     keyField.setSelectionRange(0, 99999);
     
     if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(keyField.value).then(onSuccess).catch(() => {
+      navigator.clipboard.writeText(keyVal).then(onSuccess).catch(() => {
         document.execCommand('copy');
         onSuccess();
       });
@@ -2268,8 +2277,8 @@
 
         <!-- Aksiyon Butonları -->
         <div style="display: flex; flex-direction: column; gap: 0.6rem;">
-          <a href="/uygulama" class="btn-primary" style="text-align: center; justify-content: center; padding: 0.75rem; border-radius: 10px; font-size: 0.9rem; text-decoration: none;">
-            🚀 Hemen Web Sürümünde Aç ve Kodu Gir
+          <a id="btn-open-web-app-with-license" href="/uygulama" class="btn-primary" style="text-align: center; justify-content: center; padding: 0.75rem; border-radius: 10px; font-size: 0.9rem; text-decoration: none;">
+            🚀 Web Sürümünde Aç (Otomatik Aktifleştir)
           </a>
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem;">
             <button type="button" onclick="window.closeDemoLicenseModal(); window.openTanitimDownloadModal(event);" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.15); color: #fff; border-radius: 8px; padding: 0.6rem; font-size: 0.8rem; font-weight: 600; cursor: pointer;">
