@@ -156,18 +156,11 @@ jobs:
             Klavyede **`Command (⌘) + Boşluk`** tuşlarına basın → `Terminal` yazın → **Enter**.
 
             ### Adım 3 — Bu komutu yapıştırın ve Enter'a basın
-
-            **Apple Silicon (M1/M2/M3/M4) için:**
-            ```
-            xattr -d com.apple.quarantine "/Applications/Sınıf Asistanı.app"
+            ```bash
+            sudo xattr -rd com.apple.quarantine "/Applications/Sınıf Asistanı.app"
             ```
 
-            **Intel Mac için:**
-            ```
-            xattr -d com.apple.quarantine "/Applications/Sınıf Asistanı.app"
-            ```
-
-            > Komut çalışınca hiçbir şey yazmaz — bu normaldir. ✅
+            > Komut çalıştıktan sonra şifrenizi girmeniz istenebilir. Mac açılış şifrenizi yazıp Enter'a basın (yazarken ekranda görünmez, bu normaldir). ✅
 
             ### Adım 4 — Uygulamayı açın
             Applications klasöründen **Sınıf Asistanı**'na çift tıklayın. Artık sorunsuz açılacaktır.
@@ -178,22 +171,3 @@ jobs:
           releaseDraft: false
           prerelease: false
           args: ${{ matrix.args }}
-
-      - name: Paketleri yükle (Artifacts)
-        uses: actions/upload-artifact@v4
-        continue-on-error: true
-        with:
-          name: sinif-asistani-${{ matrix.artifact_name }}
-          retention-days: 1
-          path: |
-            src-tauri/target/release/bundle/**/*.dmg
-            src-tauri/target/release/bundle/**/*.msi
-            src-tauri/target/release/bundle/**/*.exe
-            src-tauri/target/release/bundle/**/*.AppImage
-            src-tauri/target/release/bundle/**/*.deb
-            src-tauri/target/*/release/bundle/**/*.dmg
-            src-tauri/target/*/release/bundle/**/*.msi
-            src-tauri/target/*/release/bundle/**/*.exe
-            src-tauri/target/*/release/bundle/**/*.AppImage
-            src-tauri/target/*/release/bundle/**/*.deb
-          if-no-files-found: ignore

@@ -2471,10 +2471,10 @@ function updateFlowContent(syncWithRealTime = true) {
 
     // Dinamik olarak GitHub API'den en son sürüm bilgilerini al
     try {
-      const response = await fetch('https://api.github.com/repos/tcbarisgencoglu-png/sinifasistani-indir/releases/latest');
+      const response = await fetch('https://api.github.com/repos/tcbarisgencoglu-png/sinif-asistani1/releases/latest');
       if (response.ok) {
         const release = await response.json();
-        const tagName = release.tag_name || 'v1.0.1';
+        const tagName = release.tag_name || 'v1.0.2';
         
         const badge = document.getElementById('download-app-version-badge');
         if (badge) badge.textContent = `${tagName} (En Son)`;
@@ -2506,6 +2506,51 @@ function updateFlowContent(syncWithRealTime = true) {
     }
   }
 
+  // macOS Kurulum Yardım Modalı Fonksiyonları
+  function openMacInstallHelpModal() {
+    const modal = document.getElementById('modal-mac-install-help');
+    if (!modal) return;
+    modal.classList.add('active');
+    if (window.safeCreateIcons) window.safeCreateIcons();
+  }
+
+  function closeMacInstallHelpModal() {
+    const modal = document.getElementById('modal-mac-install-help');
+    if (modal) modal.classList.remove('active');
+  }
+
+  async function copyMacQuarantineCommand(btn) {
+    const commandText = 'sudo xattr -rd com.apple.quarantine "/Applications/Sınıf Asistanı.app"';
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(commandText);
+      } else {
+        const tempInput = document.createElement('textarea');
+        tempInput.value = commandText;
+        tempInput.style.position = 'fixed';
+        tempInput.style.opacity = '0';
+        document.body.appendChild(tempInput);
+        tempInput.select();
+        document.execCommand('copy');
+        document.body.removeChild(tempInput);
+      }
+      if (btn) {
+        const originalHtml = btn.innerHTML;
+        btn.innerHTML = '<i data-lucide="check" style="width: 14px; height: 14px;"></i> <span>Kopyalandı!</span>';
+        btn.style.background = '#10b981';
+        if (window.safeCreateIcons) window.safeCreateIcons();
+        setTimeout(() => {
+          btn.innerHTML = originalHtml;
+          btn.style.background = '#8b5cf6';
+          if (window.safeCreateIcons) window.safeCreateIcons();
+        }, 2500);
+      }
+    } catch (err) {
+      console.error('Kopyalama hatası:', err);
+      alert('Komut panoya kopyalanamadı. Lütfen komutu el ile seçip kopyalayın:\n' + commandText);
+    }
+  }
+
   // Modal Kapatma Dinleyicisi
   const modalDownloadApp = document.getElementById('modal-download-desktop-app');
   if (modalDownloadApp) {
@@ -2521,7 +2566,22 @@ function updateFlowContent(syncWithRealTime = true) {
     });
   }
 
+  const modalMacHelp = document.getElementById('modal-mac-install-help');
+  if (modalMacHelp) {
+    modalMacHelp.querySelectorAll('.close-btn, #btn-close-mac-install-help').forEach(btn => {
+      btn.addEventListener('click', closeMacInstallHelpModal);
+    });
+    modalMacHelp.addEventListener('click', (e) => {
+      if (e.target === modalMacHelp) {
+        closeMacInstallHelpModal();
+      }
+    });
+  }
+
   window.openDownloadDesktopAppModal = openDownloadDesktopAppModal;
+  window.openMacInstallHelpModal = openMacInstallHelpModal;
+  window.closeMacInstallHelpModal = closeMacInstallHelpModal;
+  window.copyMacQuarantineCommand = copyMacQuarantineCommand;
   window.openAttendanceModal = openAttendanceModal;
   window.renderAttendanceStudentsList = renderAttendanceStudentsList;
   window.updateFlowContent = updateFlowContent;
