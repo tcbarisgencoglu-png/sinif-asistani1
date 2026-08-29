@@ -2471,7 +2471,7 @@ function updateFlowContent(syncWithRealTime = true) {
 
     // Dinamik olarak GitHub API'den en son sürüm bilgilerini al
     try {
-      const response = await fetch('https://api.github.com/repos/tcbarisgencoglu-png/sinifasistani-indir/releases/latest');
+      const response = await fetch('https://api.github.com/repos/tcbarisgencoglu-png/sinif-asistani1/releases/latest');
       if (response.ok) {
         const release = await response.json();
         const tagName = release.tag_name || 'v1.0.2';

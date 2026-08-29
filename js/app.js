@@ -775,10 +775,10 @@ async function checkForUpdates() {
 
     let latestVersion = '';
     let releaseNotes = 'Yeni iyileştirmeler ve düzeltmeler mevcut.';
-    let releaseUrl = 'https://github.com/tcbarisgencoglu-png/sinifasistani-indir/releases/latest';
+    let releaseUrl = 'https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/latest';
 
     try {
-      const ghRes = await fetch('https://api.github.com/repos/tcbarisgencoglu-png/sinifasistani-indir/releases/latest', {
+      const ghRes = await fetch('https://api.github.com/repos/tcbarisgencoglu-png/sinif-asistani1/releases/latest', {
         headers: { 'Accept': 'application/vnd.github.v3+json' },
         signal: AbortSignal.timeout(6000)
       });

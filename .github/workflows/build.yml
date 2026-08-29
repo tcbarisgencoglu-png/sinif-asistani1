@@ -171,36 +171,3 @@ jobs:
           releaseDraft: false
           prerelease: false
           args: ${{ matrix.args }}
-
-      - name: Derlenen paketleri sinifasistani-indir deposuna otomatik aktar
-        if: startsWith(github.ref, 'refs/tags/')
-        shell: bash
-        env:
-          PUBLIC_RELEASE_TOKEN: ${{ secrets.PUBLIC_RELEASE_TOKEN }}
-          GH_TOKEN: ${{ secrets.PUBLIC_RELEASE_TOKEN }}
-        run: |
-          if [ -z "$PUBLIC_RELEASE_TOKEN" ]; then
-            echo "PUBLIC_RELEASE_TOKEN secret'ı tanımlanmamış, aktarım adımı atlanıyor."
-            exit 0
-          fi
-
-          TAG="${{ github.ref_name }}"
-          TARGET_REPO="tcbarisgencoglu-png/sinifasistani-indir"
-          echo "Hedef depo: $TARGET_REPO | Sürüm: $TAG"
-
-          # Halka açık depoda Release yoksa oluştur
-          if ! gh release view "$TAG" --repo "$TARGET_REPO" >/dev/null 2>&1; then
-            echo "Yeni Release oluşturuluyor: $TAG"
-            gh release create "$TAG" \
-              --repo "$TARGET_REPO" \
-              --title "Sınıf Asistanı $TAG" \
-              --notes "Sınıf Asistanı $TAG sürümü kurulum dosyaları."
-          fi
-
-          # Derlenen dosyaları bul ve yükle
-          find src-tauri/target -type f \( -name "*.dmg" -o -name "*.exe" -o -name "*.deb" -o -name "*.AppImage" -o -name "*.msi" \) -not -path "*/build/*" -not -path "*/deps/*" | while read -r file; do
-            if [ -f "$file" ]; then
-              echo "Dosya yükleniyor -> $file"
-              gh release upload "$TAG" "$file" --repo "$TARGET_REPO" --clobber
-            fi
-          done
