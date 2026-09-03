@@ -466,8 +466,9 @@
       modal.id = 'modal-app-demo-license';
       modal.style.zIndex = '10005';
       modal.innerHTML = `
-        <div class="modal-content" style="max-width: 500px; max-height: 90vh; overflow-y: auto; padding: 1.75rem; border-radius: var(--radius-lg); background: var(--bg-secondary); border: 1.5px solid rgba(16, 185, 129, 0.4); box-shadow: 0 25px 50px rgba(0,0,0,0.5);">
+        <div class="modal-content" style="max-width: 520px; max-height: 90vh; overflow-y: auto; padding: 1.75rem; border-radius: var(--radius-lg); background: var(--bg-secondary); border: 1.5px solid rgba(16, 185, 129, 0.4); box-shadow: 0 25px 50px rgba(0,0,0,0.5);">
           
+          <!-- Header -->
           <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.9rem;">
             <div style="display: flex; align-items: center; gap: 0.75rem;">
               <div style="width: 44px; height: 44px; border-radius: 12px; background: linear-gradient(135deg, #10b981, #059669); display: flex; align-items: center; justify-content: center; color: white;">
@@ -481,55 +482,114 @@
             <button class="btn-close-app-demo" style="background: none; border: none; font-size: 1.6rem; color: var(--text-muted); cursor: pointer; line-height: 1; padding: 0.25rem;">&times;</button>
           </div>
 
-          <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 10px; padding: 0.85rem 1rem; margin-bottom: 1.25rem; font-size: 0.82rem; line-height: 1.5; color: var(--text-secondary);">
-            ✨ Bilgilerinizi girerek <strong>30 günlük tam sürüm lisansınızı</strong> anında bu cihazda aktifleştirebilirsiniz. Lisans bilgileriniz ayrıca e-posta adresinize de iletilecektir.
-          </div>
-
-          <form id="form-app-demo-license" style="display: flex; flex-direction: column; gap: 1rem;">
-            <div class="form-group" style="margin-bottom: 0;">
-              <label style="font-size: 0.8rem; font-weight: 700; color: var(--text-secondary); margin-bottom: 0.35rem; display: block;">
-                Adınız Soyadınız <span style="color: #ef4444;">*</span>
-              </label>
-              <input type="text" id="app-demo-name" class="form-control" placeholder="Örn: Ayşe Yılmaz" required style="width: 100%; padding: 0.7rem 0.9rem; font-size: 0.9rem;">
+          <!-- FORM BÖLÜMÜ -->
+          <div id="app-demo-form-view">
+            <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 10px; padding: 0.85rem 1rem; margin-bottom: 1.25rem; font-size: 0.82rem; line-height: 1.5; color: var(--text-secondary);">
+              ✨ Bilgilerinizi girerek <strong>30 günlük tam sürüm lisansınızı</strong> anında bu cihazda aktifleştirebilirsiniz. Lisans bilgileriniz ayrıca e-posta adresinize de iletilecektir.
             </div>
 
-            <div class="form-group" style="margin-bottom: 0;">
-              <label style="font-size: 0.8rem; font-weight: 700; color: var(--text-secondary); margin-bottom: 0.35rem; display: block;">
-                E-Posta Adresiniz <span style="color: #ef4444;">*</span>
-              </label>
-              <input type="email" id="app-demo-email" class="form-control" placeholder="Örn: ogretmen@gmail.com" required style="width: 100%; padding: 0.7rem 0.9rem; font-size: 0.9rem;">
-              <div style="font-size: 0.73rem; color: var(--text-muted); margin-top: 0.3rem;">
-                ℹ️ Lisans mailini gelen kutusunda göremezseniz lütfen <strong>Spam / Gereksiz</strong> klasörünü de kontrol ediniz.
+            <form id="form-app-demo-license" style="display: flex; flex-direction: column; gap: 1rem;">
+              <div class="form-group" style="margin-bottom: 0;">
+                <label style="font-size: 0.8rem; font-weight: 700; color: var(--text-secondary); margin-bottom: 0.35rem; display: block;">
+                  Adınız Soyadınız <span style="color: #ef4444;">*</span>
+                </label>
+                <input type="text" id="app-demo-name" class="form-control" placeholder="Örn: Ayşe Yılmaz" required style="width: 100%; padding: 0.7rem 0.9rem; font-size: 0.9rem;">
+              </div>
+
+              <div class="form-group" style="margin-bottom: 0;">
+                <label style="font-size: 0.8rem; font-weight: 700; color: var(--text-secondary); margin-bottom: 0.35rem; display: block;">
+                  E-Posta Adresiniz <span style="color: #ef4444;">*</span>
+                </label>
+                <input type="email" id="app-demo-email" class="form-control" placeholder="Örn: ogretmen@gmail.com" required style="width: 100%; padding: 0.7rem 0.9rem; font-size: 0.9rem;">
+                <div style="font-size: 0.73rem; color: var(--text-muted); margin-top: 0.3rem;">
+                  ℹ️ Lisans mailini gelen kutusunda göremezseniz lütfen <strong>Spam / Gereksiz</strong> klasörünü de kontrol ediniz.
+                </div>
+              </div>
+
+              <div class="form-group" style="margin-bottom: 0;">
+                <label style="font-size: 0.8rem; font-weight: 700; color: var(--text-secondary); margin-bottom: 0.35rem; display: block;">
+                  Telefon Numaranız (WhatsApp) <span style="color: #ef4444;">*</span>
+                </label>
+                <input type="tel" id="app-demo-phone" class="form-control" placeholder="Örn: 0555 123 45 67" required style="width: 100%; padding: 0.7rem 0.9rem; font-size: 0.9rem;">
+              </div>
+
+              <div class="form-group" style="margin-bottom: 0;">
+                <label style="font-size: 0.8rem; font-weight: 700; color: var(--text-secondary); margin-bottom: 0.35rem; display: block;">
+                  Okulunuz / Branşınız <span style="font-weight: 400; color: var(--text-muted);">(İsteğe bağlı)</span>
+                </label>
+                <input type="text" id="app-demo-school" class="form-control" placeholder="Örn: Atatürk İlkokulu / Sınıf Öğretmeni" style="width: 100%; padding: 0.7rem 0.9rem; font-size: 0.9rem;">
+              </div>
+
+              <div id="app-demo-error" style="display: none; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 8px; padding: 0.6rem 0.8rem; font-size: 0.8rem; color: #fca5a5; line-height: 1.45;"></div>
+
+              <button type="submit" id="btn-submit-app-demo" class="btn" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; font-weight: 700; padding: 0.8rem; border-radius: 8px; font-size: 0.92rem; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35); margin-top: 0.3rem;">
+                <span>30 Günlük Lisansı Oluştur ve Aktifleştir 🚀</span>
+              </button>
+            </form>
+          </div>
+
+          <!-- BAŞARI / SONUÇ BÖLÜMÜ (Kullanıcı Kapatana Kadar Açık Kalır) -->
+          <div id="app-demo-success-view" style="display: none; flex-direction: column; gap: 1rem;">
+            <div style="text-align: center; padding: 0.5rem 0;">
+              <div style="font-size: 2.5rem; margin-bottom: 0.25rem;">🎉</div>
+              <h3 style="margin: 0 0 0.4rem 0; font-size: 1.25rem; font-weight: 800; color: #10b981;">
+                1 Aylık Tam Sürüm Lisansınız Aktifleştirildi!
+              </h3>
+              <p style="margin: 0; font-size: 0.84rem; color: var(--text-secondary); line-height: 1.5;">
+                Sayın <strong id="app-demo-success-name" style="color: var(--text-primary);"></strong> Öğretmenimiz, tüm özellikler 30 gün boyunca kullanımınıza açılmıştır.
+              </p>
+            </div>
+
+            <!-- Lisans Kodu Kartı -->
+            <div style="background: rgba(0,0,0,0.25); border: 1.5px dashed rgba(16, 185, 129, 0.5); border-radius: 10px; padding: 0.85rem 1rem; display: flex; flex-direction: column; gap: 0.4rem;">
+              <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.78rem;">
+                <span style="color: var(--text-muted); font-weight: 600;">LİSANS ANAHTARINIZ:</span>
+                <span id="app-demo-success-expiry" style="background: rgba(16, 185, 129, 0.15); color: #10b981; padding: 0.2rem 0.5rem; border-radius: 4px; font-weight: 700; font-size: 0.75rem;"></span>
+              </div>
+              <input type="text" id="app-demo-success-key" readonly style="width: 100%; box-sizing: border-box; background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); border-radius: 6px; padding: 0.5rem 0.75rem; font-family: monospace; font-size: 0.82rem; color: #38bdf8; letter-spacing: 0.5px;">
+            </div>
+
+            <!-- E-Posta ve Spam Uyarısı Kutusu -->
+            <div style="background: rgba(245, 158, 11, 0.12); border: 1.5px solid rgba(245, 158, 11, 0.35); border-radius: 10px; padding: 0.85rem 1rem; font-size: 0.82rem; line-height: 1.5; color: #fef08a; display: flex; gap: 0.65rem; align-items: flex-start;">
+              <span style="font-size: 1.3rem; line-height: 1;">✉️</span>
+              <div>
+                Lisans aktivasyon kodunuz <strong id="app-demo-success-email" style="text-decoration: underline; color: #fff;"></strong> e-posta adresinize gönderildi.<br>
+                Gelen kutunuzda göremiyorsanız lütfen <strong>Spam / Gereksiz / İstenmeyen</strong> klasörünüzü kontrol ediniz.
               </div>
             </div>
 
-            <div class="form-group" style="margin-bottom: 0;">
-              <label style="font-size: 0.8rem; font-weight: 700; color: var(--text-secondary); margin-bottom: 0.35rem; display: block;">
-                Telefon Numaranız (WhatsApp) <span style="color: #ef4444;">*</span>
-              </label>
-              <input type="tel" id="app-demo-phone" class="form-control" placeholder="Örn: 0555 123 45 67" required style="width: 100%; padding: 0.7rem 0.9rem; font-size: 0.9rem;">
-            </div>
-
-            <div class="form-group" style="margin-bottom: 0;">
-              <label style="font-size: 0.8rem; font-weight: 700; color: var(--text-secondary); margin-bottom: 0.35rem; display: block;">
-                Okulunuz / Branşınız <span style="font-weight: 400; color: var(--text-muted);">(İsteğe bağlı)</span>
-              </label>
-              <input type="text" id="app-demo-school" class="form-control" placeholder="Örn: Atatürk İlkokulu / Sınıf Öğretmeni" style="width: 100%; padding: 0.7rem 0.9rem; font-size: 0.9rem;">
-            </div>
-
-            <div id="app-demo-error" style="display: none; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 8px; padding: 0.6rem 0.8rem; font-size: 0.8rem; color: #fca5a5; line-height: 1.45;"></div>
-
-            <button type="submit" id="btn-submit-app-demo" class="btn" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; font-weight: 700; padding: 0.8rem; border-radius: 8px; font-size: 0.92rem; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35); margin-top: 0.3rem;">
-              <span>30 Günlük Lisansı Oluştur ve Aktifleştir 🚀</span>
+            <!-- Kapatma / Başlama Butonu -->
+            <button type="button" id="btn-app-demo-close-success" class="btn" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; font-weight: 700; padding: 0.85rem; border-radius: 8px; font-size: 0.95rem; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.4); margin-top: 0.25rem;">
+              <span>Harika, Kullanmaya Başla 🚀</span>
             </button>
-          </form>
+          </div>
+
         </div>
       `;
       document.body.appendChild(modal);
 
-      const closeModal = () => modal.classList.remove('active');
+      const closeModal = () => {
+        modal.classList.remove('active');
+        // Form ve Başarı görünümünü sıfırla
+        const formView = document.getElementById('app-demo-form-view');
+        const succView = document.getElementById('app-demo-success-view');
+        if (formView) formView.style.display = 'block';
+        if (succView) succView.style.display = 'none';
+      };
+
       modal.querySelector('.btn-close-app-demo').addEventListener('click', closeModal);
       modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
+
+      const btnCloseSucc = document.getElementById('btn-app-demo-close-success');
+      if (btnCloseSucc) {
+        btnCloseSucc.addEventListener('click', () => {
+          closeModal();
+          const guideModal = document.getElementById('modal-license-purchase-guide');
+          if (guideModal) guideModal.classList.remove('active');
+          const event = new CustomEvent('stateChanged');
+          document.dispatchEvent(event);
+        });
+      }
 
       document.getElementById('form-app-demo-license').addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -643,10 +703,6 @@
           const actResult = await window.LicenseConfig.saveLicense(licenseKey);
 
           if (actResult.success) {
-            closeModal();
-            const guideModal = document.getElementById('modal-license-purchase-guide');
-            if (guideModal) guideModal.classList.remove('active');
-
             // 8. Brevo ile Otomatik E-Posta Gönder
             if (window.BrevoConfig && typeof window.BrevoConfig.sendLicenseEmail === 'function') {
               window.BrevoConfig.sendLicenseEmail({
@@ -657,12 +713,24 @@
               }).catch(mailErr => console.warn("Brevo mail gönderim uyarısı:", mailErr));
             }
 
-            const alertMsg = `🎉 Tebrikler! 1 Aylık Tam Sürüm Lisansınız Başarıyla Aktifleştirildi! Lisans bilgileriniz ayrıca ${email} adresinize gönderildi (Gelen kutunuzda göremiyorsanız lütfen Spam / Gereksiz klasörünüzü de kontrol ediniz). Bitiş Tarihi: ${expiryDate}`;
-            if (window.showToast) {
-              window.showToast(alertMsg, 'success');
-            } else {
-              alert(alertMsg);
-            }
+            // 9. Modal İçindeki Başarı Ekranını Doldur ve Göster (Kullanıcı Kapatana Kadar Açık Kalır)
+            const formView = document.getElementById('app-demo-form-view');
+            const succView = document.getElementById('app-demo-success-view');
+            const succName = document.getElementById('app-demo-success-name');
+            const succKey = document.getElementById('app-demo-success-key');
+            const succExpiry = document.getElementById('app-demo-success-expiry');
+            const succEmail = document.getElementById('app-demo-success-email');
+
+            if (succName) succName.textContent = name;
+            if (succKey) succKey.value = licenseKey;
+            if (succExpiry) succExpiry.textContent = `Bitiş: ${expiryDate}`;
+            if (succEmail) succEmail.textContent = email;
+
+            if (formView) formView.style.display = 'none';
+            if (succView) succView.style.display = 'flex';
+
+            const guideModal = document.getElementById('modal-license-purchase-guide');
+            if (guideModal) guideModal.classList.remove('active');
 
             const event = new CustomEvent('stateChanged');
             document.dispatchEvent(event);
