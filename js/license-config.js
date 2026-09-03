@@ -482,7 +482,7 @@
           </div>
 
           <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 10px; padding: 0.85rem 1rem; margin-bottom: 1.25rem; font-size: 0.82rem; line-height: 1.5; color: var(--text-secondary);">
-            ✨ Bilgilerinizi girerek <strong>30 günlük tam sürüm lisansınızı</strong> anında bu cihazda aktifleştirebilirsiniz. Kredi kartı veya ödeme gerekmez!
+            ✨ Bilgilerinizi girerek <strong>30 günlük tam sürüm lisansınızı</strong> anında bu cihazda aktifleştirebilirsiniz. Lisans bilgileriniz ayrıca e-posta adresinize de iletilecektir.
           </div>
 
           <form id="form-app-demo-license" style="display: flex; flex-direction: column; gap: 1rem;">
@@ -491,6 +491,16 @@
                 Adınız Soyadınız <span style="color: #ef4444;">*</span>
               </label>
               <input type="text" id="app-demo-name" class="form-control" placeholder="Örn: Ayşe Yılmaz" required style="width: 100%; padding: 0.7rem 0.9rem; font-size: 0.9rem;">
+            </div>
+
+            <div class="form-group" style="margin-bottom: 0;">
+              <label style="font-size: 0.8rem; font-weight: 700; color: var(--text-secondary); margin-bottom: 0.35rem; display: block;">
+                E-Posta Adresiniz <span style="color: #ef4444;">*</span>
+              </label>
+              <input type="email" id="app-demo-email" class="form-control" placeholder="Örn: ogretmen@gmail.com" required style="width: 100%; padding: 0.7rem 0.9rem; font-size: 0.9rem;">
+              <div style="font-size: 0.73rem; color: var(--text-muted); margin-top: 0.3rem;">
+                ℹ️ Lisans mailini gelen kutusunda göremezseniz lütfen <strong>Spam / Gereksiz</strong> klasörünü de kontrol ediniz.
+              </div>
             </div>
 
             <div class="form-group" style="margin-bottom: 0;">
@@ -507,7 +517,7 @@
               <input type="text" id="app-demo-school" class="form-control" placeholder="Örn: Atatürk İlkokulu / Sınıf Öğretmeni" style="width: 100%; padding: 0.7rem 0.9rem; font-size: 0.9rem;">
             </div>
 
-            <div id="app-demo-error" style="display: none; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 8px; padding: 0.6rem 0.8rem; font-size: 0.8rem; color: #fca5a5;"></div>
+            <div id="app-demo-error" style="display: none; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 8px; padding: 0.6rem 0.8rem; font-size: 0.8rem; color: #fca5a5; line-height: 1.45;"></div>
 
             <button type="submit" id="btn-submit-app-demo" class="btn" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; font-weight: 700; padding: 0.8rem; border-radius: 8px; font-size: 0.92rem; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35); margin-top: 0.3rem;">
               <span>30 Günlük Lisansı Oluştur ve Aktifleştir 🚀</span>
@@ -524,12 +534,14 @@
       document.getElementById('form-app-demo-license').addEventListener('submit', async (e) => {
         e.preventDefault();
         const txtName = document.getElementById('app-demo-name');
+        const txtEmail = document.getElementById('app-demo-email');
         const txtPhone = document.getElementById('app-demo-phone');
         const txtSchool = document.getElementById('app-demo-school');
         const errEl = document.getElementById('app-demo-error');
         const btnSubmit = document.getElementById('btn-submit-app-demo');
 
         const name = (txtName ? txtName.value : '').trim();
+        const email = (txtEmail ? txtEmail.value : '').trim().toLowerCase();
         const phone = (txtPhone ? txtPhone.value : '').trim();
         const school = (txtSchool ? txtSchool.value : '').trim();
 
@@ -537,6 +549,13 @@
           if (errEl) { errEl.textContent = 'Lütfen geçerli bir Ad ve Soyad giriniz.'; errEl.style.display = 'block'; }
           return;
         }
+
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!email || !emailRegex.test(email)) {
+          if (errEl) { errEl.textContent = 'Lütfen geçerli bir e-posta adresi giriniz.'; errEl.style.display = 'block'; }
+          return;
+        }
+
         const cleanPhone = phone.replace(/\D/g, '');
         if (!cleanPhone || cleanPhone.length < 10) {
           if (errEl) { errEl.textContent = 'Lütfen geçerli bir telefon numarası giriniz.'; errEl.style.display = 'block'; }
@@ -546,9 +565,59 @@
         if (errEl) { errEl.style.display = 'none'; errEl.textContent = ''; }
         btnSubmit.disabled = true;
         const origBtnText = btnSubmit.innerHTML;
-        btnSubmit.innerHTML = `<span>⏳ Aktifleştiriliyor...</span>`;
+        btnSubmit.innerHTML = `<span>⏳ Kontrol Ediliyor ve Aktifleştiriliyor...</span>`;
 
         try {
+          // 1. Yerel Demo Kilit Kontrolü
+          if (localStorage.getItem('sinif_asistani_demo_used') === 'true') {
+            if (errEl) {
+              errEl.textContent = 'Bu bilgisayarda daha önce 1 aylık ücretsiz deneme lisansı kullanılmıştır. Kullanıma devam etmek için lütfen tam sürüm lisans satın alınız.';
+              errEl.style.display = 'block';
+            }
+            btnSubmit.disabled = false;
+            btnSubmit.innerHTML = origBtnText;
+            return;
+          }
+
+          // 2. Cihaz Kimliği (device_id) Tekillik Kontrolü
+          const devId = await getDeviceId();
+          const devCheck = await supabaseRequest('GET', `licenses?device_id=eq.${encodeURIComponent(devId)}&select=id,licensee_name`);
+          if (devCheck && devCheck.length > 0) {
+            localStorage.setItem('sinif_asistani_demo_used', 'true');
+            if (errEl) {
+              errEl.textContent = 'Bu bilgisayarda daha önce 1 aylık ücretsiz deneme lisansı kullanılmıştır. Lütfen tam sürüm lisansı satın alınız.';
+              errEl.style.display = 'block';
+            }
+            btnSubmit.disabled = false;
+            btnSubmit.innerHTML = origBtnText;
+            return;
+          }
+
+          // 3. Telefon Numarası Tekillik Kontrolü
+          const phoneCheck = await supabaseRequest('GET', `licenses?licensee_name=like.*${encodeURIComponent(cleanPhone)}*&select=id`);
+          if (phoneCheck && phoneCheck.length > 0) {
+            if (errEl) {
+              errEl.textContent = `Bu telefon numarası (${phone}) ile daha önce deneme lisansı alınmıştır. Lütfen tam sürüm lisansı satın alınız.`;
+              errEl.style.display = 'block';
+            }
+            btnSubmit.disabled = false;
+            btnSubmit.innerHTML = origBtnText;
+            return;
+          }
+
+          // 4. E-Posta Tekillik Kontrolü
+          const emailCheck = await supabaseRequest('GET', `licenses?licensee_name=like.*${encodeURIComponent(email)}*&select=id`);
+          if (emailCheck && emailCheck.length > 0) {
+            if (errEl) {
+              errEl.textContent = `Bu e-posta adresi (${email}) ile daha önce deneme lisansı alınmıştır. Lütfen tam sürüm lisansı satın alınız.`;
+              errEl.style.display = 'block';
+            }
+            btnSubmit.disabled = false;
+            btnSubmit.innerHTML = origBtnText;
+            return;
+          }
+
+          // 5. Lisans Kodunu Üret
           const now = new Date();
           const expiryDateObj = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
           const expiryDate = expiryDateObj.toISOString().split('T')[0];
@@ -559,21 +628,36 @@
           const signature = generateSignature(payloadName, expiryDate);
           const licenseKey = `${payloadBase64}-${signature}`;
 
-          // Supabase kaydet
+          // 6. Supabase Veritabanına Kaydet (Cihaza Kilitli)
+          const fullLicenseeName = `${name} (${phone} / ${email}) - ${school || 'Öğretmen'} [Uygulama İçi Demo]`;
           await supabaseRequest('POST', 'licenses', {
             license_key: licenseKey,
-            licensee_name: `${name} (${phone}) - ${school || 'Öğretmen'} [Uygulama İçi Demo]`,
+            licensee_name: fullLicenseeName,
+            device_id: devId,
+            activated_at: new Date().toISOString(),
             expiry_date: expiryDate
           });
 
-          // Otomatik yerel aktifleştir
+          // 7. Yerel Kilit Bayrağını İşaretle ve Lisansı Aktifleştir
+          localStorage.setItem('sinif_asistani_demo_used', 'true');
           const actResult = await window.LicenseConfig.saveLicense(licenseKey);
+
           if (actResult.success) {
             closeModal();
             const guideModal = document.getElementById('modal-license-purchase-guide');
             if (guideModal) guideModal.classList.remove('active');
 
-            const alertMsg = `🎉 Tebrikler! 1 Aylık Tam Sürüm Lisansınız Başarıyla Aktifleştirildi! (Bitiş: ${expiryDate})`;
+            // 8. Brevo ile Otomatik E-Posta Gönder
+            if (window.BrevoConfig && typeof window.BrevoConfig.sendLicenseEmail === 'function') {
+              window.BrevoConfig.sendLicenseEmail({
+                toEmail: email,
+                toName: name,
+                licenseKey: licenseKey,
+                expiryDate: expiryDate
+              }).catch(mailErr => console.warn("Brevo mail gönderim uyarısı:", mailErr));
+            }
+
+            const alertMsg = `🎉 Tebrikler! 1 Aylık Tam Sürüm Lisansınız Başarıyla Aktifleştirildi! Lisans bilgileriniz ayrıca ${email} adresinize gönderildi (Gelen kutunuzda göremiyorsanız lütfen Spam / Gereksiz klasörünüzü de kontrol ediniz). Bitiş Tarihi: ${expiryDate}`;
             if (window.showToast) {
               window.showToast(alertMsg, 'success');
             } else {

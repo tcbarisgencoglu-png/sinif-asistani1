@@ -1972,14 +1972,16 @@
 
   window.submitDemoLicense = async function(e) {
     if (e && e.preventDefault) e.preventDefault();
-
+    
     const txtName = document.getElementById('demo-input-name');
+    const txtEmail = document.getElementById('demo-input-email');
     const txtPhone = document.getElementById('demo-input-phone');
     const txtSchool = document.getElementById('demo-input-school');
     const banner = document.getElementById('demo-error-banner');
     const btnSubmit = document.getElementById('btn-submit-demo-license');
 
     const name = (txtName ? txtName.value : '').trim();
+    const email = (txtEmail ? txtEmail.value : '').trim().toLowerCase();
     const phone = (txtPhone ? txtPhone.value : '').trim();
     const school = (txtSchool ? txtSchool.value : '').trim();
 
@@ -1989,6 +1991,16 @@
         banner.style.display = 'block';
       }
       if (txtName) txtName.focus();
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email || !emailRegex.test(email)) {
+      if (banner) {
+        banner.textContent = 'Lütfen geçerli bir e-posta adresi giriniz.';
+        banner.style.display = 'block';
+      }
+      if (txtEmail) txtEmail.focus();
       return;
     }
 
@@ -2009,27 +2021,73 @@
 
     if (btnSubmit) {
       btnSubmit.disabled = true;
-      btnSubmit.innerHTML = `<span>⏳ Lisansınız Oluşturuluyor...</span>`;
+      btnSubmit.innerHTML = `<span>⏳ Kontrol Ediliyor ve Oluşturuluyor...</span>`;
     }
 
     try {
-      // 1. Expiry Date (Tam 30 gün sonrası)
+      const url = (window.SupabaseConfig && window.SupabaseConfig.url) || 'https://tzwewboqhjsmoezriadg.supabase.co';
+      const key = (window.SupabaseConfig && window.SupabaseConfig.anonKey) || 'sb_publishable_FVth3wbbG-2XZiJmpO0-rw_mNiU0_Ci';
+
+      // 1. Supabase'den Telefon Numarası Tekillik Kontrolü
+      try {
+        const phoneCheckRes = await fetch(`${url}/rest/v1/licenses?licensee_name=like.*${encodeURIComponent(cleanPhone)}*&select=id`, {
+          headers: { 'apikey': key, 'Authorization': `Bearer ${key}` }
+        });
+        if (phoneCheckRes.ok) {
+          const phoneData = await phoneCheckRes.json();
+          if (phoneData && phoneData.length > 0) {
+            if (banner) {
+              banner.textContent = `Bu telefon numarası (${phone}) ile daha önce 1 aylık deneme lisansı alınmıştır. Tam sürüme geçmek için lütfen iletişime geçiniz.`;
+              banner.style.display = 'block';
+            }
+            if (btnSubmit) {
+              btnSubmit.disabled = false;
+              btnSubmit.innerHTML = `<span>30 Günlük Lisansımı Hemen Oluştur 🚀</span>`;
+            }
+            return;
+          }
+        }
+      } catch (checkErr) {
+        console.warn("Phone check warning:", checkErr);
+      }
+
+      // 2. Supabase'den E-Posta Tekillik Kontrolü
+      try {
+        const emailCheckRes = await fetch(`${url}/rest/v1/licenses?licensee_name=like.*${encodeURIComponent(email)}*&select=id`, {
+          headers: { 'apikey': key, 'Authorization': `Bearer ${key}` }
+        });
+        if (emailCheckRes.ok) {
+          const emailData = await emailCheckRes.json();
+          if (emailData && emailData.length > 0) {
+            if (banner) {
+              banner.textContent = `Bu e-posta adresi (${email}) ile daha önce 1 aylık deneme lisansı alınmıştır. Tam sürüme geçmek için lütfen iletişime geçiniz.`;
+              banner.style.display = 'block';
+            }
+            if (btnSubmit) {
+              btnSubmit.disabled = false;
+              btnSubmit.innerHTML = `<span>30 Günlük Lisansımı Hemen Oluştur 🚀</span>`;
+            }
+            return;
+          }
+        }
+      } catch (checkErr) {
+        console.warn("Email check warning:", checkErr);
+      }
+
+      // 3. Expiry Date (Tam 30 gün sonrası)
       const now = new Date();
       const expiryDateObj = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
       const expiryDate = expiryDateObj.toISOString().split('T')[0];
 
-      // 2. Offline İmza ve Lisans Kodu Üretimi
+      // 4. Offline İmza ve Lisans Kodu Üretimi
       const payloadName = `${name}`;
       const payloadString = `${payloadName}|${expiryDate}`;
       const payloadBase64 = demoEncodeUtf8Base64(payloadString);
       const signature = demoGenerateSignature(payloadName, expiryDate);
       const licenseKey = `${payloadBase64}-${signature}`;
 
-      // 3. Supabase Bulut Veritabanına Kaydet
-      const url = (window.SupabaseConfig && window.SupabaseConfig.url) || 'https://tzwewboqhjsmoezriadg.supabase.co';
-      const key = (window.SupabaseConfig && window.SupabaseConfig.anonKey) || 'sb_publishable_FVth3wbbG-2XZiJmpO0-rw_mNiU0_Ci';
-
-      const fullLicenseeInfo = `${name} (${phone}) - ${school || 'Öğretmen'} [Web 1 Aylık Demo]`;
+      // 5. Supabase Bulut Veritabanına Kaydet
+      const fullLicenseeInfo = `${name} (${phone} / ${email}) - ${school || 'Öğretmen'} [Web 1 Aylık Demo]`;
 
       try {
         await fetch(`${url}/rest/v1/licenses`, {
@@ -2050,17 +2108,28 @@
         console.warn("Supabase background save notice:", apiErr);
       }
 
-      // 4. Yerel Depolamaya Kaydet
+      // 6. Brevo ile Otomatik E-Posta Gönder
+      if (window.BrevoConfig && typeof window.BrevoConfig.sendLicenseEmail === 'function') {
+        window.BrevoConfig.sendLicenseEmail({
+          toEmail: email,
+          toName: name,
+          licenseKey: licenseKey,
+          expiryDate: expiryDate
+        }).catch(mailErr => console.warn("Brevo mail gönderim uyarısı:", mailErr));
+      }
+
+      // 7. Yerel Depolamaya Kaydet
       localStorage.setItem('sa_demo_license_saved', JSON.stringify({
         licenseKey: licenseKey,
         name: name,
+        email: email,
         phone: phone,
         school: school,
         expiryDate: expiryDate,
         createdAt: new Date().toISOString()
       }));
 
-      // 5. Başarı Görünümünü Göster
+      // 8. Başarı Görünümünü Göster
       showDemoSuccessView(licenseKey, name, expiryDate, false);
 
     } catch (err) {
@@ -2214,6 +2283,16 @@
 
           <div>
             <label style="display: block; font-size: 0.8rem; font-weight: 700; color: #cbd5e1; margin-bottom: 0.35rem; text-transform: uppercase; letter-spacing: 0.04em;">
+              E-Posta Adresiniz <span style="color: #ef4444;">*</span>
+            </label>
+            <input type="email" id="demo-input-email" placeholder="Örn: ogretmen@gmail.com" required style="width: 100%; box-sizing: border-box; background: rgba(15, 14, 26, 0.7); border: 1px solid rgba(255,255,255,0.15); border-radius: 10px; padding: 0.75rem 1rem; color: #fff; font-size: 0.92rem; outline: none; font-family: inherit;">
+            <div style="font-size: 0.73rem; color: #94a3b8; margin-top: 0.28rem;">
+              ℹ️ Lisans mailini gelen kutusunda göremezseniz lütfen <strong>Spam / Gereksiz</strong> klasörünü de kontrol ediniz.
+            </div>
+          </div>
+
+          <div>
+            <label style="display: block; font-size: 0.8rem; font-weight: 700; color: #cbd5e1; margin-bottom: 0.35rem; text-transform: uppercase; letter-spacing: 0.04em;">
               Telefon Numaranız (WhatsApp) <span style="color: #ef4444;">*</span>
             </label>
             <input type="tel" id="demo-input-phone" placeholder="Örn: 0555 123 45 67" required style="width: 100%; box-sizing: border-box; background: rgba(15, 14, 26, 0.7); border: 1px solid rgba(255,255,255,0.15); border-radius: 10px; padding: 0.75rem 1rem; color: #fff; font-size: 0.92rem; outline: none; font-family: inherit;">
@@ -2244,6 +2323,12 @@
           <div style="font-size: 2.2rem; margin-bottom: 0.25rem;">🎉</div>
           <h4 style="margin: 0 0 0.35rem 0; font-size: 1.2rem; font-weight: 800; color: #34d399;">1 Aylık Deneme Lisansınız Hazır!</h4>
           <p style="margin: 0; font-size: 0.82rem; color: #cbd5e1;">Aşağıdaki lisans anahtarını kopyalayarak uygulamada aktifleştirebilirsiniz.</p>
+        </div>
+
+        <!-- Lisans E-Posta Bilgi Kutusu -->
+        <div style="background: rgba(245, 158, 11, 0.12); border: 1.5px solid rgba(245, 158, 11, 0.35); border-radius: 10px; padding: 0.75rem 1rem; font-size: 0.82rem; color: #fef08a; margin-bottom: 1.15rem; display: flex; align-items: center; gap: 0.6rem; line-height: 1.45;">
+          <span style="font-size: 1.2rem;">✉️</span>
+          <div>Lisans bilgileriniz e-posta adresinize de gönderildi. Gelen kutunuzda göremiyorsanız lütfen <strong>Spam / Gereksiz</strong> klasörünüzü kontrol ediniz.</div>
         </div>
 
         <!-- Lisans Anahtarı Kutusu -->
