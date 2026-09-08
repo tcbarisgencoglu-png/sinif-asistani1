@@ -1,6 +1,6 @@
 {
-  "version": "1.0.4",
-  "updatedAt": "2026-08-29",
-  "release_notes": "macOS Gatekeeper açılış kılavuzu ve masaüstü indirme iyileştirmeleri.",
+  "version": "1.0.5",
+  "updatedAt": "2026-09-08",
+  "release_notes": "Pardus .deb paketleme ve isimlendirme düzeltmesi (ASCII uyumlu paket adı), Flash disk (USB) ile taşınabilir kullanım açıklamaları.",
   "release_url": "https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/latest"
 }

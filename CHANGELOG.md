@@ -2,6 +2,14 @@
 
 Bu dosya, Sınıf Asistanı uygulamasının tüm sürüm geçmişini içerir.
 
+## [v1.0.5] — 2026-09-08
+
+### 🔧 Linux / Pardus & Paketleme Düzeltmeleri
+- **Pardus & Debian (.deb) Kurulum Düzeltmesi:** Paket adı (`Package: sinif-asistani`) Debian isimlendirme standartlarına uygun hale getirilerek Pardus Paket Kurucu ve `dpkg` üzerindeki karakter hatası giderildi.
+- **Flash Disk / USB Taşınabilir Desteği:** Masaüstü indirme ekranlarında Linux Taşınabilir (AppImage) sürümünün USB flash disk üzerinden doğrudan tak-çalıştır şeklinde (özellikle ortaokul branş öğretmenleri için sınıf sınıf gezerek) kullanılabileceği bilgisi ve yönlendirmeleri eklendi.
+
+---
+
 ## [v1.0.4] — 2026-08-29
 
 ### 🔧 Düzeltmeler & Lisans Doğrulama İyileştirmeleri
