@@ -2,6 +2,13 @@
 
 Bu dosya, Sınıf Asistanı uygulamasının tüm sürüm geçmişini içerir.
 
+## [v1.0.6] — 2026-09-08
+
+### 🌟 Yeni Başlangıç & Demo Verileri
+- **Zengin Demo ve Başlangıç Verileri:** Uygulamanın ilk kurulumunda veya veri sıfırlamasında açılan başlangıç verileri güncel yedek ile eşitlendi; gerçekçi öğrenci fotoğrafları, güncel ders programı, ödevler, kitaplar, performans kayıtları ve defterler eklendi.
+
+---
+
 ## [v1.0.5] — 2026-09-08
 
 ### 🔧 Linux / Pardus & Paketleme Düzeltmeleri
