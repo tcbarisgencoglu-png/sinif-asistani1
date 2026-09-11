@@ -116,58 +116,14 @@ jobs:
           tagName: ${{ github.ref_name }}
           releaseName: "Sınıf Asistanı ${{ github.ref_name }}"
           releaseBody: |
-            ## 🎉 Sınıf Asistanı ${{ github.ref_name }} Yayınlandı!
-
-            Değişiklikler için [CHANGELOG.md](https://github.com/tcbarisgencoglu-png/sinif-asistani1/blob/main/CHANGELOG.md) dosyasına bakın.
-
-            ---
-
-            ## 📥 Hangi Dosyayı İndirmeliyim?
-
-            Aşağıdaki tablodan işletim sisteminize uygun satırı bulun ve **tam dosya adını** Assets listesinde arayın:
-
-            | İşletim Sistemi | İndirilecek Dosya |
-            |---|---|
-            | 🍎 **macOS — Apple Silicon** (M1, M2, M3, M4) | `Sinif.Asistani_X.X.X_aarch64.dmg` |
-            | 🍎 **macOS — Intel** (2019 ve öncesi Mac'ler) | `Sinif.Asistani_X.X.X_x64.dmg` |
-            | 🪟 **Windows 10 / 11** | `Sinif.Asistani_X.X.X_x64-setup.exe` |
-            | 🐧 **Linux — Ubuntu / Debian** | `Sinif.Asistani_X.X.X_amd64.deb` |
-            | 🐧 **Linux — Fedora / CentOS / RHEL** | `Sinif.Asistani_X.X.X-1.x86_64.rpm` |
-            | 🐧 **Linux — Diğer Dağıtımlar** | `Sinif.Asistani_X.X.X_amd64.AppImage` |
-
-            > **Not:** Tablodaki `X.X.X` yerine bu sürümün numarasını yazın (örn. `1.0.1`).
-
-            ### 💡 Mac'imde hangi işlemci var?
-            Sol üst köşe → Apple menüsü (🍎) → **Bu Mac Hakkında** → İşlemci/Çip satırına bakın.
-            - **Apple M1 / M2 / M3 / M4** → `aarch64.dmg`
-            - **Intel Core i5 / i7 / i9** → `x64.dmg`
+            ### 🚀 Bu Sürümdeki Yenilikler (${{ github.ref_name }}):
+            - Yıllık plan düzenleme ve silme işlemleri için modern arayüz modalı eklendi.
+            - Bildirim (toast) sistemi yenilendi; bildirimlerin ekranda takılı kalması ve birikmesi sorunu tamamen giderildi.
+            - Sadeleştirilmiş ve veri güvenliği açıklamalı güncelleme bildirim penceresi eklendi.
+            - macOS, Windows ve Pardus tahta uyumluluğu ve genel kararlılık artırıldı.
 
             ---
-
-            ## 🍎 macOS Kurulum Adımları
-
-            > ⚠️ **"Hasar görmüş" hatası alıyorsanız aşağıdaki adımları uygulayın.**
-            > Bu hata uygulamanın bozuk olduğu anlamına gelmiyor — macOS'un güvenlik sistemi internetten indirilen tüm imzasız uygulamalara bunu gösteriyor.
-
-            ### Adım 1 — DMG'yi indirin ve Applications'a kopyalayın
-            `.dmg` dosyasını indirin, açın, **Sınıf Asistanı** simgesini **Applications** klasörüne sürükleyin.
-
-            ### Adım 2 — Terminal'i açın
-            Klavyede **`Command (⌘) + Boşluk`** tuşlarına basın → `Terminal` yazın → **Enter**.
-
-            ### Adım 3 — Bu komutu yapıştırın ve Enter'a basın
-            ```bash
-            sudo xattr -rd com.apple.quarantine "/Applications/Sınıf Asistanı.app"
-            ```
-
-            > Komut çalıştıktan sonra şifrenizi girmeniz istenebilir. Mac açılış şifrenizi yazıp Enter'a basın (yazarken ekranda görünmez, bu normaldir). ✅
-
-            ### Adım 4 — Uygulamayı açın
-            Applications klasöründen **Sınıf Asistanı**'na çift tıklayın. Artık sorunsuz açılacaktır.
-
-            ---
-
-            > 💬 **Sorun yaşıyorsanız** [Issues](https://github.com/tcbarisgencoglu-png/sinif-asistani1/issues) sayfasından bildirin.
+            🛡️ **Veri Güvenliği:** Güncelleme yaptığınızda mevcut sınıflarınız, öğrencileriniz, ders programınız ve tüm notlarınız **kesinlikle silinmez, korunur**.
           releaseDraft: false
           prerelease: false
           args: ${{ matrix.args }}

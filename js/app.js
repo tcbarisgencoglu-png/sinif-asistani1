@@ -2604,7 +2604,7 @@ function initApp() {
 }
 
 // Mevcut uygulama sürümü (her güncellemede değişir)
-const APP_VERSION = '1.0.6';
+const APP_VERSION = '1.0.7';
 
 // GitHub'dan güncelleme kontrolü
 async function checkForUpdates() {

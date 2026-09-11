@@ -1,6 +1,6 @@
 {
-  "version": "1.0.6",
-  "updatedAt": "2026-09-08",
-  "release_notes": "Yeni zengin başlangıç ve demo verileri (öğrenci fotoğrafları, güncel ders programı, defterler, ödevler ve performans kayıtları) eklendi.",
+  "version": "1.0.7",
+  "updatedAt": "2026-09-11",
+  "release_notes": "• Yıllık plan düzenleme ve silme işlemleri için yeni arayüz eklendi.\n• Bildirim sistemi (toast) yenilendi, ekranda takılma sorunu giderildi.\n• Sadeleştirilmiş ve veri güvenliği açıklamalı güncelleme bildirim penceresi eklendi.\n• macOS, Windows ve Pardus tahta performansı artırıldı.",
   "release_url": "https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/latest"
 }
