@@ -299,10 +299,12 @@
         <div class="behavior-points" style="font-weight: 700; font-size: 0.75rem;">${pointsText}</div>
       `;
 
-      card.addEventListener('click', () => {
+      card.addEventListener('click', async () => {
         if (bh.name === 'Kitap Aferinleri') {
           const defaultVal = bh.point !== 0 ? bh.point.toString() : '5';
-          const inputVal = prompt('Lütfen "Kitap Aferinleri" için verilecek puanı girin:', defaultVal);
+          const inputVal = window.promptAsync ? 
+            await window.promptAsync('Lütfen "Kitap Aferinleri" için verilecek puanı girin:', defaultVal) :
+            prompt('Lütfen "Kitap Aferinleri" için verilecek puanı girin:', defaultVal);
           if (inputVal === null) return; // cancelled
           const parsedPoint = parseInt(inputVal);
           if (isNaN(parsedPoint)) {

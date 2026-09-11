@@ -1572,14 +1572,16 @@
   }
 
   // Award Dojo performance points to winning students
-  function awardWinningStudentsDojo() {
+  async function awardWinningStudentsDojo() {
     if (!winningGroup) return;
     
-    const ptsInput = prompt("Gruptaki her öğrenciye kaç Dojo puanı eklemek istersiniz?", "5");
+    const ptsInput = window.promptAsync ?
+      await window.promptAsync("Gruptaki her öğrenciye kaç Dojo puanı eklemek istersiniz?", "5") :
+      prompt("Gruptaki her öğrenciye kaç Dojo puanı eklemek istersiniz?", "5");
     const points = parseInt(ptsInput);
     if (isNaN(points) || points <= 0) {
       if (ptsInput !== null) {
-        alert("Lütfen geçerli pozitif bir sayı girin.");
+        if (toastCallback) toastCallback("Lütfen geçerli pozitif bir sayı girin.", "warning");
       }
       return;
     }

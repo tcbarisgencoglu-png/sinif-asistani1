@@ -57,7 +57,7 @@ window.confirmAsync = function(message) {
   return new Promise((resolve) => {
     const modal = document.createElement('div');
     modal.className = 'modal active';
-    modal.style.zIndex = '9999';
+    modal.style.zIndex = '99999';
     
     const content = document.createElement('div');
     content.className = 'modal-content';
@@ -128,6 +128,110 @@ window.confirmAsync = function(message) {
     modal.addEventListener('click', (e) => {
       if (e.target === modal) {
         cleanup(false);
+      }
+    });
+  });
+};
+
+// Özelleştirilmiş ve tüm platformlarda çalışan Asenkron Giriş Kutusu (Tauri macOS için prompt() alternatifi)
+window.promptAsync = function(message, defaultValue = '', placeholder = '') {
+  return new Promise((resolve) => {
+    const modal = document.createElement('div');
+    modal.className = 'modal active';
+    modal.style.zIndex = '99999';
+    
+    const content = document.createElement('div');
+    content.className = 'modal-content';
+    content.style.maxWidth = '450px';
+    content.style.padding = '1.5rem';
+    content.style.display = 'flex';
+    content.style.flexDirection = 'column';
+    content.style.gap = '1rem';
+    content.style.borderRadius = 'var(--radius-lg)';
+    content.style.backgroundColor = 'var(--bg-secondary)';
+    content.style.border = '1px solid var(--border-color)';
+    
+    const header = document.createElement('div');
+    header.style.display = 'flex';
+    header.style.alignItems = 'center';
+    header.style.gap = '0.5rem';
+    header.style.fontSize = '1.05rem';
+    header.style.fontWeight = '600';
+    header.style.color = 'var(--text-primary)';
+    header.innerHTML = `<i data-lucide="edit-3" style="color: var(--primary); width: 20px; height: 20px;"></i> <span>${message}</span>`;
+    
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'form-control';
+    input.value = (defaultValue !== undefined && defaultValue !== null) ? defaultValue : '';
+    if (placeholder) input.placeholder = placeholder;
+    input.style.width = '100%';
+    input.style.boxSizing = 'border-box';
+    input.style.padding = '0.65rem 0.85rem';
+    input.style.borderRadius = 'var(--radius-md)';
+    input.style.border = '1px solid var(--border-color)';
+    input.style.background = 'var(--bg-primary)';
+    input.style.color = 'var(--text-primary)';
+    input.style.fontSize = '0.95rem';
+    
+    const footer = document.createElement('div');
+    footer.style.display = 'flex';
+    footer.style.justifyContent = 'flex-end';
+    footer.style.gap = '0.75rem';
+    
+    const cancelButton = document.createElement('button');
+    cancelButton.className = 'btn btn-secondary';
+    cancelButton.innerText = 'İptal';
+    cancelButton.style.padding = '0.5rem 1rem';
+    
+    const confirmButton = document.createElement('button');
+    confirmButton.className = 'btn btn-primary';
+    confirmButton.innerText = 'Tamam';
+    confirmButton.style.padding = '0.5rem 1rem';
+    
+    footer.appendChild(cancelButton);
+    footer.appendChild(confirmButton);
+    
+    content.appendChild(header);
+    content.appendChild(input);
+    content.appendChild(footer);
+    modal.appendChild(content);
+    
+    document.body.appendChild(modal);
+    
+    if (window.safeCreateIcons) {
+      window.safeCreateIcons();
+    }
+    
+    setTimeout(() => {
+      input.focus();
+      input.select();
+    }, 50);
+    
+    const cleanup = (result) => {
+      modal.classList.remove('active');
+      setTimeout(() => {
+        modal.remove();
+      }, 200);
+      resolve(result);
+    };
+    
+    confirmButton.addEventListener('click', () => cleanup(input.value));
+    cancelButton.addEventListener('click', () => cleanup(null));
+    
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        cleanup(input.value);
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        cleanup(null);
+      }
+    });
+    
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        cleanup(null);
       }
     });
   });

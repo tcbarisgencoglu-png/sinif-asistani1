@@ -511,10 +511,13 @@
   }
 
   // Yeniden Adlandır
-  function renameDocument(doc) {
+  async function renameDocument(doc) {
     if (!doc) return;
 
-    const newTitle = prompt('Evrak için yeni bir başlık girin:', doc.title);
+    const newTitle = window.promptAsync ? 
+      await window.promptAsync('Evrak için yeni bir başlık girin:', doc.title) :
+      prompt('Evrak için yeni bir başlık girin:', doc.title);
+
     if (newTitle && newTitle.trim()) {
       stateManager.updateDocumentTitle(doc.id, newTitle.trim());
       renderDocumentsList();
@@ -523,10 +526,14 @@
   }
 
   // Sil
-  function deleteDocument(doc) {
+  async function deleteDocument(doc) {
     if (!doc) return;
 
-    if (confirm(`"${doc.title}" evrağını tamamen silmek istediğinize emin misiniz? Bu işlem geri alınamaz.`)) {
+    const isConfirmed = window.confirmAsync ?
+      await window.confirmAsync(`"${doc.title}" evrağını tamamen silmek istediğinize emin misiniz? Bu işlem geri alınamaz.`) :
+      confirm(`"${doc.title}" evrağını tamamen silmek istediğinize emin misiniz? Bu işlem geri alınamaz.`);
+
+    if (isConfirmed) {
       stateManager.deleteDocument(doc.id);
       renderDocumentsList();
       if (toastCallbackFn) toastCallbackFn('Evrak silindi.', 'info');

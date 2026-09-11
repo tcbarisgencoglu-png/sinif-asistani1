@@ -1263,9 +1263,12 @@ function renderBooksList() {
       });
 
       // Kitap silme olayı
-      card.querySelector('.delete').addEventListener('click', (e) => {
+      card.querySelector('.delete').addEventListener('click', async (e) => {
         e.stopPropagation();
-        if (confirm(`"${book.title}" adlı kitabı kütüphaneden silmek istediğinize emin misiniz?`)) {
+        const ok = window.confirmAsync ?
+          await window.confirmAsync(`"${book.title}" adlı kitabı kütüphaneden silmek istediğinize emin misiniz?`) :
+          confirm(`"${book.title}" adlı kitabı kütüphaneden silmek istediğinize emin misiniz?`);
+        if (ok) {
           stateManager.deleteBook(book.id);
           renderBooksList();
           
@@ -1827,13 +1830,17 @@ function renderStudentDetailPanel() {
     });
 
     actionDiv.querySelectorAll('.btn-cancel-borrow').forEach(btn => {
-      btn.addEventListener('click', (e) => {
+      btn.addEventListener('click', async (e) => {
         e.preventDefault();
         const item = btn.closest('.reading-item');
         const txId = item.getAttribute('data-tx-id');
         const bookTitle = item.getAttribute('data-book-title');
 
-        if (confirm(`"${bookTitle}" kitabının ödünç işlemini iptal etmek istediğinize emin misiniz? (Kitap okunmamış sayılarak kitaplığa dönecektir)`)) {
+        const ok = window.confirmAsync ?
+          await window.confirmAsync(`"${bookTitle}" kitabının ödünç işlemini iptal etmek istediğinize emin misiniz? (Kitap okunmamış sayılarak kitaplığa dönecektir)`) :
+          confirm(`"${bookTitle}" kitabının ödünç işlemini iptal etmek istediğinize emin misiniz? (Kitap okunmamış sayılarak kitaplığa dönecektir)`);
+
+        if (ok) {
           try {
             stateManager.cancelBorrow(txId);
             if (toastCallback) {

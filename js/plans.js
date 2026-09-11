@@ -2079,32 +2079,38 @@
       });
 
       // Actions inside card
-      planCard.querySelector('.btn-general-rename').addEventListener('click', (e) => {
-        e.stopPropagation();
-        const newTitle = prompt('Plan için yeni bir isim girin:', plan.courseName || plan.title);
-        if (newTitle && newTitle.trim()) {
-          const titleVal = newTitle.trim();
-          
-          // Modify directly in stateManager.state.plans so it gets saved properly
-          const statePlan = stateManager.state.plans.find(p => p.id === plan.id);
-          if (statePlan) {
-            statePlan.courseName = titleVal;
-            statePlan.title = `${statePlan.className || 'Sınıf'} - ${titleVal}`;
-            stateManager.saveState();
+      const btnRename = planCard.querySelector('.btn-general-rename');
+      if (btnRename) {
+        btnRename.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          e.preventDefault();
+          const updated = await openEditPlanModal(plan);
+          if (updated) {
             renderGeneralView();
-            if (toastCallbackFn) toastCallbackFn('Plan başarıyla yeniden adlandırıldı.', 'success');
+            renderWeeklyView();
+            if (toastCallbackFn) toastCallbackFn('Plan bilgileri başarıyla güncellendi.', 'success');
           }
-        }
-      });
+        });
+      }
 
-      planCard.querySelector('.btn-general-delete').addEventListener('click', (e) => {
-        e.stopPropagation();
-        if (confirm('Bu ders planını tamamen silmek istediğinize emin misiniz? Bu işlem geri alınamaz.')) {
-          stateManager.deletePlan(plan.id);
-          renderGeneralView();
-          if (toastCallbackFn) toastCallbackFn('Ders planı silindi.', 'info');
-        }
-      });
+      const btnDelete = planCard.querySelector('.btn-general-delete');
+      if (btnDelete) {
+        btnDelete.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          e.preventDefault();
+          const planName = plan.courseName || plan.title || 'Ders Planı';
+          const isConfirmed = window.confirmAsync ? 
+            await window.confirmAsync(`"${planName}" planını tamamen silmek istediğinize emin misiniz? Bu işlem geri alınamaz.`) :
+            confirm(`"${planName}" planını tamamen silmek istediğinize emin misiniz?`);
+          
+          if (isConfirmed) {
+            stateManager.deletePlan(plan.id);
+            renderGeneralView();
+            renderWeeklyView();
+            if (toastCallbackFn) toastCallbackFn('Ders planı silindi.', 'info');
+          }
+        });
+      }
 
       // Lisans kısıtlama kontrolü
       const originalIndex = plans.findIndex(p => p.id === plan.id);
@@ -2130,6 +2136,112 @@
     });
 
     window.safeCreateIcons();
+  }
+
+  // Plan Bilgilerini Düzenleme Modalı
+  function openEditPlanModal(plan) {
+    if (!plan) return Promise.resolve(false);
+    
+    return new Promise((resolve) => {
+      const modal = document.createElement('div');
+      modal.className = 'modal active';
+      modal.style.zIndex = '99999';
+      
+      const content = document.createElement('div');
+      content.className = 'modal-content';
+      content.style.maxWidth = '460px';
+      content.style.borderRadius = 'var(--radius-lg)';
+      content.style.overflow = 'hidden';
+      content.style.boxShadow = 'var(--shadow-xl)';
+      content.style.border = '1px solid var(--border-color)';
+      content.style.backgroundColor = 'var(--bg-secondary)';
+      
+      content.innerHTML = `
+        <div class="modal-header" style="background: linear-gradient(135deg, rgba(99,102,241,0.15), rgba(139,92,246,0.1)); padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between;">
+          <div style="display: flex; align-items: center; gap: 0.6rem;">
+            <div style="width: 34px; height: 34px; border-radius: 8px; background: var(--primary); display: flex; align-items: center; justify-content: center; color: white;">
+              <i data-lucide="edit-3" style="width: 18px; height: 18px;"></i>
+            </div>
+            <h3 style="margin: 0; font-size: 1.05rem; font-weight: 700; color: var(--text-primary);">Plan Bilgilerini Düzenle</h3>
+          </div>
+          <button class="btn-close-edit-plan" style="background: none; border: none; font-size: 1.4rem; cursor: pointer; color: var(--text-secondary); line-height: 1;">&times;</button>
+        </div>
+        <div class="modal-body" style="padding: 1.25rem 1.5rem; display: flex; flex-direction: column; gap: 1rem;">
+          <div>
+            <label style="display: block; font-size: 0.8rem; font-weight: 700; color: var(--text-secondary); margin-bottom: 0.35rem;">Ders Adı *</label>
+            <input type="text" id="edit-plan-course-name" class="form-control" style="width: 100%; box-sizing: border-box; padding: 0.65rem 0.85rem; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary);" value="${escapeHtml(plan.courseName || plan.title || '')}" placeholder="Örn: Fen Bilimleri">
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+            <div>
+              <label style="display: block; font-size: 0.8rem; font-weight: 700; color: var(--text-secondary); margin-bottom: 0.35rem;">Sınıf / Şube</label>
+              <input type="text" id="edit-plan-class-name" class="form-control" style="width: 100%; box-sizing: border-box; padding: 0.65rem 0.85rem; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary);" value="${escapeHtml(plan.className || '')}" placeholder="Örn: 4-A">
+            </div>
+            <div>
+              <label style="display: block; font-size: 0.8rem; font-weight: 700; color: var(--text-secondary); margin-bottom: 0.35rem;">Eğitim Yılı</label>
+              <input type="text" id="edit-plan-edu-year" class="form-control" style="width: 100%; box-sizing: border-box; padding: 0.65rem 0.85rem; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary);" value="${escapeHtml(plan.educationYear || '2025-2026')}" placeholder="2025-2026">
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer" style="padding: 1rem 1.5rem; background: var(--bg-primary); border-top: 1px solid var(--border-color); display: flex; justify-content: flex-end; gap: 0.75rem;">
+          <button class="btn btn-secondary btn-cancel-edit-plan" style="font-size: 0.85rem; padding: 0.5rem 1rem;">İptal</button>
+          <button class="btn btn-primary btn-save-edit-plan" style="font-size: 0.85rem; padding: 0.5rem 1.25rem; display: flex; align-items: center; gap: 0.4rem; font-weight: 600;">
+            <i data-lucide="check" style="width: 16px; height: 16px;"></i> Kaydet
+          </button>
+        </div>
+      `;
+      
+      modal.appendChild(content);
+      document.body.appendChild(modal);
+      
+      if (window.safeCreateIcons) window.safeCreateIcons();
+      
+      const inputCourse = modal.querySelector('#edit-plan-course-name');
+      const inputClass = modal.querySelector('#edit-plan-class-name');
+      const inputYear = modal.querySelector('#edit-plan-edu-year');
+      
+      setTimeout(() => {
+        if (inputCourse) {
+          inputCourse.focus();
+          inputCourse.select();
+        }
+      }, 50);
+      
+      const cleanup = (saved) => {
+        modal.classList.remove('active');
+        setTimeout(() => modal.remove(), 200);
+        resolve(saved);
+      };
+      
+      modal.querySelector('.btn-close-edit-plan').onclick = () => cleanup(false);
+      modal.querySelector('.btn-cancel-edit-plan').onclick = () => cleanup(false);
+      
+      modal.querySelector('.btn-save-edit-plan').onclick = () => {
+        const courseVal = inputCourse.value.trim();
+        const classVal = inputClass.value.trim();
+        const yearVal = inputYear.value.trim();
+        
+        if (!courseVal) {
+          if (toastCallbackFn) toastCallbackFn('Lütfen bir ders adı girin.', 'warning');
+          return;
+        }
+        
+        const statePlan = stateManager.state.plans.find(p => p.id === plan.id);
+        if (statePlan) {
+          statePlan.courseName = courseVal;
+          statePlan.className = classVal || 'Sınıf';
+          statePlan.educationYear = yearVal || '2025-2026';
+          statePlan.title = `${statePlan.className} - ${courseVal}`;
+          stateManager.saveState();
+          cleanup(true);
+        } else {
+          cleanup(false);
+        }
+      };
+      
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) cleanup(false);
+      });
+    });
   }
 
   function showPlanDetail(planId) {
