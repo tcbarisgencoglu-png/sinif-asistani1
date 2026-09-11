@@ -2449,7 +2449,7 @@
               <strong>Aşağıdaki Komutu Kopyalayıp Terminal'e Yapıştırın ve Enter'a Basın:</strong>
             </div>
             <div style="background: #0f172a; border: 1px solid rgba(139, 92, 246, 0.4); border-radius: 10px; padding: 0.85rem 1rem; position: relative;">
-              <code style="font-family: monospace; font-size: 0.84rem; color: #38bdf8; display: block; word-break: break-all; margin-bottom: 0.65rem; user-select: all;">sudo xattr -rd com.apple.quarantine "/Applications/Sınıf Asistanı.app"</code>
+              <code style="font-family: monospace; font-size: 0.84rem; color: #38bdf8; display: block; word-break: break-all; margin-bottom: 0.65rem; user-select: all;">sudo xattr -rd com.apple.quarantine /Applications/sinif-asistani.app</code>
               <button type="button" onclick="window.copyMacQuarantineCommand(this)" style="background: #8b5cf6; color: #fff; border: none; border-radius: 6px; padding: 0.45rem 0.9rem; font-size: 0.82rem; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem; font-family: inherit; transition: background 0.2s;">
                 <span>📋 Komutu Kopyala</span>
               </button>
@@ -2497,7 +2497,7 @@
   };
 
   window.copyMacQuarantineCommand = async function(btn) {
-    const commandText = 'sudo xattr -rd com.apple.quarantine "/Applications/Sınıf Asistanı.app"';
+    const commandText = 'sudo xattr -rd com.apple.quarantine /Applications/sinif-asistani.app';
     try {
       if (navigator.clipboard && window.isSecureContext) {
         await navigator.clipboard.writeText(commandText);

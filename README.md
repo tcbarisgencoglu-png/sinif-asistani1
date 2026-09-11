@@ -208,7 +208,7 @@ macOS, Apple tarafından imzalanmamış uygulamaları "hasar görmüş" olarak e
 **3. Aşağıdaki komutu yapıştırın ve Enter'a basın:**
 
 ```bash
-sudo xattr -rd com.apple.quarantine "/Applications/Sınıf Asistanı.app"
+sudo xattr -rd com.apple.quarantine /Applications/sinif-asistani.app
 ```
 
 > Komut çalıştıktan sonra şifrenizi girmeniz istenebilir. Mac şifrenizi girin (yazarken ekranda görünmez, bu normaldir).

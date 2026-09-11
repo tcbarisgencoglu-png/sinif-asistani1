@@ -2520,7 +2520,7 @@ function updateFlowContent(syncWithRealTime = true) {
   }
 
   async function copyMacQuarantineCommand(btn) {
-    const commandText = 'sudo xattr -rd com.apple.quarantine "/Applications/Sınıf Asistanı.app"';
+    const commandText = 'sudo xattr -rd com.apple.quarantine /Applications/sinif-asistani.app';
     try {
       if (navigator.clipboard && window.isSecureContext) {
         await navigator.clipboard.writeText(commandText);
