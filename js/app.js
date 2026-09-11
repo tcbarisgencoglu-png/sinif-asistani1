@@ -2091,6 +2091,12 @@ function initApp() {
   // 2. Temayı Yükle
   initTheme();
 
+  // 2.1. Sol alt köşe sürüm metnini güncelle
+  const elSidebarVer = document.getElementById('app-sidebar-version-text');
+  if (elSidebarVer) {
+    elSidebarVer.textContent = `Sınıf Asistanı v${APP_VERSION}`;
+  }
+
   // 2.5. Önceki yüklenen planları otomatik olarak tanımlı ders adlarına eşitle (Eşleşme Düzeltmesi)
   const state = stateManager.state;
   if (state && state.plans && state.plans.length > 0 && state.definedLessons && window.isLessonPlanMatch) {
