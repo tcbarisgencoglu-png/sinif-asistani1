@@ -1,0 +1,25 @@
+name: "Supabase Keep-Alive"
+
+on:
+  schedule:
+    # Her 3 günde bir otomatik çalışarak Supabase projesinin uykuya geçmesini engeller
+    - cron: "0 7 */3 * *"
+  workflow_dispatch:
+
+jobs:
+  ping-supabase:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Supabase Database
+        run: |
+          echo "Pinging Supabase database to keep it active..."
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+            -H "apikey: sb_publishable_FVth3wbbG-2XZiJmpO0-rw_mNiU0_Ci" \
+            -H "Authorization: Bearer sb_publishable_FVth3wbbG-2XZiJmpO0-rw_mNiU0_Ci" \
+            "https://tzwewboqhjsmoezriadg.supabase.co/rest/v1/licenses?select=count&limit=1")
+          echo "Supabase Response HTTP Code: $STATUS"
+          if [ "$STATUS" -ge 200 ] && [ "$STATUS" -lt 400 ]; then
+            echo "Supabase is active and ping successful! ✅"
+          else
+            echo "Notice: Supabase response code was $STATUS"
+          fi
