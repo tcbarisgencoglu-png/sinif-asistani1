@@ -2469,31 +2469,37 @@ async function checkForUpdates() {
     if (snoozedUntil && Date.now() < parseInt(snoozedUntil)) return;
 
     let latestVersion = '';
-    let releaseNotes = 'Yeni iyileştirmeler ve düzeltmeler mevcut.';
+    let releaseNotes = '';
     let releaseUrl = 'https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/latest';
 
+    // 1. GitHub Raw version.json dene (en temiz ve Türkçe notlar burada tutulur)
     try {
-      const ghRes = await fetch('https://api.github.com/repos/tcbarisgencoglu-png/sinif-asistani1/releases/latest', {
-        headers: { 'Accept': 'application/vnd.github.v3+json' },
-        signal: AbortSignal.timeout(6000)
+      const rawRes = await fetch('https://raw.githubusercontent.com/tcbarisgencoglu-png/sinif-asistani1/main/version.json', {
+        cache: 'no-cache',
+        signal: AbortSignal.timeout(4000)
       });
-      if (ghRes.ok) {
-        const ghData = await ghRes.json();
-        latestVersion = (ghData.tag_name || '').replace(/^v/, '');
-        if (ghData.body) releaseNotes = ghData.body;
-        if (ghData.html_url) releaseUrl = ghData.html_url;
+      if (rawRes.ok) {
+        const rawData = await rawRes.json();
+        if (rawData.version) latestVersion = rawData.version.replace(/^v/, '');
+        if (rawData.release_notes) releaseNotes = rawData.release_notes;
+        if (rawData.release_url) releaseUrl = rawData.release_url;
       }
-    } catch (e) {
-      // Fallback local version.json
+    } catch (_) {}
+
+    // 2. GitHub Releases API dene (fallback)
+    if (!latestVersion) {
       try {
-        const localRes = await fetch('/version.json', { cache: 'no-cache', signal: AbortSignal.timeout(4000) });
-        if (localRes.ok) {
-          const localData = await localRes.json();
-          latestVersion = localData.version || '';
-          if (localData.release_notes) releaseNotes = localData.release_notes;
-          if (localData.release_url) releaseUrl = localData.release_url;
+        const ghRes = await fetch('https://api.github.com/repos/tcbarisgencoglu-png/sinif-asistani1/releases/latest', {
+          headers: { 'Accept': 'application/vnd.github.v3+json' },
+          signal: AbortSignal.timeout(5000)
+        });
+        if (ghRes.ok) {
+          const ghData = await ghRes.json();
+          latestVersion = (ghData.tag_name || '').replace(/^v/, '');
+          if (!releaseNotes && ghData.body) releaseNotes = ghData.body;
+          if (ghData.html_url) releaseUrl = ghData.html_url;
         }
-      } catch (err) {}
+      } catch (_) {}
     }
 
     if (!latestVersion || latestVersion === APP_VERSION) return;
@@ -2516,11 +2522,17 @@ async function checkForUpdates() {
 
     if (elCurrent) elCurrent.textContent = `v${APP_VERSION}`;
     if (elLatest)  elLatest.textContent  = `v${latestVersion}`;
-    if (elNotes)   elNotes.textContent   = releaseNotes;
+    if (elNotes)   elNotes.innerHTML    = formatUpdateReleaseNotes(releaseNotes);
+
     if (btnDownload) {
       btnDownload.onclick = () => {
-        window.safeOpenURL(releaseUrl);
         modal.classList.remove('active');
+        const dlModal = document.getElementById('modal-download-desktop-app');
+        if (dlModal) {
+          dlModal.classList.add('active');
+        } else {
+          window.safeOpenURL(releaseUrl);
+        }
       };
     }
 
@@ -2538,12 +2550,57 @@ async function checkForUpdates() {
       btnClose.onclick = () => modal.classList.remove('active');
     }
 
+    // İkonları yeniden oluştur
+    if (window.lucide) {
+      lucide.createIcons();
+    }
+
     // 2 saniye sonra göster (uygulama tamamen yüklendikten sonra)
-    setTimeout(() => modal.classList.add('active'), 2000);
+    setTimeout(() => {
+      modal.classList.add('active');
+      if (window.lucide) lucide.createIcons();
+    }, 2000);
 
   } catch (_) {
     // İnternet yoksa veya hata oluşursa sessizce geç
   }
+}
+
+// Güncelleme notlarını temizleyen ve listeleyen yardımcı fonksiyon
+function formatUpdateReleaseNotes(rawText) {
+  if (!rawText || typeof rawText !== 'string' || !rawText.trim()) {
+    return `<ul style="margin: 0; padding-left: 1.25rem; display: flex; flex-direction: column; gap: 0.35rem;">
+      <li>Performans iyileştirmeleri ve hata düzeltmeleri yapıldı.</li>
+      <li>Genel kararlılık ve kullanım deneyimi artırıldı.</li>
+    </ul>`;
+  }
+
+  // Markdown tabloları, gereksiz hash ve linkleri temizle
+  let cleaned = rawText
+    .replace(/\|[^\n]+\|/g, '')
+    .replace(/---[-+| ]+/g, '')
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+    .replace(/```[\s\S]*?```/g, '');
+
+  const lines = cleaned.split('\n')
+    .map(l => l.trim())
+    .filter(l => l && !l.startsWith('#') && !l.startsWith('===') && !l.toLowerCase().includes('sha256') && !l.toLowerCase().includes('md5') && !l.toLowerCase().includes('otomatik derleme'));
+
+  const items = [];
+  for (const line of lines) {
+    const item = line.replace(/^[\*\-\•\d+\.\s]+/, '').trim();
+    if (item.length > 3 && !items.includes(item)) {
+      items.push(item);
+    }
+  }
+
+  if (items.length === 0) {
+    return `<p style="margin: 0; line-height: 1.5;">${rawText.slice(0, 250)}</p>`;
+  }
+
+  return `<ul style="margin: 0; padding-left: 1.25rem; display: flex; flex-direction: column; gap: 0.4rem;">` +
+    items.slice(0, 6).map(it => `<li>${it}</li>`).join('') +
+    `</ul>`;
 }
 
 // Sekme Değiştirme
