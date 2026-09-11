@@ -2012,6 +2012,19 @@ const SEED_DATA = {
 
 // Dinamik Bildirim Sistemi (Toast)
 function showToast(message, type = 'primary') {
+  const container = document.getElementById('toast-container') || toastContainer;
+  if (!container) return;
+
+  // Aşırı bildirim birikmesini önlemek için ekrandaki eski bildirimleri sınırla (Maks 3 bildirim)
+  const existing = container.querySelectorAll('.toast:not([data-dismissing="true"])');
+  if (existing.length >= 3) {
+    for (let i = 0; i <= existing.length - 3; i++) {
+      existing[i].dataset.dismissing = 'true';
+      existing[i].classList.add('hide');
+      setTimeout(() => existing[i].remove(), 250);
+    }
+  }
+
   const toast = document.createElement('div');
   toast.className = `toast ${type}`;
   
@@ -2021,19 +2034,47 @@ function showToast(message, type = 'primary') {
   else if (type === 'warning') iconName = 'alert-circle';
 
   toast.innerHTML = `
-    <i data-lucide="${iconName}"></i>
-    <span>${message}</span>
+    <i data-lucide="${iconName}" style="flex-shrink: 0; width: 18px; height: 18px;"></i>
+    <span style="flex: 1; min-width: 0;">${message}</span>
+    <button class="toast-close" style="background: none; border: none; font-size: 1.25rem; line-height: 1; cursor: pointer; color: inherit; opacity: 0.55; padding: 0 0.15rem; margin-left: 0.35rem; transition: all 0.2s;" title="Kapat">&times;</button>
   `;
-  toastContainer.appendChild(toast);
+  container.appendChild(toast);
   window.safeCreateIcons();
 
-  // 4 Saniye sonra kaldır
-  setTimeout(() => {
-    toast.style.animation = 'slideIn 0.25s reverse ease-in forwards';
-    toast.addEventListener('animationend', () => {
-      toast.remove();
-    });
-  }, 4000);
+  let isRemoved = false;
+  let timerId = null;
+
+  const removeToast = () => {
+    if (isRemoved) return;
+    isRemoved = true;
+    toast.dataset.dismissing = 'true';
+    toast.classList.add('hide');
+    setTimeout(() => {
+      if (toast.parentNode) {
+        toast.remove();
+      }
+    }, 280);
+  };
+
+  // Tıklayınca hemen kapat
+  toast.addEventListener('click', (e) => {
+    if (timerId) clearTimeout(timerId);
+    removeToast();
+  });
+
+  // Üzerine gelince süreyi duraklat, ayrılınca 2 sn sonra kapat
+  toast.addEventListener('mouseenter', () => {
+    if (timerId) clearTimeout(timerId);
+  });
+
+  toast.addEventListener('mouseleave', () => {
+    if (!isRemoved) {
+      timerId = setTimeout(removeToast, 2000);
+    }
+  });
+
+  // Otomatik 3.5 saniye sonra kaldır (kesin zamanlayıcı garantisi)
+  timerId = setTimeout(removeToast, 3500);
 }
 
 window.showToast = showToast;
