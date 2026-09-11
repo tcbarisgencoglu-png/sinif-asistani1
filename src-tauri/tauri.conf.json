@@ -59,5 +59,13 @@
         "depends": []
       }
     }
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEQ5QzZDQ0VCQzcxNUNEQTQKUldTa3pSWEg2OHpHMlEzZlArdU52ZFFlVVNrMTBxQzR4d2tpc1pUUGhDSVpwZGtoT2xhaW1pcVYK",
+      "endpoints": [
+        "https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/latest/download/latest.json"
+      ]
+    }
   }
 }

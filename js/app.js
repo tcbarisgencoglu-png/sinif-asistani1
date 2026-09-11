@@ -2612,7 +2612,7 @@ function initApp() {
 // Mevcut uygulama sürümü (her güncellemede değişir)
 const APP_VERSION = '1.0.7';
 
-// GitHub'dan güncelleme kontrolü
+// GitHub & Tauri Auto-Updater kontrolü
 async function checkForUpdates() {
   try {
     // Kullanıcı "Daha Sonra Hatırlat" dediyse ve 7 gün geçmediyse atla
@@ -2622,20 +2622,39 @@ async function checkForUpdates() {
     let latestVersion = '';
     let releaseNotes = '';
     let releaseUrl = 'https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/latest';
+    let tauriUpdate = null;
+
+    // 0. Eğer Tauri masaüstü ortamındaysak resmi Tauri Updater eklentisini dene
+    if (window.__TAURI__) {
+      try {
+        const updater = window.__TAURI__.updater;
+        if (updater && updater.check) {
+          tauriUpdate = await updater.check();
+          if (tauriUpdate && tauriUpdate.version) {
+            latestVersion = tauriUpdate.version.replace(/^v/, '');
+            if (tauriUpdate.body) releaseNotes = tauriUpdate.body;
+          }
+        }
+      } catch (err) {
+        console.log("Tauri native updater check:", err);
+      }
+    }
 
     // 1. GitHub Raw version.json dene (en temiz ve Türkçe notlar burada tutulur)
-    try {
-      const rawRes = await fetch('https://raw.githubusercontent.com/tcbarisgencoglu-png/sinif-asistani1/main/version.json', {
-        cache: 'no-cache',
-        signal: AbortSignal.timeout(4000)
-      });
-      if (rawRes.ok) {
-        const rawData = await rawRes.json();
-        if (rawData.version) latestVersion = rawData.version.replace(/^v/, '');
-        if (rawData.release_notes) releaseNotes = rawData.release_notes;
-        if (rawData.release_url) releaseUrl = rawData.release_url;
-      }
-    } catch (_) {}
+    if (!latestVersion) {
+      try {
+        const rawRes = await fetch('https://raw.githubusercontent.com/tcbarisgencoglu-png/sinif-asistani1/main/version.json', {
+          cache: 'no-cache',
+          signal: AbortSignal.timeout(4000)
+        });
+        if (rawRes.ok) {
+          const rawData = await rawRes.json();
+          if (rawData.version) latestVersion = rawData.version.replace(/^v/, '');
+          if (rawData.release_notes) releaseNotes = rawData.release_notes;
+          if (rawData.release_url) releaseUrl = rawData.release_url;
+        }
+      } catch (_) {}
+    }
 
     // 2. GitHub Releases API dene (fallback)
     if (!latestVersion) {
@@ -2670,13 +2689,78 @@ async function checkForUpdates() {
     const elLatest  = document.getElementById('update-latest-version');
     const elNotes   = document.getElementById('update-release-notes');
     const btnDownload = document.getElementById('btn-update-download');
+    const btnDownloadText = document.getElementById('btn-update-download-text');
+    const btnRelaunch = document.getElementById('btn-update-relaunch');
+    const progressContainer = document.getElementById('update-progress-container');
+    const progressFill = document.getElementById('update-progress-fill');
+    const progressPercent = document.getElementById('update-progress-percent');
+    const progressStatus = document.getElementById('update-progress-status');
+    const progressDetails = document.getElementById('update-progress-details');
 
     if (elCurrent) elCurrent.textContent = `v${APP_VERSION}`;
     if (elLatest)  elLatest.textContent  = `v${latestVersion}`;
     if (elNotes)   elNotes.innerHTML    = formatUpdateReleaseNotes(releaseNotes);
 
     if (btnDownload) {
-      btnDownload.onclick = () => {
+      if (tauriUpdate) {
+        if (btnDownloadText) btnDownloadText.textContent = 'Şimdi Otomatik Güncelle';
+      } else {
+        if (btnDownloadText) btnDownloadText.textContent = 'Yeni Sürümü İndir';
+      }
+
+      btnDownload.onclick = async () => {
+        // Eğer Tauri native updater nesnesi varsa arka planda indir ve kur
+        if (tauriUpdate && typeof tauriUpdate.downloadAndInstall === 'function') {
+          btnDownload.disabled = true;
+          btnDownload.style.opacity = '0.6';
+          if (progressContainer) progressContainer.style.display = 'block';
+
+          let downloaded = 0;
+          let contentLength = 0;
+
+          try {
+            await tauriUpdate.downloadAndInstall((event) => {
+              if (event.event === 'Started') {
+                contentLength = event.data.contentLength || 0;
+                if (progressStatus) progressStatus.innerHTML = '<i data-lucide="loader" style="width: 14px; height: 14px;"></i> İndirme başlatıldı...';
+              } else if (event.event === 'Progress') {
+                downloaded += event.data.chunkLength || 0;
+                if (contentLength > 0) {
+                  const pct = Math.min(100, Math.round((downloaded / contentLength) * 100));
+                  if (progressFill) progressFill.style.width = `${pct}%`;
+                  if (progressPercent) progressPercent.textContent = `%${pct}`;
+                  if (progressDetails) progressDetails.textContent = `${(downloaded / (1024 * 1024)).toFixed(1)} MB / ${(contentLength / (1024 * 1024)).toFixed(1)} MB`;
+                }
+              } else if (event.event === 'Finished') {
+                if (progressFill) progressFill.style.width = '100%';
+                if (progressPercent) progressPercent.textContent = '%100';
+                if (progressStatus) progressStatus.innerHTML = '<i data-lucide="check-circle" style="color: #10b981; width: 14px; height: 14px;"></i> Güncelleme Tamamlandı!';
+              }
+            });
+
+            // Başarıyla kuruldu, yeniden başlatma butonunu göster
+            btnDownload.style.display = 'none';
+            if (btnRelaunch) {
+              btnRelaunch.style.display = 'inline-flex';
+              btnRelaunch.onclick = async () => {
+                if (window.__TAURI__ && window.__TAURI__.process && window.__TAURI__.process.relaunch) {
+                  await window.__TAURI__.process.relaunch();
+                } else if (window.__TAURI__ && window.__TAURI__.core) {
+                  await window.__TAURI__.core.invoke('plugin:process|relaunch');
+                }
+              };
+            }
+            if (window.lucide) lucide.createIcons();
+            return;
+          } catch (err) {
+            console.error("Otomatik güncelleme indirme hatası:", err);
+            if (progressContainer) progressContainer.style.display = 'none';
+            btnDownload.disabled = false;
+            btnDownload.style.opacity = '1';
+          }
+        }
+
+        // Web veya fallback durumu
         modal.classList.remove('active');
         const dlModal = document.getElementById('modal-download-desktop-app');
         if (dlModal) {

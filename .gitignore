@@ -35,3 +35,10 @@ MEB uygulama/
 
 # Veri yedekleri
 veri yedek/
+
+# Tauri Updater İmza Anahtarları
+*.key
+*.key.pub
+src-tauri/*.key
+src-tauri/*.key.pub
+
