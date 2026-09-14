@@ -2657,6 +2657,8 @@ function updateFlowContent(syncWithRealTime = true) {
         modalDownloadApp.classList.remove('active');
       }
     });
+  }
+
   // Pardus / Linux Kurulum Yardım Modalı Fonksiyonları
   function openPardusInstallHelpModal() {
     const modal = document.getElementById('modal-pardus-install-help');
