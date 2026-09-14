@@ -2762,11 +2762,15 @@ async function checkForUpdates() {
 
         // Web veya fallback durumu
         modal.classList.remove('active');
-        const dlModal = document.getElementById('modal-download-desktop-app');
-        if (dlModal) {
-          dlModal.classList.add('active');
+        if (typeof window.openDownloadDesktopAppModal === 'function') {
+          window.openDownloadDesktopAppModal();
         } else {
-          window.safeOpenURL(releaseUrl);
+          const dlModal = document.getElementById('modal-download-desktop-app');
+          if (dlModal) {
+            dlModal.classList.add('active');
+          } else {
+            window.safeOpenURL(releaseUrl);
+          }
         }
       };
     }

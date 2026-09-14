@@ -2,6 +2,24 @@
 
 Bu dosya, Sınıf Asistanı uygulamasının tüm sürüm geçmişini içerir.
 
+## [v1.0.8] — 2026-09-14
+
+### 🚀 Yeni Özellikler & İyileştirmeler
+- **Öğrenci Fotoğrafı Hafıza Optimizasyonu:** Öğrenci fotoğrafları yüklenirken istemci tarafında HTML5 Canvas tabanlı otomatik sıkıştırma (~20KB) ve otomatik arka plan optimizasyonu eklendi.
+- **Pardus Linux & WebKitGTK Uyumluluğu:** Açılır kutular (select), hafta seçici ve form bileşenleri için platform bağımsız tema ve özel hafta rozeti arayüzü uygulandı.
+- **Windows SmartScreen & macOS Gatekeeper Rehberleri:** İndirme ve kurulum aşamalarında karşılaşılabilecek güvenlik uyarıları için tek tıkla açılan yardım pencereleri eklendi.
+- **Güncelleme & İndirme Modalı İyileştirmeleri:** Sürüm karşılaştırması, veri kaybı yaşanmayacağı güvencesi ve doğrudan GitHub Release entegrasyonu sağlandı.
+
+---
+
+## [v1.0.7] — 2026-09-11
+
+### 🔧 İyileştirmeler
+- Canlı indirme bağlantıları ve masaüstü indirme pencereleri optimize edildi.
+- Otomatik güncelleme denetleyicisi hata yakalama ve yedek yönlendirmeleri güçlendirildi.
+
+---
+
 ## [v1.0.6] — 2026-09-08
 
 ### 🌟 Yeni Başlangıç & Demo Verileri
