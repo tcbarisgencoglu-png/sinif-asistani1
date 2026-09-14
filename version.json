@@ -1,6 +1,13 @@
 {
-  "version": "1.0.7",
-  "updatedAt": "2026-09-11",
-  "release_notes": "• Yıllık plan düzenleme ve silme işlemleri için yeni arayüz eklendi.\n• Bildirim sistemi (toast) yenilendi, ekranda takılma sorunu giderildi.\n• Sadeleştirilmiş ve veri güvenliği açıklamalı güncelleme bildirim penceresi eklendi.\n• macOS, Windows ve Pardus tahta performansı artırıldı.",
+  "version": "1.0.8",
+  "releaseDate": "2026-09-14",
+  "minRequiredVersion": "1.0.0",
+  "title": "Sınıf Asistanı v1.0.8 Yayında!",
+  "description": "Öğrenci fotoğraf yükleme hafıza optimizasyonu ve arkaplan otomatik güncelleme geliştirmeleri.",
+  "features": [
+    "Öğrenci fotoğrafları için otomatik akıllı sıkıştırma (hafıza dolma sorunu tamamen giderildi)",
+    "Masaüstü uygulamaları için arkaplanda canlı ilerlemeli otomatik güncelleme desteği",
+    "Performans ve kararlılık iyileştirmeleri"
+  ],
   "release_url": "https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/latest"
 }
