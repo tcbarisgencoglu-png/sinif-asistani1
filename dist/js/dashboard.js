@@ -2586,6 +2586,19 @@ function updateFlowContent(syncWithRealTime = true) {
     }
   }
 
+  // Windows SmartScreen Kurulum Yardım Modalı Fonksiyonları
+  function openWinInstallHelpModal() {
+    const modal = document.getElementById('modal-win-install-help');
+    if (!modal) return;
+    modal.classList.add('active');
+    if (window.safeCreateIcons) window.safeCreateIcons();
+  }
+
+  function closeWinInstallHelpModal() {
+    const modal = document.getElementById('modal-win-install-help');
+    if (modal) modal.classList.remove('active');
+  }
+
   // macOS Kurulum Yardım Modalı Fonksiyonları
   function openMacInstallHelpModal() {
     const modal = document.getElementById('modal-mac-install-help');
@@ -2646,6 +2659,18 @@ function updateFlowContent(syncWithRealTime = true) {
     });
   }
 
+  const modalWinHelp = document.getElementById('modal-win-install-help');
+  if (modalWinHelp) {
+    modalWinHelp.querySelectorAll('.close-btn, #btn-close-win-install-help').forEach(btn => {
+      btn.addEventListener('click', closeWinInstallHelpModal);
+    });
+    modalWinHelp.addEventListener('click', (e) => {
+      if (e.target === modalWinHelp) {
+        closeWinInstallHelpModal();
+      }
+    });
+  }
+
   const modalMacHelp = document.getElementById('modal-mac-install-help');
   if (modalMacHelp) {
     modalMacHelp.querySelectorAll('.close-btn, #btn-close-mac-install-help').forEach(btn => {
@@ -2659,6 +2684,8 @@ function updateFlowContent(syncWithRealTime = true) {
   }
 
   window.openDownloadDesktopAppModal = openDownloadDesktopAppModal;
+  window.openWinInstallHelpModal = openWinInstallHelpModal;
+  window.closeWinInstallHelpModal = closeWinInstallHelpModal;
   window.openMacInstallHelpModal = openMacInstallHelpModal;
   window.closeMacInstallHelpModal = closeMacInstallHelpModal;
   window.copyMacQuarantineCommand = copyMacQuarantineCommand;

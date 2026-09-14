@@ -192,11 +192,22 @@ sınıf asistanı/
 
 ---
 
-## ⚠️ macOS Kurulum Uyarısı — "Hasar Görmüş" Hatası
+## ⚠️ Kurulum ve Güvenlik Uyarıları Çözümleri
 
-macOS, Apple tarafından imzalanmamış uygulamaları "hasar görmüş" olarak engelleyebilir. Bu bir hata değil, macOS güvenlik sistemi (Gatekeeper) tarafından uygulanan bir kısıtlamadır.
+### 🪟 Windows SmartScreen Uyarısı Çözümü (10 Saniye)
 
-**Hata mesajı:**
+Windows 10/11'de `.exe` dosyasını çalıştırdığınızda şu mavi ekran çıkabilir:
+> _"Windows kişisel bilgisayarınızı korudu — Microsoft Defender SmartScreen tanınmayan bir uygulamanın başlamasını engelledi."_
+
+**Çözüm — 2 adım:**
+1. Mavi ekrandaki altı çizili **"Ek bilgi"** (More info) bağlantısına tıklayın.
+2. Sağ altta beliren **"Yine de çalıştır"** (Run anyway) butonuna tıklayın. Kurulum başlayacaktır. ✅
+
+---
+
+### 🍏 macOS Açılış Hatası Çözümü (1 Dakika)
+
+macOS'ta `.dmg` kurulumundan sonra uygulamayı ilk açtığınızda şu hata çıkabilir:
 > _"Sınıf Asistanı" hasar görmüş olduğu için açılamıyor. Disk görüntüsünü çıkarmalısınız._
 
 **Çözüm — 3 adım:**
