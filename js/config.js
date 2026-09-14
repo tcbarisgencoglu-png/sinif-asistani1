@@ -683,22 +683,8 @@
         configWeekDisplayText.textContent = '-';
         return;
       }
-      const parts = weekId.split('-W');
-      if (parts.length === 2) {
-        const year = parseInt(parts[0]);
-        const week = parseInt(parts[1]);
-        const monday = window.getDayInWeek ? window.getDayInWeek(year, week, 1) : null;
-        const sunday = window.getDayInWeek ? window.getDayInWeek(year, week, 7) : null;
-        if (monday && sunday) {
-          const months = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'];
-          const d1 = String(monday.getDate()).padStart(2, '0');
-          const m1 = months[monday.getMonth()];
-          const d2 = String(sunday.getDate()).padStart(2, '0');
-          const m2 = months[sunday.getMonth()];
-          configWeekDisplayText.textContent = `${year} Yılı • ${week}. Hafta (${d1} ${m1} - ${d2} ${m2})`;
-        } else {
-          configWeekDisplayText.textContent = `${year} Yılı • ${week}. Hafta`;
-        }
+      if (window.formatWeekTR) {
+        configWeekDisplayText.textContent = window.formatWeekTR(weekId, 'full');
       } else {
         configWeekDisplayText.textContent = weekId;
       }

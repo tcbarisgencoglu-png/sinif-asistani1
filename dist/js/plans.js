@@ -1577,7 +1577,7 @@
     plansWeeklyViewCards.innerHTML = '';
 
     if (plansCurrentWeekLabel) {
-      plansCurrentWeekLabel.textContent = window.formatWeekTR(plansSelectedWeekCode);
+      plansCurrentWeekLabel.textContent = window.formatWeekTR ? window.formatWeekTR(plansSelectedWeekCode, 'short') : plansSelectedWeekCode;
     }
     if (plansCurrentWeekDates) {
       plansCurrentWeekDates.textContent = getISOWeekDateRange(plansSelectedWeekCode);

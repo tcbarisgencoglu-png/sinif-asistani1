@@ -44,10 +44,109 @@ function getDayInWeek(year, week, dayIndex) {
 }
 window.getDayInWeek = getDayInWeek;
 
-function formatWeekTR(weekId) {
-  if (!weekId) return '';
+/**
+ * Verilen yılın Eylül ayındaki okul açılış Pazartesi gününü hesaplar.
+ * MEB kuralı: Eylül ayının 2. Pazartesi günü (veya ilk tam haftası, 8-14 Eylül aralığı).
+ */
+function getSchoolOpeningMonday(year) {
+  const sept1 = new Date(year, 8, 1);
+  const dayOfSept1 = sept1.getDay() || 7; // 1 = Pzt, 7 = Paz
+  const firstMondayDate = 1 + ((8 - dayOfSept1) % 7);
+  // Eğer ilk Pazartesi 8'den küçükse 2. Pazartesi (8-14 Eylül), değilse ilk Pazartesi
+  const openingDate = firstMondayDate < 8 ? firstMondayDate + 7 : firstMondayDate;
+  return new Date(year, 8, openingDate);
+}
+window.getSchoolOpeningMonday = getSchoolOpeningMonday;
+
+/**
+ * ISO Hafta kodunu (örn: '2026-W38') MEB Eğitim-Öğretim Haftası bilgisine dönüştürür.
+ */
+function getEducationWeekInfo(weekId) {
+  if (!weekId) return null;
   const parts = weekId.split('-W');
-  return parts.length === 2 ? `${parts[0]} Yılı, ${parts[1]}. Hafta` : weekId;
+  if (parts.length !== 2) return null;
+
+  const year = parseInt(parts[0], 10);
+  const isoWeekNo = parseInt(parts[1], 10);
+
+  const monday = getDayInWeek(year, isoWeekNo, 1);
+  const friday = getDayInWeek(year, isoWeekNo, 5);
+  const sunday = getDayInWeek(year, isoWeekNo, 7);
+
+  if (isNaN(monday.getTime())) return null;
+
+  const mMonth = monday.getMonth(); // 0 = Oca, 8 = Eyl
+
+  // Eğitim-öğretim yılının başlangıç yılı (Eylül ve sonrası o yıl, öncesi bir önceki yıl)
+  const startAcademicYear = mMonth >= 8 ? monday.getFullYear() : monday.getFullYear() - 1;
+  const academicYearStr = `${startAcademicYear}-${startAcademicYear + 1}`;
+
+  // O eğitim yılının açılış Pazartesi günü
+  const openingMonday = getSchoolOpeningMonday(startAcademicYear);
+
+  // Açılış gününe göre fark (hafta cinsinden)
+  const diffTime = monday.getTime() - openingMonday.getTime();
+  const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+  const diffWeeks = Math.floor(diffDays / 7);
+  const academicWeekNo = diffWeeks + 1;
+
+  const monthsTR = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'];
+  const d1 = String(monday.getDate()).padStart(2, '0');
+  const m1 = monthsTR[monday.getMonth()];
+  const d2 = String(friday.getDate()).padStart(2, '0');
+  const m2 = monthsTR[friday.getMonth()];
+
+  const dateRange = `${d1} ${m1} - ${d2} ${m2}`;
+  
+  let label = '';
+  let shortLabel = '';
+  let fullLabel = '';
+  let isAcademic = false;
+
+  if (academicWeekNo >= 1 && academicWeekNo <= 42) {
+    isAcademic = true;
+    shortLabel = `${academicWeekNo}. Hafta`;
+    label = `${academicWeekNo}. Hafta (${dateRange})`;
+    fullLabel = `${academicYearStr} • ${academicWeekNo}. Hafta (${dateRange})`;
+  } else if (academicWeekNo < 1) {
+    shortLabel = 'Dönem Öncesi';
+    label = `Dönem Öncesi (${dateRange})`;
+    fullLabel = `${academicYearStr} • Dönem Öncesi (${dateRange})`;
+  } else {
+    shortLabel = 'Yaz Tatili';
+    label = `Yaz Tatili (${dateRange})`;
+    fullLabel = `${academicYearStr} • Yaz Tatili (${dateRange})`;
+  }
+
+  return {
+    weekId,
+    year,
+    isoWeekNo,
+    academicYear: academicYearStr,
+    academicWeekNo,
+    isAcademic,
+    monday,
+    friday,
+    sunday,
+    dateRange,
+    label,
+    shortLabel,
+    fullLabel
+  };
+}
+window.getEducationWeekInfo = getEducationWeekInfo;
+
+function formatWeekTR(weekId, formatType) {
+  if (!weekId) return '';
+  const info = getEducationWeekInfo(weekId);
+  if (!info) {
+    const parts = weekId.split('-W');
+    return parts.length === 2 ? `${parts[0]} Yılı, ${parts[1]}. Hafta` : weekId;
+  }
+  if (formatType === 'short') return info.shortLabel;
+  if (formatType === 'full') return info.fullLabel;
+  if (formatType === 'dates') return info.dateRange;
+  return info.label;
 }
 window.formatWeekTR = formatWeekTR;
 
