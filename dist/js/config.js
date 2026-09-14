@@ -6,6 +6,7 @@
   let configFilterGender;
   let configStudentsTbody;
   let configSelectWeek;
+  let configWeekDisplayText;
   let btnConfigPrevWeek;
   let btnConfigNextWeek;
   let btnConfigCurrentWeek;
@@ -261,6 +262,7 @@
 
     // --- 3. Geçerli Hafta (Current Week) ---
     configSelectWeek = document.getElementById('config-select-week');
+    configWeekDisplayText = document.getElementById('config-week-display-text');
     btnConfigPrevWeek = document.getElementById('btn-config-prev-week');
     btnConfigNextWeek = document.getElementById('btn-config-next-week');
     btnConfigCurrentWeek = document.getElementById('btn-config-current-week');
@@ -268,6 +270,7 @@
     if (configSelectWeek) {
       configSelectWeek.addEventListener('change', () => {
         stateManager.setSelectedWeek(configSelectWeek.value);
+        updateConfigWeekUI(configSelectWeek.value);
       });
     }
 
@@ -284,6 +287,7 @@
         const thisWeek = window.getISOWeek(new Date());
         if (configSelectWeek) configSelectWeek.value = thisWeek;
         stateManager.setSelectedWeek(thisWeek);
+        updateConfigWeekUI(thisWeek);
         if (toastCallback) toastCallback('Aktif haftaya geçiş yapıldı.', 'info');
       });
     }
@@ -666,10 +670,47 @@
     });
   }
 
+  // Week UI helper
+  function updateConfigWeekUI(weekId) {
+    if (!weekId) {
+      weekId = stateManager.getSelectedWeek() || (window.getISOWeek ? window.getISOWeek(new Date()) : '');
+    }
+    if (configSelectWeek) {
+      configSelectWeek.value = weekId;
+    }
+    if (configWeekDisplayText) {
+      if (!weekId) {
+        configWeekDisplayText.textContent = '-';
+        return;
+      }
+      const parts = weekId.split('-W');
+      if (parts.length === 2) {
+        const year = parseInt(parts[0]);
+        const week = parseInt(parts[1]);
+        const monday = window.getDayInWeek ? window.getDayInWeek(year, week, 1) : null;
+        const sunday = window.getDayInWeek ? window.getDayInWeek(year, week, 7) : null;
+        if (monday && sunday) {
+          const months = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'];
+          const d1 = String(monday.getDate()).padStart(2, '0');
+          const m1 = months[monday.getMonth()];
+          const d2 = String(sunday.getDate()).padStart(2, '0');
+          const m2 = months[sunday.getMonth()];
+          configWeekDisplayText.textContent = `${year} Yılı • ${week}. Hafta (${d1} ${m1} - ${d2} ${m2})`;
+        } else {
+          configWeekDisplayText.textContent = `${year} Yılı • ${week}. Hafta`;
+        }
+      } else {
+        configWeekDisplayText.textContent = weekId;
+      }
+    }
+  }
+
   // Week helper
   function adjustConfigWeek(offset) {
-    if (!configSelectWeek) return;
-    const val = configSelectWeek.value;
+    let val = configSelectWeek ? configSelectWeek.value : null;
+    if (!val) {
+      val = stateManager.getSelectedWeek() || (window.getISOWeek ? window.getISOWeek(new Date()) : '');
+    }
     if (!val) return;
 
     const parts = val.split('-W');
@@ -678,12 +719,13 @@
     const year = parseInt(parts[0]);
     const week = parseInt(parts[1]);
 
-    const simpleDate = window.getDayInWeek(year, week, 4);
+    const simpleDate = window.getDayInWeek ? window.getDayInWeek(year, week, 4) : new Date();
     simpleDate.setDate(simpleDate.getDate() + (offset * 7));
 
     const newWeek = window.getISOWeek(simpleDate);
-    configSelectWeek.value = newWeek;
+    if (configSelectWeek) configSelectWeek.value = newWeek;
     stateManager.setSelectedWeek(newWeek);
+    updateConfigWeekUI(newWeek);
   }
 
   // Update configuration components
@@ -713,7 +755,7 @@
 
     // 2. Load Active Week
     const selectedWeek = stateManager.getSelectedWeek();
-    if (configSelectWeek) configSelectWeek.value = selectedWeek;
+    updateConfigWeekUI(selectedWeek);
 
     // 3. Load Students Management List
     renderConfigStudentsList();
