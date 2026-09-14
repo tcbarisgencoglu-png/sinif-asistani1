@@ -2657,6 +2657,29 @@ function updateFlowContent(syncWithRealTime = true) {
         modalDownloadApp.classList.remove('active');
       }
     });
+  // Pardus / Linux Kurulum Yardım Modalı Fonksiyonları
+  function openPardusInstallHelpModal() {
+    const modal = document.getElementById('modal-pardus-install-help');
+    if (!modal) return;
+    modal.classList.add('active');
+    if (window.safeCreateIcons) window.safeCreateIcons();
+  }
+
+  function closePardusInstallHelpModal() {
+    const modal = document.getElementById('modal-pardus-install-help');
+    if (modal) modal.classList.remove('active');
+  }
+
+  const modalPardusHelp = document.getElementById('modal-pardus-install-help');
+  if (modalPardusHelp) {
+    modalPardusHelp.querySelectorAll('.close-btn, #btn-close-pardus-install-help').forEach(btn => {
+      btn.addEventListener('click', closePardusInstallHelpModal);
+    });
+    modalPardusHelp.addEventListener('click', (e) => {
+      if (e.target === modalPardusHelp) {
+        closePardusInstallHelpModal();
+      }
+    });
   }
 
   const modalWinHelp = document.getElementById('modal-win-install-help');
@@ -2684,6 +2707,8 @@ function updateFlowContent(syncWithRealTime = true) {
   }
 
   window.openDownloadDesktopAppModal = openDownloadDesktopAppModal;
+  window.openPardusInstallHelpModal = openPardusInstallHelpModal;
+  window.closePardusInstallHelpModal = closePardusInstallHelpModal;
   window.openWinInstallHelpModal = openWinInstallHelpModal;
   window.closeWinInstallHelpModal = closeWinInstallHelpModal;
   window.openMacInstallHelpModal = openMacInstallHelpModal;
