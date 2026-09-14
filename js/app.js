@@ -2701,9 +2701,20 @@ async function checkForUpdates() {
     if (elLatest)  elLatest.textContent  = `v${latestVersion}`;
     if (elNotes)   elNotes.innerHTML    = formatUpdateReleaseNotes(releaseNotes);
 
+    const ua = navigator.userAgent || '';
+    const isLinux = /Linux/i.test(ua) && !/Android/i.test(ua);
+    const isMac = /Macintosh|Mac OS X/i.test(ua);
+    const isWin = /Windows/i.test(ua);
+
     if (btnDownload) {
       if (tauriUpdate) {
         if (btnDownloadText) btnDownloadText.textContent = 'Şimdi Otomatik Güncelle';
+      } else if (isLinux) {
+        if (btnDownloadText) btnDownloadText.textContent = 'Pardus Güncelleme Paketini İndir (.deb)';
+      } else if (isMac) {
+        if (btnDownloadText) btnDownloadText.textContent = 'Mac Güncelleme İndir (.dmg)';
+      } else if (isWin) {
+        if (btnDownloadText) btnDownloadText.textContent = 'Windows Güncelleme İndir (.exe)';
       } else {
         if (btnDownloadText) btnDownloadText.textContent = 'Yeni Sürümü İndir';
       }
@@ -2762,14 +2773,29 @@ async function checkForUpdates() {
 
         // Web veya fallback durumu
         modal.classList.remove('active');
+
+        let directDownloadUrl = releaseUrl;
+        if (isLinux) {
+          directDownloadUrl = `https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/latest/download/sinif-asistani_${latestVersion}_amd64.deb`;
+          if (window.showToast) {
+            window.showToast('Pardus (.deb) güncelleme paketi indiriliyor. İndirilen paketi açarak güncellemeyi tamamlayabilirsiniz. Verileriniz korunacaktır.', 'info');
+          }
+        } else if (isMac) {
+          directDownloadUrl = `https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/latest/download/sinif-asistani_${latestVersion}_aarch64.dmg`;
+        } else if (isWin) {
+          directDownloadUrl = `https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/latest/download/sinif-asistani_${latestVersion}_x64-setup.exe`;
+        }
+
+        if (window.safeOpenURL) {
+          window.safeOpenURL(directDownloadUrl);
+        }
+
         if (typeof window.openDownloadDesktopAppModal === 'function') {
           window.openDownloadDesktopAppModal();
         } else {
           const dlModal = document.getElementById('modal-download-desktop-app');
           if (dlModal) {
             dlModal.classList.add('active');
-          } else {
-            window.safeOpenURL(releaseUrl);
           }
         }
       };
