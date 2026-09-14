@@ -199,6 +199,79 @@ function setupDashboardTab(showToast) {
     renderDashboard();
   }
 
+  // Mevcut yüksek boyutlu fotoğrafları arkaplanda küçültüp depolamayı temizle
+  setTimeout(() => {
+    optimizeExistingStudentPhotos();
+  }, 1200);
+
+  // Yardımcı Fotoğraf Sıkıştırma Fonksiyonu (HTML5 Canvas ile ~15-25KB avatar boyutuna indirir)
+  function compressStudentPhoto(source, maxWidth = 256, maxHeight = 256, quality = 0.82) {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        let width = img.width;
+        let height = img.height;
+        if (width > height) {
+          if (width > maxWidth) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
+          }
+        } else {
+          if (height > maxHeight) {
+            width = Math.round((width * maxHeight) / height);
+            height = maxHeight;
+          }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        const compressed = canvas.toDataURL('image/jpeg', quality);
+        resolve(compressed);
+      };
+      img.onerror = () => {
+        resolve(typeof source === 'string' ? source : null);
+      };
+      if (typeof source === 'string') {
+        img.src = source;
+      } else {
+        const reader = new FileReader();
+        reader.onload = (e) => { img.src = e.target.result; };
+        reader.onerror = () => resolve(null);
+        reader.readAsDataURL(source);
+      }
+    });
+  }
+
+  // Mevcut büyük boyutlu fotoğrafları arkaplanda optimize edip hafızayı rahatlatma
+  async function optimizeExistingStudentPhotos() {
+    try {
+      const state = stateManager.loadState();
+      if (!state.students || !state.students.length) return;
+      let modified = false;
+      for (const student of state.students) {
+        if (student.photo && typeof student.photo === 'string' && student.photo.length > 35000) {
+          try {
+            const opt = await compressStudentPhoto(student.photo, 256, 256, 0.82);
+            if (opt && opt.length < student.photo.length) {
+              student.photo = opt;
+              modified = true;
+            }
+          } catch (e) {
+            console.warn("Öğrenci fotoğrafı optimize edilemedi:", student.id, e);
+          }
+        }
+      }
+      if (modified) {
+        stateManager.saveState();
+        console.log("Mevcut öğrenci fotoğrafları optimize edilerek depolama alanı boşaltıldı.");
+      }
+    } catch (err) {
+      console.warn("Fotoğraf optimizasyon döngüsü hatası:", err);
+    }
+  }
+
   // Fotoğraf Yükleme Dinleyicisi
   if (studentPhotoInput) {
     // Android WebView için özel köprü
@@ -209,33 +282,40 @@ function setupDashboardTab(showToast) {
       }
     });
 
-    studentPhotoInput.addEventListener('change', (e) => {
+    studentPhotoInput.addEventListener('change', async (e) => {
       const file = e.target.files[0];
       if (!file) return;
 
-      if (file.size > 1024 * 1024) {
+      if (file.size > 15 * 1024 * 1024) {
         if (toastCallback) {
-          toastCallback('Fotoğraf boyutu 1MB\'tan küçük olmalıdır!', 'warning');
+          toastCallback('Fotoğraf boyutu 15MB\'tan küçük olmalıdır!', 'warning');
         }
         studentPhotoInput.value = '';
         return;
       }
 
-      const reader = new FileReader();
-      reader.onload = function(evt) {
-        window.currentPhotoBase64 = evt.target.result;
+      try {
+        const compressed = await compressStudentPhoto(file, 256, 256, 0.82);
+        window.currentPhotoBase64 = compressed;
         if (studentPhotoPreview) {
           studentPhotoPreview.src = window.currentPhotoBase64;
           studentPhotoPreview.style.display = 'block';
         }
-      };
-      reader.readAsDataURL(file);
+      } catch (err) {
+        console.error("Fotoğraf işlenirken hata:", err);
+      }
     });
   }
 
   // Android tarafı için küresel geri çağırma (callback) fonksiyonu
-  window.onStudentPhotoSelected = function(base64Data) {
-    window.currentPhotoBase64 = base64Data;
+  window.onStudentPhotoSelected = async function(base64Data) {
+    if (!base64Data) return;
+    try {
+      const compressed = await compressStudentPhoto(base64Data, 256, 256, 0.82);
+      window.currentPhotoBase64 = compressed;
+    } catch (e) {
+      window.currentPhotoBase64 = base64Data;
+    }
     if (studentPhotoPreview) {
       studentPhotoPreview.src = window.currentPhotoBase64;
       studentPhotoPreview.style.display = 'block';

@@ -2058,6 +2058,11 @@ class StateManager {
       this.notify();
     } catch (e) {
       console.error("Veri kaydedilirken hata oluştu:", e);
+      if (e && (e.name === 'QuotaExceededError' || e.code === 22 || e.number === -2147024882)) {
+        if (typeof window.showToast === 'function') {
+          window.showToast('Depolama alanı doldu! Veriler kaydedilemedi.', 'danger');
+        }
+      }
     }
   }
 
