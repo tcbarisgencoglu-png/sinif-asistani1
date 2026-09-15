@@ -2893,10 +2893,24 @@ function switchTab(tabId, animate = true) {
     }
   });
 
+  // Ortak Canlı Ders Panelini Yönet (Asistan Ayarları hariç tüm modüllerde üstte sabit göster)
+  const globalLiveHeader = document.getElementById('global-live-lesson-header');
+  if (globalLiveHeader) {
+    if (tabId === 'assistant-config') {
+      globalLiveHeader.style.display = 'none';
+    } else {
+      globalLiveHeader.style.display = 'flex';
+      if (typeof updateDashboardHeaderLessonInfo === 'function') {
+        updateDashboardHeaderLessonInfo();
+      }
+    }
+  }
+
   // Bölümün Verilerini Yenile
   switch (tabId) {
     case 'dashboard':
       renderDashboard();
+      break;
     case 'books':
       {
         const activeBooksTabBtn = document.querySelector('#books .sub-tab-menu .sub-tab-btn.active');

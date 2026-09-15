@@ -191,15 +191,17 @@
         <button id="btn-activate-license-banner" class="btn btn-sm btn-primary">Lisans Aktifleştir</button>
       </div>
       
-      <section id="dashboard" class="content-section active">
-        <div class="page-header">
-          <div class="header-title" id="dashboard-header-title">
-            <!-- Dinamik olarak ders ve gün bilgisi yüklenecektir -->
-          </div>
-          <div class="header-actions" id="dashboard-header-actions">
-            <!-- JS ile dinamik butonlar yüklenecektir -->
-          </div>
+      <!-- Ortak Canlı Ders Paneli & Hızlı Menü (Asistan Ayarları hariç tüm modüllerde üstte sabit) -->
+      <div class="page-header global-live-lesson-header" id="global-live-lesson-header">
+        <div class="header-title" id="dashboard-header-title">
+          <!-- Dinamik olarak ders ve gün bilgisi yüklenecektir -->
         </div>
+        <div class="header-actions" id="dashboard-header-actions">
+          <!-- JS ile dinamik butonlar yüklenecektir -->
+        </div>
+      </div>
+      
+      <section id="dashboard" class="content-section active">
 
         <!-- Şube Seçimi (Sadece Ortaokul kademesinde) -->
         <div class="branch-filter-container" id="dash-branch-filter-container" style="display: none; margin-bottom: 1.5rem; align-items: center; gap: 0.5rem; padding: 0.75rem; background: rgba(255, 255, 255, 0.05); border-radius: 8px; width: fit-content;">
@@ -5633,28 +5635,30 @@
       <div class="modal-body" style="padding: 2rem 1.5rem; display: flex; flex-direction: column; align-items: center; gap: 1.5rem;">
         
         <!-- Spinner Display Area -->
-        <div class="caller-display-card" style="width: 100%; min-height: 220px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2rem; border-radius: var(--radius-lg); background: rgba(99, 102, 241, 0.03); border: 2px dashed var(--primary); transition: all 0.3s ease; position: relative; overflow: hidden; box-sizing: border-box;">
+        <div class="caller-display-card" style="width: 100%; height: 290px; min-height: 290px; max-height: 290px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 1.5rem; border-radius: var(--radius-lg); background: rgba(99, 102, 241, 0.03); border: 2px dashed var(--primary); transition: all 0.3s ease; position: relative; overflow: hidden; box-sizing: border-box;">
           
-          <!-- Student Avatar -->
-          <div id="caller-student-photo-container" style="margin-bottom: 1rem; display: none;">
-            <img id="caller-student-photo" src="" style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 3px solid var(--primary); box-shadow: var(--shadow-md);">
-          </div>
-          <div id="caller-student-avatar" class="student-avatar" style="width: 100px; height: 100px; border-radius: 50%; font-size: 2.2rem; display: flex; align-items: center; justify-content: center; background-color: var(--primary-light); color: var(--primary); font-weight: 700; margin-bottom: 1rem; box-shadow: var(--shadow-md); margin-left: auto; margin-right: auto;">
-            ?
+          <!-- Student Avatar Box (Fixed 100x100 space) -->
+          <div style="width: 100px; height: 100px; margin-bottom: 0.75rem; position: relative; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+            <div id="caller-student-photo-container" style="display: none; width: 100%; height: 100%;">
+              <img id="caller-student-photo" src="" style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 3px solid var(--primary); box-shadow: var(--shadow-md);">
+            </div>
+            <div id="caller-student-avatar" class="student-avatar" style="width: 100px; height: 100px; border-radius: 50%; font-size: 2.2rem; display: flex; align-items: center; justify-content: center; background-color: var(--primary-light); color: var(--primary); font-weight: 700; box-shadow: var(--shadow-md);">
+              ?
+            </div>
           </div>
 
-          <!-- Student Name -->
-          <div id="caller-student-name" style="font-size: 1.8rem; font-weight: 800; color: var(--text-primary); transition: all 0.2s ease;">Öğrenci Seçilmedi</div>
+          <!-- Student Name (Fixed Height 2-line max reservation) -->
+          <div id="caller-student-name" style="width: 100%; height: 56px; min-height: 56px; max-height: 56px; display: flex; align-items: center; justify-content: center; text-align: center; font-size: 1.55rem; font-weight: 800; line-height: 1.2; word-break: break-word; overflow: hidden; padding: 0 10px; color: var(--text-primary); transition: all 0.2s ease; box-sizing: border-box;">Öğrenci Seçilmedi</div>
           
-          <!-- Student School No -->
-          <div id="caller-student-no" style="font-size: 1rem; color: var(--text-muted); font-weight: 600; margin-top: 0.25rem;">Tahtaya çağırmak için butona basın</div>
+          <!-- Student School No (Fixed Height) -->
+          <div id="caller-student-no" style="width: 100%; height: 24px; min-height: 24px; max-height: 24px; display: flex; align-items: center; justify-content: center; font-size: 0.95rem; color: var(--text-muted); font-weight: 600; margin-top: 0.25rem;">Tahtaya çağırmak için butona basın</div>
           
           <!-- Remaining count indicator -->
-          <span id="caller-pool-indicator" class="badge" style="margin-top: 1rem; font-size: 0.75rem; background: rgba(99, 102, 241, 0.1); color: var(--primary); border: 1px solid rgba(99, 102, 241, 0.2);">Seçim Havuzu: - / -</span>
+          <span id="caller-pool-indicator" class="badge" style="margin-top: 0.75rem; font-size: 0.75rem; background: rgba(99, 102, 241, 0.1); color: var(--primary); border: 1px solid rgba(99, 102, 241, 0.2);">Seçim Havuzu: - / -</span>
         </div>
 
-        <!-- Dojo Points quick action -->
-        <div id="caller-award-container" style="display: none; align-items: center; gap: 0.75rem; width: 100%; justify-content: center; background: rgba(16, 185, 129, 0.05); padding: 0.75rem; border-radius: var(--radius-md); border: 1px solid var(--success); box-sizing: border-box; flex-wrap: wrap;">
+        <!-- Dojo Points quick action (Reserved fixed space with visibility toggle) -->
+        <div id="caller-award-container" style="width: 100%; height: 50px; min-height: 50px; max-height: 50px; display: flex; visibility: hidden; opacity: 0; align-items: center; gap: 0.75rem; justify-content: center; background: rgba(16, 185, 129, 0.05); padding: 0.5rem 0.75rem; border-radius: var(--radius-md); border: 1px solid var(--success); box-sizing: border-box; flex-wrap: wrap; transition: opacity 0.25s ease, visibility 0.25s ease;">
           <span style="font-size: 0.85rem; font-weight: 600; color: var(--success);">Tahtada Gösterilen Performans:</span>
           <button class="btn btn-success btn-sm" id="btn-caller-plus-one" style="padding: 0.35rem 0.75rem; font-size: 0.8rem; display: flex; align-items: center; gap: 0.25rem;">
             <i data-lucide="plus"></i> Aferin (+1 Puan)

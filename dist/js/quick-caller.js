@@ -190,6 +190,20 @@
     noDisplay.textContent = `Okul No: ${student.number}`;
   }
 
+  function showAwardContainer() {
+    if (awardContainer) {
+      awardContainer.style.visibility = 'visible';
+      awardContainer.style.opacity = '1';
+    }
+  }
+
+  function hideAwardContainer() {
+    if (awardContainer) {
+      awardContainer.style.visibility = 'hidden';
+      awardContainer.style.opacity = '0';
+    }
+  }
+
   window.initQuickCallerModal = function() {
     initDOMElements();
     updatePoolIndicator();
@@ -204,7 +218,7 @@
       }
       if (nameDisplay) nameDisplay.textContent = 'Öğrenci Seçilmedi';
       if (noDisplay) noDisplay.textContent = 'Tahtaya çağırmak için butona basın';
-      if (awardContainer) awardContainer.style.display = 'none';
+      hideAwardContainer();
       activeStudentId = null;
     }
   };
@@ -236,7 +250,7 @@
     }
     if (nameDisplay) nameDisplay.textContent = 'Öğrenci Seçilmedi';
     if (noDisplay) noDisplay.textContent = 'Tahtaya çağırmak için butona basın';
-    if (awardContainer) awardContainer.style.display = 'none';
+    hideAwardContainer();
     activeStudentId = null;
 
     if (window.showToast) {
@@ -258,7 +272,7 @@
 
     isDrawing = true;
     if (card) card.classList.remove('winner');
-    if (awardContainer) awardContainer.style.display = 'none';
+    hideAwardContainer();
     activeStudentId = null;
 
     // Spinner details
@@ -275,7 +289,7 @@
         // Stop spinning and display the actual winner
         displayStudent(winnerStudent);
         if (card) card.classList.add('winner');
-        if (awardContainer) awardContainer.style.display = 'flex';
+        showAwardContainer();
         activeStudentId = winnerId;
         isDrawing = false;
 
@@ -324,9 +338,7 @@
     }
 
     // Hide points container to prevent double award
-    if (awardContainer) {
-      awardContainer.style.display = 'none';
-    }
+    hideAwardContainer();
 
     // Trigger global UI redraw
     const event = new CustomEvent('stateChanged');

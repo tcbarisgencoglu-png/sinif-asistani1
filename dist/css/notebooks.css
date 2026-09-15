@@ -393,12 +393,13 @@
   padding: 0 20px 0 65px;
   display: flex;
   align-items: center;
-  background-image: linear-gradient(90deg, transparent 50px, #fca5a5 50px, #fca5a5 52px, transparent 52px);
+  background-color: #ffffff;
+  background-image: linear-gradient(to right, transparent 50px, #ef4444 50px, #ef4444 52px, transparent 52px);
   background-size: 100% 100%;
-  border-bottom: 2px solid #fca5a5;
+  background-repeat: no-repeat;
+  border-bottom: 2px solid #ef4444;
   position: relative;
   z-index: 2;
-  background-color: #ffffff;
 }
 
 .topic-page-title-input {
@@ -414,34 +415,23 @@
   margin: 0;
 }
 
-.notebook-page-body .notebook-editor-textarea {
-  padding-top: 18px !important;
-}
-
-.notebook-page-body .notebook-editor-textarea.lined {
-  background-position: 0 0, 0 9px !important;
-}
-
-.notebook-page-body .notebook-editor-textarea.grid {
-  background-position: 0 0, 0 9px, 65px 0 !important;
-}
-
 /* Defter Metin Düzenleyicisi */
 .notebook-editor-textarea {
   flex: 1;
   border: none;
   outline: none;
   resize: none;
-  padding: 36px 20px 36px 65px;
+  padding: 18px 20px 36px 65px !important;
   font-family: 'Comic Sans MS', 'Chalkboard SE', 'Comic Neue', sans-serif;
   font-size: 22pt !important;
   line-height: 36px !important;
   color: #1e293b;
   box-sizing: border-box;
-  background-color: transparent;
-  background-attachment: local;
+  background-color: #ffffff;
   overflow-y: auto;
   min-height: 100%;
+  -webkit-user-select: text;
+  user-select: text;
 }
 
 /* Editör içindeki HTML elemanlarının satırlara hizalanma sıfırlaması */
@@ -455,28 +445,34 @@
   min-height: 36px;
 }
 
-/* Çizgili Defter Stili */
-.notebook-editor-textarea.lined {
+/* Çizgili Defter Stili - WebKitGTK / Pardus Akıllı Tahta & Tüm Tarayıcılar */
+.notebook-editor-textarea.lined,
+.notebook-page-body .notebook-editor-textarea.lined {
+  background-color: #ffffff;
   background-image: 
     /* Sol Dikey Kırmızı Kenar Çizgisi */
-    linear-gradient(90deg, transparent 50px, #fca5a5 50px, #fca5a5 52px, transparent 52px),
+    linear-gradient(to right, transparent 50px, #ef4444 50px, #ef4444 52px, transparent 52px),
     /* Yatay Açık Mavi Satır Çizgileri */
-    linear-gradient(transparent 35px, #c7d2fe 35px, #c7d2fe 36px);
+    repeating-linear-gradient(to bottom, transparent 0px, transparent 34px, #93c5fd 34px, #93c5fd 36px);
   background-size: 100% 100%, 100% 36px;
-  background-position: 0 0, 0 27px;
+  background-position: 0 0, 0 9px;
+  background-repeat: no-repeat, repeat;
 }
 
-/* Kareli Defter Stili */
-.notebook-editor-textarea.grid {
+/* Kareli Defter Stili - WebKitGTK / Pardus Akıllı Tahta & Tüm Tarayıcılar */
+.notebook-editor-textarea.grid,
+.notebook-page-body .notebook-editor-textarea.grid {
+  background-color: #ffffff;
   background-image: 
     /* Sol Dikey Kırmızı Kenar Çizgisi */
-    linear-gradient(90deg, transparent 50px, #fca5a5 50px, #fca5a5 52px, transparent 52px),
-    /* Yatay Satır Çizgileri */
-    linear-gradient(transparent 35px, #e2e8f0 35px, #e2e8f0 36px),
-    /* Dikey Izgara Çizgileri */
-    linear-gradient(90deg, transparent 35px, #e2e8f0 35px, #e2e8f0 36px);
+    linear-gradient(to right, transparent 50px, #ef4444 50px, #ef4444 52px, transparent 52px),
+    /* Yatay Kare Izgara Çizgileri */
+    repeating-linear-gradient(to bottom, transparent 0px, transparent 34px, #cbd5e1 34px, #cbd5e1 36px),
+    /* Dikey Kare Izgara Çizgileri */
+    repeating-linear-gradient(to right, transparent 0px, transparent 34px, #cbd5e1 34px, #cbd5e1 36px);
   background-size: 100% 100%, 100% 36px, 36px 100%;
-  background-position: 0 0, 0 27px, 65px 0;
+  background-position: 0 0, 0 9px, 65px 0;
+  background-repeat: no-repeat, repeat-y, repeat-x;
 }
 
 /* Modal Defter Tipi Seçenekleri */

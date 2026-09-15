@@ -444,6 +444,12 @@ body {
   border-color: #3d1416 !important; /* Çok koyu kırmızı kontur çizgisi */
 }
 
+/* Ortak Canlı Ders Başlığı */
+.global-live-lesson-header {
+  margin-bottom: 1.25rem !important;
+  transition: all var(--transition-normal);
+}
+
 .header-title h2 {
   font-size: 1.75rem;
   font-weight: 700;
