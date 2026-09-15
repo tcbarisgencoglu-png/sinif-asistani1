@@ -121,9 +121,10 @@ jobs:
           releaseName: "Sınıf Asistanı ${{ github.ref_name }}"
           releaseBody: |
             ### 🚀 Bu Sürümdeki Yenilikler (${{ github.ref_name }}):
-            - Yıllık plan düzenleme ve silme işlemleri için modern arayüz modalı eklendi.
-            - Bildirim (toast) sistemi yenilendi; bildirimlerin ekranda takılı kalması ve birikmesi sorunu tamamen giderildi.
-            - Sadeleştirilmiş ve veri güvenliği açıklamalı güncelleme bildirim penceresi eklendi.
+            - Hızlı Öğrenci Çağır penceresi sabit boyuta kavuşturuldu, isim değişimlerindeki boyut zıplaması tamamen giderildi.
+            - Canlı Ders Paneli ve Hızlı Menü, Asistan Ayarları hariç tüm modüllerde üstte sabit ve aktif hale getirildi.
+            - Pardus Akıllı Tahta (WebKitGTK) dijital defter çizgileri ve ızgara görünürlüğü sorunu çözüldü.
+            - MEB Akademik Hafta (1-36. Hafta) ve otomatik okul başlangıç haftası hesaplama entegre edildi.
             - macOS, Windows ve Pardus tahta uyumluluğu ve genel kararlılık artırıldı.
 
             ---

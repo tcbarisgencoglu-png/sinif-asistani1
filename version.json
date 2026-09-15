@@ -1,13 +1,13 @@
 {
-  "version": "1.0.8",
-  "releaseDate": "2026-09-14",
+  "version": "1.0.9",
+  "releaseDate": "2026-09-15",
   "minRequiredVersion": "1.0.0",
-  "title": "Sınıf Asistanı v1.0.8 Yayında!",
-  "description": "Öğrenci fotoğraf yükleme hafıza optimizasyonu ve arkaplan otomatik güncelleme geliştirmeleri.",
+  "title": "Sınıf Asistanı v1.0.9 Yayında!",
+  "description": "Hızlı öğrenci çağırma penceresi sabitlemesi, her sayfada canlı ders paneli ve Pardus akıllı tahta defter çizgileri desteği.",
   "features": [
-    "Öğrenci fotoğrafları için otomatik akıllı sıkıştırma (hafıza dolma sorunu tamamen giderildi)",
-    "Masaüstü uygulamaları için arkaplanda canlı ilerlemeli otomatik güncelleme desteği",
-    "Performans ve kararlılık iyileştirmeleri"
+    "Hızlı Öğrenci Çağır penceresi sabit boyuta kavuşturuldu, isim değişimlerindeki boyut zıplaması giderildi",
+    "Canlı Ders Paneli ve Hızlı Menü, Asistan Ayarları hariç tüm modüllerde üstte sabit ve aktif hale getirildi",
+    "Pardus Akıllı Tahta (WebKitGTK) dijital defter çizgileri ve ızgara görünürlüğü sorunu çözüldü"
   ],
   "release_url": "https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/latest"
 }
