@@ -1,13 +1,13 @@
 {
-  "version": "1.0.9",
-  "releaseDate": "2026-09-15",
+  "version": "1.0.10",
+  "releaseDate": "2026-09-16",
   "minRequiredVersion": "1.0.0",
-  "title": "Sınıf Asistanı v1.0.9 Yayında!",
-  "description": "Hızlı öğrenci çağırma penceresi sabitlemesi, her sayfada canlı ders paneli ve Pardus akıllı tahta defter çizgileri desteği.",
+  "title": "Sınıf Asistanı v1.0.10 Yayında!",
+  "description": "Ders ve Konu Akışı hafta/konu eşleştirme iyileştirmesi ve ekran kilidi / arka plan kontrolü hata düzeltmeleri.",
   "features": [
-    "Hızlı Öğrenci Çağır penceresi sabit boyuta kavuşturuldu, isim değişimlerindeki boyut zıplaması giderildi",
-    "Canlı Ders Paneli ve Hızlı Menü, Asistan Ayarları hariç tüm modüllerde üstte sabit ve aktif hale getirildi",
-    "Pardus Akıllı Tahta (WebKitGTK) dijital defter çizgileri ve ızgara görünürlüğü sorunu çözüldü"
+    "Ders ve Konu Akışı paneline manuel hafta seçici eklendi, 4. haftaya atlama ve tarih dizgilerinin konu olarak görünmesi sorunu çözüldü",
+    "Uygulama ekran kilidi açma butonunun tepkisiz kalmasına yol açan çalışma zamanı hatası giderildi",
+    "Ders kitabı ve arka plan teneffüs kontrolünde oluşan JavaScript bildirim hatası çözüldü"
   ],
   "release_url": "https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/latest"
 }

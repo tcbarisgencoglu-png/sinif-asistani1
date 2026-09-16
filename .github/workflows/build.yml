@@ -121,11 +121,11 @@ jobs:
           releaseName: "Sınıf Asistanı ${{ github.ref_name }}"
           releaseBody: |
             ### 🚀 Bu Sürümdeki Yenilikler (${{ github.ref_name }}):
-            - Hızlı Öğrenci Çağır penceresi sabit boyuta kavuşturuldu, isim değişimlerindeki boyut zıplaması tamamen giderildi.
-            - Canlı Ders Paneli ve Hızlı Menü, Asistan Ayarları hariç tüm modüllerde üstte sabit ve aktif hale getirildi.
-            - Pardus Akıllı Tahta (WebKitGTK) dijital defter çizgileri ve ızgara görünürlüğü sorunu çözüldü.
-            - MEB Akademik Hafta (1-36. Hafta) ve otomatik okul başlangıç haftası hesaplama entegre edildi.
-            - macOS, Windows ve Pardus tahta uyumluluğu ve genel kararlılık artırıldı.
+            - Ders ve Konu Akışı modülüne manuel hafta seçici eklendi; 4. haftaya atlama ve tarih dizgilerinin konu olarak görünmesi sorunu çözüldü.
+            - Uygulama ekran kilidini açma butonunun şifre girildikten sonra tepkisiz kalması ve çalışma zamanı hatası (ReferenceError) giderildi.
+            - Ders kitabı ve arka plan teneffüs kontrolünde oluşan JavaScript hata bildirimi çözüldü.
+            - Canlı Ders Paneli, hızlı araçlar ve Pardus tahta uyumluluğu korundu.
+            - macOS, Windows ve Pardus tahta genel kararlılığı artırıldı.
 
             ---
             🛡️ **Veri Güvenliği:** Güncelleme yaptığınızda mevcut sınıflarınız, öğrencileriniz, ders programınız ve tüm notlarınız **kesinlikle silinmez, korunur**.

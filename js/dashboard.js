@@ -489,6 +489,15 @@ function setupDashboardTab(showToast) {
     });
   }
 
+  const flowSelectWeek = document.getElementById('flow-select-week');
+  if (flowSelectWeek) {
+    flowSelectWeek.addEventListener('change', () => {
+      if (window.updateFlowContent) {
+        window.updateFlowContent(false);
+      }
+    });
+  }
+
   if (flowSelectPeriod) {
     flowSelectPeriod.addEventListener('change', () => {
       if (window.updateFlowContent) {
@@ -1559,58 +1568,85 @@ function openStudentDetailModal(id) {
 }
 
 // --- Hızlı Akış Bilgisi Hesaplama ve Güncelleme Fonksiyonları ---
+function isDateString(str) {
+  if (!str) return false;
+  const s = String(str).trim();
+  if (!s) return false;
+
+  // 1) dd.mm.yyyy, dd/mm/yyyy, dd-mm-yyyy or range "dd.mm.yyyy - dd.mm.yyyy", "dd.mm - dd.mm"
+  if (/^\d{1,2}[\.\/\-]\d{1,2}(?:[\.\/\-]\d{2,4})?(?:\s*[-–—]\s*\d{1,2}[\.\/\-]\d{1,2}(?:[\.\/\-]\d{2,4})?)?$/.test(s)) {
+    return true;
+  }
+
+  // 2) Turkish text date ranges e.g. "14 Eylül 2026", "15 EYLÜL – 19 EYLÜL", "15 EYLÜL - 19 EYLÜL 2025"
+  const withoutDate = s.toLocaleLowerCase('tr')
+    .replace(/\b(ocak|şubat|subat|mart|nisan|mayıs|mayis|haziran|temmuz|ağustos|agustos|eylül|eylul|ekim|kasım|kasim|aralık|aralik)\b/gi, '')
+    .replace(/\b(pazartesi|salı|sali|çarşamba|carsamba|perşembe|persembe|cuma|cumartesi|pazar)\b/gi, '')
+    .replace(/\b\d{1,4}\b/g, '')
+    .replace(/[–—\-\.\/\,\:\s]/g, '').trim();
+
+  return withoutDate.length === 0;
+}
+window.isDateString = isDateString;
+
 function extractWeekTopicText(activeWeek) {
   if (!activeWeek) return '';
 
-  // 1. topics alanı (Dizi veya Metin)
+  // 1. topics alanı (Dizi veya Metin) - tarih dizgileri hariç tutulur
   if (activeWeek.topics) {
     if (Array.isArray(activeWeek.topics)) {
-      const validTopics = activeWeek.topics.map(t => String(t || '').trim()).filter(t => t.length > 0);
+      const validTopics = activeWeek.topics
+        .map(t => String(t || '').trim())
+        .filter(t => t.length > 0 && !isDateString(t));
       if (validTopics.length > 0) {
         return validTopics.join(', ');
       }
-    } else if (typeof activeWeek.topics === 'string' && activeWeek.topics.trim()) {
+    } else if (typeof activeWeek.topics === 'string' && activeWeek.topics.trim() && !isDateString(activeWeek.topics)) {
       return activeWeek.topics.trim();
     }
   }
 
   // 2. tekil topic alanı
-  if (activeWeek.topic && typeof activeWeek.topic === 'string' && activeWeek.topic.trim()) {
+  if (activeWeek.topic && typeof activeWeek.topic === 'string' && activeWeek.topic.trim() && !isDateString(activeWeek.topic)) {
     return activeWeek.topic.trim();
   }
 
-  // 3. learningOutcomes (Kazanımlar)
-  if (activeWeek.learningOutcomes) {
-    if (Array.isArray(activeWeek.learningOutcomes)) {
-      const validOutcomes = activeWeek.learningOutcomes.map(o => String(o || '').trim()).filter(o => o.length > 0);
-      if (validOutcomes.length > 0) {
-        return validOutcomes.join(', ');
-      }
-    } else if (typeof activeWeek.learningOutcomes === 'string' && activeWeek.learningOutcomes.trim()) {
-      return activeWeek.learningOutcomes.trim();
-    }
-  }
-
-  // 4. unitName (Ünite Adı / Konu)
-  if (activeWeek.unitName && String(activeWeek.unitName).trim()) {
+  // 3. unitName (Ünite Adı / Konu)
+  if (activeWeek.unitName && String(activeWeek.unitName).trim() && !isDateString(activeWeek.unitName)) {
     const unitNoStr = activeWeek.unitNo ? `${activeWeek.unitNo}. Ünite: ` : '';
     return `${unitNoStr}${String(activeWeek.unitName).trim()}`;
+  }
+
+  // 4. learningOutcomes (Kazanımlar - ilk kazanım veya özet konu)
+  if (activeWeek.learningOutcomes) {
+    if (Array.isArray(activeWeek.learningOutcomes)) {
+      const validOutcomes = activeWeek.learningOutcomes
+        .map(o => String(o || '').trim())
+        .filter(o => o.length > 0 && !isDateString(o));
+      if (validOutcomes.length > 0) {
+        return validOutcomes[0];
+      }
+    } else if (typeof activeWeek.learningOutcomes === 'string' && activeWeek.learningOutcomes.trim() && !isDateString(activeWeek.learningOutcomes)) {
+      return activeWeek.learningOutcomes.trim();
+    }
   }
 
   // 5. descriptions (Açıklamalar)
   if (activeWeek.descriptions) {
     if (Array.isArray(activeWeek.descriptions)) {
-      const validDesc = activeWeek.descriptions.map(d => String(d || '').trim()).filter(d => d.length > 0);
+      const validDesc = activeWeek.descriptions
+        .map(d => String(d || '').trim())
+        .filter(d => d.length > 0 && !isDateString(d));
       if (validDesc.length > 0) {
-        return validDesc.join(', ');
+        return validDesc[0];
       }
-    } else if (typeof activeWeek.descriptions === 'string' && activeWeek.descriptions.trim()) {
+    } else if (typeof activeWeek.descriptions === 'string' && activeWeek.descriptions.trim() && !isDateString(activeWeek.descriptions)) {
       return activeWeek.descriptions.trim();
     }
   }
 
-  // 6. content alanı
-  if (activeWeek.content && String(activeWeek.content).trim()) {
+  // 6. content alanı (tarih değilse)
+  if (activeWeek.content && String(activeWeek.content).trim() && !isDateString(activeWeek.content)) {
     return String(activeWeek.content).trim();
   }
 
@@ -1646,6 +1682,28 @@ function getActiveWeekIndexLocal(weeklySchedule) {
     }
     return null;
   };
+
+  // 0. Seviye: stateManager'da seçili olan hafta varsa (Dashboard haftalık görünümü ile senkron)
+  if (typeof stateManager !== 'undefined' && stateManager.getSelectedWeek) {
+    const selectedIso = stateManager.getSelectedWeek();
+    if (selectedIso) {
+      for (let i = 0; i < weeklySchedule.length; i++) {
+        if (weeklySchedule[i].isoWeek === selectedIso) {
+          return i;
+        }
+      }
+      const selParts = selectedIso.split('-W');
+      if (selParts.length === 2) {
+        const selWeekNum = parseInt(selParts[1], 10);
+        for (let i = 0; i < weeklySchedule.length; i++) {
+          const wIso = weeklySchedule[i].isoWeek || '';
+          if (wIso.endsWith(`-W${selParts[1]}`) || wIso.endsWith(`-W0${selWeekNum}`)) {
+            return i;
+          }
+        }
+      }
+    }
+  }
 
   // 1. Seviye: startDate - endDate aralık kontrolü
   for (let i = 0; i < weeklySchedule.length; i++) {
@@ -1721,14 +1779,6 @@ function getActiveWeekIndexLocal(weeklySchedule) {
     for (let i = 0; i < weeklySchedule.length; i++) {
       if (weeklySchedule[i].isoWeek === currentISOWeek) {
         return i;
-      }
-    }
-    const weekPart = currentISOWeek.includes('-W') ? currentISOWeek.split('-W')[1] : '';
-    if (weekPart) {
-      for (let i = 0; i < weeklySchedule.length; i++) {
-        if (weeklySchedule[i].isoWeek && weeklySchedule[i].isoWeek.endsWith(`-W${weekPart}`)) {
-          return i;
-        }
       }
     }
   }
@@ -1847,12 +1897,16 @@ function updateFlowContent(syncWithRealTime = true) {
   const modalFlowInfo = document.getElementById('modal-flow-info');
   if (!modalFlowInfo) return;
 
+  const flowSelectWeek = document.getElementById('flow-select-week');
   const flowSelectDay = document.getElementById('flow-select-day');
   const flowSelectPeriod = document.getElementById('flow-select-period');
   const flowCurrentStatus = document.getElementById('flow-current-status');
   const flowLessonName = document.getElementById('flow-lesson-name');
   const flowLessonTimeSpan = document.getElementById('flow-lesson-time-span');
   const flowPlanWeekBadge = document.getElementById('flow-plan-week-badge');
+  const flowPlanDateBadge = document.getElementById('flow-plan-date-badge');
+  const flowPlanUnitContainer = document.getElementById('flow-plan-unit-container');
+  const flowPlanUnit = document.getElementById('flow-plan-unit');
   const flowPlanTopic = document.getElementById('flow-plan-topic');
   const flowPlanOutcomesContainer = document.getElementById('flow-plan-outcomes-container');
   const flowPlanOutcomes = document.getElementById('flow-plan-outcomes');
@@ -1863,6 +1917,28 @@ function updateFlowContent(syncWithRealTime = true) {
   const grid = state.scheduleGrid || {};
   const lessons = state.definedLessons || [];
   const plans = state.plans || [];
+
+  // Mevcut planlardaki tarih dizgilerini topic alanından temizle (Otomatik sanitizasyon)
+  let plansChanged = false;
+  plans.forEach(plan => {
+    const schedule = plan.weeklySchedule || plan.weeks || [];
+    schedule.forEach(week => {
+      if (week.topics && Array.isArray(week.topics)) {
+        const filtered = week.topics.filter(t => !isDateString(t));
+        if (filtered.length !== week.topics.length) {
+          week.topics = filtered;
+          plansChanged = true;
+        }
+      }
+      if (week.topic && isDateString(week.topic)) {
+        week.topic = '';
+        plansChanged = true;
+      }
+    });
+  });
+  if (plansChanged && stateManager.saveState) {
+    stateManager.saveState();
+  }
 
   const isMiddle = state.educationLevel === 'middle';
 
@@ -2005,7 +2081,9 @@ function updateFlowContent(syncWithRealTime = true) {
       flowLessonCard.style.border = '1px solid var(--border-color)';
       flowLessonCard.style.backgroundColor = 'var(--bg-secondary)';
     }
-    flowPlanWeekBadge.textContent = '-';
+    if (flowPlanWeekBadge) flowPlanWeekBadge.textContent = '-';
+    if (flowPlanDateBadge) flowPlanDateBadge.style.display = 'none';
+    if (flowPlanUnitContainer) flowPlanUnitContainer.style.display = 'none';
     flowPlanTopic.textContent = 'Şu an öğle arası dinlenme saatindesiniz.';
     if (flowPlanOutcomesContainer) flowPlanOutcomesContainer.style.display = 'none';
   } else if (targetPeriod === 'break' && syncWithRealTime) {
@@ -2023,10 +2101,14 @@ function updateFlowContent(syncWithRealTime = true) {
     const nextLesson = lessons.find(l => l.id === nextLessonId);
 
     if (nextLesson) {
-      flowPlanWeekBadge.textContent = 'Sıradaki Ders';
+      if (flowPlanWeekBadge) flowPlanWeekBadge.textContent = 'Sıradaki Ders';
+      if (flowPlanDateBadge) flowPlanDateBadge.style.display = 'none';
+      if (flowPlanUnitContainer) flowPlanUnitContainer.style.display = 'none';
       flowPlanTopic.textContent = `Teneffüsten sonra "${nextLesson.name.toUpperCase()}" dersi başlayacak.\nKonu: ${getTopicForLesson(nextLesson.name, plans)}`;
     } else {
-      flowPlanWeekBadge.textContent = '-';
+      if (flowPlanWeekBadge) flowPlanWeekBadge.textContent = '-';
+      if (flowPlanDateBadge) flowPlanDateBadge.style.display = 'none';
+      if (flowPlanUnitContainer) flowPlanUnitContainer.style.display = 'none';
       flowPlanTopic.textContent = 'Teneffüs bittikten sonraki ders saati boş görünüyor.';
     }
     if (flowPlanOutcomesContainer) flowPlanOutcomesContainer.style.display = 'none';
@@ -2037,8 +2119,10 @@ function updateFlowContent(syncWithRealTime = true) {
       flowLessonCard.style.border = '1px solid var(--border-color)';
       flowLessonCard.style.backgroundColor = 'var(--bg-secondary)';
     }
-    flowPlanWeekBadge.textContent = '-';
-    flowPlanTopic.textContent = 'Şu an ders saatleri dışındasınız. Ders akışını test etmek ve önizlemek için yukarıdaki sorgulama panelinden gün ve ders saati seçebilirsiniz.';
+    if (flowPlanWeekBadge) flowPlanWeekBadge.textContent = '-';
+    if (flowPlanDateBadge) flowPlanDateBadge.style.display = 'none';
+    if (flowPlanUnitContainer) flowPlanUnitContainer.style.display = 'none';
+    flowPlanTopic.textContent = 'Şu an ders saatleri dışındasınız. Ders akışını test etmek ve önizlemek için yukarıdaki sorgulama panelinden hafta, gün ve ders saati seçebilirsiniz.';
     if (flowPlanOutcomesContainer) flowPlanOutcomesContainer.style.display = 'none';
   } else {
     // Normal Ders Saati (Canlı veya Manuel Seçilmiş)
@@ -2063,28 +2147,86 @@ function updateFlowContent(syncWithRealTime = true) {
 
       if (matchedPlan) {
         const schedule = matchedPlan.weeklySchedule || matchedPlan.weeks || [];
-        const activeWeekIndex = getActiveWeekIndexLocal(schedule);
+        
+        // Hafta seçici dropdown seçeneklerini güncelle
+        if (flowSelectWeek) {
+          const planKey = matchedPlan.id || matchedPlan.title;
+          if (flowSelectWeek.dataset.currentPlanKey !== planKey || flowSelectWeek.children.length !== schedule.length) {
+            flowSelectWeek.dataset.currentPlanKey = planKey;
+            flowSelectWeek.innerHTML = '';
+            schedule.forEach((w, idx) => {
+              const opt = document.createElement('option');
+              opt.value = idx;
+              const wLabel = w.weekLabel || `${idx + 1}. Hafta`;
+              const wRange = w.dateRange ? ` (${w.dateRange})` : '';
+              opt.textContent = `${wLabel}${wRange}`;
+              flowSelectWeek.appendChild(opt);
+            });
+          }
+        }
+
+        let activeWeekIndex = 0;
+        if (syncWithRealTime) {
+          activeWeekIndex = getActiveWeekIndexLocal(schedule);
+          if (flowSelectWeek) {
+            flowSelectWeek.value = activeWeekIndex;
+          }
+        } else {
+          if (flowSelectWeek && flowSelectWeek.value !== '' && !isNaN(parseInt(flowSelectWeek.value))) {
+            activeWeekIndex = parseInt(flowSelectWeek.value);
+            if (activeWeekIndex < 0 || activeWeekIndex >= schedule.length) {
+              activeWeekIndex = getActiveWeekIndexLocal(schedule);
+              flowSelectWeek.value = activeWeekIndex;
+            }
+          } else {
+            activeWeekIndex = getActiveWeekIndexLocal(schedule);
+            if (flowSelectWeek) flowSelectWeek.value = activeWeekIndex;
+          }
+        }
+
         const activeWeek = schedule[activeWeekIndex];
 
         if (activeWeek) {
           flowPlanWeekBadge.textContent = activeWeek.weekLabel || `${activeWeekIndex + 1}. Hafta`;
           
+          if (flowPlanDateBadge) {
+            if (activeWeek.dateRange) {
+              flowPlanDateBadge.textContent = activeWeek.dateRange;
+              flowPlanDateBadge.style.display = 'inline-block';
+            } else {
+              flowPlanDateBadge.style.display = 'none';
+            }
+          }
+
+          if (flowPlanUnitContainer && flowPlanUnit) {
+            if (activeWeek.unitName && String(activeWeek.unitName).trim()) {
+              const uNo = activeWeek.unitNo ? `${activeWeek.unitNo}. Ünite: ` : '';
+              flowPlanUnit.textContent = `${uNo}${String(activeWeek.unitName).trim()}`;
+              flowPlanUnitContainer.style.display = 'block';
+            } else {
+              flowPlanUnitContainer.style.display = 'none';
+            }
+          }
+
           if (activeWeek.isHoliday) {
-            flowPlanTopic.textContent = `🌴 Resmi Tatil / Ara Tatil: ${activeWeek.dateRange || ''}`;
+            flowPlanTopic.textContent = `🌴 Resmi Tatil / Ara Tatil${activeWeek.dateRange ? ': ' + activeWeek.dateRange : ''}`;
             if (flowPlanOutcomesContainer) flowPlanOutcomesContainer.style.display = 'none';
           } else {
             const topicText = extractWeekTopicText(activeWeek);
             flowPlanTopic.textContent = topicText || 'Bu hafta için ders konusu girilmemiş.';
 
-            let outcomesText = '';
+            let outcomesList = [];
             if (activeWeek.learningOutcomes) {
               if (Array.isArray(activeWeek.learningOutcomes)) {
-                outcomesText = activeWeek.learningOutcomes.map(o => String(o || '').trim()).filter(o => o).join('\n');
-              } else if (typeof activeWeek.learningOutcomes === 'string') {
-                outcomesText = activeWeek.learningOutcomes.trim();
+                outcomesList = activeWeek.learningOutcomes
+                  .map(o => String(o || '').trim())
+                  .filter(o => o.length > 0 && !isDateString(o));
+              } else if (typeof activeWeek.learningOutcomes === 'string' && activeWeek.learningOutcomes.trim() && !isDateString(activeWeek.learningOutcomes)) {
+                outcomesList = [activeWeek.learningOutcomes.trim()];
               }
             }
-            if (outcomesText && outcomesText !== topicText) {
+            if (outcomesList.length > 0) {
+              const outcomesText = outcomesList.join('\n');
               if (flowPlanOutcomes) flowPlanOutcomes.textContent = outcomesText;
               if (flowPlanOutcomesContainer) flowPlanOutcomesContainer.style.display = 'block';
             } else {
@@ -2093,11 +2235,15 @@ function updateFlowContent(syncWithRealTime = true) {
           }
         } else {
           flowPlanWeekBadge.textContent = '-';
+          if (flowPlanDateBadge) flowPlanDateBadge.style.display = 'none';
+          if (flowPlanUnitContainer) flowPlanUnitContainer.style.display = 'none';
           flowPlanTopic.textContent = 'Bu hafta için plan konusu bulunamadı.';
           if (flowPlanOutcomesContainer) flowPlanOutcomesContainer.style.display = 'none';
         }
       } else {
         flowPlanWeekBadge.textContent = '-';
+        if (flowPlanDateBadge) flowPlanDateBadge.style.display = 'none';
+        if (flowPlanUnitContainer) flowPlanUnitContainer.style.display = 'none';
         flowPlanTopic.textContent = `"${lesson.name}" dersine ait yüklenmiş bir yıllık plan bulunamadı. Yıllık Planlar sekmesinden Excel/Word yüklemesi yapabilirsiniz.`;
         if (flowPlanOutcomesContainer) flowPlanOutcomesContainer.style.display = 'none';
       }
@@ -2108,6 +2254,8 @@ function updateFlowContent(syncWithRealTime = true) {
         flowLessonCard.style.backgroundColor = 'var(--bg-secondary)';
       }
       flowPlanWeekBadge.textContent = '-';
+      if (flowPlanDateBadge) flowPlanDateBadge.style.display = 'none';
+      if (flowPlanUnitContainer) flowPlanUnitContainer.style.display = 'none';
       flowPlanTopic.textContent = 'Bu ders saati haftalık programda boş ("BOŞ") olarak belirlenmiş.';
       if (flowPlanOutcomesContainer) flowPlanOutcomesContainer.style.display = 'none';
     }
@@ -2554,7 +2702,7 @@ function updateFlowContent(syncWithRealTime = true) {
       const response = await fetch('https://api.github.com/repos/tcbarisgencoglu-png/sinif-asistani1/releases/latest');
       if (response.ok) {
         const release = await response.json();
-        const tagName = release.tag_name || 'v1.0.9';
+        const tagName = release.tag_name || 'v1.0.10';
         
         const badge = document.getElementById('download-app-version-badge');
         if (badge) badge.textContent = `${tagName} (En Son)`;

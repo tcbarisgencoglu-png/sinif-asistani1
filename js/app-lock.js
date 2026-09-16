@@ -20,12 +20,27 @@
     return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
   }
 
+  function getState() {
+    return (window.AppState && window.AppState.state) || 
+           (window.stateManager && window.stateManager.state) || 
+           (window.stateManager && typeof window.stateManager.loadState === 'function' ? window.stateManager.loadState() : null);
+  }
+
+  function saveCurrentState() {
+    if (window.AppState && typeof window.AppState.saveState === 'function') {
+      window.AppState.saveState();
+    } else if (window.stateManager && typeof window.stateManager.saveState === 'function') {
+      window.stateManager.saveState();
+    }
+  }
+
   function getCurrentBreakId() {
-    const state = window.AppState ? window.AppState.state : null;
+    const state = getState();
     if (!state || !state.scheduleTimes) return null;
+    const times = state.scheduleTimes;
     const isMiddle = state.educationLevel === 'middle';
     const maxPeriods = isMiddle ? ['p1','p2','p3','p4','p5','p6','p7'] : ['p1','p2','p3','p4','p5','p6'];
-    const periodKeys = maxPeriods.filter(k => times[k]);
+    const periodKeys = maxPeriods.filter(k => times[k] && times[k].start && times[k].end);
     const now = new Date();
     const curMin = now.getHours() * 60 + now.getMinutes();
     const dayOfWeek = now.getDay();
@@ -36,7 +51,7 @@
       if (curEnd < 0 || nxtStart < 0) continue;
       if (curMin > curEnd && curMin < nxtStart) return 'break-' + i;
     }
-    if (times.lunch) {
+    if (times.lunch && times.lunch.start && times.lunch.end) {
       const lunchStart = timeToMinutes(times.lunch.start);
       const lunchEnd = timeToMinutes(times.lunch.end);
       if (curMin >= lunchStart && curMin < lunchEnd) return 'break-lunch';
@@ -45,7 +60,7 @@
   }
 
   function isScheduleConfigured() {
-    const state = window.AppState ? window.AppState.state : null;
+    const state = getState();
     if (!state || !state.scheduleTimes) return false;
     const times = state.scheduleTimes;
     const p1 = times['p1'];
@@ -95,12 +110,16 @@
       if (errEl) { errEl.textContent = 'Lütfen şifrenizi girin.'; errEl.style.display = 'block'; }
       return;
     }
-    const state = window.AppState ? window.AppState.state : null;
+    const state = getState();
     if (!state || !state.appLock) return;
     const enteredHash = await sha256(password);
     if (enteredHash === state.appLock.passwordHash) {
-      const currentBreak = getCurrentBreakId();
-      if (currentBreak) manuallyUnlockedBreakId = currentBreak;
+      try {
+        const currentBreak = getCurrentBreakId();
+        if (currentBreak) manuallyUnlockedBreakId = currentBreak;
+      } catch (err) {
+        console.warn('getCurrentBreakId error:', err);
+      }
       unlockApp();
     } else {
       if (errEl) {
@@ -118,17 +137,21 @@
   }
 
   function checkBreakNow() {
-    const state = window.AppState ? window.AppState.state : null;
-    if (!state || !state.appLock) return;
-    if (!state.appLock.enabled || !state.appLock.breakModeEnabled) return;
-    if (isLocked) return;
-    const currentBreak = getCurrentBreakId();
-    if (!currentBreak) {
-      manuallyUnlockedBreakId = null;
-      return;
+    try {
+      const state = getState();
+      if (!state || !state.appLock) return;
+      if (!state.appLock.enabled || !state.appLock.breakModeEnabled) return;
+      if (isLocked) return;
+      const currentBreak = getCurrentBreakId();
+      if (!currentBreak) {
+        manuallyUnlockedBreakId = null;
+        return;
+      }
+      if (manuallyUnlockedBreakId === currentBreak) return;
+      lockApp(true);
+    } catch (err) {
+      console.warn('checkBreakNow error:', err);
     }
-    if (manuallyUnlockedBreakId === currentBreak) return;
-    lockApp(true);
   }
 
   function startBreakCheck() {
@@ -138,7 +161,7 @@
   }
 
   function initLock() {
-    const state = window.AppState ? window.AppState.state : null;
+    const state = getState();
     if (!state || !state.appLock) return;
     if (state.appLock.enabled && state.appLock.passwordHash) lockApp(false);
     if (state.appLock.enabled && state.appLock.breakModeEnabled) startBreakCheck();
@@ -146,29 +169,29 @@
 
   async function savePassword(newPassword) {
     const hash = await sha256(newPassword);
-    const state = window.AppState ? window.AppState.state : null;
+    const state = getState();
     if (!state) return false;
     if (!state.appLock) state.appLock = {};
     state.appLock.enabled = true;
     state.appLock.passwordHash = hash;
-    window.AppState.saveState();
+    saveCurrentState();
     if (state.appLock.breakModeEnabled) startBreakCheck();
     return true;
   }
 
   function removePassword() {
-    const state = window.AppState ? window.AppState.state : null;
+    const state = getState();
     if (!state) return;
     state.appLock = { enabled: false, passwordHash: null, breakModeEnabled: false };
-    window.AppState.saveState();
+    saveCurrentState();
     if (breakCheckInterval) { clearInterval(breakCheckInterval); breakCheckInterval = null; }
   }
 
   function setBreakMode(enabled) {
-    const state = window.AppState ? window.AppState.state : null;
+    const state = getState();
     if (!state || !state.appLock) return;
     state.appLock.breakModeEnabled = enabled;
-    window.AppState.saveState();
+    saveCurrentState();
     if (enabled && state.appLock.enabled) startBreakCheck();
     else if (breakCheckInterval) { clearInterval(breakCheckInterval); breakCheckInterval = null; }
   }

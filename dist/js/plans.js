@@ -708,7 +708,13 @@
 
         for (const key in keywords) {
           keywords[key].forEach(keyword => {
-            if (val.includes(keyword)) {
+            let matched = false;
+            if (keyword === 'ay') {
+              matched = /\bay\b/i.test(val) || val === 'ay' || val === 'aylar';
+            } else {
+              matched = val.includes(keyword);
+            }
+            if (matched) {
               rowScore += (val === keyword) ? 3 : 1;
               tempDets[key] = c;
             }
@@ -728,7 +734,13 @@
     if (detectedCols.dateRange === -1) {
       if (colCount > 2) detectedCols.dateRange = 2;
     }
-    if (detectedCols.content === -1) detectedCols.content = colCount > 2 ? 2 : 0;
+    if (detectedCols.content === -1) {
+      if (detectedCols.dateRange === 2 && colCount > 3) {
+        detectedCols.content = 3;
+      } else {
+        detectedCols.content = colCount > 2 ? 2 : 0;
+      }
+    }
 
     // Assign selectors
     if (planColMonth) planColMonth.value = detectedCols.month !== -1 ? detectedCols.month : '';
@@ -838,6 +850,20 @@
     return total;
   }
 
+  function isDateString(str) {
+    if (window.isDateString) return window.isDateString(str);
+    if (!str) return false;
+    const s = String(str).trim();
+    if (!s) return false;
+    if (/^\d{1,2}[\.\/\-]\d{1,2}(?:[\.\/\-]\d{2,4})?(?:\s*[-–—]\s*\d{1,2}[\.\/\-]\d{1,2}(?:[\.\/\-]\d{2,4})?)?$/.test(s)) return true;
+    const withoutDate = s.toLocaleLowerCase('tr')
+      .replace(/\b(ocak|şubat|subat|mart|nisan|mayıs|mayis|haziran|temmuz|ağustos|agustos|eylül|eylul|ekim|kasım|kasim|aralık|aralik)\b/gi, '')
+      .replace(/\b(pazartesi|salı|sali|çarşamba|carsamba|perşembe|persembe|cuma|cumartesi|pazar)\b/gi, '')
+      .replace(/\b\d{1,4}\b/g, '')
+      .replace(/[–—\-\.\/\,\:\s]/g, '').trim();
+    return withoutDate.length === 0;
+  }
+
   function autoClassifyContent(text) {
     const outcomes = [];
     const topics = [];
@@ -848,6 +874,9 @@
     const lines = text.split(/\r?\n/).map(l => l.trim()).filter(l => l);
     lines.forEach(line => {
       const cleanLine = line.replace(/^[•\-*○▪]\s*/, '').trim();
+      if (!cleanLine || isDateString(cleanLine)) {
+        return;
+      }
       const outcomeRegex = /^[A-Za-zÇĞİÖŞÜçğıöşü]\.\d+\.\d+/;
       if (outcomeRegex.test(cleanLine)) {
         outcomes.push(cleanLine);
@@ -1524,6 +1553,17 @@
       const startYear = parseInt(plan.educationYear.split('-')[0]) || 2025;
       const schedule = plan.weeklySchedule || plan.weeks || [];
       schedule.forEach(week => {
+        if (week.topics && Array.isArray(week.topics)) {
+          const filtered = week.topics.filter(t => !isDateString(t));
+          if (filtered.length !== week.topics.length) {
+            week.topics = filtered;
+            stateChanged = true;
+          }
+        }
+        if (week.topic && isDateString(week.topic)) {
+          week.topic = '';
+          stateChanged = true;
+        }
         if (week.dateRange) {
           const { startDate, endDate, isDateParsed } = parseTurkishDateRange(week.dateRange, startYear);
           if (isDateParsed && startDate && endDate) {

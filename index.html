@@ -178,7 +178,7 @@
       <div id="sidebar-demo-container"></div>
       
       <div class="sidebar-footer" style="padding: 1rem; text-align: center; font-size: 0.8rem; color: var(--text-muted); border-top: 1px solid var(--border-color);">
-        <span id="app-sidebar-version-text">Sınıf Asistanı v1.0.9</span>
+        <span id="app-sidebar-version-text">Sınıf Asistanı v1.0.10</span>
       </div>
     </aside>
 
@@ -4170,8 +4170,14 @@
             <span id="flow-current-status" style="font-weight: 800; font-size: 0.75rem; color: #10b981; background: rgba(16, 185, 129, 0.1); padding: 2px 6px; border-radius: 4px; display: none;">CANLI</span>
           </div>
           
-          <div style="display: flex; gap: 0.5rem;">
-            <div style="flex: 1;">
+          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.5rem;">
+            <div>
+              <label style="font-size: 0.7rem; font-weight: 600; color: var(--text-secondary); display: block; margin-bottom: 0.25rem;">Hafta</label>
+              <select id="flow-select-week" class="form-control" style="font-size: 0.85rem; padding: 0.4rem; height: 34px; width: 100%; border-radius: var(--radius-sm); border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary);">
+                <option value="auto">Otomatik</option>
+              </select>
+            </div>
+            <div>
               <label style="font-size: 0.7rem; font-weight: 600; color: var(--text-secondary); display: block; margin-bottom: 0.25rem;">Gün</label>
               <select id="flow-select-day" class="form-control" style="font-size: 0.85rem; padding: 0.4rem; height: 34px; width: 100%; border-radius: var(--radius-sm); border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary);">
                 <option value="1">Pazartesi</option>
@@ -4181,7 +4187,7 @@
                 <option value="5">Cuma</option>
               </select>
             </div>
-            <div style="flex: 1;">
+            <div>
               <label style="font-size: 0.7rem; font-weight: 600; color: var(--text-secondary); display: block; margin-bottom: 0.25rem;">Ders Saati</label>
               <select id="flow-select-period" class="form-control" style="font-size: 0.85rem; padding: 0.4rem; height: 34px; width: 100%; border-radius: var(--radius-sm); border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary);">
                 <option value="p1">1. Ders</option>
@@ -4211,9 +4217,15 @@
 
         <!-- Yıllık Plan Konusu Kartı -->
         <div id="flow-plan-card" style="padding: 1.25rem; border-radius: var(--radius-lg); background: var(--bg-secondary); border: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 0.75rem;">
-          <div style="display: flex; justify-content: space-between; align-items: center;">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
             <div style="font-size: 0.8rem; font-weight: 700; text-transform: uppercase; color: var(--text-secondary); letter-spacing: 0.5px;">Müfredat Konusu</div>
-            <span id="flow-plan-week-badge" class="badge" style="background: var(--primary-light); color: var(--primary); font-weight: 700; font-size: 0.75rem; padding: 0.25rem 0.5rem; border-radius: var(--radius-sm);">-</span>
+            <div style="display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap;">
+              <span id="flow-plan-date-badge" class="badge" style="background: rgba(99, 102, 241, 0.08); color: var(--text-secondary); font-weight: 600; font-size: 0.72rem; padding: 0.2rem 0.5rem; border-radius: var(--radius-sm); display: none;"></span>
+              <span id="flow-plan-week-badge" class="badge" style="background: var(--primary-light); color: var(--primary); font-weight: 700; font-size: 0.75rem; padding: 0.25rem 0.5rem; border-radius: var(--radius-sm);">-</span>
+            </div>
+          </div>
+          <div id="flow-plan-unit-container" style="display: none; font-size: 0.85rem; font-weight: 700; color: var(--primary); line-height: 1.4;">
+            <span id="flow-plan-unit">-</span>
           </div>
           <div id="flow-plan-topic" style="font-size: 1.05rem; font-weight: 700; color: var(--text-primary); line-height: 1.5; white-space: pre-wrap;">-</div>
           <div id="flow-plan-outcomes-container" style="margin-top: 0.5rem; border-top: 1px dashed var(--border-color); padding-top: 0.5rem; display: none;">
@@ -5860,12 +5872,12 @@
         <div style="display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 1rem; background: var(--bg-secondary); border-radius: 10px; border: 1px solid var(--border-color);">
           <div style="display: flex; align-items: center; gap: 0.4rem;">
             <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600;">Mevcut:</span>
-            <span id="update-current-version" class="badge" style="font-size: 0.8rem; font-weight: 700; background: var(--border-color); color: var(--text-secondary); padding: 0.2rem 0.5rem; border-radius: 6px;">v1.0.9</span>
+            <span id="update-current-version" class="badge" style="font-size: 0.8rem; font-weight: 700; background: var(--border-color); color: var(--text-secondary); padding: 0.2rem 0.5rem; border-radius: 6px;">v1.0.10</span>
           </div>
           <i data-lucide="arrow-right" style="width: 16px; height: 16px; color: #6366f1;"></i>
           <div style="display: flex; align-items: center; gap: 0.4rem;">
             <span style="font-size: 0.75rem; color: #6366f1; font-weight: 600;">Yeni Sürüm:</span>
-            <span id="update-latest-version" class="badge" style="font-size: 0.8rem; font-weight: 700; background: #6366f1; color: white; padding: 0.2rem 0.5rem; border-radius: 6px;">v1.0.9</span>
+            <span id="update-latest-version" class="badge" style="font-size: 0.8rem; font-weight: 700; background: #6366f1; color: white; padding: 0.2rem 0.5rem; border-radius: 6px;">v1.0.10</span>
           </div>
         </div>
 
@@ -6057,7 +6069,7 @@
           <div>
             <h3 style="margin: 0; font-size: 1.2rem; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
               Sınıf Asistanı Masaüstü Uygulaması
-              <span id="download-app-version-badge" class="badge" style="font-size: 0.75rem; background: var(--primary); color: white; padding: 0.2rem 0.5rem; border-radius: 6px; font-weight: 600;">v1.0.9 (En Son)</span>
+              <span id="download-app-version-badge" class="badge" style="font-size: 0.75rem; background: var(--primary); color: white; padding: 0.2rem 0.5rem; border-radius: 6px; font-weight: 600;">v1.0.10 (En Son)</span>
             </h3>
             <p style="margin: 0; font-size: 0.85rem; color: var(--text-secondary);">Akıllı tahta ve bilgisayarınızda internet olmadan da tam performans çalışın.</p>
           </div>
@@ -6085,7 +6097,7 @@
               </p>
             </div>
             <div>
-              <a id="btn-download-deb" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/latest/download/sinif-asistani_1.0.9_amd64.deb" target="_blank" class="btn btn-primary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem; background: #ef4444; border-color: #ef4444; font-weight: 600;">
+              <a id="btn-download-deb" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/latest/download/sinif-asistani_1.0.10_amd64.deb" target="_blank" class="btn btn-primary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem; background: #ef4444; border-color: #ef4444; font-weight: 600;">
                 <i data-lucide="download" style="width: 16px; height: 16px;"></i> Pardus (.deb) İndir
               </a>
               <button type="button" onclick="window.openPardusInstallHelpModal()" style="width: 100%; margin-top: 0.5rem; background: rgba(239, 68, 68, 0.12); border: 1px dashed rgba(239, 68, 68, 0.5); color: #f87171; border-radius: var(--radius-sm, 8px); padding: 0.45rem 0.5rem; font-size: 0.78rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.35rem; transition: all 0.2s ease;">
@@ -6112,7 +6124,7 @@
               </p>
             </div>
             <div>
-              <a id="btn-download-exe" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/latest/download/sinif-asistani_1.0.9_x64-setup.exe" target="_blank" class="btn btn-primary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem; background: #0284c7; border-color: #0284c7; font-weight: 600;">
+              <a id="btn-download-exe" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/latest/download/sinif-asistani_1.0.10_x64-setup.exe" target="_blank" class="btn btn-primary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem; background: #0284c7; border-color: #0284c7; font-weight: 600;">
                 <i data-lucide="download" style="width: 16px; height: 16px;"></i> Windows (.exe) İndir
               </a>
               <button type="button" onclick="window.openWinInstallHelpModal()" style="width: 100%; margin-top: 0.5rem; background: rgba(2, 132, 199, 0.12); border: 1px dashed rgba(2, 132, 199, 0.5); color: #38bdf8; border-radius: var(--radius-sm, 8px); padding: 0.45rem 0.5rem; font-size: 0.78rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.35rem; transition: all 0.2s ease;">
@@ -6139,7 +6151,7 @@
               </p>
             </div>
             <div>
-              <a id="btn-download-dmg" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/latest/download/sinif-asistani_1.0.9_aarch64.dmg" target="_blank" class="btn btn-primary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem; background: #8b5cf6; border-color: #8b5cf6; font-weight: 600;">
+              <a id="btn-download-dmg" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/latest/download/sinif-asistani_1.0.10_aarch64.dmg" target="_blank" class="btn btn-primary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem; background: #8b5cf6; border-color: #8b5cf6; font-weight: 600;">
                 <i data-lucide="download" style="width: 16px; height: 16px;"></i> Mac (.dmg) İndir
               </a>
               <button type="button" onclick="window.openMacInstallHelpModal()" style="width: 100%; margin-top: 0.5rem; background: rgba(139, 92, 246, 0.12); border: 1px dashed rgba(139, 92, 246, 0.5); color: #a78bfa; border-radius: var(--radius-sm, 8px); padding: 0.45rem 0.5rem; font-size: 0.78rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.35rem; transition: all 0.2s ease;">
@@ -6165,7 +6177,7 @@
                 <strong>Kurulum gerektirmez!</strong> Özellikle ortaokul modunda sınıf sınıf gezen branş öğretmenleri, uygulamayı Flash diskine (USB) yükleyerek tüm sınıflardaki akıllı tahtalarda doğrudan flash bellek üzerinden tak-çalıştır şeklinde kullanabilir.
               </p>
             </div>
-            <a id="btn-download-appimage" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/latest/download/sinif-asistani_1.0.9_amd64.AppImage" target="_blank" class="btn btn-primary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem; background: #10b981; border-color: #10b981; font-weight: 600;">
+            <a id="btn-download-appimage" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/latest/download/sinif-asistani_1.0.10_amd64.AppImage" target="_blank" class="btn btn-primary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem; background: #10b981; border-color: #10b981; font-weight: 600;">
               <i data-lucide="download" style="width: 16px; height: 16px;"></i> AppImage (USB Uyumlu) İndir
             </a>
           </div>
