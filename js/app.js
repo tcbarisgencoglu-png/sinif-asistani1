@@ -2425,6 +2425,7 @@ function initApp() {
       console.warn("Audio Context playback failed:", e);
     }
   }
+  window.playReminderAlertSound = playReminderAlertSound;
 
   // Submit new reminder
   if (formReminderAdd) {
@@ -2613,7 +2614,7 @@ function initApp() {
 }
 
 // Mevcut uygulama sürümü (her güncellemede değişir)
-const APP_VERSION = '1.0.12';
+const APP_VERSION = '1.0.13';
 
 // GitHub & Tauri Auto-Updater kontrolü
 async function checkForUpdates() {

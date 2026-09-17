@@ -5858,6 +5858,45 @@ input:checked + .slider:before {
   opacity: 1;
 }
 
+.lesson-topic-highlight-box .btn-topic-check {
+  background: rgba(99, 102, 241, 0.1);
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  color: var(--text-secondary);
+  border-radius: 6px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0 0.45rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.lesson-topic-highlight-box .btn-topic-check:hover {
+  background: rgba(16, 185, 129, 0.15);
+  border-color: var(--success);
+  color: var(--success);
+  transform: scale(1.04);
+}
+
+.lesson-topic-highlight-box .btn-topic-check.is-completed {
+  background: rgba(16, 185, 129, 0.15);
+  border-color: var(--success);
+  color: var(--success);
+}
+
+.lesson-topic-highlight-box .btn-topic-check i,
+.lesson-topic-highlight-box .btn-topic-check svg {
+  width: 13px;
+  height: 13px;
+  color: inherit;
+  opacity: 1;
+}
+
 .lesson-topic-highlight-box .topic-content {
   font-size: 0.95rem;
   color: var(--text-primary);

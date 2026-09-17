@@ -79,6 +79,33 @@
       });
     });
 
+    // Görev Teslim Tarihi Uyarısı Modal Dinleyicileri
+    const modalTaskDueAlert = document.getElementById('modal-task-due-alert');
+    const btnCloseTaskDueAlert = document.getElementById('btn-close-task-due-alert');
+    const btnCloseTaskDueAlertX = document.getElementById('btn-close-task-due-alert-x');
+    const btnGoToTasksFromAlert = document.getElementById('btn-go-to-tasks-from-alert');
+
+    const dismissCurrentDueTasks = () => {
+      if (modalTaskDueAlert) modalTaskDueAlert.classList.remove('active');
+      const state = stateManager.loadState();
+      const todayStr = window.formatLocalDate ? window.formatLocalDate() : new Date().toISOString().slice(0, 10);
+      const dueTaskIds = (state.tasks || [])
+        .filter(t => t.status === 'active' && t.dueDate && t.dueDate <= todayStr)
+        .map(t => t.id);
+      sessionStorage.setItem('sinif_asistani_dismissed_due_task_ids', JSON.stringify(dueTaskIds));
+    };
+
+    if (btnCloseTaskDueAlert) btnCloseTaskDueAlert.addEventListener('click', dismissCurrentDueTasks);
+    if (btnCloseTaskDueAlertX) btnCloseTaskDueAlertX.addEventListener('click', dismissCurrentDueTasks);
+
+    if (btnGoToTasksFromAlert) {
+      btnGoToTasksFromAlert.addEventListener('click', () => {
+        dismissCurrentDueTasks();
+        const tabBtn = document.querySelector('[data-tab="tasks"]');
+        if (tabBtn) tabBtn.click();
+      });
+    }
+
     // Form Submission: Assign Task
     if (formAssignTask) {
       formAssignTask.addEventListener('submit', (e) => {
@@ -156,6 +183,7 @@
     document.addEventListener('stateChanged', () => {
       populateStudentFilter();
       populateStudentSelect();
+      checkDueTasksNotification();
     });
   }
 
@@ -402,6 +430,84 @@
     window.safeCreateIcons();
   }
 
+  // Görev Son Teslim Tarihi Bildirim Kontrolü
+  function checkDueTasksNotification() {
+    const modalTaskDueAlert = document.getElementById('modal-task-due-alert');
+    const listContainer = document.getElementById('task-due-alert-list');
+    if (!modalTaskDueAlert || !listContainer) return;
+
+    const state = stateManager.loadState();
+    const allTasks = state.tasks || [];
+    const todayStr = window.formatLocalDate ? window.formatLocalDate() : new Date().toISOString().slice(0, 10);
+
+    const dueTasks = allTasks.filter(t => t.status === 'active' && t.dueDate && t.dueDate <= todayStr);
+    if (dueTasks.length === 0) {
+      modalTaskDueAlert.classList.remove('active');
+      return;
+    }
+
+    // Bu oturumda daha önce onaylanmış görevleri kontrol et
+    let dismissedIds = [];
+    try {
+      dismissedIds = JSON.parse(sessionStorage.getItem('sinif_asistani_dismissed_due_task_ids') || '[]');
+    } catch (e) {
+      dismissedIds = [];
+    }
+
+    const unhandledTasks = dueTasks.filter(t => !dismissedIds.includes(t.id));
+    if (unhandledTasks.length === 0) {
+      return; // Bu oturumda zaten öğretmen tarafından görüldü/kapatıldı
+    }
+
+    // Görev listesi html çıktısını üret
+    listContainer.innerHTML = unhandledTasks.map(task => {
+      const student = state.students.find(s => s.id === task.studentId);
+      const studentName = student ? `${student.name} ${student.surname}` : 'Öğrenci';
+      const studentNo = student ? `No: ${student.number}` : '';
+      const branchText = student && student.branch ? ` [${student.branch}]` : '';
+      const isOverdue = task.dueDate < todayStr;
+      const isToday = task.dueDate === todayStr;
+      
+      const badgeText = isToday ? 'Bugün Son Gün!' : `Süresi Geçti: ${formatDateTR(task.dueDate)}`;
+      const badgeBg = isToday ? 'rgba(245, 158, 11, 0.15)' : 'rgba(239, 68, 68, 0.15)';
+      const badgeColor = isToday ? '#d97706' : '#ef4444';
+
+      return `
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 0.75rem 1rem;">
+          <div style="flex: 1; min-width: 0;">
+            <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+              <span style="font-weight: 700; font-size: 0.95rem; color: var(--text-primary);">${studentName}</span>
+              <span style="font-size: 0.75rem; color: var(--text-muted);">${studentNo}${branchText}</span>
+            </div>
+            <div style="font-size: 0.85rem; color: var(--text-secondary); line-height: 1.3; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${task.description}">
+              ${task.description}
+            </div>
+          </div>
+          <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 0.35rem; flex-shrink: 0;">
+            <span style="font-size: 0.75rem; font-weight: 700; padding: 0.2rem 0.5rem; border-radius: 4px; background: ${badgeBg}; color: ${badgeColor}; white-space: nowrap;">
+              ${badgeText}
+            </span>
+            <span style="font-size: 0.75rem; font-weight: 600; color: var(--success);">
+              +${task.points} Puan
+            </span>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    modalTaskDueAlert.classList.add('active');
+    if (window.safeCreateIcons) window.safeCreateIcons();
+
+    if (typeof window.playReminderAlertSound === 'function') {
+      window.playReminderAlertSound();
+    }
+  }
+
+  // İlk yükleme ve periyodik kontrol
+  setTimeout(checkDueTasksNotification, 2000);
+  setInterval(checkDueTasksNotification, 30000);
+
   window.setupTasksTab = setupTasksTab;
   window.renderTasksList = renderTasksList;
+  window.checkDueTasksNotification = checkDueTasksNotification;
 })();

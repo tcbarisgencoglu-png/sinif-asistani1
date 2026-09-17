@@ -533,6 +533,16 @@ function setupDashboardTab(showToast) {
       }
     }
   }, 30000);
+
+  document.addEventListener('stateChanged', () => {
+    if (typeof updateDashboardHeaderLessonInfo === 'function') {
+      updateDashboardHeaderLessonInfo();
+    }
+    const flowModal = document.getElementById('modal-flow-info');
+    if (flowModal && flowModal.classList.contains('active') && window.updateFlowContent) {
+      window.updateFlowContent(false);
+    }
+  });
 }
 
 function renderDashboard() {
@@ -1911,6 +1921,8 @@ function updateFlowContent(syncWithRealTime = true) {
   const flowPlanOutcomesContainer = document.getElementById('flow-plan-outcomes-container');
   const flowPlanOutcomes = document.getElementById('flow-plan-outcomes');
   const flowLessonCard = document.getElementById('flow-lesson-card');
+  const flowPlanStatusBadge = document.getElementById('flow-plan-status-badge');
+  const flowPlanCompletionContainer = document.getElementById('flow-plan-completion-container');
 
   const state = stateManager.loadState();
   const times = state.scheduleTimes || {};
@@ -2083,8 +2095,10 @@ function updateFlowContent(syncWithRealTime = true) {
     }
     if (flowPlanWeekBadge) flowPlanWeekBadge.textContent = '-';
     if (flowPlanDateBadge) flowPlanDateBadge.style.display = 'none';
+    if (flowPlanStatusBadge) flowPlanStatusBadge.style.display = 'none';
     if (flowPlanUnitContainer) flowPlanUnitContainer.style.display = 'none';
     flowPlanTopic.textContent = 'Şu an öğle arası dinlenme saatindesiniz.';
+    if (flowPlanCompletionContainer) flowPlanCompletionContainer.style.display = 'none';
     if (flowPlanOutcomesContainer) flowPlanOutcomesContainer.style.display = 'none';
   } else if (targetPeriod === 'break' && syncWithRealTime) {
     const nextP = window.nextPeriodKey || 'p1';
@@ -2103,14 +2117,17 @@ function updateFlowContent(syncWithRealTime = true) {
     if (nextLesson) {
       if (flowPlanWeekBadge) flowPlanWeekBadge.textContent = 'Sıradaki Ders';
       if (flowPlanDateBadge) flowPlanDateBadge.style.display = 'none';
+      if (flowPlanStatusBadge) flowPlanStatusBadge.style.display = 'none';
       if (flowPlanUnitContainer) flowPlanUnitContainer.style.display = 'none';
       flowPlanTopic.textContent = `Teneffüsten sonra "${nextLesson.name.toUpperCase()}" dersi başlayacak.\nKonu: ${getTopicForLesson(nextLesson.name, plans)}`;
     } else {
       if (flowPlanWeekBadge) flowPlanWeekBadge.textContent = '-';
       if (flowPlanDateBadge) flowPlanDateBadge.style.display = 'none';
+      if (flowPlanStatusBadge) flowPlanStatusBadge.style.display = 'none';
       if (flowPlanUnitContainer) flowPlanUnitContainer.style.display = 'none';
       flowPlanTopic.textContent = 'Teneffüs bittikten sonraki ders saati boş görünüyor.';
     }
+    if (flowPlanCompletionContainer) flowPlanCompletionContainer.style.display = 'none';
     if (flowPlanOutcomesContainer) flowPlanOutcomesContainer.style.display = 'none';
   } else if (targetPeriod === 'outside' && syncWithRealTime) {
     flowLessonName.textContent = 'DERS SAATLERİ DIŞI 🌙';
@@ -2121,8 +2138,10 @@ function updateFlowContent(syncWithRealTime = true) {
     }
     if (flowPlanWeekBadge) flowPlanWeekBadge.textContent = '-';
     if (flowPlanDateBadge) flowPlanDateBadge.style.display = 'none';
+    if (flowPlanStatusBadge) flowPlanStatusBadge.style.display = 'none';
     if (flowPlanUnitContainer) flowPlanUnitContainer.style.display = 'none';
     flowPlanTopic.textContent = 'Şu an ders saatleri dışındasınız. Ders akışını test etmek ve önizlemek için yukarıdaki sorgulama panelinden hafta, gün ve ders saati seçebilirsiniz.';
+    if (flowPlanCompletionContainer) flowPlanCompletionContainer.style.display = 'none';
     if (flowPlanOutcomesContainer) flowPlanOutcomesContainer.style.display = 'none';
   } else {
     // Normal Ders Saati (Canlı veya Manuel Seçilmiş)
@@ -2210,10 +2229,59 @@ function updateFlowContent(syncWithRealTime = true) {
 
           if (activeWeek.isHoliday) {
             flowPlanTopic.textContent = `🌴 Resmi Tatil / Ara Tatil${activeWeek.dateRange ? ': ' + activeWeek.dateRange : ''}`;
+            if (flowPlanStatusBadge) flowPlanStatusBadge.style.display = 'none';
+            if (flowPlanCompletionContainer) flowPlanCompletionContainer.style.display = 'none';
             if (flowPlanOutcomesContainer) flowPlanOutcomesContainer.style.display = 'none';
           } else {
             const topicText = extractWeekTopicText(activeWeek);
             flowPlanTopic.textContent = topicText || 'Bu hafta için ders konusu girilmemiş.';
+
+            const isWeekDone = !!(activeWeek.isCompleted || activeWeek.completed);
+            if (flowPlanStatusBadge) {
+              flowPlanStatusBadge.style.display = isWeekDone ? 'inline-block' : 'none';
+            }
+
+            if (flowPlanCompletionContainer) {
+              flowPlanCompletionContainer.style.display = 'block';
+              flowPlanCompletionContainer.innerHTML = `
+                <div style="display: flex; align-items: center; justify-content: space-between; background: ${isWeekDone ? 'rgba(16, 185, 129, 0.08)' : 'rgba(99, 102, 241, 0.05)'}; border: 1px solid ${isWeekDone ? 'var(--success)' : 'var(--border-color)'}; border-radius: var(--radius-md); padding: 0.6rem 0.85rem; gap: 0.75rem; margin-top: 0.5rem; flex-wrap: wrap;">
+                  <div style="display: flex; align-items: center; gap: 0.5rem; flex: 1; min-width: 200px;">
+                    <i data-lucide="${isWeekDone ? 'check-circle-2' : 'circle'}" style="width: 20px; height: 20px; color: ${isWeekDone ? 'var(--success)' : 'var(--text-muted)'}; flex-shrink: 0;"></i>
+                    <div style="display: flex; flex-direction: column;">
+                      <span style="font-size: 0.88rem; font-weight: 700; color: ${isWeekDone ? 'var(--success)' : 'var(--text-primary)'};">
+                        ${isWeekDone ? 'Bu Konu Yıllık Planda "İşlendi" Olarak Kayıtlı' : 'Bu Konu Henüz İşlenmedi'}
+                      </span>
+                      <span style="font-size: 0.75rem; color: var(--text-secondary);">
+                        ${isWeekDone ? 'Konunun işlendiği planlar tablosuna da yansıtılmıştır.' : 'Tiki işaretleyerek yıllık planlar aracına otomatik olarak "İşlendi" durumunu kaydedebilirsiniz.'}
+                      </span>
+                    </div>
+                  </div>
+                  <button type="button" id="flow-btn-toggle-completed" class="btn" style="white-space: nowrap; display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.4rem 0.85rem; font-size: 0.82rem; font-weight: 700; border-radius: var(--radius-sm); border: 1px solid ${isWeekDone ? 'var(--success)' : 'var(--primary)'}; background: ${isWeekDone ? 'rgba(16, 185, 129, 0.15)' : 'var(--primary)'}; color: ${isWeekDone ? 'var(--success)' : '#ffffff'}; cursor: pointer; transition: all 0.2s ease;">
+                    <i data-lucide="${isWeekDone ? 'check-square-2' : 'square'}"></i>
+                    <span>${isWeekDone ? 'İşlendi ✓ (Geri Al)' : 'İşlendi Olarak İşaretle'}</span>
+                  </button>
+                </div>
+              `;
+
+              const toggleBtn = document.getElementById('flow-btn-toggle-completed');
+              if (toggleBtn) {
+                toggleBtn.addEventListener('click', (e) => {
+                  e.preventDefault();
+                  stateManager.toggleWeekCompleted(matchedPlan.id, activeWeekIndex);
+                  const s = stateManager.loadState();
+                  const pl = (s.plans || []).find(x => x.id === matchedPlan.id);
+                  const sch = pl ? (pl.weeklySchedule || pl.weeks || []) : [];
+                  const w = sch[activeWeekIndex];
+                  const nowDone = w ? !!(w.isCompleted || w.completed) : false;
+                  if (window.showToast) {
+                    window.showToast(nowDone ? 'Ders konusu yıllık planda "İşlendi" olarak işaretlendi.' : 'Ders konusu planda "İşlenmedi" olarak güncellendi.', 'success');
+                  }
+                  document.dispatchEvent(new CustomEvent('stateChanged'));
+                  updateDashboardHeaderLessonInfo();
+                  updateFlowContent(false);
+                });
+              }
+            }
 
             let outcomesList = [];
             if (activeWeek.learningOutcomes) {
@@ -2236,15 +2304,19 @@ function updateFlowContent(syncWithRealTime = true) {
         } else {
           flowPlanWeekBadge.textContent = '-';
           if (flowPlanDateBadge) flowPlanDateBadge.style.display = 'none';
+          if (flowPlanStatusBadge) flowPlanStatusBadge.style.display = 'none';
           if (flowPlanUnitContainer) flowPlanUnitContainer.style.display = 'none';
           flowPlanTopic.textContent = 'Bu hafta için plan konusu bulunamadı.';
+          if (flowPlanCompletionContainer) flowPlanCompletionContainer.style.display = 'none';
           if (flowPlanOutcomesContainer) flowPlanOutcomesContainer.style.display = 'none';
         }
       } else {
         flowPlanWeekBadge.textContent = '-';
         if (flowPlanDateBadge) flowPlanDateBadge.style.display = 'none';
+        if (flowPlanStatusBadge) flowPlanStatusBadge.style.display = 'none';
         if (flowPlanUnitContainer) flowPlanUnitContainer.style.display = 'none';
         flowPlanTopic.textContent = `"${lesson.name}" dersine ait yüklenmiş bir yıllık plan bulunamadı. Yıllık Planlar sekmesinden Excel/Word yüklemesi yapabilirsiniz.`;
+        if (flowPlanCompletionContainer) flowPlanCompletionContainer.style.display = 'none';
         if (flowPlanOutcomesContainer) flowPlanOutcomesContainer.style.display = 'none';
       }
     } else {
@@ -2255,8 +2327,10 @@ function updateFlowContent(syncWithRealTime = true) {
       }
       flowPlanWeekBadge.textContent = '-';
       if (flowPlanDateBadge) flowPlanDateBadge.style.display = 'none';
+      if (flowPlanStatusBadge) flowPlanStatusBadge.style.display = 'none';
       if (flowPlanUnitContainer) flowPlanUnitContainer.style.display = 'none';
       flowPlanTopic.textContent = 'Bu ders saati haftalık programda boş ("BOŞ") olarak belirlenmiş.';
+      if (flowPlanCompletionContainer) flowPlanCompletionContainer.style.display = 'none';
       if (flowPlanOutcomesContainer) flowPlanOutcomesContainer.style.display = 'none';
     }
   }
@@ -2388,6 +2462,10 @@ function updateFlowContent(syncWithRealTime = true) {
     let lessonTopic = 'Konu bilgisi bulunamadı veya ders boş.';
     let remainingMinutes = null;
     let remainingText = '';
+    let planId = null;
+    let weekIndex = null;
+    let isCompleted = false;
+    let canComplete = false;
 
     if (dayOfWeek >= 1 && dayOfWeek <= 5) {
       // 1. Check if inside a lesson period
@@ -2442,6 +2520,10 @@ function updateFlowContent(syncWithRealTime = true) {
             const activeWeek = schedule[activeWeekIndex];
 
             if (activeWeek) {
+              planId = matchedPlan.id;
+              weekIndex = activeWeekIndex;
+              canComplete = !activeWeek.isHoliday;
+              isCompleted = !!(activeWeek.isCompleted || activeWeek.completed);
               if (activeWeek.isHoliday) {
                 lessonTopic = `Tatil: ${activeWeek.dateRange || ''}`;
               } else {
@@ -2582,7 +2664,11 @@ function updateFlowContent(syncWithRealTime = true) {
       lessonTopic,
       remainingMinutes,
       remainingPercent,
-      remainingText
+      remainingText,
+      planId,
+      weekIndex,
+      isCompleted,
+      canComplete
     };
   }
 
@@ -2655,19 +2741,27 @@ function updateFlowContent(syncWithRealTime = true) {
         </div>
       </div>
 
-      <!-- Sağdaki Kutu: Aktif Ders Konusu (Sabit Boyutlu, Göz İkonlu) -->
+      <!-- Sağdaki Kutu: Aktif Ders Konusu (Sabit Boyutlu, Göz İkonlu ve Tik Butonlu) -->
       <div class="lesson-topic-highlight-box" id="btn-open-topic-modal" style="cursor: pointer;" title="Tüm konuyu ve akış detayını görüntülemek için tıklayın">
         <div class="topic-header">
           <div class="topic-title-group">
             <i data-lucide="book-open"></i>
             <span>AKTİF DERS KONUSU</span>
           </div>
-          <button type="button" class="btn-topic-eye" id="btn-topic-eye" title="Tüm konuyu ve kazanımları görüntüle">
-            <i data-lucide="eye"></i>
-          </button>
+          <div class="topic-header-actions" style="display: flex; align-items: center; gap: 0.35rem;">
+            ${info.canComplete ? `
+              <button type="button" class="btn-topic-check ${info.isCompleted ? 'is-completed' : ''}" id="btn-topic-check" title="${info.isCompleted ? 'Bu konu planda İŞLENDİ olarak işaretlendi (Geri almak için tıklayın)' : 'Bu konuyu planda İŞLENDİ olarak işaretle'}">
+                <i data-lucide="${info.isCompleted ? 'check-square-2' : 'square'}"></i>
+                <span class="btn-topic-check-text">${info.isCompleted ? 'İşlendi' : 'İşlendi Yap'}</span>
+              </button>
+            ` : ''}
+            <button type="button" class="btn-topic-eye" id="btn-topic-eye" title="Tüm konuyu ve kazanımları görüntüle">
+              <i data-lucide="eye"></i>
+            </button>
+          </div>
         </div>
         <div class="topic-content" title="${safeTopic}">
-          ${info.lessonTopic}
+          ${info.isCompleted ? '<i data-lucide="check" style="width: 14px; height: 14px; color: var(--success); vertical-align: -2px; margin-right: 4px; display: inline-block;"></i>' : ''}${info.lessonTopic}
         </div>
       </div>
     `;
@@ -2675,6 +2769,7 @@ function updateFlowContent(syncWithRealTime = true) {
     const openTopicBtn = document.getElementById('btn-open-topic-modal');
     if (openTopicBtn) {
       openTopicBtn.addEventListener('click', (e) => {
+        if (e.target.closest('#btn-topic-check')) return;
         e.preventDefault();
         const flowModal = document.getElementById('modal-flow-info');
         if (flowModal) {
@@ -2682,6 +2777,27 @@ function updateFlowContent(syncWithRealTime = true) {
           if (window.updateFlowContent) {
             window.updateFlowContent(true);
           }
+        }
+      });
+    }
+
+    const topicCheckBtn = document.getElementById('btn-topic-check');
+    if (topicCheckBtn) {
+      topicCheckBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (info.planId && info.weekIndex !== null) {
+          stateManager.toggleWeekCompleted(info.planId, info.weekIndex);
+          const st = stateManager.loadState();
+          const pl = (st.plans || []).find(x => x.id === info.planId);
+          const sch = pl ? (pl.weeklySchedule || pl.weeks || []) : [];
+          const wk = sch[info.weekIndex];
+          const isDone = wk ? !!(wk.isCompleted || wk.completed) : false;
+          if (window.showToast) {
+            window.showToast(isDone ? 'Ders konusu yıllık planda "İşlendi" olarak işaretlendi.' : 'Ders konusu planda "İşlenmedi" olarak güncellendi.', 'success');
+          }
+          document.dispatchEvent(new CustomEvent('stateChanged'));
+          updateDashboardHeaderLessonInfo();
         }
       });
     }

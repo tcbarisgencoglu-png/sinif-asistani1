@@ -178,7 +178,7 @@
       <div id="sidebar-demo-container"></div>
       
       <div class="sidebar-footer" style="padding: 1rem; text-align: center; font-size: 0.8rem; color: var(--text-muted); border-top: 1px solid var(--border-color);">
-        <span id="app-sidebar-version-text">Sınıf Asistanı v1.0.12</span>
+        <span id="app-sidebar-version-text">Sınıf Asistanı v1.0.13</span>
       </div>
     </aside>
 
@@ -458,6 +458,8 @@
                   <option value="all">Tüm Kitaplar</option>
                   <option value="available">Sadece Boşta Olanlar</option>
                   <option value="reading">Şu Anda Okunanlar</option>
+                  <option value="level_1">1. Seviye Kitaplar (Kolay)</option>
+                  <option value="level_2">2. Seviye Kitaplar (İleri)</option>
                   <option value="has_questions">Sorusu Olanlar</option>
                   <option value="no_questions">Sorusu Olmayanlar</option>
                 </select>
@@ -4479,12 +4481,14 @@
             <div style="display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap;">
               <span id="flow-plan-date-badge" class="badge" style="background: rgba(99, 102, 241, 0.08); color: var(--text-secondary); font-weight: 600; font-size: 0.72rem; padding: 0.2rem 0.5rem; border-radius: var(--radius-sm); display: none;"></span>
               <span id="flow-plan-week-badge" class="badge" style="background: var(--primary-light); color: var(--primary); font-weight: 700; font-size: 0.75rem; padding: 0.25rem 0.5rem; border-radius: var(--radius-sm);">-</span>
+              <span id="flow-plan-status-badge" class="badge" style="background: rgba(16, 185, 129, 0.15); color: var(--success); font-weight: 700; font-size: 0.75rem; padding: 0.25rem 0.5rem; border-radius: var(--radius-sm); display: none;">✓ İşlendi</span>
             </div>
           </div>
           <div id="flow-plan-unit-container" style="display: none; font-size: 0.85rem; font-weight: 700; color: var(--primary); line-height: 1.4;">
             <span id="flow-plan-unit">-</span>
           </div>
           <div id="flow-plan-topic" style="font-size: 1.05rem; font-weight: 700; color: var(--text-primary); line-height: 1.5; white-space: pre-wrap;">-</div>
+          <div id="flow-plan-completion-container" style="display: none; margin-top: 0.25rem;"></div>
           <div id="flow-plan-outcomes-container" style="margin-top: 0.5rem; border-top: 1px dashed var(--border-color); padding-top: 0.5rem; display: none;">
             <div style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 0.25rem;">Kazanımlar</div>
             <div id="flow-plan-outcomes" style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.4; white-space: pre-wrap;">-</div>
@@ -5113,6 +5117,13 @@
             <label for="book-pages-input">Sayfa Sayısı</label>
             <input type="number" class="form-control" id="book-pages-input" min="1" required>
           </div>
+          <div class="form-group">
+            <label for="book-level-input">Okuma Seviyesi</label>
+            <select class="form-control" id="book-level-input" required>
+              <option value="seviye_1" selected>1. Seviye (Başlangıç / Kolay)</option>
+              <option value="seviye_2">2. Seviye (Orta - İleri / Gelişmiş)</option>
+            </select>
+          </div>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary close-btn-action">İptal</button>
@@ -5148,6 +5159,13 @@
             <label for="edit-book-pages-input">Sayfa Sayısı</label>
             <input type="number" class="form-control" id="edit-book-pages-input" min="1" required>
           </div>
+          <div class="form-group">
+            <label for="edit-book-level-input">Okuma Seviyesi</label>
+            <select class="form-control" id="edit-book-level-input" required>
+              <option value="seviye_1">1. Seviye (Başlangıç / Kolay)</option>
+              <option value="seviye_2">2. Seviye (Orta - İleri / Gelişmiş)</option>
+            </select>
+          </div>
         </div>
         <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
           <button type="button" class="btn btn-danger btn-sm" id="btn-modal-delete-book" style="display: inline-flex; align-items: center; gap: 0.35rem; background: rgba(239, 68, 68, 0.12); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.4); font-weight: 600;">
@@ -5175,6 +5193,17 @@
             <label for="borrow-student-select">Öğrenci Seçin</label>
             <select class="form-control" id="borrow-student-select" required>
               <!-- Dinamik olarak doldurulacak -->
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="borrow-level-filter" style="display: flex; justify-content: space-between; align-items: center;">
+              <span>Kitap Seviyesi Filtresi</span>
+              <span style="font-size: 0.72rem; color: var(--text-muted); font-weight: normal;">(Öğrencinin seviyesine göre süzün)</span>
+            </label>
+            <select class="form-control" id="borrow-level-filter">
+              <option value="all">Tüm Seviyeler</option>
+              <option value="seviye_1">1. Seviye (Başlangıç / Kolay)</option>
+              <option value="seviye_2">2. Seviye (Orta - İleri / Gelişmiş)</option>
             </select>
           </div>
           <div class="form-group">
@@ -6548,6 +6577,34 @@
       </div>
       <div class="modal-footer" style="padding: 1rem 1.5rem; background: rgba(0, 0, 0, 0.02); border-top: 1px solid var(--border-color); display: flex; justify-content: center;">
         <button type="button" class="btn btn-warning" id="btn-close-reminder-alert" style="width: 100%; font-weight: 700; padding: 0.75rem;">Tamam, Anlaşıldı (Kapat)</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: GÖREV TESLİM TARİHİ UYARISI -->
+  <div class="modal" id="modal-task-due-alert" style="--max-width: 550px; z-index: 1000001 !important;">
+    <div class="modal-content" style="max-width: 550px; border: 2px solid var(--danger); box-shadow: 0 10px 30px rgba(239, 68, 68, 0.3);">
+      <div class="modal-header" style="background: rgba(239, 68, 68, 0.1); color: var(--danger); display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(239, 68, 68, 0.2);">
+        <h3 style="display: flex; align-items: center; gap: 0.5rem; font-size: 1.15rem; font-weight: 800; margin: 0;">
+          <i data-lucide="clock-alert" style="width: 22px; height: 22px;"></i> Görev Teslim Tarihi Uyarısı!
+        </h3>
+        <button class="close-btn" id="btn-close-task-due-alert-x" style="background: transparent; border: none; font-size: 1.5rem; cursor: pointer; color: var(--danger); outline: none;">&times;</button>
+      </div>
+      <div class="modal-body" style="padding: 1.25rem 1.5rem; max-height: 60vh; overflow-y: auto;">
+        <p style="font-size: 0.9rem; color: var(--text-secondary); margin-top: 0; margin-bottom: 1rem; line-height: 1.4;">
+          Aşağıdaki öğrenci görevlerinin son teslim tarihi gelmiş veya geçmiştir. Lütfen kontrol ediniz:
+        </p>
+        <div id="task-due-alert-list" style="display: flex; flex-direction: column; gap: 0.75rem;">
+          <!-- Dinamik olarak doldurulacak -->
+        </div>
+      </div>
+      <div class="modal-footer" style="padding: 1rem 1.5rem; background: rgba(0, 0, 0, 0.02); border-top: 1px solid var(--border-color); display: flex; gap: 0.75rem; flex-wrap: wrap;">
+        <button type="button" class="btn btn-secondary" id="btn-close-task-due-alert" style="flex: 1; font-weight: 700; padding: 0.75rem; min-width: 140px;">
+          Tamam, Anlaşıldı
+        </button>
+        <button type="button" class="btn btn-primary" id="btn-go-to-tasks-from-alert" style="flex: 1; font-weight: 700; padding: 0.75rem; min-width: 160px; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+          <i data-lucide="arrow-right" style="width: 16px; height: 16px;"></i> Görev Takibine Git
+        </button>
       </div>
     </div>
   </div>

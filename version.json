@@ -1,15 +1,14 @@
 {
-  "version": "1.0.12",
+  "version": "1.0.13",
   "releaseDate": "2026-09-17",
   "minRequiredVersion": "1.0.0",
-  "title": "Sınıf Asistanı v1.0.12 Yayında!",
-  "description": "Kütüphane Kitaplık modülüne kitap silme, toplu silme, düzenleme ve arama özellikleri eklendi.",
+  "title": "Sınıf Asistanı v1.0.13 Yayında!",
+  "description": "Görev teslim bildirimleri, kitaplık okuma seviyeleri, ders kitabı sayfa kalıcılığı ve canlı konu işlendi işareti eklendi.",
   "features": [
-    "Kitaplık modülüne kitap kartı üzerinden doğrudan tek tıkla silme ve düzenleme özelliği eklendi",
-    "Ödünçte olan kitaplar silinmek istendiğinde aktif okuma uyarısı veren güvenlik teyidi eklendi",
-    "Kitaplıkta çoklu seçim yaparak tek seferde silme sağlayan 'Toplu Seç & Sil' modu eklendi",
-    "Kütüphanedeki tüm kitapları sıfırlamak için onaylı 'Tümünü Temizle' butonu eklendi",
-    "Kitap adı, yazar ve kitap numarasına göre anlık arama ve durum filtreleme araçları eklendi"
+    "Görev takibinde son teslim tarihi gelen görevler için öğretmen görene kadar ekranda kalan uyarı penceresi ve sesli bildirim eklendi",
+    "Kitaplıkta öğrencilerin okuma seviyelerine göre 2 ayrı seviye (Seviye 1 / Seviye 2) kategorizasyonu ve ödünç verme ekranında seviye filtreleme eklendi",
+    "Ders kitapları modülünde uygulama kapatılsa dahi her kitabın en son kalınan sayfasının kalıcı olarak hatırlanması ve yeniden açılması sağlandı",
+    "Üst canlı ders ve konu bilgi kutusu ile detay penceresine 'İşlendi' tiki eklendi; tıklandığında konunun yıllık plana otomatik işlenmesi sağlandı"
   ],
   "release_url": "https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/latest"
 }

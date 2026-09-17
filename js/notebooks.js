@@ -237,9 +237,26 @@
       });
     }
 
+    function saveCurrentPdfPageState(pdfId, pageNum) {
+      if (!pdfId) return;
+      const p = parseInt(pageNum) || 1;
+      localStorage.setItem('sinif_asistani_textbook_page_' + pdfId, p);
+      localStorage.setItem('sinif_asistani_last_opened_textbook_id', pdfId);
+      getPDF(pdfId).then(record => {
+        if (record) {
+          record.lastPage = p;
+          savePDFRecord(record);
+        }
+      }).catch(e => console.warn("saveCurrentPdfPageState error:", e));
+    }
+
     const btnClosePdfViewer = document.getElementById('btn-close-pdf-viewer');
     if (btnClosePdfViewer) {
       btnClosePdfViewer.addEventListener('click', () => {
+        if (currentOpenPdfId && pdfViewerPageInput) {
+          const pageNum = parseInt(pdfViewerPageInput.value) || 1;
+          saveCurrentPdfPageState(currentOpenPdfId, pageNum);
+        }
         if (pdfLiveInterval) {
           clearInterval(pdfLiveInterval);
           pdfLiveInterval = null;
@@ -255,6 +272,7 @@
           currentOpenPdfUrl = null;
         }
         currentOpenPdfId = null;
+        renderTextbooksList();
       });
     }
 
@@ -266,23 +284,29 @@
         e.target.value = pageNum;
         
         if (currentOpenPdfId) {
-          try {
-            const pdfRecord = await getPDF(currentOpenPdfId);
-            if (pdfRecord) {
-              pdfRecord.lastPage = pageNum;
-              await savePDFRecord(pdfRecord);
-              
-              const iframe = document.getElementById('pdf-viewer-iframe');
-              if (iframe && currentOpenPdfUrl) {
-                iframe.src = currentOpenPdfUrl + '#page=' + pageNum;
-              }
-            }
-          } catch (err) {
-            console.error("Save PDF page error:", err);
+          saveCurrentPdfPageState(currentOpenPdfId, pageNum);
+          const iframe = document.getElementById('pdf-viewer-iframe');
+          if (iframe && currentOpenPdfUrl) {
+            iframe.src = currentOpenPdfUrl + '#page=' + pageNum;
           }
         }
       });
     }
+
+    // Uygulama kapatıldığında veya sayfa yenilendiğinde son sayfayı garantiye al
+    window.addEventListener('beforeunload', () => {
+      if (currentOpenPdfId && pdfViewerPageInput) {
+        const pageNum = parseInt(pdfViewerPageInput.value) || 1;
+        localStorage.setItem('sinif_asistani_textbook_page_' + currentOpenPdfId, pageNum);
+        localStorage.setItem('sinif_asistani_last_opened_textbook_id', currentOpenPdfId);
+      }
+    });
+    window.addEventListener('pagehide', () => {
+      if (currentOpenPdfId && pdfViewerPageInput) {
+        const pageNum = parseInt(pdfViewerPageInput.value) || 1;
+        localStorage.setItem('sinif_asistani_textbook_page_' + currentOpenPdfId, pageNum);
+      }
+    });
 
     const btnPdfPrevPage = document.getElementById('btn-pdf-prev-page');
     const btnPdfNextPage = document.getElementById('btn-pdf-next-page');
@@ -1767,10 +1791,12 @@
         const card = document.createElement('div');
         card.className = 'glass-card book-card';
         card.style.cssText = 'position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 1.5rem; text-align: center; gap: 0.5rem; min-height: 200px;';
+        const savedPage = parseInt(localStorage.getItem('sinif_asistani_textbook_page_' + pdf.id)) || pdf.lastPage || 1;
+
         card.innerHTML = `
-          <div class="student-actions" style="position: absolute; top: 10px; right: 10px;">
-            <button class="action-btn-sm delete btn-delete-pdf" data-id="${pdf.id}" title="Sil">
-              <i data-lucide="trash-2"></i>
+          <div class="card-actions" style="position: absolute; top: 8px; right: 8px; z-index: 10;">
+            <button class="action-btn-sm delete-btn btn-delete-pdf" data-id="${pdf.id}" title="Kitabı Sil" style="background: rgba(239, 68, 68, 0.1); color: var(--danger); border: none; border-radius: var(--radius-sm); padding: 0.35rem; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all var(--transition-fast);">
+              <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i>
             </button>
           </div>
           <div class="book-cover-container" style="position: relative; width: 100px; height: 130px; margin-bottom: 0.5rem; border-radius: var(--radius-sm); overflow: hidden; box-shadow: var(--shadow-sm); border: 1px solid var(--border-color);">
@@ -1785,7 +1811,12 @@
             </button>
           </div>
           <strong style="display: block; font-size: 0.85rem; color: var(--text-primary); text-overflow: ellipsis; white-space: nowrap; overflow: hidden; width: 100%;" title="${pdf.name}">${pdf.name}</strong>
-          <span style="font-size: 0.75rem; color: var(--text-muted);">${(pdf.size / (1024 * 1024)).toFixed(2)} MB</span>
+          <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin-top: 0.2rem;">
+            <span style="font-size: 0.72rem; color: var(--text-muted);">${(pdf.size / (1024 * 1024)).toFixed(2)} MB</span>
+            <span style="font-size: 0.72rem; color: var(--primary); font-weight: 700; display: flex; align-items: center; gap: 0.2rem;">
+              <i data-lucide="bookmark" style="width: 12px; height: 12px;"></i> Sayfa ${savedPage}
+            </span>
+          </div>
           <button class="btn btn-sm btn-primary btn-open-pdf" data-id="${pdf.id}" style="margin-top: 0.5rem; width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.25rem;">
             <i data-lucide="eye" style="width: 14px; height: 14px;"></i> Kitabı Aç
           </button>
@@ -1834,10 +1865,12 @@
               currentOpenPdfId = pdf.id;
               
               if (overlay && iframe && title) {
-                const lastPage = data.lastPage || 1;
+                const savedLocalPage = parseInt(localStorage.getItem('sinif_asistani_textbook_page_' + pdf.id));
+                const lastPage = savedLocalPage || data.lastPage || 1;
                 if (pageInput) {
                   pageInput.value = lastPage;
                 }
+                saveCurrentPdfPageState(pdf.id, lastPage);
                 
                 currentOpenPdfUrl = URL.createObjectURL(data.blob);
                 iframe.src = currentOpenPdfUrl + '#page=' + lastPage;

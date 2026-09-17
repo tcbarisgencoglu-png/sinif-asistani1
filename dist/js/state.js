@@ -2590,6 +2590,7 @@ class StateManager {
       author: bookData.author || 'Bilinmiyor',
       pages: parseInt(bookData.pages) || 0,
       bookNo: bookData.bookNo || '',
+      level: bookData.level || 'seviye_1',
       createdAt: new Date().toISOString()
     };
     this.state.books.library.push(book);
@@ -2604,6 +2605,7 @@ class StateManager {
       if (bookData.author !== undefined) book.author = bookData.author.trim();
       if (bookData.pages !== undefined) book.pages = parseInt(bookData.pages) || 0;
       if (bookData.bookNo !== undefined) book.bookNo = String(bookData.bookNo).trim();
+      if (bookData.level !== undefined) book.level = bookData.level || 'seviye_1';
       this.saveState();
       return book;
     }
