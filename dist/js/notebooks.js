@@ -237,19 +237,6 @@
       });
     }
 
-    function saveCurrentPdfPageState(pdfId, pageNum) {
-      if (!pdfId) return;
-      const p = parseInt(pageNum) || 1;
-      localStorage.setItem('sinif_asistani_textbook_page_' + pdfId, p);
-      localStorage.setItem('sinif_asistani_last_opened_textbook_id', pdfId);
-      getPDF(pdfId).then(record => {
-        if (record) {
-          record.lastPage = p;
-          savePDFRecord(record);
-        }
-      }).catch(e => console.warn("saveCurrentPdfPageState error:", e));
-    }
-
     const btnClosePdfViewer = document.getElementById('btn-close-pdf-viewer');
     if (btnClosePdfViewer) {
       btnClosePdfViewer.addEventListener('click', () => {
@@ -1751,6 +1738,28 @@
     });
   }
 
+  function saveCurrentPdfPageState(pdfId, pageNum) {
+    if (!pdfId) return;
+    const p = Math.max(1, parseInt(pageNum) || 1);
+    try {
+      localStorage.setItem('sinif_asistani_textbook_page_' + pdfId, p);
+      localStorage.setItem('sinif_asistani_last_opened_textbook_id', pdfId);
+    } catch (e) {
+      console.warn("saveCurrentPdfPageState localStorage error:", e);
+    }
+    
+    try {
+      getPDF(pdfId).then(record => {
+        if (record) {
+          record.lastPage = p;
+          savePDFRecord(record).catch(e => console.warn("savePDFRecord error:", e));
+        }
+      }).catch(e => console.warn("saveCurrentPdfPageState getPDF error:", e));
+    } catch (e) {
+      console.warn("saveCurrentPdfPageState IndexedDB error:", e);
+    }
+  }
+
   async function renderTextbooksList() {
     const grid = document.getElementById('textbooks-grid');
     if (!grid) return;
@@ -1865,22 +1874,37 @@
               currentOpenPdfId = pdf.id;
               
               if (overlay && iframe && title) {
-                const savedLocalPage = parseInt(localStorage.getItem('sinif_asistani_textbook_page_' + pdf.id));
-                const lastPage = savedLocalPage || data.lastPage || 1;
+                let savedLocalPage = null;
+                try {
+                  const stored = localStorage.getItem('sinif_asistani_textbook_page_' + pdf.id);
+                  if (stored) savedLocalPage = parseInt(stored);
+                } catch (e) {}
+
+                const lastPage = Math.max(1, savedLocalPage || data.lastPage || 1);
                 if (pageInput) {
                   pageInput.value = lastPage;
                 }
-                saveCurrentPdfPageState(pdf.id, lastPage);
                 
+                try {
+                  saveCurrentPdfPageState(pdf.id, lastPage);
+                } catch (errState) {
+                  console.warn("saveCurrentPdfPageState error on open:", errState);
+                }
+                
+                if (currentOpenPdfUrl) {
+                  try { URL.revokeObjectURL(currentOpenPdfUrl); } catch (e) {}
+                }
                 currentOpenPdfUrl = URL.createObjectURL(data.blob);
                 iframe.src = currentOpenPdfUrl + '#page=' + lastPage;
                 title.textContent = pdf.name;
                 overlay.style.display = 'flex';
 
                 // Canlı Ders Bilgisini Başlat
-                updatePdfViewerLiveInfo();
-                if (pdfLiveInterval) clearInterval(pdfLiveInterval);
-                pdfLiveInterval = setInterval(updatePdfViewerLiveInfo, 30000);
+                if (typeof updatePdfViewerLiveInfo === 'function') {
+                  updatePdfViewerLiveInfo();
+                  if (pdfLiveInterval) clearInterval(pdfLiveInterval);
+                  pdfLiveInterval = setInterval(updatePdfViewerLiveInfo, 30000);
+                }
               }
             } else {
               if (window.showToast) window.showToast('Kitap verisi yüklenemedi!', 'danger');
