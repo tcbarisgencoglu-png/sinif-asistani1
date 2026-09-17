@@ -1566,8 +1566,12 @@ function setupBooksTab(showToast) {
 
         try {
           const qs = await generateBookQuestionsWithAI(book.title, book.author);
-          stateManager.updateBookQuestions(book.id, qs);
-          successCount++;
+          const res = stateManager.updateBookQuestions(book.id, qs);
+          if (res && res.success) {
+            successCount++;
+          } else {
+            failCount++;
+          }
         } catch (err) {
           console.error(`Soru üretim hatası (${book.title}):`, err);
           failCount++;

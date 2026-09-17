@@ -113,8 +113,9 @@
   // Mevcut evrakları IndexedDB'ye taşıma ve localStorage'ı temizleme (Otomatik Migrasyon)
   async function migrateExistingDocumentsToIndexedDB() {
     try {
-      const state = stateManager.loadState();
-      const docs = state.documents || [];
+      const docs = (window.stateManager && window.stateManager.state && window.stateManager.state.documents) 
+        ? window.stateManager.state.documents 
+        : [];
       let migratedAny = false;
 
       for (const doc of docs) {
@@ -126,8 +127,8 @@
         }
       }
 
-      if (migratedAny) {
-        stateManager.saveState();
+      if (migratedAny && window.stateManager) {
+        window.stateManager.saveState();
         console.log("Mevcut evrak dosyaları IndexedDB'ye taşındı ve localStorage boşaltıldı.");
       }
     } catch (e) {
@@ -1065,5 +1066,8 @@
   // Global erişim
   window.setupDocuments = setupDocuments;
   window.renderDocumentsList = renderDocumentsList;
+  window.saveDocumentFileToIndexedDB = saveDocumentFile;
+  window.getDocumentFileFromIndexedDB = getDocumentFile;
+  window.migrateExistingDocumentsToIndexedDB = migrateExistingDocumentsToIndexedDB;
 
 })();
