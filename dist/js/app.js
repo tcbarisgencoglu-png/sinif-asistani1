@@ -2613,7 +2613,7 @@ function initApp() {
 }
 
 // Mevcut uygulama sürümü (her güncellemede değişir)
-const APP_VERSION = '1.0.10';
+const APP_VERSION = '1.0.11';
 
 // GitHub & Tauri Auto-Updater kontrolü
 async function checkForUpdates() {

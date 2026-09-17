@@ -1,13 +1,14 @@
 {
-  "version": "1.0.10",
-  "releaseDate": "2026-09-16",
+  "version": "1.0.11",
+  "releaseDate": "2026-09-17",
   "minRequiredVersion": "1.0.0",
-  "title": "Sınıf Asistanı v1.0.10 Yayında!",
-  "description": "Ders ve Konu Akışı hafta/konu eşleştirme iyileştirmesi ve ekran kilidi / arka plan kontrolü hata düzeltmeleri.",
+  "title": "Sınıf Asistanı v1.0.11 Yayında!",
+  "description": "Ders Planı Takibi yapay zeka ile yıllık plan üretimi ve akıllı Word/Excel plan ayrıştırma iyileştirmeleri.",
   "features": [
-    "Ders ve Konu Akışı paneline manuel hafta seçici eklendi, 4. haftaya atlama ve tarih dizgilerinin konu olarak görünmesi sorunu çözüldü",
-    "Uygulama ekran kilidi açma butonunun tepkisiz kalmasına yol açan çalışma zamanı hatası giderildi",
-    "Ders kitabı ve arka plan teneffüs kontrolünde oluşan JavaScript bildirim hatası çözüldü"
+    "Ders Planı Takibi modülüne MEB müfredatına tam uyumlu 36 haftalık yıllık planı sıfırdan üreten Yapay Zeka (AI) aracı eklendi",
+    "Word (.docx) ve Excel yıllık plan yükleme altyapısı yenilendi; Atatürkçülük, Belirli Günler ve İmza tablolarının ana plana karışması engellendi",
+    "Sütun seçim kutuları tablodaki gerçek başlık ve örnek verileri gösterecek şekilde güncellendi",
+    "Mükerrer ünite yazımı ('2. Ünite: ÜNİTE') düzeltildi ve mevcut bozuk kayıtlar için otomatik onarım eklendi"
   ],
   "release_url": "https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/latest"
 }
