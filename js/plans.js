@@ -72,13 +72,23 @@
   let planColAssessment;
   let planColContent;
 
-  // Copy-Paste Tabs
+  // Copy-Paste Tabs & AI
   let importTabFile;
   let importTabPaste;
+  let importTabAi;
   let panelImportFile;
   let panelImportPaste;
+  let panelImportAi;
   let planPasteText;
   let btnParsePastedText;
+  let btnGenerateAiAnnualPlan;
+  let aiPlanHours;
+  let aiPlanCurriculumStyle;
+  let aiPlanNotes;
+  let aiPlanGenStatus;
+  let aiPlanGenStatusText;
+  let btnAiAutoMapPlan;
+  let aiPlanMappingStatus;
 
   const TURKISH_MONTHS = {
     'ocak': 1, 'şubat': 2, 'mart': 3, 'nisan': 4, 'mayıs': 5, 'haziran': 6,
@@ -152,13 +162,23 @@
     planColAssessment = document.getElementById('plan-col-assessment');
     planColContent = document.getElementById('plan-col-content');
 
-    // Tabs for Source
+    // Tabs for Source & AI
     importTabFile = document.getElementById('import-tab-file');
     importTabPaste = document.getElementById('import-tab-paste');
+    importTabAi = document.getElementById('import-tab-ai');
     panelImportFile = document.getElementById('panel-import-file');
     panelImportPaste = document.getElementById('panel-import-paste');
+    panelImportAi = document.getElementById('panel-import-ai');
     planPasteText = document.getElementById('plan-paste-text');
     btnParsePastedText = document.getElementById('btn-parse-pasted-text');
+    btnGenerateAiAnnualPlan = document.getElementById('btn-generate-ai-annual-plan');
+    aiPlanHours = document.getElementById('ai-plan-hours');
+    aiPlanCurriculumStyle = document.getElementById('ai-plan-curriculum-style');
+    aiPlanNotes = document.getElementById('ai-plan-notes');
+    aiPlanGenStatus = document.getElementById('ai-plan-gen-status');
+    aiPlanGenStatusText = document.getElementById('ai-plan-gen-status-text');
+    btnAiAutoMapPlan = document.getElementById('btn-ai-auto-map-plan');
+    aiPlanMappingStatus = document.getElementById('ai-plan-mapping-status');
 
     // Start Year Init
     if (planStartYear) {
@@ -318,16 +338,40 @@
       importTabFile.addEventListener('click', () => {
         importTabFile.classList.add('active');
         importTabPaste.classList.remove('active');
+        if (importTabAi) importTabAi.classList.remove('active');
         panelImportFile.style.display = 'block';
         panelImportPaste.style.display = 'none';
+        if (panelImportAi) panelImportAi.style.display = 'none';
       });
 
       importTabPaste.addEventListener('click', () => {
         importTabPaste.classList.add('active');
         importTabFile.classList.remove('active');
+        if (importTabAi) importTabAi.classList.remove('active');
         panelImportPaste.style.display = 'block';
         panelImportFile.style.display = 'none';
+        if (panelImportAi) panelImportAi.style.display = 'none';
       });
+
+      if (importTabAi) {
+        importTabAi.addEventListener('click', () => {
+          importTabAi.classList.add('active');
+          importTabFile.classList.remove('active');
+          importTabPaste.classList.remove('active');
+          if (panelImportAi) panelImportAi.style.display = 'block';
+          panelImportFile.style.display = 'none';
+          panelImportPaste.style.display = 'none';
+          if (btnImportSave) btnImportSave.style.display = 'none';
+        });
+      }
+    }
+
+    // AI Buttons Listeners
+    if (btnAiAutoMapPlan) {
+      btnAiAutoMapPlan.addEventListener('click', handleAiAutoMapPlan);
+    }
+    if (btnGenerateAiAnnualPlan) {
+      btnGenerateAiAnnualPlan.addEventListener('click', handleGenerateAiAnnualPlan);
     }
 
     // Parsing pasted text
@@ -444,9 +488,164 @@
     if (importStepMapping) importStepMapping.style.display = 'none';
     if (btnImportSave) btnImportSave.style.display = 'none';
     if (planCourseNameInput) planCourseNameInput.value = '';
-    if (planClassName) planClassName.value = '3/A';
+    
+    // Mevcut bir plan varsa varsayılan sınıf olarak onun şubesini kullan
+    const existingPlans = (stateManager.state && stateManager.state.plans) ? stateManager.state.plans : [];
+    const defaultClass = existingPlans.length > 0 && existingPlans[0].className ? existingPlans[0].className : '3/A';
+    if (planClassName) planClassName.value = defaultClass;
+
     if (planEducationYear) planEducationYear.value = '2025-2026';
+    if (aiPlanNotes) aiPlanNotes.value = '';
+    if (aiPlanGenStatus) aiPlanGenStatus.style.display = 'none';
+    if (aiPlanMappingStatus) {
+      aiPlanMappingStatus.style.display = 'none';
+      aiPlanMappingStatus.innerHTML = '';
+    }
     if (importTabFile) importTabFile.click();
+  }
+
+  function detectCourseAndClassFromContent(rawText, sheetRows, fileName) {
+    const combined = ((rawText || '') + ' ' + (fileName || '') + ' ' + 
+      (sheetRows ? sheetRows.slice(0, 20).map(r => (r || []).join(' ')).join(' ') : '')
+    ).toLocaleLowerCase('tr-TR');
+
+    const coursePatterns = [
+      { name: 'Sosyal Bilgiler', regex: /sosyal\s*bilgiler|sosyal\s*bilgi/i },
+      { name: 'Fen Bilimleri', regex: /fen\s*bilimleri|fen\s*ve\s*teknoloji/i },
+      { name: 'Matematik', regex: /matematik/i },
+      { name: 'Türkçe', regex: /türkçe|turkce/i },
+      { name: 'Hayat Bilgisi', regex: /hayat\s*bilgisi/i },
+      { name: 'İngilizce', regex: /ingilizce|english/i },
+      { name: 'Din Kültürü ve Ahlak Bilgisi', regex: /din\s*kültürü|din\s*kulturu/i },
+      { name: 'Görsel Sanatlar', regex: /görsel\s*sanatlar|gorsel\s*sanatlar|resim/i },
+      { name: 'Müzik', regex: /müzik|muzik/i },
+      { name: 'Beden Eğitimi ve Oyun', regex: /beden\s*eğitimi|beden\s*egitimi|oyun\s*ve\s*fiziki/i },
+      { name: 'Trafik Güvenliği', regex: /trafik\s*güvenliği|trafik\s*guvenligi/i },
+      { name: 'İnsan Hakları, Yurttaşlık ve Demokrasi', regex: /insan\s*hakları|insan\s*haklari|yurttaşlık|yurttaslik/i },
+      { name: 'Bilişim Teknolojileri ve Yazılım', regex: /bilişim|bilisim|kodlama/i }
+    ];
+
+    let detectedCourse = '';
+    for (const cp of coursePatterns) {
+      if (cp.regex.test(combined)) {
+        detectedCourse = cp.name;
+        break;
+      }
+    }
+
+    let detectedGrade = '';
+    const gradeMatch = combined.match(/\b([1-8])\s*[\.\/]?\s*(?:sınıf|sinif|grade|\b([a-zğüşıöç])\b)/i);
+    if (gradeMatch) {
+      const gNum = gradeMatch[1];
+      const branch = gradeMatch[2] ? gradeMatch[2].toUpperCase() : 'A';
+      detectedGrade = `${gNum}/${branch}`;
+    }
+
+    return { detectedCourse, detectedGrade };
+  }
+
+  function applyDetectedCourseAndClass(detectedCourse, detectedGrade) {
+    // Öğretmen modalda zaten bir ders seçtiyse veya girdiyse, öğretmenin seçimini KORU!
+    const userAlreadySelected = (planCourseNameSelect && planCourseNameSelect.value && planCourseNameSelect.value !== 'custom') || (planCourseNameInput && planCourseNameInput.value.trim() && !/^[a-f0-9]{6,}$/i.test(planCourseNameInput.value.trim()));
+    if (!userAlreadySelected && detectedCourse) {
+      let matchedInSelect = false;
+      if (planCourseNameSelect) {
+        for (let opt of planCourseNameSelect.options) {
+          if (opt.value && opt.value !== 'custom' && (opt.value.toLowerCase() === detectedCourse.toLowerCase() || (window.isLessonPlanMatch && window.isLessonPlanMatch(detectedCourse, opt.value)))) {
+            planCourseNameSelect.value = opt.value;
+            matchedInSelect = true;
+            break;
+          }
+        }
+      }
+      if (matchedInSelect) {
+        if (planCourseNameInput) planCourseNameInput.value = planCourseNameSelect.value;
+        if (planCourseNameInputContainer) planCourseNameInputContainer.style.display = 'none';
+      } else {
+        if (planCourseNameSelect) planCourseNameSelect.value = 'custom';
+        if (planCourseNameInput) planCourseNameInput.value = detectedCourse;
+        if (planCourseNameInputContainer) planCourseNameInputContainer.style.display = 'block';
+      }
+    }
+    if (detectedGrade && planClassName && (!planClassName.value || planClassName.value === '3/A')) {
+      planClassName.value = detectedGrade;
+    }
+  }
+
+  function enrichOutcomes(outcomes, topics, descriptions, contentVal, rowCells) {
+    let cleanOutcomes = (outcomes || []).map(o => String(o).trim()).filter(Boolean);
+    const cleanTopics = (topics || []).map(t => String(t).trim()).filter(Boolean);
+    const cleanDescs = (descriptions || []).map(d => String(d).trim()).filter(Boolean);
+
+    const isBareNumeric = (arr) => arr.length > 0 && arr.every(item => /^\d+[\.\)]?$/.test(item.trim()));
+
+    if (cleanOutcomes.length === 0 || isBareNumeric(cleanOutcomes)) {
+      const numPrefix = (cleanOutcomes.length > 0 && isBareNumeric(cleanOutcomes)) ? cleanOutcomes[0].replace(/[\.\)]$/, '') : '';
+      
+      let candidateText = '';
+      if (cleanDescs.length > 0) {
+        candidateText = cleanDescs.join('; ');
+      }
+      if (!candidateText && cleanTopics.length > 0) {
+        const longTopic = cleanTopics.find(t => t.length > 15 || /(?:tanır|açıklar|kavrar|uygular|belirtir|fark|özen|gösterir|yapar|edinir|geliştirir)[\.\s]*$/i.test(t));
+        candidateText = longTopic || cleanTopics.join(', ');
+      }
+      if (!candidateText && contentVal && contentVal.length > 8) {
+        candidateText = contentVal;
+      }
+      if (!candidateText && Array.isArray(rowCells)) {
+        for (const cell of rowCells) {
+          const str = String(cell || '').trim();
+          if (str.length > 15 && !/^\d+[\.\/\-]\d+/.test(str) && !/^(?:hafta|tarih|saat|ay)$/i.test(str)) {
+            candidateText = str;
+            break;
+          }
+        }
+      }
+
+      if (candidateText) {
+        if (numPrefix && !new RegExp(`^${numPrefix}[\\.\\)\\-\\s]`).test(candidateText)) {
+          cleanOutcomes = [`${numPrefix}. ${candidateText}`];
+        } else {
+          cleanOutcomes = [candidateText];
+        }
+      }
+    }
+
+    return cleanOutcomes;
+  }
+
+  function formatOutcomeDisplay(outcomeStr, weekItem) {
+    const str = String(outcomeStr || '').trim();
+    if (/^\d+[\.\)]?$/.test(str)) {
+      const num = str.replace(/[\.\)]$/, '');
+      let extra = '';
+      if (weekItem && weekItem.descriptions && weekItem.descriptions.length > 0) {
+        extra = weekItem.descriptions.join('; ');
+      } else if (weekItem && weekItem.topics && weekItem.topics.length > 0) {
+        extra = weekItem.topics.join(', ');
+      } else if (weekItem && weekItem.unitName && !/^(?:ünite|unite|tema|theme)$/i.test(weekItem.unitName.trim())) {
+        extra = weekItem.unitName;
+      }
+      return extra ? `${num}. ${extra}` : `Kazanım ${num}`;
+    }
+    return str;
+  }
+
+  function formatUnitDisplay(unitNo, unitName) {
+    const cleanName = (unitName || '').trim();
+    const isGeneric = !cleanName || /^(?:ünite|unite|tema|theme)$/i.test(cleanName);
+    if (unitNo && !isGeneric) {
+      if (new RegExp(`^${unitNo}\\.?\\s*(?:ünite|unite|tema|theme)`, 'i').test(cleanName)) {
+        return cleanName.toUpperCase();
+      }
+      return `${unitNo}. ÜNİTE: ${cleanName.toUpperCase()}`;
+    } else if (unitNo) {
+      return `${unitNo}. ÜNİTE`;
+    } else if (!isGeneric) {
+      return cleanName.toUpperCase();
+    }
+    return '';
   }
 
   function handlePasteParse(text) {
@@ -469,6 +668,13 @@
         planSelectSheet.innerHTML = '<option value="Pasted Table">Yapıştırılan Tablo</option>';
       }
 
+      // Öğretmen modalda ders seçtiyse asla üzerine yazma
+      const userAlreadySelected = (planCourseNameSelect && planCourseNameSelect.value && planCourseNameSelect.value !== 'custom') || (planCourseNameInput && planCourseNameInput.value.trim());
+      if (!userAlreadySelected) {
+        const detected = detectCourseAndClassFromContent(text, rows, '');
+        applyDetectedCourseAndClass(detected.detectedCourse, detected.detectedGrade);
+      }
+
       setupColumnDropdowns(rows[0].length);
 
       importStepFile.style.display = 'none';
@@ -486,22 +692,21 @@
 
     const baseName = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
     
-    // Automatically match defined lesson from state
-    if (window.isLessonPlanMatch) {
-      const state = stateManager.loadState();
-      const lessons = state.definedLessons || [];
-      const matched = lessons.find(l => l && window.isLessonPlanMatch(baseName, l.name));
-      if (matched && planCourseNameSelect) {
-        planCourseNameSelect.value = matched.name;
-        if (planCourseNameInput) planCourseNameInput.value = matched.name;
-        if (planCourseNameInputContainer) planCourseNameInputContainer.style.display = 'none';
-      } else {
-        if (planCourseNameSelect) planCourseNameSelect.value = 'custom';
-        if (planCourseNameInput) planCourseNameInput.value = baseName;
-        if (planCourseNameInputContainer) planCourseNameInputContainer.style.display = 'block';
+    // Öğretmenin seçtiği ders varsa KESİNLİKLE KORU! Dosya adıyla asla ezme!
+    const userAlreadySelectedCourse = (planCourseNameSelect && planCourseNameSelect.value && planCourseNameSelect.value !== 'custom') || (planCourseNameInput && planCourseNameInput.value.trim() && !/^[a-f0-9]{6,}$/i.test(planCourseNameInput.value.trim()));
+
+    if (!userAlreadySelectedCourse) {
+      if (window.isLessonPlanMatch) {
+        const state = stateManager.loadState();
+        const lessons = state.definedLessons || [];
+        const matched = lessons.find(l => l && window.isLessonPlanMatch(baseName, l.name));
+        if (matched && planCourseNameSelect) {
+          planCourseNameSelect.value = matched.name;
+          if (planCourseNameInput) planCourseNameInput.value = matched.name;
+          if (planCourseNameInputContainer) planCourseNameInputContainer.style.display = 'none';
+        }
       }
-    } else {
-      if (planCourseNameInput) planCourseNameInput.value = baseName;
+      // Dosya adı bilinen bir dersle eşleşmediyse planCourseNameInput'a dosya adını (örn: a4574fe744) ASLA atama!
     }
 
     const isDocx = file.name.toLowerCase().endsWith('.docx');
@@ -526,22 +731,11 @@
                 return;
               }
 
-              if (planSelectSheet) {
-                planSelectSheet.innerHTML = '';
-                tables.forEach((table, index) => {
-                  const opt = document.createElement('option');
-                  opt.value = index;
-                  opt.textContent = `Tablo ${index + 1} (${table.rows.length} Satır)`;
-                  planSelectSheet.appendChild(opt);
-                });
-              }
-
               const sheetsMap = {};
               const sheetNames = [];
-              tables.forEach((table, index) => {
-                const name = `Tablo ${index + 1}`;
-                sheetNames.push(name);
+              const parsedTables = [];
 
+              tables.forEach((table, index) => {
                 const rows = [];
                 for (let i = 0; i < table.rows.length; i++) {
                   const row = table.rows[i];
@@ -551,8 +745,92 @@
                   }
                   rows.push(rowCells);
                 }
+
+                const rowCount = rows.length;
+                let maxCols = 0;
+                for (let r = 0; r < Math.min(10, rows.length); r++) {
+                  if (rows[r] && rows[r].length > maxCols) maxCols = rows[r].length;
+                }
+
+                const fullText = rows.map(r => r.join(' ')).join(' ').toLowerCase();
+                const isAuxAtaturk = /atatürkçülük|atatürk/i.test(fullText);
+                const isAuxBelirli = /belirli gün|özel gün/i.test(fullText);
+                const isAuxImza = /okul müdürü|ders öğretmeni|zümre başkanı|onay|imza/i.test(fullText) && rowCount <= 5;
+                const isAuxiliary = (isAuxAtaturk || isAuxBelirli || isAuxImza) && rowCount < 28 && maxCols <= 4;
+
+                const headerText = rows.slice(0, 3).map(r => r.join(' ')).join(' ').toLowerCase();
+                const hasPlanKeywords = /hafta|ay|saat|kazanım|öğrenme|tema|ünite/i.test(headerText);
+
+                let planScore = 0;
+                if (!isAuxiliary) {
+                  if (rowCount >= 28 && rowCount <= 45) planScore += 120;
+                  else if (rowCount >= 12 && rowCount < 28) planScore += 50;
+                  if (maxCols >= 5) planScore += 40;
+                  else if (maxCols >= 3) planScore += 15;
+                  if (hasPlanKeywords) planScore += 50;
+                } else {
+                  planScore = -100;
+                }
+
+                let descriptiveTag = '';
+                if (isAuxAtaturk) descriptiveTag = ' - Atatürkçülük';
+                else if (isAuxBelirli) descriptiveTag = ' - Belirli Gün ve Haftalar';
+                else if (isAuxImza) descriptiveTag = ' - İmza / Onay';
+                else if (rowCount >= 28 && hasPlanKeywords) descriptiveTag = ' - Yıllık Ders Planı';
+                else if (hasPlanKeywords) descriptiveTag = ' - Ders Planı';
+
+                const name = `Tablo ${index + 1} (${rowCount} Satır, ${maxCols} Sütun${descriptiveTag})`;
                 sheetsMap[name] = rows;
+                sheetNames.push(name);
+
+                parsedTables.push({
+                  index,
+                  name,
+                  rows,
+                  rowCount,
+                  maxCols,
+                  isAuxiliary,
+                  hasPlanKeywords,
+                  planScore
+                });
               });
+
+              // Sadece benzer sütun yapısına sahip ders planı tabloları için birleştirme seçeneği sun (ek tabloları asla ana plana katma)
+              const planCandidates = parsedTables.filter(t => !t.isAuxiliary && t.hasPlanKeywords && t.maxCols >= 4);
+              const hasSingleFullPlan = parsedTables.some(t => !t.isAuxiliary && t.rowCount >= 28 && t.hasPlanKeywords);
+
+              let bestTable = parsedTables.reduce((prev, curr) => (curr.planScore > prev.planScore ? curr : prev), parsedTables[0]);
+
+              if (!hasSingleFullPlan && planCandidates.length > 1) {
+                const firstColCount = planCandidates[0].maxCols;
+                const canMerge = planCandidates.every(t => Math.abs(t.maxCols - firstColCount) <= 1);
+                if (canMerge) {
+                  const mergedPlanRows = [];
+                  planCandidates.forEach((t, i) => {
+                    if (i === 0) {
+                      mergedPlanRows.push(...t.rows);
+                    } else {
+                      const isHeaderRepeat = t.rows.length > 1 && t.rows[0].some(cell => /hafta|ay|saat|kazanım|unite|tema|konu/i.test(cell));
+                      mergedPlanRows.push(...(isHeaderRepeat ? t.rows.slice(1) : t.rows));
+                    }
+                  });
+                  const mergedName = `Dönem Tablolarını Birleştir (${mergedPlanRows.length} Satır - Birleşik Plan)`;
+                  sheetNames.unshift(mergedName);
+                  sheetsMap[mergedName] = mergedPlanRows;
+                  bestTable = { name: mergedName, rows: mergedPlanRows };
+                }
+              }
+
+              if (planSelectSheet) {
+                planSelectSheet.innerHTML = '';
+                sheetNames.forEach(name => {
+                  const opt = document.createElement('option');
+                  opt.value = name;
+                  opt.textContent = name;
+                  planSelectSheet.appendChild(opt);
+                });
+                planSelectSheet.value = bestTable.name;
+              }
 
               currentWorkbook = {
                 SheetNames: sheetNames,
@@ -560,7 +838,15 @@
                 isDocx: true
               };
 
-              loadSheetData(sheetNames[0]);
+              // Word içeriğinden ve tablolarından ders adı ve sınıfı otomatik tespit et (öğretmen önceden ders seçmediyse)
+              const userChosen = (planCourseNameSelect && planCourseNameSelect.value && planCourseNameSelect.value !== 'custom') || (planCourseNameInput && planCourseNameInput.value.trim() && !/^[a-f0-9]{6,}$/i.test(planCourseNameInput.value.trim()));
+              if (!userChosen) {
+                const docText = tempDiv.textContent || '';
+                const detected = detectCourseAndClassFromContent(docText, bestTable.rows, file.name);
+                applyDetectedCourseAndClass(detected.detectedCourse, detected.detectedGrade);
+              }
+
+              loadSheetData(planSelectSheet ? planSelectSheet.value : bestTable.name);
 
               importStepFile.style.display = 'none';
               importStepMapping.style.display = 'block';
@@ -588,6 +874,15 @@
               opt.textContent = sheetName;
               planSelectSheet.appendChild(opt);
             });
+          }
+
+          const userChosen = (planCourseNameSelect && planCourseNameSelect.value && planCourseNameSelect.value !== 'custom') || (planCourseNameInput && planCourseNameInput.value.trim() && !/^[a-f0-9]{6,}$/i.test(planCourseNameInput.value.trim()));
+          if (!userChosen) {
+            let excelText = currentWorkbook.SheetNames.join(' ');
+            const firstWs = currentWorkbook.Sheets[currentWorkbook.SheetNames[0]];
+            const firstRows = XLSX.utils.sheet_to_json(firstWs, { header: 1 });
+            const detected = detectCourseAndClassFromContent(excelText, firstRows, file.name);
+            applyDetectedCourseAndClass(detected.detectedCourse, detected.detectedGrade);
           }
 
           loadSheetData(currentWorkbook.SheetNames[0]);
@@ -629,11 +924,41 @@
     autoDetectColumns(maxCols);
   }
 
+  function getColumnPreviewLabel(colIndex) {
+    if (!currentSheetData || currentSheetData.length === 0) return '';
+    let headerCandidate = '';
+    let sampleCandidate = '';
+
+    for (let r = 0; r < Math.min(4, currentSheetData.length); r++) {
+      const row = currentSheetData[r];
+      if (!row) continue;
+      const rawCell = String(row[colIndex] !== undefined ? row[colIndex] : '').trim().replace(/\s+/g, ' ');
+      if (!rawCell) continue;
+
+      // Sütun başlığı anahtar sözcüğü içeriyorsa öncelikli olarak al
+      if (/^(?:ay|hafta|tarih|saat|ders saati|ünite|unite|tema|öğrenme alanı|ogrenme alani|kazanım.*|hedef.*|konu.*|içerik|icerik|açıklama.*|aciklama.*|etkinlik.*|yöntem.*|araç.*|ölçme.*|değerlendirme.*|belirli gün.*)$/i.test(rawCell)) {
+        headerCandidate = rawCell;
+        break;
+      }
+      if (!headerCandidate && rawCell.length <= 40 && !/^\d{1,2}\.?\s*hafta/i.test(rawCell)) {
+        headerCandidate = rawCell;
+      }
+      if (!sampleCandidate && rawCell) {
+        sampleCandidate = rawCell;
+      }
+    }
+
+    const candidate = headerCandidate || sampleCandidate;
+    if (!candidate) return '';
+    return candidate.length > 25 ? candidate.substring(0, 23) + '…' : candidate;
+  }
+
   function setupColumnDropdowns(colCount) {
     const colOptions = [];
     for (let i = 0; i < colCount; i++) {
       const colLetter = getColumnLetter(i);
-      colOptions.push({ index: i, letter: colLetter });
+      const preview = getColumnPreviewLabel(i);
+      colOptions.push({ index: i, letter: colLetter, preview: preview });
     }
 
     const dropdowns = [
@@ -653,7 +978,7 @@
         colOptions.forEach(col => {
           const opt = document.createElement('option');
           opt.value = col.index;
-          opt.textContent = `${col.letter} Sütunu`;
+          opt.textContent = col.preview ? `${col.letter} Sütunu (${col.preview})` : `${col.letter} Sütunu`;
           select.appendChild(opt);
         });
       }
@@ -670,18 +995,69 @@
     return letter;
   }
 
-  function autoDetectColumns(colCount) {
-    if (!currentSheetData || currentSheetData.length === 0) return;
+  function parseColIndex(val, maxCols) {
+    if (val === null || val === undefined || val === '') return -1;
+    
+    // Direct number
+    if (typeof val === 'number' && !isNaN(val)) {
+      if (val >= 0 && val < maxCols) return val;
+      if (val >= 1 && val <= maxCols) return val - 1;
+      return -1;
+    }
 
-    let headerRowIndex = 0;
+    const s = String(val).trim().toUpperCase();
+    
+    // Single letter "A", "B", "C"...
+    if (/^[A-Z]$/.test(s)) {
+      const idx = s.charCodeAt(0) - 65;
+      if (idx >= 0 && idx < maxCols) return idx;
+    }
+
+    // "A SÜTUNU", "SÜTUN A", "COL A", "COLUMN B"
+    const letterMatch = s.match(/(?:SÜTUN|COL|COLUMN)?\s*([A-Z])\s*(?:SÜTUNU|SUTUNU|COL)?/i);
+    if (letterMatch && letterMatch[1]) {
+      const idx = letterMatch[1].toUpperCase().charCodeAt(0) - 65;
+      if (idx >= 0 && idx < maxCols) return idx;
+    }
+
+    // Number inside string "0", "1", "2"...
+    const numMatch = s.match(/\b\d+\b/);
+    if (numMatch) {
+      const n = parseInt(numMatch[0], 10);
+      if (n >= 0 && n < maxCols) return n;
+      if (n >= 1 && n <= maxCols) return n - 1;
+    }
+
+    return -1;
+  }
+
+  function detectHeuristicColumns(colCount) {
     const detectedCols = {
       month: -1, week: -1, dateRange: -1, hours: -1, unit: -1, 
       outcomes: -1, topics: -1, descriptions: -1, 
-      special: -1, assessment: -1, content: -1
+      special: -1, assessment: -1, content: -1,
+      startRow: 2
     };
+
+    if (!currentSheetData || currentSheetData.length === 0) return detectedCols;
+
+    function isColMostlyNumeric(colIdx, startRow = 1) {
+      let numCount = 0;
+      let totalCount = 0;
+      for (let r = startRow; r < Math.min(25, currentSheetData.length); r++) {
+        const val = String(currentSheetData[r] && currentSheetData[r][colIdx] !== undefined ? currentSheetData[r][colIdx] : '').trim();
+        if (!val) continue;
+        totalCount++;
+        if (/^\d+[\.\)]?$/.test(val)) {
+          numCount++;
+        }
+      }
+      return totalCount >= 2 && (numCount / totalCount) >= 0.6;
+    }
 
     const maxSearchRows = Math.min(15, currentSheetData.length);
     let bestHeaderScore = -1;
+    let headerRowIndex = 0;
 
     const keywords = {
       month: ['ay', 'month', 'dönem'],
@@ -689,7 +1065,7 @@
       dateRange: ['tarih', 'süre', 'gün', 'date', 'aralık', 'tarih aralığı', 'tarih araligi'],
       hours: ['saat', 'ders saati', 'süre', 'hours', 'hour'],
       unit: ['ünite', 'unite', 'tema', 'öğrenme alanı', 'ogrenme alani', 'alt öğrenme', 'unit', 'theme'],
-      outcomes: ['kazanım', 'kazanim', 'hedef', 'outcomes', 'outcome', 'learning outcomes'],
+      outcomes: ['kazanım', 'kazanim', 'hedef', 'outcomes', 'outcome', 'learning outcomes', 'öğrenme çıktıları'],
       topics: ['konu', 'içerik', 'icerik', 'topics', 'topic', 'subject'],
       descriptions: ['açıklama', 'aciklama', 'yöntem', 'yontem', 'etkinlik', 'descriptions', 'description', 'notes'],
       special: ['belirli gün', 'belirli gun', 'gün ve haftalar', 'gun ve haftalar', 'özel gün', 'special days'],
@@ -703,7 +1079,7 @@
       const tempDets = { ...detectedCols };
 
       for (let c = 0; c < row.length; c++) {
-        const val = String(row[c]).toLocaleLowerCase('tr-TR').trim();
+        const val = String(row[c] || '').toLocaleLowerCase('tr-TR').trim();
         if (!val) continue;
 
         for (const key in keywords) {
@@ -715,6 +1091,14 @@
               matched = val.includes(keyword);
             }
             if (matched) {
+              // Kazanım / Konu / Açıklama / İçerik sayısal sütunlara (örn: "Kazanım No") eşlenmemelidir
+              if (key === 'outcomes' || key === 'topics' || key === 'descriptions' || key === 'content') {
+                const isNumericHeader = /\b(?:no|numara|sıra|kodu)\b/i.test(val);
+                const isNumericData = isColMostlyNumeric(c, r + 1);
+                if (isNumericHeader || isNumericData) {
+                  return;
+                }
+              }
               rowScore += (val === keyword) ? 3 : 1;
               tempDets[key] = c;
             }
@@ -729,20 +1113,54 @@
       }
     }
 
-    // Set fallback defaults if not found
     if (detectedCols.week === -1) detectedCols.week = colCount > 1 ? 1 : 0;
-    if (detectedCols.dateRange === -1) {
-      if (colCount > 2) detectedCols.dateRange = 2;
+    if (detectedCols.dateRange === -1 && colCount > 2) detectedCols.dateRange = 2;
+
+    // Kazanım bulunamadıysa en uzun metin içeren sütunu bul (sayısal ve hafta/saat olmayan)
+    if (detectedCols.outcomes === -1) {
+      let bestOutcomesCol = -1;
+      let maxAvgLen = 0;
+      for (let c = 0; c < colCount; c++) {
+        if (c === detectedCols.week || c === detectedCols.dateRange || c === detectedCols.hours || c === detectedCols.month) continue;
+        if (isColMostlyNumeric(c, headerRowIndex + 1)) continue;
+        let totalLen = 0;
+        let validRows = 0;
+        for (let r = headerRowIndex + 1; r < Math.min(headerRowIndex + 20, currentSheetData.length); r++) {
+          const cellStr = String(currentSheetData[r] && currentSheetData[r][c] !== undefined ? currentSheetData[r][c] : '').trim();
+          if (cellStr) {
+            totalLen += cellStr.length;
+            validRows++;
+          }
+        }
+        const avg = validRows > 0 ? (totalLen / validRows) : 0;
+        if (avg > maxAvgLen && avg > 12) {
+          maxAvgLen = avg;
+          bestOutcomesCol = c;
+        }
+      }
+      if (bestOutcomesCol !== -1) {
+        detectedCols.outcomes = bestOutcomesCol;
+      }
     }
+
     if (detectedCols.content === -1) {
-      if (detectedCols.dateRange === 2 && colCount > 3) {
+      if (detectedCols.outcomes !== -1) {
+        detectedCols.content = detectedCols.outcomes;
+      } else if (detectedCols.dateRange === 2 && colCount > 3) {
         detectedCols.content = 3;
       } else {
         detectedCols.content = colCount > 2 ? 2 : 0;
       }
     }
+    detectedCols.startRow = headerRowIndex + 2;
+    return detectedCols;
+  }
 
-    // Assign selectors
+  function autoDetectColumns(colCount) {
+    if (!currentSheetData || currentSheetData.length === 0) return;
+
+    const detectedCols = detectHeuristicColumns(colCount);
+
     if (planColMonth) planColMonth.value = detectedCols.month !== -1 ? detectedCols.month : '';
     if (planColWeek) planColWeek.value = detectedCols.week !== -1 ? detectedCols.week : '';
     if (planColDateRange) planColDateRange.value = detectedCols.dateRange !== -1 ? detectedCols.dateRange : '';
@@ -755,9 +1173,479 @@
     if (planColAssessment) planColAssessment.value = detectedCols.assessment !== -1 ? detectedCols.assessment : '';
     if (planColContent) planColContent.value = detectedCols.content !== -1 ? detectedCols.content : '';
     
-    if (planRowStart) planRowStart.value = headerRowIndex + 2;
+    if (planRowStart) planRowStart.value = detectedCols.startRow;
 
     updateImportPreview();
+  }
+
+  async function handleAiAutoMapPlan() {
+    if (!currentSheetData || currentSheetData.length === 0) {
+      if (toastCallbackFn) toastCallbackFn('Önce bir dosya veya tablo verisi yüklemelisiniz.', 'warning');
+      return;
+    }
+
+    const apiKey = window.getGeminiApiKey ? window.getGeminiApiKey() : (localStorage.getItem('sinif_asistani_gemini_api_key') || '').trim();
+    if (!apiKey) {
+      if (toastCallbackFn) toastCallbackFn('Yapay zeka ile sütun analizi için lütfen önce Gemini API anahtarınızı tanımlayın.', 'warning');
+      if (window.openGeminiKeyModal) window.openGeminiKeyModal();
+      return;
+    }
+
+    if (!window.callGeminiAPI) {
+      if (toastCallbackFn) toastCallbackFn('Yapay zeka servisi yüklenemedi. Lütfen sayfayı yenileyin.', 'danger');
+      return;
+    }
+
+    // Sütun sayısını hesapla
+    let maxCols = 0;
+    const scanLimit = Math.min(25, currentSheetData.length);
+    for (let r = 0; r < scanLimit; r++) {
+      if (currentSheetData[r] && currentSheetData[r].length > maxCols) {
+        maxCols = currentSheetData[r].length;
+      }
+    }
+    if (maxCols === 0) maxCols = 1;
+
+    // Her sütun için harf, indeks ve ilk 8 örnek hücre değerini derle
+    const colProfiles = [];
+    for (let c = 0; c < maxCols; c++) {
+      const colLetter = getColumnLetter(c);
+      const samples = [];
+      for (let r = 0; r < Math.min(15, currentSheetData.length); r++) {
+        const cellVal = currentSheetData[r] && currentSheetData[r][c] !== undefined ? String(currentSheetData[r][c]).trim() : '';
+        if (cellVal) {
+          const clean = cellVal.replace(/\s+/g, ' ');
+          samples.push(clean.length > 70 ? clean.slice(0, 67) + '...' : clean);
+        }
+      }
+      colProfiles.push({
+        index: c,
+        letter: colLetter,
+        samples: samples.slice(0, 8)
+      });
+    }
+
+    // Kural tabanlı yedekleri hesapla
+    const fallbackCols = detectHeuristicColumns(maxCols);
+
+    const originalBtnHtml = btnAiAutoMapPlan.innerHTML;
+    btnAiAutoMapPlan.disabled = true;
+    btnAiAutoMapPlan.innerHTML = `<span class="spinner-sm" style="display:inline-block; width:13px; height:13px; border:2px solid #fff; border-top-color:transparent; border-radius:50%; animation:spin 0.8s linear infinite; margin-right:4px; vertical-align:middle;"></span> Çözümleniyor...`;
+
+    if (aiPlanMappingStatus) {
+      aiPlanMappingStatus.style.display = 'block';
+      aiPlanMappingStatus.style.background = 'rgba(99, 102, 241, 0.1)';
+      aiPlanMappingStatus.style.border = '1px solid rgba(99, 102, 241, 0.3)';
+      aiPlanMappingStatus.style.color = 'var(--text-primary)';
+      aiPlanMappingStatus.innerHTML = `<strong>✨ Yapay Zeka Tabloyu İnceliyor:</strong> Sütun başlıkları ve ilk veri satırları analiz ediliyor, lütfen bekleyin...`;
+    }
+
+    try {
+      const columnDescriptions = colProfiles.map(p => 
+        `- Sütun ${p.letter} (İndeks ${p.index}): [${p.samples.map(s => `"${s}"`).join(', ')}]`
+      ).join('\n');
+
+      const prompt = `Sen eğitim planlama yazılımlarında uzman bir veri analistisin. Aşağıda bir öğretmenin yüklediği yıllık ders planı tablosundaki tüm sütunlar (Sütun Harfi, Sütun İndeksi ve ilk satırlardaki örnek hücre içerikleri) listelenmiştir:
+
+SÜTUN LİSTESİ VE ÖRNEK DEĞERLERİ:
+${columnDescriptions}
+
+GÖREV:
+Yukarıdaki sütun içeriklerini ve başlıklarını analiz ederek aşağıdaki alanların hangi sütunda yer aldığını tespit et:
+1. "week": Hafta sütunu (1. Hafta, 2. Hafta, veya "Hafta / Tarih", "Süre" gibi haftanın belirtildiği sütun. BU ALAN EN KRİTİK ALANDIR, MUTLAKA EN UYGUN SÜTUNU SEÇ!)
+2. "month": Ay sütunu (Eylül, Ekim, Kasım vb. aylar. Tabloda ayrı ay sütunu yoksa null)
+3. "dateRange": Tarih aralığı sütunu (Örn: 09-13 Eylül, 15-19 Eylül. Ayrı bir tarih sütunu yoksa hafta sütunuyla aynı indeksi verebilirsin)
+4. "hours": Ders saati sütunu (2, 4 vb. haftalık ders saatleri)
+5. "unit": Ünite No / Ünite Adı / Tema / Öğrenme Alanı sütunu
+6. "outcomes": Kazanımlar / Öğrenme Hedefleri / Öğrenme Çıktıları sütunu (DİKKAT: Tabloda sadece sıra veya kazanım numarası içeren örn: "10", "1", "2" gibi sayısal bir sütun varsa KESİNLİKLE onu değil, kazanımın Türkçe açıklamasını/cümlesini içeren metin sütununu seç!)
+7. "topics": Konu / Konular / Alt Konular sütunu
+8. "descriptions": Açıklamalar / Yöntem-Teknik / Araç-Gereç / Ders İçi Etkinlik sütunu
+9. "special": Belirli Gün ve Haftalar sütunu
+10. "assessment": Ölçme ve Değerlendirme sütunu
+11. "content": Ana Ders İçeriği / Kazanım ve Konuların birlikte yer aldığı sütun (Eğer kazanım ve konular tek sütundaysa bu sütunu seç)
+12. "startRow": Başlık satırlarının bittiği ve ilk gerçek ders verisinin başladığı satır numarası (1-tabanlı sayı, örn: 2, 3 veya 4)
+
+ÖNEMLİ KURALLAR:
+- Değerleri sütun indeksi (0, 1, 2, ...) veya sütun harfi ("A", "B", "C", ...) olarak belirt.
+- "week" alanını MUTLAKA doldur (Hafta, Tarih veya Süre içeren sütun).
+- "outcomes" veya "content" alanını MUTLAKA doldur (Kazanım, Konu veya Ders içeriği içeren sütun).
+- Tabloda gerçekten bulunmayan yan alanlar için null ver.
+
+Cevabını YALNIZCA şu JSON formatında ver:
+{
+  "week": 1,
+  "month": 0,
+  "dateRange": 1,
+  "hours": 4,
+  "unit": 0,
+  "outcomes": 2,
+  "topics": 3,
+  "descriptions": null,
+  "special": null,
+  "assessment": null,
+  "content": 2,
+  "startRow": 2
+}`;
+
+      const rawResponse = await window.callGeminiAPI(prompt, { json: true, temperature: 0.1 });
+      let cleanJson = rawResponse.trim();
+      if (cleanJson.startsWith('```json')) {
+        cleanJson = cleanJson.replace(/^```json\s*/i, '').replace(/```\s*$/, '').trim();
+      } else if (cleanJson.startsWith('```')) {
+        cleanJson = cleanJson.replace(/^```\s*/, '').replace(/```\s*$/, '').trim();
+      }
+
+      const objMatch = cleanJson.match(/\{[\s\S]*\}/);
+      if (objMatch) {
+        cleanJson = objMatch[0];
+      }
+
+      let mapping = {};
+      try {
+        mapping = JSON.parse(cleanJson);
+      } catch (parseErr) {
+        console.warn('AI yanıtı JSON olarak tam ayrıştırılamadı, yedek kurallar devreye giriyor:', cleanJson);
+      }
+
+      // Sütun eşleme yardımcı fonksiyonu (AI bulduysa kullan, bulamadıysa yedekten al, asla gereksiz sıfırlama yapma)
+      const applyCol = (selectElem, aiVal, fallbackIdx) => {
+        if (!selectElem) return;
+        const parsed = parseColIndex(aiVal, maxCols);
+        if (parsed >= 0) {
+          selectElem.value = String(parsed);
+        } else if (fallbackIdx !== undefined && fallbackIdx >= 0) {
+          selectElem.value = String(fallbackIdx);
+        }
+      };
+
+      applyCol(planColWeek, mapping.week, fallbackCols.week);
+      applyCol(planColMonth, mapping.month, fallbackCols.month);
+      applyCol(planColDateRange, mapping.dateRange, fallbackCols.dateRange);
+      applyCol(planColHours, mapping.hours, fallbackCols.hours);
+      applyCol(planColUnit, mapping.unit, fallbackCols.unit);
+      applyCol(planColOutcomes, mapping.outcomes, fallbackCols.outcomes);
+      applyCol(planColTopics, mapping.topics, fallbackCols.topics);
+      applyCol(planColDescriptions, mapping.descriptions, fallbackCols.descriptions);
+      applyCol(planColSpecial, mapping.special, fallbackCols.special);
+      applyCol(planColAssessment, mapping.assessment, fallbackCols.assessment);
+      applyCol(planColContent, mapping.content, fallbackCols.content);
+
+      // Güvenlik Ağı 1: Hafta sütunu mutlaka geçerli bir sütun olmalı!
+      if (!planColWeek || planColWeek.value === '') {
+        let bestWeekCol = -1;
+        for (let c = 0; c < maxCols; c++) {
+          const p = colProfiles[c];
+          const joined = p.samples.join(' ').toLocaleLowerCase('tr');
+          if (/hafta|\bweek\b|tarih|süre|\d{1,2}[\.\/\-]\d{1,2}/.test(joined)) {
+            bestWeekCol = c;
+            break;
+          }
+        }
+        if (bestWeekCol === -1) bestWeekCol = maxCols > 1 ? 1 : 0;
+        if (planColWeek) planColWeek.value = String(bestWeekCol);
+      }
+
+      // Güvenlik Ağı 2: Tarih Aralığı boşsa ve hafta sütunu tarih içeriyorsa eşle
+      if (planColDateRange && planColDateRange.value === '' && planColWeek && planColWeek.value !== '') {
+        planColDateRange.value = planColWeek.value;
+      }
+
+      // Güvenlik Ağı 2.5: Kazanım sütunu sadece sayı mı içeriyor? Eğer öyleyse gerçek metin sütununa yönlendir!
+      if (planColOutcomes && planColOutcomes.value !== '') {
+        const outIdx = parseInt(planColOutcomes.value);
+        if (!isNaN(outIdx) && colProfiles[outIdx]) {
+          const prof = colProfiles[outIdx];
+          const isNumeric = prof.samples.length > 0 && prof.samples.filter(s => /^\d+[\.\)]?$/.test(s.trim())).length >= prof.samples.length * 0.5;
+          if (isNumeric) {
+            let bestCol = -1;
+            let maxAvg = 0;
+            for (let c = 0; c < maxCols; c++) {
+              if (c === outIdx) continue;
+              if (String(c) === planColWeek.value || (planColHours && String(c) === planColHours.value)) continue;
+              const cp = colProfiles[c];
+              if (!cp || cp.samples.length === 0) continue;
+              const numCount = cp.samples.filter(s => /^\d+[\.\)]?$/.test(s.trim())).length;
+              if (numCount >= cp.samples.length * 0.5) continue;
+              const avg = cp.samples.reduce((a, s) => a + s.length, 0) / cp.samples.length;
+              if (avg > maxAvg) {
+                maxAvg = avg;
+                bestCol = c;
+              }
+            }
+            if (bestCol >= 0) {
+              planColOutcomes.value = String(bestCol);
+            }
+          }
+        }
+      }
+
+      // Güvenlik Ağı 3: Kazanım / Konu / İçerik alanlarından en az biri seçili olmalı!
+      const hasOutcomes = planColOutcomes && planColOutcomes.value !== '';
+      const hasTopics = planColTopics && planColTopics.value !== '';
+      const hasContent = planColContent && planColContent.value !== '';
+
+      if (!hasOutcomes && !hasTopics && !hasContent) {
+        let bestContentCol = -1;
+        let maxTextLen = 0;
+        for (let c = 0; c < maxCols; c++) {
+          const strC = String(c);
+          if (strC === planColWeek.value || (planColHours && strC === planColHours.value) || (planColUnit && strC === planColUnit.value)) {
+            continue;
+          }
+          const p = colProfiles[c];
+          const joined = p.samples.join(' ');
+          const lower = joined.toLocaleLowerCase('tr');
+          if (/kazanım|kazanim|öğrenme|hedef|konu|içerik/.test(lower)) {
+            bestContentCol = c;
+            break;
+          }
+          if (joined.length > maxTextLen) {
+            maxTextLen = joined.length;
+            bestContentCol = c;
+          }
+        }
+        if (bestContentCol >= 0) {
+          if (planColOutcomes) planColOutcomes.value = String(bestContentCol);
+          if (planColContent) planColContent.value = String(bestContentCol);
+        }
+      }
+
+      // Öğretmen ders seçmediyse ve içerikten ders adı tespit edilebiliyorsa ata
+      const teacherHasSelected = (planCourseNameSelect && planCourseNameSelect.value && planCourseNameSelect.value !== 'custom') || (planCourseNameInput && planCourseNameInput.value.trim() && !/^[a-f0-9]{6,}$/i.test(planCourseNameInput.value.trim()));
+      if (!teacherHasSelected) {
+        const detected = detectCourseAndClassFromContent('', currentSheetData, '');
+        if (detected.detectedCourse) {
+          applyDetectedCourseAndClass(detected.detectedCourse, detected.detectedGrade);
+        }
+      }
+
+      // Başlangıç Satırı
+      if (planRowStart) {
+        let sRow = parseInt(mapping.startRow);
+        if (!isNaN(sRow) && sRow >= 1 && sRow <= currentSheetData.length) {
+          planRowStart.value = sRow;
+        } else if (fallbackCols.startRow >= 1) {
+          planRowStart.value = fallbackCols.startRow;
+        }
+      }
+
+      updateImportPreview();
+
+      // Kullanıcıya eşlenen temel sütunları gösteren bilgilendirici bildirim
+      const mappedDetails = [];
+      if (planColWeek && planColWeek.value !== '') mappedDetails.push(`Hafta: ${getColumnLetter(parseInt(planColWeek.value))}`);
+      if (planColHours && planColHours.value !== '') mappedDetails.push(`Ders Saati: ${getColumnLetter(parseInt(planColHours.value))}`);
+      if (planColUnit && planColUnit.value !== '') mappedDetails.push(`Ünite: ${getColumnLetter(parseInt(planColUnit.value))}`);
+      if (planColOutcomes && planColOutcomes.value !== '') mappedDetails.push(`Kazanım: ${getColumnLetter(parseInt(planColOutcomes.value))}`);
+      else if (planColContent && planColContent.value !== '') mappedDetails.push(`İçerik: ${getColumnLetter(parseInt(planColContent.value))}`);
+
+      if (aiPlanMappingStatus) {
+        aiPlanMappingStatus.style.background = 'rgba(16, 185, 129, 0.12)';
+        aiPlanMappingStatus.style.border = '1px solid rgba(16, 185, 129, 0.3)';
+        aiPlanMappingStatus.style.color = 'var(--text-primary)';
+        aiPlanMappingStatus.innerHTML = `<strong>✅ Başarılı:</strong> Yapay zeka tablonuzu çözümledi ve eşleştirdi!<br><span style="font-size: 0.78rem; opacity: 0.9;">Tespit Edilen Sütunlar: ${mappedDetails.join(' | ')} (Veri Başlangıç Satırı: ${planRowStart.value})</span>`;
+      }
+
+      if (toastCallbackFn) toastCallbackFn('✨ Yapay zeka sütunları başarıyla eşleştirdi!', 'success');
+    } catch (err) {
+      console.error('Yapay zeka eşleme hatası:', err);
+      // Hata durumunda da akıllı kural tabanlı eşlemeyi devreye sok
+      if (fallbackCols) {
+        if (planColWeek && fallbackCols.week >= 0) planColWeek.value = String(fallbackCols.week);
+        if (planColHours && fallbackCols.hours >= 0) planColHours.value = String(fallbackCols.hours);
+        if (planColUnit && fallbackCols.unit >= 0) planColUnit.value = String(fallbackCols.unit);
+        if (planColOutcomes && fallbackCols.outcomes >= 0) planColOutcomes.value = String(fallbackCols.outcomes);
+        if (planColContent && fallbackCols.content >= 0) planColContent.value = String(fallbackCols.content);
+        if (planRowStart && fallbackCols.startRow >= 1) planRowStart.value = fallbackCols.startRow;
+        updateImportPreview();
+      }
+      if (aiPlanMappingStatus) {
+        aiPlanMappingStatus.style.background = 'rgba(239, 68, 68, 0.12)';
+        aiPlanMappingStatus.style.border = '1px solid rgba(239, 68, 68, 0.3)';
+        aiPlanMappingStatus.style.color = 'var(--text-primary)';
+        aiPlanMappingStatus.innerHTML = `<strong>⚠️ Eşleme Uyarısı:</strong> ${err.message || 'Yapay zeka ile eşleme yapılırken bir sorun oluştu, temel eşleme uygulandı.'}`;
+      }
+      if (toastCallbackFn) toastCallbackFn('Yapay zeka eşlemesi tamamlandı, lütfen kontrol ediniz.', 'info');
+    } finally {
+      btnAiAutoMapPlan.disabled = false;
+      btnAiAutoMapPlan.innerHTML = originalBtnHtml;
+      if (window.safeCreateIcons) window.safeCreateIcons();
+    }
+  }
+
+  async function handleGenerateAiAnnualPlan() {
+    const apiKey = window.getGeminiApiKey ? window.getGeminiApiKey() : (localStorage.getItem('sinif_asistani_gemini_api_key') || '').trim();
+    if (!apiKey) {
+      if (toastCallbackFn) toastCallbackFn('Yapay zeka ile plan üretmek için lütfen önce Gemini API anahtarınızı tanımlayın.', 'warning');
+      if (window.openGeminiKeyModal) window.openGeminiKeyModal();
+      return;
+    }
+
+    if (!window.callGeminiAPI) {
+      if (toastCallbackFn) toastCallbackFn('Yapay zeka servisi yüklenemedi. Lütfen sayfayı yenileyin.', 'danger');
+      return;
+    }
+
+    const courseName = ((planCourseNameInput && planCourseNameInput.value) ? planCourseNameInput.value : (planCourseNameSelect && planCourseNameSelect.value !== 'custom' ? planCourseNameSelect.value : '')).trim();
+    const className = (planClassName ? planClassName.value : '3/A').trim();
+    const educationYear = (planEducationYear ? planEducationYear.value : '2025-2026').trim();
+    const hoursPerWeek = parseInt(aiPlanHours ? aiPlanHours.value : '4') || 4;
+    const curriculumStyle = aiPlanCurriculumStyle ? aiPlanCurriculumStyle.value : 'maarif';
+    const customNotes = aiPlanNotes ? aiPlanNotes.value.trim() : '';
+
+    if (!courseName) {
+      if (toastCallbackFn) toastCallbackFn('Lütfen yıllık plan için ders adını belirtin.', 'danger');
+      if (planCourseNameSelect) planCourseNameSelect.focus();
+      return;
+    }
+
+    const originalBtnHtml = btnGenerateAiAnnualPlan.innerHTML;
+    btnGenerateAiAnnualPlan.disabled = true;
+    btnGenerateAiAnnualPlan.innerHTML = `<span class="spinner-sm" style="display:inline-block; width:14px; height:14px; border:2px solid #fff; border-top-color:transparent; border-radius:50%; animation:spin 0.8s linear infinite; margin-right:4px; vertical-align:middle;"></span> Plan Hazırlanıyor...`;
+
+    if (aiPlanGenStatus) {
+      aiPlanGenStatus.style.display = 'block';
+    }
+    if (aiPlanGenStatusText) {
+      aiPlanGenStatusText.textContent = `Yapay zeka ${className} ${courseName} dersi için MEB müfredatını ve 36 haftalık yıllık planı hazırlıyor, lütfen bekleyin...`;
+    }
+
+    try {
+      const prompt = `Sen Türkiye Cumhuriyeti Millî Eğitim Bakanlığı (MEB) müfredat uzmanı ve deneyimli bir zümre başkanısın.
+Aşağıda bilgileri verilen ders ve sınıf için ${educationYear} eğitim-öğretim yılına ait 36 haftalık eksiksiz, MEB müfredatına tam uyumlu bir YILLIK DERS PLANI hazırla.
+
+DERS BİLGİLERİ:
+- Ders Adı: ${courseName}
+- Sınıf Düzeyi: ${className}
+- Haftalık Ders Saati: ${hoursPerWeek}
+- Müfredat Modeli: ${curriculumStyle === 'maarif' ? 'Türkiye Yüzyılı Maarif Modeli (Güncel MEB Programı)' : 'Standart MEB Öğretim Programı'}
+${customNotes ? `- Öğretmenin Özel İstekleri ve Notları: ${customNotes}` : ''}
+
+Yanıtını YALNIZCA geçerli ve hatasız bir JSON objesi formatında ver. Kesinlikle başka hiçbir metin veya markdown kodu yazma:
+{
+  "title": "${className} - ${courseName}",
+  "educationYear": "${educationYear}",
+  "className": "${className}",
+  "courseName": "${courseName}",
+  "weeklySchedule": [
+    {
+      "weekNum": 1,
+      "weekLabel": "1. Hafta",
+      "month": "EYLÜL",
+      "dateRange": "08 Eylül – 12 Eylül",
+      "classHours": ${hoursPerWeek},
+      "unitNo": 1,
+      "unitName": "1. Ünite Adı",
+      "learningOutcomes": ["Kazanım kodu ve tam açıklaması"],
+      "topics": ["Konu başlığı"],
+      "descriptions": ["Yöntem-teknik, araç-gereç ve ders içi etkinlikler"],
+      "specialDays": "İlköğretim Haftası",
+      "assessment": ["Ders içi gözlem, soru-cevap"],
+      "isHoliday": false
+    }
+  ]
+}
+
+ÖNEMLİ KURALLAR:
+1. 1. haftadan 36. haftaya kadar MEB takvimine uygun tüm haftaları oluştur.
+2. 1. Dönem Ara Tatil (Kasım), Yarıyıl / Sömestr Tatili (Ocak sonu - Şubat başı) ve 2. Dönem Ara Tatil (Nisan) haftalarını "isHoliday": true ve "classHours": 0 olarak işaretle.
+3. İlgili haftalara denk gelen belirli gün ve haftaları (Cumhuriyet Bayramı, 10 Kasım Atatürk'ü Anma, 24 Kasım Öğretmenler Günü, 12 Mart İstiklal Marşı'nın Kabulü, 18 Mart Çanakkale Zaferi, 23 Nisan, 19 Mayıs vb.) "specialDays" alanına ekle.
+4. Kazanımlar ilgili sınıf ve dersin gerçek MEB müfredatına uygun olmalıdır.`;
+
+      const rawResponse = await window.callGeminiAPI(prompt, { json: true, temperature: 0.3 });
+      let cleanJson = rawResponse.trim();
+      if (cleanJson.startsWith('```json')) {
+        cleanJson = cleanJson.replace(/^```json\s*/i, '').replace(/```\s*$/, '').trim();
+      } else if (cleanJson.startsWith('```')) {
+        cleanJson = cleanJson.replace(/^```\s*/, '').replace(/```\s*$/, '').trim();
+      }
+
+      const objMatch = cleanJson.match(/\{[\s\S]*\}/);
+      if (objMatch) {
+        cleanJson = objMatch[0];
+      }
+
+      const planResult = JSON.parse(cleanJson);
+      if (!planResult.weeklySchedule || !Array.isArray(planResult.weeklySchedule) || planResult.weeklySchedule.length === 0) {
+        throw new Error('Yapay zeka haftalık ders planını oluşturamadı.');
+      }
+
+      const startYear = parseInt(educationYear.split('-')[0]) || new Date().getFullYear();
+      const finalSchedule = planResult.weeklySchedule.map((w, idx) => {
+        const wNum = w.weekNum || (idx + 1);
+        const isHoliday = Boolean(w.isHoliday);
+
+        const sept1 = new Date(startYear, 8, 1);
+        const dayOfSept1 = sept1.getDay() || 7;
+        const schoolStart = new Date(sept1.getTime());
+        schoolStart.setDate(sept1.getDate() - dayOfSept1 + 1 + 7);
+        const sDate = new Date(schoolStart.getTime());
+        sDate.setDate(schoolStart.getDate() + (wNum - 1) * 7);
+        const eDate = new Date(sDate.getTime());
+        eDate.setDate(sDate.getDate() + 4);
+
+        const sDateStr = sDate.toISOString().slice(0, 10);
+        const eDateStr = eDate.toISOString().slice(0, 10);
+        const isoWeek = window.getISOWeek ? window.getISOWeek(sDate) : '';
+
+        return {
+          id: 'w_' + wNum + '_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+          month: (w.month || '').toUpperCase(),
+          weekNumber: [wNum],
+          weekLabel: w.weekLabel || `${wNum}. Hafta`,
+          dateRange: w.dateRange || `${sDate.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' })} – ${eDate.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' })}`,
+          startDate: sDateStr,
+          endDate: eDateStr,
+          isoWeek: isoWeek,
+          classHours: isHoliday ? 0 : (w.classHours || hoursPerWeek),
+          unitNo: w.unitNo !== undefined ? w.unitNo : null,
+          unitName: w.unitName || null,
+          learningOutcomes: Array.isArray(w.learningOutcomes) ? w.learningOutcomes : (w.learningOutcomes ? [w.learningOutcomes] : []),
+          topics: Array.isArray(w.topics) ? w.topics : (w.topics ? [w.topics] : []),
+          descriptions: Array.isArray(w.descriptions) ? w.descriptions : (w.descriptions ? [w.descriptions] : []),
+          specialDays: w.specialDays || null,
+          assessment: Array.isArray(w.assessment) ? w.assessment : (w.assessment ? [w.assessment] : []),
+          isHoliday: isHoliday,
+          isCompleted: false
+        };
+      });
+
+      const savedPlan = stateManager.addPlan({
+        title: `${className} - ${courseName}`,
+        educationYear: educationYear,
+        className: className,
+        courseName: courseName,
+        weeklySchedule: finalSchedule
+      });
+
+      if (!savedPlan) return;
+
+      modalImportPlan.classList.remove('active');
+      if (toastCallbackFn) toastCallbackFn(`✨ "${courseName}" yıllık planı yapay zeka tarafından başarıyla oluşturuldu ve kaydedildi! (Toplam ${finalSchedule.length} hafta)`, 'success');
+
+      activePlansMainTab = 'general';
+      if (btnPlansTabGeneral) btnPlansTabGeneral.classList.add('active');
+      if (btnPlansTabWeekly) btnPlansTabWeekly.classList.remove('active');
+      if (plansTabContentGeneral) plansTabContentGeneral.style.display = 'block';
+      if (plansTabContentWeekly) plansTabContentWeekly.style.display = 'none';
+
+      expandedPlans[savedPlan.id] = true;
+      finalSchedule.forEach(week => {
+        if (week.month) {
+          expandedMonths[savedPlan.id + '_' + week.month] = true;
+        }
+      });
+
+      renderPlansList();
+    } catch (err) {
+      console.error('Yapay zeka plan üretme hatası:', err);
+      if (toastCallbackFn) toastCallbackFn(err.message || 'Yapay zeka yıllık plan üretirken bir hata oluştu.', 'danger');
+    } finally {
+      btnGenerateAiAnnualPlan.disabled = false;
+      btnGenerateAiAnnualPlan.innerHTML = originalBtnHtml;
+      if (aiPlanGenStatus) aiPlanGenStatus.style.display = 'none';
+      if (window.safeCreateIcons) window.safeCreateIcons();
+    }
   }
 
   function cleanMonthName(monthVal, weekVal, startYear, weekCounter) {
@@ -877,8 +1765,11 @@
       if (!cleanLine || isDateString(cleanLine)) {
         return;
       }
-      const outcomeRegex = /^[A-Za-zÇĞİÖŞÜçğıöşü]\.\d+\.\d+/;
-      if (outcomeRegex.test(cleanLine)) {
+      const outcomeRegex = /^[A-Za-zÇĞİÖŞÜçğıöşü]{1,5}\.?\s*\d+/;
+      const isOutcomeVerb = /(?:tanır|açıklar|kavrar|fark eder|uygular|ilişkilendirir|özen gösterir|çözümler|belirtir|karşılaştırır|ayırt eder|gösterir|yapar|geliştirir|öğrenir|kullanır|tanıtır)[\.\s]*$/i;
+      const startsWithNumberOutcome = /^\d+[\.\)]\s*[A-ZÇĞİÖŞÜ]/;
+
+      if (outcomeRegex.test(cleanLine) || isOutcomeVerb.test(cleanLine) || startsWithNumberOutcome.test(cleanLine)) {
         outcomes.push(cleanLine);
       } else if (cleanLine.length < 50) {
         topics.push(cleanLine);
@@ -886,6 +1777,14 @@
         descriptions.push(cleanLine);
       }
     });
+
+    if (outcomes.length === 0) {
+      if (descriptions.length > 0) {
+        outcomes.push(descriptions[0]);
+      } else if (topics.length > 0) {
+        outcomes.push(topics[0]);
+      }
+    }
     
     return { outcomes, topics, descriptions };
   }
@@ -972,30 +1871,29 @@
     const uniqueMatches = [];
     foundMonths.forEach(m1 => {
       const isSubset = foundMonths.some(m2 => {
-        if (m1 === m2) return false;
-        return m2.charPos <= m1.charPos && 
-               (m2.charPos + m2.name.length) >= (m1.charPos + m1.name.length) &&
-               m2.name.length > m1.name.length;
+        return m1 !== m2 && 
+          m1.charPos >= m2.charPos && 
+          (m1.charPos + m1.name.length) <= (m2.charPos + m2.name.length);
       });
       if (!isSubset) {
         uniqueMatches.push(m1);
       }
     });
-    
+
     uniqueMatches.sort((a, b) => a.charPos - b.charPos);
 
-    if (numMatches && numMatches.length >= 1 && uniqueMatches.length >= 1) {
-      const startDay = parseInt(numMatches[0]);
-      const endDay = numMatches.length >= 2 ? parseInt(numMatches[1]) : startDay + 4;
+    if (numMatches && numMatches.length >= 2 && uniqueMatches.length >= 1) {
+      const d1 = parseInt(numMatches[0]);
+      const d2 = parseInt(numMatches[1]);
       
-      const startMonthIndex = uniqueMatches[0].index;
-      const endMonthIndex = uniqueMatches.length >= 2 ? uniqueMatches[1].index : startMonthIndex;
+      const m1Obj = uniqueMatches[0];
+      const m2Obj = uniqueMatches.length >= 2 ? uniqueMatches[1] : m1Obj;
 
-      const startY = startMonthIndex >= 9 ? startYear : startYear + 1;
-      const endY = endMonthIndex >= 9 ? startYear : startYear + 1;
+      const y1 = m1Obj.index >= 8 ? startYear : startYear + 1;
+      const y2 = m2Obj.index >= 8 ? startYear : startYear + 1;
 
-      startDate = new Date(startY, startMonthIndex - 1, startDay);
-      endDate = new Date(endY, endMonthIndex - 1, endDay);
+      startDate = new Date(y1, m1Obj.index, d1);
+      endDate = new Date(y2, m2Obj.index, d2);
       isDateParsed = true;
       return { startDate, endDate, isDateParsed };
     }
@@ -1005,24 +1903,22 @@
 
   function getFallbackDateRange(weekNum, startYear) {
     const sept1 = new Date(startYear, 8, 1);
-    let dayOfWeek = sept1.getDay();
-    let firstMondayDiff = (8 - dayOfWeek) % 7;
-    let secondMondayDate = 1 + firstMondayDiff + 7;
-    const schoolStart = new Date(startYear, 8, secondMondayDate);
-    
-    const monday = new Date(schoolStart.getTime());
-    monday.setDate(schoolStart.getDate() + (weekNum - 1) * 7);
-    
-    const friday = new Date(monday.getTime());
-    friday.setDate(monday.getDate() + 4);
-    
-    const dStart = monday.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' });
-    const dEnd = friday.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', year: 'numeric' });
+    const dayOfSept1 = sept1.getDay() || 7;
+    const schoolStart = new Date(sept1.getTime());
+    schoolStart.setDate(sept1.getDate() - dayOfSept1 + 1 + 7);
+
+    const sDate = new Date(schoolStart.getTime());
+    sDate.setDate(schoolStart.getDate() + (weekNum - 1) * 7);
+    const eDate = new Date(sDate.getTime());
+    eDate.setDate(sDate.getDate() + 4);
+
+    const dStart = sDate.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' });
+    const dEnd = eDate.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' });
     return `${dStart} - ${dEnd}`;
   }
 
   function updateImportPreview() {
-    if (!currentSheetData) return;
+    if (!currentSheetData || currentSheetData.length === 0) return;
 
     const colMonthIdx = parseInt(planColMonth.value);
     const colWeekIdx = parseInt(planColWeek.value);
@@ -1030,16 +1926,13 @@
     const colContentIdx = parseInt(planColContent.value);
     const colOutcomesIdx = parseInt(planColOutcomes.value);
     const colTopicsIdx = parseInt(planColTopics.value);
+    const colDescriptionsIdx = parseInt(planColDescriptions.value);
     const startRowIndex = parseInt(planRowStart.value) - 1;
     const startYear = parseInt(planStartYear.value) || new Date().getFullYear();
 
-    if (isNaN(colWeekIdx) || isNaN(startRowIndex)) {
-      planPreviewTbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: var(--text-muted);">Hafta / Tarih sütununu seçin.</td></tr>';
-      return;
-    }
+    if (isNaN(colWeekIdx) || isNaN(startRowIndex)) return;
 
     planPreviewTbody.innerHTML = '';
-    
     const previewSchedule = [];
     let lastMonthText = '';
     let lastWeekText = '';
@@ -1053,6 +1946,12 @@
 
       if (!monthVal && !weekVal && !contentVal) continue;
 
+      // İmza, onay veya ek tablo kalıntılarını atla
+      const rowFullText = row.join(' ').toLowerCase();
+      if (/(?:okul müdürü|ders öğretmeni|zümre başkanı|uygundur|onaylanmıştır|imza sirküsü|belirli gün ve haftalarveatatürkçülük)/i.test(rowFullText)) {
+        continue;
+      }
+
       let effectiveMonth = monthVal || lastMonthText;
       if (monthVal) lastMonthText = monthVal;
 
@@ -1060,6 +1959,7 @@
       if (weekVal) lastWeekText = weekVal;
 
       if (!effectiveWeek) {
+        if (weekCounter > 40) continue;
         effectiveWeek = `${weekCounter}. Hafta`;
       }
 
@@ -1080,7 +1980,10 @@
         continue;
       }
 
-      const weekNumbers = parseWeekNumbers(effectiveWeek);
+      const weekNumbers = parseWeekNumbers(effectiveWeek).filter(n => n >= 1 && n <= 42);
+      if (weekNumbers.length === 0 && weekCounter > 40) {
+        continue;
+      }
       const activeWeekNums = weekNumbers.length > 0 ? weekNumbers : [weekCounter];
       
       const dateSourceText = dateRangeVal || effectiveWeek;
@@ -1109,7 +2012,17 @@
           outcomesList = classification.outcomes;
         }
 
-        const previewText = outcomesList.length > 0 ? outcomesList[0] : (contentVal || 'Konu/Müfredat bilgisi');
+        let previewTopics = [];
+        if (colTopicsIdx !== -1 && row[colTopicsIdx]) {
+          previewTopics = String(row[colTopicsIdx]).split(/[\n,;]/).map(l => l.trim()).filter(l => l);
+        }
+        let previewDescs = [];
+        if (colDescriptionsIdx !== -1 && row[colDescriptionsIdx]) {
+          previewDescs = String(row[colDescriptionsIdx]).split('\n').map(l => l.trim()).filter(l => l);
+        }
+
+        const enrichedPreviewOutcomes = enrichOutcomes(outcomesList, previewTopics, previewDescs, contentVal, row);
+        const previewText = enrichedPreviewOutcomes.length > 0 ? enrichedPreviewOutcomes[0] : (contentVal || 'Konu/Müfredat bilgisi');
 
         previewSchedule.push({
           weekLabel: `${wNum}. Hafta`,
@@ -1143,12 +2056,19 @@
   function saveImportedPlan() {
     if (!currentSheetData) return;
 
-    const courseName = (planCourseNameInput.value || '').trim();
+    let courseName = '';
+    if (planCourseNameSelect && planCourseNameSelect.value && planCourseNameSelect.value !== 'custom') {
+      courseName = planCourseNameSelect.value.trim();
+    } else if (planCourseNameInput && planCourseNameInput.value.trim()) {
+      courseName = planCourseNameInput.value.trim();
+    }
+
     const className = (planClassName.value || '3/A').trim();
     const educationYear = (planEducationYear.value || '2025-2026').trim();
 
     if (!courseName) {
-      if (toastCallbackFn) toastCallbackFn('Lütfen plan için geçerli bir ders adı girin.', 'danger');
+      if (toastCallbackFn) toastCallbackFn('Lütfen planın ait olduğu dersi "Ders Seçin" alanından seçiniz.', 'danger');
+      if (planCourseNameSelect) planCourseNameSelect.focus();
       return;
     }
 
@@ -1185,6 +2105,12 @@
 
       if (!monthVal && !weekVal && !contentVal) continue;
 
+      // İmza, onay veya ek tablo kalıntılarını atla
+      const rowFullText = row.join(' ').toLowerCase();
+      if (/(?:okul müdürü|ders öğretmeni|zümre başkanı|uygundur|onaylanmıştır|imza sirküsü|belirli gün ve haftalarveatatürkçülük)/i.test(rowFullText)) {
+        continue;
+      }
+
       let effectiveMonth = monthVal || lastMonthText;
       if (monthVal) lastMonthText = monthVal;
 
@@ -1192,6 +2118,7 @@
       if (weekVal) lastWeekText = weekVal;
 
       if (!effectiveWeek) {
+        if (weekCounter > 40) continue;
         effectiveWeek = `${weekCounter}. Hafta`;
       }
 
@@ -1227,7 +2154,10 @@
       }
 
       // Normal Week
-      const weekNumbers = parseWeekNumbers(effectiveWeek);
+      const weekNumbers = parseWeekNumbers(effectiveWeek).filter(n => n >= 1 && n <= 42);
+      if (weekNumbers.length === 0 && weekCounter > 40) {
+        continue;
+      }
       const activeWeekNums = weekNumbers.length > 0 ? weekNumbers : [weekCounter];
       
       const dateSourceText = dateRangeVal || effectiveWeek;
@@ -1255,8 +2185,11 @@
             else unitNo = romanToInt(numStr) || numStr;
           }
           unitName = match[2].trim();
+          if (/^(?:ünite|unite|tema|theme)$/i.test(unitName)) {
+            unitName = null;
+          }
         } else {
-          unitName = unitText;
+          unitName = /^(?:ünite|unite|tema|theme)$/i.test(unitText) ? null : unitText;
         }
       }
 
@@ -1283,6 +2216,9 @@
         descriptions = classified.descriptions;
       }
 
+      // Sayısal kazanım kodlarını veya eksik kazanımları metinle zenginleştir
+      outcomes = enrichOutcomes(outcomes, topics, descriptions, contentVal, row);
+
       // Unit Fallback from content if still missing
       if (!unitName && contentVal) {
         const match = contentVal.match(/(?:(\d+|[IVXLCDM]+)\.?\s*(?:ÜNİTE|UNITE|TEMA|THEME))\s*[:-]?\s*([^\n\r]+)/i);
@@ -1291,6 +2227,9 @@
           if (/^\d+$/.test(numStr)) unitNo = parseInt(numStr);
           else unitNo = romanToInt(numStr) || numStr;
           unitName = match[2].trim();
+          if (/^(?:ünite|unite|tema|theme)$/i.test(unitName)) {
+            unitName = null;
+          }
         }
       }
 
@@ -1372,8 +2311,10 @@
       return;
     }
 
+    const planTitle = className ? `${className} - ${courseName}` : courseName;
+
     const savedPlan = stateManager.addPlan({
-      title: `${className} - ${courseName}`,
+      title: planTitle,
       educationYear: educationYear,
       className: className,
       courseName: courseName,
@@ -1383,7 +2324,7 @@
     if (!savedPlan) return; // Limit aşıldıysa ekleme yapma ve çık
 
     modalImportPlan.classList.remove('active');
-    if (toastCallbackFn) toastCallbackFn(`"${courseName}" planı başarıyla içe aktarıldı. Toplam ${weeklySchedule.length} hafta oluşturuldu.`, 'success');
+    if (toastCallbackFn) toastCallbackFn(`"${courseName}" dersine ait ${className} yıllık planı başarıyla kaydedildi! (Toplam ${weeklySchedule.length} hafta)`, 'success');
     
     activePlansMainTab = 'general';
     if (btnPlansTabGeneral) btnPlansTabGeneral.classList.add('active');
@@ -1550,9 +2491,34 @@
     const statePlans = stateManager.state.plans || [];
     let stateChanged = false;
     statePlans.forEach(plan => {
+      // 1. Rastgele hash içeren ders adını/başlığını tespit edip onar (örn: 4/c - a4574fe744)
+      if (plan.courseName && /^[a-f0-9]{8,}$/i.test(plan.courseName.trim())) {
+        const allText = (plan.weeklySchedule || plan.weeks || []).map(w => 
+          (w.unitName || '') + ' ' + (w.topics || []).join(' ') + ' ' + (w.descriptions || []).join(' ')
+        ).join(' ');
+        const detected = detectCourseAndClassFromContent('', null, allText);
+        if (detected.detectedCourse) {
+          plan.courseName = detected.detectedCourse;
+          plan.title = `${plan.className ? plan.className + ' - ' : ''}${detected.detectedCourse}`;
+          stateChanged = true;
+        }
+      }
+
       const startYear = parseInt(plan.educationYear.split('-')[0]) || 2025;
       const schedule = plan.weeklySchedule || plan.weeks || [];
       schedule.forEach(week => {
+        // 2. Sadece sayı olan veya eksik kalan kazanımları zenginleştir
+        if (week.learningOutcomes && Array.isArray(week.learningOutcomes)) {
+          const isOnlyNumbers = week.learningOutcomes.length > 0 && week.learningOutcomes.every(o => /^\d+[\.\)]?$/.test(String(o).trim()));
+          if (isOnlyNumbers || week.learningOutcomes.length === 0) {
+            const enriched = enrichOutcomes(week.learningOutcomes, week.topics, week.descriptions, week.content, null);
+            if (enriched.length > 0 && enriched[0] !== (week.learningOutcomes[0] || '')) {
+              week.learningOutcomes = enriched;
+              stateChanged = true;
+            }
+          }
+        }
+
         if (week.topics && Array.isArray(week.topics)) {
           const filtered = week.topics.filter(t => !isDateString(t));
           if (filtered.length !== week.topics.length) {
@@ -1578,6 +2544,33 @@
               stateChanged = true;
             }
           }
+        }
+      });
+
+      // 3. 40 haftadan fazla veya bozuk (50+ hafta numaralı / ek tablo kalıntısı) haftaları otomatik temizle
+      if (schedule.length > 40 || schedule.some(w => {
+        const wNums = Array.isArray(w.weekNumber) ? w.weekNumber : [];
+        return wNums.some(n => n > 42) || /^(?:5[0-9]|6[0-9]|7[0-9]|8[0-9]|9[0-9])\./.test(w.weekLabel || '');
+      })) {
+        const validSchedule = schedule.filter(week => {
+          const wNums = Array.isArray(week.weekNumber) ? week.weekNumber : [];
+          if (wNums.some(n => n > 42)) return false;
+          if (/^(?:5[0-9]|6[0-9]|7[0-9]|8[0-9]|9[0-9])\./.test(week.weekLabel || '')) return false;
+          const text = [week.unitName, ...(week.topics || []), ...(week.descriptions || [])].join(' ').toLowerCase();
+          if (text.includes('atatürkçülük konuları') || text.includes('belirli gün ve haftalarveatatürkçülük')) return false;
+          return true;
+        });
+        if (validSchedule.length > 0 && validSchedule.length < schedule.length) {
+          plan.weeklySchedule = validSchedule.slice(0, 40);
+          stateChanged = true;
+        }
+      }
+
+      // 4. "2. ÜNİTE: ÜNİTE" sorununu veritabanı düzeyinde düzelt
+      schedule.forEach(week => {
+        if (week.unitName && /^(?:ünite|unite|tema|theme)$/i.test(week.unitName.trim())) {
+          week.unitName = null;
+          stateChanged = true;
         }
       });
     });
@@ -1642,10 +2635,11 @@
         const isCompleted = weekItem.isCompleted || weekItem.completed;
         
         let outcomesHtml = '';
-        if (weekItem.learningOutcomes && weekItem.learningOutcomes.length > 0) {
-          if (weekItem.learningOutcomes.length > 3) {
-            const visibleOutcomes = weekItem.learningOutcomes.slice(0, 3);
-            const hiddenOutcomes = weekItem.learningOutcomes.slice(3);
+        const displayOutcomes = (weekItem.learningOutcomes || []).map(o => formatOutcomeDisplay(o, weekItem));
+        if (displayOutcomes.length > 0) {
+          if (displayOutcomes.length > 3) {
+            const visibleOutcomes = displayOutcomes.slice(0, 3);
+            const hiddenOutcomes = displayOutcomes.slice(3);
             outcomesHtml = visibleOutcomes.map(o => `
               <li style="margin-bottom: 0.5rem; display: flex; align-items: start; gap: 0.5rem; font-size: 0.925rem; line-height: 1.45;">
                 <span style="color: var(--primary); font-weight: 700; margin-top: 0.15rem;">•</span>
@@ -1666,7 +2660,7 @@
               </button>
             `;
           } else {
-            outcomesHtml = weekItem.learningOutcomes.map(o => `
+            outcomesHtml = displayOutcomes.map(o => `
               <li style="margin-bottom: 0.5rem; display: flex; align-items: start; gap: 0.5rem; font-size: 0.925rem; line-height: 1.45;">
                 <span style="color: var(--primary); font-weight: 700; margin-top: 0.15rem;">•</span>
                 <span>${escapeHtml(o)}</span>
@@ -1705,10 +2699,10 @@
             </div>
           ` : `
             <div>
-              ${weekItem.unitName ? `
+              ${formatUnitDisplay(weekItem.unitNo, weekItem.unitName) ? `
                 <div style="margin-bottom: 0.75rem;">
                   <span style="font-size: 0.72rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase; display: block; margin-bottom: 0.25rem;">Ünite / Tema</span>
-                  <span style="font-size: 0.95rem; font-weight: 700; color: var(--text-primary);">${escapeHtml(weekItem.unitNo ? weekItem.unitNo + '. Ünite: ' + weekItem.unitName : weekItem.unitName)}</span>
+                  <span style="font-size: 0.95rem; font-weight: 700; color: var(--text-primary);">${escapeHtml(formatUnitDisplay(weekItem.unitNo, weekItem.unitName))}</span>
                 </div>
               ` : ''}
 
@@ -1985,8 +2979,9 @@
           const mainTopic = (weekItem.topics && weekItem.topics.length > 0) ? weekItem.topics[0] : (weekItem.content || 'Ders konusu');
 
           let outcomesListHtml = '';
-          if (weekItem.learningOutcomes && weekItem.learningOutcomes.length > 0) {
-            outcomesListHtml = weekItem.learningOutcomes.map(o => `
+          const generalDisplayOutcomes = (weekItem.learningOutcomes || []).map(o => formatOutcomeDisplay(o, weekItem));
+          if (generalDisplayOutcomes.length > 0) {
+            outcomesListHtml = generalDisplayOutcomes.map(o => `
               <li style="margin-bottom: 0.35rem; line-height: 1.45; color: var(--text-primary); font-size: 0.85rem;">
                 ${escapeHtml(o)}
               </li>
@@ -2018,7 +3013,7 @@
 
             ${!weekItem.isHoliday ? `
               <div class="week-detail-body" style="display: ${isWeekExpanded ? 'block' : 'none'}; padding: 0.9rem; background: rgba(0,0,0,0.06); border-top: 1px solid var(--border-color);">
-                ${weekItem.unitName ? `<div style="font-size: 0.75rem; font-weight: 700; color: var(--primary); margin-bottom: 0.5rem; text-transform: uppercase;">${escapeHtml(weekItem.unitNo ? weekItem.unitNo + '. ÜNİTE: ' + weekItem.unitName : weekItem.unitName)}</div>` : ''}
+                ${formatUnitDisplay(weekItem.unitNo, weekItem.unitName) ? `<div style="font-size: 0.75rem; font-weight: 700; color: var(--primary); margin-bottom: 0.5rem; text-transform: uppercase;">${escapeHtml(formatUnitDisplay(weekItem.unitNo, weekItem.unitName))}</div>` : ''}
                 
                 <div style="margin-bottom: 0.75rem;">
                   <h5 style="margin: 0 0 0.35rem 0; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.5px;">Kazanımlar</h5>

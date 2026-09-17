@@ -355,6 +355,9 @@
               <i data-lucide="upload"></i> Kitap Yükle
             </button>
             <input type="file" id="input-upload-books-file" style="display: none;" accept=".xlsx, .xls, .csv">
+            <button class="btn btn-secondary btn-ai-gradient" id="btn-batch-ai-questions" title="Sorusu Olmayan Tüm Kitaplara Yapay Zeka ile Soru Hazırla" style="display: none; align-items: center; gap: 0.35rem;">
+              <i data-lucide="sparkles" style="width: 15px; height: 15px;"></i> Toplu AI Soruları
+            </button>
             <button class="btn btn-primary" id="btn-borrow-book">
               <i data-lucide="bookmark-plus"></i> Ödünç Ver
             </button>
@@ -2074,6 +2077,49 @@
             </div>
           </div>
 
+          <!-- Yapay Zeka (Google Gemini AI) Ayarları Kartı -->
+          <div class="glass-card" style="padding: 1.5rem; display: flex; flex-direction: column; gap: 1.25rem; max-width: 600px; margin-top: 1.5rem;">
+            <div class="section-title" style="margin-bottom: 0.5rem; display: flex; align-items: center; justify-content: space-between;">
+              <h3 style="display: flex; align-items: center; gap: 0.5rem; margin: 0;">
+                <i data-lucide="bot" style="color: #6366f1;"></i> Yapay Zeka (Gemini AI) Ayarları
+              </h3>
+              <span style="background: rgba(99, 102, 241, 0.15); color: #6366f1; border: 1px solid rgba(99, 102, 241, 0.3); font-size: 0.75rem; padding: 0.2rem 0.6rem; border-radius: 999px; font-weight: 700;">Ücretsiz</span>
+            </div>
+            
+            <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0; line-height: 1.5;">
+              Kitapların okuduğunu anlama soruları ve cevaplarını yapay zekaya otomatik hazırlatmak için ücretsiz Google Gemini API anahtarınızı tanımlayın.
+            </p>
+
+            <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+              <label style="font-size: 0.85rem; font-weight: 600; color: var(--text-primary); margin: 0;">Google Gemini API Anahtarı</label>
+              <div style="display: flex; gap: 0.5rem;">
+                <input type="password" id="config-gemini-api-key" class="form-control" placeholder="AIzaSy..." style="flex: 1; font-family: monospace; font-size: 0.85rem;">
+                <button type="button" class="btn btn-secondary" id="btn-toggle-gemini-key-visibility" title="Anahtarı Göster/Gizle" style="padding: 0.5rem 0.75rem;">
+                  <i data-lucide="eye" id="icon-toggle-gemini-key" style="width: 16px; height: 16px;"></i>
+                </button>
+                <button type="button" class="btn btn-primary" id="btn-save-gemini-api-key" style="white-space: nowrap; gap: 0.25rem;">
+                  <i data-lucide="save" style="width: 16px; height: 16px;"></i> Kaydet
+                </button>
+              </div>
+              <div id="gemini-key-status-msg" style="font-size: 0.8rem; display: none;"></div>
+            </div>
+
+            <!-- Adım Adım Rehber Kutusu -->
+            <div style="background: rgba(99, 102, 241, 0.06); border: 1px solid rgba(99, 102, 241, 0.25); border-radius: 8px; padding: 1rem;">
+              <h4 style="font-size: 0.85rem; font-weight: 700; color: #6366f1; margin: 0 0 0.5rem 0; display: flex; align-items: center; gap: 0.4rem;">
+                <i data-lucide="help-circle" style="width: 16px; height: 16px;"></i> Ücretsiz API Anahtarı Nasıl Alınır? (3 Adımda)
+              </h4>
+              <ol style="font-size: 0.8rem; color: var(--text-secondary); margin: 0; padding-left: 1.2rem; line-height: 1.6;">
+                <li><a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" style="color: #6366f1; font-weight: 700; text-decoration: underline;">Google AI Studio API Key</a> sayfasına gidin ve mevcut Google (Gmail) hesabınızla giriş yapın.</li>
+                <li>Mavi renkli <strong>"Create API key"</strong> butonuna tıklayın ve açılan pencerede projenizi onaylayarak anahtarınızı oluşturun.</li>
+                <li>Oluşan <code>AIzaSy...</code> ile başlayan anahtarı kopyalayıp yukarıdaki kutucuğa yapıştırın ve <strong>"Kaydet"</strong>e basın.</li>
+              </ol>
+              <div style="margin-top: 0.5rem; font-size: 0.75rem; color: var(--text-muted); border-top: 1px dashed rgba(99, 102, 241, 0.2); padding-top: 0.4rem;">
+                💡 <em>Google Gemini API tamamen ücretsizdir, kredi kartı gerektirmez ve sınıfınız için günde binlerce kitap sorusu üretebilecek kapasitededir.</em>
+              </div>
+            </div>
+          </div>
+
           <!-- Lisans Yönetimi Kartı -->
           <div class="glass-card" style="padding: 1.5rem; display: flex; flex-direction: column; gap: 1.25rem; max-width: 600px; margin-top: 1.5rem;">
             <div class="section-title" style="margin-bottom: 0.5rem;">
@@ -2975,6 +3021,18 @@
                 <i data-lucide="play" style="width: 16px; height: 16px;"></i> Aracı Başlat
               </button>
             </div>
+
+            <!-- Araç 8: Sınıf Katkı & Tedarik Takibi -->
+            <div class="game-landing-card glass-card" style="padding: 1.5rem; border-radius: 12px; background: var(--bg-secondary); border: 1px solid var(--border-color); display: flex; flex-direction: column; justify-content: space-between; min-height: 220px; transition: transform 0.2s ease;">
+              <div>
+                <div style="font-size: 2rem; margin-bottom: 0.5rem;">📦</div>
+                <h3 style="font-size: 1.15rem; font-weight: 700; margin-bottom: 0.5rem;">Sınıf Katkı & Tedarik Takibi</h3>
+                <p style="font-size: 0.85rem; color: var(--text-secondary); line-height: 1.4; margin-bottom: 1rem;">Etkinlik ücretleri, gezi payları veya sınıf ihtiyaç malzemesi (A4 kağıdı, kırtasiye vb.) teslim durumlarını takip edin.</p>
+              </div>
+              <button class="btn btn-primary btn-full" id="btn-launch-contributions" style="width: 100%; display: flex; justify-content: center; gap: 0.5rem;">
+                <i data-lucide="play" style="width: 16px; height: 16px;"></i> Aracı Başlat
+              </button>
+            </div>
           </div>
         </div>
 
@@ -3178,10 +3236,36 @@
             </div>
           </div>
 
-          <div style="display: flex; justify-content: flex-end; margin-bottom: 1.5rem;">
-            <button class="btn btn-primary" id="btn-show-document-upload-modal" style="display: flex; align-items: center; gap: 0.25rem;">
-              <i data-lucide="upload"></i> Yeni Evrak Yükle
-            </button>
+          <!-- Dinamik Kategori / Sekme Menüsü (Görev Takip Asistanı Stili) -->
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem;">
+            <div class="sub-tab-menu" id="documents-categories-tab-bar" style="margin-bottom: 0; flex-wrap: wrap;">
+              <!-- JS ile sekmeler doldurulacak (Tüm Evraklar, Genel/Kategorisiz, Kullanıcı Sekmeleri) -->
+            </div>
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <button class="btn btn-secondary btn-sm" id="btn-add-document-category" style="display: inline-flex; align-items: center; gap: 0.25rem; font-size: 0.85rem; height: 38px;">
+                <i data-lucide="folder-plus" style="width: 16px; height: 16px;"></i> + Yeni Sekme
+              </button>
+              <button class="btn btn-primary" id="btn-show-document-upload-modal" style="display: inline-flex; align-items: center; gap: 0.25rem; height: 38px;">
+                <i data-lucide="upload"></i> Yeni Evrak Yükle
+              </button>
+            </div>
+          </div>
+
+          <!-- Aktif Sekme Başlık & Yönetim Çubuğu -->
+          <div id="documents-active-category-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; padding: 0.5rem 0.75rem; background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: 8px;">
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <i data-lucide="folder-open" style="width: 18px; height: 18px; color: var(--primary);"></i>
+              <strong id="documents-active-category-title" style="font-size: 0.95rem; color: var(--text-primary);">Tüm Evraklar</strong>
+              <span id="documents-active-category-count-badge" class="badge" style="background: rgba(99,102,241,0.15); color: var(--primary); font-size: 0.75rem; padding: 0.15rem 0.5rem; border-radius: 12px;">0 Evrak</span>
+            </div>
+            <div id="documents-category-controls" style="display: none; align-items: center; gap: 0.5rem;">
+              <button class="btn btn-secondary btn-sm" id="btn-rename-current-category" title="Sekme Adını Değiştir" style="padding: 0.25rem 0.5rem; font-size: 0.8rem; display: flex; align-items: center; gap: 0.25rem;">
+                <i data-lucide="edit-3" style="width: 14px; height: 14px;"></i> Düzenle
+              </button>
+              <button class="btn btn-danger btn-sm" id="btn-delete-current-category" title="Sekmeyi Sil" style="padding: 0.25rem 0.5rem; font-size: 0.8rem; display: flex; align-items: center; gap: 0.25rem;">
+                <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i> Sil
+              </button>
+            </div>
           </div>
 
           <div class="documents-grid" id="documents-list-container">
@@ -3784,6 +3868,122 @@
             </div>
           </div>
         </div>
+
+        <!-- 8. Sınıf Katkı & Tedarik Takibi Paneli (Başlangıçta Gizli) -->
+        <div id="tools-contributions-view" style="display: none;">
+          <div class="page-header" style="margin-bottom: 1.5rem;">
+            <div class="header-title" style="display: flex; align-items: center; gap: 1rem;">
+              <button class="btn btn-secondary btn-sm" id="btn-back-to-tools-from-contributions" style="padding: 0.35rem 0.75rem; font-size: 0.85rem; height: 35px;">
+                <i data-lucide="arrow-left" style="width: 16px; height: 16px;"></i> Geri Dön
+              </button>
+              <div>
+                <h2 style="font-size: 1.5rem; margin-bottom: 0;">Sınıf Katkı & Tedarik Takibi</h2>
+                <p style="margin-top: 0;">Etkinlik ücretleri, gezi payları ve kırtasiye/malzeme teslim süreçlerini yönetin</p>
+              </div>
+            </div>
+            <div class="header-actions" style="display: flex; gap: 0.5rem;">
+              <button class="btn btn-primary" id="btn-show-add-contribution-modal" style="display: flex; align-items: center; gap: 0.25rem;">
+                <i data-lucide="plus-circle"></i> Yeni Takip / Kampanya Başlat
+              </button>
+            </div>
+          </div>
+
+          <!-- Ana Liste Görünümü (Kampanyalar Listesi) -->
+          <div id="contrib-campaigns-list-view">
+            <!-- Kampanyalar Grid -->
+            <div class="documents-grid" id="contrib-campaigns-grid">
+              <!-- JS ile kampanya kartları doldurulacak -->
+            </div>
+
+            <!-- Boş Durum -->
+            <div class="empty-state" id="contrib-empty-state" style="display: none; text-align: center; padding: 4rem; color: var(--text-muted);">
+              <i data-lucide="package" style="width: 56px; height: 56px; margin-bottom: 1.5rem; opacity: 0.5;"></i>
+              <p style="font-size: 1.1rem; margin-bottom: 1.5rem;">Henüz oluşturulmuş bir katkı veya tedarik takibi bulunmuyor.</p>
+              <button class="btn btn-primary" id="btn-create-first-contribution">
+                <i data-lucide="plus"></i> İlk Takibi Başlat
+              </button>
+            </div>
+          </div>
+
+          <!-- Kampanya Detay & Öğrenci Teslimat Takip Paneli -->
+          <div id="contrib-campaign-detail-view" style="display: none;">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border-color);">
+              <div style="display: flex; align-items: center; gap: 0.75rem;">
+                <button class="btn btn-secondary btn-sm" id="btn-back-to-campaigns-list" style="padding: 0.35rem 0.65rem;">
+                  <i data-lucide="chevron-left" style="width: 16px; height: 16px;"></i> Listeye Dön
+                </button>
+                <div>
+                  <h3 id="contrib-detail-title" style="margin: 0; font-size: 1.25rem; font-weight: 700;">Kampanya Başlığı</h3>
+                  <div style="display: flex; align-items: center; gap: 0.75rem; margin-top: 0.25rem; font-size: 0.8rem; color: var(--text-muted);">
+                    <span id="contrib-detail-type-badge" class="badge">Tür</span>
+                    <span id="contrib-detail-target-text">Hedef</span>
+                    <span id="contrib-detail-due-date">Son Tarih: -</span>
+                  </div>
+                </div>
+              </div>
+              <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <button class="btn btn-secondary btn-sm" id="btn-contrib-mark-all-completed" title="Tüm öğrencileri getirdi/ödedi olarak işaretle">
+                  <i data-lucide="check-check" style="width: 14px; height: 14px;"></i> Tümünü Getirdi Yap
+                </button>
+                <button class="btn btn-primary btn-sm" id="btn-contrib-print-report" title="Yazdır veya PDF Kaydet">
+                  <i data-lucide="printer" style="width: 14px; height: 14px;"></i> Rapor Yazdır
+                </button>
+              </div>
+            </div>
+
+            <!-- İstatistik Kartları Şeridi -->
+            <div class="stats-overview" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+              <div class="glass-card stat-card" style="padding: 1rem; border-radius: 8px;">
+                <span class="stat-label" style="font-size: 0.8rem; color: var(--text-muted);">Toplam Öğrenci</span>
+                <strong class="stat-value" id="contrib-stat-total-students" style="font-size: 1.4rem; color: var(--text-primary);">0</strong>
+              </div>
+              <div class="glass-card stat-card" style="padding: 1rem; border-radius: 8px; border-left: 4px solid var(--success);">
+                <span class="stat-label" style="font-size: 0.8rem; color: var(--text-muted);">Teslim Eden / Ödeyen</span>
+                <strong class="stat-value" id="contrib-stat-completed-count" style="font-size: 1.4rem; color: var(--success);">0</strong>
+              </div>
+              <div class="glass-card stat-card" style="padding: 1rem; border-radius: 8px; border-left: 4px solid var(--warning);">
+                <span class="stat-label" style="font-size: 0.8rem; color: var(--text-muted);">Bekleyen / Getirmeyen</span>
+                <strong class="stat-value" id="contrib-stat-pending-count" style="font-size: 1.4rem; color: var(--warning);">0</strong>
+              </div>
+              <div class="glass-card stat-card" style="padding: 1rem; border-radius: 8px; border-left: 4px solid var(--primary);" id="contrib-stat-money-box">
+                <span class="stat-label" style="font-size: 0.8rem; color: var(--text-muted);" id="contrib-stat-money-label">Toplanan Tutar</span>
+                <strong class="stat-value" id="contrib-stat-money-value" style="font-size: 1.4rem; color: var(--primary);">0 ₺</strong>
+              </div>
+            </div>
+
+            <!-- Filtreleme ve Arama Çubuğu -->
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1rem;">
+              <div class="sub-tab-menu" id="contrib-status-filter-tabs" style="margin-bottom: 0;">
+                <button class="sub-tab-btn active" data-filter="all">Tümü (<span id="filter-count-all">0</span>)</button>
+                <button class="sub-tab-btn" data-filter="completed">Teslim Edenler (<span id="filter-count-completed">0</span>)</button>
+                <button class="sub-tab-btn" data-filter="pending">Bekleyenler (<span id="filter-count-pending">0</span>)</button>
+              </div>
+              <div style="position: relative; min-width: 220px;">
+                <input type="text" id="contrib-search-student" class="form-control form-control-sm" placeholder="Öğrenci ara..." style="padding-left: 2rem;">
+                <i data-lucide="search" style="position: absolute; left: 0.6rem; top: 50%; transform: translateY(-50%); width: 14px; height: 14px; color: var(--text-muted); pointer-events: none;"></i>
+              </div>
+            </div>
+
+            <!-- Öğrenci Listesi Tablosu -->
+            <div class="table-responsive glass-card" style="border-radius: 8px; overflow: hidden;">
+              <table class="table" style="width: 100%; margin-bottom: 0; font-size: 0.9rem;">
+                <thead>
+                  <tr style="background: rgba(255, 255, 255, 0.03);">
+                    <th style="width: 70px; text-align: center;">No</th>
+                    <th>Öğrenci Adı Soyadı</th>
+                    <th style="width: 100px; text-align: center;">Şube</th>
+                    <th style="width: 150px; text-align: center;" id="contrib-th-amount">Tutar / Miktar</th>
+                    <th style="width: 200px; text-align: center;">Durum</th>
+                    <th>Not / Açıklama</th>
+                  </tr>
+                </thead>
+                <tbody id="contrib-students-table-body">
+                  <!-- JS ile doldurulacak -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
       </section>
       <!-- Raporlar Sekmesi -->
       <section id="reports" class="content-section">
@@ -3939,10 +4139,22 @@
               <div id="notebook-editor-container" class="notebook-editor-card glass-card">
                 <!-- Tam Ekran Üst Menüsü (Sadece tam ekranda görünür) -->
                 <div class="notebook-editor-fullscreen-header" style="display: none; justify-content: space-between; align-items: center; padding: 0.75rem 1.5rem; background: var(--bg-secondary); border-bottom: 1px solid var(--border-color); z-index: 100;">
-                  <div class="fullscreen-title-wrapper" style="display: flex; align-items: center; gap: 0.5rem;">
+                  <div class="fullscreen-title-wrapper" style="display: flex; align-items: center; gap: 0.75rem;">
                     <button class="btn btn-sm btn-outline-secondary" id="btn-fullscreen-close" style="display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; padding: 0;" title="Tam Ekrandan Çık">
                       <i data-lucide="minimize" style="width: 16px; height: 16px;"></i>
                     </button>
+                    <!-- Tam Ekran Canlı Akış & Kalan Süre Rozeti -->
+                    <div id="notebook-fullscreen-live-info" style="display: flex; align-items: center; gap: 0.5rem; background: rgba(0,0,0,0.25); border: 1px solid var(--border-color); padding: 0.25rem 0.75rem; border-radius: 20px; font-size: 0.85rem; cursor: pointer;" title="Canlı Ders ve Konu Akışını Detaylı Görüntüle">
+                      <span id="notebook-live-time-badge" style="display: inline-flex; align-items: center; gap: 0.3rem; font-weight: 700; color: #10b981;">
+                        <i data-lucide="clock" style="width: 14px; height: 14px;"></i>
+                        <span id="notebook-live-period-text">Ders Akışı</span>
+                      </span>
+                      <span style="opacity: 0.4;">|</span>
+                      <span id="notebook-live-topic-badge" style="display: inline-flex; align-items: center; gap: 0.35rem; color: var(--text-primary); max-width: 420px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                        <i data-lucide="book-open" style="width: 14px; height: 14px; color: var(--primary); flex-shrink: 0;"></i>
+                        <span id="notebook-live-topic-text">Yükleniyor...</span>
+                      </span>
+                    </div>
                   </div>
                   <div class="fullscreen-actions" style="display: flex; gap: 0.5rem;">
                     <button class="btn btn-sm btn-outline-danger" id="btn-fullscreen-red-title" style="display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; padding: 0; position: relative;" title="Yazı Rengi Değiştir">
@@ -4395,28 +4607,30 @@
         <button class="close-btn">&times;</button>
       </div>
       <div class="modal-body" style="max-height: 78vh; overflow-y: auto;">
+        <!-- Genel Plan Bilgileri (Her iki adımda da görünür) -->
+        <div class="form-row" style="grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem;">
+          <div class="form-group">
+            <label for="plan-education-year" style="font-weight: 600; font-size: 0.85rem;">Eğitim Öğretim Yılı</label>
+            <input type="text" id="plan-education-year" class="form-control" value="2025-2026" placeholder="Örn: 2025-2026">
+          </div>
+          <div class="form-group">
+            <label for="plan-class-name" style="font-weight: 600; font-size: 0.85rem;">Sınıf / Şube</label>
+            <input type="text" id="plan-class-name" class="form-control" value="3/A" placeholder="Örn: 3/A">
+          </div>
+          <div class="form-group">
+            <label for="plan-course-name-select" style="font-weight: 600; font-size: 0.85rem;">Ders Seçin</label>
+            <select id="plan-course-name-select" class="form-control" style="width: 100%;">
+              <!-- JS ile doldurulacak -->
+            </select>
+          </div>
+          <div class="form-group" id="plan-course-name-input-container" style="display: none;">
+            <label for="plan-course-name-input" style="font-weight: 600; font-size: 0.85rem;">Yeni Ders Adı</label>
+            <input type="text" id="plan-course-name-input" class="form-control" placeholder="Örn: Fen Bilimleri">
+          </div>
+        </div>
+
         <!-- Adım 1: Kaynak Seçimi ve Plan Bilgileri -->
         <div id="import-step-file">
-          <div class="form-row" style="grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem;">
-            <div class="form-group">
-              <label for="plan-education-year" style="font-weight: 600; font-size: 0.85rem;">Eğitim Öğretim Yılı</label>
-              <input type="text" id="plan-education-year" class="form-control" value="2025-2026" placeholder="Örn: 2025-2026">
-            </div>
-            <div class="form-group">
-              <label for="plan-class-name" style="font-weight: 600; font-size: 0.85rem;">Sınıf / Şube</label>
-              <input type="text" id="plan-class-name" class="form-control" value="3/A" placeholder="Örn: 3/A">
-            </div>
-            <div class="form-group">
-              <label for="plan-course-name-select" style="font-weight: 600; font-size: 0.85rem;">Ders Seçin</label>
-              <select id="plan-course-name-select" class="form-control" style="width: 100%;">
-                <!-- JS ile doldurulacak -->
-              </select>
-            </div>
-            <div class="form-group" id="plan-course-name-input-container" style="display: none;">
-              <label for="plan-course-name-input" style="font-weight: 600; font-size: 0.85rem;">Yeni Ders Adı</label>
-              <input type="text" id="plan-course-name-input" class="form-control" placeholder="Örn: Fen Bilimleri">
-            </div>
-          </div>
 
           <!-- Sekme Başlıkları -->
           <div class="import-source-tabs" style="display: flex; border-bottom: 1px solid var(--border-color); margin-bottom: 1.25rem;">
@@ -4425,6 +4639,9 @@
             </button>
             <button type="button" class="import-tab-btn" id="import-tab-paste" style="flex: 1; padding: 0.75rem; background: none; border: none; border-bottom: 2px solid transparent; font-weight: 600; color: var(--text-muted); cursor: pointer;">
               <i data-lucide="clipboard" style="width: 14px; height: 14px; display: inline-block; vertical-align: middle; margin-right: 0.25rem;"></i> Kopyala-Yapıştır (Tablo Metni)
+            </button>
+            <button type="button" class="import-tab-btn" id="import-tab-ai" style="flex: 1; padding: 0.75rem; background: none; border: none; border-bottom: 2px solid transparent; font-weight: 600; color: var(--text-muted); cursor: pointer;">
+              <i data-lucide="sparkles" style="width: 14px; height: 14px; display: inline-block; vertical-align: middle; margin-right: 0.25rem; color: #a855f7;"></i> ✨ Yapay Zeka ile Sıfırdan Üret
             </button>
           </div>
 
@@ -4454,6 +4671,63 @@
               <button type="button" class="btn btn-primary" id="btn-parse-pasted-text">İçeriği Çözümle</button>
             </div>
           </div>
+
+          <!-- Yapay Zeka ile Sıfırdan Plan Üretme Paneli (Başlangıçta Gizli) -->
+          <div id="panel-import-ai" style="display: none;">
+            <div style="background: linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(168, 85, 247, 0.08) 100%); border: 1px solid rgba(168, 85, 247, 0.25); border-radius: var(--radius-md); padding: 1.25rem; margin-bottom: 1.25rem;">
+              <div style="display: flex; align-items: flex-start; gap: 0.75rem;">
+                <div style="width: 38px; height: 38px; border-radius: 50%; background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%); display: flex; align-items: center; justify-content: center; color: #fff; flex-shrink: 0; box-shadow: 0 4px 10px rgba(168, 85, 247, 0.3);">
+                  <i data-lucide="sparkles" style="width: 20px; height: 20px;"></i>
+                </div>
+                <div style="flex: 1;">
+                  <h4 style="font-size: 0.95rem; font-weight: 700; color: var(--text-primary); margin-bottom: 0.25rem;">Yapay Zeka ile MEB Müfredatına Uygun Yıllık Plan Oluştur</h4>
+                  <p style="font-size: 0.8rem; color: var(--text-muted); line-height: 1.4; margin: 0;">
+                    Elinizde hazır dosya olmasa bile, ders ve sınıf seçiminize göre MEB müfredatına ve eğitim takvimine tam uyumlu 36 haftalık yıllık plan otomatik olarak üretilir.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-row" style="grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+              <div class="form-group">
+                <label for="ai-plan-hours" style="font-weight: 600; font-size: 0.85rem;">Haftalık Ders Saati</label>
+                <select id="ai-plan-hours" class="form-control">
+                  <option value="1">1 Saat / Hafta</option>
+                  <option value="2">2 Saat / Hafta</option>
+                  <option value="3">3 Saat / Hafta</option>
+                  <option value="4" selected>4 Saat / Hafta</option>
+                  <option value="5">5 Saat / Hafta</option>
+                  <option value="6">6 Saat / Hafta</option>
+                  <option value="8">8 Saat / Hafta</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="ai-plan-curriculum-style" style="font-weight: 600; font-size: 0.85rem;">Müfredat Standardı</label>
+                <select id="ai-plan-curriculum-style" class="form-control">
+                  <option value="maarif">Türkiye Yüzyılı Maarif Modeli (Güncel MEB)</option>
+                  <option value="standard">Standart MEB Öğretim Programı</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 1.25rem;">
+              <label for="ai-plan-notes" style="font-weight: 600; font-size: 0.85rem;">Özel İstek / Vurgulanacak Konular (İsteğe Bağlı)</label>
+              <textarea id="ai-plan-notes" class="form-control" rows="2" placeholder="Örn: Proje ve performans ödev haftaları eklensin, ara tatil öncesi genel tekrar yapılsın..." style="font-size: 0.82rem;"></textarea>
+            </div>
+
+            <div id="ai-plan-gen-status" style="display: none; padding: 0.85rem 1rem; border-radius: var(--radius-md); margin-bottom: 1.25rem; font-size: 0.85rem; background: rgba(99, 102, 241, 0.1); border: 1px solid rgba(99, 102, 241, 0.25); color: var(--text-primary);">
+              <div style="display: flex; align-items: center; gap: 0.75rem;">
+                <div class="spinner-sm" style="width: 18px; height: 18px; border: 2px solid rgba(99, 102, 241, 0.2); border-top-color: #6366f1; border-radius: 50%; animation: spin 0.8s linear infinite;"></div>
+                <span id="ai-plan-gen-status-text">Yapay zeka MEB müfredatını ve haftalık ders planını hazırlıyor, lütfen bekleyin...</span>
+              </div>
+            </div>
+
+            <div style="text-align: right;">
+              <button type="button" class="btn btn-primary" id="btn-generate-ai-annual-plan" style="background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%); border: none; font-weight: 600; display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.6rem 1.25rem; box-shadow: 0 3px 10px rgba(168, 85, 247, 0.3);">
+                <i data-lucide="sparkles" style="width: 16px; height: 16px;"></i> ✨ Yıllık Planı Yapay Zeka ile Oluştur
+              </button>
+            </div>
+          </div>
         </div>
 
         <!-- Adım 2: Kolon Eşleştirme ve Yapılandırma -->
@@ -4472,10 +4746,12 @@
           </div>
 
           <div style="background: var(--bg-primary); border-radius: var(--radius-md); padding: 1.25rem; border: 1px solid var(--border-color); margin-bottom: 1.25rem;">
-            <h4 style="font-size: 0.9rem; font-weight: 700; margin-bottom: 0.75rem; color: var(--primary); display: flex; align-items: center; gap: 0.25rem;">
-              <i data-lucide="sliders" style="width: 16px; height: 16px;"></i> Sütun Eşleştirmesi
-            </h4>
-            <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 1rem;">Plan tablonuzdaki ilgili sütunları seçin. Eşleşmeyen alanlar boş geçilebilir.</p>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; flex-wrap: wrap; gap: 0.5rem;">
+              <h4 style="font-size: 0.9rem; font-weight: 700; margin-bottom: 0; color: var(--primary); display: flex; align-items: center; gap: 0.25rem;">
+                <i data-lucide="sliders" style="width: 16px; height: 16px;"></i> Sütun Eşleştirmesi
+              </h4>
+            </div>
+            <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 1rem;">Tablonuzdaki sütun başlıkları otomatik olarak tespit edilmiştir. Gerekirse aşağıdaki açılır kutulardan sütunları düzenleyebilirsiniz.</p>
             <div class="form-row" style="grid-template-columns: repeat(4, 1fr); gap: 0.75rem; margin-bottom: 0.75rem;">
               <div class="form-group">
                 <label for="plan-col-month" style="font-weight: 600; font-size: 0.8rem;">Ay Sütunu</label>
@@ -5378,6 +5654,32 @@
             <span id="edit-questions-book-author" style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-top: 0.25rem;"></span>
           </div>
 
+          <!-- Yapay Zeka (AI) İle Otomatik Soru Üretim Alanı -->
+          <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem; background: linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(168, 85, 247, 0.08)); padding: 0.85rem 1rem; border-radius: var(--radius-md); align-items: center; justify-content: space-between; flex-wrap: wrap; border: 1px solid rgba(99, 102, 241, 0.25);">
+            <div style="display: flex; align-items: center; gap: 0.6rem;">
+              <span style="font-size: 1.3rem;">🤖</span>
+              <div>
+                <strong style="font-size: 0.85rem; display: block; color: var(--text-primary);">Yapay Zeka (AI) Asistanı</strong>
+                <span style="font-size: 0.75rem; color: var(--text-muted);">Bu kitaba özel 5 okuduğunu anlama sorusunu saniyeler içinde hazırlatın.</span>
+              </div>
+            </div>
+            <div style="display: flex; gap: 0.5rem; align-items: center;">
+              <button type="button" class="btn btn-ai-gradient" id="btn-ai-generate-book-questions" style="padding: 0.45rem 0.9rem; font-size: 0.8rem; display: flex; align-items: center; gap: 0.35rem; cursor: pointer; border-radius: 6px;">
+                <i data-lucide="sparkles" style="width: 15px; height: 15px;"></i> Soruları Yapay Zekaya Hazırlat
+              </button>
+              <button type="button" class="btn btn-secondary" id="btn-edit-questions-api-key" title="Gemini API Anahtarı Tanımla / Değiştir" style="padding: 0.45rem 0.6rem; font-size: 0.8rem; display: flex; align-items: center; gap: 0.25rem;">
+                <i data-lucide="key" style="width: 15px; height: 15px;"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Yapay Zeka Yükleniyor Göstergesi -->
+          <div id="ai-questions-loading-state" style="display: none; margin-bottom: 1rem; padding: 1.25rem; background: rgba(99, 102, 241, 0.06); border-radius: var(--radius-md); border: 1.5px dashed #6366f1; text-align: center;">
+            <div class="ai-spinner" style="margin-bottom: 0.5rem;"></div>
+            <div style="font-size: 0.9rem; font-weight: 700; color: #6366f1;" id="ai-loading-book-title">Yapay zeka kitap için soruları ve cevapları hazırlıyor...</div>
+            <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.35rem;">Google Gemini 1.5 Flash ile güvenilir anlama analizi yapılıyor (birkaç saniye sürebilir)...</div>
+          </div>
+
           <!-- Toplu Soru Yükleme Çubuğu -->
           <div style="display: flex; gap: 0.5rem; margin-bottom: 1.5rem; background: var(--primary-light); padding: 0.75rem 1rem; border-radius: var(--radius-md); align-items: center; justify-content: space-between; flex-wrap: wrap; border: 1px solid var(--border-color);">
             <span style="font-size: 0.8rem; font-weight: 700; color: var(--primary); display: flex; align-items: center; gap: 0.25rem;">
@@ -5407,6 +5709,60 @@
           <button type="submit" class="btn btn-primary">Kaydet</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- MODAL: GEMİNİ APİ ANAHTARI HIZLI TANIMLAMA & REHBER -->
+  <div class="modal" id="modal-gemini-key-setup">
+    <div class="modal-content" style="--max-width: 550px;">
+      <div class="modal-header">
+        <h3 style="display: flex; align-items: center; gap: 0.5rem; color: #6366f1; margin: 0; font-size: 1.15rem;">
+          <i data-lucide="sparkles"></i> Yapay Zeka API Anahtarı Tanımlama
+        </h3>
+        <button class="close-btn">&times;</button>
+      </div>
+      <div class="modal-body" style="display: flex; flex-direction: column; gap: 1rem;">
+        <p style="font-size: 0.85rem; color: var(--text-secondary); margin: 0; line-height: 1.5;">
+          Kitap sorularını tek tıkla yapay zekaya hazırlatabilmek için Google'ın tamamen ücretsiz sunduğu Gemini API anahtarınızı aşağıya girin.
+        </p>
+
+        <!-- 3 Adımlı Rehber Kartı -->
+        <div style="background: rgba(99, 102, 241, 0.06); border: 1px solid rgba(99, 102, 241, 0.25); border-radius: 8px; padding: 1rem;">
+          <h4 style="font-size: 0.85rem; font-weight: 700; color: #6366f1; margin: 0 0 0.5rem 0; display: flex; align-items: center; gap: 0.4rem;">
+            <i data-lucide="help-circle" style="width: 16px; height: 16px;"></i> 3 Adımda Ücretsiz Anahtar Alın:
+          </h4>
+          <ol style="font-size: 0.8rem; color: var(--text-secondary); margin: 0; padding-left: 1.2rem; line-height: 1.6;">
+            <li>
+              <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" style="color: #6366f1; font-weight: 700; text-decoration: underline;">Google AI Studio API Key</a> sayfasına gidin (Google hesabınızla ücretsiz giriş yapın).
+            </li>
+            <li>
+              Sağ üstteki mavi <strong>"Create API key"</strong> butonuna basarak anahtarınızı oluşturun.
+            </li>
+            <li>
+              Oluşturulan <code>AIzaSy...</code> anahtarını kopyalayıp aşağıdaki kutucuğa yapıştırın.
+            </li>
+          </ol>
+          <div style="margin-top: 0.6rem; font-size: 0.75rem; color: var(--text-muted); border-top: 1px dashed rgba(99, 102, 241, 0.2); padding-top: 0.4rem;">
+            🔒 <em>Anahtarınız yalnızca bu bilgisayarınızda güvenle saklanır, harici sunuculara aktarılmaz.</em>
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 0;">
+          <label style="font-size: 0.85rem; font-weight: 600; color: var(--text-primary); margin-bottom: 0.35rem; display: block;">Gemini API Anahtarınız</label>
+          <div style="display: flex; gap: 0.5rem;">
+            <input type="password" id="input-modal-gemini-api-key" class="form-control" placeholder="AIzaSy..." style="flex: 1; font-family: monospace; font-size: 0.85rem;">
+            <button type="button" class="btn btn-secondary" id="btn-toggle-modal-key-visibility" title="Göster/Gizle" style="padding: 0.5rem 0.75rem;">
+              <i data-lucide="eye" id="icon-toggle-modal-key" style="width: 16px; height: 16px;"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 0.75rem;">
+        <button type="button" class="btn btn-secondary close-btn-action">Kapat</button>
+        <button type="button" class="btn btn-primary" id="btn-save-modal-gemini-key" style="background: #6366f1; border-color: #6366f1;">
+          <i data-lucide="check"></i> Kaydet ve Kullan
+        </button>
+      </div>
     </div>
   </div>
 
@@ -5602,6 +5958,73 @@
     </div>
   </div>
 
+  <!-- MODAL: YENİ KATKI / TEDARİK TAKİBİ OLUŞTUR -->
+  <div class="modal" id="modal-add-contribution">
+    <div class="modal-content" style="max-width: 520px;">
+      <div class="modal-header">
+        <h3 id="modal-contrib-title-header">Yeni Katkı / Tedarik Takibi Başlat</h3>
+        <button class="close-btn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="contrib-edit-id" value="">
+        
+        <div class="form-group" style="margin-bottom: 1.25rem;">
+          <label for="contrib-input-title" style="font-weight: 600; font-size: 0.85rem; margin-bottom: 0.5rem; display: block;">Takip / Kampanya Başlığı</label>
+          <input type="text" id="contrib-input-title" class="form-control" placeholder="Örn: 1. Dönem A4 Kağıdı Tedariği veya Tiyatro Gezisi Ücreti" style="width: 100%;">
+        </div>
+
+        <div class="form-group" style="margin-bottom: 1.25rem;">
+          <label style="font-weight: 600; font-size: 0.85rem; margin-bottom: 0.5rem; display: block;">Takip Türü</label>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+            <label id="contrib-type-material-label" class="glass-card" style="padding: 0.75rem; border-radius: 8px; border: 2px solid var(--primary); cursor: pointer; display: flex; align-items: center; gap: 0.5rem;">
+              <input type="radio" name="contrib-type" id="contrib-type-material" value="material" checked style="accent-color: var(--primary);">
+              <div>
+                <strong style="display: block; font-size: 0.9rem;">📦 Malzeme / Eşya</strong>
+                <span style="font-size: 0.75rem; color: var(--text-muted);">A4 kağıdı, boya, kitap vb.</span>
+              </div>
+            </label>
+            <label id="contrib-type-money-label" class="glass-card" style="padding: 0.75rem; border-radius: 8px; border: 1px solid var(--border-color); cursor: pointer; display: flex; align-items: center; gap: 0.5rem;">
+              <input type="radio" name="contrib-type" id="contrib-type-money" value="money" style="accent-color: var(--primary);">
+              <div>
+                <strong style="display: block; font-size: 0.9rem;">💵 Maddi / Ücret</strong>
+                <span style="font-size: 0.75rem; color: var(--text-muted);">Gezi, tiyatro, bilet vb.</span>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <!-- Malzeme Alanı (Malzeme seçildiğinde görünür) -->
+        <div class="form-group" id="contrib-group-material" style="margin-bottom: 1.25rem;">
+          <label for="contrib-input-material" style="font-weight: 600; font-size: 0.85rem; margin-bottom: 0.5rem; display: block;">İstenen Malzeme / Adet</label>
+          <input type="text" id="contrib-input-material" class="form-control" placeholder="Örn: 1 Top A4 Fotokopi Kağıdı (80 gr)" value="1 Top A4 Kağıdı" style="width: 100%;">
+        </div>
+
+        <!-- Tutar Alanı (Para seçildiğinde görünür) -->
+        <div class="form-group" id="contrib-group-money" style="margin-bottom: 1.25rem; display: none;">
+          <label for="contrib-input-amount" style="font-weight: 600; font-size: 0.85rem; margin-bottom: 0.5rem; display: block;">Öğrenci Başı Hedeflenen Tutar (₺)</label>
+          <div style="position: relative;">
+            <input type="number" id="contrib-input-amount" class="form-control" placeholder="0" min="0" step="1" style="width: 100%; padding-right: 2rem;">
+            <span style="position: absolute; right: 0.75rem; top: 50%; transform: translateY(-50%); font-weight: 700; color: var(--text-muted);">₺</span>
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 1.25rem;">
+          <label for="contrib-input-due-date" style="font-weight: 600; font-size: 0.85rem; margin-bottom: 0.5rem; display: block;">Son Teslim / Toplama Tarihi (İsteğe Bağlı)</label>
+          <input type="date" id="contrib-input-due-date" class="form-control" style="width: 100%;">
+        </div>
+
+        <div class="form-group" style="margin-bottom: 0.5rem;">
+          <label for="contrib-input-description" style="font-weight: 600; font-size: 0.85rem; margin-bottom: 0.5rem; display: block;">Açıklama / Not (İsteğe Bağlı)</label>
+          <textarea id="contrib-input-description" class="form-control" rows="2" placeholder="Velilere veya sınıfa iletilen detaylar..." style="width: 100%; resize: vertical;"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer" style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1rem;">
+        <button class="btn btn-secondary" id="btn-cancel-add-contribution">İptal</button>
+        <button class="btn btn-primary" id="btn-save-contribution">Kaydet ve Başlat</button>
+      </div>
+    </div>
+  </div>
+
   <!-- MODAL: GÜNLÜK YOKLAMA -->
   <div class="modal" id="modal-attendance" style="--max-width: 550px;">
     <div class="modal-content" style="max-width: 550px;">
@@ -5705,6 +6128,14 @@
         <div class="form-group" style="margin-bottom: 1.25rem;">
           <label for="doc-upload-title" style="font-weight: 600; font-size: 0.85rem; margin-bottom: 0.5rem; display: block;">Evrak Adı / Başlığı</label>
           <input type="text" id="doc-upload-title" class="form-control" placeholder="Örn: 2026 Sene Başı Veli Toplantı Tutanağı" style="width: 100%;">
+        </div>
+
+        <div class="form-group" style="margin-bottom: 1.25rem;">
+          <label for="doc-upload-category-select" style="font-weight: 600; font-size: 0.85rem; margin-bottom: 0.5rem; display: block;">Yüklenecek Sekme / Kategori</label>
+          <select id="doc-upload-category-select" class="form-control" style="width: 100%;">
+            <option value="">Genel / Kategorisiz</option>
+            <!-- Dinamik kategoriler JS ile eklenecek -->
+          </select>
         </div>
         
         <div id="doc-drag-drop-area" style="border: 2px dashed var(--border-color); border-radius: 8px; padding: 2rem; text-align: center; cursor: pointer; transition: all 0.2s ease;">
@@ -6425,7 +6856,7 @@
   <!-- Uygulama Javascript Dosyaları -->
   <script src="js/supabase-config.js?v=32"></script>
   <script src="js/license-config.js?v=32"></script>
-  <script src="js/state.js?v=35"></script>
+  <script src="js/state.js?v=36"></script>
   <script src="js/performance.js?v=35"></script>
   <script src="js/books.js?v=35"></script>
   <script src="js/homework.js?v=35"></script>
@@ -6447,14 +6878,24 @@
   <script src="js/reports.js?v=35"></script>
   <script src="js/seating.js?v=35"></script>
   <script src="js/notebooks.js?v=35"></script>
+  <script src="js/contributions.js?v=37"></script>
   <script src="js/app-lock.js?v=1"></script>
-  <script src="js/app.js?v=35"></script>
+  <script src="js/app.js?v=37"></script>
   <script src="js/test_plans.js"></script>
   <div id="pdf-viewer-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: var(--bg-primary); z-index: 9999; flex-direction: column;">
     <div style="height: 60px; background: var(--bg-secondary); border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; padding: 0 1.5rem;">
-      <div style="display: flex; align-items: center; gap: 0.5rem; flex: 1;">
-        <i data-lucide="book-open" style="color: var(--primary);"></i>
-        <span id="pdf-viewer-title" style="font-weight: 700; color: var(--text-primary); font-size: 1.1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 300px;">Ders Kitabı</span>
+      <div style="display: flex; align-items: center; gap: 0.75rem; flex: 1; overflow: hidden; margin-right: 1rem;">
+        <i data-lucide="book-open" style="color: var(--primary); flex-shrink: 0;"></i>
+        <span id="pdf-viewer-title" style="font-weight: 700; color: var(--text-primary); font-size: 1.1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 250px;">Ders Kitabı</span>
+        <!-- Canlı Ders Bilgisi Rozeti -->
+        <div id="pdf-viewer-live-badge" style="display: inline-flex; align-items: center; gap: 0.5rem; background: rgba(0,0,0,0.25); border: 1px solid var(--border-color); padding: 0.25rem 0.75rem; border-radius: 20px; font-size: 0.8rem; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="Canlı Ders ve Konu Detayını Gör">
+          <span id="pdf-live-period-text" style="font-weight: 700; color: #10b981; display: inline-flex; align-items: center; gap: 0.25rem;">
+            <i data-lucide="activity" style="width: 13px; height: 13px;"></i>
+            <span>Ders Akışı</span>
+          </span>
+          <span style="opacity: 0.4;">|</span>
+          <span id="pdf-live-topic-text" style="color: var(--text-primary); max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Yükleniyor...</span>
+        </div>
       </div>
       
       <!-- Kaldığı Sayfa Takibi -->
@@ -6479,5 +6920,7 @@
       <iframe id="pdf-viewer-iframe" style="width: 100%; height: 100%; border: none;" src=""></iframe>
     </div>
   </div>
+  <!-- Katkı & Tedarik Yazdırma Alanı (Sadece Yazdırmada Görünür) -->
+  <div id="contribution-print-area" style="display: none;"></div>
 </body>
 </html>

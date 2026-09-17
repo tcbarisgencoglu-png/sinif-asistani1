@@ -80,6 +80,239 @@ let activeQuestionsState = {
 };
 
 let currentEditBookId = null;
+let currentEditBookTitle = '';
+let currentEditBookAuthor = '';
+
+function getGeminiApiKey() {
+  const key = (localStorage.getItem('sinif_asistani_gemini_api_key') || '').trim();
+  return key.replace(/^["'“”‘’\s]+|["'“”‘’\s]+$/g, '');
+}
+window.getGeminiApiKey = getGeminiApiKey;
+
+function setGeminiApiKey(key) {
+  const trimmed = (key || '').trim().replace(/^["'“”‘’\s]+|["'“”‘’\s]+$/g, '');
+  if (trimmed) {
+    localStorage.setItem('sinif_asistani_gemini_api_key', trimmed);
+  } else {
+    localStorage.removeItem('sinif_asistani_gemini_api_key');
+  }
+}
+window.setGeminiApiKey = setGeminiApiKey;
+
+window.callGeminiAPI = async function(prompt, options = {}) {
+  const apiKey = getGeminiApiKey();
+  if (!apiKey) {
+    throw new Error('NO_API_KEY');
+  }
+
+  // 1. Önce API anahtarının erişebildiği aktif modelleri Google'dan doğrudan çek
+  let listData = null;
+  let listError = null;
+
+  for (const apiVer of ['v1beta', 'v1']) {
+    try {
+      const listRes = await fetch(`https://generativelanguage.googleapis.com/${apiVer}/models?key=${apiKey}`);
+      const json = await listRes.json();
+      if (listRes.ok && json.models && json.models.length > 0) {
+        listData = { version: apiVer, models: json.models };
+        break;
+      } else if (!listRes.ok) {
+        listError = json.error?.message || `HTTP ${listRes.status}`;
+      }
+    } catch (e) {
+      listError = e.message;
+    }
+  }
+
+  if (!listData) {
+    if (listError && (listError.toLowerCase().includes('api key not valid') || listError.toLowerCase().includes('invalid'))) {
+      throw new Error('Google API anahtarı geçersiz! Lütfen anahtarınızı kontrol edip tekrar kaydedin.');
+    }
+    if (listError && (listError.includes('not been used in project') || listError.includes('disabled'))) {
+      throw new Error('Google Cloud projenizde Generative Language API henüz etkin değil. Lütfen Google AI Studio\'da anahtar oluştururken "Create API key in new project" (Yeni projede oluştur) seçeneğini seçin.');
+    }
+    throw new Error(`Google API bağlantı hatası: ${listError || 'Modeller sorgulanamadı'}`);
+  }
+
+  // 2. generateContent destekleyen modelleri filtrele
+  const supportedModels = listData.models.filter(m => 
+    !m.supportedGenerationMethods || m.supportedGenerationMethods.includes('generateContent')
+  );
+
+  if (supportedModels.length === 0) {
+    throw new Error('Bu API anahtarının içerik üretme modellerine izni bulunmuyor. Lütfen Google AI Studio üzerinden "Create API key in new project" seçeneğiyle yeni bir anahtar oluşturun.');
+  }
+
+  // Flash modellerine ve alternatif sürümlere öncelik ver
+  const prioritizedCandidateNames = [
+    'models/gemini-3.6-flash',
+    'models/gemini-3-flash',
+    'models/gemini-2.5-flash-lite',
+    'models/gemini-2.0-flash-lite',
+    'models/gemini-2.0-flash',
+    ...supportedModels.map(m => m.name.startsWith('models/') ? m.name : `models/${m.name}`)
+  ].filter((v, i, a) => a.indexOf(v) === i);
+
+  let response = null;
+  let lastErrDetail = '';
+  const temperature = options.temperature !== undefined ? options.temperature : 0.3;
+  const wantJson = options.json !== false;
+
+  for (const modelPath of prioritizedCandidateNames) {
+    const url = `https://generativelanguage.googleapis.com/${listData.version}/${modelPath}:generateContent?key=${apiKey}`;
+    try {
+      let curRes = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [{ text: prompt }]
+            }
+          ],
+          generationConfig: {
+            temperature: temperature,
+            ...(wantJson ? { responseMimeType: "application/json" } : {})
+          }
+        })
+      });
+
+      // Eğer responseMimeType desteklenmezse (400) formatsız dene
+      if (curRes.status === 400 && wantJson) {
+        curRes = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: { temperature: temperature }
+          })
+        });
+      }
+
+      if (curRes.ok) {
+        response = curRes;
+        break;
+      }
+
+      let errDetail = '';
+      try {
+        const errJson = await curRes.json();
+        errDetail = errJson.error?.message || curRes.statusText;
+      } catch (e) {
+        errDetail = curRes.statusText;
+      }
+      lastErrDetail = errDetail;
+
+      // Google hata mesajında "Please update your code to use models/XYZ" önerisi verdiyse onu doğrudan dene!
+      const match = errDetail.match(/use\s+(models\/[a-zA-Z0-9.-]+)/i);
+      if (match && match[1]) {
+        const suggestedUrl = `https://generativelanguage.googleapis.com/${listData.version}/${match[1]}:generateContent?key=${apiKey}`;
+        const retryRes = await fetch(suggestedUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: prompt }] }],
+            generationConfig: { temperature: temperature, ...(wantJson ? { responseMimeType: "application/json" } : {}) }
+          })
+        });
+        if (retryRes.ok) {
+          response = retryRes;
+          break;
+        }
+      }
+
+      // 404 (model bulunamadı), 503/500 (sunucu yoğun) veya High Demand durumunda diğer modeli dene!
+      const isHighDemandOrUnavailable = curRes.status === 404 || 
+        curRes.status === 503 || 
+        curRes.status === 500 || 
+        (curRes.status === 429 && errDetail.toLowerCase().includes('demand')) ||
+        errDetail.toLowerCase().includes('high demand') ||
+        errDetail.toLowerCase().includes('overloaded') ||
+        errDetail.toLowerCase().includes('unavailable');
+
+      if (isHighDemandOrUnavailable) {
+        // Diğer modele geçmeden önce 400ms kısa bir bekleme
+        await new Promise(r => setTimeout(r, 400));
+        continue;
+      }
+
+      // Sadece gerçek yetkisiz (401/403) veya kota durumunda döngüyü sonlandır
+      break;
+    } catch (e) {
+      lastErrDetail = e.message;
+    }
+  }
+
+  if (!response || !response.ok) {
+    if (lastErrDetail.toLowerCase().includes('high demand') || lastErrDetail.toLowerCase().includes('overloaded')) {
+      throw new Error('Google Gemini sunucularında şu an anlık bir yoğunluk yaşanıyor. Lütfen 5-10 saniye sonra tekrar deneyin.');
+    }
+    throw new Error(`Yapay zeka servisi hatası: ${lastErrDetail || 'İstek tamamlanamadı.'}`);
+  }
+
+  const data = await response.json();
+  const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+  if (!rawText) {
+    throw new Error('Yapay zekadan boş yanıt alındı.');
+  }
+
+  return rawText;
+};
+
+async function generateBookQuestionsWithAI(bookTitle, bookAuthor) {
+  const apiKey = getGeminiApiKey();
+  if (!apiKey) {
+    throw new Error('NO_API_KEY');
+  }
+
+  const prompt = `Sen uzman bir Türkçe ve edebiyat öğretmenisin. İlkokul ve ortaokul düzeyindeki öğrenciler için aşağıdaki kitabın okunup anlaşıldığını derinlemesine ölçecek 5 adet açık uçlu soru ve her birinin detaylı doğru cevabını hazırla.
+
+Kitap Adı: "${bookTitle}"
+Yazar: "${bookAuthor || 'Bilinmiyor'}"
+
+Yanıtını YALNIZCA geçerli bir JSON dizisi formatında ver. Kesinlikle başka hiçbir metin, açıklama veya markdown kodu (json codeblock vb.) yazma:
+[
+  {
+    "question": "Soru metni...",
+    "answer": "Beklenen doğru cevap / açıklama..."
+  }
+]
+Kurallar:
+1. Sorular kitaptaki önemli olay örgüsü, ana karakterlerin özellikleri/motivasyonları, dönüm noktaları veya ana fikirle ilgili olmalıdır.
+2. Basit evet/hayır soruları sorma; öğrencinin okuduğunu kanıtlayacak belirleyici detaylar içersin.
+3. Tam 5 adet soru-cevap çifti üret.`;
+
+  const rawText = await window.callGeminiAPI(prompt, { json: true, temperature: 0.3 });
+
+  let cleanJson = rawText.trim();
+  if (cleanJson.startsWith('```json')) {
+    cleanJson = cleanJson.replace(/^```json\s*/i, '').replace(/```\s*$/, '').trim();
+  } else if (cleanJson.startsWith('```')) {
+    cleanJson = cleanJson.replace(/^```\s*/, '').replace(/```\s*$/, '').trim();
+  }
+
+  const arrayMatch = cleanJson.match(/\[[\s\S]*\]/);
+  if (arrayMatch) {
+    cleanJson = arrayMatch[0];
+  }
+
+  let questions;
+  try {
+    questions = JSON.parse(cleanJson);
+  } catch (e) {
+    throw new Error('Yapay zeka yanıtı geçerli JSON formatında değil: ' + e.message);
+  }
+
+  if (!Array.isArray(questions) || questions.length === 0) {
+    throw new Error('Yapay zeka geçerli soru listesi üretemedi.');
+  }
+
+  return questions;
+}
 
 function shuffleArray(array) {
   const arr = [...array];
@@ -185,9 +418,17 @@ function renderCurrentQuestion() {
 
 function openEditQuestionsModal(bookId, bookTitle, bookAuthor) {
   currentEditBookId = bookId;
+  currentEditBookTitle = bookTitle;
+  currentEditBookAuthor = bookAuthor;
   const state = stateManager.loadState();
   const book = state.books.library.find(b => b.id === bookId);
   if (!book) return;
+
+  // AI yükleme ve buton durumunu sıfırla
+  const aiLoadingState = document.getElementById('ai-questions-loading-state');
+  if (aiLoadingState) aiLoadingState.style.display = 'none';
+  const btnAi = document.getElementById('btn-ai-generate-book-questions');
+  if (btnAi) btnAi.disabled = false;
 
   const titleElem = document.getElementById('edit-questions-book-title');
   const authorElem = document.getElementById('edit-questions-book-author');
@@ -346,16 +587,19 @@ function setupBooksTab(showToast) {
     const btnAddBook = document.getElementById('btn-add-book');
     const btnDownloadTemplate = document.getElementById('btn-download-book-template');
     const btnUploadTrigger = document.getElementById('btn-upload-books-trigger');
+    const btnBatchAIQuestions = document.getElementById('btn-batch-ai-questions');
     
     if (btnAddBook && btnDownloadTemplate && btnUploadTrigger) {
       if (activeTab === 'leaderboard') {
         btnAddBook.style.display = 'inline-flex';
         btnDownloadTemplate.style.display = 'inline-flex';
         btnUploadTrigger.style.display = 'inline-flex';
+        if (btnBatchAIQuestions) btnBatchAIQuestions.style.display = 'inline-flex';
       } else {
         btnAddBook.style.display = 'none';
         btnDownloadTemplate.style.display = 'none';
         btnUploadTrigger.style.display = 'none';
+        if (btnBatchAIQuestions) btnBatchAIQuestions.style.display = 'none';
       }
     }
   }
@@ -1115,6 +1359,208 @@ function setupBooksTab(showToast) {
       } else {
         if (toastCallback) {
           toastCallback(result.message, 'danger');
+        }
+      }
+    });
+  }
+
+  // --- Yapay Zeka (AI) Soru Üretimi ve API Anahtarı Olayları ---
+  const btnAiGenerateQuestions = document.getElementById('btn-ai-generate-book-questions');
+  const btnEditQuestionsApiKey = document.getElementById('btn-edit-questions-api-key');
+  const modalGeminiKeySetup = document.getElementById('modal-gemini-key-setup');
+  const inputModalGeminiApiKey = document.getElementById('input-modal-gemini-api-key');
+  const btnSaveModalGeminiKey = document.getElementById('btn-save-modal-gemini-key');
+  const btnToggleModalKeyVisibility = document.getElementById('btn-toggle-modal-key-visibility');
+  const iconToggleModalKey = document.getElementById('icon-toggle-modal-key');
+  const aiLoadingState = document.getElementById('ai-questions-loading-state');
+  const aiLoadingBookTitle = document.getElementById('ai-loading-book-title');
+
+  function openGeminiKeyModal() {
+    if (modalGeminiKeySetup && inputModalGeminiApiKey) {
+      inputModalGeminiApiKey.value = getGeminiApiKey();
+      modalGeminiKeySetup.classList.add('active');
+      window.safeCreateIcons();
+    }
+  }
+  window.openGeminiKeyModal = openGeminiKeyModal;
+
+  if (btnEditQuestionsApiKey) {
+    btnEditQuestionsApiKey.addEventListener('click', () => {
+      openGeminiKeyModal();
+    });
+  }
+
+  if (btnToggleModalKeyVisibility && inputModalGeminiApiKey) {
+    btnToggleModalKeyVisibility.addEventListener('click', () => {
+      if (inputModalGeminiApiKey.type === 'password') {
+        inputModalGeminiApiKey.type = 'text';
+        if (iconToggleModalKey) iconToggleModalKey.setAttribute('data-lucide', 'eye-off');
+      } else {
+        inputModalGeminiApiKey.type = 'password';
+        if (iconToggleModalKey) iconToggleModalKey.setAttribute('data-lucide', 'eye');
+      }
+      window.safeCreateIcons();
+    });
+  }
+
+  if (btnSaveModalGeminiKey && inputModalGeminiApiKey) {
+    btnSaveModalGeminiKey.addEventListener('click', () => {
+      const key = inputModalGeminiApiKey.value.trim();
+      setGeminiApiKey(key);
+      const configKeyInput = document.getElementById('config-gemini-api-key');
+      if (configKeyInput) configKeyInput.value = key;
+      const statusMsg = document.getElementById('gemini-key-status-msg');
+      if (statusMsg) {
+        if (key) {
+          statusMsg.style.display = 'block';
+          statusMsg.style.color = 'var(--success)';
+          statusMsg.textContent = '✓ Tanımlı API anahtarı aktif.';
+        } else {
+          statusMsg.style.display = 'none';
+        }
+      }
+      if (modalGeminiKeySetup) modalGeminiKeySetup.classList.remove('active');
+      if (toastCallback) {
+        toastCallback(key ? 'Google Gemini API anahtarı başarıyla kaydedildi!' : 'API anahtarı temizlendi.', key ? 'success' : 'info');
+      }
+    });
+  }
+
+  document.querySelectorAll('#modal-gemini-key-setup .close-btn, #modal-gemini-key-setup .close-btn-action').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (modalGeminiKeySetup) modalGeminiKeySetup.classList.remove('active');
+    });
+  });
+
+  if (btnAiGenerateQuestions) {
+    btnAiGenerateQuestions.addEventListener('click', async () => {
+      const apiKey = getGeminiApiKey();
+      if (!apiKey) {
+        if (toastCallback) {
+          toastCallback('Lütfen önce ücretsiz Google Gemini API anahtarınızı tanımlayın.', 'warning');
+        }
+        openGeminiKeyModal();
+        return;
+      }
+
+      if (!currentEditBookId) {
+        if (toastCallback) toastCallback('Düzenlenecek kitap seçilemedi.', 'danger');
+        return;
+      }
+
+      const container = document.getElementById('edit-questions-list-container');
+      if (!container) return;
+
+      try {
+        btnAiGenerateQuestions.disabled = true;
+        if (aiLoadingState) {
+          if (aiLoadingBookTitle) {
+            aiLoadingBookTitle.textContent = `Yapay zeka "${currentEditBookTitle}" kitabı için soruları hazırlıyor...`;
+          }
+          aiLoadingState.style.display = 'block';
+        }
+
+        const generatedQuestions = await generateBookQuestionsWithAI(currentEditBookTitle, currentEditBookAuthor);
+
+        container.innerHTML = '';
+        generatedQuestions.forEach(item => {
+          addQuestionEditRow(container, item.question, item.answer);
+        });
+
+        if (toastCallback) {
+          toastCallback(`"${currentEditBookTitle}" kitabı için 5 adet soru hazırlandı! Kalıcı olması için lütfen Kaydet butonuna basın.`, 'success');
+        }
+      } catch (err) {
+        console.error('Yapay Zeka Soru Üretim Hatası:', err);
+        if (err.message === 'NO_API_KEY') {
+          openGeminiKeyModal();
+        } else {
+          if (toastCallback) {
+            toastCallback(err.message || 'Yapay zeka soruları hazırlarken bir hata oluştu.', 'danger');
+          }
+        }
+      } finally {
+        btnAiGenerateQuestions.disabled = false;
+        if (aiLoadingState) aiLoadingState.style.display = 'none';
+        window.safeCreateIcons();
+      }
+    });
+  }
+
+  // Toplu Yapay Zeka Soru Üretimi (Kütüphanedeki sorusuz kitaplar için)
+  const btnBatchAIQuestions = document.getElementById('btn-batch-ai-questions');
+  if (btnBatchAIQuestions) {
+    btnBatchAIQuestions.addEventListener('click', async () => {
+      const apiKey = getGeminiApiKey();
+      if (!apiKey) {
+        if (toastCallback) {
+          toastCallback('Toplu soru üretimi için lütfen önce Gemini API anahtarınızı tanımlayın.', 'warning');
+        }
+        openGeminiKeyModal();
+        return;
+      }
+
+      const state = stateManager.loadState();
+      const library = state.books.library || [];
+      if (library.length === 0) {
+        if (toastCallback) toastCallback('Kütüphanede henüz kitap bulunmuyor.', 'info');
+        return;
+      }
+
+      // Özel sorusu olmayan veya boş olan kitapları filtrele
+      const targetBooks = library.filter(b => !b.questions || b.questions.length === 0);
+      if (targetBooks.length === 0) {
+        if (toastCallback) toastCallback('Kütüphanedeki tüm kitapların soruları zaten tanımlı!', 'success');
+        return;
+      }
+
+      const confirmed = confirm(
+        `Kütüphanenizde henüz özel sorusu bulunmayan ${targetBooks.length} adet kitap tespit edildi.\n\n` +
+        `Yapay zeka her biri için 5'er adet okuduğunu anlama sorusu ve cevabı hazırlayıp kaydedecektir.\n` +
+        `İşlemi başlatmak istiyor musunuz?`
+      );
+      if (!confirmed) return;
+
+      btnBatchAIQuestions.disabled = true;
+      btnBatchAIQuestions.innerHTML = `<span class="ai-spinner" style="width:14px;height:14px;border-width:2px;"></span> Hazırlanıyor...`;
+
+      let successCount = 0;
+      let failCount = 0;
+
+      for (let i = 0; i < targetBooks.length; i++) {
+        const book = targetBooks[i];
+        if (toastCallback) {
+          toastCallback(`[${i + 1}/${targetBooks.length}] "${book.title}" için sorular hazırlanıyor...`, 'info');
+        }
+
+        try {
+          const qs = await generateBookQuestionsWithAI(book.title, book.author);
+          stateManager.updateBookQuestions(book.id, qs);
+          successCount++;
+        } catch (err) {
+          console.error(`Soru üretim hatası (${book.title}):`, err);
+          failCount++;
+        }
+
+        // Dakikalık kota (15 RPM) aşılmaması için istekler arası 1.2 saniye bekle
+        if (i < targetBooks.length - 1) {
+          await new Promise(res => setTimeout(res, 1200));
+        }
+      }
+
+      btnBatchAIQuestions.disabled = false;
+      btnBatchAIQuestions.innerHTML = `<i data-lucide="sparkles" style="width: 15px; height: 15px;"></i> Toplu AI Soruları`;
+      window.safeCreateIcons();
+
+      renderBooksList();
+      const event = new CustomEvent('stateChanged');
+      document.dispatchEvent(event);
+
+      if (toastCallback) {
+        if (failCount === 0) {
+          toastCallback(`Harika! ${successCount} adet kitabın tüm soruları yapay zeka ile başarıyla hazırlandı ve kaydedildi.`, 'success');
+        } else {
+          toastCallback(`${successCount} kitabın soruları hazırlandı, ${failCount} kitapta hata oluştu.`, 'warning');
         }
       }
     });

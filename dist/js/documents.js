@@ -16,9 +16,21 @@
   let btnShowDocumentUploadModal;
   let btnUploadFirstDocument;
 
+  // Kategori / Sekme Yönetimi DOM
+  let documentsCategoriesTabBar;
+  let btnAddDocumentCategory;
+  let documentsActiveCategoryHeader;
+  let documentsActiveCategoryTitle;
+  let documentsActiveCategoryCountBadge;
+  let documentsCategoryControls;
+  let btnRenameCurrentCategory;
+  let btnDeleteCurrentCategory;
+  let currentActiveCategoryId = 'all'; // 'all' | 'uncategorized' | categoryId
+
   // Upload Modal DOM
   let modalUploadDocument;
   let docUploadTitle;
+  let docUploadCategorySelect;
   let docDragDropArea;
   let btnSelectDocumentFile;
   let inputDocumentFile;
@@ -56,9 +68,20 @@
     btnShowDocumentUploadModal = document.getElementById('btn-show-document-upload-modal');
     btnUploadFirstDocument = document.getElementById('btn-upload-first-document');
 
+    // Kategori DOM
+    documentsCategoriesTabBar = document.getElementById('documents-categories-tab-bar');
+    btnAddDocumentCategory = document.getElementById('btn-add-document-category');
+    documentsActiveCategoryHeader = document.getElementById('documents-active-category-header');
+    documentsActiveCategoryTitle = document.getElementById('documents-active-category-title');
+    documentsActiveCategoryCountBadge = document.getElementById('documents-active-category-count-badge');
+    documentsCategoryControls = document.getElementById('documents-category-controls');
+    btnRenameCurrentCategory = document.getElementById('btn-rename-current-category');
+    btnDeleteCurrentCategory = document.getElementById('btn-delete-current-category');
+
     // Upload Modal
     modalUploadDocument = document.getElementById('modal-upload-document');
     docUploadTitle = document.getElementById('doc-upload-title');
+    docUploadCategorySelect = document.getElementById('doc-upload-category-select');
     docDragDropArea = document.getElementById('doc-drag-drop-area');
     btnSelectDocumentFile = document.getElementById('btn-select-document-file');
     inputDocumentFile = document.getElementById('input-document-file');
@@ -84,6 +107,7 @@
       btnLaunchDocuments.addEventListener('click', () => {
         toolsLandingView.style.display = 'none';
         toolsDocumentsView.style.display = 'block';
+        renderCategoryTabs();
         renderDocumentsList();
       });
     }
@@ -95,9 +119,25 @@
       });
     }
 
+    // Yeni Sekme Ekle Butonu
+    if (btnAddDocumentCategory) {
+      btnAddDocumentCategory.addEventListener('click', addNewCategoryPrompt);
+    }
+
+    // Aktif Sekmeyi Düzenle
+    if (btnRenameCurrentCategory) {
+      btnRenameCurrentCategory.addEventListener('click', renameCurrentCategoryPrompt);
+    }
+
+    // Aktif Sekmeyi Sil
+    if (btnDeleteCurrentCategory) {
+      btnDeleteCurrentCategory.addEventListener('click', deleteCurrentCategoryPrompt);
+    }
+
     // Modal Açma/Kapama
     const openUploadModal = () => {
       resetUploadForm();
+      populateCategoryDropdown();
       modalUploadDocument.classList.add('active');
     };
 
@@ -181,11 +221,176 @@
       btnFullscreenViewerDocument.addEventListener('click', toggleFullscreen);
     }
 
-    // Global state değiştiğinde listeyi yenile
+    // Global state değiştiğinde listeyi ve sekmeleri yenile
     document.addEventListener('stateChanged', () => {
       if (toolsDocumentsView && toolsDocumentsView.style.display === 'block') {
+        renderCategoryTabs();
         renderDocumentsList();
       }
+    });
+  }
+
+  // --- KATEGORİ / SEKME YÖNETİMİ ---
+
+  // Sekmeleri Render Et
+  function renderCategoryTabs() {
+    if (!documentsCategoriesTabBar) return;
+
+    const state = stateManager.loadState();
+    const categories = stateManager.getDocumentCategories();
+    const allDocs = state.documents || [];
+
+    // Sayaçlar
+    const totalCount = allDocs.length;
+    const uncategorizedCount = allDocs.filter(d => !d.categoryId).length;
+
+    documentsCategoriesTabBar.innerHTML = '';
+
+    // 1. Tüm Evraklar Sekmesi
+    const allTabBtn = document.createElement('button');
+    allTabBtn.className = `sub-tab-btn ${currentActiveCategoryId === 'all' ? 'active' : ''}`;
+    allTabBtn.innerHTML = `
+      <i data-lucide="files" style="width: 16px; height: 16px;"></i>
+      <span>Tüm Evraklar</span>
+      <span class="badge" style="background: rgba(255,255,255,0.15); font-size: 0.72rem; padding: 0.1rem 0.45rem; border-radius: 10px;">${totalCount}</span>
+    `;
+    allTabBtn.addEventListener('click', () => selectCategoryTab('all'));
+    documentsCategoriesTabBar.appendChild(allTabBtn);
+
+    // 2. Genel / Kategorisiz Sekmesi
+    const uncatTabBtn = document.createElement('button');
+    uncatTabBtn.className = `sub-tab-btn ${currentActiveCategoryId === 'uncategorized' ? 'active' : ''}`;
+    uncatTabBtn.innerHTML = `
+      <i data-lucide="inbox" style="width: 16px; height: 16px;"></i>
+      <span>Genel / Kategorisiz</span>
+      <span class="badge" style="background: rgba(255,255,255,0.15); font-size: 0.72rem; padding: 0.1rem 0.45rem; border-radius: 10px;">${uncategorizedCount}</span>
+    `;
+    uncatTabBtn.addEventListener('click', () => selectCategoryTab('uncategorized'));
+    documentsCategoriesTabBar.appendChild(uncatTabBtn);
+
+    // 3. Kullanıcının Eklediği Özel Sekmeler
+    categories.forEach(cat => {
+      const catCount = allDocs.filter(d => d.categoryId === cat.id).length;
+      const catBtn = document.createElement('button');
+      catBtn.className = `sub-tab-btn ${currentActiveCategoryId === cat.id ? 'active' : ''}`;
+      catBtn.innerHTML = `
+        <i data-lucide="folder" style="width: 16px; height: 16px;"></i>
+        <span>${escapeHtml(cat.name)}</span>
+        <span class="badge" style="background: rgba(255,255,255,0.15); font-size: 0.72rem; padding: 0.1rem 0.45rem; border-radius: 10px;">${catCount}</span>
+      `;
+      catBtn.addEventListener('click', () => selectCategoryTab(cat.id));
+      documentsCategoriesTabBar.appendChild(catBtn);
+    });
+
+    if (window.safeCreateIcons) window.safeCreateIcons();
+
+    // Aktif Sekme Başlık & Kontrol Çubuğunu Güncelle
+    updateCategoryHeaderInfo(categories, allDocs);
+  }
+
+  // Sekme Seçimi
+  function selectCategoryTab(catId) {
+    currentActiveCategoryId = catId;
+    renderCategoryTabs();
+    renderDocumentsList();
+  }
+
+  // Başlık Bilgisini Güncelle
+  function updateCategoryHeaderInfo(categories, allDocs) {
+    if (!documentsActiveCategoryTitle || !documentsActiveCategoryCountBadge) return;
+
+    if (currentActiveCategoryId === 'all') {
+      documentsActiveCategoryTitle.textContent = 'Tüm Evraklar';
+      documentsActiveCategoryCountBadge.textContent = `${allDocs.length} Evrak`;
+      if (documentsCategoryControls) documentsCategoryControls.style.display = 'none';
+    } else if (currentActiveCategoryId === 'uncategorized') {
+      const count = allDocs.filter(d => !d.categoryId).length;
+      documentsActiveCategoryTitle.textContent = 'Genel / Kategorisiz Evraklar';
+      documentsActiveCategoryCountBadge.textContent = `${count} Evrak`;
+      if (documentsCategoryControls) documentsCategoryControls.style.display = 'none';
+    } else {
+      const cat = categories.find(c => c.id === currentActiveCategoryId);
+      if (cat) {
+        const count = allDocs.filter(d => d.categoryId === cat.id).length;
+        documentsActiveCategoryTitle.textContent = cat.name;
+        documentsActiveCategoryCountBadge.textContent = `${count} Evrak`;
+        if (documentsCategoryControls) documentsCategoryControls.style.display = 'flex';
+      } else {
+        // Sekme silinmişse all'a dön
+        currentActiveCategoryId = 'all';
+        renderCategoryTabs();
+      }
+    }
+  }
+
+  // Yeni Sekme Ekleme Prompt/Modalı
+  async function addNewCategoryPrompt() {
+    const title = window.promptAsync ? 
+      await window.promptAsync('Oluşturmak istediğiniz yeni sekmenin/kategorinin adını girin:\n(Örn: Zümre Tutanakları, Veli Toplantıları, İdari Yazışmalar)') :
+      prompt('Oluşturmak istediğiniz yeni sekmenin adını girin:');
+
+    if (title && title.trim()) {
+      const newCat = stateManager.addDocumentCategory(title.trim());
+      if (newCat) {
+        currentActiveCategoryId = newCat.id;
+        renderCategoryTabs();
+        renderDocumentsList();
+        if (toastCallbackFn) toastCallbackFn(`"${newCat.name}" sekmesi başarıyla oluşturuldu.`, 'success');
+      }
+    }
+  }
+
+  // Aktif Sekmeyi Yeniden Adlandır
+  async function renameCurrentCategoryPrompt() {
+    const categories = stateManager.getDocumentCategories();
+    const cat = categories.find(c => c.id === currentActiveCategoryId);
+    if (!cat) return;
+
+    const newName = window.promptAsync ? 
+      await window.promptAsync('Sekmenin yeni adını girin:', cat.name) :
+      prompt('Sekmenin yeni adını girin:', cat.name);
+
+    if (newName && newName.trim() && newName.trim() !== cat.name) {
+      stateManager.updateDocumentCategory(cat.id, newName.trim());
+      renderCategoryTabs();
+      renderDocumentsList();
+      if (toastCallbackFn) toastCallbackFn('Sekme adı güncellendi.', 'success');
+    }
+  }
+
+  // Aktif Sekmeyi Sil
+  async function deleteCurrentCategoryPrompt() {
+    const categories = stateManager.getDocumentCategories();
+    const cat = categories.find(c => c.id === currentActiveCategoryId);
+    if (!cat) return;
+
+    const isConfirmed = window.confirmAsync ?
+      await window.confirmAsync(`"${cat.name}" sekmesini silmek istediğinize emin misiniz?\n\nNot: Bu sekme altındaki evraklarınız silinmez, "Genel / Kategorisiz" bölümüne aktarılır.`) :
+      confirm(`"${cat.name}" sekmesini silmek istediğinize emin misiniz?\nİçindeki evraklar silinmez, Genel sekmesine aktarılır.`);
+
+    if (isConfirmed) {
+      stateManager.deleteDocumentCategory(cat.id);
+      currentActiveCategoryId = 'all';
+      renderCategoryTabs();
+      renderDocumentsList();
+      if (toastCallbackFn) toastCallbackFn(`"${cat.name}" sekmesi silindi. Evraklar Genel sekmesine aktarıldı.`, 'info');
+    }
+  }
+
+  // Yükleme modalındaki kategori seçim kutusunu doldur
+  function populateCategoryDropdown() {
+    if (!docUploadCategorySelect) return;
+    const categories = stateManager.getDocumentCategories();
+
+    docUploadCategorySelect.innerHTML = '<option value="">Genel / Kategorisiz</option>';
+    categories.forEach(cat => {
+      const opt = document.createElement('option');
+      opt.value = cat.id;
+      opt.textContent = cat.name;
+      if (currentActiveCategoryId === cat.id) {
+        opt.selected = true;
+      }
+      docUploadCategorySelect.appendChild(opt);
     });
   }
 
@@ -196,6 +401,7 @@
     if (docUploadTitle) docUploadTitle.value = '';
     if (docSelectedFileInfo) docSelectedFileInfo.style.display = 'none';
     if (btnSaveDocument) btnSaveDocument.disabled = true;
+    populateCategoryDropdown();
   }
 
   // Dosya seçildiğinde işle
@@ -335,11 +541,14 @@
       return;
     }
 
+    const categoryId = docUploadCategorySelect ? (docUploadCategorySelect.value || null) : null;
+
     const docData = {
       title: title,
       fileName: selectedFileData.fileName,
       fileSize: selectedFileData.fileSize,
       fileType: selectedFileData.fileType,
+      categoryId: categoryId,
       content: selectedFileData.content,
       htmlContent: selectedFileData.htmlContent
     };
@@ -347,6 +556,7 @@
     stateManager.addDocument(docData);
     
     modalUploadDocument.classList.remove('active');
+    renderCategoryTabs();
     renderDocumentsList();
     
     if (toastCallbackFn) toastCallbackFn('Evrak başarıyla yüklendi ve kaydedildi.', 'success');
@@ -357,13 +567,35 @@
     if (!documentsListContainer || !documentsEmptyState) return;
 
     const state = stateManager.loadState();
-    const docs = state.documents || [];
+    const categories = stateManager.getDocumentCategories();
+    const allDocs = state.documents || [];
+
+    // Seçili sekmeye göre filtrele
+    let docs = [];
+    if (currentActiveCategoryId === 'all') {
+      docs = allDocs;
+    } else if (currentActiveCategoryId === 'uncategorized') {
+      docs = allDocs.filter(d => !d.categoryId);
+    } else {
+      docs = allDocs.filter(d => d.categoryId === currentActiveCategoryId);
+    }
 
     documentsListContainer.innerHTML = '';
 
     if (docs.length === 0) {
       documentsEmptyState.style.display = 'block';
       documentsListContainer.style.display = 'none';
+      const emptyP = documentsEmptyState.querySelector('p');
+      if (emptyP) {
+        if (currentActiveCategoryId === 'all') {
+          emptyP.textContent = 'Henüz yüklenmiş bir kişisel evrak bulunmuyor.';
+        } else if (currentActiveCategoryId === 'uncategorized') {
+          emptyP.textContent = 'Bu sekmede henüz genel / kategorisiz bir evrak bulunmuyor.';
+        } else {
+          const cat = categories.find(c => c.id === currentActiveCategoryId);
+          emptyP.textContent = `"${cat ? cat.name : 'Bu sekme'}" altında henüz bir evrak bulunmuyor.`;
+        }
+      }
       return;
     }
 
@@ -378,10 +610,22 @@
       let icon = '📄';
       if (doc.fileType === 'docx') icon = '📝';
       else if (doc.fileType === 'pdf') icon = '📕';
-      const iconColorClass = doc.fileType === 'docx' ? 'text-primary' : (doc.fileType === 'pdf' ? 'text-danger' : 'text-success');
+
+      // Evrağın sekme bilgisi (Rozet)
+      const matchedCat = categories.find(c => c.id === doc.categoryId);
+      const categoryBadgeHtml = matchedCat ? 
+        `<span class="badge" style="background: rgba(99,102,241,0.15); color: var(--primary); font-size: 0.72rem; padding: 0.15rem 0.5rem; border-radius: 6px; display: inline-flex; align-items: center; gap: 0.25rem;">
+          <i data-lucide="folder" style="width: 11px; height: 11px;"></i> ${escapeHtml(matchedCat.name)}
+        </span>` : 
+        `<span class="badge" style="background: rgba(255,255,255,0.06); color: var(--text-muted); font-size: 0.72rem; padding: 0.15rem 0.5rem; border-radius: 6px; display: inline-flex; align-items: center; gap: 0.25rem;">
+          <i data-lucide="inbox" style="width: 11px; height: 11px;"></i> Genel
+        </span>`;
 
       card.innerHTML = `
-        <div class="game-card-icon" style="font-size: 2.2rem;">${icon}</div>
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; width: 100%;">
+          <div class="game-card-icon" style="font-size: 2.2rem; margin-bottom: 0.5rem;">${icon}</div>
+          <div style="display: flex; align-items: center;">${categoryBadgeHtml}</div>
+        </div>
         <div class="game-card-info" style="width: 100%; display: flex; flex-direction: column; flex-grow: 1;">
           <h3 title="${escapeHtml(doc.title)}">${escapeHtml(doc.title)}</h3>
           <div class="doc-meta">
@@ -395,9 +639,12 @@
               <i data-lucide="clock" style="width: 12px; height: 12px;"></i> ${fileDate}
             </span>
           </div>
-          <div class="doc-actions">
+          <div class="doc-actions" style="flex-wrap: wrap;">
             <button class="btn btn-secondary btn-sm btn-view-doc" title="Evrağı Aç" style="padding: 0.35rem 0.6rem; font-size: 0.8rem;">
               <i data-lucide="eye" style="width: 14px; height: 14px;"></i> Görüntüle
+            </button>
+            <button class="btn btn-secondary btn-sm btn-move-doc" title="Sekmeye Taşı / Kategori Değiştir" style="padding: 0.35rem 0.6rem; font-size: 0.8rem;">
+              <i data-lucide="folder-symlink" style="width: 14px; height: 14px;"></i> Taşı
             </button>
             <button class="btn btn-secondary btn-sm btn-download-doc" title="İndir" style="padding: 0.35rem 0.6rem; font-size: 0.8rem;">
               <i data-lucide="download" style="width: 14px; height: 14px;"></i>
@@ -414,6 +661,7 @@
 
       // Event listenerları bağla
       card.querySelector('.btn-view-doc').addEventListener('click', () => openDocumentViewer(doc));
+      card.querySelector('.btn-move-doc').addEventListener('click', () => moveDocumentPrompt(doc));
       card.querySelector('.btn-download-doc').addEventListener('click', () => downloadDocument(doc));
       card.querySelector('.btn-rename-doc').addEventListener('click', () => renameDocument(doc));
       card.querySelector('.btn-delete-doc').addEventListener('click', () => deleteDocument(doc));
@@ -423,6 +671,45 @@
 
     if (window.safeCreateIcons) {
       window.safeCreateIcons();
+    }
+  }
+
+  // Evrağı Başka Sekmeye Taşıma
+  async function moveDocumentPrompt(doc) {
+    if (!doc) return;
+    const categories = stateManager.getDocumentCategories();
+
+    // Seçenekler listesi oluştur
+    let optionsText = '0: Genel / Kategorisiz\n';
+    categories.forEach((cat, index) => {
+      optionsText += `${index + 1}: ${cat.name}\n`;
+    });
+
+    const promptMessage = `"${doc.title}" evrağını taşımak istediğiniz sekmenin numarasını girin:\n\n${optionsText}`;
+    const selection = window.promptAsync ?
+      await window.promptAsync(promptMessage, '0') :
+      prompt(promptMessage, '0');
+
+    if (selection === null || selection === undefined) return;
+
+    const trimmed = (selection || '').trim();
+    if (trimmed === '0') {
+      stateManager.moveDocumentToCategory(doc.id, null);
+      renderCategoryTabs();
+      renderDocumentsList();
+      if (toastCallbackFn) toastCallbackFn('Evrak "Genel / Kategorisiz" sekmesine taşındı.', 'success');
+      return;
+    }
+
+    const idx = parseInt(trimmed, 10);
+    if (!isNaN(idx) && idx >= 1 && idx <= categories.length) {
+      const targetCat = categories[idx - 1];
+      stateManager.moveDocumentToCategory(doc.id, targetCat.id);
+      renderCategoryTabs();
+      renderDocumentsList();
+      if (toastCallbackFn) toastCallbackFn(`Evrak "${targetCat.name}" sekmesine taşındı.`, 'success');
+    } else {
+      if (toastCallbackFn) toastCallbackFn('Geçersiz sekme numarası seçildi.', 'warning');
     }
   }
 

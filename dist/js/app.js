@@ -2154,6 +2154,9 @@ function initApp() {
   if (window.renderSeating) {
     renderSeating();
   }
+  if (window.setupContributions) {
+    setupContributions(showToast);
+  }
 
   // 4. Varsayılan Dashboard Görünümünü Yükle
   updateVisibilityByEducationLevel();
@@ -2972,20 +2975,24 @@ function switchTab(tabId, animate = true) {
       if (window.renderTools) {
         renderTools();
       }
-      const toolsRosterView = document.getElementById('tools-roster-view');
-      const toolsPlansView = document.getElementById('tools-plans-view');
-      const toolsDocumentsView = document.getElementById('tools-documents-view');
-      const toolsScheduleView = document.getElementById('tools-schedule-view');
-      const toolsWrittenExamView = document.getElementById('tools-written-exam-view');
-      const toolsExamAnalysisView = document.getElementById('tools-exam-analysis-view');
-      const toolsLandingView = document.getElementById('tools-landing-view');
-      if (toolsRosterView) toolsRosterView.style.display = 'none';
-      if (toolsPlansView) toolsPlansView.style.display = 'none';
-      if (toolsDocumentsView) toolsDocumentsView.style.display = 'none';
-      if (toolsScheduleView) toolsScheduleView.style.display = 'none';
-      if (toolsWrittenExamView) toolsWrittenExamView.style.display = 'none';
-      if (toolsExamAnalysisView) toolsExamAnalysisView.style.display = 'none';
-      if (toolsLandingView) toolsLandingView.style.display = 'block';
+      if (animate) {
+        const toolsRosterView = document.getElementById('tools-roster-view');
+        const toolsPlansView = document.getElementById('tools-plans-view');
+        const toolsDocumentsView = document.getElementById('tools-documents-view');
+        const toolsScheduleView = document.getElementById('tools-schedule-view');
+        const toolsWrittenExamView = document.getElementById('tools-written-exam-view');
+        const toolsExamAnalysisView = document.getElementById('tools-exam-analysis-view');
+        const toolsContributionsView = document.getElementById('tools-contributions-view');
+        const toolsLandingView = document.getElementById('tools-landing-view');
+        if (toolsRosterView) toolsRosterView.style.display = 'none';
+        if (toolsPlansView) toolsPlansView.style.display = 'none';
+        if (toolsDocumentsView) toolsDocumentsView.style.display = 'none';
+        if (toolsScheduleView) toolsScheduleView.style.display = 'none';
+        if (toolsWrittenExamView) toolsWrittenExamView.style.display = 'none';
+        if (toolsExamAnalysisView) toolsExamAnalysisView.style.display = 'none';
+        if (toolsContributionsView) toolsContributionsView.style.display = 'none';
+        if (toolsLandingView) toolsLandingView.style.display = 'block';
+      }
       break;
     // Weekly kendi iç listenerları ile veri yüklemesini idare eder
   }

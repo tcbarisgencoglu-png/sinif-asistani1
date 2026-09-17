@@ -108,6 +108,49 @@
       });
     }
 
+    // --- Gemini AI API Anahtarı Ayarları ---
+    const configGeminiApiKey = document.getElementById('config-gemini-api-key');
+    const btnSaveGeminiApiKey = document.getElementById('btn-save-gemini-api-key');
+    const btnToggleGeminiKeyVisibility = document.getElementById('btn-toggle-gemini-key-visibility');
+    const iconToggleGeminiKey = document.getElementById('icon-toggle-gemini-key');
+    const geminiKeyStatusMsg = document.getElementById('gemini-key-status-msg');
+
+    if (btnToggleGeminiKeyVisibility && configGeminiApiKey) {
+      btnToggleGeminiKeyVisibility.addEventListener('click', () => {
+        if (configGeminiApiKey.type === 'password') {
+          configGeminiApiKey.type = 'text';
+          if (iconToggleGeminiKey) iconToggleGeminiKey.setAttribute('data-lucide', 'eye-off');
+        } else {
+          configGeminiApiKey.type = 'password';
+          if (iconToggleGeminiKey) iconToggleGeminiKey.setAttribute('data-lucide', 'eye');
+        }
+        window.safeCreateIcons();
+      });
+    }
+
+    if (btnSaveGeminiApiKey && configGeminiApiKey) {
+      btnSaveGeminiApiKey.addEventListener('click', () => {
+        const key = configGeminiApiKey.value.trim();
+        if (key) {
+          localStorage.setItem('sinif_asistani_gemini_api_key', key);
+          if (geminiKeyStatusMsg) {
+            geminiKeyStatusMsg.style.display = 'block';
+            geminiKeyStatusMsg.style.color = 'var(--success)';
+            geminiKeyStatusMsg.textContent = '✓ Google Gemini API anahtarı başarıyla kaydedildi.';
+          }
+          if (toastCallback) toastCallback('Google Gemini API anahtarı kaydedildi.', 'success');
+        } else {
+          localStorage.removeItem('sinif_asistani_gemini_api_key');
+          if (geminiKeyStatusMsg) {
+            geminiKeyStatusMsg.style.display = 'block';
+            geminiKeyStatusMsg.style.color = 'var(--text-muted)';
+            geminiKeyStatusMsg.textContent = 'API anahtarı kaldırıldı.';
+          }
+          if (toastCallback) toastCallback('Google Gemini API anahtarı kaldırıldı.', 'info');
+        }
+      });
+    }
+
     if (configBackupExport) {
       configBackupExport.addEventListener('click', () => {
         stateManager.exportData();
@@ -745,6 +788,23 @@
 
     // 3. Load Students Management List
     renderConfigStudentsList();
+
+    // 4. Load Gemini API Key
+    const configGeminiApiKeyElem = document.getElementById('config-gemini-api-key');
+    if (configGeminiApiKeyElem) {
+      const savedKey = localStorage.getItem('sinif_asistani_gemini_api_key') || '';
+      configGeminiApiKeyElem.value = savedKey;
+      const statusMsg = document.getElementById('gemini-key-status-msg');
+      if (statusMsg) {
+        if (savedKey) {
+          statusMsg.style.display = 'block';
+          statusMsg.style.color = 'var(--success)';
+          statusMsg.textContent = '✓ Tanımlı API anahtarı aktif.';
+        } else {
+          statusMsg.style.display = 'none';
+        }
+      }
+    }
 
     window.safeCreateIcons();
   }

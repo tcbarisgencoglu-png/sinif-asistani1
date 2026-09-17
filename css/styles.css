@@ -5827,5 +5827,39 @@ input:checked + .slider:before {
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
 }
 
+/* Yapay Zeka (AI) Soru Üretimi Stilleri */
+@keyframes ai-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
 
+.ai-spinner {
+  display: inline-block;
+  width: 22px;
+  height: 22px;
+  border: 3px solid rgba(99, 102, 241, 0.25);
+  border-top-color: #6366f1;
+  border-radius: 50%;
+  animation: ai-spin 0.9s linear infinite;
+}
 
+.btn-ai-gradient {
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #ec4899 100%) !important;
+  color: #ffffff !important;
+  border: none !important;
+  font-weight: 600 !important;
+  box-shadow: 0 3px 12px rgba(99, 102, 241, 0.35) !important;
+  transition: all 0.25s ease !important;
+}
+
+.btn-ai-gradient:hover {
+  opacity: 0.95;
+  transform: translateY(-1px);
+  box-shadow: 0 5px 16px rgba(99, 102, 241, 0.45) !important;
+}
+
+.btn-ai-gradient:disabled {
+  opacity: 0.6 !important;
+  cursor: not-allowed !important;
+  transform: none !important;
+}

@@ -2131,6 +2131,7 @@ class StateManager {
           dutyRoster: parsed.dutyRoster || null,
           plans: parsed.plans || [],
           documents: parsed.documents || [],
+          documentCategories: parsed.documentCategories || [],
           definedLessons: parsed.definedLessons || null,
           scheduleTimes: parsed.scheduleTimes || null,
           scheduleGrid: parsed.scheduleGrid || {},
@@ -2139,7 +2140,8 @@ class StateManager {
           appLock: parsed.appLock || { enabled: false, passwordHash: null, breakModeEnabled: false },
           attendance: parsed.attendance || {},
           reports: parsed.reports || [],
-          seatingPlans: parsed.seatingPlans || {}
+          seatingPlans: parsed.seatingPlans || {},
+          contributions: parsed.contributions || []
         };
         return wrapState(loaded, unfiltered);
       }
@@ -2224,6 +2226,14 @@ class StateManager {
   }
 
   // ÖĞRENCİ İŞLEMLERİ
+  getStudents(unfiltered = false) {
+    if (unfiltered) {
+      return (this.state && (this.state.rawStudents || this.state.students)) || [];
+    }
+    const state = this.loadState();
+    return (state && state.students) ? state.students : ((this.state && this.state.students) || []);
+  }
+
   addStudent(studentData) {
     // Demo limit kontrolü
     if (window.LicenseConfig && window.LicenseConfig.isDemo) {
@@ -2290,6 +2300,14 @@ class StateManager {
           this.state.attendance[date] = this.state.attendance[date].filter(sid => sid !== id);
         }
       }
+    }
+    // Katkı ve tedarik takiplerinden bu öğrenciyi sil
+    if (this.state.contributions) {
+      this.state.contributions.forEach(c => {
+        if (c.records && c.records[id]) {
+          delete c.records[id];
+        }
+      });
     }
     this.saveState();
   }
@@ -3189,6 +3207,61 @@ class StateManager {
   }
 
   // EVRAK İŞLEMLERİ (DOCUMENTS)
+  getDocumentCategories() {
+    if (!this.state.documentCategories) this.state.documentCategories = [];
+    return this.state.documentCategories;
+  }
+
+  addDocumentCategory(name) {
+    if (!this.state.documentCategories) this.state.documentCategories = [];
+    const cleanName = (name || '').trim();
+    if (!cleanName) return null;
+    const cat = {
+      id: 'doc_cat_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6),
+      name: cleanName,
+      createdAt: new Date().toISOString()
+    };
+    this.state.documentCategories.push(cat);
+    this.saveState();
+    return cat;
+  }
+
+  updateDocumentCategory(catId, newName) {
+    if (!this.state.documentCategories) return false;
+    const cat = this.state.documentCategories.find(c => c.id === catId);
+    if (cat && (newName || '').trim()) {
+      cat.name = newName.trim();
+      this.saveState();
+      return true;
+    }
+    return false;
+  }
+
+  deleteDocumentCategory(catId) {
+    if (!this.state.documentCategories) return;
+    this.state.documentCategories = this.state.documentCategories.filter(c => c.id !== catId);
+    // İlgili sekmeye bağlı evrakları genel/kategorisiz yap (silme!)
+    if (this.state.documents) {
+      this.state.documents.forEach(doc => {
+        if (doc.categoryId === catId) {
+          doc.categoryId = null;
+        }
+      });
+    }
+    this.saveState();
+  }
+
+  moveDocumentToCategory(docId, targetCategoryId) {
+    if (!this.state.documents) return false;
+    const doc = this.state.documents.find(d => d.id === docId);
+    if (doc) {
+      doc.categoryId = targetCategoryId || null;
+      this.saveState();
+      return true;
+    }
+    return false;
+  }
+
   addDocument(docData) {
     const doc = {
       id: 'doc_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
@@ -3196,6 +3269,7 @@ class StateManager {
       fileName: docData.fileName,
       fileSize: docData.fileSize,
       fileType: docData.fileType,
+      categoryId: docData.categoryId || null,
       content: docData.content, // base64 string
       htmlContent: docData.htmlContent || '',
       createdAt: new Date().toISOString()
@@ -3373,6 +3447,99 @@ class StateManager {
     this.saveState();
     const event = new CustomEvent('stateChanged');
     document.dispatchEvent(event);
+  }
+
+  // SINIF KATKI & TEDARİK TAKİBİ METODLARI (CONTRIBUTIONS)
+  getContributions() {
+    if (!this.state.contributions) this.state.contributions = [];
+    return this.state.contributions;
+  }
+
+  addContribution(data) {
+    if (!this.state.contributions) this.state.contributions = [];
+    const item = {
+      id: 'contrib_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6),
+      title: data.title || 'Yeni Takip',
+      type: data.type || 'material', // 'material' | 'money'
+      targetAmount: Number(data.targetAmount) || 0, // Kişi başı TL (eğer para ise)
+      materialUnit: data.materialUnit || '1 Adet', // İstenen malzeme adı
+      dueDate: data.dueDate || '',
+      description: data.description || '',
+      createdAt: new Date().toISOString(),
+      records: data.records || {} // { [studentId]: { status: 'completed'|'partial'|'pending', paidAmount: 0, note: '', date: '' } }
+    };
+    this.state.contributions.push(item);
+    this.saveState();
+    const event = new CustomEvent('stateChanged');
+    document.dispatchEvent(event);
+    return item;
+  }
+
+  updateContribution(id, data) {
+    if (!this.state.contributions) return false;
+    const item = this.state.contributions.find(c => c.id === id);
+    if (item) {
+      if (data.title !== undefined) item.title = data.title;
+      if (data.type !== undefined) item.type = data.type;
+      if (data.targetAmount !== undefined) item.targetAmount = Number(data.targetAmount) || 0;
+      if (data.materialUnit !== undefined) item.materialUnit = data.materialUnit;
+      if (data.dueDate !== undefined) item.dueDate = data.dueDate;
+      if (data.description !== undefined) item.description = data.description;
+      this.saveState();
+      const event = new CustomEvent('stateChanged');
+      document.dispatchEvent(event);
+      return true;
+    }
+    return false;
+  }
+
+  deleteContribution(id) {
+    if (!this.state.contributions) return;
+    this.state.contributions = this.state.contributions.filter(c => c.id !== id);
+    this.saveState();
+    const event = new CustomEvent('stateChanged');
+    document.dispatchEvent(event);
+  }
+
+  updateContributionStudentStatus(contribId, studentId, statusData) {
+    if (!this.state.contributions) return false;
+    const item = this.state.contributions.find(c => c.id === contribId);
+    if (item) {
+      if (!item.records) item.records = {};
+      item.records[studentId] = {
+        status: statusData.status || 'pending', // 'completed' | 'partial' | 'pending'
+        paidAmount: Number(statusData.paidAmount) || 0,
+        note: statusData.note || '',
+        date: statusData.date || new Date().toISOString().slice(0, 10)
+      };
+      this.saveState();
+      const event = new CustomEvent('stateChanged');
+      document.dispatchEvent(event);
+      return true;
+    }
+    return false;
+  }
+
+  batchUpdateContributionStatus(contribId, studentIds, status, paidAmount = 0) {
+    if (!this.state.contributions) return false;
+    const item = this.state.contributions.find(c => c.id === contribId);
+    if (item) {
+      if (!item.records) item.records = {};
+      const today = new Date().toISOString().slice(0, 10);
+      studentIds.forEach(stdId => {
+        item.records[stdId] = {
+          status: status,
+          paidAmount: status === 'completed' ? (item.type === 'money' ? item.targetAmount : 0) : paidAmount,
+          note: (item.records[stdId] && item.records[stdId].note) || '',
+          date: today
+        };
+      });
+      this.saveState();
+      const event = new CustomEvent('stateChanged');
+      document.dispatchEvent(event);
+      return true;
+    }
+    return false;
   }
 }
 

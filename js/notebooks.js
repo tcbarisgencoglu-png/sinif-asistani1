@@ -240,6 +240,10 @@
     const btnClosePdfViewer = document.getElementById('btn-close-pdf-viewer');
     if (btnClosePdfViewer) {
       btnClosePdfViewer.addEventListener('click', () => {
+        if (pdfLiveInterval) {
+          clearInterval(pdfLiveInterval);
+          pdfLiveInterval = null;
+        }
         const overlay = document.getElementById('pdf-viewer-overlay');
         const iframe = document.getElementById('pdf-viewer-iframe');
         if (overlay) overlay.style.display = 'none';
@@ -628,6 +632,33 @@
       }
     });
 
+    // Canlı Akış Rozetlerine Tıklandığında Ders ve Konu Akışı Modalı Aç
+    const notebookLiveInfo = document.getElementById('notebook-fullscreen-live-info');
+    if (notebookLiveInfo) {
+      notebookLiveInfo.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const flowModal = document.getElementById('modal-flow-info');
+        if (flowModal) {
+          flowModal.classList.add('active');
+          if (window.updateFlowContent) window.updateFlowContent(true);
+        }
+      });
+    }
+
+    const pdfViewerLiveBadge = document.getElementById('pdf-viewer-live-badge');
+    if (pdfViewerLiveBadge) {
+      pdfViewerLiveBadge.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const flowModal = document.getElementById('modal-flow-info');
+        if (flowModal) {
+          flowModal.classList.add('active');
+          if (window.updateFlowContent) window.updateFlowContent(true);
+        }
+      });
+    }
+
     // Global durum değişikliklerinde listeyi yenile
     document.addEventListener('stateChanged', () => {
       if (isActiveTab('notebooks')) {
@@ -982,6 +1013,89 @@
     }
   }
 
+  let notebookLiveInterval = null;
+  let pdfLiveInterval = null;
+
+  function updatePdfViewerLiveInfo() {
+    const periodSpan = document.querySelector('#pdf-live-period-text span');
+    const topicSpan = document.getElementById('pdf-live-topic-text');
+    const badgeContainer = document.getElementById('pdf-viewer-live-badge');
+    const periodWrap = document.getElementById('pdf-live-period-text');
+    if (!periodSpan || !topicSpan) return;
+
+    if (typeof window.getCurrentLessonInfo !== 'function') return;
+
+    const info = window.getCurrentLessonInfo();
+    
+    if (info.statusType === 'lesson') {
+      const remainingStr = info.remainingMinutes !== null ? ` (${info.remainingMinutes} dk)` : '';
+      periodSpan.textContent = `${info.periodNum}${remainingStr}`;
+      if (periodWrap) periodWrap.style.color = '#10b981'; // yeşil
+    } else if (info.statusType === 'break' || info.statusType === 'lunch') {
+      const remainingStr = info.remainingMinutes !== null ? ` (${info.remainingMinutes} dk)` : '';
+      periodSpan.textContent = `${info.periodNum}${remainingStr}`;
+      if (periodWrap) periodWrap.style.color = '#f59e0b'; // sarı/amber
+    } else {
+      periodSpan.textContent = info.periodNum || 'Ders Saati Dışı';
+      if (periodWrap) periodWrap.style.color = '#94a3b8'; // gri
+    }
+
+    let topicDisplay = '';
+    if (info.statusType === 'lesson') {
+      topicDisplay = `${info.lessonName.toUpperCase()}: ${info.lessonTopic || 'Konu belirtilmemiş'}`;
+    } else {
+      topicDisplay = `${info.lessonName} - ${info.lessonTopic || ''}`;
+    }
+    topicSpan.textContent = topicDisplay;
+    if (badgeContainer) {
+      badgeContainer.title = `${info.periodNum} | ${topicDisplay} (Detaylar için tıklayın)`;
+    }
+
+    if (window.safeCreateIcons) window.safeCreateIcons();
+  }
+
+  function updateNotebookFullscreenLiveInfo() {
+    const periodText = document.getElementById('notebook-live-period-text');
+    const topicText = document.getElementById('notebook-live-topic-text');
+    const timeBadge = document.getElementById('notebook-live-time-badge');
+    const liveContainer = document.getElementById('notebook-fullscreen-live-info');
+    if (!periodText || !topicText) return;
+
+    if (typeof window.getCurrentLessonInfo !== 'function') return;
+
+    const info = window.getCurrentLessonInfo();
+    
+    // Ders Saati & Kalan Süre
+    if (info.statusType === 'lesson') {
+      const remainingStr = info.remainingMinutes !== null ? ` (Kalan: ${info.remainingMinutes} dk)` : '';
+      periodText.textContent = `${info.periodNum}${remainingStr}`;
+      if (timeBadge) timeBadge.style.color = '#10b981'; // yeşil
+    } else if (info.statusType === 'break' || info.statusType === 'lunch') {
+      const remainingStr = info.remainingMinutes !== null ? ` (${info.remainingMinutes} dk)` : '';
+      periodText.textContent = `${info.periodNum}${remainingStr}`;
+      if (timeBadge) timeBadge.style.color = '#f59e0b'; // sarı/amber
+    } else {
+      periodText.textContent = info.periodNum || 'Ders Saati Dışı';
+      if (timeBadge) timeBadge.style.color = '#94a3b8'; // gri
+    }
+
+    // Ders Adı & Konu Akışı
+    let topicDisplay = '';
+    if (info.statusType === 'lesson') {
+      topicDisplay = `${info.lessonName.toUpperCase()}: ${info.lessonTopic || 'Konu belirtilmemiş'}`;
+    } else if (info.statusType === 'break') {
+      topicDisplay = `${info.lessonName} - ${info.lessonTopic || ''}`;
+    } else {
+      topicDisplay = `${info.lessonName} - ${info.lessonTopic || ''}`;
+    }
+    topicText.textContent = topicDisplay;
+    if (liveContainer) {
+      liveContainer.title = `${info.periodNum} | ${topicDisplay} (Detaylar için tıklayın)`;
+    }
+
+    if (window.safeCreateIcons) window.safeCreateIcons();
+  }
+
   // Tam ekran modunu aç/kapat
   function toggleFullscreen() {
     if (!notebookEditorContainer || !btnFullscreenNotebook) return;
@@ -996,6 +1110,11 @@
         if (window.lucide) window.lucide.createIcons();
       }
       if (textNode) textNode.textContent = ' Küçült';
+
+      // Canlı Akış Bilgisini Başlat
+      updateNotebookFullscreenLiveInfo();
+      if (notebookLiveInterval) clearInterval(notebookLiveInterval);
+      notebookLiveInterval = setInterval(updateNotebookFullscreenLiveInfo, 30000);
     } else {
       resetFullscreenButton();
     }
@@ -1003,6 +1122,10 @@
 
   // Tam ekran butonu durumunu sıfırla
   function resetFullscreenButton() {
+    if (notebookLiveInterval) {
+      clearInterval(notebookLiveInterval);
+      notebookLiveInterval = null;
+    }
     if (!btnFullscreenNotebook) return;
     const icon = btnFullscreenNotebook.querySelector('i');
     const textNode = [...btnFullscreenNotebook.childNodes].find(node => node.nodeType === Node.TEXT_NODE);
@@ -1720,6 +1843,11 @@
                 iframe.src = currentOpenPdfUrl + '#page=' + lastPage;
                 title.textContent = pdf.name;
                 overlay.style.display = 'flex';
+
+                // Canlı Ders Bilgisini Başlat
+                updatePdfViewerLiveInfo();
+                if (pdfLiveInterval) clearInterval(pdfLiveInterval);
+                pdfLiveInterval = setInterval(updatePdfViewerLiveInfo, 30000);
               }
             } else {
               if (window.showToast) window.showToast('Kitap verisi yüklenemedi!', 'danger');
