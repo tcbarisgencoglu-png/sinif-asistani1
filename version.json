@@ -1,14 +1,14 @@
 {
-  "version": "1.0.13",
+  "version": "1.0.14",
   "releaseDate": "2026-09-17",
   "minRequiredVersion": "1.0.0",
-  "title": "Sınıf Asistanı v1.0.13 Yayında!",
-  "description": "Görev teslim bildirimleri, kitaplık okuma seviyeleri, ders kitabı sayfa kalıcılığı ve canlı konu işlendi işareti eklendi.",
+  "title": "Sınıf Asistanı v1.0.14 Yayında!",
+  "description": "Evrak deposu ve kitap soruları için depolama alanı kotası optimizasyonu (IndexedDB entegrasyonu).",
   "features": [
-    "Görev takibinde son teslim tarihi gelen görevler için öğretmen görene kadar ekranda kalan uyarı penceresi ve sesli bildirim eklendi",
-    "Kitaplıkta öğrencilerin okuma seviyelerine göre 2 ayrı seviye (Seviye 1 / Seviye 2) kategorizasyonu ve ödünç verme ekranında seviye filtreleme eklendi",
-    "Ders kitapları modülünde uygulama kapatılsa dahi her kitabın en son kalınan sayfasının kalıcı olarak hatırlanması ve yeniden açılması sağlandı",
-    "Üst canlı ders ve konu bilgi kutusu ile detay penceresine 'İşlendi' tiki eklendi; tıklandığında konunun yıllık plana otomatik işlenmesi sağlandı"
+    "Evrak deposu dosya depolaması IndexedDB veritabanına taşındı; 5 MB localStorage kota dolum hatası giderildi",
+    "Evrak yükleme dosya boyutu üst sınırı 25 MB'a yükseltildi",
+    "Kitap soruları ekleme ve güncelleme işlemlerinde oluşan depolama alanı kilitlenme hatası giderildi",
+    "Uygulama açılışında eski ağır evrak yüklerinin otomatik tespiti ve localStorage temizliği sağlandı"
   ],
   "release_url": "https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/latest"
 }
