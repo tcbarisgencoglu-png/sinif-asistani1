@@ -2155,6 +2155,15 @@ class StateManager {
     try {
       const toSave = { ...this.state };
       delete toSave.rawStudents;
+      if (toSave.documents && Array.isArray(toSave.documents)) {
+        toSave.documents = toSave.documents.map(d => {
+          if (d.content || d.htmlContent) {
+            const { content, htmlContent, ...rest } = d;
+            return rest;
+          }
+          return d;
+        });
+      }
       localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
       this.notify();
     } catch (e) {
@@ -3293,15 +3302,13 @@ class StateManager {
 
   addDocument(docData) {
     const doc = {
-      id: 'doc_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+      id: docData.id || ('doc_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)),
       title: docData.title,
       fileName: docData.fileName,
       fileSize: docData.fileSize,
       fileType: docData.fileType,
       categoryId: docData.categoryId || null,
-      content: docData.content, // base64 string
-      htmlContent: docData.htmlContent || '',
-      createdAt: new Date().toISOString()
+      createdAt: docData.createdAt || new Date().toISOString()
     };
     if (!this.state.documents) this.state.documents = [];
     this.state.documents.push(doc);

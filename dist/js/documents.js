@@ -51,11 +51,95 @@
   // Print Area DOM
   let documentPrintArea;
 
-  // DOSYA BOYUT SINIRI (1.5 MB)
-  const MAX_FILE_SIZE = 1.5 * 1024 * 1024;
+  // DOSYA BOYUT SINIRI (IndexedDB kullanıldığı için 25 MB'a yükseltildi)
+  const MAX_FILE_SIZE = 25 * 1024 * 1024;
+
+  // IndexedDB - Evrak Deposu Veritabanı (Büyük dosyaların localStorage'ı doldurmasını önler)
+  const DOCS_DB_NAME = 'DocumentsStorageDB';
+  const DOCS_DB_VERSION = 1;
+  const DOCS_STORE_NAME = 'document_files';
+
+  function openDocsDB() {
+    return new Promise((resolve, reject) => {
+      const request = indexedDB.open(DOCS_DB_NAME, DOCS_DB_VERSION);
+      request.onupgradeneeded = (e) => {
+        const db = e.target.result;
+        if (!db.objectStoreNames.contains(DOCS_STORE_NAME)) {
+          db.createObjectStore(DOCS_STORE_NAME, { keyPath: 'id' });
+        }
+      };
+      request.onsuccess = (e) => resolve(e.target.result);
+      request.onerror = (e) => reject(request.error);
+    });
+  }
+
+  async function saveDocumentFile(id, content, htmlContent) {
+    const db = await openDocsDB();
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(DOCS_STORE_NAME, 'readwrite');
+      const store = transaction.objectStore(DOCS_STORE_NAME);
+      const request = store.put({ id, content: content || '', htmlContent: htmlContent || '' });
+      request.onsuccess = () => resolve(true);
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  async function getDocumentFile(id) {
+    const db = await openDocsDB();
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(DOCS_STORE_NAME, 'readonly');
+      const store = transaction.objectStore(DOCS_STORE_NAME);
+      const request = store.get(id);
+      request.onsuccess = (e) => resolve(e.target.result);
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  async function deleteDocumentFile(id) {
+    try {
+      const db = await openDocsDB();
+      return new Promise((resolve, reject) => {
+        const transaction = db.transaction(DOCS_STORE_NAME, 'readwrite');
+        const store = transaction.objectStore(DOCS_STORE_NAME);
+        const request = store.delete(id);
+        request.onsuccess = () => resolve(true);
+        request.onerror = () => reject(request.error);
+      });
+    } catch (e) {
+      console.warn("deleteDocumentFile error:", e);
+    }
+  }
+
+  // Mevcut evrakları IndexedDB'ye taşıma ve localStorage'ı temizleme (Otomatik Migrasyon)
+  async function migrateExistingDocumentsToIndexedDB() {
+    try {
+      const state = stateManager.loadState();
+      const docs = state.documents || [];
+      let migratedAny = false;
+
+      for (const doc of docs) {
+        if (doc.content || doc.htmlContent) {
+          await saveDocumentFile(doc.id, doc.content || '', doc.htmlContent || '');
+          delete doc.content;
+          delete doc.htmlContent;
+          migratedAny = true;
+        }
+      }
+
+      if (migratedAny) {
+        stateManager.saveState();
+        console.log("Mevcut evrak dosyaları IndexedDB'ye taşındı ve localStorage boşaltıldı.");
+      }
+    } catch (e) {
+      console.warn("Evrak migrasyon uyarısı:", e);
+    }
+  }
 
   function setupDocuments(toastCallback) {
     toastCallbackFn = toastCallback;
+
+    // Arka planda eski evrakları IndexedDB'ye taşı ve localStorage'ı anında boşalt
+    migrateExistingDocumentsToIndexedDB();
 
     // DOM Elemanlarını Bağla
     btnLaunchDocuments = document.getElementById('btn-launch-documents');
@@ -409,10 +493,10 @@
     const file = e.target.files[0];
     if (!file) return;
 
-    // Boyut kontrolü
+    // Boyut kontrolü (25 MB)
     if (file.size > MAX_FILE_SIZE) {
       if (toastCallbackFn) {
-        toastCallbackFn('Dosya boyutu çok büyük! LocalStorage dolmasını önlemek için lütfen 1.5 MB altında belgeler yükleyin.', 'danger');
+        toastCallbackFn('Dosya boyutu çok büyük! Lütfen 25 MB altında belgeler yükleyin.', 'danger');
       }
       clearSelectedFile();
       return;
@@ -531,8 +615,8 @@
     if (btnSaveDocument) btnSaveDocument.disabled = true;
   }
 
-  // Evrağı state'e kaydet
-  function saveUploadedDocument() {
+  // Evrağı state'e ve IndexedDB'ye kaydet
+  async function saveUploadedDocument() {
     if (!selectedFileData) return;
     
     const title = (docUploadTitle.value || '').trim();
@@ -542,24 +626,40 @@
     }
 
     const categoryId = docUploadCategorySelect ? (docUploadCategorySelect.value || null) : null;
+    const docId = 'doc_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
 
-    const docData = {
-      title: title,
-      fileName: selectedFileData.fileName,
-      fileSize: selectedFileData.fileSize,
-      fileType: selectedFileData.fileType,
-      categoryId: categoryId,
-      content: selectedFileData.content,
-      htmlContent: selectedFileData.htmlContent
-    };
+    try {
+      if (btnSaveDocument) btnSaveDocument.disabled = true;
+      if (toastCallbackFn) toastCallbackFn('Evrak depoya kaydediliyor...', 'info');
 
-    stateManager.addDocument(docData);
-    
-    modalUploadDocument.classList.remove('active');
-    renderCategoryTabs();
-    renderDocumentsList();
-    
-    if (toastCallbackFn) toastCallbackFn('Evrak başarıyla yüklendi ve kaydedildi.', 'success');
+      // 1. Ağır dosya içeriğini IndexedDB'ye kaydet (Depolama sınırı yok)
+      await saveDocumentFile(docId, selectedFileData.content, selectedFileData.htmlContent);
+
+      // 2. Hafif meta veriyi stateManager'a ekle (localStorage kota sorunu yaşanmaz)
+      const docData = {
+        id: docId,
+        title: title,
+        fileName: selectedFileData.fileName,
+        fileSize: selectedFileData.fileSize,
+        fileType: selectedFileData.fileType,
+        categoryId: categoryId,
+        createdAt: new Date().toISOString()
+      };
+
+      stateManager.addDocument(docData);
+      
+      modalUploadDocument.classList.remove('active');
+      clearSelectedFile();
+      renderCategoryTabs();
+      renderDocumentsList();
+      
+      if (toastCallbackFn) toastCallbackFn('Evrak başarıyla yüklendi ve kaydedildi.', 'success');
+    } catch (err) {
+      console.error("Document save error:", err);
+      if (toastCallbackFn) toastCallbackFn('Evrak kaydedilirken hata oluştu: ' + (err && err.message ? err.message : ''), 'danger');
+    } finally {
+      if (btnSaveDocument) btnSaveDocument.disabled = false;
+    }
   }
 
   // Evrak Listesini Render Et
@@ -714,19 +814,19 @@
   }
 
   // Evrak Görüntüleyiciyi Aç
-  function openDocumentViewer(doc) {
+  async function openDocumentViewer(doc) {
     if (!doc) return;
     activeViewerDoc = doc;
 
     if (docViewerTitle) docViewerTitle.textContent = doc.title;
     if (docViewerBody) {
-      if (doc.fileType === 'pdf') {
-        docViewerBody.style.padding = '0';
-        docViewerBody.innerHTML = `<iframe src="${doc.content}" style="width: 100%; height: 70vh; border: none; border-radius: 8px;"></iframe>`;
-      } else {
-        docViewerBody.style.padding = '3rem';
-        docViewerBody.innerHTML = doc.htmlContent || `<p style="text-align: center; color: var(--text-muted);">Evrak içeriği boş veya okunamadı.</p>`;
-      }
+      docViewerBody.style.padding = '3rem';
+      docViewerBody.innerHTML = `
+        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 3rem; color: var(--text-muted); gap: 1rem;">
+          <div class="spinner" style="width: 32px; height: 32px; border: 3px solid rgba(99,102,241,0.2); border-top-color: var(--primary); border-radius: 50%; animation: spin 0.8s linear infinite;"></div>
+          <span>Evrak yükleniyor...</span>
+        </div>
+      `;
     }
 
     if (modalViewDocument) {
@@ -734,15 +834,63 @@
       resetFullscreenButton();
       modalViewDocument.classList.add('active');
     }
+
+    let fileContent = doc.content;
+    let htmlContent = doc.htmlContent;
+
+    // Eğer içerik IndexedDB'de ise oradan çek
+    if (!fileContent && !htmlContent) {
+      try {
+        const fileRecord = await getDocumentFile(doc.id);
+        if (fileRecord) {
+          fileContent = fileRecord.content;
+          htmlContent = fileRecord.htmlContent;
+        }
+      } catch (err) {
+        console.error("getDocumentFile error:", err);
+      }
+    }
+
+    // activeViewerDoc'a geçici olarak içerikleri ata (indirme ve yazdırma için)
+    activeViewerDoc = { ...doc, content: fileContent, htmlContent: htmlContent };
+
+    if (docViewerBody) {
+      if (doc.fileType === 'pdf') {
+        docViewerBody.style.padding = '0';
+        if (fileContent) {
+          docViewerBody.innerHTML = `<iframe src="${fileContent}" style="width: 100%; height: 70vh; border: none; border-radius: 8px;"></iframe>`;
+        } else {
+          docViewerBody.innerHTML = `<p style="text-align: center; color: var(--danger); padding: 2rem;">PDF içeriği yüklenemedi veya bulunamadı.</p>`;
+        }
+      } else {
+        docViewerBody.style.padding = '3rem';
+        docViewerBody.innerHTML = htmlContent || `<p style="text-align: center; color: var(--text-muted);">Evrak içeriği boş veya okunamadı.</p>`;
+      }
+    }
   }
 
   // Evrağı İndir
-  function downloadDocument(doc) {
-    if (!doc || !doc.content) return;
+  async function downloadDocument(doc) {
+    if (!doc) return;
+
+    let content = doc.content;
+    if (!content) {
+      try {
+        const fileRecord = await getDocumentFile(doc.id);
+        if (fileRecord) content = fileRecord.content;
+      } catch (err) {
+        console.error("downloadDocument getDocumentFile error:", err);
+      }
+    }
+
+    if (!content) {
+      if (toastCallbackFn) toastCallbackFn('Dosya içeriği bulunamadı.', 'danger');
+      return;
+    }
 
     try {
       const link = document.createElement('a');
-      link.href = doc.content; // Base64 dataURL
+      link.href = content; // Base64 dataURL
       let ext = 'docx';
       if (doc.fileType === 'pdf') ext = 'pdf';
       else if (doc.fileType === 'txt') ext = 'txt';
@@ -759,23 +907,44 @@
   }
 
   // Evrağı Yazdır
-  function printDocument(doc) {
+  async function printDocument(doc) {
     if (!doc || !documentPrintArea) return;
 
+    let content = doc.content;
+    let htmlContent = doc.htmlContent;
+    if (!content && !htmlContent) {
+      try {
+        const fileRecord = await getDocumentFile(doc.id);
+        if (fileRecord) {
+          content = fileRecord.content;
+          htmlContent = fileRecord.htmlContent;
+        }
+      } catch (err) {
+        console.error("printDocument getDocumentFile error:", err);
+      }
+    }
+
     if (doc.fileType === 'pdf') {
-      window.safeOpenURL(doc.content);
-      if (toastCallbackFn) toastCallbackFn('PDF belgesi yeni sekmede açıldı. Yazdırmak için tarayıcı özelliklerini kullanabilirsiniz.', 'info');
+      if (content) {
+        window.safeOpenURL(content);
+        if (toastCallbackFn) toastCallbackFn('PDF belgesi yeni sekmede açıldı. Yazdırmak için tarayıcı özelliklerini kullanabilirsiniz.', 'info');
+      } else {
+        if (toastCallbackFn) toastCallbackFn('PDF belgesi bulunamadı.', 'danger');
+      }
       return;
     }
 
-    if (!doc.htmlContent) return;
+    if (!htmlContent) {
+      if (toastCallbackFn) toastCallbackFn('Yazdırılacak evrak içeriği bulunamadı.', 'warning');
+      return;
+    }
 
     try {
       // Yazdırma alanına HTML içeriği kopyala
       documentPrintArea.innerHTML = `
         <div class="document-reader-sheet">
           <h1 style="text-align: center; margin-bottom: 2rem;">${escapeHtml(doc.title)}</h1>
-          ${doc.htmlContent}
+          ${htmlContent}
         </div>
       `;
 
@@ -821,7 +990,12 @@
       confirm(`"${doc.title}" evrağını tamamen silmek istediğinize emin misiniz? Bu işlem geri alınamaz.`);
 
     if (isConfirmed) {
+      // 1. IndexedDB'den dosya içeriğini sil
+      await deleteDocumentFile(doc.id);
+
+      // 2. State'ten meta veriyi sil
       stateManager.deleteDocument(doc.id);
+      renderCategoryTabs();
       renderDocumentsList();
       if (toastCallbackFn) toastCallbackFn('Evrak silindi.', 'info');
     }
