@@ -735,6 +735,57 @@ body {
   border-color: var(--danger);
 }
 
+.book-card-actions {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  display: flex;
+  gap: 0.25rem;
+  z-index: 5;
+}
+
+.book-card-actions .action-btn-sm {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.book-card-actions .action-btn-sm:hover,
+.book-card-actions .action-btn-sm.delete:hover {
+  background: #ef4444;
+  border-color: #ef4444;
+  color: #fff;
+  transform: scale(1.08);
+}
+
+.book-select-checkbox-container {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  z-index: 5;
+  background: rgba(15, 23, 42, 0.75);
+  padding: 3px 6px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.book-select-checkbox-container input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: var(--danger);
+  margin: 0;
+}
+
+
 /* Modallar (Popup Windows) */
 .modal {
   display: none;
@@ -1194,6 +1245,7 @@ select option {
 }
 
 .book-card {
+  position: relative;
   padding: 0.65rem;
   display: flex;
   flex-direction: column;

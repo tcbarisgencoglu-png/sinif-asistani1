@@ -1565,6 +1565,249 @@ function setupBooksTab(showToast) {
       }
     });
   }
+
+  // --- KİTAP DÜZENLEME & SİLME MODAL VE TOOLBAR DİNLİYİCİLERİ ---
+  const modalEditBook = document.getElementById('modal-edit-book');
+  const formEditBook = document.getElementById('form-edit-book');
+  const btnModalDeleteBook = document.getElementById('btn-modal-delete-book');
+  const editIdInput = document.getElementById('edit-book-id');
+  const editNoInput = document.getElementById('edit-book-no-input');
+  const editTitleInput = document.getElementById('edit-book-title-input');
+  const editAuthorInput = document.getElementById('edit-book-author-input');
+  const editPagesInput = document.getElementById('edit-book-pages-input');
+
+  // Düzenleme Modalı Kapatma
+  if (modalEditBook) {
+    modalEditBook.querySelectorAll('.close-btn, .close-btn-action').forEach(btn => {
+      btn.addEventListener('click', () => {
+        modalEditBook.classList.remove('active');
+      });
+    });
+  }
+
+  // Düzenleme Formu Gönderimi (Kitap Bilgilerini Güncelleme)
+  if (formEditBook) {
+    formEditBook.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const bookId = editIdInput ? editIdInput.value : '';
+      if (!bookId) return;
+
+      const bookData = {
+        bookNo: editNoInput ? editNoInput.value.trim() : '',
+        title: editTitleInput ? editTitleInput.value.trim() : '',
+        author: editAuthorInput ? editAuthorInput.value.trim() : '',
+        pages: editPagesInput ? parseInt(editPagesInput.value) || 0 : 0
+      };
+
+      if (!bookData.title) {
+        if (toastCallback) toastCallback('Lütfen kitap adını giriniz.', 'danger');
+        return;
+      }
+
+      stateManager.updateBook(bookId, bookData);
+      if (modalEditBook) modalEditBook.classList.remove('active');
+      if (toastCallback) toastCallback(`"${bookData.title}" kitap bilgileri güncellendi.`, 'success');
+
+      renderBooksList();
+      renderLeaderboard();
+      const event = new CustomEvent('stateChanged');
+      document.dispatchEvent(event);
+    });
+  }
+
+  // Düzenleme Modalındaki "Bu Kitabı Sil" Düğmesi
+  if (btnModalDeleteBook) {
+    btnModalDeleteBook.addEventListener('click', () => {
+      const bookId = editIdInput ? editIdInput.value : '';
+      if (!bookId) return;
+      const state = stateManager.loadState();
+      const book = state.books.library.find(b => b.id === bookId);
+      if (book) {
+        if (modalEditBook) modalEditBook.classList.remove('active');
+        confirmAndDeleteBook(book);
+      }
+    });
+  }
+
+  // Kitaplık Arama Çubuğu
+  const inputLibrarySearch = document.getElementById('input-library-search');
+  if (inputLibrarySearch) {
+    inputLibrarySearch.addEventListener('input', (e) => {
+      librarySearchQuery = e.target.value;
+      renderBooksList();
+    });
+  }
+
+  // Kitaplık Durum Filtresi
+  const selectLibraryFilter = document.getElementById('select-library-filter');
+  if (selectLibraryFilter) {
+    selectLibraryFilter.addEventListener('change', (e) => {
+      libraryFilterStatus = e.target.value;
+      renderBooksList();
+    });
+  }
+
+  // Toplu Silme Modu Açma/Kapatma
+  const btnToggleBulk = document.getElementById('btn-toggle-bulk-delete-books');
+  const bulkBar = document.getElementById('bulk-delete-books-bar');
+  const btnCancelBulk = document.getElementById('btn-cancel-bulk-delete-books');
+  const chkSelectAll = document.getElementById('chk-select-all-books');
+  const btnConfirmBulk = document.getElementById('btn-confirm-bulk-delete-books');
+
+  if (btnToggleBulk) {
+    btnToggleBulk.addEventListener('click', () => {
+      isBulkDeleteMode = !isBulkDeleteMode;
+      selectedBookIds.clear();
+      if (bulkBar) {
+        bulkBar.style.display = isBulkDeleteMode ? 'flex' : 'none';
+      }
+      if (isBulkDeleteMode) {
+        btnToggleBulk.classList.add('btn-primary');
+        btnToggleBulk.classList.remove('btn-secondary');
+      } else {
+        btnToggleBulk.classList.remove('btn-primary');
+        btnToggleBulk.classList.add('btn-secondary');
+      }
+      renderBooksList();
+      updateBulkDeleteCountUI();
+    });
+  }
+
+  if (btnCancelBulk) {
+    btnCancelBulk.addEventListener('click', () => {
+      isBulkDeleteMode = false;
+      selectedBookIds.clear();
+      if (bulkBar) bulkBar.style.display = 'none';
+      if (btnToggleBulk) {
+        btnToggleBulk.classList.remove('btn-primary');
+        btnToggleBulk.classList.add('btn-secondary');
+      }
+      renderBooksList();
+      updateBulkDeleteCountUI();
+    });
+  }
+
+  // Tümünü Seç / Kaldır Onay Kutusu
+  if (chkSelectAll) {
+    chkSelectAll.addEventListener('change', () => {
+      const state = stateManager.loadState();
+      const allBooks = state.books.library || [];
+      const query = librarySearchQuery.trim().toLowerCase();
+      const readingBookIds = state.books.transactions
+        .filter(t => t.status === 'reading')
+        .map(t => t.bookId);
+
+      const visibleBooks = allBooks.filter(book => {
+        if (query) {
+          const titleMatch = (book.title || '').toLowerCase().includes(query);
+          const authorMatch = (book.author || '').toLowerCase().includes(query);
+          const noMatch = (book.bookNo || '').toLowerCase().includes(query);
+          if (!titleMatch && !authorMatch && !noMatch) return false;
+        }
+        const isReading = readingBookIds.includes(book.id);
+        const hasQuestions = Array.isArray(book.questions) && book.questions.length > 0;
+        if (libraryFilterStatus === 'available' && isReading) return false;
+        if (libraryFilterStatus === 'reading' && !isReading) return false;
+        if (libraryFilterStatus === 'has_questions' && !hasQuestions) return false;
+        if (libraryFilterStatus === 'no_questions' && hasQuestions) return false;
+        return true;
+      });
+
+      if (chkSelectAll.checked) {
+        visibleBooks.forEach(b => selectedBookIds.add(b.id));
+      } else {
+        visibleBooks.forEach(b => selectedBookIds.delete(b.id));
+      }
+
+      renderBooksList();
+      updateBulkDeleteCountUI(visibleBooks.length);
+    });
+  }
+
+  // Seçilenleri Silme Onayı ve İşlemi
+  if (btnConfirmBulk) {
+    btnConfirmBulk.addEventListener('click', async () => {
+      const count = selectedBookIds.size;
+      if (count === 0) {
+        if (toastCallback) toastCallback('Lütfen önce silinecek kitapları seçin.', 'warning');
+        return;
+      }
+
+      const state = stateManager.loadState();
+      const readingCount = state.books.transactions.filter(
+        t => t.status === 'reading' && selectedBookIds.has(t.bookId)
+      ).length;
+
+      let msg = `Seçilen ${count} adet kitabı kütüphaneden kalıcı olarak silmek istediğinize emin misiniz?`;
+      if (readingCount > 0) {
+        msg += `\n\nDikkat: Seçtiğiniz kitaplardan ${readingCount} tanesi şu anda öğrenciler tarafından okunmaktadır!`;
+      }
+
+      const ok = window.confirmAsync ?
+        await window.confirmAsync(msg) :
+        confirm(msg);
+
+      if (ok) {
+        const idsToDelete = Array.from(selectedBookIds);
+        stateManager.deleteBooks(idsToDelete);
+        selectedBookIds.clear();
+        isBulkDeleteMode = false;
+        if (bulkBar) bulkBar.style.display = 'none';
+        if (btnToggleBulk) {
+          btnToggleBulk.classList.remove('btn-primary');
+          btnToggleBulk.classList.add('btn-secondary');
+        }
+
+        renderBooksList();
+        renderLeaderboard();
+        if (toastCallback) toastCallback(`${count} adet kitap başarıyla silindi.`, 'success');
+
+        const event = new CustomEvent('stateChanged');
+        document.dispatchEvent(event);
+      }
+    });
+  }
+
+  // Tümünü Temizle (Kütüphanedeki Tüm Kitapları Sil) Düğmesi
+  const btnDeleteAllBooks = document.getElementById('btn-delete-all-books');
+  if (btnDeleteAllBooks) {
+    btnDeleteAllBooks.addEventListener('click', async () => {
+      const state = stateManager.loadState();
+      const totalBooks = (state.books.library || []).length;
+      if (totalBooks === 0) {
+        if (toastCallback) toastCallback('Kütüphanenizde silinecek kitap bulunmuyor.', 'info');
+        return;
+      }
+
+      const activeReadings = state.books.transactions.filter(t => t.status === 'reading').length;
+      let msg = `Kütüphanedeki TÜM KİTAPLARI (${totalBooks} adet) silmek istediğinize emin misiniz?\n\nBu işlem geri alınamaz!`;
+      if (activeReadings > 0) {
+        msg += `\n\nUyarı: Şu anda aktif olarak okunan ${activeReadings} adet kitap bulunmaktadır.`;
+      }
+
+      const ok = window.confirmAsync ?
+        await window.confirmAsync(msg) :
+        confirm(msg);
+
+      if (ok) {
+        stateManager.deleteAllBooks();
+        selectedBookIds.clear();
+        isBulkDeleteMode = false;
+        if (bulkBar) bulkBar.style.display = 'none';
+        if (btnToggleBulk) {
+          btnToggleBulk.classList.remove('btn-primary');
+          btnToggleBulk.classList.add('btn-secondary');
+        }
+
+        renderBooksList();
+        renderLeaderboard();
+        if (toastCallback) toastCallback('Kütüphanedeki tüm kitaplar temizlendi.', 'success');
+
+        const event = new CustomEvent('stateChanged');
+        document.dispatchEvent(event);
+      }
+    });
+  }
 }
 
 // Dropdown Menüleri Doldur
@@ -1630,13 +1873,104 @@ function updateBorrowBookSelect() {
   }
 }
 
+// Kitaplık Arama, Filtreleme ve Toplu Silme Durum Değişkenleri
+let librarySearchQuery = '';
+let libraryFilterStatus = 'all';
+let isBulkDeleteMode = false;
+const selectedBookIds = new Set();
+
+// Kitap Silme Onay ve Gerçekleştirme Yardımcısı
+async function confirmAndDeleteBook(book) {
+  if (!book) return;
+  const state = stateManager.loadState();
+  const activeTx = state.books.transactions.find(t => t.bookId === book.id && t.status === 'reading');
+  let confirmMsg = `"${book.title}" adlı kitabı kütüphaneden silmek istediğinize emin misiniz?`;
+  if (activeTx) {
+    const student = state.students.find(s => s.id === activeTx.studentId);
+    const studentName = student ? `${student.name} ${student.surname}` : 'bir öğrenci';
+    confirmMsg = `"${book.title}" adlı kitap şu an ${studentName} tarafından okunmaktadır.\n\nKitabı silerseniz öğrencinin aktif okuma kaydı da silinecektir. Devam etmek istiyor musunuz?`;
+  }
+
+  const ok = window.confirmAsync ?
+    await window.confirmAsync(confirmMsg) :
+    confirm(confirmMsg);
+
+  if (ok) {
+    selectedBookIds.delete(book.id);
+    stateManager.deleteBook(book.id);
+    renderBooksList();
+
+    if (toastCallback) {
+      toastCallback(`"${book.title}" kütüphaneden silindi.`, 'success');
+    }
+
+    const event = new CustomEvent('stateChanged');
+    document.dispatchEvent(event);
+  }
+}
+
+// Kitap Bilgilerini Düzenleme Modalını Açma
+function openEditBookModal(bookId) {
+  const state = stateManager.loadState();
+  const book = state.books.library.find(b => b.id === bookId);
+  if (!book) return;
+
+  const modalEditBook = document.getElementById('modal-edit-book');
+  const editIdInput = document.getElementById('edit-book-id');
+  const editNoInput = document.getElementById('edit-book-no-input');
+  const editTitleInput = document.getElementById('edit-book-title-input');
+  const editAuthorInput = document.getElementById('edit-book-author-input');
+  const editPagesInput = document.getElementById('edit-book-pages-input');
+
+  if (modalEditBook && editIdInput && editTitleInput && editAuthorInput && editPagesInput) {
+    editIdInput.value = book.id;
+    if (editNoInput) editNoInput.value = book.bookNo || '';
+    editTitleInput.value = book.title || '';
+    editAuthorInput.value = book.author || '';
+    editPagesInput.value = book.pages || 0;
+    modalEditBook.classList.add('active');
+    if (window.safeCreateIcons) window.safeCreateIcons();
+  }
+}
+
+// Toplu Silme Seçim Sayısı ve Durumu Arayüz Yardımcısı
+function updateBulkDeleteCountUI(currentVisibleCount = 0) {
+  const countText = document.getElementById('selected-books-count-text');
+  const chkSelectAll = document.getElementById('chk-select-all-books');
+  const btnConfirmBulk = document.getElementById('btn-confirm-bulk-delete-books');
+  const count = selectedBookIds.size;
+
+  if (countText) {
+    countText.textContent = `(${count} kitap seçildi)`;
+  }
+
+  if (btnConfirmBulk) {
+    btnConfirmBulk.disabled = count === 0;
+    btnConfirmBulk.style.opacity = count === 0 ? '0.6' : '1';
+    btnConfirmBulk.style.cursor = count === 0 ? 'not-allowed' : 'pointer';
+  }
+
+  if (chkSelectAll && currentVisibleCount > 0) {
+    chkSelectAll.checked = count > 0 && count === currentVisibleCount;
+    chkSelectAll.indeterminate = count > 0 && count < currentVisibleCount;
+  }
+}
+
 // Kitaplık ve Aktif Okumaları Çiz
 function renderBooksList() {
   const state = stateManager.loadState();
   
   // 1. Kitaplık Envanteri Çizimi
   libraryContainer.innerHTML = '';
-  if (state.books.library.length === 0) {
+  const allBooks = state.books.library || [];
+
+  // Toplam rozetini güncelle
+  const countBadge = document.getElementById('library-books-count-badge');
+  if (countBadge) {
+    countBadge.textContent = `${allBooks.length} Kitap`;
+  }
+
+  if (allBooks.length === 0) {
     libraryContainer.innerHTML = `
       <div style="grid-column: 1 / -1; text-align: center; padding: 2rem; color: var(--text-muted);">
         Kütüphanenizde henüz kitap bulunmuyor.
@@ -1648,104 +1982,172 @@ function renderBooksList() {
       .filter(t => t.status === 'reading')
       .map(t => t.bookId);
 
-    const sortedLibrary = [...state.books.library].sort((a, b) => a.title.localeCompare(b.title, 'tr'));
-
-    sortedLibrary.forEach(book => {
-      const activeTxForBook = state.books.transactions.find(t => t.bookId === book.id && t.status === 'reading');
-      const isReading = !!activeTxForBook;
-      
-      let readerNameBadge = '';
-      if (activeTxForBook) {
-        const student = state.students.find(s => s.id === activeTxForBook.studentId);
-        if (student) {
-          const readerName = `${student.name} ${student.surname}`;
-          readerNameBadge = `<div class="book-reader-badge" style="position: absolute; top: 8px; left: 8px; right: 8px; background: rgba(15, 23, 42, 0.75); color: #fff; padding: 0.25rem 0.4rem; border-radius: var(--radius-sm); font-size: 0.65rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: center;" title="${readerName}">${readerName}</div>`;
-        }
+    // Arama ve Filtreleme Uygula
+    const query = librarySearchQuery.trim().toLowerCase();
+    const filteredBooks = allBooks.filter(book => {
+      // 1. Arama sorgusu filtresi
+      if (query) {
+        const titleMatch = (book.title || '').toLowerCase().includes(query);
+        const authorMatch = (book.author || '').toLowerCase().includes(query);
+        const noMatch = (book.bookNo || '').toLowerCase().includes(query);
+        if (!titleMatch && !authorMatch && !noMatch) return false;
       }
-      
-      const card = document.createElement('div');
-      card.className = 'glass-card book-card';
-      
-      card.innerHTML = `
-        <div class="student-actions">
-          <button class="action-btn-sm delete" title="Sil" data-id="${book.id}">
-            <i data-lucide="trash-2"></i>
-          </button>
-        </div>
-        <div class="book-cover" style="background: ${isReading ? 'linear-gradient(135deg, var(--warning) 0%, #d97706 100%)' : 'linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%)'}; position: relative;">
-          ${readerNameBadge}
-          <i data-lucide="book"></i>
-          ${isReading ? '<span style="position: absolute; bottom: 8px; font-size: 0.65rem; background: rgba(0,0,0,0.5); padding: 0.1rem 0.5rem; border-radius: 4px; font-weight: 700;">OKUNUYOR</span>' : ''}
-        </div>
-        <div class="book-title book-title-question-link" data-book-id="${book.id}" title="Kitap Sorularını Gör">${book.title}</div>
-        <div class="book-author">${book.author}</div>
-        <div class="book-pages" style="margin-bottom: 0.75rem; display: flex; justify-content: space-between; align-items: center; gap: 0.5rem;">
-          <span style="font-weight: 600;">No: ${book.bookNo || '-'}</span>
-          <span>${book.pages} Sayfa</span>
-        </div>
-        <div class="book-actions-footer" style="margin-top: auto; display: flex; gap: 0.5rem; width: 100%; border-top: 1px solid var(--border-color); padding-top: 0.75rem; justify-content: flex-end;">
-          <button class="action-btn-sm view-questions-action" title="Soruları Gör" style="flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 0.25rem; font-size: 0.75rem; font-weight: 600; padding: 0.4rem 0.5rem; border-radius: var(--radius-sm); border: 1px solid rgba(79, 70, 229, 0.2); background: rgba(79, 70, 229, 0.05); color: var(--primary); cursor: pointer;">
-            <i data-lucide="help-circle" style="width: 14px; height: 14px;"></i> Sorular
-          </button>
-          <button class="action-btn-sm edit-questions-action" title="Soruları Düzenle" style="flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 0.25rem; font-size: 0.75rem; font-weight: 600; padding: 0.4rem 0.5rem; border-radius: var(--radius-sm); border: 1px solid rgba(245, 158, 11, 0.2); background: rgba(245, 158, 11, 0.05); color: var(--warning); cursor: pointer;">
-            <i data-lucide="pencil-line" style="width: 14px; height: 14px;"></i> Düzenle
-          </button>
+
+      // 2. Durum filtresi
+      const isReading = readingBookIds.includes(book.id);
+      const hasQuestions = Array.isArray(book.questions) && book.questions.length > 0;
+
+      if (libraryFilterStatus === 'available' && isReading) return false;
+      if (libraryFilterStatus === 'reading' && !isReading) return false;
+      if (libraryFilterStatus === 'has_questions' && !hasQuestions) return false;
+      if (libraryFilterStatus === 'no_questions' && hasQuestions) return false;
+
+      return true;
+    });
+
+    if (filteredBooks.length === 0) {
+      libraryContainer.innerHTML = `
+        <div style="grid-column: 1 / -1; text-align: center; padding: 2.5rem 1rem; color: var(--text-muted);">
+          <i data-lucide="search-x" style="width: 36px; height: 36px; opacity: 0.5; margin-bottom: 0.5rem;"></i>
+          <p style="margin: 0; font-size: 0.9rem;">Arama kriterlerinize uygun kitap bulunamadı.</p>
         </div>
       `;
+      if (window.safeCreateIcons) window.safeCreateIcons();
+    } else {
+      const sortedLibrary = [...filteredBooks].sort((a, b) => (a.title || '').localeCompare(b.title || '', 'tr'));
 
-      card.querySelector('.view-questions-action').addEventListener('click', (e) => {
-        e.preventDefault();
-        openBookQuestionsModal(book.id, book.title, book.author);
-      });
-
-      card.querySelector('.book-title-question-link').addEventListener('click', (e) => {
-        e.preventDefault();
-        openBookQuestionsModal(book.id, book.title, book.author);
-      });
-
-      card.querySelector('.edit-questions-action').addEventListener('click', (e) => {
-        e.preventDefault();
-        openEditQuestionsModal(book.id, book.title, book.author);
-      });
-
-      // Kitap silme olayı
-      card.querySelector('.delete').addEventListener('click', async (e) => {
-        e.stopPropagation();
-        const ok = window.confirmAsync ?
-          await window.confirmAsync(`"${book.title}" adlı kitabı kütüphaneden silmek istediğinize emin misiniz?`) :
-          confirm(`"${book.title}" adlı kitabı kütüphaneden silmek istediğinize emin misiniz?`);
-        if (ok) {
-          stateManager.deleteBook(book.id);
-          renderBooksList();
-          
-          const event = new CustomEvent('stateChanged');
-          document.dispatchEvent(event);
-        }
-      });
-
-      // Lisans kısıtlama kontrolü
-      const originalIndex = state.books.library.findIndex(b => b.id === book.id);
-      const isPassive = window.LicenseConfig && window.LicenseConfig.isDemo && originalIndex >= window.LicenseConfig.bookLimit;
-      if (isPassive) {
-        card.classList.add('passive-locked');
-        const lockOverlay = document.createElement('div');
-        lockOverlay.className = 'lock-overlay';
-        lockOverlay.innerHTML = `<i data-lucide="lock"></i><span>Pasif (Lisans Gerekli)</span>`;
-        lockOverlay.addEventListener('click', (e) => {
-          e.stopPropagation();
-          e.preventDefault();
-          if (window.LicenseConfig && typeof window.LicenseConfig.showPrompt === 'function') {
-            window.LicenseConfig.showPrompt('Kitaplık', window.LicenseConfig.bookLimit);
-          } else if (window.openLicensePurchase) {
-            window.openLicensePurchase('Kitaplık Limiti');
+      sortedLibrary.forEach(book => {
+        const activeTxForBook = state.books.transactions.find(t => t.bookId === book.id && t.status === 'reading');
+        const isReading = !!activeTxForBook;
+        const isSelected = selectedBookIds.has(book.id);
+        
+        let readerNameBadge = '';
+        if (activeTxForBook) {
+          const student = state.students.find(s => s.id === activeTxForBook.studentId);
+          if (student) {
+            const readerName = `${student.name} ${student.surname}`;
+            readerNameBadge = `<div class="book-reader-badge" style="position: absolute; top: 8px; left: ${isBulkDeleteMode ? '36px' : '8px'}; right: 38px; background: rgba(15, 23, 42, 0.8); color: #fff; padding: 0.25rem 0.4rem; border-radius: var(--radius-sm); font-size: 0.65rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: center;" title="${readerName}">${readerName}</div>`;
           }
-        });
-        card.appendChild(lockOverlay);
-      }
+        }
+        
+        const card = document.createElement('div');
+        card.className = `glass-card book-card ${isSelected ? 'book-card-selected' : ''}`;
+        if (isSelected) {
+          card.style.borderColor = 'var(--danger)';
+          card.style.boxShadow = '0 0 0 2px rgba(239, 68, 68, 0.3)';
+        }
+        
+        const bulkCheckboxHtml = isBulkDeleteMode ? `
+          <div class="book-select-checkbox-container">
+            <input type="checkbox" class="chk-book-select" data-id="${book.id}" ${isSelected ? 'checked' : ''}>
+          </div>
+        ` : '';
 
-      libraryContainer.appendChild(card);
-    });
+        card.innerHTML = `
+          ${bulkCheckboxHtml}
+          <div class="book-card-actions">
+            <button type="button" class="action-btn-sm delete delete-book-card-btn" title="Bu Kitabı Sil" data-id="${book.id}">
+              <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i>
+            </button>
+          </div>
+          <div class="book-cover" style="background: ${isReading ? 'linear-gradient(135deg, var(--warning) 0%, #d97706 100%)' : 'linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%)'}; position: relative;">
+            ${readerNameBadge}
+            <i data-lucide="book"></i>
+            ${isReading ? '<span style="position: absolute; bottom: 8px; font-size: 0.65rem; background: rgba(0,0,0,0.5); padding: 0.1rem 0.5rem; border-radius: 4px; font-weight: 700;">OKUNUYOR</span>' : ''}
+          </div>
+          <div class="book-title book-title-question-link" data-book-id="${book.id}" title="Kitap Sorularını Gör" style="cursor: pointer;">${book.title}</div>
+          <div class="book-author">${book.author}</div>
+          <div class="book-pages" style="margin-bottom: 0.75rem; display: flex; justify-content: space-between; align-items: center; gap: 0.5rem;">
+            <span style="font-weight: 600;">No: ${book.bookNo || '-'}</span>
+            <span>${book.pages} Sayfa</span>
+          </div>
+          <div class="book-actions-footer" style="margin-top: auto; display: flex; gap: 0.35rem; width: 100%; border-top: 1px solid var(--border-color); padding-top: 0.65rem; justify-content: space-between;">
+            <button type="button" class="action-btn-sm view-questions-action" title="Soruları Gör" style="flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 0.2rem; font-size: 0.72rem; font-weight: 600; padding: 0.35rem 0.4rem; border-radius: var(--radius-sm); border: 1px solid rgba(79, 70, 229, 0.2); background: rgba(79, 70, 229, 0.05); color: var(--primary); cursor: pointer;">
+              <i data-lucide="help-circle" style="width: 13px; height: 13px;"></i> Sorular
+            </button>
+            <button type="button" class="action-btn-sm edit-book-action" title="Kitap Bilgilerini Düzenle" style="flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 0.2rem; font-size: 0.72rem; font-weight: 600; padding: 0.35rem 0.4rem; border-radius: var(--radius-sm); border: 1px solid rgba(245, 158, 11, 0.25); background: rgba(245, 158, 11, 0.05); color: var(--warning); cursor: pointer;">
+              <i data-lucide="edit-3" style="width: 13px; height: 13px;"></i> Düzenle
+            </button>
+            <button type="button" class="action-btn-sm delete-book-action" title="Kitabı Sil" style="display: inline-flex; align-items: center; justify-content: center; padding: 0.35rem 0.5rem; border-radius: var(--radius-sm); border: 1px solid rgba(239, 68, 68, 0.3); background: rgba(239, 68, 68, 0.06); color: var(--danger); cursor: pointer;">
+              <i data-lucide="trash-2" style="width: 13px; height: 13px;"></i>
+            </button>
+          </div>
+        `;
+
+        // Soruları Gör
+        card.querySelector('.view-questions-action').addEventListener('click', (e) => {
+          e.preventDefault();
+          openBookQuestionsModal(book.id, book.title, book.author);
+        });
+
+        // Başlığa tıklandığında soruları gör
+        card.querySelector('.book-title-question-link').addEventListener('click', (e) => {
+          e.preventDefault();
+          openBookQuestionsModal(book.id, book.title, book.author);
+        });
+
+        // Kitap Düzenle
+        card.querySelector('.edit-book-action').addEventListener('click', (e) => {
+          e.preventDefault();
+          openEditBookModal(book.id);
+        });
+
+        // Kitap Sil (Alt buton ve Sağ üst buton)
+        const handleDelete = (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          confirmAndDeleteBook(book);
+        };
+        card.querySelector('.delete-book-action').addEventListener('click', handleDelete);
+        const topDeleteBtn = card.querySelector('.delete-book-card-btn');
+        if (topDeleteBtn) topDeleteBtn.addEventListener('click', handleDelete);
+
+        // Toplu seçim onay kutusu
+        if (isBulkDeleteMode) {
+          const chk = card.querySelector('.chk-book-select');
+          if (chk) {
+            chk.addEventListener('change', (e) => {
+              e.stopPropagation();
+              if (chk.checked) {
+                selectedBookIds.add(book.id);
+                card.style.borderColor = 'var(--danger)';
+                card.style.boxShadow = '0 0 0 2px rgba(239, 68, 68, 0.3)';
+              } else {
+                selectedBookIds.delete(book.id);
+                card.style.borderColor = '';
+                card.style.boxShadow = '';
+              }
+              updateBulkDeleteCountUI(filteredBooks.length);
+            });
+          }
+        }
+
+        // Lisans kısıtlama kontrolü
+        const originalIndex = state.books.library.findIndex(b => b.id === book.id);
+        const isPassive = window.LicenseConfig && window.LicenseConfig.isDemo && originalIndex >= window.LicenseConfig.bookLimit;
+        if (isPassive) {
+          card.classList.add('passive-locked');
+          const lockOverlay = document.createElement('div');
+          lockOverlay.className = 'lock-overlay';
+          lockOverlay.innerHTML = `<i data-lucide="lock"></i><span>Pasif (Lisans Gerekli)</span>`;
+          lockOverlay.addEventListener('click', (e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            if (window.LicenseConfig && typeof window.LicenseConfig.showPrompt === 'function') {
+              window.LicenseConfig.showPrompt('Kitaplık', window.LicenseConfig.bookLimit);
+            } else if (window.openLicensePurchase) {
+              window.openLicensePurchase('Kitaplık Limiti');
+            }
+          });
+          card.appendChild(lockOverlay);
+        }
+
+        libraryContainer.appendChild(card);
+      });
+    }
   }
+
+  if (window.safeCreateIcons) window.safeCreateIcons();
 
   // 2. Aktif Okuma Tablosu Çizimi (Eğer varsa - eski yerleşim uyumluluğu için)
   if (borrowedBooksTable) {

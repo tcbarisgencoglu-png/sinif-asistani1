@@ -2597,10 +2597,37 @@ class StateManager {
     return book;
   }
 
+  updateBook(id, bookData) {
+    const book = this.state.books.library.find(b => b.id === id);
+    if (book) {
+      if (bookData.title !== undefined) book.title = bookData.title.trim();
+      if (bookData.author !== undefined) book.author = bookData.author.trim();
+      if (bookData.pages !== undefined) book.pages = parseInt(bookData.pages) || 0;
+      if (bookData.bookNo !== undefined) book.bookNo = String(bookData.bookNo).trim();
+      this.saveState();
+      return book;
+    }
+    return null;
+  }
+
   deleteBook(id) {
     this.state.books.library = this.state.books.library.filter(b => b.id !== id);
     // Bu kitaba ait işlem geçmişini de temizle
     this.state.books.transactions = this.state.books.transactions.filter(t => t.bookId !== id);
+    this.saveState();
+  }
+
+  deleteBooks(ids) {
+    if (!Array.isArray(ids) || ids.length === 0) return;
+    const idSet = new Set(ids);
+    this.state.books.library = this.state.books.library.filter(b => !idSet.has(b.id));
+    this.state.books.transactions = this.state.books.transactions.filter(t => !idSet.has(t.bookId));
+    this.saveState();
+  }
+
+  deleteAllBooks() {
+    this.state.books.library = [];
+    this.state.books.transactions = [];
     this.saveState();
   }
 

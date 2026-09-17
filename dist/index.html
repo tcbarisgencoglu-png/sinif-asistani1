@@ -178,7 +178,7 @@
       <div id="sidebar-demo-container"></div>
       
       <div class="sidebar-footer" style="padding: 1rem; text-align: center; font-size: 0.8rem; color: var(--text-muted); border-top: 1px solid var(--border-color);">
-        <span id="app-sidebar-version-text">Sınıf Asistanı v1.0.11</span>
+        <span id="app-sidebar-version-text">Sınıf Asistanı v1.0.12</span>
       </div>
     </aside>
 
@@ -430,14 +430,59 @@
 
         <div class="books-tab-content" id="books-leaderboard-section" style="display: none;">
           <div class="glass-card">
-            <div class="section-title" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem;">
-              <h3 style="display: flex; align-items: center; gap: 0.5rem; color: var(--primary);">
-                <i data-lucide="library"></i> Kütüphane Kitaplığı
-              </h3>
-              <span style="font-size: 0.85rem; color: var(--text-muted); font-weight: 500;">
-                Kitapları düzenleyebilir, sorularını güncelleyebilir veya kütüphaneden silebilirsiniz.
-              </span>
+            <div class="section-title" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.25rem;">
+              <div style="display: flex; align-items: center; gap: 0.65rem;">
+                <h3 style="display: flex; align-items: center; gap: 0.5rem; color: var(--primary); margin: 0;">
+                  <i data-lucide="library"></i> Kütüphane Kitaplığı
+                </h3>
+                <span id="library-books-count-badge" class="badge" style="background: rgba(99, 102, 241, 0.15); color: var(--primary); font-size: 0.78rem; font-weight: 700; padding: 0.25rem 0.65rem; border-radius: 6px;">0 Kitap</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                <button type="button" class="btn btn-secondary btn-sm" id="btn-toggle-bulk-delete-books" style="font-size: 0.8rem; display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.4rem 0.75rem;">
+                  <i data-lucide="check-square" style="width: 14px; height: 14px;"></i> Toplu Seç & Sil
+                </button>
+                <button type="button" class="btn btn-secondary btn-sm" id="btn-delete-all-books" style="font-size: 0.8rem; display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.4rem 0.75rem; color: var(--danger); border-color: rgba(239, 68, 68, 0.3);">
+                  <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i> Tümünü Temizle
+                </button>
+              </div>
             </div>
+
+            <!-- Arama & Filtreleme Toolbar -->
+            <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.25rem; flex-wrap: wrap; background: var(--bg-secondary); padding: 0.75rem 1rem; border-radius: var(--radius-md); border: 1px solid var(--border-color);">
+              <div style="flex: 1; min-width: 220px; position: relative;">
+                <i data-lucide="search" style="position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%); width: 15px; height: 15px; color: var(--text-muted);"></i>
+                <input type="text" id="input-library-search" class="form-control" placeholder="Kitap adı, yazar veya kitap no ile ara..." style="padding-left: 2.25rem; height: 36px; font-size: 0.85rem;">
+              </div>
+              <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <select id="select-library-filter" class="form-control" style="height: 36px; font-size: 0.85rem; padding: 0.3rem 0.75rem; min-width: 150px;">
+                  <option value="all">Tüm Kitaplar</option>
+                  <option value="available">Sadece Boşta Olanlar</option>
+                  <option value="reading">Şu Anda Okunanlar</option>
+                  <option value="has_questions">Sorusu Olanlar</option>
+                  <option value="no_questions">Sorusu Olmayanlar</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Toplu Silme Kontrol Çubuğu (Toplu Seç tıklandığında görünür) -->
+            <div id="bulk-delete-books-bar" style="display: none; align-items: center; justify-content: space-between; gap: 0.75rem; margin-bottom: 1.25rem; background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.3); padding: 0.75rem 1rem; border-radius: var(--radius-md); flex-wrap: wrap;">
+              <div style="display: flex; align-items: center; gap: 0.75rem;">
+                <label style="display: flex; align-items: center; gap: 0.4rem; font-size: 0.85rem; font-weight: 600; cursor: pointer; margin: 0; color: var(--text-primary);">
+                  <input type="checkbox" id="chk-select-all-books" style="width: 16px; height: 16px; cursor: pointer;">
+                  <span>Tümünü Seç</span>
+                </label>
+                <span id="selected-books-count-text" style="font-size: 0.85rem; font-weight: 700; color: var(--danger);">(0 kitap seçildi)</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <button type="button" class="btn btn-sm" id="btn-confirm-bulk-delete-books" style="background: var(--danger); color: #fff; border: none; font-size: 0.8rem; font-weight: 600; padding: 0.4rem 0.85rem; border-radius: var(--radius-sm); display: inline-flex; align-items: center; gap: 0.35rem; cursor: pointer;">
+                  <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i> Seçilenleri Sil
+                </button>
+                <button type="button" class="btn btn-secondary btn-sm" id="btn-cancel-bulk-delete-books" style="font-size: 0.8rem; padding: 0.4rem 0.75rem;">
+                  İptal
+                </button>
+              </div>
+            </div>
+
             <div class="book-card-list" id="library-books-container">
               <!-- JS ile doldurulacak -->
             </div>
@@ -5077,6 +5122,46 @@
     </div>
   </div>
 
+  <!-- MODAL: KİTAP BİLGİLERİNİ DÜZENLE & SİL -->
+  <div class="modal" id="modal-edit-book">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Kitap Bilgilerini Düzenle</h3>
+        <button class="close-btn">&times;</button>
+      </div>
+      <form id="form-edit-book">
+        <input type="hidden" id="edit-book-id">
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="edit-book-no-input">Kitap No</label>
+            <input type="text" class="form-control" id="edit-book-no-input">
+          </div>
+          <div class="form-group">
+            <label for="edit-book-title-input">Kitap Adı</label>
+            <input type="text" class="form-control" id="edit-book-title-input" required>
+          </div>
+          <div class="form-group">
+            <label for="edit-book-author-input">Yazar</label>
+            <input type="text" class="form-control" id="edit-book-author-input" required>
+          </div>
+          <div class="form-group">
+            <label for="edit-book-pages-input">Sayfa Sayısı</label>
+            <input type="number" class="form-control" id="edit-book-pages-input" min="1" required>
+          </div>
+        </div>
+        <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+          <button type="button" class="btn btn-danger btn-sm" id="btn-modal-delete-book" style="display: inline-flex; align-items: center; gap: 0.35rem; background: rgba(239, 68, 68, 0.12); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.4); font-weight: 600;">
+            <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i> Bu Kitabı Sil
+          </button>
+          <div style="display: flex; gap: 0.5rem;">
+            <button type="button" class="btn btn-secondary close-btn-action">İptal</button>
+            <button type="submit" class="btn btn-primary">Kaydet</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- MODAL: KİTAP ÖDÜNÇ VER -->
   <div class="modal" id="modal-borrow">
     <div class="modal-content">
@@ -6303,12 +6388,12 @@
         <div style="display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 1rem; background: var(--bg-secondary); border-radius: 10px; border: 1px solid var(--border-color);">
           <div style="display: flex; align-items: center; gap: 0.4rem;">
             <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600;">Mevcut:</span>
-            <span id="update-current-version" class="badge" style="font-size: 0.8rem; font-weight: 700; background: var(--border-color); color: var(--text-secondary); padding: 0.2rem 0.5rem; border-radius: 6px;">v1.0.11</span>
+            <span id="update-current-version" class="badge" style="font-size: 0.8rem; font-weight: 700; background: var(--border-color); color: var(--text-secondary); padding: 0.2rem 0.5rem; border-radius: 6px;">v1.0.12</span>
           </div>
           <i data-lucide="arrow-right" style="width: 16px; height: 16px; color: #6366f1;"></i>
           <div style="display: flex; align-items: center; gap: 0.4rem;">
             <span style="font-size: 0.75rem; color: #6366f1; font-weight: 600;">Yeni Sürüm:</span>
-            <span id="update-latest-version" class="badge" style="font-size: 0.8rem; font-weight: 700; background: #6366f1; color: white; padding: 0.2rem 0.5rem; border-radius: 6px;">v1.0.11</span>
+            <span id="update-latest-version" class="badge" style="font-size: 0.8rem; font-weight: 700; background: #6366f1; color: white; padding: 0.2rem 0.5rem; border-radius: 6px;">v1.0.12</span>
           </div>
         </div>
 
@@ -6500,7 +6585,7 @@
           <div>
             <h3 style="margin: 0; font-size: 1.2rem; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
               Sınıf Asistanı Masaüstü Uygulaması
-              <span id="download-app-version-badge" class="badge" style="font-size: 0.75rem; background: var(--primary); color: white; padding: 0.2rem 0.5rem; border-radius: 6px; font-weight: 600;">v1.0.11 (En Son)</span>
+              <span id="download-app-version-badge" class="badge" style="font-size: 0.75rem; background: var(--primary); color: white; padding: 0.2rem 0.5rem; border-radius: 6px; font-weight: 600;">v1.0.12 (En Son)</span>
             </h3>
             <p style="margin: 0; font-size: 0.85rem; color: var(--text-secondary);">Akıllı tahta ve bilgisayarınızda internet olmadan da tam performans çalışın.</p>
           </div>
@@ -6528,7 +6613,7 @@
               </p>
             </div>
             <div>
-              <a id="btn-download-deb" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/latest/download/sinif-asistani_1.0.11_amd64.deb" target="_blank" class="btn btn-primary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem; background: #ef4444; border-color: #ef4444; font-weight: 600;">
+              <a id="btn-download-deb" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/latest/download/sinif-asistani_1.0.12_amd64.deb" target="_blank" class="btn btn-primary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem; background: #ef4444; border-color: #ef4444; font-weight: 600;">
                 <i data-lucide="download" style="width: 16px; height: 16px;"></i> Pardus (.deb) İndir
               </a>
               <button type="button" onclick="window.openPardusInstallHelpModal()" style="width: 100%; margin-top: 0.5rem; background: rgba(239, 68, 68, 0.12); border: 1px dashed rgba(239, 68, 68, 0.5); color: #f87171; border-radius: var(--radius-sm, 8px); padding: 0.45rem 0.5rem; font-size: 0.78rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.35rem; transition: all 0.2s ease;">
@@ -6555,7 +6640,7 @@
               </p>
             </div>
             <div>
-              <a id="btn-download-exe" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/latest/download/sinif-asistani_1.0.11_x64-setup.exe" target="_blank" class="btn btn-primary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem; background: #0284c7; border-color: #0284c7; font-weight: 600;">
+              <a id="btn-download-exe" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/latest/download/sinif-asistani_1.0.12_x64-setup.exe" target="_blank" class="btn btn-primary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem; background: #0284c7; border-color: #0284c7; font-weight: 600;">
                 <i data-lucide="download" style="width: 16px; height: 16px;"></i> Windows (.exe) İndir
               </a>
               <button type="button" onclick="window.openWinInstallHelpModal()" style="width: 100%; margin-top: 0.5rem; background: rgba(2, 132, 199, 0.12); border: 1px dashed rgba(2, 132, 199, 0.5); color: #38bdf8; border-radius: var(--radius-sm, 8px); padding: 0.45rem 0.5rem; font-size: 0.78rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.35rem; transition: all 0.2s ease;">
@@ -6582,7 +6667,7 @@
               </p>
             </div>
             <div>
-              <a id="btn-download-dmg" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/latest/download/sinif-asistani_1.0.11_aarch64.dmg" target="_blank" class="btn btn-primary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem; background: #8b5cf6; border-color: #8b5cf6; font-weight: 600;">
+              <a id="btn-download-dmg" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/latest/download/sinif-asistani_1.0.12_aarch64.dmg" target="_blank" class="btn btn-primary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem; background: #8b5cf6; border-color: #8b5cf6; font-weight: 600;">
                 <i data-lucide="download" style="width: 16px; height: 16px;"></i> Mac (.dmg) İndir
               </a>
               <button type="button" onclick="window.openMacInstallHelpModal()" style="width: 100%; margin-top: 0.5rem; background: rgba(139, 92, 246, 0.12); border: 1px dashed rgba(139, 92, 246, 0.5); color: #a78bfa; border-radius: var(--radius-sm, 8px); padding: 0.45rem 0.5rem; font-size: 0.78rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.35rem; transition: all 0.2s ease;">
@@ -6608,7 +6693,7 @@
                 <strong>Kurulum gerektirmez!</strong> Özellikle ortaokul modunda sınıf sınıf gezen branş öğretmenleri, uygulamayı Flash diskine (USB) yükleyerek tüm sınıflardaki akıllı tahtalarda doğrudan flash bellek üzerinden tak-çalıştır şeklinde kullanabilir.
               </p>
             </div>
-            <a id="btn-download-appimage" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/latest/download/sinif-asistani_1.0.11_amd64.AppImage" target="_blank" class="btn btn-primary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem; background: #10b981; border-color: #10b981; font-weight: 600;">
+            <a id="btn-download-appimage" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/latest/download/sinif-asistani_1.0.12_amd64.AppImage" target="_blank" class="btn btn-primary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem; background: #10b981; border-color: #10b981; font-weight: 600;">
               <i data-lucide="download" style="width: 16px; height: 16px;"></i> AppImage (USB Uyumlu) İndir
             </a>
           </div>
