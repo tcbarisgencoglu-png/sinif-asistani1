@@ -1,8 +1,8 @@
 {
-  "version": "1.0.14",
+  "version": "1.0.15",
   "releaseDate": "2026-09-17",
   "minRequiredVersion": "1.0.0",
-  "title": "Sınıf Asistanı v1.0.14 Yayında!",
+  "title": "Sınıf Asistanı v1.0.15 Yayında!",
   "description": "Evrak deposu ve kitap soruları için depolama alanı kotası optimizasyonu (IndexedDB entegrasyonu).",
   "features": [
     "Evrak deposu dosya depolaması IndexedDB veritabanına taşındı; 5 MB localStorage kota dolum hatası giderildi",
