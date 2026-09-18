@@ -969,14 +969,19 @@ function renderDashboardGeneral() {
 }
 
 // Öğrenci Kartı Hızlı Puan Verme Dropdown Fonksiyonu
+function closeAllQuickPointDropdowns() {
+  document.querySelectorAll('.student-quick-point-dropdown').forEach(el => el.remove());
+  document.querySelectorAll('.student-card.has-quick-point-open').forEach(c => c.classList.remove('has-quick-point-open'));
+}
+
 function toggleStudentQuickPointDropdown(card, student) {
   // Açık olan başka bir dropdown varsa kapat
   const existingDropdown = card.querySelector('.student-quick-point-dropdown');
   if (existingDropdown) {
-    existingDropdown.remove();
+    closeAllQuickPointDropdowns();
     return;
   }
-  document.querySelectorAll('.student-quick-point-dropdown').forEach(el => el.remove());
+  closeAllQuickPointDropdowns();
 
   const behaviors = stateManager.getPerformanceBehaviors();
   const positiveList = behaviors.positive || [];
@@ -1046,7 +1051,7 @@ function toggleStudentQuickPointDropdown(card, student) {
   // Tıklamaları dinle
   dropdown.querySelector('.quick-point-dropdown-close').addEventListener('click', (e) => {
     e.stopPropagation();
-    dropdown.remove();
+    closeAllQuickPointDropdowns();
   });
 
   dropdown.querySelectorAll('.quick-point-item').forEach(item => {
@@ -1073,7 +1078,7 @@ function toggleStudentQuickPointDropdown(card, student) {
       }
 
       // Dropdown'u kapat
-      dropdown.remove();
+      closeAllQuickPointDropdowns();
 
       // State güncelle
       const stateEvt = new CustomEvent('stateChanged');
@@ -1086,14 +1091,16 @@ function toggleStudentQuickPointDropdown(card, student) {
     e.stopPropagation();
   });
 
-  card.appendChild(dropdown);
+  const wrapper = card.querySelector('.student-quick-point-wrapper') || card;
+  wrapper.appendChild(dropdown);
+  card.classList.add('has-quick-point-open');
   window.safeCreateIcons();
 }
 
 // Sayfada boş yere tıklandığında açık dropdownları kapat
 document.addEventListener('click', (e) => {
   if (!e.target.closest('.student-quick-point-dropdown') && !e.target.closest('.quick-point-btn')) {
-    document.querySelectorAll('.student-quick-point-dropdown').forEach(el => el.remove());
+    closeAllQuickPointDropdowns();
   }
 });
 
