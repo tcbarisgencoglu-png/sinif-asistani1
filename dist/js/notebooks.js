@@ -355,11 +355,44 @@
       formStickyNote.addEventListener('submit', handleAddStickyNoteSubmit);
     }
 
+    // Numaralı Liste Sürekliliği (List Continuity Sync)
+    // Eğer bir <ol> listesinden önce başka bir <ol> listesi varsa ve araya <ul> veya metin girmişse,
+    // sonraki <ol> listesinin start değerini önceki <ol>'nin son numarasından başlat.
+    const syncOrderedListContinuity = () => {
+      if (!notebookTextarea) return;
+      const allOl = notebookTextarea.querySelectorAll('ol');
+      if (allOl.length <= 1) {
+        if (allOl.length === 1 && !allOl[0].parentElement.closest('ol')) {
+          allOl[0].removeAttribute('start');
+        }
+        return;
+      }
+
+      let runningCount = 0;
+      allOl.forEach((ol, idx) => {
+        // Eğer bir liste başka bir li/ol/ul'nin alt listesiyse (iç içe), start özelliğine dokunma
+        if (ol.parentElement.closest('li') || ol.parentElement.closest('ol') || ol.parentElement.closest('ul')) {
+          return;
+        }
+
+        const directItems = Array.from(ol.children).filter(child => child.tagName === 'LI');
+        if (idx === 0) {
+          ol.removeAttribute('start');
+          runningCount = directItems.length;
+        } else {
+          // Önceki liste ile devamlılık sağla
+          ol.setAttribute('start', runningCount + 1);
+          runningCount += directItems.length;
+        }
+      });
+    };
+
     // Liste Olay Dinleyicileri
     const handleBulletListToggle = () => {
       if (notebookTextarea) {
         notebookTextarea.focus();
         document.execCommand('insertUnorderedList', false, null);
+        syncOrderedListContinuity();
         triggerAutoSave();
       }
     };
@@ -367,6 +400,7 @@
       if (notebookTextarea) {
         notebookTextarea.focus();
         document.execCommand('insertOrderedList', false, null);
+        syncOrderedListContinuity();
         triggerAutoSave();
       }
     };
@@ -449,7 +483,24 @@
 
     // Editör Değişimlerinde Otomatik Kaydet (Debounced)
     if (notebookTextarea) {
-      notebookTextarea.addEventListener('input', triggerAutoSave);
+      notebookTextarea.addEventListener('input', () => {
+        syncOrderedListContinuity();
+        triggerAutoSave();
+      });
+
+      // Tab / Shift+Tab ile girintileme ve liste desteği
+      notebookTextarea.addEventListener('keydown', (e) => {
+        if (e.key === 'Tab') {
+          e.preventDefault();
+          if (e.shiftKey) {
+            document.execCommand('outdent', false, null);
+          } else {
+            document.execCommand('indent', false, null);
+          }
+          syncOrderedListContinuity();
+          triggerAutoSave();
+        }
+      });
 
       const updateSavedRange = () => {
         if (window.getSelection) {
@@ -669,6 +720,52 @@
         }
       });
     }
+
+    // Tam Ekran Hızlı Araçlar Olay Dinleyicileri (Kitap & Defter)
+    const openCaller = (e) => {
+      if (e) { e.preventDefault(); e.stopPropagation(); }
+      const callerModal = document.getElementById('modal-quick-caller');
+      if (callerModal) {
+        callerModal.classList.add('active');
+        if (window.initQuickCallerModal) window.initQuickCallerModal();
+      }
+    };
+
+    const openQuickPoint = (e) => {
+      if (e) { e.preventDefault(); e.stopPropagation(); }
+      if (window.openQuickGivePointModal) {
+        window.openQuickGivePointModal();
+      }
+    };
+
+    const openTimer = (e) => {
+      if (e) { e.preventDefault(); e.stopPropagation(); }
+      const timerModal = document.getElementById('modal-timer');
+      if (timerModal) {
+        timerModal.classList.add('active');
+        if (window.initTimerModal) window.initTimerModal();
+      }
+    };
+
+    // PDF Tam Ekran Butonları
+    const btnPdfCaller = document.getElementById('btn-pdf-quick-caller');
+    if (btnPdfCaller) btnPdfCaller.addEventListener('click', openCaller);
+
+    const btnPdfPuan = document.getElementById('btn-pdf-quick-puan');
+    if (btnPdfPuan) btnPdfPuan.addEventListener('click', openQuickPoint);
+
+    const btnPdfTimer = document.getElementById('btn-pdf-quick-timer');
+    if (btnPdfTimer) btnPdfTimer.addEventListener('click', openTimer);
+
+    // Defter Tam Ekran Butonları
+    const btnNotebookCaller = document.getElementById('btn-notebook-quick-caller');
+    if (btnNotebookCaller) btnNotebookCaller.addEventListener('click', openCaller);
+
+    const btnNotebookPuan = document.getElementById('btn-notebook-quick-puan');
+    if (btnNotebookPuan) btnNotebookPuan.addEventListener('click', openQuickPoint);
+
+    const btnNotebookTimer = document.getElementById('btn-notebook-quick-timer');
+    if (btnNotebookTimer) btnNotebookTimer.addEventListener('click', openTimer);
 
     // Global durum değişikliklerinde listeyi yenile
     document.addEventListener('stateChanged', () => {
@@ -895,6 +992,7 @@
         notebookTextarea.classList.add(notebook.type);
         notebookTextarea.style.fontSize = '';
         notebookTextarea.style.backgroundPosition = '';
+        syncOrderedListContinuity();
       }
 
       // Kırmızı modunu sıfırla

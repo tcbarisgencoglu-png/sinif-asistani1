@@ -870,6 +870,11 @@ function renderDashboardGeneral() {
       : `<div class="student-avatar">${initials}</div>`;
 
     card.innerHTML = `
+      <div class="student-quick-point-wrapper">
+        <button class="action-btn-sm quick-point-btn" title="Hızlı Puan Ver" data-id="${student.id}">
+          <i data-lucide="award"></i>
+        </button>
+      </div>
       <div class="student-actions">
         <button class="action-btn-sm edit" title="Düzenle" data-id="${student.id}">
           <i data-lucide="edit-3"></i>
@@ -907,9 +912,18 @@ function renderDashboardGeneral() {
 
     // Kartın kendisine tıklama
     card.addEventListener('click', (e) => {
-      if (e.target.closest('.student-actions')) return;
+      if (e.target.closest('.student-actions') || e.target.closest('.student-quick-point-wrapper') || e.target.closest('.student-quick-point-dropdown')) return;
       openStudentDetailModal(student.id);
     });
+
+    // Hızlı Puan Ver butonu
+    const btnQuickPoint = card.querySelector('.quick-point-btn');
+    if (btnQuickPoint) {
+      btnQuickPoint.addEventListener('click', (e) => {
+        e.stopPropagation();
+        toggleStudentQuickPointDropdown(card, student);
+      });
+    }
 
     // Düzenle butonu
     card.querySelector('.edit').addEventListener('click', (e) => {
@@ -953,6 +967,135 @@ function renderDashboardGeneral() {
 
   window.safeCreateIcons();
 }
+
+// Öğrenci Kartı Hızlı Puan Verme Dropdown Fonksiyonu
+function toggleStudentQuickPointDropdown(card, student) {
+  // Açık olan başka bir dropdown varsa kapat
+  const existingDropdown = card.querySelector('.student-quick-point-dropdown');
+  if (existingDropdown) {
+    existingDropdown.remove();
+    return;
+  }
+  document.querySelectorAll('.student-quick-point-dropdown').forEach(el => el.remove());
+
+  const behaviors = stateManager.getPerformanceBehaviors();
+  const positiveList = behaviors.positive || [];
+  const developmentList = behaviors.development || [];
+
+  const dropdown = document.createElement('div');
+  dropdown.className = 'student-quick-point-dropdown';
+  
+  let html = `
+    <div class="quick-point-dropdown-header">
+      <span>${student.name} ${student.surname}</span>
+      <span class="quick-point-dropdown-close">&times;</span>
+    </div>
+    <div class="quick-point-dropdown-section">
+      <div class="quick-point-section-title positive">
+        <i data-lucide="sparkles" style="width: 12px; height: 12px;"></i> Olumlu Davranışlar
+      </div>
+      <div class="quick-point-list">
+  `;
+
+  if (positiveList.length === 0) {
+    html += `<div class="quick-point-empty">Tanımlı davranış bulunamadı.</div>`;
+  } else {
+    positiveList.forEach(b => {
+      html += `
+        <div class="quick-point-item positive" data-type="positive" data-point="${b.point}" data-name="${b.name}">
+          <span class="quick-point-item-icon">${b.icon || '🌟'}</span>
+          <span class="quick-point-item-name">${b.name}</span>
+          <span class="quick-point-item-badge positive">+${b.point}</span>
+        </div>
+      `;
+    });
+  }
+
+  html += `
+      </div>
+    </div>
+    <div class="quick-point-dropdown-divider"></div>
+    <div class="quick-point-dropdown-section">
+      <div class="quick-point-section-title development">
+        <i data-lucide="alert-circle" style="width: 12px; height: 12px;"></i> Geliştirilmesi Gerekenler
+      </div>
+      <div class="quick-point-list">
+  `;
+
+  if (developmentList.length === 0) {
+    html += `<div class="quick-point-empty">Tanımlı davranış bulunamadı.</div>`;
+  } else {
+    developmentList.forEach(b => {
+      html += `
+        <div class="quick-point-item development" data-type="development" data-point="${b.point}" data-name="${b.name}">
+          <span class="quick-point-item-icon">${b.icon || '⚠️'}</span>
+          <span class="quick-point-item-name">${b.name}</span>
+          <span class="quick-point-item-badge development">${b.point}</span>
+        </div>
+      `;
+    });
+  }
+
+  html += `
+      </div>
+    </div>
+  `;
+
+  dropdown.innerHTML = html;
+
+  // Tıklamaları dinle
+  dropdown.querySelector('.quick-point-dropdown-close').addEventListener('click', (e) => {
+    e.stopPropagation();
+    dropdown.remove();
+  });
+
+  dropdown.querySelectorAll('.quick-point-item').forEach(item => {
+    item.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const type = item.getAttribute('data-type');
+      const point = parseInt(item.getAttribute('data-point'), 10);
+      const name = item.getAttribute('data-name');
+      const activeWeekId = stateManager.getSelectedWeek();
+
+      // Puanı ekle
+      stateManager.addPerformance(student.id, type, point, name, activeWeekId);
+
+      // Ses çal
+      if (point >= 0 && window.playPointUpSound) {
+        window.playPointUpSound();
+      } else if (point < 0 && window.playPointDownSound) {
+        window.playPointDownSound();
+      }
+
+      // Toast mesajı
+      if (window.showToast) {
+        window.showToast(`"${student.name} ${student.surname}" için "${name}" (${point >= 0 ? '+' : ''}${point} Puan) eklendi.`, point >= 0 ? 'success' : 'warning');
+      }
+
+      // Dropdown'u kapat
+      dropdown.remove();
+
+      // State güncelle
+      const stateEvt = new CustomEvent('stateChanged');
+      document.dispatchEvent(stateEvt);
+    });
+  });
+
+  // Kendi içine tıklanınca kart açılmasını önle
+  dropdown.addEventListener('click', (e) => {
+    e.stopPropagation();
+  });
+
+  card.appendChild(dropdown);
+  window.safeCreateIcons();
+}
+
+// Sayfada boş yere tıklandığında açık dropdownları kapat
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.student-quick-point-dropdown') && !e.target.closest('.quick-point-btn')) {
+    document.querySelectorAll('.student-quick-point-dropdown').forEach(el => el.remove());
+  }
+});
 
 function renderDashboardWeekly() {
   const state = stateManager.loadState();

@@ -378,4 +378,6 @@
   // Exports
   window.setupPerformanceTab = setupPerformanceTab;
   window.renderDojoStudents = () => {}; // Stub for backward compatibility
+  window.playPointUpSound = playPointUpSound;
+  window.playPointDownSound = playPointDownSound;
 })();

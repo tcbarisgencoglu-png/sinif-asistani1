@@ -694,6 +694,167 @@ body {
   color: var(--danger);
 }
 
+.student-quick-point-wrapper {
+  position: absolute;
+  top: 0.75rem;
+  left: 0.75rem;
+  z-index: 10;
+}
+
+.quick-point-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  background-color: rgba(99, 102, 241, 0.08);
+  color: var(--primary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.quick-point-btn:hover {
+  background-color: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
+  transform: scale(1.08);
+  box-shadow: 0 4px 10px rgba(99, 102, 241, 0.35);
+}
+
+.student-quick-point-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  width: 230px;
+  max-height: 280px;
+  overflow-y: auto;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.2);
+  z-index: 100;
+  padding: 0.4rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  animation: fadeIn 0.15s ease-out;
+  cursor: default;
+}
+
+.quick-point-dropdown-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.3rem 0.5rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.quick-point-dropdown-close {
+  cursor: pointer;
+  font-size: 1.1rem;
+  line-height: 1;
+  color: var(--text-secondary);
+  padding: 0 0.2rem;
+}
+.quick-point-dropdown-close:hover {
+  color: var(--danger);
+}
+
+.quick-point-dropdown-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.quick-point-section-title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 0.2rem 0.4rem;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.quick-point-section-title.positive {
+  color: #10b981;
+}
+
+.quick-point-section-title.development {
+  color: #f59e0b;
+}
+
+.quick-point-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.quick-point-item {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.5rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.78rem;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.quick-point-item:hover {
+  background-color: var(--bg-hover, rgba(255, 255, 255, 0.05));
+}
+
+.quick-point-item-icon {
+  font-size: 0.95rem;
+  line-height: 1;
+}
+
+.quick-point-item-name {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: left;
+}
+
+.quick-point-item-badge {
+  font-weight: 700;
+  font-size: 0.72rem;
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
+}
+
+.quick-point-item-badge.positive {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+}
+
+.quick-point-item-badge.development {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+}
+
+.quick-point-dropdown-divider {
+  height: 1px;
+  background: var(--border-color);
+  margin: 0.2rem 0;
+}
+
+.quick-point-empty {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  padding: 0.3rem 0.4rem;
+  text-align: center;
+}
+
 .student-actions {
   position: absolute;
   top: 0.75rem;
@@ -4158,6 +4319,14 @@ th:hover .hw-col-actions {
   100% {
     box-shadow: 0 0 0 8px rgba(99, 102, 241, 0);
   }
+}
+
+/* Tam Ekran Materyaller (PDF/Defter) üzerinde modalların görünürlüğü */
+#modal-quick-caller,
+#modal-timer,
+#modal-quick-point,
+#modal-flow-info {
+  z-index: 10005 !important;
 }
 
 /* Lisans Kısıtlama (Pasif Kart) Tasarımları */

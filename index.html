@@ -4248,6 +4248,20 @@
                     <button class="btn btn-sm btn-success" id="btn-fullscreen-save" style="display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; padding: 0;" title="Kaydet">
                       <i data-lucide="save" style="width: 16px; height: 16px;"></i>
                     </button>
+
+                    <!-- Ayırıcı Çizgi -->
+                    <div style="width: 1px; height: 24px; background: var(--border-color); margin: 0 0.25rem;"></div>
+
+                    <!-- Tam Ekran Hızlı Araçlar -->
+                    <button class="btn btn-sm btn-outline-primary" id="btn-notebook-quick-caller" style="display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; padding: 0;" title="Hızlı Öğrenci Çağır">
+                      <i data-lucide="user-check" style="width: 16px; height: 16px;"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-primary" id="btn-notebook-quick-puan" style="display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; padding: 0;" title="Davranış Puanı Ver">
+                      <i data-lucide="award" style="width: 16px; height: 16px;"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-primary" id="btn-notebook-quick-timer" style="display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; padding: 0;" title="Süre Tut / Kronometre">
+                      <i data-lucide="clock" style="width: 16px; height: 16px;"></i>
+                    </button>
                   </div>
                 </div>
 
@@ -7049,6 +7063,22 @@
         <input type="number" id="pdf-viewer-page-input" min="1" value="1" style="width: 50px; background: transparent; border: none; color: var(--text-primary); font-weight: 700; font-size: 0.9rem; outline: none; text-align: center;">
         <button id="btn-pdf-next-page" style="background: transparent; border: none; color: var(--text-primary); cursor: pointer; display: flex; align-items: center; padding: 0.1rem; outline: none;" title="Sonraki Sayfa">
           <i data-lucide="chevron-right" style="width: 16px; height: 16px;"></i>
+        </button>
+      </div>
+
+      <!-- Tam Ekran Hızlı Araçlar (Öğrenci Çağır, Puan Ver, Süre Tut) -->
+      <div style="display: flex; align-items: center; gap: 0.5rem; margin-left: 1rem;">
+        <button class="btn btn-sm btn-outline-primary" id="btn-pdf-quick-caller" style="display: flex; align-items: center; gap: 0.35rem; font-size: 0.82rem; padding: 0.35rem 0.65rem;" title="Rastgele Öğrenci Çağır">
+          <i data-lucide="user-check" style="width: 15px; height: 15px;"></i>
+          <span>Öğrenci Çağır</span>
+        </button>
+        <button class="btn btn-sm btn-outline-primary" id="btn-pdf-quick-puan" style="display: flex; align-items: center; gap: 0.35rem; font-size: 0.82rem; padding: 0.35rem 0.65rem;" title="Davranış Puanı Ver">
+          <i data-lucide="award" style="width: 15px; height: 15px;"></i>
+          <span>Puan Ver</span>
+        </button>
+        <button class="btn btn-sm btn-outline-primary" id="btn-pdf-quick-timer" style="display: flex; align-items: center; gap: 0.35rem; font-size: 0.82rem; padding: 0.35rem 0.65rem;" title="Süre Tut / Kronometre">
+          <i data-lucide="clock" style="width: 15px; height: 15px;"></i>
+          <span>Süre Tut</span>
         </button>
       </div>
 
