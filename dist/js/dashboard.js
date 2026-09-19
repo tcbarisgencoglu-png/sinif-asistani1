@@ -2986,8 +2986,18 @@ function updateFlowContent(syncWithRealTime = true) {
               const btn = document.getElementById('btn-download-exe');
               if (btn) btn.href = url;
             } else if (name.endsWith('.dmg')) {
-              const btn = document.getElementById('btn-download-dmg');
-              if (btn) btn.href = url;
+              const btnArm = document.getElementById('btn-download-dmg');
+              const btnIntel = document.getElementById('btn-download-dmg-intel');
+              
+              if (name.includes('aarch64') || name.includes('arm64') || name.includes('apple-silicon')) {
+                if (btnArm) btnArm.href = url;
+              } else if (name.includes('x64') || name.includes('x86_64') || name.includes('intel')) {
+                if (btnIntel) btnIntel.href = url;
+              } else {
+                // Her iki mimariyi destekleyen universal paket veya genel link
+                if (btnArm) btnArm.href = url;
+                if (btnIntel) btnIntel.href = url;
+              }
             } else if (name.endsWith('.appimage')) {
               const btn = document.getElementById('btn-download-appimage');
               if (btn) btn.href = url;

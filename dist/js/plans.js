@@ -72,13 +72,27 @@
   let planColAssessment;
   let planColContent;
 
-  // Copy-Paste Tabs & AI
+  // Copy-Paste Tabs & AI & MEB Curriculum Pool
+  let importTabCurriculum;
   let importTabFile;
   let importTabPaste;
   let importTabAi;
+  let panelImportCurriculum;
   let panelImportFile;
   let panelImportPaste;
   let panelImportAi;
+  let mebCurriculumCardsContainer;
+  let mebGradeFilterGroup;
+  let mebCurriculumSearch;
+  let panelCurriculumPreview;
+  let previewCurriculumTitle;
+  let previewCurriculumTableContainer;
+  let btnCloseCurriculumPreview;
+  let btnCancelCurriculumPreview;
+  let selectedCurriculumGrade = 3;
+  let previewingMebPlan = null;
+  let planImportTopRow;
+  let planCourseSelectGroup;
   let planPasteText;
   let btnParsePastedText;
   let btnGenerateAiAnnualPlan;
@@ -162,13 +176,27 @@
     planColAssessment = document.getElementById('plan-col-assessment');
     planColContent = document.getElementById('plan-col-content');
 
-    // Tabs for Source & AI
+    // Tabs for Source & AI & MEB Curriculum Pool
+    importTabCurriculum = document.getElementById('import-tab-curriculum');
     importTabFile = document.getElementById('import-tab-file');
     importTabPaste = document.getElementById('import-tab-paste');
     importTabAi = document.getElementById('import-tab-ai');
+    panelImportCurriculum = document.getElementById('panel-import-curriculum');
     panelImportFile = document.getElementById('panel-import-file');
     panelImportPaste = document.getElementById('panel-import-paste');
     panelImportAi = document.getElementById('panel-import-ai');
+    mebCurriculumCardsContainer = document.getElementById('meb-curriculum-cards-container');
+    mebGradeFilterGroup = document.getElementById('meb-grade-filter-group');
+    mebCurriculumSearch = document.getElementById('meb-curriculum-search');
+    panelCurriculumPreview = document.getElementById('panel-curriculum-preview');
+    previewCurriculumTitle = document.getElementById('preview-curriculum-title');
+    previewCurriculumTableContainer = document.getElementById('preview-curriculum-table-container');
+    btnCloseCurriculumPreview = document.getElementById('btn-close-curriculum-preview');
+    btnCancelCurriculumPreview = document.getElementById('btn-cancel-curriculum-preview');
+    btnConfirmCurriculumUse = document.getElementById('btn-confirm-curriculum-use');
+    planImportTopRow = document.getElementById('plan-import-top-row');
+    planCourseSelectGroup = document.getElementById('plan-course-select-group');
+
     planPasteText = document.getElementById('plan-paste-text');
     btnParsePastedText = document.getElementById('btn-parse-pasted-text');
     btnGenerateAiAnnualPlan = document.getElementById('btn-generate-ai-annual-plan');
@@ -334,36 +362,115 @@
     }
 
     // Source tab switching inside import modal
-    if (importTabFile && importTabPaste) {
-      importTabFile.addEventListener('click', () => {
-        importTabFile.classList.add('active');
-        importTabPaste.classList.remove('active');
-        if (importTabAi) importTabAi.classList.remove('active');
-        panelImportFile.style.display = 'block';
-        panelImportPaste.style.display = 'none';
-        if (panelImportAi) panelImportAi.style.display = 'none';
+    function switchImportTab(tabName) {
+      const tabs = [
+        { btn: importTabCurriculum, panel: panelImportCurriculum, name: 'curriculum' },
+        { btn: importTabFile, panel: panelImportFile, name: 'file' },
+        { btn: importTabPaste, panel: panelImportPaste, name: 'paste' },
+        { btn: importTabAi, panel: panelImportAi, name: 'ai' }
+      ];
+
+      tabs.forEach(t => {
+        if (!t.btn || !t.panel) return;
+        if (t.name === tabName) {
+          t.btn.classList.add('active');
+          t.btn.style.borderBottom = '2px solid var(--primary)';
+          t.btn.style.fontWeight = '700';
+          t.btn.style.color = 'var(--text-primary)';
+          t.panel.style.display = 'block';
+        } else {
+          t.btn.classList.remove('active');
+          t.btn.style.borderBottom = '2px solid transparent';
+          t.btn.style.fontWeight = '600';
+          t.btn.style.color = 'var(--text-muted)';
+          t.panel.style.display = 'none';
+        }
       });
 
-      importTabPaste.addEventListener('click', () => {
-        importTabPaste.classList.add('active');
-        importTabFile.classList.remove('active');
-        if (importTabAi) importTabAi.classList.remove('active');
-        panelImportPaste.style.display = 'block';
-        panelImportFile.style.display = 'none';
-        if (panelImportAi) panelImportAi.style.display = 'none';
-      });
-
-      if (importTabAi) {
-        importTabAi.addEventListener('click', () => {
-          importTabAi.classList.add('active');
-          importTabFile.classList.remove('active');
-          importTabPaste.classList.remove('active');
-          if (panelImportAi) panelImportAi.style.display = 'block';
-          panelImportFile.style.display = 'none';
-          panelImportPaste.style.display = 'none';
-          if (btnImportSave) btnImportSave.style.display = 'none';
-        });
+      if (btnImportSave) {
+        btnImportSave.style.display = 'none';
       }
+
+      if (tabName === 'curriculum') {
+        if (planCourseSelectGroup) planCourseSelectGroup.style.display = 'none';
+        if (planImportTopRow) planImportTopRow.style.gridTemplateColumns = '1fr 1fr';
+        const q = mebCurriculumSearch ? mebCurriculumSearch.value.trim().toLocaleLowerCase('tr-TR') : '';
+        renderMebCurriculumPool(selectedCurriculumGrade, q);
+      } else {
+        if (planCourseSelectGroup) planCourseSelectGroup.style.display = 'block';
+        if (planImportTopRow) planImportTopRow.style.gridTemplateColumns = '1fr 1fr 1fr';
+      }
+    }
+
+    if (importTabCurriculum) {
+      importTabCurriculum.addEventListener('click', () => switchImportTab('curriculum'));
+    }
+    if (importTabFile) {
+      importTabFile.addEventListener('click', () => switchImportTab('file'));
+    }
+    if (importTabPaste) {
+      importTabPaste.addEventListener('click', () => switchImportTab('paste'));
+    }
+    if (importTabAi) {
+      importTabAi.addEventListener('click', () => switchImportTab('ai'));
+    }
+
+    // MEB Sınıf Düzeyi Filtreleme Dinleyicileri
+    if (mebGradeFilterGroup) {
+      const gradeButtons = mebGradeFilterGroup.querySelectorAll('.meb-grade-btn');
+      gradeButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+          gradeButtons.forEach(b => {
+            b.classList.remove('active', 'btn-primary');
+            b.classList.add('btn-secondary');
+          });
+          btn.classList.add('active', 'btn-primary');
+          btn.classList.remove('btn-secondary');
+          selectedCurriculumGrade = parseInt(btn.dataset.grade) || 3;
+
+          // Eğer sınıf/şube kutusunda sadece seviye değişikliği uyumluysa güncelle
+          if (planClassName) {
+            const currentVal = planClassName.value.trim();
+            const branchMatch = currentVal.match(/\/?([A-Za-zÇĞİÖŞÜçğıöşü]+)$/);
+            const branch = branchMatch ? branchMatch[1] : 'A';
+            planClassName.value = `${selectedCurriculumGrade}/${branch}`;
+          }
+
+          const q = mebCurriculumSearch ? mebCurriculumSearch.value.trim().toLocaleLowerCase('tr-TR') : '';
+          renderMebCurriculumPool(selectedCurriculumGrade, q);
+        });
+      });
+    }
+
+    // MEB Ders Arama Kutusu
+    if (mebCurriculumSearch) {
+      mebCurriculumSearch.addEventListener('input', () => {
+        const q = mebCurriculumSearch.value.trim().toLocaleLowerCase('tr-TR');
+        renderMebCurriculumPool(selectedCurriculumGrade, q);
+      });
+    }
+
+    // Sınıf / Şube adı değiştiğinde havuzdaki "Eklendi" durumlarını canlı güncelle
+    if (planClassName) {
+      planClassName.addEventListener('input', () => {
+        const q = mebCurriculumSearch ? mebCurriculumSearch.value.trim().toLocaleLowerCase('tr-TR') : '';
+        renderMebCurriculumPool(selectedCurriculumGrade, q);
+      });
+    }
+
+    // MEB Önizleme Kontrolleri
+    if (btnCloseCurriculumPreview) {
+      btnCloseCurriculumPreview.addEventListener('click', closeCurriculumPreview);
+    }
+    if (btnCancelCurriculumPreview) {
+      btnCancelCurriculumPreview.addEventListener('click', closeCurriculumPreview);
+    }
+    if (btnConfirmCurriculumUse) {
+      btnConfirmCurriculumUse.addEventListener('click', () => {
+        if (previewingMebPlan) {
+          addMebCurriculumPlanToUserPlans(previewingMebPlan.id);
+        }
+      });
     }
 
     // AI Buttons Listeners
@@ -494,14 +601,42 @@
     const defaultClass = existingPlans.length > 0 && existingPlans[0].className ? existingPlans[0].className : '3/A';
     if (planClassName) planClassName.value = defaultClass;
 
-    if (planEducationYear) planEducationYear.value = '2025-2026';
+    // Sınıf seviyesini varsayılan sınıftan tespit et
+    const gradeMatch = defaultClass.match(/^(\d+)/);
+    if (gradeMatch) {
+      selectedCurriculumGrade = parseInt(gradeMatch[1]) || 3;
+    }
+
+    // İlgili sınıf butonunu aktif yap
+    if (mebGradeFilterGroup) {
+      const gradeButtons = mebGradeFilterGroup.querySelectorAll('.meb-grade-btn');
+      gradeButtons.forEach(b => {
+        if (parseInt(b.dataset.grade) === selectedCurriculumGrade) {
+          b.classList.add('active', 'btn-primary');
+          b.classList.remove('btn-secondary');
+        } else {
+          b.classList.remove('active', 'btn-primary');
+          b.classList.add('btn-secondary');
+        }
+      });
+    }
+
+    if (mebCurriculumSearch) mebCurriculumSearch.value = '';
+    closeCurriculumPreview();
+
+    if (planEducationYear) planEducationYear.value = '2026-2027';
     if (aiPlanNotes) aiPlanNotes.value = '';
     if (aiPlanGenStatus) aiPlanGenStatus.style.display = 'none';
     if (aiPlanMappingStatus) {
       aiPlanMappingStatus.style.display = 'none';
       aiPlanMappingStatus.innerHTML = '';
     }
-    if (importTabFile) importTabFile.click();
+
+    if (importTabCurriculum) {
+      importTabCurriculum.click();
+    } else if (importTabFile) {
+      importTabFile.click();
+    }
   }
 
   function detectCourseAndClassFromContent(rawText, sheetRows, fileName) {
@@ -905,6 +1040,23 @@
       currentSheetData = currentWorkbook.SheetsData[sheetName];
     } else {
       const worksheet = currentWorkbook.Sheets[sheetName];
+      // Eğer birleştirilmiş hücreler (merge cells) varsa, değerleri tüm kapsama yay
+      if (worksheet && worksheet['!merges'] && Array.isArray(worksheet['!merges'])) {
+        worksheet['!merges'].forEach(range => {
+          const startCellAddr = XLSX.utils.encode_cell(range.s);
+          const startCellVal = worksheet[startCellAddr];
+          if (startCellVal) {
+            for (let R = range.s.r; R <= range.e.r; ++R) {
+              for (let C = range.s.c; C <= range.e.c; ++C) {
+                const cellAddr = XLSX.utils.encode_cell({ r: R, c: C });
+                if (!worksheet[cellAddr]) {
+                  worksheet[cellAddr] = { ...startCellVal };
+                }
+              }
+            }
+          }
+        });
+      }
       currentSheetData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
     }
 
@@ -1889,11 +2041,11 @@ Yanıtını YALNIZCA geçerli ve hatasız bir JSON objesi formatında ver. Kesin
       const m1Obj = uniqueMatches[0];
       const m2Obj = uniqueMatches.length >= 2 ? uniqueMatches[1] : m1Obj;
 
-      const y1 = m1Obj.index >= 8 ? startYear : startYear + 1;
-      const y2 = m2Obj.index >= 8 ? startYear : startYear + 1;
+      const y1 = m1Obj.index >= 9 ? startYear : startYear + 1;
+      const y2 = m2Obj.index >= 9 ? startYear : startYear + 1;
 
-      startDate = new Date(y1, m1Obj.index, d1);
-      endDate = new Date(y2, m2Obj.index, d2);
+      startDate = new Date(y1, m1Obj.index - 1, d1);
+      endDate = new Date(y2, m2Obj.index - 1, d2);
       isDateParsed = true;
       return { startDate, endDate, isDateParsed };
     }
@@ -2313,11 +2465,18 @@ Yanıtını YALNIZCA geçerli ve hatasız bir JSON objesi formatında ver. Kesin
 
     const planTitle = className ? `${className} - ${courseName}` : courseName;
 
+    // Otomatik model tespiti: 4 ve 8 standart MEB (Kazanım), diğerleri Türkiye Yüzyılı Maarif Modeli (Öğrenme Çıktısı)
+    const detectedGradeMatch = className ? className.match(/^(\d+)/) : null;
+    const detectedGrade = detectedGradeMatch ? parseInt(detectedGradeMatch[1]) : 3;
+    const isStdModel = detectedGrade === 4 || detectedGrade === 8;
+
     const savedPlan = stateManager.addPlan({
       title: planTitle,
       educationYear: educationYear,
       className: className,
       courseName: courseName,
+      modelType: isStdModel ? 'standard' : 'maarif',
+      modelName: isStdModel ? 'Standart MEB Müfredatı' : 'Türkiye Yüzyılı Maarif Modeli',
       weeklySchedule: weeklySchedule
     });
 
@@ -2336,6 +2495,428 @@ Yanıtını YALNIZCA geçerli ve hatasız bir JSON objesi formatında ver. Kesin
     expandedPlans[savedPlan.id] = true;
     const scheduleData = savedPlan.weeklySchedule || [];
     scheduleData.forEach(week => {
+      if (week.month) {
+        expandedMonths[savedPlan.id + '_' + week.month] = true;
+      }
+    });
+
+    renderPlansList();
+  }
+
+  // --- MEB MÜFREDAT MODELİ VE TERMİNOLOJİ YARDIMCISI ---
+  function getPlanModelInfo(plan) {
+    if (!plan) {
+      return {
+        isMaarif: true,
+        outcomeTitle: 'Öğrenme Çıktıları',
+        weeklyOutcomeTitle: 'Haftalık Öğrenme Çıktıları',
+        badgeText: 'Türkiye Yüzyılı Maarif Modeli',
+        badgeStyle: 'background: rgba(16, 185, 129, 0.12); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.25);',
+        badgeIcon: 'sparkles'
+      };
+    }
+
+    let isMaarif = true;
+    if (plan.modelType) {
+      isMaarif = plan.modelType === 'maarif';
+    } else {
+      // Sınıf seviyesine göre akıllı tespit: 4 ve 8 standart model, diğerleri Maarif modeli
+      const gradeStr = (plan.className || '') + ' ' + (plan.title || '') + ' ' + (plan.courseName || '');
+      const match = gradeStr.match(/\b(4|8)[\/\.\s-]*(?:sınıf|sinif|[a-z])?\b/i);
+      if (match) {
+        isMaarif = false;
+      }
+    }
+
+    return {
+      isMaarif: isMaarif,
+      outcomeTitle: isMaarif ? 'Öğrenme Çıktıları' : 'Kazanımlar',
+      weeklyOutcomeTitle: isMaarif ? 'Haftalık Öğrenme Çıktıları' : 'Haftalık Kazanımlar',
+      badgeText: isMaarif ? 'Türkiye Yüzyılı Maarif Modeli' : 'Standart MEB Müfredatı',
+      badgeStyle: isMaarif
+        ? 'background: rgba(16, 185, 129, 0.12); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.25);'
+        : 'background: rgba(245, 158, 11, 0.12); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.25);',
+      badgeIcon: isMaarif ? 'sparkles' : 'book'
+    };
+  }
+
+  // --- MEB TASLAK ÇERÇEVE PLAN HAVUZU FONKSİYONLARI ---
+
+  function renderMebCurriculumPool(grade, query) {
+    if (!mebCurriculumCardsContainer) return;
+
+    const data = window.MEB_CURRICULUM_DATA || [];
+    if (!data || data.length === 0) {
+      mebCurriculumCardsContainer.innerHTML = `
+        <div style="grid-column: 1 / -1; padding: 2rem; text-align: center; color: var(--text-muted);">
+          <i data-lucide="alert-circle" style="width: 32px; height: 32px; margin-bottom: 0.5rem; opacity: 0.6;"></i>
+          <p style="margin: 0; font-size: 0.9rem;">MEB Müfredat planları yüklenemedi veya veri bulunamadı.</p>
+        </div>
+      `;
+      if (window.lucide) window.lucide.createIcons();
+      return;
+    }
+
+    const currentGrade = grade ? parseInt(grade) : selectedCurriculumGrade;
+    const q = (query || '').trim().toLocaleLowerCase('tr-TR');
+
+    const filtered = data.filter(p => {
+      const matchGrade = !currentGrade || p.grade === currentGrade;
+      const matchQuery = !q || (
+        (p.course && p.course.toLocaleLowerCase('tr-TR').includes(q)) ||
+        (p.sourceSheet && p.sourceSheet.toLocaleLowerCase('tr-TR').includes(q))
+      );
+      return matchGrade && matchQuery;
+    });
+
+    if (filtered.length === 0) {
+      mebCurriculumCardsContainer.innerHTML = `
+        <div style="grid-column: 1 / -1; padding: 2.5rem; text-align: center; color: var(--text-muted); background: var(--bg-secondary); border-radius: var(--radius-md); border: 1px dashed var(--border-color);">
+          <i data-lucide="search-x" style="width: 36px; height: 36px; margin-bottom: 0.5rem; opacity: 0.5;"></i>
+          <p style="margin: 0 0 0.25rem 0; font-weight: 600; font-size: 0.9rem;">Aradığınız kriterlere uygun plan bulunamadı.</p>
+          <p style="margin: 0; font-size: 0.8rem;">Lütfen arama terimini değiştirin veya başka bir sınıf seviyesi seçin.</p>
+        </div>
+      `;
+      if (window.lucide) window.lucide.createIcons();
+      return;
+    }
+
+    // Mevcut kayıtlı planları kontrol et
+    const existingPlans = (stateManager.state && stateManager.state.plans) ? stateManager.state.plans : [];
+    const currentClassName = planClassName ? planClassName.value.trim() : '4/A';
+    const curClassLower = currentClassName.toLocaleLowerCase('tr-TR');
+
+    let html = '';
+    filtered.forEach(p => {
+      const isMaarif = p.modelType === 'maarif';
+      const badgeStyle = isMaarif 
+        ? 'background: rgba(16, 185, 129, 0.12); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.25);'
+        : 'background: rgba(245, 158, 11, 0.12); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.25);';
+      const badgeLabel = isMaarif ? 'Türkiye Yüzyılı Maarif Modeli' : 'Standart MEB Müfredatı';
+      const outcomeLabel = isMaarif ? 'Öğrenme Çıktıları' : 'Kazanımlar';
+
+      // Bu planın mevcut sınıfa zaten ekli olup olmadığını kontrol et
+      const mebCourseLower = (p.course || '').trim().toLocaleLowerCase('tr-TR');
+      const isAlreadyAdded = existingPlans.some(ep => {
+        const epClass = (ep.className || '').trim().toLocaleLowerCase('tr-TR');
+        if (epClass !== curClassLower) return false;
+        const epCourse = (ep.courseName || ep.title || '').trim().toLocaleLowerCase('tr-TR');
+        return epCourse === mebCourseLower || epCourse.includes(mebCourseLower) || mebCourseLower.includes(epCourse);
+      });
+
+      // Tipik haftalık ders saatini bul
+      let classHours = 4;
+      if (p.weeks && p.weeks.length > 0) {
+        const found = p.weeks.find(w => w.classHours && w.classHours > 0);
+        if (found) classHours = found.classHours;
+      }
+
+      // Yayıncı veya sayfa bilgisi
+      let publisherInfo = p.sourceSheet || '';
+      if (publisherInfo.length > 38) publisherInfo = publisherInfo.slice(0, 35) + '...';
+
+      const cardStyle = isAlreadyAdded 
+        ? 'border: 1px solid rgba(16, 185, 129, 0.45); background: rgba(16, 185, 129, 0.04);' 
+        : 'border: 1px solid var(--border-color); background: var(--bg-secondary);';
+
+      html += `
+        <div class="glass-card meb-curriculum-card" style="display: flex; flex-direction: column; justify-content: space-between; padding: 0.9rem; border-radius: var(--radius-md); ${cardStyle} transition: transform 0.15s ease, border-color 0.15s ease;">
+          <div>
+            <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 0.5rem; margin-bottom: 0.4rem;">
+              <h4 style="margin: 0; font-size: 0.95rem; font-weight: 700; color: var(--text-primary); line-height: 1.25;">
+                ${escapeHtml(p.course)}
+              </h4>
+              ${isAlreadyAdded ? `
+                <span class="badge" style="font-size: 0.72rem; font-weight: 700; padding: 0.15rem 0.45rem; border-radius: 4px; background: rgba(16, 185, 129, 0.18); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.35); white-space: nowrap; display: inline-flex; align-items: center; gap: 0.2rem;">
+                  <i data-lucide="check" style="width: 11px; height: 11px;"></i> Ekli (${escapeHtml(currentClassName)})
+                </span>
+              ` : `
+                <span style="font-size: 0.75rem; font-weight: 700; padding: 0.15rem 0.45rem; border-radius: 4px; background: rgba(59, 130, 246, 0.12); color: var(--primary); white-space: nowrap;">
+                  ${p.grade}. Sınıf
+                </span>
+              `}
+            </div>
+
+            <div style="margin-bottom: 0.5rem;">
+              <span class="badge" style="${badgeStyle} font-size: 0.7rem; padding: 0.2rem 0.45rem; border-radius: 6px; font-weight: 600; display: inline-flex; align-items: center; gap: 0.25rem;">
+                <i data-lucide="${isMaarif ? 'sparkles' : 'book'}" style="width: 11px; height: 11px;"></i>
+                ${badgeLabel}
+              </span>
+            </div>
+
+            <div style="font-size: 0.76rem; color: var(--text-muted); margin-bottom: 0.75rem; line-height: 1.4;">
+              <div style="display: flex; align-items: center; gap: 0.35rem; margin-bottom: 0.2rem;">
+                <i data-lucide="clock" style="width: 12px; height: 12px; opacity: 0.7;"></i>
+                <span>${classHours} Saat / Hafta • Toplam ${p.weekCount || (p.weeks ? p.weeks.length : 36)} Hafta</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 0.35rem;">
+                <i data-lucide="file-check" style="width: 12px; height: 12px; opacity: 0.7;"></i>
+                <span>Format: <strong>${outcomeLabel}</strong></span>
+              </div>
+              ${publisherInfo ? `
+                <div style="display: flex; align-items: center; gap: 0.35rem; margin-top: 0.2rem; font-size: 0.72rem; opacity: 0.85;">
+                  <i data-lucide="tag" style="width: 11px; height: 11px; opacity: 0.6;"></i>
+                  <span>${escapeHtml(publisherInfo)}</span>
+                </div>
+              ` : ''}
+            </div>
+          </div>
+
+          <div style="display: flex; gap: 0.4rem; padding-top: 0.6rem; border-top: 1px solid rgba(255, 255, 255, 0.05);">
+            <button type="button" class="btn btn-secondary btn-sm btn-preview-meb-curriculum" data-id="${p.id}" style="flex: 1; font-size: 0.78rem; padding: 0.35rem 0.4rem; display: inline-flex; align-items: center; justify-content: center; gap: 0.25rem;">
+              <i data-lucide="eye" style="width: 13px; height: 13px;"></i> Önizle
+            </button>
+            ${isAlreadyAdded ? `
+              <button type="button" class="btn btn-secondary btn-sm" disabled style="flex: 1.3; font-size: 0.78rem; padding: 0.35rem 0.4rem; display: inline-flex; align-items: center; justify-content: center; gap: 0.25rem; background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3); cursor: not-allowed; opacity: 0.9;">
+                <i data-lucide="check" style="width: 13px; height: 13px;"></i> Eklendi
+              </button>
+            ` : `
+              <button type="button" class="btn btn-primary btn-sm btn-use-meb-curriculum" data-id="${p.id}" style="flex: 1.3; font-size: 0.78rem; padding: 0.35rem 0.4rem; display: inline-flex; align-items: center; justify-content: center; gap: 0.25rem;">
+                <i data-lucide="plus" style="width: 13px; height: 13px;"></i> Planı Ekle
+              </button>
+            `}
+          </div>
+        </div>
+      `;
+    });
+
+    mebCurriculumCardsContainer.innerHTML = html;
+    if (window.lucide) window.lucide.createIcons();
+
+    // Dinleyicileri bağla
+    mebCurriculumCardsContainer.querySelectorAll('.btn-preview-meb-curriculum').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = btn.getAttribute('data-id');
+        openCurriculumPreview(id);
+      });
+    });
+
+    mebCurriculumCardsContainer.querySelectorAll('.btn-use-meb-curriculum').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = btn.getAttribute('data-id');
+        addMebCurriculumPlanToUserPlans(id);
+      });
+    });
+  }
+
+  function openCurriculumPreview(planId) {
+    const data = window.MEB_CURRICULUM_DATA || [];
+    const plan = data.find(p => p.id === planId);
+    if (!plan) return;
+
+    previewingMebPlan = plan;
+    if (!panelCurriculumPreview) return;
+
+    const isMaarif = plan.modelType === 'maarif';
+    const outcomeColName = isMaarif ? 'Öğrenme Çıktıları' : 'Kazanımlar';
+
+    // Bu plan ekli mi kontrol et
+    const existingPlans = (stateManager.state && stateManager.state.plans) ? stateManager.state.plans : [];
+    const currentClassName = planClassName ? planClassName.value.trim() : '4/A';
+    const curClassLower = currentClassName.toLocaleLowerCase('tr-TR');
+    const mebCourseLower = (plan.course || '').trim().toLocaleLowerCase('tr-TR');
+    const isAlreadyAdded = existingPlans.some(ep => {
+      const epClass = (ep.className || '').trim().toLocaleLowerCase('tr-TR');
+      if (epClass !== curClassLower) return false;
+      const epCourse = (ep.courseName || ep.title || '').trim().toLocaleLowerCase('tr-TR');
+      return epCourse === mebCourseLower || epCourse.includes(mebCourseLower) || mebCourseLower.includes(epCourse);
+    });
+
+    if (btnConfirmCurriculumUse) {
+      if (isAlreadyAdded) {
+        btnConfirmCurriculumUse.disabled = true;
+        btnConfirmCurriculumUse.innerHTML = `<i data-lucide="check" style="width: 14px; height: 14px;"></i> Bu Plan Zaten Ekli (${escapeHtml(currentClassName)})`;
+        btnConfirmCurriculumUse.style.background = 'rgba(16, 185, 129, 0.2)';
+        btnConfirmCurriculumUse.style.color = '#10b981';
+        btnConfirmCurriculumUse.style.cursor = 'not-allowed';
+      } else {
+        btnConfirmCurriculumUse.disabled = false;
+        btnConfirmCurriculumUse.innerHTML = `<i data-lucide="plus" style="width: 14px; height: 14px;"></i> Bu Planı Yıllık Planlarıma Ekle`;
+        btnConfirmCurriculumUse.style.background = '';
+        btnConfirmCurriculumUse.style.color = '';
+        btnConfirmCurriculumUse.style.cursor = 'pointer';
+      }
+    }
+
+    if (previewCurriculumTitle) {
+      previewCurriculumTitle.innerHTML = `
+        <span style="color: var(--text-primary);">${escapeHtml(plan.course)} (${plan.grade}. Sınıf)</span>
+        <span style="font-size: 0.75rem; font-weight: 600; margin-left: 0.5rem; opacity: 0.8; color: ${isMaarif ? '#10b981' : '#f59e0b'};">
+          ${isMaarif ? '● Türkiye Yüzyılı Maarif Modeli' : '● Standart MEB Müfredatı'}
+        </span>
+        ${isAlreadyAdded ? `
+          <span class="badge" style="font-size: 0.72rem; font-weight: 700; padding: 0.15rem 0.45rem; border-radius: 4px; background: rgba(16, 185, 129, 0.18); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.35); margin-left: 0.5rem;">
+            ✓ Ekli (${escapeHtml(currentClassName)})
+          </span>
+        ` : ''}
+      `;
+    }
+
+    if (previewCurriculumTableContainer) {
+      const weeks = plan.weeks || [];
+      let rowsHtml = '';
+      weeks.forEach(w => {
+        const outcomesText = (w.learningOutcomes || []).map(o => `<div style="margin-bottom: 0.2rem;">• ${escapeHtml(o)}</div>`).join('');
+        const topicsText = (w.topics || []).map(t => `<div style="margin-bottom: 0.2rem;">• ${escapeHtml(t)}</div>`).join('');
+
+        rowsHtml += `
+          <tr style="border-bottom: 1px solid var(--border-color);">
+            <td style="padding: 0.4rem 0.5rem; font-weight: 700; white-space: nowrap; text-align: center;">${w.weekNum}. Hafta</td>
+            <td style="padding: 0.4rem 0.5rem; white-space: nowrap; color: var(--text-muted);">${w.month || ''} <br><span style="font-size: 0.72rem;">${w.dateRange || ''}</span></td>
+            <td style="padding: 0.4rem 0.5rem; font-weight: 600;">${escapeHtml(w.unitName || '-')}</td>
+            <td style="padding: 0.4rem 0.5rem;">${topicsText || '-'}</td>
+            <td style="padding: 0.4rem 0.5rem; color: var(--text-primary);">${outcomesText || '-'}</td>
+            <td style="padding: 0.4rem 0.5rem; font-size: 0.72rem; color: var(--text-muted);">${escapeHtml(w.specialDays || '-')}</td>
+          </tr>
+        `;
+      });
+
+      previewCurriculumTableContainer.innerHTML = `
+        <table class="table" style="width: 100%; border-collapse: collapse; font-size: 0.78rem;">
+          <thead>
+            <tr style="background: var(--bg-secondary); border-bottom: 2px solid var(--border-color); text-align: left;">
+              <th style="padding: 0.4rem 0.5rem; width: 65px; text-align: center;">Hafta</th>
+              <th style="padding: 0.4rem 0.5rem; width: 95px;">Tarih</th>
+              <th style="padding: 0.4rem 0.5rem; width: 140px;">Ünite / Tema</th>
+              <th style="padding: 0.4rem 0.5rem; width: 150px;">Konu</th>
+              <th style="padding: 0.4rem 0.5rem;">${outcomeColName}</th>
+              <th style="padding: 0.4rem 0.5rem; width: 120px;">Belirli Günler</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rowsHtml}
+          </tbody>
+        </table>
+      `;
+    }
+
+    panelCurriculumPreview.style.display = 'block';
+    panelCurriculumPreview.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    if (window.lucide) window.lucide.createIcons();
+  }
+
+  function closeCurriculumPreview() {
+    previewingMebPlan = null;
+    if (panelCurriculumPreview) {
+      panelCurriculumPreview.style.display = 'none';
+    }
+  }
+
+  function addMebCurriculumPlanToUserPlans(planId) {
+    const data = window.MEB_CURRICULUM_DATA || [];
+    const mebPlan = data.find(p => p.id === planId);
+    if (!mebPlan) {
+      if (toastCallbackFn) toastCallbackFn('Plan bulunamadı.', 'danger');
+      return;
+    }
+
+    let className = planClassName ? planClassName.value.trim() : '';
+    if (!className) {
+      className = `${mebPlan.grade}/A`;
+    }
+
+    const courseName = mebPlan.course;
+
+    // Güvenlik Kontrolü: Bu ders bu sınıfa zaten ekli mi?
+    const existingPlans = (stateManager.state && stateManager.state.plans) ? stateManager.state.plans : [];
+    const curClassLower = className.toLocaleLowerCase('tr-TR');
+    const mebCourseLower = courseName.trim().toLocaleLowerCase('tr-TR');
+    const isAlreadyAdded = existingPlans.some(ep => {
+      const epClass = (ep.className || '').trim().toLocaleLowerCase('tr-TR');
+      if (epClass !== curClassLower) return false;
+      const epCourse = (ep.courseName || ep.title || '').trim().toLocaleLowerCase('tr-TR');
+      return epCourse === mebCourseLower || epCourse.includes(mebCourseLower) || mebCourseLower.includes(epCourse);
+    });
+
+    if (isAlreadyAdded) {
+      if (toastCallbackFn) toastCallbackFn(`"${courseName}" dersine ait ${className} planı zaten ekli!`, 'warning');
+      return;
+    }
+
+    const rawEduYear = planEducationYear ? planEducationYear.value.trim() : '';
+    let startYear = parseInt((rawEduYear || '2026').split('-')[0]) || 2026;
+    if (startYear < 2026) startYear = 2026; // MEB taslak planları 2026-2027 takvimine aittir
+    const educationYear = `${startYear}-${startYear + 1}`;
+
+    // Haftaları dönüştür
+    const weeklySchedule = [];
+    const sourceWeeks = mebPlan.weeks || [];
+
+    sourceWeeks.forEach(w => {
+      let sDateStr = null;
+      let eDateStr = null;
+      let isoWeek = null;
+
+      if (w.dateRange) {
+        const { startDate, endDate, isDateParsed } = parseTurkishDateRange(w.dateRange, startYear);
+        if (isDateParsed && startDate && endDate) {
+          sDateStr = startDate.toISOString().slice(0, 10);
+          eDateStr = endDate.toISOString().slice(0, 10);
+          isoWeek = window.getISOWeek(startDate);
+        }
+      }
+
+      weeklySchedule.push({
+        id: 'w_' + (w.weekNum || weeklySchedule.length + 1) + '_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+        month: w.month ? w.month.toUpperCase() : '',
+        weekNumber: [w.weekNum || (weeklySchedule.length + 1)],
+        weekLabel: w.weekLabel || `${w.weekNum || (weeklySchedule.length + 1)}. Hafta`,
+        dateRange: w.dateRange || '',
+        startDate: sDateStr,
+        endDate: eDateStr,
+        isoWeek: isoWeek,
+        classHours: w.classHours || 4,
+        unitNo: null,
+        unitName: w.unitName || '',
+        learningOutcomes: Array.isArray(w.learningOutcomes) ? [...w.learningOutcomes] : (w.learningOutcomes ? [w.learningOutcomes] : []),
+        topics: Array.isArray(w.topics) ? [...w.topics] : (w.topics ? [w.topics] : []),
+        descriptions: [],
+        specialDays: w.specialDays || '',
+        assessment: Array.isArray(w.assessment) ? [...w.assessment] : (w.assessment ? [w.assessment] : []),
+        isHoliday: false,
+        isCompleted: false
+      });
+    });
+
+    if (weeklySchedule.length === 0) {
+      if (toastCallbackFn) toastCallbackFn('Seçilen planda haftalık içerik bulunamadı.', 'danger');
+      return;
+    }
+
+    const planTitle = className ? `${className} - ${courseName}` : courseName;
+
+    const savedPlan = stateManager.addPlan({
+      title: planTitle,
+      educationYear: educationYear,
+      className: className,
+      courseName: courseName,
+      modelType: mebPlan.modelType || (mebPlan.grade === 4 || mebPlan.grade === 8 ? 'standard' : 'maarif'),
+      modelName: mebPlan.modelName || (mebPlan.grade === 4 || mebPlan.grade === 8 ? 'Standart MEB Müfredatı' : 'Türkiye Yüzyılı Maarif Modeli'),
+      weeklySchedule: weeklySchedule
+    });
+
+    if (!savedPlan) return;
+
+    closeCurriculumPreview();
+    if (modalImportPlan) modalImportPlan.classList.remove('active');
+
+    const modelDesc = savedPlan.modelType === 'maarif' 
+      ? 'Türkiye Yüzyılı Maarif Modeli (Öğrenme Çıktıları)' 
+      : 'Standart MEB Müfredatı (Kazanımlar)';
+
+    if (toastCallbackFn) {
+      toastCallbackFn(`"${courseName}" dersine ait ${className} yıllık planı eklendi! [${modelDesc} - ${weeklySchedule.length} hafta]`, 'success');
+    }
+
+    activePlansMainTab = 'general';
+    if (btnPlansTabGeneral) btnPlansTabGeneral.classList.add('active');
+    if (btnPlansTabWeekly) btnPlansTabWeekly.classList.remove('active');
+    if (plansTabContentGeneral) plansTabContentGeneral.style.display = 'block';
+    if (plansTabContentWeekly) plansTabContentWeekly.style.display = 'none';
+
+    // Yeni planı aç
+    expandedPlans[savedPlan.id] = true;
+    (savedPlan.weeklySchedule || []).forEach(week => {
       if (week.month) {
         expandedMonths[savedPlan.id + '_' + week.month] = true;
       }
@@ -2504,8 +3085,16 @@ Yanıtını YALNIZCA geçerli ve hatasız bir JSON objesi formatında ver. Kesin
         }
       }
 
-      const startYear = parseInt(plan.educationYear.split('-')[0]) || 2025;
       const schedule = plan.weeklySchedule || plan.weeks || [];
+
+      // MEB 2026-2027 taslak planları (14 Eylül başlangıçlı planlar) eğitim yılını 2026-2027'ye senkronize et
+      const firstWeekDate = schedule.length > 0 ? (schedule[0].dateRange || '') : '';
+      if (/14\s*Eyl/i.test(firstWeekDate) && (plan.educationYear === '2025-2026' || !plan.educationYear)) {
+        plan.educationYear = '2026-2027';
+        stateChanged = true;
+      }
+
+      const startYear = parseInt((plan.educationYear || '2026').split('-')[0]) || 2026;
       schedule.forEach(week => {
         // 2. Sadece sayı olan veya eksik kalan kazanımları zenginleştir
         if (week.learningOutcomes && Array.isArray(week.learningOutcomes)) {
@@ -2589,6 +3178,90 @@ Yanıtını YALNIZCA geçerli ve hatasız bir JSON objesi formatında ver. Kesin
     }
   }
 
+  function findWeekForSchedule(schedule, targetWeekCode, plan, allPlans) {
+    if (!schedule || schedule.length === 0) return { weekItem: null, weekIdx: -1 };
+
+    // 1. Doğrudan isoWeek Eşleşmesi (Tam eşleşme)
+    let weekIdx = schedule.findIndex(w => w.isoWeek === targetWeekCode);
+    if (weekIdx !== -1) return { weekItem: schedule[weekIdx], weekIdx };
+
+    const parts = (targetWeekCode || '').split('-W');
+    const targetYear = parseInt(parts[0]);
+    const targetWeekNum = parseInt(parts[1]);
+
+    // 2. Çapraz Eşleşme: Başka bir planda targetWeekCode eşleşmişse aynı haftalık çalışma sırasını al
+    // (Örn: Fen Bilimleri 1. çalışma haftasındaysa Matematik ve Beden Eğitimi de 1. çalışma haftasında olsun)
+    if (Array.isArray(allPlans)) {
+      for (const otherPlan of allPlans) {
+        if (otherPlan.id === plan.id) continue;
+        const otherSched = otherPlan.weeklySchedule || otherPlan.weeks || [];
+        const matchIdx = otherSched.findIndex(w => w.isoWeek === targetWeekCode);
+        if (matchIdx !== -1 && matchIdx < schedule.length) {
+          const candidateWeek = schedule[matchIdx];
+          if (candidateWeek) {
+            return { weekItem: candidateWeek, weekIdx: matchIdx };
+          }
+        }
+      }
+    }
+
+    // 3. Hafta Numarası Eşleşmesi (W38 vs W38 veya Eylül başı toleransı W37-W38)
+    if (!isNaN(targetWeekNum)) {
+      weekIdx = schedule.findIndex(w => {
+        if (!w.isoWeek) return false;
+        const wParts = w.isoWeek.split('-W');
+        const wNum = parseInt(wParts[1]);
+        if (wNum === targetWeekNum) return true;
+        // Eylül açılış haftası toleransı (W37 veya W38)
+        if ((targetWeekNum === 38 || targetWeekNum === 37) && (wNum === 37 || wNum === 38)) {
+          return true;
+        }
+        return false;
+      });
+      if (weekIdx !== -1) return { weekItem: schedule[weekIdx], weekIdx };
+    }
+
+    // 4. Tarih Aralığı Gün/Ay Metin Eşleşmesi
+    const weekDateRange = getISOWeekDateRange(targetWeekCode);
+    if (weekDateRange) {
+      const lowerTarget = weekDateRange.toLocaleLowerCase('tr-TR');
+      weekIdx = schedule.findIndex(w => {
+        if (!w.dateRange) return false;
+        const lowerPlan = w.dateRange.toLocaleLowerCase('tr-TR');
+        const dayMatch = lowerPlan.match(/\b\d{1,2}\b/);
+        if (dayMatch && lowerTarget.includes(dayMatch[0])) {
+          const monthMatch = lowerPlan.match(/\b(eyl|eki|kas|ara|oca|şub|mar|nis|may|haz)\b/);
+          if (monthMatch && lowerTarget.includes(monthMatch[1])) {
+            return true;
+          }
+        }
+        return false;
+      });
+      if (weekIdx !== -1) return { weekItem: schedule[weekIdx], weekIdx };
+    }
+
+    // 5. MEB Okul Takvimi Sıra Numarası (Hafta 1..40)
+    let mebWeekNumber = null;
+    if (targetWeekNum >= 37) {
+      mebWeekNumber = targetWeekNum >= 38 ? targetWeekNum - 37 : 1;
+    } else if (targetWeekNum <= 26) {
+      mebWeekNumber = targetWeekNum + 15;
+    }
+
+    if (mebWeekNumber !== null) {
+      weekIdx = schedule.findIndex(w => {
+        const wNums = Array.isArray(w.weekNumber) ? w.weekNumber : [];
+        if (wNums.includes(mebWeekNumber)) return true;
+        if (w.weekNo === mebWeekNumber) return true;
+        if (w.weekLabel && w.weekLabel.startsWith(`${mebWeekNumber}.`)) return true;
+        return false;
+      });
+      if (weekIdx !== -1) return { weekItem: schedule[weekIdx], weekIdx };
+    }
+
+    return { weekItem: null, weekIdx: -1 };
+  }
+
   function renderWeeklyView() {
     const state = stateManager.loadState();
     const plans = state.plans || [];
@@ -2618,8 +3291,10 @@ Yanıtını YALNIZCA geçerli ve hatasız bir JSON objesi formatında ver. Kesin
 
     plans.forEach(plan => {
       const schedule = plan.weeklySchedule || plan.weeks || [];
-      const weekIdx = schedule.findIndex(w => w.isoWeek === plansSelectedWeekCode);
-      const weekItem = weekIdx !== -1 ? schedule[weekIdx] : null;
+      const matchResult = findWeekForSchedule(schedule, plansSelectedWeekCode, plan, plans);
+      const weekIdx = matchResult.weekIdx;
+      const weekItem = matchResult.weekItem;
+      const modelInfo = getPlanModelInfo(plan);
 
       const card = document.createElement('div');
       card.className = 'weekly-plan-card glass-card';
@@ -2668,7 +3343,7 @@ Yanıtını YALNIZCA geçerli ve hatasız bir JSON objesi formatında ver. Kesin
             `).join('');
           }
         } else {
-          outcomesHtml = `<li style="font-style: italic; color: var(--text-muted); list-style: none;">Kazanım belirtilmemiş.</li>`;
+          outcomesHtml = `<li style="font-style: italic; color: var(--text-muted); list-style: none;">${modelInfo.outcomeTitle} belirtilmemiş.</li>`;
         }
 
         let topicsHtml = '';
@@ -2679,8 +3354,13 @@ Yanıtını YALNIZCA geçerli ve hatasız bir JSON objesi formatında ver. Kesin
         card.innerHTML = `
           <div style="display: flex; justify-content: space-between; align-items: start; gap: 1rem; border-bottom: 1px solid rgba(255,255,255,0.08); padding-bottom: 0.75rem; flex-wrap: wrap;">
             <div>
-              <span style="font-size: 0.75rem; color: var(--primary); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">${escapeHtml(plan.className || 'Sınıf')} • ${escapeHtml(plan.courseName || 'Ders')}</span>
-              <h3 style="margin: 0.15rem 0 0 0; font-size: 1.2rem; font-weight: 800; color: var(--text-primary);">${escapeHtml(plan.title || plan.courseName)}</h3>
+              <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                <span style="font-size: 0.75rem; color: var(--primary); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">${escapeHtml(plan.className || 'Sınıf')} • ${escapeHtml(plan.courseName || 'Ders')}</span>
+                <span class="badge" style="${modelInfo.badgeStyle} font-size: 0.7rem; padding: 0.15rem 0.45rem; border-radius: 6px; font-weight: 600; display: inline-flex; align-items: center; gap: 0.25rem;">
+                  <i data-lucide="${modelInfo.badgeIcon}" style="width: 11px; height: 11px;"></i> ${modelInfo.badgeText}
+                </span>
+              </div>
+              <h3 style="margin: 0.25rem 0 0 0; font-size: 1.2rem; font-weight: 800; color: var(--text-primary);">${escapeHtml(plan.title || plan.courseName)}</h3>
             </div>
             ${!weekItem.isHoliday ? `
               <div style="display: flex; align-items: center; gap: 0.5rem; background: rgba(255,255,255,0.03); padding: 0.4rem 0.8rem; border-radius: var(--radius-md); border: 1px solid var(--border-color); width: fit-content;">
@@ -2707,7 +3387,7 @@ Yanıtını YALNIZCA geçerli ve hatasız bir JSON objesi formatında ver. Kesin
               ` : ''}
 
               <div style="margin-bottom: 0.75rem;">
-                <span style="font-size: 0.72rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase; display: block; margin-bottom: 0.25rem;">Haftalık Kazanımlar</span>
+                <span style="font-size: 0.72rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase; display: block; margin-bottom: 0.25rem;">${modelInfo.weeklyOutcomeTitle}</span>
                 <ul style="margin: 0; padding-left: 0; list-style: none;">
                   ${outcomesHtml}
                 </ul>
@@ -2846,6 +3526,7 @@ Yanıtını YALNIZCA geçerli ve hatasız bir JSON objesi formatında ver. Kesin
       const isPlanExpanded = expandedPlans[plan.id] !== undefined ? 
         expandedPlans[plan.id] : 
         (plans.length === 1);
+      const modelInfo = getPlanModelInfo(plan);
 
       const planCard = document.createElement('div');
       planCard.className = 'plan-general-card glass-card';
@@ -2864,8 +3545,14 @@ Yanıtını YALNIZCA geçerli ve hatasız bir JSON objesi formatında ver. Kesin
           <div style="display: flex; align-items: start; gap: 0.75rem; flex: 1.5; min-width: 0;">
             <i data-lucide="chevron-right" class="plan-chevron-icon" style="width: 20px; height: 20px; color: var(--primary); margin-top: 0.15rem; transition: transform 0.2s; transform: ${isPlanExpanded ? 'rotate(90deg)' : 'rotate(0deg)'};"></i>
             <div style="flex: 1; min-width: 0;">
-              <h3 class="general-plan-title" style="margin: 0; font-size: 1.15rem; font-weight: 800; color: var(--text-primary);">${escapeHtml(plan.title)}</h3>
-              <div class="plan-meta" style="margin-top: 0.3rem; display: flex; gap: 0.75rem; flex-wrap: wrap; font-size: 0.75rem; color: var(--text-muted); font-weight: 600;">
+              <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                <h3 class="general-plan-title" style="margin: 0; font-size: 1.15rem; font-weight: 800; color: var(--text-primary);">${escapeHtml(plan.title)}</h3>
+                <span class="badge" style="${modelInfo.badgeStyle} font-size: 0.7rem; padding: 0.15rem 0.45rem; border-radius: 6px; font-weight: 600; display: inline-flex; align-items: center; gap: 0.25rem;">
+                  <i data-lucide="${modelInfo.badgeIcon}" style="width: 10px; height: 10px;"></i>
+                  ${modelInfo.badgeText}
+                </span>
+              </div>
+              <div class="plan-meta" style="margin-top: 0.35rem; display: flex; gap: 0.75rem; flex-wrap: wrap; font-size: 0.75rem; color: var(--text-muted); font-weight: 600;">
                 <span><i data-lucide="info" style="width: 12px; height: 12px; display: inline-block; vertical-align: middle; margin-right: 0.15rem;"></i>Sınıf: ${escapeHtml(plan.className || 'Belirtilmemiş')}</span>
                 <span><i data-lucide="calendar" style="width: 12px; height: 12px; display: inline-block; vertical-align: middle; margin-right: 0.15rem;"></i>Dönem: ${escapeHtml(plan.educationYear || '2025-2026')}</span>
                 <span><i data-lucide="layers" style="width: 12px; height: 12px; display: inline-block; vertical-align: middle; margin-right: 0.15rem;"></i>${schedule.length} Hafta</span>
@@ -3016,7 +3703,7 @@ Yanıtını YALNIZCA geçerli ve hatasız bir JSON objesi formatında ver. Kesin
                 ${formatUnitDisplay(weekItem.unitNo, weekItem.unitName) ? `<div style="font-size: 0.75rem; font-weight: 700; color: var(--primary); margin-bottom: 0.5rem; text-transform: uppercase;">${escapeHtml(formatUnitDisplay(weekItem.unitNo, weekItem.unitName))}</div>` : ''}
                 
                 <div style="margin-bottom: 0.75rem;">
-                  <h5 style="margin: 0 0 0.35rem 0; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.5px;">Kazanımlar</h5>
+                  <h5 style="margin: 0 0 0.35rem 0; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.5px;">${modelInfo.outcomeTitle}</h5>
                   <ul style="margin: 0; padding: 0 0 0 1.1rem; list-style: none;">
                     ${outcomesListHtml}
                   </ul>

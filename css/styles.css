@@ -863,6 +863,172 @@ body {
   text-align: center;
 }
 
+/* Simge Havuzu (Icon Picker) */
+.btn-bh-icon-picker:hover {
+  border-color: var(--primary) !important;
+  transform: scale(1.06);
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.25);
+}
+
+.icon-picker-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 10050;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.15s ease-out;
+}
+
+.icon-picker-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  width: 440px;
+  max-width: 92vw;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.45);
+  overflow: hidden;
+  animation: modalSlideUp 0.18s ease-out;
+}
+
+.icon-picker-header {
+  padding: 0.9rem 1.25rem;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.icon-picker-tabs {
+  display: flex;
+  gap: 0.4rem;
+  padding: 0.5rem 1.25rem;
+  background: rgba(0, 0, 0, 0.04);
+  border-bottom: 1px solid var(--border-color);
+  overflow-x: auto;
+}
+
+.icon-picker-tab-btn {
+  padding: 0.3rem 0.65rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.78rem;
+  font-weight: 600;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.icon-picker-tab-btn:hover {
+  background: rgba(99, 102, 241, 0.08);
+  color: var(--primary);
+}
+
+.icon-picker-tab-btn.active {
+  background: var(--primary-light);
+  color: var(--primary);
+  border-color: rgba(99, 102, 241, 0.25);
+}
+
+.icon-picker-body {
+  padding: 1rem 1.25rem;
+  overflow-y: auto;
+  max-height: 340px;
+}
+
+.icon-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(42px, 1fr));
+  gap: 0.5rem;
+}
+
+.icon-picker-item {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.45rem;
+  cursor: pointer;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  transition: all 0.15s ease;
+}
+
+.icon-picker-item:hover {
+  transform: scale(1.15);
+  border-color: var(--primary);
+  background: var(--primary-light);
+  box-shadow: 0 4px 10px rgba(99, 102, 241, 0.25);
+}
+
+.icon-picker-item.selected {
+  border-color: var(--primary);
+  background: var(--primary-light);
+  box-shadow: 0 0 0 2px var(--primary);
+}
+
+.icon-picker-custom-row {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.75rem 1.25rem;
+  border-top: 1px solid var(--border-color);
+  background: var(--bg-primary);
+  align-items: center;
+}
+
+/* Defter Liste Sağ Tık Menüsü */
+.notebook-context-menu {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25);
+  padding: 0.35rem 0;
+  min-width: 210px;
+  animation: fadeIn 0.12s ease-out;
+  user-select: none;
+}
+
+.notebook-context-menu .context-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.5rem 0.85rem;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.notebook-context-menu .context-menu-item:hover {
+  background: var(--primary-light);
+  color: var(--primary);
+}
+
+.notebook-context-menu .context-menu-item.active {
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.notebook-context-menu .context-menu-divider {
+  height: 1px;
+  background: var(--border-color);
+  margin: 0.25rem 0;
+}
+
 .student-actions {
   position: absolute;
   top: 0.75rem;
@@ -904,32 +1070,121 @@ body {
   border-color: var(--danger);
 }
 
-.book-card-actions {
+.book-cover-top-status {
   position: absolute;
-  top: 0.5rem;
-  right: 0.5rem;
+  top: 6px;
+  left: 6px;
+  right: 6px;
   display: flex;
-  gap: 0.25rem;
-  z-index: 5;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  z-index: 4;
+  pointer-events: none;
 }
 
-.book-card-actions .action-btn-sm {
+.book-cover-status-badge {
+  background: rgba(245, 158, 11, 0.95);
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  padding: 0.15rem 0.6rem;
+  border-radius: 9999px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.book-cover-reader-name {
+  max-width: 90%;
+  background: rgba(15, 23, 42, 0.85);
+  color: #fff;
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: center;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25);
+}
+
+.book-cover-bottom-bar {
+  position: absolute;
+  bottom: 6px;
+  left: 6px;
+  right: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  z-index: 5;
+  pointer-events: auto;
+}
+
+.book-cover-btn {
   width: 28px;
   height: 28px;
-  border-radius: var(--radius-sm);
-  background: rgba(15, 23, 42, 0.7);
+  border-radius: 6px;
   border: 1px solid rgba(255, 255, 255, 0.25);
   color: #fff;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25);
   transition: all 0.2s ease;
+  padding: 0;
 }
 
-.book-card-actions .action-btn-sm:hover,
-.book-card-actions .action-btn-sm.delete:hover {
-  background: #ef4444;
-  border-color: #ef4444;
+.book-cover-btn i {
+  width: 14px;
+  height: 14px;
+  stroke-width: 2.2;
+}
+
+.book-cover-btn.edit {
+  background: #3b82f6; /* Canlı Mavi */
+}
+
+.book-cover-btn.edit:hover {
+  background: #2563eb;
+  transform: scale(1.1);
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.35);
+}
+
+.book-cover-btn.delete {
+  background: #ef4444; /* Canlı Kırmızı */
+}
+
+.book-cover-btn.delete:hover {
+  background: #dc2626;
+  transform: scale(1.1);
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.35);
+}
+
+.book-cover-level-badge {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  font-weight: 800;
+  line-height: 1;
   color: #fff;
-  transform: scale(1.08);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.book-cover-level-badge.level-1 {
+  background: #10b981; /* Canlı Zümrüt Yeşili */
+}
+
+.book-cover-level-badge.level-2 {
+  background: #8b5cf6; /* Canlı Mor / Menekşe */
 }
 
 .book-select-checkbox-container {
@@ -1447,9 +1702,10 @@ select option {
   background: linear-gradient(to right, rgba(0,0,0,0.25) 0%, rgba(0,0,0,0.05) 50%, rgba(255,255,255,0.15) 100%);
 }
 
-.book-cover i {
-  font-size: 2.2rem;
-  opacity: 0.8;
+.book-cover .book-cover-main-icon {
+  width: 44px;
+  height: 44px;
+  opacity: 0.85;
 }
 
 .book-title {

@@ -48,8 +48,10 @@
   // Liste düğmeleri değişkenleri
   let btnListBullet = null;
   let btnListNumber = null;
+  let btnListNumberRestart = null;
   let btnFullscreenListBullet = null;
   let btnFullscreenListNumber = null;
+  let btnFullscreenListNumberRestart = null;
 
   // Tablo ekleme değişkenleri
   let btnAddTable = null;
@@ -123,8 +125,10 @@
 
     btnListBullet = document.getElementById('btn-list-bullet');
     btnListNumber = document.getElementById('btn-list-number');
+    btnListNumberRestart = document.getElementById('btn-list-number-restart');
     btnFullscreenListBullet = document.getElementById('btn-fullscreen-list-bullet');
     btnFullscreenListNumber = document.getElementById('btn-fullscreen-list-number');
+    btnFullscreenListNumberRestart = document.getElementById('btn-fullscreen-list-number-restart');
 
     btnAddTable = document.getElementById('btn-add-table');
     btnFullscreenAddTable = document.getElementById('btn-fullscreen-add-table');
@@ -355,36 +359,83 @@
       formStickyNote.addEventListener('submit', handleAddStickyNoteSubmit);
     }
 
-    // Numaralı Liste Sürekliliği (List Continuity Sync)
-    // Eğer bir <ol> listesinden önce başka bir <ol> listesi varsa ve araya <ul> veya metin girmişse,
-    // sonraki <ol> listesinin start değerini önceki <ol>'nin son numarasından başlat.
+    // Numaralı Liste Sürekliliği (Akıllı Liste Devamlılığı ve Yeniden Başlatma)
+    // 1. Eğer bir <ol> üzerinde data-list-mode="restart" varsa, daima 1'den başlar.
+    // 2. Eğer data-list-mode="continue" varsa, önceki <ol>'nin son numarasından devam eder.
+    // 3. Otomatik Mod: İki <ol> arasında YALNIZCA <ul> (madde imi listesi) varsa ve araya anlamlı metin
+    //    girmemişse, liste madde imiyle kesilmiş kabul edilir ve kaldığı yerden devam eder.
+    //    Aksi halde (arada metin/paragraf varsa veya <ul> yoksa), yeni bir liste grubu kabul edilir ve 1'den başlar.
     const syncOrderedListContinuity = () => {
       if (!notebookTextarea) return;
-      const allOl = notebookTextarea.querySelectorAll('ol');
-      if (allOl.length <= 1) {
-        if (allOl.length === 1 && !allOl[0].parentElement.closest('ol')) {
-          allOl[0].removeAttribute('start');
-        }
-        return;
-      }
 
-      let runningCount = 0;
-      allOl.forEach((ol, idx) => {
-        // Eğer bir liste başka bir li/ol/ul'nin alt listesiyse (iç içe), start özelliğine dokunma
-        if (ol.parentElement.closest('li') || ol.parentElement.closest('ol') || ol.parentElement.closest('ul')) {
-          return;
-        }
-
-        const directItems = Array.from(ol.children).filter(child => child.tagName === 'LI');
-        if (idx === 0) {
-          ol.removeAttribute('start');
-          runningCount = directItems.length;
-        } else {
-          // Önceki liste ile devamlılık sağla
-          ol.setAttribute('start', runningCount + 1);
-          runningCount += directItems.length;
-        }
+      const topOls = Array.from(notebookTextarea.querySelectorAll('ol')).filter(ol => {
+        return !ol.parentElement.closest('li') && !ol.parentElement.closest('ol') && !ol.parentElement.closest('ul');
       });
+
+      if (topOls.length === 0) return;
+
+      let currentGroupRunningCount = 0;
+
+      for (let i = 0; i < topOls.length; i++) {
+        const ol = topOls[i];
+        const directItems = Array.from(ol.children).filter(child => child.tagName === 'LI');
+        const itemCount = directItems.length;
+        const listMode = ol.getAttribute('data-list-mode'); // 'restart' | 'continue' | null
+
+        if (i === 0) {
+          ol.removeAttribute('start');
+          currentGroupRunningCount = itemCount;
+          continue;
+        }
+
+        const prevOl = topOls[i - 1];
+        let shouldContinue = false;
+
+        if (listMode === 'restart') {
+          shouldContinue = false;
+        } else if (listMode === 'continue') {
+          shouldContinue = true;
+        } else {
+          // Otomatik mod: prevOl ile ol arasındaki kardeş düğümleri incele
+          let node = prevOl.nextSibling;
+          let foundUl = false;
+          let hasSignificantContent = false;
+
+          while (node && node !== ol) {
+            if (node.nodeType === Node.ELEMENT_NODE) {
+              if (node.tagName === 'UL') {
+                foundUl = true;
+              } else if (node.tagName === 'BR' || (node.tagName === 'DIV' && node.innerHTML.trim() === '<br>')) {
+                // Boş satır / boş div
+              } else {
+                const text = node.textContent ? node.textContent.trim() : '';
+                if (text.length > 0) {
+                  hasSignificantContent = true;
+                }
+              }
+            } else if (node.nodeType === Node.TEXT_NODE) {
+              if (node.textContent && node.textContent.trim().length > 0) {
+                hasSignificantContent = true;
+              }
+            }
+            node = node.nextSibling;
+          }
+
+          if (foundUl && !hasSignificantContent) {
+            shouldContinue = true;
+          } else {
+            shouldContinue = false;
+          }
+        }
+
+        if (shouldContinue && currentGroupRunningCount > 0) {
+          ol.setAttribute('start', currentGroupRunningCount + 1);
+          currentGroupRunningCount += itemCount;
+        } else {
+          ol.removeAttribute('start');
+          currentGroupRunningCount = itemCount;
+        }
+      }
     };
 
     // Liste Olay Dinleyicileri
@@ -405,10 +456,130 @@
       }
     };
 
+    const handleNumberListRestartToggle = () => {
+      if (!notebookTextarea) return;
+      notebookTextarea.focus();
+
+      const sel = window.getSelection();
+      let targetOl = null;
+      if (sel && sel.rangeCount > 0) {
+        let node = sel.getRangeAt(0).startContainer;
+        if (node.nodeType === Node.TEXT_NODE) node = node.parentElement;
+        targetOl = node ? node.closest('ol') : null;
+      }
+
+      if (!targetOl) {
+        const allOls = notebookTextarea.querySelectorAll('ol');
+        if (allOls.length > 0) {
+          targetOl = allOls[allOls.length - 1];
+        }
+      }
+
+      if (!targetOl) {
+        if (window.showToast) window.showToast('İşlem yapmak için bir numaralı liste seçin veya içine tıklayın.', 'info');
+        return;
+      }
+
+      const currentMode = targetOl.getAttribute('data-list-mode');
+      const isCurrentlyRestarted = currentMode === 'restart' || (!currentMode && !targetOl.hasAttribute('start'));
+
+      if (isCurrentlyRestarted) {
+        targetOl.setAttribute('data-list-mode', 'continue');
+        if (window.showToast) window.showToast('Numaralandırma önceki listeden devam ettirildi.', 'success');
+      } else {
+        targetOl.setAttribute('data-list-mode', 'restart');
+        if (window.showToast) window.showToast('Numaralandırma 1\'den başlatıldı.', 'success');
+      }
+
+      syncOrderedListContinuity();
+      triggerAutoSave();
+    };
+
     if (btnListBullet) btnListBullet.addEventListener('click', handleBulletListToggle);
     if (btnFullscreenListBullet) btnFullscreenListBullet.addEventListener('click', handleBulletListToggle);
     if (btnListNumber) btnListNumber.addEventListener('click', handleNumberListToggle);
     if (btnFullscreenListNumber) btnFullscreenListNumber.addEventListener('click', handleNumberListToggle);
+    if (btnListNumberRestart) btnListNumberRestart.addEventListener('click', handleNumberListRestartToggle);
+    if (btnFullscreenListNumberRestart) btnFullscreenListNumberRestart.addEventListener('click', handleNumberListRestartToggle);
+
+    // Defter Liste Sağ Tık Menüsü (Context Menu)
+    if (notebookTextarea) {
+      notebookTextarea.addEventListener('contextmenu', (e) => {
+        const targetOl = e.target.closest('ol');
+        if (!targetOl) return;
+
+        e.preventDefault();
+
+        const oldMenu = document.getElementById('notebook-list-context-menu');
+        if (oldMenu) oldMenu.remove();
+
+        const menu = document.createElement('div');
+        menu.id = 'notebook-list-context-menu';
+        menu.className = 'notebook-context-menu';
+        menu.style.position = 'fixed';
+        menu.style.top = `${e.clientY}px`;
+        menu.style.left = `${e.clientX}px`;
+        menu.style.zIndex = '10060';
+
+        const currentMode = targetOl.getAttribute('data-list-mode');
+
+        menu.innerHTML = `
+          <div class="context-menu-item ${currentMode === 'restart' ? 'active' : ''}" data-action="restart">
+            <i data-lucide="rotate-ccw" style="width: 14px; height: 14px;"></i>
+            <span>1'den Yeniden Başlat</span>
+          </div>
+          <div class="context-menu-item ${currentMode === 'continue' ? 'active' : ''}" data-action="continue">
+            <i data-lucide="arrow-down-right" style="width: 14px; height: 14px;"></i>
+            <span>Önceki Listeden Devam Et</span>
+          </div>
+          <div class="context-menu-divider"></div>
+          <div class="context-menu-item ${!currentMode ? 'active' : ''}" data-action="auto">
+            <i data-lucide="sparkles" style="width: 14px; height: 14px;"></i>
+            <span>Otomatik Belirle</span>
+          </div>
+        `;
+
+        document.body.appendChild(menu);
+        if (window.safeCreateIcons) window.safeCreateIcons();
+
+        const rect = menu.getBoundingClientRect();
+        if (rect.right > window.innerWidth - 10) {
+          menu.style.left = `${window.innerWidth - rect.width - 10}px`;
+        }
+        if (rect.bottom > window.innerHeight - 10) {
+          menu.style.top = `${window.innerHeight - rect.height - 10}px`;
+        }
+
+        menu.querySelectorAll('.context-menu-item').forEach(item => {
+          item.addEventListener('click', () => {
+            const action = item.getAttribute('data-action');
+            if (action === 'restart') {
+              targetOl.setAttribute('data-list-mode', 'restart');
+              if (window.showToast) window.showToast('Numaralandırma 1\'den başlatıldı.', 'success');
+            } else if (action === 'continue') {
+              targetOl.setAttribute('data-list-mode', 'continue');
+              if (window.showToast) window.showToast('Önceki listeden devam ettirildi.', 'success');
+            } else if (action === 'auto') {
+              targetOl.removeAttribute('data-list-mode');
+              if (window.showToast) window.showToast('Otomatik liste sıralaması uygulandı.', 'info');
+            }
+            syncOrderedListContinuity();
+            triggerAutoSave();
+            menu.remove();
+          });
+        });
+
+        const closeMenu = (ev) => {
+          if (!ev.target.closest('#notebook-list-context-menu')) {
+            menu.remove();
+            document.removeEventListener('click', closeMenu);
+          }
+        };
+        setTimeout(() => {
+          document.addEventListener('click', closeMenu);
+        }, 50);
+      });
+    }
 
     // Tablo Modalı Kapatma Olayları
     const closeTableModalFn = () => {

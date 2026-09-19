@@ -213,13 +213,21 @@
 
     if (btnAddPos) {
       btnAddPos.addEventListener('click', () => {
-        addBehaviorRow(document.getElementById('config-settings-positive-behaviors-list'), '', 1, '⭐', 'positive');
+        const row = addBehaviorRow(document.getElementById('config-settings-positive-behaviors-list'), '', 1, '⭐', 'positive');
+        if (row) {
+          const btn = row.querySelector('.btn-bh-icon-picker');
+          if (btn) btn.click();
+        }
       });
     }
 
     if (btnAddDev) {
       btnAddDev.addEventListener('click', () => {
-        addBehaviorRow(document.getElementById('config-settings-development-behaviors-list'), '', -1, '⚠️', 'development');
+        const row = addBehaviorRow(document.getElementById('config-settings-development-behaviors-list'), '', -1, '⚠️', 'development');
+        if (row) {
+          const btn = row.querySelector('.btn-bh-icon-picker');
+          if (btn) btn.click();
+        }
       });
     }
 
@@ -835,8 +843,153 @@
     });
   }
 
+  const BEHAVIOR_ICON_POOL = {
+    all: {
+      title: 'Tümü',
+      icons: []
+    },
+    positive: {
+      title: '🌟 Olumlu',
+      icons: [
+        '⭐', '🌟', '✨', '🏆', '🥇', '🥈', '🥉', '🎯', '🚀', '💯',
+        '👏', '👍', '💡', '🧠', '📚', '📖', '✍️', '🎨', '🎵', '🔬',
+        '🍀', '💖', '🕊️', '🌿', '👑', '🎖️', '💎', '🌈', '🤝', '🎓',
+        '🏅', '🌺', '🍎', '🛡️', '☀️', '🔥', '⚡', '💪', '🦸', '🪄',
+        '✅', '🎉', '💐', '🔔', '🎈', '❤️', '🙌', '👌', '🤩', '🌸'
+      ]
+    },
+    development: {
+      title: '⚠️ Geliştirilmeli',
+      icons: [
+        '⚠️', '❌', '⏳', '🔇', '💤', '💔', '📉', '🚫', '🛑', '🐢',
+        '📱', '📢', '🌧️', '🩹', '🗯️', '⏰', '🥱', '🚯', '❓', '❗',
+        '⛔', '🔒', '💥', '🕸️', '🌪️', '🧊', '🤕', '🚨', '🔕', '🤐',
+        '🤦', '🐌', '💣', '👎', '😶', '📴', '⚡', '🚧', '🛑', '💢'
+      ]
+    },
+    school: {
+      title: '📖 Okul & Etkinlik',
+      icons: [
+        '📖', '✏️', '📐', '🎒', '🔔', '🍎', '⚽', '🏀', '🎨', '🎭',
+        '🧩', '🎲', '💬', '🗨️', '🙋', '🧑‍🏫', '💻', '📝', '🧪', '📌',
+        '📎', '🏷️', '🗺️', '🌏', '🔭', '🎻', '🎹', '🥁', '⛹️', '🧘'
+      ]
+    }
+  };
+
+  function openIconPicker(currentIcon = '⭐', onSelect) {
+    const existing = document.querySelector('.icon-picker-overlay');
+    if (existing) existing.remove();
+
+    const overlay = document.createElement('div');
+    overlay.className = 'icon-picker-overlay';
+
+    let activeCategory = 'positive';
+    
+    const card = document.createElement('div');
+    card.className = 'icon-picker-card';
+    card.innerHTML = `
+      <div class="icon-picker-header">
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <i data-lucide="sparkles" style="color: var(--primary); width: 18px; height: 18px;"></i>
+          <span style="font-weight: 700; font-size: 1rem; color: var(--text-primary);">Simge Havuzu</span>
+        </div>
+        <button type="button" class="icon-picker-close" style="background: none; border: none; font-size: 1.5rem; line-height: 1; cursor: pointer; color: var(--text-muted);">&times;</button>
+      </div>
+      <div class="icon-picker-tabs">
+        <button type="button" class="icon-picker-tab-btn active" data-cat="positive">🌟 Olumlu</button>
+        <button type="button" class="icon-picker-tab-btn" data-cat="development">⚠️ Geliştirilmeli</button>
+        <button type="button" class="icon-picker-tab-btn" data-cat="school">📖 Okul & Etkinlik</button>
+        <button type="button" class="icon-picker-tab-btn" data-cat="all">🌈 Tümü</button>
+      </div>
+      <div class="icon-picker-body">
+        <div class="icon-picker-grid" id="icon-picker-grid"></div>
+      </div>
+      <div class="icon-picker-custom-row">
+        <input type="text" class="form-control icon-picker-custom-input" placeholder="Veya klavyeden bir simge / emoji yazın..." style="flex: 1; padding: 0.4rem 0.6rem; font-size: 0.9rem;">
+        <button type="button" class="btn btn-primary btn-sm icon-picker-apply-custom" style="padding: 0.4rem 0.8rem; font-size: 0.85rem;">Seç</button>
+      </div>
+    `;
+
+    overlay.appendChild(card);
+    document.body.appendChild(overlay);
+    if (window.safeCreateIcons) window.safeCreateIcons();
+
+    const grid = card.querySelector('#icon-picker-grid');
+    const customInput = card.querySelector('.icon-picker-custom-input');
+    const customBtn = card.querySelector('.icon-picker-apply-custom');
+    const closeBtn = card.querySelector('.icon-picker-close');
+    const tabBtns = card.querySelectorAll('.icon-picker-tab-btn');
+
+    // Tümü kategorisini doldur
+    if (BEHAVIOR_ICON_POOL.all.icons.length === 0) {
+      const allSet = new Set([
+        ...BEHAVIOR_ICON_POOL.positive.icons,
+        ...BEHAVIOR_ICON_POOL.development.icons,
+        ...BEHAVIOR_ICON_POOL.school.icons
+      ]);
+      BEHAVIOR_ICON_POOL.all.icons = Array.from(allSet);
+    }
+
+    function renderIcons(cat) {
+      grid.innerHTML = '';
+      const list = BEHAVIOR_ICON_POOL[cat]?.icons || BEHAVIOR_ICON_POOL.positive.icons;
+      list.forEach(ico => {
+        const item = document.createElement('button');
+        item.type = 'button';
+        item.className = `icon-picker-item ${ico === currentIcon ? 'selected' : ''}`;
+        item.textContent = ico;
+        item.title = ico;
+        item.addEventListener('click', () => {
+          if (onSelect) onSelect(ico);
+          overlay.remove();
+        });
+        grid.appendChild(item);
+      });
+    }
+
+    tabBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        tabBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        activeCategory = btn.getAttribute('data-cat');
+        renderIcons(activeCategory);
+      });
+    });
+
+    renderIcons('positive');
+
+    customBtn.addEventListener('click', () => {
+      const val = customInput.value.trim();
+      if (val) {
+        if (onSelect) onSelect(val);
+        overlay.remove();
+      }
+    });
+
+    customInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        customBtn.click();
+      }
+    });
+
+    closeBtn.addEventListener('click', () => overlay.remove());
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) overlay.remove();
+    });
+
+    const handleEsc = (e) => {
+      if (e.key === 'Escape') {
+        overlay.remove();
+        document.removeEventListener('keydown', handleEsc);
+      }
+    };
+    document.addEventListener('keydown', handleEsc);
+  }
+
   function addBehaviorRow(container, name = '', point = 1, icon = '⭐', type = 'positive', index) {
-    if (!container) return;
+    if (!container) return null;
 
     const isKitapOkuma = (name === 'Kitap Okuma');
     const nameReadonlyAttr = isKitapOkuma ? 'readonly' : '';
@@ -850,13 +1003,27 @@
     row.style.marginBottom = '0.5rem';
 
     row.innerHTML = `
-      <input type="text" class="form-control bh-icon-input" value="${icon}" style="width: 45px; text-align: center; padding: 0.35rem 0.5rem;" placeholder="İkon">
+      <button type="button" class="btn-bh-icon-picker" title="Simge Havuzu (Simge Seç)" style="width: 44px; height: 38px; border-radius: var(--radius-sm); border: 1px solid var(--border-color); background: var(--bg-primary); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; transition: transform 0.15s, border-color 0.15s; flex-shrink: 0;">
+        <span class="bh-icon-preview">${icon}</span>
+      </button>
+      <input type="hidden" class="bh-icon-input" value="${icon}">
       <input type="text" class="form-control bh-name-input" value="${name}" style="flex: 1; padding: 0.35rem 0.5rem;" placeholder="Açıklama" required ${nameReadonlyAttr}>
       <input type="number" class="form-control bh-point-input" value="${point}" style="width: 60px; text-align: center; padding: 0.35rem 0.5rem;" placeholder="Puan" required>
       <button type="button" class="action-btn-sm delete-bh-row" style="color: var(--danger); border-color: rgba(239, 68, 68, 0.2); background: rgba(239, 68, 68, 0.05); ${deleteBtnStyle}" title="Sil">
         <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i>
       </button>
     `;
+
+    const iconPickerBtn = row.querySelector('.btn-bh-icon-picker');
+    const iconInput = row.querySelector('.bh-icon-input');
+    const iconPreview = row.querySelector('.bh-icon-preview');
+
+    iconPickerBtn.addEventListener('click', () => {
+      openIconPicker(iconInput.value, (newIcon) => {
+        iconInput.value = newIcon;
+        iconPreview.textContent = newIcon;
+      });
+    });
 
     row.querySelector('.delete-bh-row').addEventListener('click', () => {
       if (isKitapOkuma) {
@@ -868,6 +1035,7 @@
 
     container.appendChild(row);
     window.safeCreateIcons();
+    return row;
   }
 
   function renderExamRankInputs(topCount, rankPoints = {}) {

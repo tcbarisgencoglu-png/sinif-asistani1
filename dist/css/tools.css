@@ -1760,4 +1760,43 @@ body.print-schedule #schedule-print-area .print-cell-text {
   display: none;
 }
 
+/* MEB Hazır Taslak Planlar Stilleri */
+.meb-grade-btn {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: var(--radius-md);
+}
+
+.meb-grade-btn:hover {
+  transform: translateY(-1px);
+  border-color: var(--primary);
+}
+
+.meb-grade-btn.active {
+  background: var(--primary) !important;
+  color: #ffffff !important;
+  border-color: var(--primary) !important;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.35);
+}
+
+.meb-curriculum-card {
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.meb-curriculum-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(59, 130, 246, 0.4) !important;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+}
+
+#meb-curriculum-cards-container::-webkit-scrollbar,
+#preview-curriculum-table-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+#meb-curriculum-cards-container::-webkit-scrollbar-thumb,
+#preview-curriculum-table-container::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 4px;
+}
+
 

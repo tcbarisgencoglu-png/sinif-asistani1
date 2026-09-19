@@ -82,6 +82,25 @@ let activeQuestionsState = {
 let currentEditBookId = null;
 let currentEditBookTitle = '';
 let currentEditBookAuthor = '';
+let currentEditBookLevel = 'seviye_1';
+
+function getTargetGradeLevelInfo() {
+  const state = stateManager.loadState();
+  const className = (state.className || '').trim();
+  const educationLevel = state.educationLevel || 'primary';
+  
+  const match = className.match(/(\d+)/);
+  let gradeNum = match ? parseInt(match[1], 10) : null;
+  
+  if (!gradeNum || isNaN(gradeNum)) {
+    gradeNum = educationLevel === 'middle' ? 6 : 3;
+  }
+  
+  if (gradeNum < 1) gradeNum = 1;
+  if (gradeNum > 8) gradeNum = 8;
+  
+  return { gradeNum, educationLevel };
+}
 
 function getGeminiApiKey() {
   const key = (localStorage.getItem('sinif_asistani_gemini_api_key') || '').trim();
@@ -225,7 +244,12 @@ window.callGeminiAPI = async function(prompt, options = {}) {
         }
       }
 
-      // 404 (model bulunamadı), 503/500 (sunucu yoğun) veya High Demand durumunda diğer modeli dene!
+      // 404 (model bulunamadı), 503/500 (sunucu yoğun), High Demand veya 429 Kota Aşımı (Resource Exhausted) durumunda diğer modele geç!
+      const isQuotaExceeded = curRes.status === 429 || 
+        errDetail.toLowerCase().includes('quota') || 
+        errDetail.toLowerCase().includes('resource_exhausted') ||
+        errDetail.toLowerCase().includes('rate limit');
+
       const isHighDemandOrUnavailable = curRes.status === 404 || 
         curRes.status === 503 || 
         curRes.status === 500 || 
@@ -234,13 +258,13 @@ window.callGeminiAPI = async function(prompt, options = {}) {
         errDetail.toLowerCase().includes('overloaded') ||
         errDetail.toLowerCase().includes('unavailable');
 
-      if (isHighDemandOrUnavailable) {
-        // Diğer modele geçmeden önce 400ms kısa bir bekleme
+      if (isQuotaExceeded || isHighDemandOrUnavailable) {
+        // Eğer bu modelde anlık kota dolduysa veya yoğunluk varsa, diğer modeli denemek için kısa bir bekleme yap
         await new Promise(r => setTimeout(r, 400));
         continue;
       }
 
-      // Sadece gerçek yetkisiz (401/403) veya kota durumunda döngüyü sonlandır
+      // Sadece gerçek yetkisiz (401/403) veya kalıcı geçersiz anahtar durumunda döngüyü sonlandır
       break;
     } catch (e) {
       lastErrDetail = e.message;
@@ -248,7 +272,14 @@ window.callGeminiAPI = async function(prompt, options = {}) {
   }
 
   if (!response || !response.ok) {
-    if (lastErrDetail.toLowerCase().includes('high demand') || lastErrDetail.toLowerCase().includes('overloaded')) {
+    const errLower = (lastErrDetail || '').toLowerCase();
+    if (errLower.includes('quota') || errLower.includes('resource_exhausted') || errLower.includes('rate limit') || errLower.includes('free_tier_requests')) {
+      // Bekleme süresini yakalamaya çalış (örn: Please retry in 19.4111582s)
+      const secMatch = lastErrDetail.match(/retry in\s+([0-9.]+)\s*s/i);
+      const retrySec = secMatch ? Math.ceil(parseFloat(secMatch[1])) : 20;
+      throw new Error(`Google Yapay Zeka ücretsiz kullanım sınırına (dakikalık istek kotası) ulaşıldı. Lütfen yaklaşık ${retrySec} saniye bekleyip tekrar deneyin.`);
+    }
+    if (errLower.includes('high demand') || errLower.includes('overloaded')) {
       throw new Error('Google Gemini sunucularında şu an anlık bir yoğunluk yaşanıyor. Lütfen 5-10 saniye sonra tekrar deneyin.');
     }
     throw new Error(`Yapay zeka servisi hatası: ${lastErrDetail || 'İstek tamamlanamadı.'}`);
@@ -263,16 +294,53 @@ window.callGeminiAPI = async function(prompt, options = {}) {
   return rawText;
 };
 
-async function generateBookQuestionsWithAI(bookTitle, bookAuthor) {
+async function generateBookQuestionsWithAI(bookTitle, bookAuthor, options = {}) {
   const apiKey = getGeminiApiKey();
   if (!apiKey) {
     throw new Error('NO_API_KEY');
   }
 
-  const prompt = `Sen uzman bir Türkçe ve edebiyat öğretmenisin. İlkokul ve ortaokul düzeyindeki öğrenciler için aşağıdaki kitabın okunup anlaşıldığını derinlemesine ölçecek 5 adet açık uçlu soru ve her birinin detaylı doğru cevabını hazırla.
+  const gradeLevel = options.gradeLevel || 3;
+  const bookLevel = options.bookLevel || 'seviye_1';
+
+  let gradeInstruction = '';
+  if (gradeLevel === 1) {
+    gradeInstruction = `HEDEF ÖĞRENCİ DÜZEYİ: 1. Sınıf (6-7 Yaş) İlkokul öğrencileri.
+DİL VE ANLATIM KURALI: Çok sade, kısa ve en temel Türkçe kelimeleri kullan. Cümleler en fazla 5-7 kelimeden oluşmalıdır. Karmaşık, uzun cümleler kurma.
+SORU TİPİ: Kitabın ana kahramanı kimdir, ne yapmıştır, olay nerede geçmiştir gibi en somut ve doğrudan hatırlama/tanıma soruları sor.`;
+  } else if (gradeLevel === 2) {
+    gradeInstruction = `HEDEF ÖĞRENCİ DÜZEYİ: 2. Sınıf (7-8 Yaş) İlkokul öğrencileri.
+DİL VE ANLATIM KURALI: 7-8 yaş çocuğunun kelime hazinesine uygun, çok yalın, açık ve somut bir anlatım kullan. Edebi tahlil, felsefi çıkarım ve soyut kavramlar KESİNLİKLE KULLANMA.
+SORU TİPİ: Kitaptaki ana olayları, kahramanların somut hareketlerini ve temel olay sırasını ölçecek net sorular sor.`;
+  } else if (gradeLevel === 3) {
+    gradeInstruction = `HEDEF ÖĞRENCİ DÜZEYİ: 3. Sınıf (8-9 Yaş) İlkokul öğrencileri.
+DİL VE ANLATIM KURALI: 3. sınıf çocuğunun kelime dağarcığına ve anlama dünyasına tam uygun, son derece duru, anlaşılır ve somut bir Türkçe kullan. Felsefi, derin edebi tahlil gerektiren veya ortaokul/LGS düzeyinde soyut sorular KESİNLİKLE SORMA.
+SORU TİPİ: Çocuğun kitabı gerçekten zevkle okuyup olayları kavradığını kanıtlayacak somut olaylar, karakterlerin sergilediği davranışlar ve basit neden-sonuç ilişkileri üzerine odaklan. Beklenen cevaplar çocuğun kendi cümleleriyle 1-2 cümlede rahatça ifade edebileceği netlikte olmalıdır.`;
+  } else if (gradeLevel === 4) {
+    gradeInstruction = `HEDEF ÖĞRENCİ DÜZEYİ: 4. Sınıf (9-10 Yaş) İlkokul öğrencileri.
+DİL VE ANLATIM KURALI: İlkokul 4. sınıf düzeyine uygun, akıcı ve anlaşılır bir dil kullan. Gereksiz soyut edebi terimlerden kaçın.
+SORU TİPİ: Olay örgüsü, karakterlerin motivasyonları, ana fikir ve olayların neden-sonuç ilişkilerini değerlendiren sorular sor.`;
+  } else if (gradeLevel <= 6) {
+    gradeInstruction = `HEDEF ÖĞRENCİ DÜZEYİ: 5 ve 6. Sınıf (10-12 Yaş) Ortaokul öğrencileri.
+DİL VE ANLATIM KURALI: Ortaokul kademesine uygun, akıcı ve gelişimsel düzeyi destekleyen bir Türkçe kullan.
+SORU TİPİ: Olay örgüsü, karakterlerin özellikleri, çatışmalar ve kitabın ana temasına yönelik sorular sor.`;
+  } else {
+    gradeInstruction = `HEDEF ÖĞRENCİ DÜZEYİ: 7 ve 8. Sınıf (12-14 Yaş) Ortaokul öğrencileri.
+DİL VE ANLATIM KURALI: Ortaokul üst kademe düzeyine uygun, zengin bir Türkçe kullan.
+SORU TİPİ: Karakterlerin psikolojik/ahlaki kararları, olay örgüsü, alt metin ve ana fikir tahlili soruları sor.`;
+  }
+
+  const levelText = bookLevel === 'seviye_2' 
+    ? 'Kitap Seviyesi: 2. Seviye (Biraz daha detaylı olaylar ve neden-sonuç ilişkileri).' 
+    : 'Kitap Seviyesi: 1. Seviye (Doğrudan ana olaylar ve temel kahramanlar odaklı).';
+
+  const prompt = `Sen uzman ve pedagojik formasyona sahip bir Türkçe/Edebiyat öğretmenisin. Aşağıdaki kitap için hedef öğrenci kitlesinin seviyesine tam olarak uygun, okuduğunu anlama becerisini ölçecek 5 adet açık uçlu soru ve her birinin model cevabını hazırla.
 
 Kitap Adı: "${bookTitle}"
 Yazar: "${bookAuthor || 'Bilinmiyor'}"
+${levelText}
+
+${gradeInstruction}
 
 Yanıtını YALNIZCA geçerli bir JSON dizisi formatında ver. Kesinlikle başka hiçbir metin, açıklama veya markdown kodu (json codeblock vb.) yazma:
 [
@@ -281,9 +349,10 @@ Yanıtını YALNIZCA geçerli bir JSON dizisi formatında ver. Kesinlikle başka
     "answer": "Beklenen doğru cevap / açıklama..."
   }
 ]
+
 Kurallar:
-1. Sorular kitaptaki önemli olay örgüsü, ana karakterlerin özellikleri/motivasyonları, dönüm noktaları veya ana fikirle ilgili olmalıdır.
-2. Basit evet/hayır soruları sorma; öğrencinin okuduğunu kanıtlayacak belirleyici detaylar içersin.
+1. Sorular yukarıda belirtilen sınıf ve yaş düzeyinin bilişsel gelişim sınırlarına ve kelime hazinesine TAM UYMALIDIR.
+2. Basit evet/hayır soruları sorma; öğrencinin okuduğunu kanıtlayacak belirleyici detaylar içersin ancak öğrenciyi zorlayacak karmaşık felsefi veya edebi çıkarımlar sorma.
 3. Tam 5 adet soru-cevap çifti üret.`;
 
   const rawText = await window.callGeminiAPI(prompt, { json: true, temperature: 0.3 });
@@ -423,12 +492,20 @@ function openEditQuestionsModal(bookId, bookTitle, bookAuthor) {
   const state = stateManager.loadState();
   const book = state.books.library.find(b => b.id === bookId);
   if (!book) return;
+  currentEditBookLevel = book.level || 'seviye_1';
 
   // AI yükleme ve buton durumunu sıfırla
   const aiLoadingState = document.getElementById('ai-questions-loading-state');
   if (aiLoadingState) aiLoadingState.style.display = 'none';
   const btnAi = document.getElementById('btn-ai-generate-book-questions');
   if (btnAi) btnAi.disabled = false;
+
+  // Hedef sınıf seçimini öğretmenin mevcut sınıfına göre ayarla
+  const selectGrade = document.getElementById('select-ai-questions-grade');
+  if (selectGrade) {
+    const gradeInfo = getTargetGradeLevelInfo();
+    selectGrade.value = String(gradeInfo.gradeNum);
+  }
 
   const titleElem = document.getElementById('edit-questions-book-title');
   const authorElem = document.getElementById('edit-questions-book-author');
@@ -1482,16 +1559,22 @@ function setupBooksTab(showToast) {
       const container = document.getElementById('edit-questions-list-container');
       if (!container) return;
 
+      const selectGrade = document.getElementById('select-ai-questions-grade');
+      const chosenGrade = selectGrade ? parseInt(selectGrade.value, 10) : getTargetGradeLevelInfo().gradeNum;
+
       try {
         btnAiGenerateQuestions.disabled = true;
         if (aiLoadingState) {
           if (aiLoadingBookTitle) {
-            aiLoadingBookTitle.textContent = `Yapay zeka "${currentEditBookTitle}" kitabı için soruları hazırlıyor...`;
+            aiLoadingBookTitle.textContent = `Yapay zeka ${chosenGrade}. Sınıf seviyesine uygun olarak "${currentEditBookTitle}" kitabı için soruları hazırlıyor...`;
           }
           aiLoadingState.style.display = 'block';
         }
 
-        const generatedQuestions = await generateBookQuestionsWithAI(currentEditBookTitle, currentEditBookAuthor);
+        const generatedQuestions = await generateBookQuestionsWithAI(currentEditBookTitle, currentEditBookAuthor, {
+          gradeLevel: chosenGrade,
+          bookLevel: currentEditBookLevel || 'seviye_1'
+        });
 
         container.innerHTML = '';
         generatedQuestions.forEach(item => {
@@ -1499,7 +1582,7 @@ function setupBooksTab(showToast) {
         });
 
         if (toastCallback) {
-          toastCallback(`"${currentEditBookTitle}" kitabı için 5 adet soru hazırlandı! Kalıcı olması için lütfen Kaydet butonuna basın.`, 'success');
+          toastCallback(`"${currentEditBookTitle}" kitabı için ${chosenGrade}. Sınıf düzeyinde 5 adet soru hazırlandı! Kalıcı olması için lütfen Kaydet butonuna basın.`, 'success');
         }
       } catch (err) {
         console.error('Yapay Zeka Soru Üretim Hatası:', err);
@@ -1545,9 +1628,11 @@ function setupBooksTab(showToast) {
         return;
       }
 
+      const gradeInfo = getTargetGradeLevelInfo();
+
       const confirmed = confirm(
         `Kütüphanenizde henüz özel sorusu bulunmayan ${targetBooks.length} adet kitap tespit edildi.\n\n` +
-        `Yapay zeka her biri için 5'er adet okuduğunu anlama sorusu ve cevabı hazırlayıp kaydedecektir.\n` +
+        `Yapay zeka her biri için ${gradeInfo.gradeNum}. Sınıf düzeyine uygun 5'er adet okuduğunu anlama sorusu ve cevabı hazırlayıp kaydedecektir.\n` +
         `İşlemi başlatmak istiyor musunuz?`
       );
       if (!confirmed) return;
@@ -1561,11 +1646,14 @@ function setupBooksTab(showToast) {
       for (let i = 0; i < targetBooks.length; i++) {
         const book = targetBooks[i];
         if (toastCallback) {
-          toastCallback(`[${i + 1}/${targetBooks.length}] "${book.title}" için sorular hazırlanıyor...`, 'info');
+          toastCallback(`[${i + 1}/${targetBooks.length}] "${book.title}" için ${gradeInfo.gradeNum}. Sınıf düzeyinde sorular hazırlanıyor...`, 'info');
         }
 
         try {
-          const qs = await generateBookQuestionsWithAI(book.title, book.author);
+          const qs = await generateBookQuestionsWithAI(book.title, book.author, {
+            gradeLevel: gradeInfo.gradeNum,
+            bookLevel: book.level || 'seviye_1'
+          });
           const res = stateManager.updateBookQuestions(book.id, qs);
           if (res && res.success) {
             successCount++;
@@ -2071,22 +2159,28 @@ function renderBooksList() {
         const activeTxForBook = state.books.transactions.find(t => t.bookId === book.id && t.status === 'reading');
         const isReading = !!activeTxForBook;
         const isSelected = selectedBookIds.has(book.id);
-        const isLevel2 = book.level === 'seviye_2';
-        const levelBadgeHtml = isLevel2
-          ? `<span class="badge" style="font-size: 0.68rem; font-weight: 700; background: rgba(147, 51, 234, 0.12); color: #9333ea; border: 1px solid rgba(147, 51, 234, 0.25); padding: 0.15rem 0.45rem; border-radius: 4px;">2. Seviye (İleri)</span>`
-          : `<span class="badge" style="font-size: 0.68rem; font-weight: 700; background: rgba(16, 185, 129, 0.12); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.25); padding: 0.15rem 0.45rem; border-radius: 4px;">1. Seviye (Kolay)</span>`;
+        const levelNumber = book.level === 'seviye_2' ? '2' : '1';
         
-        let readerNameBadge = '';
-        if (activeTxForBook) {
-          const student = state.students.find(s => s.id === activeTxForBook.studentId);
-          if (student) {
-            const readerName = `${student.name} ${student.surname}`;
-            readerNameBadge = `<div class="book-reader-badge" style="position: absolute; top: 8px; left: ${isBulkDeleteMode ? '36px' : '8px'}; right: 38px; background: rgba(15, 23, 42, 0.8); color: #fff; padding: 0.25rem 0.4rem; border-radius: var(--radius-sm); font-size: 0.65rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: center;" title="${readerName}">${readerName}</div>`;
+        let readingTopHtml = '';
+        if (isReading) {
+          let readerName = '';
+          if (activeTxForBook) {
+            const student = state.students.find(s => s.id === activeTxForBook.studentId);
+            if (student) {
+              readerName = `${student.name} ${student.surname}`;
+            }
           }
+          readingTopHtml = `
+            <div class="book-cover-top-status">
+              <span class="book-cover-status-badge">OKUNUYOR</span>
+              ${readerName ? `<span class="book-cover-reader-name" title="${readerName}">${readerName}</span>` : ''}
+            </div>
+          `;
         }
         
         const card = document.createElement('div');
         card.className = `glass-card book-card ${isSelected ? 'book-card-selected' : ''}`;
+        card.style.cursor = 'pointer';
         if (isSelected) {
           card.style.borderColor = 'var(--danger)';
           card.style.boxShadow = '0 0 0 2px rgba(239, 68, 68, 0.3)';
@@ -2100,65 +2194,57 @@ function renderBooksList() {
 
         card.innerHTML = `
           ${bulkCheckboxHtml}
-          <div class="book-card-actions">
-            <button type="button" class="action-btn-sm delete delete-book-card-btn" title="Bu Kitabı Sil" data-id="${book.id}">
-              <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i>
-            </button>
+          <div class="book-cover" style="background: ${isReading ? 'linear-gradient(135deg, #d97706 0%, #b45309 100%)' : 'linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%)'}; position: relative;">
+            ${readingTopHtml}
+            <i data-lucide="book" class="book-cover-main-icon"></i>
+            <div class="book-cover-bottom-bar">
+              <button type="button" class="book-cover-btn edit edit-book-card-btn" title="Kitap Bilgilerini Düzenle" data-id="${book.id}">
+                <i data-lucide="edit-3"></i>
+              </button>
+              <button type="button" class="book-cover-btn delete delete-book-card-btn" title="Bu Kitabı Sil" data-id="${book.id}">
+                <i data-lucide="trash-2"></i>
+              </button>
+              <span class="book-cover-level-badge level-${levelNumber}" title="${levelNumber}. Seviye">${levelNumber}</span>
+            </div>
           </div>
-          <div class="book-cover" style="background: ${isReading ? 'linear-gradient(135deg, var(--warning) 0%, #d97706 100%)' : 'linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%)'}; position: relative;">
-            ${readerNameBadge}
-            <i data-lucide="book"></i>
-            ${isReading ? '<span style="position: absolute; bottom: 8px; font-size: 0.65rem; background: rgba(0,0,0,0.5); padding: 0.1rem 0.5rem; border-radius: 4px; font-weight: 700;">OKUNUYOR</span>' : ''}
-          </div>
-          <div class="book-title book-title-question-link" data-book-id="${book.id}" title="Kitap Sorularını Gör" style="cursor: pointer;">${book.title}</div>
-          <div class="book-author">${book.author}</div>
-          <div class="book-pages" style="margin-bottom: 0.4rem; display: flex; justify-content: space-between; align-items: center; gap: 0.5rem;">
+          <div class="book-title" title="${book.title}" style="font-weight: 700;">${book.title}</div>
+          <div class="book-author" style="color: var(--text-muted); font-size: 0.8rem; margin-bottom: 0.35rem;">${book.author}</div>
+          <div class="book-pages" style="display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; font-size: 0.75rem; color: var(--text-secondary); margin-top: auto; padding-top: 0.4rem; border-top: 1px dashed var(--border-color);">
             <span style="font-weight: 600;">No: ${book.bookNo || '-'}</span>
             <span>${book.pages} Sayfa</span>
           </div>
-          <div style="margin-bottom: 0.75rem; display: flex; align-items: center;">
-            ${levelBadgeHtml}
-          </div>
-          <div class="book-actions-footer" style="margin-top: auto; display: flex; gap: 0.35rem; width: 100%; border-top: 1px solid var(--border-color); padding-top: 0.65rem; justify-content: space-between;">
-            <button type="button" class="action-btn-sm view-questions-action" title="Soruları Gör" style="flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 0.2rem; font-size: 0.72rem; font-weight: 600; padding: 0.35rem 0.4rem; border-radius: var(--radius-sm); border: 1px solid rgba(79, 70, 229, 0.2); background: rgba(79, 70, 229, 0.05); color: var(--primary); cursor: pointer;">
-              <i data-lucide="help-circle" style="width: 13px; height: 13px;"></i> Sorular
-            </button>
-            <button type="button" class="action-btn-sm edit-book-action" title="Kitap Bilgilerini Düzenle" style="flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 0.2rem; font-size: 0.72rem; font-weight: 600; padding: 0.35rem 0.4rem; border-radius: var(--radius-sm); border: 1px solid rgba(245, 158, 11, 0.25); background: rgba(245, 158, 11, 0.05); color: var(--warning); cursor: pointer;">
-              <i data-lucide="edit-3" style="width: 13px; height: 13px;"></i> Düzenle
-            </button>
-            <button type="button" class="action-btn-sm delete-book-action" title="Kitabı Sil" style="display: inline-flex; align-items: center; justify-content: center; padding: 0.35rem 0.5rem; border-radius: var(--radius-sm); border: 1px solid rgba(239, 68, 68, 0.3); background: rgba(239, 68, 68, 0.06); color: var(--danger); cursor: pointer;">
-              <i data-lucide="trash-2" style="width: 13px; height: 13px;"></i>
-            </button>
-          </div>
         `;
 
-        // Soruları Gör
-        card.querySelector('.view-questions-action').addEventListener('click', (e) => {
-          e.preventDefault();
+        // Kartın kendisine tıklandığında soruları aç
+        card.addEventListener('click', (e) => {
+          if (e.target.closest('.delete-book-card-btn') || 
+              e.target.closest('.edit-book-card-btn') || 
+              e.target.closest('.book-select-checkbox-container') ||
+              e.target.closest('.lock-overlay')) {
+            return;
+          }
           openBookQuestionsModal(book.id, book.title, book.author);
         });
 
-        // Başlığa tıklandığında soruları gör
-        card.querySelector('.book-title-question-link').addEventListener('click', (e) => {
-          e.preventDefault();
-          openBookQuestionsModal(book.id, book.title, book.author);
-        });
+        // Kitap Düzenle (Sol üst buton)
+        const topEditBtn = card.querySelector('.edit-book-card-btn');
+        if (topEditBtn) {
+          topEditBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            openEditBookModal(book.id);
+          });
+        }
 
-        // Kitap Düzenle
-        card.querySelector('.edit-book-action').addEventListener('click', (e) => {
-          e.preventDefault();
-          openEditBookModal(book.id);
-        });
-
-        // Kitap Sil (Alt buton ve Sağ üst buton)
-        const handleDelete = (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          confirmAndDeleteBook(book);
-        };
-        card.querySelector('.delete-book-action').addEventListener('click', handleDelete);
+        // Kitap Sil (Sağ üst buton)
         const topDeleteBtn = card.querySelector('.delete-book-card-btn');
-        if (topDeleteBtn) topDeleteBtn.addEventListener('click', handleDelete);
+        if (topDeleteBtn) {
+          topDeleteBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            confirmAndDeleteBook(book);
+          });
+        }
 
         // Toplu seçim onay kutusu
         if (isBulkDeleteMode) {

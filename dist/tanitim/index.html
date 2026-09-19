@@ -1797,8 +1797,17 @@
               const btn = document.getElementById('tanitim-btn-exe');
               if (btn) btn.href = url;
             } else if (name.endsWith('.dmg')) {
-              const btn = document.getElementById('tanitim-btn-dmg');
-              if (btn) btn.href = url;
+              const btnArm = document.getElementById('tanitim-btn-dmg');
+              const btnIntel = document.getElementById('tanitim-btn-dmg-intel');
+              
+              if (name.includes('aarch64') || name.includes('arm64') || name.includes('apple-silicon')) {
+                if (btnArm) btnArm.href = url;
+              } else if (name.includes('x64') || name.includes('x86_64') || name.includes('intel')) {
+                if (btnIntel) btnIntel.href = url;
+              } else {
+                if (btnArm) btnArm.href = url;
+                if (btnIntel) btnIntel.href = url;
+              }
             } else if (name.endsWith('.appimage')) {
               const btn = document.getElementById('tanitim-btn-appimage');
               if (btn) btn.href = url;
@@ -2222,8 +2231,17 @@
             <p style="font-size: 0.78rem; color: #cbd5e1; margin-bottom: 0.85rem; line-height: 1.4;">Apple Silicon (M1/M2/M3/M4) ve Intel işlemcili Mac'ler için.</p>
           </div>
           <div>
-            <a id="tanitim-btn-dmg" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/latest/download/sinif-asistani_1.0.15_aarch64.dmg" target="_blank" style="background: #8b5cf6; color: #fff; text-decoration: none; text-align: center; padding: 0.55rem; border-radius: 8px; font-weight: 700; font-size: 0.82rem; display: block;">Mac (.dmg) İndir</a>
-            <button type="button" onclick="window.openMacInstallHelpModal()" style="width: 100%; margin-top: 0.5rem; background: rgba(139, 92, 246, 0.15); border: 1px dashed rgba(139, 92, 246, 0.5); color: #c4b5fd; font-size: 0.76rem; font-weight: 600; padding: 0.4rem 0.5rem; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.35rem; transition: all 0.2s ease; font-family: inherit;">
+            <div style="display: flex; gap: 0.4rem; margin-bottom: 0.4rem;">
+              <a id="tanitim-btn-dmg" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/latest/download/sinif-asistani_1.0.18_aarch64.dmg" target="_blank" style="flex: 1.1; background: #8b5cf6; color: #fff; text-decoration: none; text-align: center; padding: 0.5rem 0.3rem; border-radius: 8px; font-weight: 700; font-size: 0.78rem; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.1rem;">
+                <span>🍏 Apple Silicon</span>
+                <small style="font-size: 0.65rem; opacity: 0.9; font-weight: normal;">(M1 / M2 / M3 / M4)</small>
+              </a>
+              <a id="tanitim-btn-dmg-intel" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/latest/download/sinif-asistani_1.0.18_x64.dmg" target="_blank" style="flex: 0.9; background: rgba(255,255,255,0.08); border: 1px solid rgba(139,92,246,0.5); color: #fff; text-decoration: none; text-align: center; padding: 0.5rem 0.3rem; border-radius: 8px; font-weight: 700; font-size: 0.78rem; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.1rem;">
+                <span>💻 Intel Mac</span>
+                <small style="font-size: 0.65rem; color: #cbd5e1; font-weight: normal;">(Eski Modeller)</small>
+              </a>
+            </div>
+            <button type="button" onclick="window.openMacInstallHelpModal()" style="width: 100%; margin-top: 0.25rem; background: rgba(139, 92, 246, 0.15); border: 1px dashed rgba(139, 92, 246, 0.5); color: #c4b5fd; font-size: 0.76rem; font-weight: 600; padding: 0.4rem 0.5rem; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.35rem; transition: all 0.2s ease; font-family: inherit;">
               ⚠️ Mac Açılış Hatası Çözümü
             </button>
           </div>
