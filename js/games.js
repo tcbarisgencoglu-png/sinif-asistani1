@@ -529,6 +529,7 @@
     // 2. Sub-tab navigation inside quiz
     const navButtons = {
       play: document.getElementById("game-quiz-nav-play"),
+      pool: document.getElementById("game-quiz-nav-pool"),
       admin: document.getElementById("game-quiz-nav-admin"),
       leaderboard: document.getElementById("game-quiz-nav-leaderboard")
     };
@@ -1063,8 +1064,9 @@
         document.getElementById("game-active-layout").style.display = "none";
         resetRaffleUI();
       }
-    } else if (tabName === "admin") {
+    } else if (tabName === "pool") {
       renderQuestionLibrary();
+    } else if (tabName === "admin") {
       // Set Student Source count badge
       const currentList = getQuizStudents();
       const studentBadge = document.getElementById("quiz-student-count-badge");
@@ -1076,6 +1078,31 @@
     }
     window.safeCreateIcons();
   }
+
+  // Soru Havuzu: Dosyadan Yükleme ve Manuel Soru Formu Aç/Kapat Mantığı
+  window.toggleQuizAddSection = function(method) {
+    const importSection = document.getElementById("section-quiz-file-import");
+    const manualSection = document.getElementById("question-form-card");
+    const btnImport = document.getElementById("btn-toggle-method-import");
+    const btnManual = document.getElementById("btn-toggle-method-manual");
+
+    if (method === "import") {
+      const isHidden = !importSection || importSection.style.display === "none";
+      if (importSection) importSection.style.display = isHidden ? "block" : "none";
+      if (manualSection && isHidden) manualSection.style.display = "none";
+      if (btnImport) btnImport.innerHTML = isHidden ? '<i data-lucide="x" style="width:14px;height:14px;"></i> Paneli Kapat' : '<i data-lucide="file-up" style="width:14px;height:14px;"></i> Dosya Yükleme Paneli';
+      if (btnManual) btnManual.innerHTML = '<i data-lucide="plus-circle" style="width:14px;height:14px;"></i> Soru Yazma Formu';
+      if (isHidden && importSection) importSection.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    } else if (method === "manual") {
+      const isHidden = !manualSection || manualSection.style.display === "none";
+      if (manualSection) manualSection.style.display = isHidden ? "block" : "none";
+      if (importSection && isHidden) importSection.style.display = "none";
+      if (btnManual) btnManual.innerHTML = isHidden ? '<i data-lucide="x" style="width:14px;height:14px;"></i> Formu Kapat' : '<i data-lucide="plus-circle" style="width:14px;height:14px;"></i> Soru Yazma Formu';
+      if (btnImport) btnImport.innerHTML = '<i data-lucide="file-up" style="width:14px;height:14px;"></i> Dosya Yükleme Paneli';
+      if (isHidden && manualSection) manualSection.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+    window.safeCreateIcons();
+  };
 
   function populateCategorySelectors() {
     const categories = [...new Set(questions.map(q => q.category || "Genel"))].sort();
@@ -2242,77 +2269,234 @@
     }
   }
 
-  // Question CRUD Operations
+  // Question CRUD Operations (Paketler & Akordeon Yapısı)
   function renderQuestionLibrary() {
-    const tbody = document.getElementById("question-list-body");
-    if (!tbody) return;
-    tbody.innerHTML = "";
-    
-    document.getElementById("question-count-badge").textContent = `${questions.length} Soru`;
-    
-    if (questions.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: var(--text-muted); padding: 30px;">Kütüphanede henüz soru yok. Hemen ekleyin veya bir dosya yükleyin!</td></tr>`;
-      return;
+    const pkgContainer = document.getElementById("quiz-packages-container");
+    const countBadge = document.getElementById("question-count-badge");
+    if (countBadge) {
+      countBadge.textContent = `${questions.length} Soru`;
     }
     
+    if (!pkgContainer) return;
+    pkgContainer.innerHTML = "";
+
+    if (questions.length === 0) {
+      pkgContainer.innerHTML = `
+        <div class="glass-card" style="text-align: center; padding: 2.5rem 1.5rem; color: var(--text-muted);">
+          <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">📦</div>
+          <h4 style="font-weight: 700; color: var(--text-primary); margin-bottom: 0.35rem;">Soru Havuzu Boş</h4>
+          <p style="font-size: 0.88rem; margin: 0;">Henüz sisteme eklenmiş bir soru paketi bulunmuyor. Yukarıdaki <strong>Yapay Zeka</strong>, <strong>Dosyadan Yükle</strong> veya <strong>Manuel Yaz</strong> kartlarından birini seçerek hemen soru ekleyebilirsiniz.</p>
+        </div>
+      `;
+      return;
+    }
+
     const filterSelect = document.getElementById("library-category-filter");
     const filterCat = filterSelect ? filterSelect.value : "all";
-    
-    const filteredQuestions = filterCat === "all" 
-      ? questions 
-      : questions.filter(q => (q.category || "Genel") === filterCat);
-        
-    if (filteredQuestions.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: var(--text-muted); padding: 20px;">Bu kategoride soru bulunamadı.</td></tr>`;
+
+    // Soruları konu başlıklarına (paketlerine) göre grupla
+    const grouped = {};
+    questions.forEach(q => {
+      const cat = (q.category || "Genel").trim() || "Genel";
+      if (!grouped[cat]) grouped[cat] = [];
+      grouped[cat].push(q);
+    });
+
+    const categoryNames = Object.keys(grouped).sort();
+    const filteredCategories = filterCat === "all" 
+      ? categoryNames 
+      : categoryNames.filter(cat => cat === filterCat);
+
+    if (filteredCategories.length === 0) {
+      pkgContainer.innerHTML = `
+        <div class="glass-card" style="text-align: center; padding: 2rem; color: var(--text-muted);">
+          <p style="margin: 0; font-size: 0.9rem;">"${escapeHTML(filterCat)}" paketinde soru bulunamadı.</p>
+        </div>
+      `;
       return;
     }
-    
-    filteredQuestions.forEach((q) => {
-      const tr = document.createElement("tr");
-      
-      const qType = q.type || "tf";
-      const typeBadge = qType === "tf" 
-        ? `<span class="badge" style="background: rgba(79, 70, 229, 0.1); color: var(--primary);">D/Y</span>`
-        : qType === "mc"
-          ? `<span class="badge" style="background: rgba(16, 185, 129, 0.1); color: var(--success);">Ç.S.</span>`
-          : `<span class="badge" style="background: rgba(245, 158, 11, 0.1); color: var(--warning);">B.D.</span>`;
-          
-      const categoryBadge = `<span class="badge" style="background: rgba(0,0,0,0.03); color: var(--text-secondary);">${escapeHTML(q.category || 'Genel')}</span>`;
-      
-      let answerBadge = "";
-      if (qType === "tf") {
-        answerBadge = q.answer 
-          ? `<span class="badge" style="background: var(--success-light); color: var(--success);">Doğru</span>` 
-          : `<span class="badge" style="background: var(--danger-light); color: var(--danger);">Yanlış</span>`;
-      } else {
-        const letters = ["A", "B", "C", "D", "E"];
-        const correctOptIdx = parseInt(q.answer);
-        const correctOptVal = q.options ? q.options[correctOptIdx] : "";
-        answerBadge = `<span class="badge" style="background: var(--success-light); color: var(--success);" title="${escapeHTML(correctOptVal)}">${letters[correctOptIdx]} Seçeneği</span>`;
-      }
-          
-      const imageCell = q.image && q.image.trim().length > 0 
-        ? `<img class="table-img-thumbnail" src="${q.image}">` 
-        : `<span class="table-img-empty">—</span>`;
-          
-      tr.innerHTML = `
-        <td>#${q.id}</td>
-        <td>${typeBadge}</td>
-        <td>${categoryBadge}</td>
-        <td>${imageCell}</td>
-        <td style="font-weight: 500; color: var(--text-primary);">${escapeHTML(q.text)}</td>
-        <td>${answerBadge}</td>
-        <td style="color: var(--text-secondary); font-style: italic;">${escapeHTML(q.explanation || '-')}</td>
-        <td>
-          <div class="actions-cell">
-            <button class="btn-table-edit" onclick="editQuestion(${q.id})">Düzenle</button>
-            <button class="btn-table-delete" onclick="deleteQuestion(${q.id})">Sil</button>
+
+    filteredCategories.forEach((catName, index) => {
+      const catQuestions = grouped[catName];
+      const safeId = "pkg_" + catName.replace(/[^a-zA-Z0-9]/g, "_") + "_" + index;
+
+      // Tür istatistikleri
+      const tfCount = catQuestions.filter(q => q.type === "tf").length;
+      const mcCount = catQuestions.filter(q => q.type === "mc").length;
+      const fibCount = catQuestions.filter(q => q.type === "fib").length;
+
+      const typeBadges = [];
+      if (tfCount > 0) typeBadges.push(`<span class="badge" style="background: rgba(59, 130, 246, 0.12); color: #3b82f6;">${tfCount} D/Y</span>`);
+      if (mcCount > 0) typeBadges.push(`<span class="badge" style="background: rgba(139, 92, 246, 0.12); color: #8b5cf6;">${mcCount} Çoktan Seçmeli</span>`);
+      if (fibCount > 0) typeBadges.push(`<span class="badge" style="background: rgba(16, 185, 129, 0.12); color: #10b981;">${fibCount} Boşluk Doldurma</span>`);
+
+      // Soru satırları HTML'i
+      let questionsRowsHtml = "";
+      catQuestions.forEach((q, qIdx) => {
+        const qType = q.type || "tf";
+        const typeBadge = qType === "tf" 
+          ? `<span class="badge" style="background: rgba(59, 130, 246, 0.15); color: #3b82f6; font-weight: 700;">D/Y</span>`
+          : qType === "mc"
+            ? `<span class="badge" style="background: rgba(139, 92, 246, 0.15); color: #8b5cf6; font-weight: 700;">Ç.S.</span>`
+            : `<span class="badge" style="background: rgba(16, 185, 129, 0.15); color: #10b981; font-weight: 700;">B.D.</span>`;
+
+        let answerHtml = "";
+        if (qType === "tf") {
+          answerHtml = q.answer 
+            ? `<span class="badge" style="background: rgba(16, 185, 129, 0.15); color: #10b981; font-weight: 600;">✓ Doğru</span>` 
+            : `<span class="badge" style="background: rgba(239, 68, 68, 0.15); color: #ef4444; font-weight: 600;">✗ Yanlış</span>`;
+        } else if (qType === "mc") {
+          const letters = ["A", "B", "C", "D", "E"];
+          const correctOptIdx = parseInt(q.answer);
+          const correctOptVal = q.options ? q.options[correctOptIdx] : "";
+          answerHtml = `<span class="badge" style="background: rgba(16, 185, 129, 0.15); color: #10b981; font-weight: 600;" title="${escapeHTML(correctOptVal || '')}">${letters[correctOptIdx] || 'A'}) ${escapeHTML(correctOptVal || '')}</span>`;
+        } else if (qType === "fib") {
+          const correctVal = q.options ? q.options[0] : "";
+          answerHtml = `<span class="badge" style="background: rgba(6, 182, 212, 0.15); color: #06b6d4; font-weight: 600;">✓ ${escapeHTML(correctVal || '')}</span>`;
+        }
+
+        const imageHtml = q.image && q.image.trim().length > 0
+          ? `<img src="${q.image}" style="max-height: 38px; border-radius: 4px; vertical-align: middle;">`
+          : "";
+
+        questionsRowsHtml += `
+          <tr class="quiz-pkg-q-row">
+            <td style="width: 45px; text-align: center; color: var(--text-muted); font-size: 0.78rem;">#${qIdx + 1}</td>
+            <td style="width: 65px;">${typeBadge}</td>
+            <td style="font-weight: 500; color: var(--text-primary); line-height: 1.45;">
+              ${imageHtml ? `<div style="margin-bottom: 4px;">${imageHtml}</div>` : ''}
+              ${escapeHTML(q.text)}
+              ${q.explanation ? `<div style="font-size: 0.78rem; color: var(--text-secondary); margin-top: 3px; font-style: italic;">💡 ${escapeHTML(q.explanation)}</div>` : ''}
+            </td>
+            <td style="width: 170px;">${answerHtml}</td>
+            <td style="width: 110px; text-align: right;">
+              <div style="display: inline-flex; gap: 4px;">
+                <button type="button" class="btn btn-secondary btn-xs" onclick="window.editQuestion(${q.id})" title="Düzenle">
+                  <i data-lucide="edit-2" style="width:13px;height:13px;"></i>
+                </button>
+                <button type="button" class="btn btn-danger btn-xs" onclick="window.deleteQuestion(${q.id})" title="Sil">
+                  <i data-lucide="trash-2" style="width:13px;height:13px;"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        `;
+      });
+
+      const pkgCard = document.createElement("div");
+      pkgCard.className = "quiz-package-card";
+      pkgCard.id = `card-${safeId}`;
+
+      pkgCard.innerHTML = `
+        <div class="quiz-package-header" onclick="window.toggleQuizPackage('${safeId}')">
+          <div class="quiz-package-left">
+            <div class="quiz-package-icon">
+              <i data-lucide="folder" style="width: 22px; height: 22px;"></i>
+            </div>
+            <div>
+              <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                <h4 class="quiz-package-title">${escapeHTML(catName)}</h4>
+                <span class="quiz-package-count-badge">${catQuestions.length} Soru</span>
+              </div>
+              <div class="quiz-package-badges-row">
+                ${typeBadges.join(" ")}
+              </div>
+            </div>
           </div>
-        </td>
+
+          <div class="quiz-package-right" onclick="event.stopPropagation()">
+            <button type="button" class="btn btn-primary btn-sm" onclick="window.startQuizWithPackage('${escapeHTML(catName)}')" style="display: inline-flex; align-items: center; gap: 0.3rem;">
+              <i data-lucide="play" style="width: 13px; height: 13px;"></i> Bu Paketle Yarış
+            </button>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="window.deleteQuizPackage('${escapeHTML(catName)}')" style="display: inline-flex; align-items: center; gap: 0.3rem; color: #ef4444;" title="Bu paketteki tüm soruları sil">
+              <i data-lucide="trash-2" style="width: 13px; height: 13px;"></i> Paketi Sil
+            </button>
+            <div class="quiz-package-chevron-box" onclick="window.toggleQuizPackage('${safeId}')" style="cursor: pointer;">
+              <i data-lucide="chevron-down" id="chevron-${safeId}" style="width: 20px; height: 20px; transition: transform 0.2s;"></i>
+            </div>
+          </div>
+        </div>
+
+        <div class="quiz-package-body" id="body-${safeId}" style="display: none;">
+          <div style="overflow-x: auto;">
+            <table class="table" style="font-size: 0.85rem; width: 100%; margin: 0;">
+              <thead>
+                <tr style="background: rgba(0,0,0,0.02);">
+                  <th style="width: 45px; text-align: center;">No</th>
+                  <th style="width: 65px;">Tip</th>
+                  <th>Soru & Açıklama</th>
+                  <th style="width: 170px;">Doğru Cevap</th>
+                  <th style="width: 110px; text-align: right;">İşlemler</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${questionsRowsHtml}
+              </tbody>
+            </table>
+          </div>
+        </div>
       `;
-      tbody.appendChild(tr);
+
+      pkgContainer.appendChild(pkgCard);
     });
+
+    window.safeCreateIcons();
   }
+
+  // Paket Akordeon Fonksiyonları
+  window.toggleQuizPackage = function(safeId) {
+    const body = document.getElementById(`body-${safeId}`);
+    const chevron = document.getElementById(`chevron-${safeId}`);
+    if (!body) return;
+    const isClosed = body.style.display === "none";
+    body.style.display = isClosed ? "block" : "none";
+    if (chevron) {
+      chevron.style.transform = isClosed ? "rotate(180deg)" : "rotate(0deg)";
+    }
+  };
+
+  let _allPackagesExpanded = false;
+  window.toggleAllQuizPackages = function() {
+    _allPackagesExpanded = !_allPackagesExpanded;
+    document.querySelectorAll(".quiz-package-body").forEach(el => {
+      el.style.display = _allPackagesExpanded ? "block" : "none";
+    });
+    document.querySelectorAll(".quiz-package-chevron-box i").forEach(el => {
+      el.style.transform = _allPackagesExpanded ? "rotate(180deg)" : "rotate(0deg)";
+    });
+    const btn = document.getElementById("btn-toggle-all-packages");
+    if (btn) {
+      btn.innerHTML = _allPackagesExpanded 
+        ? '<i data-lucide="chevrons-up" style="width: 14px; height: 14px;"></i> Tümünü Kapat'
+        : '<i data-lucide="chevrons-up-down" style="width: 14px; height: 14px;"></i> Tümünü Aç / Kapat';
+    }
+    window.safeCreateIcons();
+  };
+
+  window.startQuizWithPackage = function(catName) {
+    const setupCat = document.getElementById("setup-category");
+    if (setupCat) {
+      setupCat.value = catName;
+    }
+    switchQuizSubTab("play");
+    const setupContainer = document.getElementById("game-setup-container");
+    if (setupContainer) setupContainer.scrollIntoView({ behavior: "smooth" });
+  };
+
+  window.deleteQuizPackage = function(catName) {
+    if (confirm(`"${catName}" paketindeki TÜM soruları (${questions.filter(q => (q.category || "Genel") === catName).length} soru) silmek istediğinize emin misiniz?`)) {
+      questions = questions.filter(q => (q.category || "Genel") !== catName);
+      saveQuestions();
+      populateCategorySelectors();
+      renderQuestionLibrary();
+      if (typeof showNotification === "function") {
+        showNotification(`"${catName}" paketi silindi.`, "info");
+      } else if (toastCallback) {
+        toastCallback(`"${catName}" paketi silindi.`, "info");
+      }
+    }
+  };
+
 
   function toggleFormQuestionType(type) {
     if (type === "tf") {
@@ -2469,6 +2653,13 @@
     document.getElementById("btn-submit-question").textContent = "Güncelleştirmeyi Kaydet";
     document.getElementById("btn-cancel-edit").style.display = "inline-block";
     
+    // Düzenleme sırasında formu otomatik aç
+    const formCard = document.getElementById("question-form-card");
+    if (formCard) formCard.style.display = "block";
+    const btnManual = document.getElementById("btn-toggle-method-manual");
+    if (btnManual) btnManual.innerHTML = '<i data-lucide="x" style="width:14px;height:14px;"></i> Formu Kapat';
+    window.safeCreateIcons();
+
     document.getElementById("question-form-card").scrollIntoView({ behavior: 'smooth' });
   }
 

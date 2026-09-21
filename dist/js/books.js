@@ -1484,7 +1484,9 @@ function setupBooksTab(showToast) {
   const aiLoadingBookTitle = document.getElementById('ai-loading-book-title');
 
   function openGeminiKeyModal() {
-    if (modalGeminiKeySetup && inputModalGeminiApiKey) {
+    if (window.navigateToConfigAI) {
+      window.navigateToConfigAI();
+    } else if (modalGeminiKeySetup && inputModalGeminiApiKey) {
       inputModalGeminiApiKey.value = getGeminiApiKey();
       modalGeminiKeySetup.classList.add('active');
       window.safeCreateIcons();

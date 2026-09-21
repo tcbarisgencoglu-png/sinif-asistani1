@@ -174,12 +174,19 @@ Boşluk Doldurma (fib):
       rawText = typeof response === "string" ? response : (response?.text || "");
     } catch (err) {
       if (err.message === "NO_API_KEY") {
-        // API anahtarı yok — kurulum modalını aç
+        // API anahtarı yok — Ayarlar Yapay Zeka sekmesine yönlendir
         window.closeQuizAIGeneratorModal();
-        const keyModal = document.getElementById("modal-gemini-key-setup");
-        if (keyModal) {
-          keyModal.classList.add("active");
-          keyModal.style.display = "flex";
+        if (window.navigateToConfigAI) {
+          window.navigateToConfigAI();
+        } else {
+          const keyModal = document.getElementById("modal-gemini-key-setup");
+          if (keyModal) {
+            keyModal.classList.add("active");
+            keyModal.style.display = "flex";
+          }
+        }
+        if (window.showToast) {
+          window.showToast("Yapay zeka ile soru hazırlamak için lütfen Google Gemini API anahtarınızı tanımlayın.", "warning");
         }
         return null;
       }

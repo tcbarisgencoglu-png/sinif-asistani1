@@ -1237,3 +1237,325 @@
   flex-shrink: 0;
 }
 @keyframes aiSpin { to { transform: rotate(360deg); } }
+
+/* ─── Soru Havuzu Yöntem Seçim Kartları ───────────────────────────────── */
+.quiz-methods-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.25rem;
+  margin-top: 0.5rem;
+}
+
+@media (max-width: 900px) {
+  .quiz-methods-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+}
+
+.quiz-method-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  cursor: pointer;
+  transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.quiz-method-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  border-color: var(--primary);
+}
+
+.quiz-method-ai {
+  border-color: rgba(139, 92, 246, 0.35);
+  background: linear-gradient(145deg, rgba(139, 92, 246, 0.06), rgba(6, 182, 212, 0.04));
+}
+
+.quiz-method-ai:hover {
+  border-color: #8b5cf6;
+  box-shadow: 0 8px 28px rgba(139, 92, 246, 0.2);
+}
+
+.quiz-method-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.85rem;
+}
+
+.quiz-method-badge-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.quiz-method-name {
+  font-size: 1.05rem;
+  font-weight: 700;
+  margin: 0 0 0.4rem 0;
+  color: var(--text-primary);
+}
+
+.quiz-method-desc {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  line-height: 1.45;
+  margin: 0 0 1.25rem 0;
+  flex: 1;
+}
+
+.quiz-collapsible-card {
+  border: 1px solid var(--primary-light, rgba(79, 70, 229, 0.25)) !important;
+  animation: slideDownFade 0.25s ease-out;
+}
+
+@keyframes slideDownFade {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ─── Yeni Görsel Soru Hazırlama Hero Kartları ──────────────────────────── */
+.quiz-method-hero-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  padding: 1.5rem 1.35rem;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.quiz-method-hero-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.1);
+}
+
+.quiz-hero-ai {
+  border-color: rgba(139, 92, 246, 0.45);
+  background: linear-gradient(155deg, rgba(139, 92, 246, 0.08), rgba(6, 182, 212, 0.05));
+}
+.quiz-hero-ai:hover {
+  border-color: #8b5cf6;
+  box-shadow: 0 12px 30px rgba(139, 92, 246, 0.25);
+}
+
+.quiz-hero-import {
+  border-color: rgba(59, 130, 246, 0.35);
+  background: linear-gradient(155deg, rgba(59, 130, 246, 0.08), rgba(99, 102, 241, 0.04));
+}
+.quiz-hero-import:hover {
+  border-color: #3b82f6;
+  box-shadow: 0 12px 30px rgba(59, 130, 246, 0.2);
+}
+
+.quiz-hero-manual {
+  border-color: rgba(16, 185, 129, 0.35);
+  background: linear-gradient(155deg, rgba(16, 185, 129, 0.08), rgba(5, 150, 105, 0.04));
+}
+.quiz-hero-manual:hover {
+  border-color: #10b981;
+  box-shadow: 0 12px 30px rgba(16, 185, 129, 0.2);
+}
+
+.quiz-hero-badge {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  padding: 0.2rem 0.6rem;
+  border-radius: 6px;
+  background: rgba(139, 92, 246, 0.18);
+  color: #8b5cf6;
+}
+
+.quiz-hero-icon-box {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1.1rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+}
+
+.quiz-hero-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin: 0 0 0.45rem 0;
+  color: var(--text-primary);
+}
+
+.quiz-hero-desc {
+  font-size: 0.83rem;
+  color: var(--text-secondary);
+  line-height: 1.45;
+  margin: 0 0 1rem 0;
+}
+
+.quiz-hero-features {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 1.25rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.quiz-hero-features li {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+/* ─── Soru Havuzu Paket Kartları (Akordeon) ────────────────────────────── */
+.quiz-package-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  overflow: hidden;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+}
+
+.quiz-package-card:hover {
+  border-color: var(--primary-light, rgba(79, 70, 229, 0.4));
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
+}
+
+.quiz-package-header {
+  padding: 1rem 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  cursor: pointer;
+  user-select: none;
+  background: var(--bg-secondary);
+  transition: background 0.15s ease;
+  flex-wrap: wrap;
+}
+
+.quiz-package-header:hover {
+  background: var(--bg-tertiary, rgba(0, 0, 0, 0.02));
+}
+
+.quiz-package-left {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  flex: 1;
+  min-width: 240px;
+}
+
+.quiz-package-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  background: rgba(79, 70, 229, 0.12);
+  color: var(--primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.quiz-package-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  margin: 0;
+  color: var(--text-primary);
+}
+
+.quiz-package-count-badge {
+  font-size: 0.75rem;
+  font-weight: 700;
+  background: var(--primary);
+  color: white;
+  padding: 0.15rem 0.55rem;
+  border-radius: 20px;
+}
+
+.quiz-package-badges-row {
+  display: flex;
+  gap: 0.35rem;
+  margin-top: 0.25rem;
+  flex-wrap: wrap;
+}
+
+.quiz-package-right {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.quiz-package-chevron-box {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  border-radius: 6px;
+  transition: background 0.15s;
+}
+
+.quiz-package-chevron-box:hover {
+  background: var(--border-color);
+  color: var(--text-primary);
+}
+
+.quiz-package-body {
+  border-top: 1px solid var(--border-color);
+  background: var(--bg-primary);
+  padding: 0.25rem 0;
+  animation: packageSlideDown 0.2s ease-out;
+}
+
+@keyframes packageSlideDown {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.quiz-pkg-q-row td {
+  padding: 0.75rem 0.85rem !important;
+  vertical-align: middle;
+  border-bottom: 1px solid var(--border-color);
+}
+.quiz-pkg-q-row:last-child td {
+  border-bottom: none;
+}
+
+.btn-xs {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  height: 28px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}

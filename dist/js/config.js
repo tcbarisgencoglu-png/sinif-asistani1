@@ -114,6 +114,8 @@
     const btnToggleGeminiKeyVisibility = document.getElementById('btn-toggle-gemini-key-visibility');
     const iconToggleGeminiKey = document.getElementById('icon-toggle-gemini-key');
     const geminiKeyStatusMsg = document.getElementById('gemini-key-status-msg');
+    const btnTestGeminiApiKey = document.getElementById('btn-test-gemini-api-key');
+    const btnDeleteGeminiApiKey = document.getElementById('btn-delete-gemini-api-key');
 
     if (btnToggleGeminiKeyVisibility && configGeminiApiKey) {
       btnToggleGeminiKeyVisibility.addEventListener('click', () => {
@@ -130,23 +132,110 @@
 
     if (btnSaveGeminiApiKey && configGeminiApiKey) {
       btnSaveGeminiApiKey.addEventListener('click', () => {
-        const key = configGeminiApiKey.value.trim();
+        const key = configGeminiApiKey.value.trim().replace(/^["'“”‘’\s]+|["'“”‘’\s]+$/g, '');
         if (key) {
           localStorage.setItem('sinif_asistani_gemini_api_key', key);
+          configGeminiApiKey.value = key;
           if (geminiKeyStatusMsg) {
             geminiKeyStatusMsg.style.display = 'block';
-            geminiKeyStatusMsg.style.color = 'var(--success)';
-            geminiKeyStatusMsg.textContent = '✓ Google Gemini API anahtarı başarıyla kaydedildi.';
+            geminiKeyStatusMsg.style.backgroundColor = 'rgba(16, 185, 129, 0.1)';
+            geminiKeyStatusMsg.style.color = '#10b981';
+            geminiKeyStatusMsg.style.border = '1px solid rgba(16, 185, 129, 0.3)';
+            geminiKeyStatusMsg.innerHTML = '✓ <strong>Google Gemini API anahtarı başarıyla kaydedildi.</strong>';
           }
           if (toastCallback) toastCallback('Google Gemini API anahtarı kaydedildi.', 'success');
         } else {
           localStorage.removeItem('sinif_asistani_gemini_api_key');
+          configGeminiApiKey.value = '';
           if (geminiKeyStatusMsg) {
             geminiKeyStatusMsg.style.display = 'block';
+            geminiKeyStatusMsg.style.backgroundColor = 'rgba(100, 116, 139, 0.1)';
             geminiKeyStatusMsg.style.color = 'var(--text-muted)';
+            geminiKeyStatusMsg.style.border = '1px solid rgba(100, 116, 139, 0.2)';
             geminiKeyStatusMsg.textContent = 'API anahtarı kaldırıldı.';
           }
           if (toastCallback) toastCallback('Google Gemini API anahtarı kaldırıldı.', 'info');
+        }
+      });
+    }
+
+    if (btnTestGeminiApiKey && configGeminiApiKey) {
+      btnTestGeminiApiKey.addEventListener('click', async () => {
+        const key = configGeminiApiKey.value.trim().replace(/^["'“”‘’\s]+|["'“”‘’\s]+$/g, '');
+        if (!key) {
+          if (geminiKeyStatusMsg) {
+            geminiKeyStatusMsg.style.display = 'block';
+            geminiKeyStatusMsg.style.backgroundColor = 'rgba(239, 68, 68, 0.1)';
+            geminiKeyStatusMsg.style.color = '#ef4444';
+            geminiKeyStatusMsg.style.border = '1px solid rgba(239, 68, 68, 0.3)';
+            geminiKeyStatusMsg.innerHTML = '⚠️ Lütfen önce kutucuğa bir API anahtarı girin.';
+          }
+          if (toastCallback) toastCallback('Lütfen önce bir API anahtarı girin.', 'warning');
+          return;
+        }
+
+        const originalBtnHtml = btnTestGeminiApiKey.innerHTML;
+        btnTestGeminiApiKey.disabled = true;
+        btnTestGeminiApiKey.innerHTML = '<i data-lucide="loader-2" class="animate-spin" style="width:16px;height:16px;"></i> Test Ediliyor...';
+        if (window.safeCreateIcons) window.safeCreateIcons();
+
+        if (geminiKeyStatusMsg) {
+          geminiKeyStatusMsg.style.display = 'block';
+          geminiKeyStatusMsg.style.backgroundColor = 'rgba(99, 102, 241, 0.1)';
+          geminiKeyStatusMsg.style.color = '#6366f1';
+          geminiKeyStatusMsg.style.border = '1px solid rgba(99, 102, 241, 0.3)';
+          geminiKeyStatusMsg.innerHTML = '🔄 Google sunucularına bağlanılıyor, anahtar kontrol ediliyor...';
+        }
+
+        try {
+          const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(key)}`);
+          const data = await res.json();
+
+          if (res.ok && data.models && data.models.length > 0) {
+            geminiKeyStatusMsg.style.backgroundColor = 'rgba(16, 185, 129, 0.1)';
+            geminiKeyStatusMsg.style.color = '#10b981';
+            geminiKeyStatusMsg.style.border = '1px solid rgba(16, 185, 129, 0.3)';
+            geminiKeyStatusMsg.innerHTML = '✓ <strong>Bağlantı Başarılı!</strong> Google Gemini API anahtarınız geçerli ve kullanıma hazır.';
+            if (toastCallback) toastCallback('Google Gemini API bağlantısı başarılı!', 'success');
+          } else {
+            const errMsg = data.error?.message || `Durum kodu: ${res.status}`;
+            geminiKeyStatusMsg.style.backgroundColor = 'rgba(239, 68, 68, 0.1)';
+            geminiKeyStatusMsg.style.color = '#ef4444';
+            geminiKeyStatusMsg.style.border = '1px solid rgba(239, 68, 68, 0.3)';
+            geminiKeyStatusMsg.innerHTML = `✗ <strong>Bağlantı Başarısız:</strong> ${errMsg}`;
+            if (toastCallback) toastCallback('API anahtarı doğrulanamadı. Lütfen kontrol edin.', 'error');
+          }
+        } catch (err) {
+          geminiKeyStatusMsg.style.backgroundColor = 'rgba(239, 68, 68, 0.1)';
+          geminiKeyStatusMsg.style.color = '#ef4444';
+          geminiKeyStatusMsg.style.border = '1px solid rgba(239, 68, 68, 0.3)';
+          geminiKeyStatusMsg.innerHTML = '✗ <strong>Bağlantı Hatası:</strong> İnternet bağlantınızı kontrol edin veya anahtarı kontrol edin.';
+          if (toastCallback) toastCallback('Bağlantı hatası: İnternetinizi kontrol edin.', 'error');
+        } finally {
+          btnTestGeminiApiKey.disabled = false;
+          btnTestGeminiApiKey.innerHTML = originalBtnHtml;
+          if (window.safeCreateIcons) window.safeCreateIcons();
+        }
+      });
+    }
+
+    if (btnDeleteGeminiApiKey && configGeminiApiKey) {
+      btnDeleteGeminiApiKey.addEventListener('click', () => {
+        if (!localStorage.getItem('sinif_asistani_gemini_api_key') && !configGeminiApiKey.value) {
+          if (toastCallback) toastCallback('Silinecek kayıtlı bir API anahtarı bulunamadı.', 'info');
+          return;
+        }
+        if (confirm('Kayıtlı Gemini API anahtarını silmek istediğinize emin misiniz?')) {
+          localStorage.removeItem('sinif_asistani_gemini_api_key');
+          configGeminiApiKey.value = '';
+          if (geminiKeyStatusMsg) {
+            geminiKeyStatusMsg.style.display = 'block';
+            geminiKeyStatusMsg.style.backgroundColor = 'rgba(100, 116, 139, 0.1)';
+            geminiKeyStatusMsg.style.color = 'var(--text-muted)';
+            geminiKeyStatusMsg.style.border = '1px solid rgba(100, 116, 139, 0.2)';
+            geminiKeyStatusMsg.textContent = 'API anahtarı başarıyla kaldırıldı.';
+          }
+          if (toastCallback) toastCallback('API anahtarı kaldırıldı.', 'info');
         }
       });
     }
@@ -806,8 +895,10 @@
       if (statusMsg) {
         if (savedKey) {
           statusMsg.style.display = 'block';
-          statusMsg.style.color = 'var(--success)';
-          statusMsg.textContent = '✓ Tanımlı API anahtarı aktif.';
+          statusMsg.style.backgroundColor = 'rgba(16, 185, 129, 0.1)';
+          statusMsg.style.color = '#10b981';
+          statusMsg.style.border = '1px solid rgba(16, 185, 129, 0.3)';
+          statusMsg.innerHTML = '✓ <strong>Tanımlı API anahtarı aktif.</strong> İstediğiniz zaman değiştirebilir, test edebilir veya silebilirsiniz.';
         } else {
           statusMsg.style.display = 'none';
         }
@@ -1314,10 +1405,29 @@
     }
   });
 
+  // Helper function to directly navigate to Config AI sub-tab
+  function navigateToConfigAI() {
+    if (window.switchTab) {
+      window.switchTab('assistant-config');
+    }
+    const aiTabBtn = document.getElementById('tab-btn-config-ai');
+    if (aiTabBtn) {
+      aiTabBtn.click();
+    }
+    setTimeout(() => {
+      const configGeminiApiKeyElem = document.getElementById('config-gemini-api-key');
+      if (configGeminiApiKeyElem) {
+        configGeminiApiKeyElem.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        configGeminiApiKeyElem.focus();
+      }
+    }, 150);
+  }
+
   // Export globally
   window.setupConfigTab = setupConfigTab;
   window.renderConfig = renderConfig;
   window.updateConfigThemeUI = updateConfigThemeUI;
   window.renderLockTab = renderLockTab;
+  window.navigateToConfigAI = navigateToConfigAI;
 })();
 

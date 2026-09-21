@@ -849,8 +849,11 @@
             <button class="sub-tab-btn active" id="game-quiz-nav-play">
               <i data-lucide="play-circle" style="width: 16px; height: 16px;"></i> Yarışma Alanı
             </button>
+            <button class="sub-tab-btn" id="game-quiz-nav-pool">
+              <i data-lucide="help-circle" style="width: 16px; height: 16px;"></i> Soru Havuzu
+            </button>
             <button class="sub-tab-btn" id="game-quiz-nav-admin">
-              <i data-lucide="settings" style="width: 16px; height: 16px;"></i> Yönetim Paneli
+              <i data-lucide="settings" style="width: 16px; height: 16px;"></i> Yarışma Ayarları
             </button>
             <button class="sub-tab-btn" id="game-quiz-nav-leaderboard">
               <i data-lucide="trophy" style="width: 16px; height: 16px;"></i> Skor Tablosu
@@ -1057,219 +1060,299 @@
             </div>
           </div>
 
-          <!-- SUB-TAB 2: ADMIN ZONE -->
-          <div id="game-quiz-tab-admin" class="quiz-tab-content" style="display: none;">
-            <div class="admin-grid">
-              
-              <!-- Left: Configuration -->
-              <div class="admin-sidebar">
-                <!-- Settings Card -->
-                <div class="glass-card">
-                  <h3 class="card-title" style="font-size: 1.1rem; font-weight: 700; margin-bottom: 1.25rem;">Yarışma Ayarları</h3>
-                  <div class="form-group">
-                    <label for="setting-timer" style="font-weight: 600; margin-bottom: 0.5rem;">Soru Başına Süre (Saniye)</label>
-                    <div class="input-range-group" style="display: flex; align-items: center; gap: 1rem;">
-                      <input type="range" id="setting-timer" min="5" max="60" value="15" style="flex: 1;">
-                      <span id="timer-label" class="badge">15s</span>
-                    </div>
+          <!-- SUB-TAB 2: QUESTION POOL ZONE (YENİ SEKME) -->
+          <div id="game-quiz-tab-pool" class="quiz-tab-content" style="display: none;">
+            
+            <!-- Soru Ekleme Yöntemi Seçim Kartları (Görsel ve Anlaşılır Hero Kartlar) -->
+            <div class="glass-card" style="margin-bottom: 1.5rem; padding: 1.5rem;">
+              <div style="margin-bottom: 1.25rem;">
+                <h3 class="card-title" style="font-size: 1.2rem; font-weight: 800; margin: 0; display: flex; align-items: center; gap: 0.6rem;">
+                  <span style="background: linear-gradient(135deg, var(--primary), #8b5cf6); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">➕ Soru Hazırlama Yöntemi</span>
+                </h3>
+                <p class="card-desc" style="margin: 0.35rem 0 0 0; font-size: 0.88rem; color: var(--text-secondary);">
+                  Havuza soru eklemek için aşağıdaki 3 pratik yöntemden birini kullanabilirsiniz:
+                </p>
+              </div>
+
+              <!-- 3 Büyük ve Açıklayıcı Yöntem Kartı -->
+              <div class="quiz-methods-grid">
+                
+                <!-- Yöntem 1: Yapay Zeka ile Hazırla -->
+                <div class="quiz-method-hero-card quiz-hero-ai" onclick="window.openQuizAIGeneratorModal()">
+                  <div class="quiz-hero-badge">TAVSİYE EDİLEN</div>
+                  <div class="quiz-hero-icon-box" style="background: linear-gradient(135deg, #8b5cf6, #06b6d4);">
+                    <i data-lucide="sparkles" style="width: 28px; height: 28px; color: white;"></i>
                   </div>
-                  <button class="btn btn-primary btn-full" id="btn-save-quiz-settings" style="margin-top: 1rem;">Ayarları Kaydet</button>
+                  <h4 class="quiz-hero-title">✨ Yapay Zeka ile Üret</h4>
+                  <p class="quiz-hero-desc">Sınıf seviyesi, ders ve konunuza göre Gemini AI saniyeler içinde hazır soru paketi üretsin.</p>
+                  <ul class="quiz-hero-features">
+                    <li><i data-lucide="check" style="width: 14px; height: 14px; color: #10b981;"></i> MEB müfredatına tam uyumlu</li>
+                    <li><i data-lucide="check" style="width: 14px; height: 14px; color: #10b981;"></i> D/Y, Çoktan Seçmeli, Boşluk Doldurma</li>
+                    <li><i data-lucide="check" style="width: 14px; height: 14px; color: #10b981;"></i> Belirlediğiniz konu adıyla paketler</li>
+                  </ul>
+                  <button type="button" class="btn btn-ai-glow" style="width: 100%; justify-content: center; margin-top: auto; padding: 0.65rem 1rem; font-size: 0.9rem;">
+                    <i data-lucide="sparkles" style="width: 16px; height: 16px;"></i> Yapay Zeka ile Başla
+                  </button>
                 </div>
 
-                <!-- Info Box (Replaces student list textarea since they are linked to the main app) -->
-                <div class="glass-card" style="margin-top: 1.25rem;">
-                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; flex-wrap: wrap; gap: 8px;">
-                    <h3 class="card-title" style="font-size: 1.1rem; font-weight: 700; margin-bottom: 0;">Oyuna Katılacak Öğrenciler</h3>
-                    <div style="display: flex; gap: 0.25rem;">
-                      <button type="button" class="btn btn-secondary btn-sm" id="btn-quiz-select-all-students" style="padding: 0.15rem 0.5rem; font-size: 0.75rem; height: 26px;">Tümünü Seç</button>
-                      <button type="button" class="btn btn-secondary btn-sm" id="btn-quiz-deselect-all-students" style="padding: 0.15rem 0.5rem; font-size: 0.75rem; height: 26px;">Seçimi Kaldır</button>
-                    </div>
+                <!-- Yöntem 2: Dosyadan Yükle (JSON / CSV) -->
+                <div class="quiz-method-hero-card quiz-hero-import" id="card-method-import" onclick="window.toggleQuizAddSection('import')">
+                  <div class="quiz-hero-badge" style="background: rgba(59, 130, 246, 0.15); color: #3b82f6;">TOPLU AKTARIM</div>
+                  <div class="quiz-hero-icon-box" style="background: rgba(59, 130, 246, 0.15); color: #3b82f6;">
+                    <i data-lucide="upload-cloud" style="width: 28px; height: 28px;"></i>
                   </div>
-                  <div class="branch-filter-container" id="quiz-branch-filter-container" style="display: none; margin-bottom: 0.75rem;">
-                    <label for="quiz-select-branch" style="font-weight: 600; font-size: 0.85rem; margin-bottom: 0.25rem; display: block; color: var(--text-secondary);">Şube Seçimi:</label>
-                    <select class="form-control" id="quiz-select-branch" style="width: 100%; height: 35px; padding: 0.35rem 0.5rem; font-size: 0.85rem;">
-                      <!-- Dinamik doldurulacak -->
+                  <h4 class="quiz-hero-title">📁 Dosyadan Yükle</h4>
+                  <p class="quiz-hero-desc">Önceden hazırladığınız JSON veya CSV soru listesini tek tıkla toplu olarak sisteme aktarın.</p>
+                  <ul class="quiz-hero-features">
+                    <li><i data-lucide="check" style="width: 14px; height: 14px; color: #10b981;"></i> JSON & CSV dosya desteği</li>
+                    <li><i data-lucide="check" style="width: 14px; height: 14px; color: #10b981;"></i> Örnek şablonları anında indirin</li>
+                    <li><i data-lucide="check" style="width: 14px; height: 14px; color: #10b981;"></i> Sürükle-bırak kolaylığı</li>
+                  </ul>
+                  <button type="button" class="btn btn-secondary" id="btn-toggle-method-import" style="width: 100%; justify-content: center; margin-top: auto; padding: 0.65rem 1rem; font-size: 0.9rem;">
+                    <i data-lucide="file-up" style="width: 16px; height: 16px;"></i> Dosya Yükleme Paneli
+                  </button>
+                </div>
+
+                <!-- Yöntem 3: Manuel Yazarak Ekle -->
+                <div class="quiz-method-hero-card quiz-hero-manual" id="card-method-manual" onclick="window.toggleQuizAddSection('manual')">
+                  <div class="quiz-hero-badge" style="background: rgba(16, 185, 129, 0.15); color: #10b981;">KENDİN OLUŞTUR</div>
+                  <div class="quiz-hero-icon-box" style="background: rgba(16, 185, 129, 0.15); color: #10b981;">
+                    <i data-lucide="edit-3" style="width: 28px; height: 28px;"></i>
+                  </div>
+                  <h4 class="quiz-hero-title">✍️ Manuel Soru Yaz</h4>
+                  <p class="quiz-hero-desc">Kendi hazırladığınız özel soruları tek tek forma girip istediğiniz pakete ekleyin.</p>
+                  <ul class="quiz-hero-features">
+                    <li><i data-lucide="check" style="width: 14px; height: 14px; color: #10b981;"></i> 3 farklı soru tipi seçeneği</li>
+                    <li><i data-lucide="check" style="width: 14px; height: 14px; color: #10b981;"></i> Görsel ve açıklama ekleme desteği</li>
+                    <li><i data-lucide="check" style="width: 14px; height: 14px; color: #10b981;"></i> Var olan soruları düzenleyebilme</li>
+                  </ul>
+                  <button type="button" class="btn btn-secondary" id="btn-toggle-method-manual" style="width: 100%; justify-content: center; margin-top: auto; padding: 0.65rem 1rem; font-size: 0.9rem;">
+                    <i data-lucide="plus-circle" style="width: 16px; height: 16px;"></i> Soru Yazma Formu
+                  </button>
+                </div>
+
+              </div>
+            </div>
+
+            <!-- AÇILIR BÖLÜM 1: Dosyadan Soru Yükleme Paneli (Varsayılan Gizli) -->
+            <div class="glass-card quiz-collapsible-card" id="section-quiz-file-import" style="display: none; margin-bottom: 1.25rem;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                <h3 class="card-title" style="font-size: 1.1rem; font-weight: 700; margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+                  <i data-lucide="upload-cloud" style="width: 18px; height: 18px; color: #3b82f6;"></i>
+                  <span>Dosyadan Soru Yükleme</span>
+                </h3>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="window.toggleQuizAddSection('import')" style="padding: 0.2rem 0.6rem; font-size: 0.78rem;">Kapat ✕</button>
+              </div>
+              <p class="card-desc" style="margin-bottom: 1rem;">Soruları JSON veya CSV formatında toplu olarak sisteme yükleyebilirsiniz.</p>
+              
+              <div class="import-container" style="margin-bottom: 1.5rem;">
+                <div class="file-drop-area" id="file-drop-area" style="padding: 2.5rem 1.5rem; text-align: center;">
+                  <i data-lucide="upload-cloud" style="width: 36px; height: 36px; color: var(--text-muted); margin-bottom: 0.75rem;"></i>
+                  <span class="file-msg" style="display: block; font-size: 0.9rem; color: var(--text-secondary); font-weight: 500;">Dosyayı buraya sürükleyin veya seçin</span>
+                  <input type="file" id="file-input" class="file-input" accept=".json,.csv,.txt" style="display: none;">
+                  <button class="btn btn-secondary btn-sm" id="btn-trigger-file-select" style="margin-top: 0.75rem; padding: 0.35rem 0.75rem; font-size: 0.85rem; height: 35px;">Dosya Seç</button>
+                </div>
+              </div>
+
+              <div class="import-actions" style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+                <button class="btn btn-secondary btn-sm" id="btn-download-json-template">
+                  <i data-lucide="download" style="width: 14px; height: 14px;"></i> Örnek JSON Şablonu
+                </button>
+                <button class="btn btn-secondary btn-sm" id="btn-download-csv-template">
+                  <i data-lucide="download" style="width: 14px; height: 14px;"></i> Örnek CSV Şablonu
+                </button>
+              </div>
+            </div>
+
+            <!-- AÇILIR BÖLÜM 2: Manuel Soru Ekleme Formu (Varsayılan Gizli) -->
+            <div class="glass-card quiz-collapsible-card" id="question-form-card" style="display: none; margin-bottom: 1.25rem;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h3 class="card-title" id="form-card-title" style="font-size: 1.1rem; font-weight: 700; margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+                  <i data-lucide="edit-3" style="width: 18px; height: 18px; color: #10b981;"></i>
+                  <span>Yeni Soru Ekle</span>
+                </h3>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="window.toggleQuizAddSection('manual')" style="padding: 0.2rem 0.6rem; font-size: 0.78rem;">Kapat ✕</button>
+              </div>
+              <form id="question-form">
+                <input type="hidden" id="edit-question-id" value="">
+                
+                <div class="form-grid-2" style="margin-bottom: 1rem;">
+                  <div class="form-group">
+                    <label for="question-type" style="font-weight: 600;">Soru Tipi</label>
+                    <select id="question-type" class="form-control" style="width: 100%;">
+                      <option value="tf" selected>Doğru / Yanlış</option>
+                      <option value="mc">Çoktan Seçmeli</option>
+                      <option value="fib">Boşluk Doldurma</option>
                     </select>
                   </div>
-                  <div id="quiz-setup-students-list" class="students-checkbox-grid" style="grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 0.5rem; max-height: 200px; padding: 0.75rem;">
-                    <!-- JS will populate student checkboxes -->
-                  </div>
-                  <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.75rem;">
-                    <span id="quiz-student-count-badge" class="badge">Sınıf Öğrencisi: -</span>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Right: Questions Management -->
-              <div class="admin-content">
-                <!-- AI Soru Üretici Kartı -->
-                <div class="glass-card ai-gen-entry-card">
-                  <div style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; justify-content: space-between;">
-                    <div>
-                      <h3 class="card-title" style="font-size: 1.1rem; font-weight: 700; margin-bottom: 0.25rem; background: linear-gradient(135deg, #8b5cf6, #06b6d4); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">✨ Yapay Zeka ile Soru Hazırla</h3>
-                      <p class="card-desc" style="margin: 0; font-size: 0.85rem;">Sınıf seviyesi, ders ve konuya göre Gemini AI ile saniyeler içinde soru paketi oluşturun.</p>
-                    </div>
-                    <button class="btn btn-ai-glow" id="btn-open-quiz-ai-gen" onclick="window.openQuizAIGeneratorModal()">
-                      <i data-lucide="sparkles" style="width:16px;height:16px;"></i>
-                      Soru Üret
-                    </button>
+                  <div class="form-group">
+                    <label for="question-category" style="font-weight: 600;">Konu / Paket Adı (Kategori)</label>
+                    <input type="text" id="question-category" list="category-list" class="form-control" placeholder="Örn: Kayaçlar, Kesirler, Atatürk..." required>
+                    <datalist id="category-list">
+                      <!-- JS will populate -->
+                    </datalist>
                   </div>
                 </div>
 
-                <!-- Question Bulk Import Card -->
-                <div class="glass-card" style="margin-top: 1rem;">
-                  <h3 class="card-title" style="font-size: 1.1rem; font-weight: 700; margin-bottom: 0.5rem;">Dosyadan Soru Yükleme</h3>
-                  <p class="card-desc" style="margin-bottom: 1rem;">Soruları JSON veya CSV formatında toplu olarak sisteme yükleyebilirsiniz.</p>
-
-                  
-                  <div class="import-container" style="margin-bottom: 1.5rem;">
-                    <div class="file-drop-area" id="file-drop-area" style="padding: 2.5rem 1.5rem; text-align: center;">
-                      <i data-lucide="upload-cloud" style="width: 36px; height: 36px; color: var(--text-muted); margin-bottom: 0.75rem;"></i>
-                      <span class="file-msg" style="display: block; font-size: 0.9rem; color: var(--text-secondary); font-weight: 500;">Dosyayı buraya sürükleyin veya seçin</span>
-                      <input type="file" id="file-input" class="file-input" accept=".json,.csv,.txt" style="display: none;">
-                      <button class="btn btn-secondary btn-sm" id="btn-trigger-file-select" style="margin-top: 0.75rem; padding: 0.35rem 0.75rem; font-size: 0.85rem; height: 35px;">Dosya Seç</button>
-                    </div>
-                  </div>
-
-                  <div class="import-actions" style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
-                    <button class="btn btn-secondary btn-sm" id="btn-download-json-template">
-                      <i data-lucide="download" style="width: 14px; height: 14px;"></i> Örnek JSON Şablonu
-                    </button>
-                    <button class="btn btn-secondary btn-sm" id="btn-download-csv-template">
-                      <i data-lucide="download" style="width: 14px; height: 14px;"></i> Örnek CSV Şablonu
-                    </button>
-                  </div>
+                <div class="form-group" style="margin-bottom: 1rem;">
+                  <label for="question-input" style="font-weight: 600;">Soru Cümlesi</label>
+                  <textarea id="question-input" rows="3" class="form-control" placeholder="Örn: Dünya, Güneş sistemindeki en büyük gezegendir." required></textarea>
+                  <span class="form-subtext" style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">* Boşluk doldurma sorusu oluştururken boş bırakmak istediğiniz yere <strong>[___]</strong> yazın.</span>
                 </div>
 
-                <!-- Add/Edit Question Form Card -->
-                <div class="glass-card" id="question-form-card" style="margin-top: 1.25rem;">
-                  <h3 class="card-title" id="form-card-title" style="font-size: 1.1rem; font-weight: 700; margin-bottom: 1rem;">Yeni Soru Ekle</h3>
-                  <form id="question-form">
-                    <input type="hidden" id="edit-question-id" value="">
+                <!-- True/False Answer Area -->
+                <div id="form-tf-container" class="form-group" style="margin-bottom: 1.25rem;">
+                  <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Doğru Cevap</label>
+                  <div class="toggle-switch-container" style="display: flex; gap: 0.5rem; background: var(--bg-primary); padding: 0.25rem; border-radius: var(--radius-sm); border: 1px solid var(--border-color); width: fit-content;">
+                    <input type="radio" id="answer-true" name="question-answer" value="true" checked style="display: none;">
+                    <label for="answer-true" class="toggle-btn toggle-btn-true" style="padding: 0.4rem 1.25rem; border-radius: var(--radius-sm); font-weight: 600; cursor: pointer; color: var(--text-secondary);">DOĞRU</label>
                     
-                    <div class="form-grid-2" style="margin-bottom: 1rem;">
-                      <div class="form-group">
-                        <label for="question-type" style="font-weight: 600;">Soru Tipi</label>
-                        <select id="question-type" class="form-control" style="width: 100%;">
-                          <option value="tf" selected>Doğru / Yanlış</option>
-                          <option value="mc">Çoktan Seçmeli</option>
-                          <option value="fib">Boşluk Doldurma</option>
-                        </select>
-                      </div>
-                      <div class="form-group">
-                        <label for="question-category" style="font-weight: 600;">Kategori</label>
-                        <input type="text" id="question-category" list="category-list" class="form-control" placeholder="Örn: Bilim" required>
-                        <datalist id="category-list">
-                          <!-- JS will populate -->
-                        </datalist>
-                      </div>
-                    </div>
-
-                    <div class="form-group" style="margin-bottom: 1rem;">
-                      <label for="question-input" style="font-weight: 600;">Soru Cümlesi</label>
-                      <textarea id="question-input" rows="3" class="form-control" placeholder="Örn: Dünya, Güneş sistemindeki en büyük gezegendir." required></textarea>
-                      <span class="form-subtext" style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">* Boşluk doldurma sorusu oluştururken boş bırakmak istediğiniz yere <strong>[___]</strong> yazın.</span>
-                    </div>
-
-                    <!-- True/False Answer Area -->
-                    <div id="form-tf-container" class="form-group" style="margin-bottom: 1.25rem;">
-                      <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Doğru Cevap</label>
-                      <div class="toggle-switch-container" style="display: flex; gap: 0.5rem; background: var(--bg-primary); padding: 0.25rem; border-radius: var(--radius-sm); border: 1px solid var(--border-color); width: fit-content;">
-                        <input type="radio" id="answer-true" name="question-answer" value="true" checked style="display: none;">
-                        <label for="answer-true" class="toggle-btn toggle-btn-true" style="padding: 0.4rem 1.25rem; border-radius: var(--radius-sm); font-weight: 600; cursor: pointer; color: var(--text-secondary);">DOĞRU</label>
-                        
-                        <input type="radio" id="answer-false" name="question-answer" value="false" style="display: none;">
-                        <label for="answer-false" class="toggle-btn toggle-btn-false" style="padding: 0.4rem 1.25rem; border-radius: var(--radius-sm); font-weight: 600; cursor: pointer; color: var(--text-secondary);">YANLIŞ</label>
-                      </div>
-                    </div>
-
-                    <!-- Multiple Choice Options Area (Hidden by default) -->
-                    <div id="form-mc-container" class="form-group" style="display: none; margin-bottom: 1.25rem;">
-                      <div class="form-group" style="max-width: 200px; margin-bottom: 1rem;">
-                        <label for="mc-option-count" style="font-weight: 600;">Seçenek Sayısı</label>
-                        <select id="mc-option-count" class="form-control">
-                          <option value="2">2 Seçenek</option>
-                          <option value="3">3 Seçenek</option>
-                          <option value="4" selected>4 Seçenek</option>
-                          <option value="5">5 Seçenek</option>
-                        </select>
-                      </div>
-                      <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Seçenekler ve Doğru Cevap (Doğru seçeneğin yanındaki radyo butonunu işaretleyin)</label>
-                      <div id="mc-options-inputs-container" class="mc-options-inputs-list" style="display: flex; flex-direction: column; gap: 0.5rem;">
-                        <!-- Rendered by JS -->
-                      </div>
-                    </div>
-
-                    <div class="form-group" style="margin-bottom: 1rem;">
-                      <label for="explanation-input" style="font-weight: 600;">Açıklama (Opsiyonel - Cevaplandıktan sonra gösterilir)</label>
-                      <input type="text" id="explanation-input" class="form-control" placeholder="Örn: En büyük gezegen Jüpiter'dir.">
-                    </div>
-
-                    <div class="form-grid-2" style="margin-bottom: 1rem;">
-                      <div class="form-group">
-                        <label for="question-image-url" style="font-weight: 600;">Görsel URL (İnternet Linki)</label>
-                        <input type="text" id="question-image-url" class="form-control" placeholder="https://example.com/gorsel.jpg">
-                      </div>
-                      <div class="form-group">
-                        <label for="question-image-file" style="font-weight: 600;">Görsel Dosyası Yükle (Base64)</label>
-                        <input type="file" id="question-image-file" accept="image/*" class="form-control" style="padding: 0.4rem 0.8rem;">
-                      </div>
-                    </div>
-
-                    <div id="image-preview-container" class="image-preview-container" style="display: none; margin-bottom: 1.25rem;">
-                      <span class="preview-label" style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); display: block; margin-bottom: 0.5rem;">Görsel Önizleme:</span>
-                      <div class="preview-box" style="display: flex; align-items: center; gap: 1rem;">
-                        <img id="form-image-preview" src="" alt="Önizleme" style="max-height: 100px; border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
-                        <button type="button" class="btn btn-secondary btn-sm" id="btn-clear-image-preview" style="padding: 0.35rem 0.75rem; font-size: 0.85rem; height: 35px;">Görseli Kaldır</button>
-                      </div>
-                    </div>
-
-                    <div class="form-actions" style="display: flex; gap: 0.75rem;">
-                      <button type="button" id="btn-cancel-edit" class="btn btn-secondary" style="display: none;">İptal Et</button>
-                      <button type="submit" id="btn-submit-question" class="btn btn-primary">Soruyu Kaydet</button>
-                    </div>
-                  </form>
-                </div>
-
-                <!-- Question Table Card -->
-                <div class="glass-card" style="margin-top: 1.25rem;">
-                  <div class="library-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; margin-bottom: 1.25rem;">
-                    <h3 class="card-title" style="font-size: 1.1rem; font-weight: 700; margin-bottom: 0; display: flex; align-items: center; gap: 0.5rem;">
-                      <span>Soru Kütüphanesi</span>
-                      <span id="question-count-badge" class="badge">0 Soru</span>
-                    </h3>
-                    <div class="library-actions" style="display: flex; gap: 10px; align-items: center;">
-                      <select id="library-category-filter" class="form-control" style="width: 160px; height: 35px; padding: 0.35rem 0.75rem; font-size: 0.85rem;">
-                        <option value="all">Tüm Kategoriler</option>
-                      </select>
-                      <button class="btn btn-danger btn-sm" id="btn-delete-all-questions" style="padding: 0.35rem 0.75rem; font-size: 0.85rem; height: 35px; display: flex; align-items: center; gap: 0.25rem;">
-                        <i data-lucide="trash" style="width: 14px; height: 14px;"></i> Tümünü Sil
-                      </button>
-                    </div>
-                  </div>
-                  
-                  <div class="table-wrapper">
-                    <table class="table" style="font-size: 0.85rem;">
-                      <thead>
-                        <tr>
-                          <th style="width: 50px;">ID</th>
-                          <th style="width: 80px;">Tip</th>
-                          <th style="width: 100px;">Kategori</th>
-                          <th style="width: 80px;">Görsel</th>
-                          <th>Soru Cümlesi</th>
-                          <th style="width: 120px;">Doğru Cevap</th>
-                          <th>Açıklama</th>
-                          <th style="width: 130px; text-align: center;">İşlemler</th>
-                        </tr>
-                      </thead>
-                      <tbody id="question-list-body">
-                        <!-- JS will populate -->
-                      </tbody>
-                    </table>
+                    <input type="radio" id="answer-false" name="question-answer" value="false" style="display: none;">
+                    <label for="answer-false" class="toggle-btn toggle-btn-false" style="padding: 0.4rem 1.25rem; border-radius: var(--radius-sm); font-weight: 600; cursor: pointer; color: var(--text-secondary);">YANLIŞ</label>
                   </div>
                 </div>
 
+                <!-- Multiple Choice Options Area (Hidden by default) -->
+                <div id="form-mc-container" class="form-group" style="display: none; margin-bottom: 1.25rem;">
+                  <div class="form-group" style="max-width: 200px; margin-bottom: 1rem;">
+                    <label for="mc-option-count" style="font-weight: 600;">Seçenek Sayısı</label>
+                    <select id="mc-option-count" class="form-control">
+                      <option value="2">2 Seçenek</option>
+                      <option value="3">3 Seçenek</option>
+                      <option value="4" selected>4 Seçenek</option>
+                      <option value="5">5 Seçenek</option>
+                    </select>
+                  </div>
+                  <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Seçenekler ve Doğru Cevap (Doğru seçeneğin yanındaki radyo butonunu işaretleyin)</label>
+                  <div id="mc-options-inputs-container" class="mc-options-inputs-list" style="display: flex; flex-direction: column; gap: 0.5rem;">
+                    <!-- Rendered by JS -->
+                  </div>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 1rem;">
+                  <label for="explanation-input" style="font-weight: 600;">Açıklama (Opsiyonel - Cevaplandıktan sonra gösterilir)</label>
+                  <input type="text" id="explanation-input" class="form-control" placeholder="Örn: En büyük gezegen Jüpiter'dir.">
+                </div>
+
+                <div class="form-grid-2" style="margin-bottom: 1rem;">
+                  <div class="form-group">
+                    <label for="question-image-url" style="font-weight: 600;">Görsel URL (İnternet Linki)</label>
+                    <input type="text" id="question-image-url" class="form-control" placeholder="https://example.com/gorsel.jpg">
+                  </div>
+                  <div class="form-group">
+                    <label for="question-image-file" style="font-weight: 600;">Görsel Dosyası Yükle (Base64)</label>
+                    <input type="file" id="question-image-file" accept="image/*" class="form-control" style="padding: 0.4rem 0.8rem;">
+                  </div>
+                </div>
+
+                <div id="image-preview-container" class="image-preview-container" style="display: none; margin-bottom: 1.25rem;">
+                  <span class="preview-label" style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); display: block; margin-bottom: 0.5rem;">Görsel Önizleme:</span>
+                  <div class="preview-box" style="display: flex; align-items: center; gap: 1rem;">
+                    <img id="form-image-preview" src="" alt="Önizleme" style="max-height: 100px; border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
+                    <button type="button" class="btn btn-secondary btn-sm" id="btn-clear-image-preview" style="padding: 0.35rem 0.75rem; font-size: 0.85rem; height: 35px;">Görseli Kaldır</button>
+                  </div>
+                </div>
+
+                <div class="form-actions" style="display: flex; gap: 0.75rem;">
+                  <button type="button" id="btn-cancel-edit" class="btn btn-secondary" style="display: none;">İptal Et</button>
+                  <button type="submit" id="btn-submit-question" class="btn btn-primary">Soruyu Kaydet</button>
+                </div>
+              </form>
+            </div>
+
+            <!-- Soru Havuzu: Paketler & Akordeon Soru Listesi Kartı -->
+            <div class="glass-card">
+              <div class="library-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; margin-bottom: 1.25rem;">
+                <div>
+                  <h3 class="card-title" style="font-size: 1.15rem; font-weight: 700; margin-bottom: 0.2rem; display: flex; align-items: center; gap: 0.5rem;">
+                    <span>📦 Soru Paketleri Havuzu</span>
+                    <span id="question-count-badge" class="badge">0 Soru</span>
+                  </h3>
+                  <p style="margin: 0; font-size: 0.8rem; color: var(--text-secondary);">Paket kartına tıklayarak içindeki soruları listeleyebilir veya yönetebilirsiniz.</p>
+                </div>
+
+                <div class="library-actions" style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                  <button class="btn btn-secondary btn-sm" id="btn-toggle-all-packages" onclick="window.toggleAllQuizPackages()" style="padding: 0.35rem 0.75rem; font-size: 0.82rem; height: 35px;">
+                    <i data-lucide="chevrons-up-down" style="width: 14px; height: 14px;"></i> Tümünü Aç / Kapat
+                  </button>
+                  <select id="library-category-filter" class="form-control" style="width: 170px; height: 35px; padding: 0.35rem 0.75rem; font-size: 0.85rem;">
+                    <option value="all">Tüm Paketler</option>
+                  </select>
+                  <button class="btn btn-danger btn-sm" id="btn-delete-all-questions" style="padding: 0.35rem 0.75rem; font-size: 0.85rem; height: 35px; display: flex; align-items: center; gap: 0.25rem;">
+                    <i data-lucide="trash" style="width: 14px; height: 14px;"></i> Tümünü Sil
+                  </button>
+                </div>
               </div>
+              
+              <!-- Dinamik Paket Kartları Kapsayıcısı -->
+              <div id="quiz-packages-container" style="display: flex; flex-direction: column; gap: 0.85rem;">
+                <!-- JS will populate package accordion cards -->
+              </div>
+
+              <!-- Yedek / Boşluk Uyumluluğu için gizli tbody (eski fonksiyonların çökmemesi için) -->
+              <table style="display: none;"><tbody id="question-list-body"></tbody></table>
+            </div>
+
+
+          </div>
+
+          <!-- SUB-TAB 3: YARIŞMA AYARLARI (YÖNETİM) -->
+          <div id="game-quiz-tab-admin" class="quiz-tab-content" style="display: none;">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 1.5rem; margin-top: 0.5rem;">
+              
+              <!-- Settings Card -->
+              <div class="glass-card">
+                <div style="display: flex; align-items: center; gap: 0.6rem; margin-bottom: 1.25rem;">
+                  <div style="width: 38px; height: 38px; border-radius: 10px; background: rgba(79, 70, 229, 0.12); display: flex; align-items: center; justify-content: center; color: var(--primary);">
+                    <i data-lucide="clock" style="width: 20px; height: 20px;"></i>
+                  </div>
+                  <div>
+                    <h3 class="card-title" style="font-size: 1.1rem; font-weight: 700; margin: 0;">Yarışma Süre Ayarı</h3>
+                    <p style="margin: 0; font-size: 0.78rem; color: var(--text-secondary);">Her soru için yarışmacıya tanınan yanıt süresi.</p>
+                  </div>
+                </div>
+
+                <div class="form-group" style="margin-top: 1.5rem;">
+                  <label for="setting-timer" style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Soru Başına Süre (Saniye)</label>
+                  <div class="input-range-group" style="display: flex; align-items: center; gap: 1rem;">
+                    <input type="range" id="setting-timer" min="5" max="60" value="15" style="flex: 1;">
+                    <span id="timer-label" class="badge" style="font-size: 0.95rem; padding: 0.35rem 0.75rem;">15s</span>
+                  </div>
+                </div>
+                <button class="btn btn-primary btn-full" id="btn-save-quiz-settings" style="margin-top: 2rem;">Ayarları Kaydet</button>
+              </div>
+
+              <!-- Students List Card -->
+              <div class="glass-card">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; flex-wrap: wrap; gap: 8px;">
+                  <div style="display: flex; align-items: center; gap: 0.6rem;">
+                    <div style="width: 38px; height: 38px; border-radius: 10px; background: rgba(16, 185, 129, 0.12); display: flex; align-items: center; justify-content: center; color: #10b981;">
+                      <i data-lucide="users" style="width: 20px; height: 20px;"></i>
+                    </div>
+                    <div>
+                      <h3 class="card-title" style="font-size: 1.1rem; font-weight: 700; margin: 0;">Oyuna Katılacak Öğrenciler</h3>
+                      <p style="margin: 0; font-size: 0.78rem; color: var(--text-secondary);">Yarışmaya dahil edilecek öğrencileri seçin.</p>
+                    </div>
+                  </div>
+                  <div style="display: flex; gap: 0.25rem;">
+                    <button type="button" class="btn btn-secondary btn-sm" id="btn-quiz-select-all-students" style="padding: 0.15rem 0.5rem; font-size: 0.75rem; height: 26px;">Tümünü Seç</button>
+                    <button type="button" class="btn btn-secondary btn-sm" id="btn-quiz-deselect-all-students" style="padding: 0.15rem 0.5rem; font-size: 0.75rem; height: 26px;">Seçimi Kaldır</button>
+                  </div>
+                </div>
+                <div class="branch-filter-container" id="quiz-branch-filter-container" style="display: none; margin-bottom: 0.75rem;">
+                  <label for="quiz-select-branch" style="font-weight: 600; font-size: 0.85rem; margin-bottom: 0.25rem; display: block; color: var(--text-secondary);">Şube Seçimi:</label>
+                  <select class="form-control" id="quiz-select-branch" style="width: 100%; height: 35px; padding: 0.35rem 0.5rem; font-size: 0.85rem;">
+                    <!-- Dinamik doldurulacak -->
+                  </select>
+                </div>
+                <div id="quiz-setup-students-list" class="students-checkbox-grid" style="grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 0.5rem; max-height: 240px; padding: 0.75rem;">
+                  <!-- JS will populate student checkboxes -->
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.75rem;">
+                  <span id="quiz-student-count-badge" class="badge">Sınıf Öğrencisi: -</span>
+                </div>
+              </div>
+
             </div>
           </div>
 
@@ -2047,6 +2130,9 @@
           <button class="sub-tab-btn active" id="tab-btn-config-general" data-config-tab="config-general">
             <i data-lucide="settings" style="width: 16px; height: 16px;"></i> Genel Ayarlar
           </button>
+          <button class="sub-tab-btn" id="tab-btn-config-ai" data-config-tab="config-ai">
+            <i data-lucide="sparkles" style="width: 16px; height: 16px; color: #8b5cf6;"></i> Yapay Zeka (AI)
+          </button>
           <button class="sub-tab-btn" id="tab-btn-config-points" data-config-tab="config-points">
             <i data-lucide="award" style="width: 16px; height: 16px;"></i> Puan Ayarları
           </button>
@@ -2139,48 +2225,6 @@
             </div>
           </div>
 
-          <!-- Yapay Zeka (Google Gemini AI) Ayarları Kartı -->
-          <div class="glass-card" style="padding: 1.5rem; display: flex; flex-direction: column; gap: 1.25rem; max-width: 600px; margin-top: 1.5rem;">
-            <div class="section-title" style="margin-bottom: 0.5rem; display: flex; align-items: center; justify-content: space-between;">
-              <h3 style="display: flex; align-items: center; gap: 0.5rem; margin: 0;">
-                <i data-lucide="bot" style="color: #6366f1;"></i> Yapay Zeka (Gemini AI) Ayarları
-              </h3>
-              <span style="background: rgba(99, 102, 241, 0.15); color: #6366f1; border: 1px solid rgba(99, 102, 241, 0.3); font-size: 0.75rem; padding: 0.2rem 0.6rem; border-radius: 999px; font-weight: 700;">Ücretsiz</span>
-            </div>
-            
-            <p style="font-size: 0.85rem; color: var(--text-muted); margin: 0; line-height: 1.5;">
-              Kitapların okuduğunu anlama soruları ve cevaplarını yapay zekaya otomatik hazırlatmak için ücretsiz Google Gemini API anahtarınızı tanımlayın.
-            </p>
-
-            <div style="display: flex; flex-direction: column; gap: 0.5rem;">
-              <label style="font-size: 0.85rem; font-weight: 600; color: var(--text-primary); margin: 0;">Google Gemini API Anahtarı</label>
-              <div style="display: flex; gap: 0.5rem;">
-                <input type="password" id="config-gemini-api-key" class="form-control" placeholder="AIzaSy..." style="flex: 1; font-family: monospace; font-size: 0.85rem;">
-                <button type="button" class="btn btn-secondary" id="btn-toggle-gemini-key-visibility" title="Anahtarı Göster/Gizle" style="padding: 0.5rem 0.75rem;">
-                  <i data-lucide="eye" id="icon-toggle-gemini-key" style="width: 16px; height: 16px;"></i>
-                </button>
-                <button type="button" class="btn btn-primary" id="btn-save-gemini-api-key" style="white-space: nowrap; gap: 0.25rem;">
-                  <i data-lucide="save" style="width: 16px; height: 16px;"></i> Kaydet
-                </button>
-              </div>
-              <div id="gemini-key-status-msg" style="font-size: 0.8rem; display: none;"></div>
-            </div>
-
-            <!-- Adım Adım Rehber Kutusu -->
-            <div style="background: rgba(99, 102, 241, 0.06); border: 1px solid rgba(99, 102, 241, 0.25); border-radius: 8px; padding: 1rem;">
-              <h4 style="font-size: 0.85rem; font-weight: 700; color: #6366f1; margin: 0 0 0.5rem 0; display: flex; align-items: center; gap: 0.4rem;">
-                <i data-lucide="help-circle" style="width: 16px; height: 16px;"></i> Ücretsiz API Anahtarı Nasıl Alınır? (3 Adımda)
-              </h4>
-              <ol style="font-size: 0.8rem; color: var(--text-secondary); margin: 0; padding-left: 1.2rem; line-height: 1.6;">
-                <li><a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" style="color: #6366f1; font-weight: 700; text-decoration: underline;">Google AI Studio API Key</a> sayfasına gidin ve mevcut Google (Gmail) hesabınızla giriş yapın.</li>
-                <li>Mavi renkli <strong>"Create API key"</strong> butonuna tıklayın ve açılan pencerede projenizi onaylayarak anahtarınızı oluşturun.</li>
-                <li>Oluşan <code>AIzaSy...</code> ile başlayan anahtarı kopyalayıp yukarıdaki kutucuğa yapıştırın ve <strong>"Kaydet"</strong>e basın.</li>
-              </ol>
-              <div style="margin-top: 0.5rem; font-size: 0.75rem; color: var(--text-muted); border-top: 1px dashed rgba(99, 102, 241, 0.2); padding-top: 0.4rem;">
-                💡 <em>Google Gemini API tamamen ücretsizdir, kredi kartı gerektirmez ve sınıfınız için günde binlerce kitap sorusu üretebilecek kapasitededir.</em>
-              </div>
-            </div>
-          </div>
 
           <!-- Lisans Yönetimi Kartı -->
           <div class="glass-card" style="padding: 1.5rem; display: flex; flex-direction: column; gap: 1.25rem; max-width: 600px; margin-top: 1.5rem;">
@@ -2241,7 +2285,139 @@
           </div>
         </div>
 
-        <!-- 2. PUAN AYARLARI SEKMESİ -->
+        <!-- 2. YAPAY ZEKA (AI) AYARLARI SEKMESİ (YENİ ÖZEL SEKME) -->
+        <div class="config-tab-content" id="config-ai" style="display: none;">
+          <div style="display: flex; flex-direction: column; gap: 1.5rem; max-width: 800px;">
+            
+            <!-- Başlık & Bilgi Kartı -->
+            <div class="glass-card" style="padding: 1.5rem; background: linear-gradient(135deg, rgba(139, 92, 246, 0.08), rgba(6, 182, 212, 0.05)); border: 1px solid rgba(139, 92, 246, 0.3);">
+              <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; flex-wrap: wrap;">
+                <div style="display: flex; gap: 1rem; align-items: center;">
+                  <div style="width: 48px; height: 48px; border-radius: 14px; background: linear-gradient(135deg, #8b5cf6, #06b6d4); display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 4px 14px rgba(139, 92, 246, 0.35);">
+                    <i data-lucide="sparkles" style="width: 26px; height: 26px; color: white;"></i>
+                  </div>
+                  <div>
+                    <h3 style="margin: 0 0 0.25rem 0; font-size: 1.25rem; font-weight: 800; color: var(--text-primary);">Google Gemini Yapay Zeka Entegrasyonu</h3>
+                    <p style="margin: 0; font-size: 0.85rem; color: var(--text-secondary);">
+                      Tamamen ücretsiz Google Gemini API anahtarınızı tanımlayarak uygulamadaki yapay zeka modüllerini aktif edin.
+                    </p>
+                  </div>
+                </div>
+                <span style="background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3); font-size: 0.75rem; padding: 0.25rem 0.75rem; border-radius: 999px; font-weight: 700;">
+                  %100 ÜCRETSİZ
+                </span>
+              </div>
+            </div>
+
+            <!-- Anahtar Girişi & Yönetimi Kartı -->
+            <div class="glass-card" style="padding: 1.5rem;">
+              <h4 style="font-size: 1.05rem; font-weight: 700; margin: 0 0 0.5rem 0; display: flex; align-items: center; gap: 0.5rem;">
+                <i data-lucide="key" style="width: 18px; height: 18px; color: #8b5cf6;"></i>
+                <span>API Anahtarı Girişi & Yönetimi</span>
+              </h4>
+              <p style="font-size: 0.82rem; color: var(--text-secondary); margin: 0 0 1.25rem 0;">
+                Google AI Studio'dan aldığınız API anahtarını buraya yapıştırın. Anahtarınız yalnızca bilgisayarınızda güvenle saklanır, sunuculara iletilmez.
+              </p>
+
+              <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                <label for="config-gemini-api-key" style="font-size: 0.85rem; font-weight: 600; color: var(--text-primary); margin: 0;">
+                  Google Gemini API Anahtarı (AIzaSy...)
+                </label>
+                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                  <div style="flex: 1; min-width: 250px; position: relative; display: flex;">
+                    <input type="password" id="config-gemini-api-key" class="form-control" placeholder="AIzaSy..." style="flex: 1; font-family: monospace; font-size: 0.88rem; padding-right: 42px;">
+                    <button type="button" class="btn btn-secondary" id="btn-toggle-gemini-key-visibility" title="Anahtarı Göster/Gizle" style="position: absolute; right: 4px; top: 50%; transform: translateY(-50%); height: 30px; width: 34px; padding: 0; display: flex; align-items: center; justify-content: center; background: transparent; border: none;">
+                      <i data-lucide="eye" id="icon-toggle-gemini-key" style="width: 16px; height: 16px;"></i>
+                    </button>
+                  </div>
+                  <button type="button" class="btn btn-primary" id="btn-save-gemini-api-key" style="white-space: nowrap; gap: 0.35rem; background: #8b5cf6; border-color: #8b5cf6;">
+                    <i data-lucide="save" style="width: 16px; height: 16px;"></i> Kaydet
+                  </button>
+                  <button type="button" class="btn btn-secondary" id="btn-test-gemini-api-key" style="white-space: nowrap; gap: 0.35rem;" title="API anahtarının çalışıp çalışmadığını Google'a ping atarak test edin">
+                    <i data-lucide="zap" style="width: 16px; height: 16px; color: #f59e0b;"></i> Bağlantıyı Test Et
+                  </button>
+                  <button type="button" class="btn btn-secondary" id="btn-delete-gemini-api-key" style="white-space: nowrap; gap: 0.35rem; color: #ef4444;" title="Kayıtlı anahtarı kaldır">
+                    <i data-lucide="trash-2" style="width: 16px; height: 16px;"></i> Sil
+                  </button>
+                </div>
+                
+                <!-- Durum / Geri Bildirim Bildirimi -->
+                <div id="gemini-key-status-msg" style="font-size: 0.82rem; padding: 0.6rem 0.85rem; border-radius: 8px; display: none; line-height: 1.45;"></div>
+              </div>
+            </div>
+
+            <!-- Adım Adım Rehber Kutusu -->
+            <div class="glass-card" style="padding: 1.5rem;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
+                <h4 style="font-size: 1.05rem; font-weight: 700; color: #6366f1; margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+                  <i data-lucide="help-circle" style="width: 20px; height: 20px;"></i>
+                  <span>Ücretsiz API Anahtarı Nasıl Alınır? (3 Kolay Adım)</span>
+                </h4>
+                <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-sm" style="display: inline-flex; align-items: center; gap: 0.35rem; color: #6366f1; border-color: rgba(99, 102, 241, 0.4);">
+                  <i data-lucide="external-link" style="width: 14px; height: 14px;"></i> Google AI Studio'yu Aç
+                </a>
+              </div>
+
+              <div style="display: flex; flex-direction: column; gap: 0.85rem;">
+                
+                <div style="display: flex; gap: 0.85rem; align-items: flex-start; padding: 0.85rem; background: rgba(255, 255, 255, 0.03); border-radius: 10px; border: 1px solid var(--border-color);">
+                  <span style="background: #8b5cf6; color: white; width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.82rem; flex-shrink: 0;">1</span>
+                  <div style="font-size: 0.84rem; line-height: 1.5;">
+                    <strong>Google AI Studio Sayfasına Gidin:</strong><br>
+                    <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" style="color: #8b5cf6; font-weight: 600; text-decoration: underline;">https://aistudio.google.com/app/apikey</a> adresini açın ve mevcut kişisel Gmail/Google hesabınızla ücretsiz oturum açın.
+                  </div>
+                </div>
+
+                <div style="display: flex; gap: 0.85rem; align-items: flex-start; padding: 0.85rem; background: rgba(255, 255, 255, 0.03); border-radius: 10px; border: 1px solid var(--border-color);">
+                  <span style="background: #8b5cf6; color: white; width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.82rem; flex-shrink: 0;">2</span>
+                  <div style="font-size: 0.84rem; line-height: 1.5;">
+                    <strong>"Create API key" Butonuna Tıklayın:</strong><br>
+                    Sayfanın sağ üst köşesindeki mavi renkli <strong>"Create API key"</strong> butonuna tıklayın. Açılan pencerede <em>"Create API key in new project"</em> seçeneğini işaretleyip onaylayın.
+                  </div>
+                </div>
+
+                <div style="display: flex; gap: 0.85rem; align-items: flex-start; padding: 0.85rem; background: rgba(255, 255, 255, 0.03); border-radius: 10px; border: 1px solid var(--border-color);">
+                  <span style="background: #8b5cf6; color: white; width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.82rem; flex-shrink: 0;">3</span>
+                  <div style="font-size: 0.84rem; line-height: 1.5;">
+                    <strong>Anahtarınızı Kopyalayıp Kaydedin:</strong><br>
+                    Oluşturulan <code>AIzaSy...</code> ile başlayan anahtarı kopyalayın, yukarıdaki <strong>Google Gemini API Anahtarı</strong> kutusuna yapıştırın ve <strong>"Kaydet"</strong> butonuna basın.
+                  </div>
+                </div>
+
+              </div>
+
+              <div style="margin-top: 1rem; padding: 0.75rem 1rem; background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 8px; font-size: 0.82rem; color: #10b981; line-height: 1.5;">
+                💡 <strong>Önemli Bilgi:</strong> Google Gemini API tamamen ücretsizdir ve kredi kartı gerektirmez. Sınıfınız için ayda binlerce soru ve etkinlik üretebilecek kapasiteye sahiptir.
+              </div>
+            </div>
+
+            <!-- Yapay Zekanın Kullanıldığı Modüller -->
+            <div class="glass-card" style="padding: 1.5rem;">
+              <h4 style="font-size: 1rem; font-weight: 700; margin: 0 0 0.85rem 0;">🚀 Yapay Zeka Hangi Modüllerde Kullanılır?</h4>
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0.85rem;">
+                
+                <div style="padding: 0.85rem; background: rgba(255,255,255,0.03); border-radius: 10px; border: 1px solid var(--border-color);">
+                  <div style="font-weight: 700; font-size: 0.88rem; color: var(--primary); margin-bottom: 0.25rem;">🎮 Bilgi Yarışması Soru Üretici</div>
+                  <div style="font-size: 0.78rem; color: var(--text-secondary); line-height: 1.45;">Sınıf seviyesi, ders ve konunuza göre saniyeler içinde D/Y, Çoktan Seçmeli ve Boşluk Doldurma soruları hazırlar.</div>
+                </div>
+
+                <div style="padding: 0.85rem; background: rgba(255,255,255,0.03); border-radius: 10px; border: 1px solid var(--border-color);">
+                  <div style="font-weight: 700; font-size: 0.88rem; color: #06b6d4; margin-bottom: 0.25rem;">📚 Kitap Değerlendirme Soruları</div>
+                  <div style="font-size: 0.78rem; color: var(--text-secondary); line-height: 1.45;">Kütüphaneye eklenen kitaplar için okuduğunu anlama sınav sorularını tek tıkla otomatik oluşturur.</div>
+                </div>
+
+                <div style="padding: 0.85rem; background: rgba(255,255,255,0.03); border-radius: 10px; border: 1px solid var(--border-color);">
+                  <div style="font-weight: 700; font-size: 0.88rem; color: #10b981; margin-bottom: 0.25rem;">📅 Yıllık Plan & Maarif Modeli</div>
+                  <div style="font-size: 0.78rem; color: var(--text-secondary); line-height: 1.45;">MEB taslak çerçeve plan havuzu ve yeni müfredata göre kazanım/çıktı içerikleri önerir.</div>
+                </div>
+
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- 3. PUAN AYARLARI SEKMESİ -->
         <div class="config-tab-content" id="config-points" style="display: none;">
           <div class="glass-card" style="padding: 1.5rem;">
             <div class="section-title" style="margin-bottom: 1rem;">
