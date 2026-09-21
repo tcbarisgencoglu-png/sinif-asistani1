@@ -2095,6 +2095,15 @@ function initApp() {
   const elSidebarVer = document.getElementById('app-sidebar-version-text');
   if (elSidebarVer) {
     elSidebarVer.textContent = `Sınıf Asistanı v${APP_VERSION}`;
+    if (window.__TAURI__) {
+      const getVer = (window.__TAURI__.app && window.__TAURI__.app.getVersion) 
+        || (window.__TAURI__.core && (() => window.__TAURI__.core.invoke('plugin:app|version')));
+      if (getVer) {
+        Promise.resolve(getVer()).then(v => {
+          if (v) elSidebarVer.textContent = `Sınıf Asistanı v${v}`;
+        }).catch(() => {});
+      }
+    }
   }
 
   // 2.5. Önceki yüklenen planları otomatik olarak tanımlı ders adlarına eşitle (Eşleşme Düzeltmesi)
@@ -2614,7 +2623,7 @@ function initApp() {
 }
 
 // Mevcut uygulama sürümü (her güncellemede değişir)
-const APP_VERSION = '1.0.15';
+const APP_VERSION = '1.0.19';
 
 // GitHub & Tauri Auto-Updater kontrolü
 async function checkForUpdates() {

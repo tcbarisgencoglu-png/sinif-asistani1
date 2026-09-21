@@ -598,13 +598,13 @@ function renderDashboardHeaderActions() {
               </div>
             </div>
           </div>
-          <div class="flip-card" id="btn-dash-quick-puan" tabindex="0" role="button" title="Hızlı Puan Ver">
+          <div class="flip-card" id="btn-dash-quick-puan" tabindex="0" role="button" title="Tüm Sınıfa Kitap Puanı Ver">
             <div class="flip-card-inner">
               <div class="flip-card-front">
-                <i id="dash-quick-puan-icon" data-lucide="award"></i>
+                <i id="dash-quick-puan-icon" data-lucide="book-open"></i>
               </div>
               <div class="flip-card-back">
-                <span>Puan Ver</span>
+                <span>Kitap Puanı</span>
               </div>
             </div>
           </div>
@@ -696,7 +696,9 @@ function renderDashboardHeaderActions() {
     if (btnDashQuickPuan) {
       btnDashQuickPuan.addEventListener('click', (e) => {
         e.preventDefault();
-        if (window.openQuickGivePointModal) {
+        if (window.openBulkBookPointModal) {
+          window.openBulkBookPointModal();
+        } else if (window.openQuickGivePointModal) {
           window.openQuickGivePointModal();
         }
       });

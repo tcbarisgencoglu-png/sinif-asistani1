@@ -1112,6 +1112,17 @@
     }
   }
 
+  // Global bridge: AI soru üretici modülünün yeni soruları kaydetmesinin ardından
+  // questions dizisini localStorage'dan yeniden yükler ve dropdown'ları günceller.
+  window.refreshQuizQuestions = function() {
+    const stored = localStorage.getItem("tf_questions");
+    if (stored) {
+      questions = JSON.parse(stored);
+    }
+    populateCategorySelectors();
+    renderQuestionLibrary();
+  };
+
   function startQuizGame() {
     const currentList = quizSelectedStudentNames;
     if (currentList.length === 0) {

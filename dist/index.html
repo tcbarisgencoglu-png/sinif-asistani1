@@ -178,7 +178,7 @@
       <div id="sidebar-demo-container"></div>
       
       <div class="sidebar-footer" style="padding: 1rem; text-align: center; font-size: 0.8rem; color: var(--text-muted); border-top: 1px solid var(--border-color);">
-        <span id="app-sidebar-version-text">Sınıf Asistanı v1.0.15</span>
+        <span id="app-sidebar-version-text">Sınıf Asistanı v1.0.19</span>
       </div>
     </aside>
 
@@ -1102,10 +1102,25 @@
 
               <!-- Right: Questions Management -->
               <div class="admin-content">
+                <!-- AI Soru Üretici Kartı -->
+                <div class="glass-card ai-gen-entry-card">
+                  <div style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; justify-content: space-between;">
+                    <div>
+                      <h3 class="card-title" style="font-size: 1.1rem; font-weight: 700; margin-bottom: 0.25rem; background: linear-gradient(135deg, #8b5cf6, #06b6d4); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">✨ Yapay Zeka ile Soru Hazırla</h3>
+                      <p class="card-desc" style="margin: 0; font-size: 0.85rem;">Sınıf seviyesi, ders ve konuya göre Gemini AI ile saniyeler içinde soru paketi oluşturun.</p>
+                    </div>
+                    <button class="btn btn-ai-glow" id="btn-open-quiz-ai-gen" onclick="window.openQuizAIGeneratorModal()">
+                      <i data-lucide="sparkles" style="width:16px;height:16px;"></i>
+                      Soru Üret
+                    </button>
+                  </div>
+                </div>
+
                 <!-- Question Bulk Import Card -->
-                <div class="glass-card">
+                <div class="glass-card" style="margin-top: 1rem;">
                   <h3 class="card-title" style="font-size: 1.1rem; font-weight: 700; margin-bottom: 0.5rem;">Dosyadan Soru Yükleme</h3>
                   <p class="card-desc" style="margin-bottom: 1rem;">Soruları JSON veya CSV formatında toplu olarak sisteme yükleyebilirsiniz.</p>
+
                   
                   <div class="import-container" style="margin-bottom: 1.5rem;">
                     <div class="file-drop-area" id="file-drop-area" style="padding: 2.5rem 1.5rem; text-align: center;">
@@ -4589,6 +4604,38 @@
     </div>
   </div>
 
+  <!-- MODAL: ÖĞRENCİ GELİŞİM RAPORU ÖNİZLEME -->
+  <div class="modal" id="modal-student-report-preview" style="--max-width: 960px; z-index: 1050;">
+    <div class="modal-content" style="max-width: 960px; max-height: 90vh; display: flex; flex-direction: column;">
+      <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding: 1rem 1.5rem;">
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+          <div style="width: 38px; height: 38px; border-radius: 10px; background: rgba(99, 102, 241, 0.12); color: var(--primary); display: flex; align-items: center; justify-content: center;">
+            <i data-lucide="file-text" style="width: 20px; height: 20px;"></i>
+          </div>
+          <div>
+            <h3 style="margin: 0; font-size: 1.15rem; font-weight: 700; color: var(--text-primary);">Öğrenci Gelişim Raporu Önizleme</h3>
+            <p id="student-report-preview-subtitle" style="margin: 0; font-size: 0.8rem; color: var(--text-muted);"></p>
+          </div>
+        </div>
+        <button class="close-btn" id="btn-close-student-report-preview">&times;</button>
+      </div>
+      <div class="modal-body" id="student-report-preview-body" style="flex: 1; overflow-y: auto; padding: 1.5rem; background: rgba(0,0,0,0.02);">
+        <!-- Öğrenci gelişim raporu kartları buraya gelecek -->
+      </div>
+      <div class="modal-footer" style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-color); padding: 0.85rem 1.5rem;">
+        <button type="button" class="btn btn-secondary" id="btn-close-student-report-preview-footer">Kapat</button>
+        <div style="display: flex; gap: 0.5rem;">
+          <button type="button" class="btn btn-success" id="btn-preview-send-wp" style="display: inline-flex; align-items: center; gap: 0.4rem; background: #25d366; border-color: #25d366; color: white;">
+            <i data-lucide="send" style="width: 15px; height: 15px;"></i> WhatsApp ile Gönder
+          </button>
+          <button type="button" class="btn btn-primary" id="btn-preview-print-report" style="display: inline-flex; align-items: center; gap: 0.4rem;">
+            <i data-lucide="printer" style="width: 15px; height: 15px;"></i> Raporu Yazdır / PDF Al
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- MODAL: WHATSAPP RAPOR GÖNDERİM SİHİRBAZI -->
   <div class="modal" id="modal-whatsapp-report-wizard" style="--max-width: 750px; z-index: 1050;">
     <div class="modal-content" style="max-width: 750px;">
@@ -5641,6 +5688,179 @@
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" id="btn-close-quick-point-modal-footer">Kapat</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: YAPAY ZEKA SORU ÜRETİCİ -->
+  <div class="modal" id="modal-quiz-ai-generator" style="--max-width: 820px; z-index: 1060;">
+    <div class="modal-content" style="max-width: 820px; max-height: 90vh; display: flex; flex-direction: column;">
+      <div class="modal-header" style="display: flex; align-items: center; justify-content: space-between; padding: 1rem 1.4rem; border-bottom: 1px solid var(--border-color);">
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+          <div style="width: 38px; height: 38px; border-radius: 10px; background: linear-gradient(135deg, #8b5cf6, #06b6d4); display: flex; align-items: center; justify-content: center;">
+            <i data-lucide="sparkles" style="width: 20px; height: 20px; color: white;"></i>
+          </div>
+          <div>
+            <h3 style="margin: 0; font-size: 1.05rem; font-weight: 700;">✨ Yapay Zeka ile Soru Üret</h3>
+            <p style="margin: 0; font-size: 0.78rem; color: var(--text-secondary);">Gemini AI — Bilgi Yarışması Soru Havuzu</p>
+          </div>
+        </div>
+        <button class="close-btn" onclick="window.closeQuizAIGeneratorModal()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-secondary);">&times;</button>
+      </div>
+
+      <div class="modal-body" style="flex: 1; overflow-y: auto; padding: 1.25rem 1.4rem;">
+
+        <!-- FORM BÖLÜMÜ -->
+        <div id="ai-gen-form-section">
+          <div class="form-grid-2" style="gap: 1rem; margin-bottom: 1rem;">
+            <div class="form-group">
+              <label style="font-weight: 600; font-size: 0.88rem;">Sınıf Seviyesi <span style="color:#ef4444;">*</span></label>
+              <select id="ai-sinif-seviyesi" class="form-control">
+                <option value="">Seçin...</option>
+                <option value="1">1. Sınıf</option>
+                <option value="2">2. Sınıf</option>
+                <option value="3">3. Sınıf</option>
+                <option value="4">4. Sınıf</option>
+                <option value="5">5. Sınıf</option>
+                <option value="6">6. Sınıf</option>
+                <option value="7">7. Sınıf</option>
+                <option value="8">8. Sınıf</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label style="font-weight: 600; font-size: 0.88rem;">Ders Adı <span style="color:#ef4444;">*</span></label>
+              <input type="text" id="ai-ders-adi" class="form-control" placeholder="örn. Türkçe, Matematik, Fen Bilimleri...">
+            </div>
+          </div>
+
+          <div class="form-group" style="margin-bottom: 1rem;">
+            <label style="font-weight: 600; font-size: 0.88rem;">Konu Başlığı (Paket Adı) <span style="color:#ef4444;">*</span></label>
+            <input type="text" id="ai-konu-basligi" class="form-control" placeholder="örn. Kesirler, Dünya'nın Yapısı, Atatürk'ün Hayatı...">
+            <small style="color: var(--text-muted); font-size: 0.78rem;">Bu başlık, soruların soru havuzundaki kategori adı olacak.</small>
+          </div>
+
+          <div class="form-group" style="margin-bottom: 1rem;">
+            <label style="font-weight: 600; font-size: 0.88rem;">Kazanım / Açıklama <span style="color: var(--text-muted); font-size: 0.8rem;">(isteğe bağlı)</span></label>
+            <textarea id="ai-kazanim" class="form-control" rows="2" placeholder="örn. Öğrenci kesirlerle toplama ve çıkarma yapabilir. Payı ve paydayı kavrar..."></textarea>
+          </div>
+
+          <div class="form-grid-3" style="gap: 1rem; margin-bottom: 1.25rem;">
+            <div class="form-group">
+              <label style="font-weight: 600; font-size: 0.88rem;">Soru Sayısı</label>
+              <select id="ai-soru-sayisi" class="form-control">
+                <option value="5">5 Soru</option>
+                <option value="10" selected>10 Soru</option>
+                <option value="15">15 Soru</option>
+                <option value="20">20 Soru</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label style="font-weight: 600; font-size: 0.88rem;">Soru Tipi</label>
+              <select id="ai-soru-tipi" class="form-control">
+                <option value="karisik" selected>Karışık (D/Y + ÇS + BF)</option>
+                <option value="tf">Sadece Doğru/Yanlış</option>
+                <option value="mc">Sadece Çoktan Seçmeli</option>
+                <option value="fib">Sadece Boşluk Doldurma</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label style="font-weight: 600; font-size: 0.88rem;">Zorluk Dağılımı</label>
+              <select id="ai-zorluk" class="form-control">
+                <option value="dengeli" selected>Dengeli (%40K/%40O/%20Z)</option>
+                <option value="kolay">Tümü Kolay</option>
+                <option value="orta">Tümü Orta</option>
+                <option value="zor">Tümü Zor</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Yükleniyor Spinner -->
+          <div id="ai-gen-spinner" style="display:none; align-items: center; gap: 0.6rem; margin-bottom: 1rem; color: var(--text-secondary); font-size: 0.88rem;">
+            <div class="ai-spinner-ring"></div>
+            <span>Yapay zeka sorular hazırlıyor, lütfen bekleyin...</span>
+          </div>
+        </div>
+
+        <!-- ÖNİZLEME BÖLÜMÜ -->
+        <div id="ai-gen-preview-section" style="display: none;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
+            <div>
+              <h4 style="margin: 0; font-size: 0.95rem; font-weight: 700;">Üretilen Sorular</h4>
+              <span id="ai-preview-count-badge" style="font-size: 0.8rem; color: var(--text-secondary);"></span>
+            </div>
+            <button class="btn btn-secondary btn-sm" onclick="window.backToAIGeneratorForm()">
+              <i data-lucide="arrow-left" style="width:14px;height:14px;"></i> Geri Dön
+            </button>
+          </div>
+          <div id="ai-preview-container" class="ai-preview-list"></div>
+        </div>
+
+      </div>
+
+      <div class="modal-footer" style="padding: 1rem 1.4rem; border-top: 1px solid var(--border-color); display: flex; gap: 0.75rem; justify-content: flex-end; flex-wrap: wrap;">
+        <button class="btn btn-secondary" onclick="window.closeQuizAIGeneratorModal()">İptal</button>
+        <button class="btn btn-ai-glow" id="btn-ai-generate-form" onclick="window.startQuizAIGeneration()">
+          <i data-lucide="sparkles" style="width:16px;height:16px;"></i> Soruları Üret
+        </button>
+        <button class="btn btn-success" id="btn-ai-save-to-pool" onclick="window.saveAIQuestionsToPool()" style="display: none;" disabled>
+          <i data-lucide="download" style="width:16px;height:16px;"></i> Havuza İndir ve Kaydet
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: TÜM SINIFA KİTAP PUANI GİRİŞİ -->
+  <div class="modal" id="modal-bulk-book-points" style="--max-width: 760px; z-index: 1050;">
+
+    <div class="modal-content" style="max-width: 760px; max-height: 90vh; display: flex; flex-direction: column;">
+      <div class="modal-header" style="display: flex; align-items: center; justify-content: space-between; padding: 1rem 1.4rem; border-bottom: 1px solid var(--border-color);">
+        <div style="display: flex; align-items: center; gap: 0.65rem;">
+          <div style="width: 38px; height: 38px; border-radius: 10px; background: rgba(99, 102, 241, 0.12); color: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">
+            📚
+          </div>
+          <div>
+            <h3 style="margin: 0; font-size: 1.15rem; font-weight: 700; color: var(--text-primary);">Tüm Sınıfa Kitap Puanı Ver</h3>
+            <span id="bulk-book-points-subtitle" style="font-size: 0.8rem; color: var(--text-muted); font-weight: 500;">Tüm Sınıf Listesi</span>
+          </div>
+        </div>
+        <button class="close-btn" id="btn-close-bulk-book-points">&times;</button>
+      </div>
+
+      <div class="modal-body" style="padding: 1rem 1.4rem; flex: 1; overflow-y: auto;">
+        <!-- Hızlı İşlem Araç Çubuğu -->
+        <div style="background: rgba(255, 255, 255, 0.04); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 0.85rem; margin-bottom: 1rem; display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
+          <div style="flex: 1; min-width: 180px; position: relative;">
+            <i data-lucide="search" style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); width: 15px; height: 15px; color: var(--text-muted);"></i>
+            <input type="text" id="bulk-book-point-search" placeholder="Öğrenci adı veya numarası ara..." class="form-control" style="padding-left: 2.1rem; height: 36px; font-size: 0.85rem;">
+          </div>
+          <div style="display: flex; align-items: center; gap: 0.4rem; background: rgba(99, 102, 241, 0.08); border: 1px solid rgba(99, 102, 241, 0.25); border-radius: 8px; padding: 0.25rem 0.5rem;">
+            <span style="font-size: 0.78rem; font-weight: 600; color: var(--text-secondary); white-space: nowrap;">Tümüne Ata:</span>
+            <input type="number" id="bulk-book-point-all-value" value="5" min="-100" max="100" style="width: 50px; height: 28px; text-align: center; font-weight: 700; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary); font-size: 0.85rem;">
+            <button type="button" class="btn btn-sm btn-primary" id="btn-bulk-book-point-apply-all" style="height: 28px; padding: 0 0.6rem; font-size: 0.78rem; font-weight: 700; display: inline-flex; align-items: center; gap: 0.25rem;">
+              Uygula
+            </button>
+          </div>
+          <button type="button" class="btn btn-sm btn-secondary" id="btn-bulk-book-point-reset-all" style="height: 36px; padding: 0 0.75rem; font-size: 0.78rem; font-weight: 600; color: var(--text-muted);">
+            Sıfırla
+          </button>
+        </div>
+
+        <!-- Öğrenci Listesi -->
+        <div id="bulk-book-points-students-list" style="max-height: 52vh; overflow-y: auto; padding-right: 0.2rem;">
+          <!-- Dinamik Satırlar -->
+        </div>
+      </div>
+
+      <div class="modal-footer" style="display: flex; align-items: center; justify-content: space-between; padding: 0.85rem 1.4rem; border-top: 1px solid var(--border-color);">
+        <div id="bulk-book-points-summary" style="font-size: 0.88rem; font-weight: 500;">
+          <span style="color: var(--text-muted);">Henüz puan girilmedi</span>
+        </div>
+        <div style="display: flex; gap: 0.5rem;">
+          <button type="button" class="btn btn-secondary" id="btn-close-bulk-book-points-footer">İptal</button>
+          <button type="button" class="btn btn-primary" id="btn-bulk-book-points-save" style="display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.5rem 1.25rem; font-weight: 700;" disabled>
+            <i data-lucide="check" style="width: 16px; height: 16px;"></i> Puanları Kaydet
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -6827,13 +7047,13 @@
             </div>
             <div>
               <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem;">
-                <a id="btn-download-dmg" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/latest/download/sinif-asistani_1.0.18_aarch64.dmg" target="_blank" class="btn btn-primary" style="flex: 1.1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.15rem; background: #8b5cf6; border-color: #8b5cf6; font-weight: 600; padding: 0.5rem 0.35rem; font-size: 0.78rem; text-align: center; text-decoration: none;">
+                <a id="btn-download-dmg" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/latest/download/sinif-asistani_1.0.19_aarch64.dmg" target="_blank" class="btn btn-primary" style="flex: 1.1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.15rem; background: #8b5cf6; border-color: #8b5cf6; font-weight: 600; padding: 0.5rem 0.35rem; font-size: 0.78rem; text-align: center; text-decoration: none;">
                   <span style="display: flex; align-items: center; gap: 0.25rem; font-weight: 700;">
                     <i data-lucide="download" style="width: 14px; height: 14px;"></i> Apple Silicon
                   </span>
                   <span style="font-size: 0.67rem; opacity: 0.92; font-weight: 500;">(M1 / M2 / M3 / M4)</span>
                 </a>
-                <a id="btn-download-dmg-intel" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/latest/download/sinif-asistani_1.0.18_x64.dmg" target="_blank" class="btn btn-secondary" style="flex: 0.9; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.15rem; font-weight: 600; padding: 0.5rem 0.35rem; font-size: 0.78rem; text-align: center; text-decoration: none; border: 1px solid rgba(139, 92, 246, 0.45); color: var(--text-primary);">
+                <a id="btn-download-dmg-intel" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/latest/download/sinif-asistani_1.0.19_x64.dmg" target="_blank" class="btn btn-secondary" style="flex: 0.9; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.15rem; font-weight: 600; padding: 0.5rem 0.35rem; font-size: 0.78rem; text-align: center; text-decoration: none; border: 1px solid rgba(139, 92, 246, 0.45); color: var(--text-primary);">
                   <span style="display: flex; align-items: center; gap: 0.25rem; font-weight: 700;">
                     <i data-lucide="download" style="width: 14px; height: 14px;"></i> Intel Mac
                   </span>
@@ -7114,12 +7334,14 @@
   <script src="js/state.js?v=37"></script>
   <script src="js/performance.js?v=35"></script>
   <script src="js/books.js?v=36"></script>
+  <script src="js/bulk-book-points.js?v=37"></script>
   <script src="js/homework.js?v=35"></script>
   <script src="js/weekly.js?v=35"></script>
   <script src="js/dashboard.js?v=35"></script>
   <script src="js/timer.js?v=35"></script>
   <script src="js/quick-caller.js?v=35"></script>
-  <script src="js/games.js?v=35"></script>
+  <script src="js/games.js?v=36"></script>
+  <script src="js/quiz-ai-generator.js?v=1"></script>
   <script src="js/config.js?v=35"></script>
   <script src="js/tasks.js?v=35"></script>
   <script src="js/treasure.js?v=35"></script>

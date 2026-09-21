@@ -4039,6 +4039,12 @@ th:hover .hw-col-actions {
   gap: 1rem;
 }
 
+.form-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+}
+
 /* Touch responsiveness optimization */
 * {
   -webkit-tap-highlight-color: transparent;
@@ -4647,8 +4653,178 @@ th:hover .hw-col-actions {
 }
 
 /* ==========================================================================
-   Öğrenci Gelişim Raporu Yazdırma Stilleri
+   Öğrenci Gelişim Raporu Önizleme ve Yazdırma Stilleri
    ========================================================================== */
+#student-report-preview-body .student-report-page {
+  width: 100%;
+  max-width: 840px;
+  min-height: auto;
+  box-sizing: border-box;
+  padding: 1.75rem 2.25rem;
+  margin: 0 auto 1.75rem auto;
+  background: #ffffff !important;
+  color: #1e293b !important;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e2e8f0;
+  font-family: 'Inter', system-ui, sans-serif !important;
+  position: relative;
+}
+
+#student-report-preview-body .report-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 2px solid #0f172a;
+  padding-bottom: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+#student-report-preview-body .report-header h2 {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0;
+  text-align: right;
+}
+
+#student-report-preview-body .report-header p.report-date-range {
+  font-size: 0.85rem;
+  color: #475569;
+  margin: 0.25rem 0 0 0;
+  text-align: right;
+  font-weight: 500;
+}
+
+#student-report-preview-body .report-logo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+#student-report-preview-body .report-logo span {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #4f46e5;
+}
+
+#student-report-preview-body .student-info-card {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 0.85rem 1rem;
+  margin-bottom: 1.25rem;
+}
+
+#student-report-preview-body .student-photo-wrapper img {
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #e2e8f0;
+}
+
+#student-report-preview-body .student-photo-wrapper .student-avatar-placeholder {
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 1.25rem;
+  background: #e2e8f0;
+  color: #475569;
+}
+
+#student-report-preview-body .student-meta-details h3 {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 0.25rem 0;
+}
+
+#student-report-preview-body .student-meta-details p {
+  font-size: 0.85rem;
+  color: #475569;
+  margin: 0;
+}
+
+#student-report-preview-body .report-sections {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+#student-report-preview-body .report-section-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 0.85rem 1rem;
+}
+
+#student-report-preview-body .report-section-card h4 {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0 0 0.75rem 0;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #f1f5f9;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+#student-report-preview-body .report-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+  gap: 0.5rem;
+  text-align: center;
+}
+
+#student-report-preview-body .report-stat-box {
+  background: #f8fafc;
+  border: 1px solid #f1f5f9;
+  border-radius: 6px;
+  padding: 0.5rem;
+}
+
+#student-report-preview-body .report-stat-box .stat-val {
+  display: block;
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+#student-report-preview-body .report-stat-box .stat-lbl {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #64748b;
+  margin-top: 0.2rem;
+}
+
+#student-report-preview-body .report-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  border-top: 1px solid #e2e8f0;
+  padding-top: 0.85rem;
+  margin-top: 1.25rem;
+  font-size: 0.78rem;
+  color: #64748b;
+}
+
+#student-report-preview-body .report-footer .signature-space {
+  text-align: right;
+  font-weight: 600;
+  color: #1e293b;
+}
+
 .student-reports-print {
   display: none;
   background: white;

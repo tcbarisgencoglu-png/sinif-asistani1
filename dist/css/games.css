@@ -1092,3 +1092,148 @@
     gap: 1rem !important;
   }
 }
+
+/* ─── AI Soru Üretici Stilleri ─────────────────────────────────────────── */
+
+/* AI Glow Butonu */
+.btn-ai-glow {
+  background: linear-gradient(135deg, #8b5cf6, #06b6d4);
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  transition: all 0.2s ease;
+  box-shadow: 0 0 12px rgba(139, 92, 246, 0.35);
+}
+.btn-ai-glow:hover {
+  box-shadow: 0 0 20px rgba(139, 92, 246, 0.55);
+  transform: translateY(-1px);
+}
+.btn-ai-glow:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* AI Giriş Kartı */
+.ai-gen-entry-card {
+  border: 1px solid rgba(139, 92, 246, 0.25) !important;
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.04), rgba(6, 182, 212, 0.04)) !important;
+}
+
+/* Önizleme Kart Listesi */
+.ai-preview-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.ai-preview-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  padding: 0.85rem 1rem;
+  position: relative;
+}
+
+.ai-preview-card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.ai-q-number {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  flex: 1;
+}
+
+.ai-type-badge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+  letter-spacing: 0.03em;
+}
+
+.ai-delete-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px;
+  color: var(--text-muted);
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s, background 0.15s;
+}
+.ai-delete-btn:hover { color: #ef4444; background: rgba(239,68,68,0.1); }
+
+.ai-preview-card-text {
+  margin: 0 0 0.5rem 0;
+  font-size: 0.88rem;
+  line-height: 1.45;
+  color: var(--text-primary);
+}
+
+.ai-options-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 0.35rem;
+}
+
+.ai-option {
+  background: var(--bg-tertiary, rgba(0,0,0,0.08));
+  border: 1px solid var(--border-color);
+  border-radius: 5px;
+  padding: 0.2rem 0.55rem;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+.ai-option-correct {
+  background: rgba(16, 185, 129, 0.12) !important;
+  border-color: rgba(16, 185, 129, 0.4) !important;
+  color: #10b981 !important;
+  font-weight: 600;
+}
+
+.ai-answer-badge {
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  color: #10b981;
+  font-weight: 600;
+  border-radius: 5px;
+  padding: 0.2rem 0.6rem;
+  font-size: 0.82rem;
+}
+.ai-answer-fib { background: rgba(6, 182, 212, 0.12) !important; border-color: rgba(6,182,212,0.4) !important; color: #06b6d4 !important; }
+
+.ai-explanation {
+  margin: 0.35rem 0 0 0;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  font-style: italic;
+  line-height: 1.4;
+}
+
+/* Yükleniyor Spinner */
+.ai-spinner-ring {
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(139,92,246,0.25);
+  border-top-color: #8b5cf6;
+  border-radius: 50%;
+  animation: aiSpin 0.75s linear infinite;
+  flex-shrink: 0;
+}
+@keyframes aiSpin { to { transform: rotate(360deg); } }

@@ -155,7 +155,7 @@
       return;
     }
 
-    printReport(filteredStudents, report.startDate, report.endDate, report.criteria);
+    openReportPreviewModal(report, filteredStudents);
   }
 
   function deleteReport(reportId) {
@@ -328,15 +328,8 @@
     renderReportsList();
   }
 
-  function printReport(filteredStudents, startVal, endVal, criteria) {
-    const state = stateManager.loadState();
+  function buildSingleReportPageHtml(student, filteredStudents, startVal, endVal, criteria, state) {
     const isMiddle = state.educationLevel === 'middle';
-    
-    // Prepare print container
-    const printContainer = document.getElementById('student-reports-print');
-    if (!printContainer) return;
-    printContainer.innerHTML = '';
-
     const { books: showBooks, homeworks: showHomeworks, evaluations: showEvaluations, tasks: showTasks, attendance: showAttendance } = criteria;
 
     const startDate = new Date(startVal + 'T00:00:00');
@@ -345,12 +338,6 @@
     const formattedStartDate = new Date(startVal).toLocaleDateString('tr-TR');
     const formattedEndDate = new Date(endVal).toLocaleDateString('tr-TR');
     const reportDateStr = new Date().toLocaleDateString('tr-TR');
-
-    filteredStudents.sort((a, b) => a.name.localeCompare(b.name, 'tr'));
-
-    filteredStudents.forEach(student => {
-      const page = document.createElement('div');
-      page.className = 'student-report-page';
 
       // 1. Report Header
       let headerHtml = `
@@ -688,15 +675,85 @@
         </div>
       `;
 
-      page.innerHTML = headerHtml + studentInfoHtml + sectionsHtml + footerHtml;
+    return headerHtml + studentInfoHtml + sectionsHtml + footerHtml;
+  }
+
+  function openReportPreviewModal(report, filteredStudents) {
+    const modalPreview = document.getElementById('modal-student-report-preview');
+    const previewBody = document.getElementById('student-report-preview-body');
+    const subtitleEl = document.getElementById('student-report-preview-subtitle');
+    const btnPrint = document.getElementById('btn-preview-print-report');
+    const btnSendWp = document.getElementById('btn-preview-send-wp');
+    const btnCloseH = document.getElementById('btn-close-student-report-preview');
+    const btnCloseF = document.getElementById('btn-close-student-report-preview-footer');
+
+    if (!modalPreview || !previewBody) {
+      printReport(filteredStudents, report.startDate, report.endDate, report.criteria);
+      return;
+    }
+
+    const state = stateManager.loadState();
+    const formattedStartDate = new Date(report.startDate).toLocaleDateString('tr-TR');
+    const formattedEndDate = new Date(report.endDate).toLocaleDateString('tr-TR');
+    
+    if (subtitleEl) {
+      subtitleEl.textContent = `Dönem: ${formattedStartDate} - ${formattedEndDate} • Toplam ${filteredStudents.length} Öğrenci`;
+    }
+
+    previewBody.innerHTML = '';
+    const sorted = [...filteredStudents].sort((a, b) => a.name.localeCompare(b.name, 'tr'));
+
+    sorted.forEach((student) => {
+      const page = document.createElement('div');
+      page.className = 'student-report-page';
+      page.innerHTML = buildSingleReportPageHtml(student, sorted, report.startDate, report.endDate, report.criteria, state);
+      previewBody.appendChild(page);
+    });
+
+    if (window.safeCreateIcons) window.safeCreateIcons();
+
+    const closeFn = () => {
+      modalPreview.classList.remove('active');
+    };
+    if (btnCloseH) btnCloseH.onclick = closeFn;
+    if (btnCloseF) btnCloseF.onclick = closeFn;
+    modalPreview.onclick = (e) => {
+      if (e.target === modalPreview) closeFn();
+    };
+
+    if (btnPrint) {
+      btnPrint.onclick = () => {
+        printReport(sorted, report.startDate, report.endDate, report.criteria);
+      };
+    }
+
+    if (btnSendWp) {
+      btnSendWp.onclick = () => {
+        modalPreview.classList.remove('active');
+        openWhatsAppWizard(report.id);
+      };
+    }
+
+    modalPreview.classList.add('active');
+  }
+
+  function printReport(filteredStudents, startVal, endVal, criteria) {
+    const state = stateManager.loadState();
+    const printContainer = document.getElementById('student-reports-print');
+    if (!printContainer) return;
+    printContainer.innerHTML = '';
+
+    const sorted = [...filteredStudents].sort((a, b) => a.name.localeCompare(b.name, 'tr'));
+
+    sorted.forEach(student => {
+      const page = document.createElement('div');
+      page.className = 'student-report-page';
+      page.innerHTML = buildSingleReportPageHtml(student, sorted, startVal, endVal, criteria, state);
       printContainer.appendChild(page);
     });
 
-    if (window.safeCreateIcons) {
-      window.safeCreateIcons();
-    }
+    if (window.safeCreateIcons) window.safeCreateIcons();
 
-    // Trigger Print
     document.body.classList.add('print-reports');
     window.print();
 
