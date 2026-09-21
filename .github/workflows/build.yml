@@ -121,14 +121,14 @@ jobs:
           releaseName: "Sınıf Asistanı ${{ github.ref_name }}"
           releaseBody: |
             ### 🚀 Bu Sürümdeki Yenilikler (${{ github.ref_name }}):
-            - 📚 MEB Taslak Çerçeve Yıllık Plan Havuzu eklendi; Türkiye Yüzyılı Maarif Modeli (öğrenme çıktıları) ve standart müfredat (kazanımlar) kademelere göre entegre edildi.
-            - 🎯 Plan havuzundan eklenen derslerin pasifleşmesi (✓ Eklendi rozeti) ve mükerrer kayıt koruması sağlandı.
-            - 🍏 macOS indirmelerinde Apple Silicon (M1/M2/M3/M4) ve Intel Mac paketleri ayrıştırıldı; Rosetta gereksinimi olmadan tam yerel hız sağlandı.
-            - ⏰ Haftalık ders programı oluştururken ders saatleri girişinde 24 saatlik format standardı uygulandı.
-            - 🛡️ Ders ve Konu Akışı, kitaplar ve arka plan servislerinde genel kararlılık artırıldı.
+            - 🎮 **Bilgi Yarışması Soru Havuzu Paketleri:** Sorular konu başlıklarına göre paketler halinde şık kartlarla listelenir, paketlere tıklandığında soru detayları açılır.
+            - ✨ **Özel Yapay Zeka (AI) Ayarlar Sekmesi:** Google Gemini API anahtarı yönetimi, canlı bağlantı testi, silme ve Google AI Studio rehberi tek bir düzenli sekmede toplandı.
+            - 🤖 **Yapay Zeka Destekli Soru Üretici:** Gemini AI ile sınıf seviyesi, ders ve kazanımlara göre otomatik bilgi yarışması soruları üretme.
+            - 🔄 **Akıllı Yönlendirme:** Eksik API anahtarı durumunda doğrudan Ayarlar > Yapay Zeka sekmesine yönlendirme.
+            - 📚 **Hızlı Kitap Puanı & MEB Yıllık Plan:** Tüm sınıfa toplu kitap puanı verme ve Türkiye Yüzyılı Maarif Modeli çerçeve yıllık plan entegrasyonu.
 
             ---
-            🛡️ **Veri Güvenliği:** Güncelleme yaptığınızda mevcut sınıflarınız, öğrencileriniz, ders programınız ve tüm notlarınız **kesinlikle silinmez, korunur**.
+            🛡️ **Veri Güvenliği:** Güncelleme yaptığınızda mevcut sınıflarınız, öğrencileriniz, ders programınız ve tüm verileriniz **kesinlikle silinmez, korunur**.
           releaseDraft: false
           prerelease: false
           args: ${{ matrix.args }}

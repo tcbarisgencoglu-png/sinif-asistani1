@@ -1,15 +1,15 @@
 {
-  "version": "1.0.19",
+  "version": "1.0.20",
   "releaseDate": "2026-09-22",
   "minRequiredVersion": "1.0.0",
-  "title": "Sınıf Asistanı v1.0.19 Yayında!",
-  "description": "Yapay Zeka destekli Bilgi Yarışması Soru Üretici modülü: Gemini AI ile tek tıklamayla soru havuzu oluşturun.",
+  "title": "Sınıf Asistanı v1.0.20 Yayında!",
+  "description": "Bilgi Yarışması Soru Havuzu Paket Görünümü ve Özel Yapay Zeka (AI) Ayarlar Sekmesi.",
   "features": [
-    "Yapay Zeka Destekli Soru Üretici: Gemini AI ile sınıf seviyesi, ders ve konuya göre bilgi yarışması soruları üretin",
-    "Soru tipi (D/Y, Çoktan Seçmeli, Boşluk Doldurma, Karışık) ve zorluk dağılımı seçeneği",
-    "Üretilen sorular öğretmenin belirlediği konu başlığına göre paketlenerek soru havuzuna eklenir",
-    "Önizleme ekranında istenmeyen sorular silinebilir, sonra havuza kaydedilebilir",
-    "MEB Taslak Çerçeve Yıllık Plan Havuzu, Tüm Sınıfa Toplu Kitap Puanı ve Gelişim Raporu geliştirmeleri (v1.0.18)"
+    "Bilgi Yarışması Soru Havuzu Paketleri: Sorular konu bazlı paketler halinde kartlarla listelenir ve tek tıklamayla görüntülenebilir",
+    "Ayarlar Bölümünde Özel Yapay Zeka (AI) Sekmesi: Google Gemini API anahtarı yönetimi, canlı bağlantı testi ve silme",
+    "Google AI Studio 3 Adımlı Anahtar Alma Rehberi ve doğrudan bağlantı",
+    "Tüm yapay zeka modüllerinden Ayarlar sekmesine doğrudan akıllı yönlendirme",
+    "Yapay Zeka Destekli Soru Üretici: Gemini AI ile sınıf seviyesi, ders ve konuya göre soru üretimi (v1.0.19)"
   ],
   "release_url": "https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/latest"
 }
