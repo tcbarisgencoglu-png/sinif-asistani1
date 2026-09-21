@@ -168,12 +168,10 @@ Boşluk Doldurma (fib):
 
     try {
       const response = await window.callGeminiAPI(prompt, {
-        json: false,
+        json: true,
         temperature: 0.5,
       });
-      const data = await response.json();
-      rawText =
-        data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+      rawText = typeof response === "string" ? response : (response?.text || "");
     } catch (err) {
       if (err.message === "NO_API_KEY") {
         // API anahtarı yok — kurulum modalını aç
