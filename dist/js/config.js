@@ -156,6 +156,9 @@
           }
           if (toastCallback) toastCallback('Google Gemini API anahtarı kaldırıldı.', 'info');
         }
+        if (typeof window.syncPortableDataToFlash === 'function') {
+          window.syncPortableDataToFlash();
+        }
       });
     }
 
@@ -236,6 +239,9 @@
             geminiKeyStatusMsg.textContent = 'API anahtarı başarıyla kaldırıldı.';
           }
           if (toastCallback) toastCallback('API anahtarı kaldırıldı.', 'info');
+          if (typeof window.syncPortableDataToFlash === 'function') {
+            window.syncPortableDataToFlash();
+          }
         }
       });
     }

@@ -121,11 +121,11 @@ jobs:
           releaseName: "Sınıf Asistanı ${{ github.ref_name }}"
           releaseBody: |
             ### 🚀 Bu Sürümdeki Yenilikler (${{ github.ref_name }}):
-            - 🎮 **Bilgi Yarışması Soru Havuzu Paketleri:** Sorular konu başlıklarına göre paketler halinde şık kartlarla listelenir, paketlere tıklandığında soru detayları açılır.
-            - ✨ **Özel Yapay Zeka (AI) Ayarlar Sekmesi:** Google Gemini API anahtarı yönetimi, canlı bağlantı testi, silme ve Google AI Studio rehberi tek bir düzenli sekmede toplandı.
-            - 🤖 **Yapay Zeka Destekli Soru Üretici:** Gemini AI ile sınıf seviyesi, ders ve kazanımlara göre otomatik bilgi yarışması soruları üretme.
-            - 🔄 **Akıllı Yönlendirme:** Eksik API anahtarı durumunda doğrudan Ayarlar > Yapay Zeka sekmesine yönlendirme.
-            - 📚 **Hızlı Kitap Puanı & MEB Yıllık Plan:** Tüm sınıfa toplu kitap puanı verme ve Türkiye Yüzyılı Maarif Modeli çerçeve yıllık plan entegrasyonu.
+            - 🚀 **Taşınabilir USB (Flash Bellek) Otomatik Senkronizasyon:** Farklı sınıflarda akıllı tahta değiştiren branş öğretmenleri, hiçbir ayar yapmadan Flash diski taktıkları her tahtada tüm sınıflarına, notlarına ve **Yapay Zeka API anahtarına** anında erişir.
+            - 💾 **Doğrudan Flash Diske Kayıt:** AppImage sürümü USB disk üzerinden çalıştırıldığında verileri tahtanın hafızasına değil, doğrudan Flash diske yazar ve senkronize eder.
+            - 🔐 **Yedekleme Entegrasyonu:** Ayarlar > Veri Yedekleme (.json) indirme ve yükleme işlemlerine Yapay Zeka API anahtarı da dahil edildi.
+            - 🎮 **Bilgi Yarışması Soru Havuzu Paketleri:** Sorular konu başlıklarına göre paketler halinde şık kartlarla listelenir ve tek tıkla açılır (v1.0.20).
+            - ✨ **Özel Yapay Zeka (AI) Ayarlar Sekmesi:** Google Gemini API anahtarı yönetimi, bağlantı testi, silme ve Google AI Studio rehberi (v1.0.20).
 
             ---
             🛡️ **Veri Güvenliği:** Güncelleme yaptığınızda mevcut sınıflarınız, öğrencileriniz, ders programınız ve tüm verileriniz **kesinlikle silinmez, korunur**.

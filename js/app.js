@@ -2079,8 +2079,74 @@ function showToast(message, type = 'primary') {
 
 window.showToast = showToast;
 
+// --- TAŞINABİLİR FLASH BELLEK (USB / APPIMAGE) SENKRONİZASYONU ---
+async function syncPortableDataOnStartup() {
+  try {
+    const invoke = (window.__TAURI__?.core?.invoke) || window.__TAURI__?.invoke;
+    if (!invoke) return;
+
+    const payload = await invoke('load_portable_data');
+    if (payload && payload.is_portable) {
+      console.log('[Portatif Mod] Taşınabilir ortam aktif. Konum:', payload.portable_path);
+
+      if (payload.data_json) {
+        localStorage.setItem('sinif_asistani_data', payload.data_json);
+        if (payload.api_key) {
+          localStorage.setItem('sinif_asistani_gemini_api_key', payload.api_key);
+        }
+        if (window.stateManager) {
+          window.stateManager.state = window.stateManager.loadState(true);
+          window.stateManager.notify();
+        }
+        console.log('[Portatif Mod] Flash diskteki tüm sınıf verileri ve Yapay Zeka ayarları yüklendi.');
+        setTimeout(() => {
+          if (window.showToast) {
+            window.showToast('🚀 Taşınabilir Mod: Sınıf verileriniz ve Yapay Zeka ayarlarınız Flash diskinizden yüklendi.', 'success');
+          }
+        }, 1000);
+      } else {
+        // Flash bellekte henüz JSON yedeği yoksa mevcut durumu kaydet
+        setTimeout(() => {
+          syncPortableDataToFlash();
+        }, 1500);
+      }
+    }
+  } catch (err) {
+    console.debug('[Portatif Mod] Başlangıç kontrolü:', err);
+  }
+}
+
+let _savePortableTimeout = null;
+function syncPortableDataToFlash() {
+  if (_savePortableTimeout) clearTimeout(_savePortableTimeout);
+  _savePortableTimeout = setTimeout(() => {
+    try {
+      const invoke = (window.__TAURI__?.core?.invoke) || window.__TAURI__?.invoke;
+      if (!invoke) return;
+
+      const dataJson = localStorage.getItem('sinif_asistani_data') || '';
+      const apiKey = localStorage.getItem('sinif_asistani_gemini_api_key') || '';
+      if (!dataJson) return;
+
+      invoke('save_portable_data', { dataJson, apiKey })
+        .then(saved => {
+          if (saved) {
+            console.debug('[Portatif Mod] Veriler Flash diske senkronize edildi.');
+          }
+        })
+        .catch(err => {
+          console.debug('[Portatif Mod] Kayıt pasif:', err);
+        });
+    } catch (e) {}
+  }, 400);
+}
+window.syncPortableDataToFlash = syncPortableDataToFlash;
+
 // Uygulama Başlatma
-function initApp() {
+async function initApp() {
+  // 0. Taşınabilir USB Ortamı Kontrolü ve Otomatik Yükleme
+  await syncPortableDataOnStartup();
+
   // 1. Veritabanını kontrol et, boşsa demo verisi yükle
   const currentDB = localStorage.getItem('sinif_asistani_data');
   if (!currentDB) {
@@ -2623,7 +2689,7 @@ function initApp() {
 }
 
 // Mevcut uygulama sürümü (her güncellemede değişir)
-const APP_VERSION = '1.0.20';
+const APP_VERSION = '1.0.21';
 
 // GitHub & Tauri Auto-Updater kontrolü
 async function checkForUpdates() {

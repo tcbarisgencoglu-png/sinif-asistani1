@@ -2258,6 +2258,10 @@ class StateManager {
       }
 
       this.notify();
+
+      if (typeof window.syncPortableDataToFlash === 'function') {
+        window.syncPortableDataToFlash();
+      }
       return true;
     } catch (e) {
       console.error("Veri kaydedilirken hata oluştu:", e);
@@ -2313,7 +2317,11 @@ class StateManager {
 
   // YEDEKLEME VE GERİ YÜKLEME
   exportData() {
-    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(this.state, null, 2));
+    const exportPayload = {
+      ...this.state,
+      _sinif_asistani_gemini_api_key: localStorage.getItem('sinif_asistani_gemini_api_key') || ''
+    };
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportPayload, null, 2));
     const downloadAnchor = document.createElement('a');
     downloadAnchor.setAttribute("href", dataStr);
     const dateStr = formatLocalDate();
@@ -2327,9 +2335,15 @@ class StateManager {
     try {
       const parsed = JSON.parse(jsonString);
       if (parsed && typeof parsed === 'object') {
+        if (parsed._sinif_asistani_gemini_api_key) {
+          localStorage.setItem('sinif_asistani_gemini_api_key', parsed._sinif_asistani_gemini_api_key);
+        }
         localStorage.setItem(STORAGE_KEY, jsonString);
         this.state = this.loadState(true);
         this.notify();
+        if (typeof window.syncPortableDataToFlash === 'function') {
+          window.syncPortableDataToFlash();
+        }
         return true;
       }
     } catch (e) {
