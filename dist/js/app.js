@@ -2689,7 +2689,7 @@ async function initApp() {
 }
 
 // Mevcut uygulama sürümü (her güncellemede değişir)
-const APP_VERSION = '1.0.22';
+const APP_VERSION = '1.0.23';
 
 // GitHub & Tauri Auto-Updater kontrolü
 async function checkForUpdates() {
@@ -3128,8 +3128,8 @@ function updateVisibilityByEducationLevel() {
 
   const branchContainers = document.querySelectorAll('.branch-filter-container');
   branchContainers.forEach(container => {
-    if (container.id === 'dash-branch-filter-container' || container.id === 'report-branch-container') {
-      container.style.display = isMiddle ? 'flex' : 'none';
+    if (container.id === 'dash-branch-filter-container' || container.id === 'report-branch-container' || container.id === 'quiz-branch-filter-container') {
+      container.style.display = isMiddle ? 'block' : 'none';
     } else {
       container.style.display = 'none';
     }

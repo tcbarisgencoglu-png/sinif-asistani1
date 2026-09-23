@@ -1,14 +1,13 @@
 {
-  "version": "1.0.22",
+  "version": "1.0.23",
   "releaseDate": "2026-09-23",
   "minRequiredVersion": "1.0.0",
-  "title": "Sınıf Asistanı v1.0.22 Yayında!",
-  "description": "Oyunlarda Çoklu Kazanım Harmanlama, Defter Yapışkan Not Satır Hizalaması ve Genişleyen Poster Sayfası",
+  "title": "Sınıf Asistanı v1.0.23 Yayında!",
+  "description": "Bilgi Yarışması Akıllı Tahta Tam Ekran Modu ve Öğrenci Listesi Senkronizasyonu",
   "features": [
-    "Oyunlarda Çoklu Kazanım ve Konu Harmanlama: Bilgi yarışmasında yapay zeka ile soru hazırlarken birden çok ünite ve kazanımı tek seferde seçip harmanlama desteği",
-    "Kazanım Arama ve Rozetler (Chips): Onlarca kazanım arasında anında arama yapabilme, seçilen kazanımları etiketlerle yönetebilme ve tek tıkla tümünü seçebilme",
-    "Defter Yapışkan Not Satır Çizgisi Ritmi: Yapışkan not kutuları 44px satır ızgarasının tam katı olacak şekilde dengelendi ve satır kayması tamamen giderildi",
-    "Genişleyen Poster Sayfası & Kaydırma Çubuğu: Defter editörü 80 satırlık ferah poster alanına kavuşturuldu, boş sayfa çizgilerine tıklandığında imlecin doğrudan o satıra yerleşmesi sağlandı"
+    "Bilgi Yarışması Akıllı Tahta Tam Ekran Modu: Soru ve cevap alanını tüm sınıfın ve arka sıraların rahatça görebileceği devasa tipografi, genişletilmiş dokunmatik butonlar ve aktif yarışmacı başlığı ile tam ekrana taşıma desteği",
+    "Öğrenci Listesi ve Skor Senkronizasyonu: Yarışma alanında ve skor tablosunda yalnızca öğretmen tarafından seçilen kayıtlı öğrencilerin yer alması sağlandı; eski demo/test öğrenci kalıntıları tamamen temizlendi",
+    "Tahta İçi Rastgele Öğrenci Seçimi: Tam ekrandan çıkmadan yeni soruya veya sıradaki öğrenciye anında geçebilmeyi sağlayan beyaz tahta buton kontrolleri eklendi"
   ],
   "release_url": "https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/latest"
 }

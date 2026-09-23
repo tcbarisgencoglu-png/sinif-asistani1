@@ -2089,6 +2089,29 @@ class StateManager {
           localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
           localStorage.setItem('sinif_asistani_migration_v4', 'true');
         }
+
+        // Demo/Test Ortaokul Öğrencileri Temizliği: Eğer kullanıcının kendi kayıtlı öğrencileri varsa test dummy öğrencilerini ayıkla
+        if (parsed.students && Array.isArray(parsed.students)) {
+          const demoTestIds = new Set(['std_m1', 'std_m2', 'std_m3', 'std_m4', 'std_m5', 'std_m6', 'std_m7', 'std_m8', 'std_m9', 'std_m10']);
+          const demoTestNames = new Set(['Hakan Yıldız', 'Zeynep Demir', 'Ömer Aslan', 'Ceren Yılmaz', 'Kerem Kaya', 'Melis Şahin', 'Burak Çelik', 'Eda Öztürk']);
+          const hasRealStudents = parsed.students.some(s => !demoTestIds.has(s.id) && !demoTestNames.has(`${s.name || ''} ${s.surname || ''}`.trim()));
+          
+          if (hasRealStudents) {
+            const originalCount = parsed.students.length;
+            parsed.students = parsed.students.filter(s => !demoTestIds.has(s.id) && !demoTestNames.has(`${s.name || ''} ${s.surname || ''}`.trim()));
+            if (parsed.students.length !== originalCount) {
+              localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
+              console.log("loadState: Test/demo ortaokul öğrencileri veritabanından başarıyla temizlendi.");
+            }
+          }
+
+          // Eğer öğrencilerin hiçbiri 5, 6, 7, 8 şubesinde değilse ve kademe middle kalmışsa primary yap
+          const hasAnyMiddleBranch = parsed.students.some(s => s.branch && ['5', '6', '7', '8'].includes(s.branch.trim()[0]));
+          if (!hasAnyMiddleBranch && parsed.educationLevel === 'middle' && parsed.students.length > 0) {
+            parsed.educationLevel = 'primary';
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
+          }
+        }
         
         // Eğer veritabanı boşsa (0 öğrenci ve 0 kitap varsa), demo verilerini otomatik olarak yükle
         if ((!parsed.students || parsed.students.length === 0) && 

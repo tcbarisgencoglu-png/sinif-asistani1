@@ -242,16 +242,144 @@
     { id: 17, type: "fib", category: "Tarih", text: "İstanbul, [___] yılında Fatih Sultan Mehmet tarafından fethedilmiştir.", options: ["1071", "1453", "1923", "1299"], answer: 1, explanation: "İstanbul, 29 Mayıs 1453 tarihinde Osmanlı ordusu tarafından fethedilmiştir." }
   ];
 
-  // Helper to fetch current student names list from StateManager
-  function getQuizStudents() {
-    if (window.stateManager && window.stateManager.state && window.stateManager.state.students) {
-      let list = window.stateManager.state.students;
-      if (window.LicenseConfig && window.LicenseConfig.isDemo) {
-        list = list.slice(0, window.LicenseConfig.studentLimit);
-      }
-      return list.map(s => `${s.name} ${s.surname}`.trim());
+  // Helper to fetch currently active registered students from StateManager
+  function getActiveStudentsList() {
+    if (!window.stateManager) return [];
+    const state = typeof window.stateManager.loadState === "function" 
+      ? window.stateManager.loadState() 
+      : (window.stateManager.state || {});
+    let students = state.students || [];
+
+    // Fallback to rawStudents if state.students is empty due to level filtering
+    if ((!students || students.length === 0) && state.rawStudents && state.rawStudents.length > 0) {
+      students = state.rawStudents;
     }
-    return [];
+
+    // Demo/test ortaokul öğrencilerini ayıkla (eğer kullanıcının kendi kayıtlı öğrencileri varsa)
+    const demoMiddleNames = new Set(["Hakan Yıldız", "Zeynep Demir", "Ömer Aslan", "Ceren Yılmaz", "Kerem Kaya", "Melis Şahin", "Burak Çelik", "Eda Öztürk"]);
+    const hasCustomStudents = students.some(s => {
+      const fullName = `${s.name || ''} ${s.surname || ''}`.trim();
+      return !demoMiddleNames.has(fullName) && (!s.id || !s.id.startsWith('std_m'));
+    });
+    if (hasCustomStudents) {
+      students = students.filter(s => {
+        const fullName = `${s.name || ''} ${s.surname || ''}`.trim();
+        return !demoMiddleNames.has(fullName) && (!s.id || !s.id.startsWith('std_m'));
+      });
+    }
+
+    if (window.LicenseConfig && window.LicenseConfig.isDemo) {
+      students = students.slice(0, window.LicenseConfig.studentLimit);
+    }
+    
+    // Check branch filter ONLY for middle school AND ONLY when branchFilter is not "all"
+    const quizBranchSelect = document.getElementById("quiz-select-branch") 
+      || document.getElementById("dash-select-branch");
+    const branchFilter = (quizBranchSelect && quizBranchSelect.value) ? quizBranchSelect.value : "all";
+    
+    if (state.educationLevel === "middle" && branchFilter !== "all") {
+      const branchFiltered = students.filter(s => s.branch === branchFilter);
+      if (branchFiltered.length > 0) {
+        students = branchFiltered;
+      }
+    }
+    
+    // Check absent status
+    if (typeof window.stateManager.isStudentAbsent === "function") {
+      students = students.filter(s => !window.stateManager.isStudentAbsent(s.id));
+    }
+    
+    return students;
+  }
+
+  function getQuizStudents() {
+    return getActiveStudentsList().map(s => `${s.name || ''} ${s.surname || ''}`.trim()).filter(Boolean);
+  }
+
+  // Synchronize quiz student roster with currently registered students
+  function syncQuizRoster(forceSelectAll = false) {
+    const validNames = getQuizStudents();
+    const validSet = new Set(validNames);
+    
+    // Filter quizSelectedStudentNames to only keep students that actually exist in the current class/branch
+    quizSelectedStudentNames = quizSelectedStudentNames.filter(name => validSet.has(name));
+    
+    // If no students are selected, or if class changed and none matched, or if forceSelectAll is true
+    if ((quizSelectedStudentNames.length === 0 || forceSelectAll) && validNames.length > 0) {
+      quizSelectedStudentNames = [...validNames];
+    }
+    saveSelectedQuizStudents();
+    
+    // unselectedStudents must strictly be a subset of quizSelectedStudentNames
+    const selectedSet = new Set(quizSelectedStudentNames);
+    unselectedStudents = unselectedStudents.filter(name => selectedSet.has(name));
+    if (unselectedStudents.length === 0 && quizSelectedStudentNames.length > 0) {
+      unselectedStudents = [...quizSelectedStudentNames];
+    }
+    saveUnselectedStudents();
+    
+    // Filter studentScores to keep only current class students
+    const cleanScores = {};
+    validNames.forEach(name => {
+      if (studentScores[name]) {
+        cleanScores[name] = studentScores[name];
+      } else {
+        cleanScores[name] = { score: 0, correctCount: 0, incorrectCount: 0, totalTime: 0, turnCount: 0 };
+      }
+    });
+    studentScores = cleanScores;
+    saveStudentScores();
+    
+    // Update badges
+    const studentBadge = document.getElementById("quiz-student-count-badge");
+    if (studentBadge) {
+      studentBadge.textContent = `Sınıf Öğrencisi: ${validNames.length} (Seçili: ${quizSelectedStudentNames.length})`;
+    }
+    const setupStudentBadge = document.getElementById("setup-quiz-student-badge");
+    if (setupStudentBadge) {
+      setupStudentBadge.textContent = `${validNames.length} Kayıtlı Öğrenci (${quizSelectedStudentNames.length} Seçili)`;
+    }
+    const setupBranchBadge = document.getElementById("setup-quiz-branch-badge");
+    if (setupBranchBadge) {
+      const quizBranchSelect = document.getElementById("quiz-select-branch") || document.getElementById("dash-select-branch");
+      const branchVal = quizBranchSelect ? quizBranchSelect.value : "all";
+      setupBranchBadge.textContent = branchVal === "all" ? "Tüm Şubeler" : `${branchVal} Şubesi`;
+    }
+  }
+
+  // Synchronize multiplication game student roster with currently registered students
+  function syncMultRoster(forceSelectAll = false) {
+    const validNames = getQuizStudents();
+    const validSet = new Set(validNames);
+    
+    multSelectedStudentNames = multSelectedStudentNames.filter(name => validSet.has(name));
+    if ((multSelectedStudentNames.length === 0 || forceSelectAll) && validNames.length > 0) {
+      multSelectedStudentNames = [...validNames];
+    }
+    saveSelectedMultStudents();
+    
+    const selectedSet = new Set(multSelectedStudentNames);
+    multUnselectedStudents = multUnselectedStudents.filter(name => selectedSet.has(name));
+    if (multUnselectedStudents.length === 0 && multSelectedStudentNames.length > 0) {
+      multUnselectedStudents = [...multSelectedStudentNames];
+    }
+    saveMultUnselectedStudents();
+    
+    const cleanScores = {};
+    validNames.forEach(name => {
+      if (multScores[name]) {
+        cleanScores[name] = multScores[name];
+      } else {
+        cleanScores[name] = { score: 0, correctCount: 0, incorrectCount: 0, totalTime: 0, turnCount: 0 };
+      }
+    });
+    multScores = cleanScores;
+    saveMultStudentScores();
+    
+    const multStudentBadge = document.getElementById("mult-student-count-badge");
+    if (multStudentBadge) {
+      multStudentBadge.textContent = `Sınıf Öğrencisi: ${validNames.length} (Seçili: ${multSelectedStudentNames.length})`;
+    }
   }
 
   // Load data from LocalStorage
@@ -276,52 +404,61 @@
     // Student Scores
     const storedScores = localStorage.getItem("tf_student_scores");
     if (storedScores) {
-      studentScores = JSON.parse(storedScores);
+      try {
+        studentScores = JSON.parse(storedScores);
+      } catch (e) {
+        studentScores = {};
+      }
     } else {
       studentScores = {};
     }
-
-    // Filter studentScores based on currently active students from StateManager
-    const currentList = getQuizStudents();
-    const cleanScores = {};
-    currentList.forEach(name => {
-      if (studentScores[name]) {
-        cleanScores[name] = studentScores[name];
-        if (cleanScores[name].incorrectCount === undefined) cleanScores[name].incorrectCount = 0;
-        if (cleanScores[name].turnCount === undefined) cleanScores[name].turnCount = 0;
-      } else {
-        cleanScores[name] = { score: 0, correctCount: 0, incorrectCount: 0, totalTime: 0, turnCount: 0 };
-      }
-    });
-    studentScores = cleanScores;
-    saveStudentScores();
 
     // Selected Students for Quiz
     const storedSelectedQuiz = localStorage.getItem("quiz_selected_students");
     if (storedSelectedQuiz) {
       try {
-        const parsed = JSON.parse(storedSelectedQuiz);
-        const existingSelected = parsed.filter(name => currentList.includes(name));
-        const newStudents = currentList.filter(name => !parsed.includes(name));
-        quizSelectedStudentNames = [...existingSelected, ...newStudents];
+        quizSelectedStudentNames = JSON.parse(storedSelectedQuiz);
       } catch (e) {
-        quizSelectedStudentNames = [...currentList];
+        quizSelectedStudentNames = [];
       }
     } else {
-      quizSelectedStudentNames = [...currentList];
+      quizSelectedStudentNames = [];
     }
-    saveSelectedQuizStudents();
 
     // Unselected Students for Raffle
     const storedUnselected = localStorage.getItem("tf_unselected_students");
     if (storedUnselected) {
-      const rawUnselected = JSON.parse(storedUnselected);
-      // Keep only students that are currently active and selected
-      unselectedStudents = rawUnselected.filter(name => quizSelectedStudentNames.includes(name));
+      try {
+        unselectedStudents = JSON.parse(storedUnselected);
+      } catch (e) {
+        unselectedStudents = [];
+      }
     } else {
-      unselectedStudents = [...quizSelectedStudentNames];
+      unselectedStudents = [];
+    }
+
+    // Demo/test ortaokul öğrencilerini temizle (kullanıcının kendi öğrencileri varsa)
+    const demoMiddleNames = ["Hakan Yıldız", "Zeynep Demir", "Ömer Aslan", "Ceren Yılmaz", "Kerem Kaya", "Melis Şahin", "Burak Çelik", "Eda Öztürk"];
+    const validStudents = getActiveStudentsList();
+    const hasRealRegisteredStudents = validStudents.some(s => !demoMiddleNames.includes(`${s.name || ''} ${s.surname || ''}`.trim()));
+    if (hasRealRegisteredStudents) {
+      demoMiddleNames.forEach(dName => {
+        delete studentScores[dName];
+        delete multScores[dName];
+      });
+      quizSelectedStudentNames = quizSelectedStudentNames.filter(name => !demoMiddleNames.includes(name));
+      unselectedStudents = unselectedStudents.filter(name => !demoMiddleNames.includes(name));
+      multSelectedStudentNames = multSelectedStudentNames.filter(name => !demoMiddleNames.includes(name));
+      multUnselectedStudents = multUnselectedStudents.filter(name => !demoMiddleNames.includes(name));
+      saveStudentScores();
+      saveMultStudentScores();
+      saveSelectedQuizStudents();
       saveUnselectedStudents();
     }
+
+    // Sync loaded lists immediately with current class roster
+    syncQuizRoster();
+    syncMultRoster();
 
     // General Score & Stats
     totalScore = parseInt(localStorage.getItem("tf_total_score")) || 0;
@@ -352,27 +489,12 @@
   }
 
   function renderQuizStudentSelection() {
+    syncQuizRoster();
     const container = document.getElementById("quiz-setup-students-list");
     if (!container) return;
     
     container.innerHTML = "";
-    
-    const state = stateManager.loadState();
-    const selectBranch = document.getElementById('quiz-select-branch');
-    const branchFilter = selectBranch ? selectBranch.value : 'all';
-
-    let activeStudents = state.students || [];
-    if (window.LicenseConfig && window.LicenseConfig.isDemo) {
-      activeStudents = activeStudents.slice(0, window.LicenseConfig.studentLimit);
-    }
-
-    const filteredStudents = activeStudents.filter(student => {
-      const matchesBranch = state.educationLevel === 'primary' || branchFilter === 'all' || student.branch === branchFilter;
-      const isAbsent = stateManager.isStudentAbsent(student.id);
-      return matchesBranch && !isAbsent;
-    });
-
-    const currentList = filteredStudents.map(s => `${s.name} ${s.surname}`.trim());
+    const currentList = getQuizStudents();
     
     if (currentList.length === 0) {
       container.innerHTML = `<div style="grid-column: 1 / -1; text-align: center; color: var(--text-muted); font-size: 0.9rem; padding: 1rem;">Sınıfta kriterlere uygun öğrenci bulunmuyor.</div>`;
@@ -397,6 +519,7 @@
           quizSelectedStudentNames = quizSelectedStudentNames.filter(n => n !== name);
         }
         saveSelectedQuizStudents();
+        syncQuizRoster();
       });
       
       const span = document.createElement("span");
@@ -409,27 +532,12 @@
   }
 
   function renderMultStudentSelection() {
+    syncMultRoster();
     const container = document.getElementById("mult-setup-students-list");
     if (!container) return;
     
     container.innerHTML = "";
-    
-    const state = stateManager.loadState();
-    const selectBranch = document.getElementById('mult-select-branch');
-    const branchFilter = selectBranch ? selectBranch.value : 'all';
-
-    let activeStudents = state.students || [];
-    if (window.LicenseConfig && window.LicenseConfig.isDemo) {
-      activeStudents = activeStudents.slice(0, window.LicenseConfig.studentLimit);
-    }
-
-    const filteredStudents = activeStudents.filter(student => {
-      const matchesBranch = state.educationLevel === 'primary' || branchFilter === 'all' || student.branch === branchFilter;
-      const isAbsent = stateManager.isStudentAbsent(student.id);
-      return matchesBranch && !isAbsent;
-    });
-
-    const currentList = filteredStudents.map(s => `${s.name} ${s.surname}`.trim());
+    const currentList = getQuizStudents();
     
     if (currentList.length === 0) {
       container.innerHTML = `<div style="grid-column: 1 / -1; text-align: center; color: var(--text-muted); font-size: 0.9rem; padding: 1rem;">Sınıfta kriterlere uygun öğrenci bulunmuyor.</div>`;
@@ -454,6 +562,7 @@
           multSelectedStudentNames = multSelectedStudentNames.filter(n => n !== name);
         }
         saveSelectedMultStudents();
+        syncMultRoster();
       });
       
       const span = document.createElement("span");
@@ -572,6 +681,10 @@
     if (btnSelectStudent) {
       btnSelectStudent.addEventListener("click", selectRandomStudent);
     }
+    const btnFullscreenSelectStudent = document.getElementById("btn-fullscreen-select-student");
+    if (btnFullscreenSelectStudent) {
+      btnFullscreenSelectStudent.addEventListener("click", selectRandomStudent);
+    }
 
     // 6. Sound Toggle Button
     const btnSoundToggle = document.getElementById("btn-sound-toggle");
@@ -600,6 +713,7 @@
           }
         }
         clearQuizTimer();
+        exitFullscreenGame();
         document.getElementById("game-setup-container").style.display = "block";
         document.getElementById("game-active-layout").style.display = "none";
         resetRaffleUI();
@@ -634,6 +748,7 @@
     if (btnGameOverExit) {
       btnGameOverExit.addEventListener("click", () => {
         document.getElementById("game-over-overlay").style.display = "none";
+        exitFullscreenGame();
         document.getElementById("game-setup-container").style.display = "block";
         document.getElementById("game-active-layout").style.display = "none";
         resetRaffleUI();
@@ -1017,6 +1132,24 @@
     // Skor uyarısı modal olay dinleyicilerini bağla
     initScoreWarningModalEvents();
 
+    // Sınıf / Şube / Öğrenci veri değişimlerinde oyun listelerini otomatik senkronize et
+    document.addEventListener("stateChanged", () => {
+      syncQuizRoster();
+      syncMultRoster();
+      renderQuizStudentSelection();
+      renderMultStudentSelection();
+      renderTopFive();
+      renderMultTopFive();
+    });
+
+    const quizBranchEl = document.getElementById("quiz-select-branch");
+    if (quizBranchEl) {
+      quizBranchEl.addEventListener("change", () => {
+        syncQuizRoster(true);
+        renderQuizStudentSelection();
+      });
+    }
+
     // Export functions globally to be called from dynamically loaded rows
     window.editQuestion = editQuestion;
     window.deleteQuestion = deleteQuestion;
@@ -1026,6 +1159,8 @@
     loadData();
     populateCategorySelectors();
     initSettings();
+    syncQuizRoster();
+    syncMultRoster();
     resetRaffleUI();
     renderQuestionLibrary();
     renderLeaderboard();
@@ -1036,13 +1171,6 @@
     resetMultRaffleUI();
     renderMultLeaderboard();
     
-    // Set Student Source count badge
-    const currentList = getQuizStudents();
-    const studentBadge = document.getElementById("quiz-student-count-badge");
-    if (studentBadge) {
-      studentBadge.textContent = `Sınıf Öğrencisi: ${currentList.length}`;
-    }
-
     renderQuizStudentSelection();
     renderMultStudentSelection();
   }
@@ -1057,6 +1185,8 @@
     const content = document.getElementById(`game-quiz-tab-${tabName}`);
     if (content) content.style.display = "block";
 
+    syncQuizRoster();
+
     if (tabName === "play") {
       if (activeGameQuestions.length > 0) {
         document.getElementById("game-setup-container").style.display = "none";
@@ -1070,12 +1200,8 @@
     } else if (tabName === "pool") {
       renderQuestionLibrary();
     } else if (tabName === "admin") {
-      // Set Student Source count badge
-      const currentList = getQuizStudents();
-      const studentBadge = document.getElementById("quiz-student-count-badge");
-      if (studentBadge) {
-        studentBadge.textContent = `Sınıf Öğrencisi: ${currentList.length}`;
-      }
+      syncQuizRoster();
+      renderQuizStudentSelection();
     } else if (tabName === "leaderboard") {
       renderLeaderboard();
     }
@@ -1281,6 +1407,7 @@
   }
 
   function startQuizGame() {
+    syncQuizRoster();
     const currentList = quizSelectedStudentNames;
     if (currentList.length === 0) {
       alert("Lütfen önce yarışmaya katılacak en az bir öğrenci seçin!");
@@ -1312,6 +1439,7 @@
   }
 
   function executeStartQuizGame() {
+    syncQuizRoster();
     const currentList = quizSelectedStudentNames;
     // Pad activeGameQuestions to be a multiple of currentList.length to guarantee fair turns
     const studentCount = currentList.length;
@@ -1329,6 +1457,12 @@
     // Transition UI
     document.getElementById("game-setup-container").style.display = "none";
     document.getElementById("game-active-layout").style.display = "grid";
+
+    // Check if user requested starting in Fullscreen mode
+    const chkFullscreen = document.getElementById("setup-quiz-fullscreen-chk");
+    if (chkFullscreen && chkFullscreen.checked) {
+      enterFullscreenGame();
+    }
     
     // Update active mode badge
     const modeBadge = document.getElementById("game-active-mode-badge");
@@ -1365,6 +1499,10 @@
     if (nameActiveDisplay) {
       nameActiveDisplay.textContent = "Öğrenci Seçilmedi";
       nameActiveDisplay.className = "student-name-active";
+    }
+    const fsNameBadge = document.getElementById("fullscreen-student-name");
+    if (fsNameBadge) {
+      fsNameBadge.textContent = "Öğrenci Seçilmedi";
     }
     toggleAnswerControls(false);
     resetTimerUI();
@@ -1413,7 +1551,9 @@
       listContainer.innerHTML = "";
       
       const list = [];
-      const currentList = getQuizStudents();
+      const currentList = (quizSelectedStudentNames && quizSelectedStudentNames.length > 0)
+        ? quizSelectedStudentNames
+        : getQuizStudents();
       currentList.forEach(name => {
         const student = studentScores[name] || { score: 0, correctCount: 0, incorrectCount: 0, totalTime: 0, turnCount: 0 };
         let avgTime = 0;
@@ -1484,11 +1624,11 @@
   }
 
   function selectRandomStudent() {
-    const state = stateManager.loadState();
-    const currentList = quizSelectedStudentNames.filter(name => {
-      const student = state.students.find(s => `${s.name} ${s.surname}`.trim() === name);
-      return student ? !stateManager.isStudentAbsent(student.id) : true;
-    });
+    syncQuizRoster();
+    const validNames = getQuizStudents();
+    const validSet = new Set(validNames);
+    const currentList = quizSelectedStudentNames.filter(name => validSet.has(name));
+
     if (currentList.length === 0) {
       alert("Lütfen önce yarışmaya katılacak en az bir öğrenci seçin!");
       return;
@@ -1497,12 +1637,20 @@
     SoundFX.init();
     
     const selectBtn = document.getElementById("btn-select-student");
+    const fsSelectBtn = document.getElementById("btn-fullscreen-select-student");
     const nameActiveDisplay = document.getElementById("student-name-active");
+    const fsNameBadge = document.getElementById("fullscreen-student-name");
     
     // Disable interface during selection animation
-    selectBtn.disabled = true;
-    nameActiveDisplay.className = "student-name-active";
-    nameActiveDisplay.textContent = "Seçiliyor...";
+    if (selectBtn) selectBtn.disabled = true;
+    if (fsSelectBtn) fsSelectBtn.disabled = true;
+    if (nameActiveDisplay) {
+      nameActiveDisplay.className = "student-name-active";
+      nameActiveDisplay.textContent = "Seçiliyor...";
+    }
+    if (fsNameBadge) {
+      fsNameBadge.textContent = "Seçiliyor...";
+    }
     
     toggleAnswerControls(false);
     
@@ -1514,33 +1662,35 @@
     const raffleInterval = setInterval(() => {
       currentStep++;
       const tempIndex = Math.floor(Math.random() * currentList.length);
-      nameActiveDisplay.textContent = currentList[tempIndex];
+      const chosenName = currentList[tempIndex];
+      if (nameActiveDisplay) nameActiveDisplay.textContent = chosenName;
+      if (fsNameBadge) fsNameBadge.textContent = chosenName;
       
       SoundFX.playRaffleTick();
       
       if (currentStep >= steps - 6) {
         clearInterval(raffleInterval);
-        slowRaffleRoll(6, nameActiveDisplay, selectBtn);
+        slowRaffleRoll(6, nameActiveDisplay, selectBtn, fsSelectBtn, fsNameBadge);
       }
     }, intervalTime);
   }
 
-  function slowRaffleRoll(remainingSteps, displayEl, btnEl) {
+  function slowRaffleRoll(remainingSteps, displayEl, btnEl, fsBtnEl, fsBadgeEl) {
     let delay = 100;
-    const state = stateManager.loadState();
-    const currentList = quizSelectedStudentNames.filter(name => {
-      const student = state.students.find(s => `${s.name} ${s.surname}`.trim() === name);
-      return student ? !stateManager.isStudentAbsent(student.id) : true;
-    });
+    const validNames = getQuizStudents();
+    const validSet = new Set(validNames);
+    const currentList = quizSelectedStudentNames.filter(name => validSet.has(name));
     
     function nextStep(stepsLeft) {
       if (stepsLeft === 0) {
-        finalizeRaffle(displayEl, btnEl);
+        finalizeRaffle(displayEl, btnEl, fsBtnEl, fsBadgeEl);
         return;
       }
       
       const tempIndex = Math.floor(Math.random() * currentList.length);
-      displayEl.textContent = currentList[tempIndex];
+      const chosenName = currentList[tempIndex];
+      if (displayEl) displayEl.textContent = chosenName;
+      if (fsBadgeEl) fsBadgeEl.textContent = chosenName;
       SoundFX.playRaffleTick();
       
       delay = delay * 1.35;
@@ -1552,12 +1702,13 @@
     nextStep(remainingSteps);
   }
 
-  function finalizeRaffle(displayEl, btnEl) {
-    const state = stateManager.loadState();
-    const currentList = quizSelectedStudentNames.filter(name => {
-      const student = state.students.find(s => `${s.name} ${s.surname}`.trim() === name);
-      return student ? !stateManager.isStudentAbsent(student.id) : true;
-    });
+  function finalizeRaffle(displayEl, btnEl, fsBtnEl, fsBadgeEl) {
+    const validNames = getQuizStudents();
+    const validSet = new Set(validNames);
+    const currentList = quizSelectedStudentNames.filter(name => validSet.has(name));
+
+    // Ensure unselectedStudents only contains valid students from currentList
+    unselectedStudents = unselectedStudents.filter(name => currentList.includes(name));
     if (unselectedStudents.length === 0) {
       unselectedStudents = [...currentList];
     }
@@ -1572,12 +1723,18 @@
       isLastInRound = true;
     }
     
-    displayEl.textContent = activeStudent;
-    displayEl.className = "student-name-active selected";
+    if (displayEl) {
+      displayEl.textContent = activeStudent;
+      displayEl.className = "student-name-active selected";
+    }
+    if (fsBadgeEl) {
+      fsBadgeEl.textContent = activeStudent;
+    }
     
     SoundFX.playRaffleWin();
     
-    btnEl.disabled = false;
+    if (btnEl) btnEl.disabled = false;
+    if (fsBtnEl) fsBtnEl.disabled = false;
     
     if (studentScores[activeStudent] === undefined || typeof studentScores[activeStudent] !== 'object') {
       studentScores[activeStudent] = { score: 0, correctCount: 0, incorrectCount: 0, totalTime: 0, turnCount: 0 };
@@ -2958,7 +3115,9 @@
     tbody.innerHTML = "";
     
     const list = [];
-    const currentList = getQuizStudents();
+    const currentList = (quizSelectedStudentNames && quizSelectedStudentNames.length > 0)
+      ? quizSelectedStudentNames
+      : getQuizStudents();
     currentList.forEach(name => {
       const student = studentScores[name] || { score: 0, correctCount: 0, incorrectCount: 0, totalTime: 0 };
       let avgTime = 0;
@@ -3318,7 +3477,9 @@
       listContainer.innerHTML = "";
       
       const list = [];
-      const currentList = getQuizStudents();
+      const currentList = (multSelectedStudentNames && multSelectedStudentNames.length > 0)
+        ? multSelectedStudentNames
+        : getQuizStudents();
       currentList.forEach(name => {
         const student = multScores[name] || { score: 0, correctCount: 0, incorrectCount: 0, totalTime: 0, turnCount: 0 };
         let avgTime = 0;
@@ -3388,11 +3549,11 @@
   }
 
   function selectRandomMultStudent() {
-    const state = stateManager.loadState();
-    const currentList = multSelectedStudentNames.filter(name => {
-      const student = state.students.find(s => `${s.name} ${s.surname}`.trim() === name);
-      return student ? !stateManager.isStudentAbsent(student.id) : true;
-    });
+    syncMultRoster();
+    const validNames = getQuizStudents();
+    const validSet = new Set(validNames);
+    const currentList = multSelectedStudentNames.filter(name => validSet.has(name));
+
     if (currentList.length === 0) {
       alert("Lütfen önce oyuna katılacak en az bir öğrenci seçin!");
       return;
@@ -3432,11 +3593,9 @@
 
   function slowMultRaffleRoll(remainingSteps, displayEl, btnEl) {
     let delay = 100;
-    const state = stateManager.loadState();
-    const currentList = multSelectedStudentNames.filter(name => {
-      const student = state.students.find(s => `${s.name} ${s.surname}`.trim() === name);
-      return student ? !stateManager.isStudentAbsent(student.id) : true;
-    });
+    const validNames = getQuizStudents();
+    const validSet = new Set(validNames);
+    const currentList = multSelectedStudentNames.filter(name => validSet.has(name));
     
     function nextStep(stepsLeft) {
       if (stepsLeft === 0) {
@@ -3460,11 +3619,11 @@
   }
 
   function finalizeMultRaffle(displayEl, btnEl) {
-    const state = stateManager.loadState();
-    const currentList = multSelectedStudentNames.filter(name => {
-      const student = state.students.find(s => `${s.name} ${s.surname}`.trim() === name);
-      return student ? !stateManager.isStudentAbsent(student.id) : true;
-    });
+    const validNames = getQuizStudents();
+    const validSet = new Set(validNames);
+    const currentList = multSelectedStudentNames.filter(name => validSet.has(name));
+
+    multUnselectedStudents = multUnselectedStudents.filter(name => currentList.includes(name));
     if (multUnselectedStudents.length === 0) {
       multUnselectedStudents = [...currentList];
     }
@@ -4016,34 +4175,118 @@
     window.safeCreateIcons();
   }
 
-  function toggleFullscreenGame() {
+  function enterFullscreenGame() {
+    const layout = document.getElementById("game-active-layout");
+    const multLayout = document.getElementById("mult-active-layout");
     const gamesContainer = document.getElementById("games");
-    if (!gamesContainer) return;
+    if (layout) {
+      layout.classList.add("game-layout-fullscreen");
+    }
+    if (multLayout) {
+      multLayout.classList.add("game-layout-fullscreen");
+    }
+    document.body.classList.add("game-fullscreen-active");
 
-    if (!document.fullscreenElement) {
-      if (gamesContainer.requestFullscreen) {
-        gamesContainer.requestFullscreen();
-      } else if (gamesContainer.webkitRequestFullscreen) {
-        gamesContainer.webkitRequestFullscreen();
-      } else if (gamesContainer.msRequestFullscreen) {
-        gamesContainer.msRequestFullscreen();
+    // Mirror current active student to fullscreen banner
+    const fsNameBadge = document.getElementById("fullscreen-student-name");
+    if (fsNameBadge) {
+      fsNameBadge.textContent = activeStudent || "Öğrenci Seçilmedi";
+    }
+
+    if (gamesContainer) {
+      gamesContainer.classList.add("game-mode-fullscreen");
+      if (!document.fullscreenElement) {
+        try {
+          if (gamesContainer.requestFullscreen) {
+            gamesContainer.requestFullscreen().catch(() => {});
+          } else if (gamesContainer.webkitRequestFullscreen) {
+            gamesContainer.webkitRequestFullscreen();
+          } else if (gamesContainer.msRequestFullscreen) {
+            gamesContainer.msRequestFullscreen();
+          }
+        } catch (e) {
+          // Fallback to pure CSS fullscreen
+        }
       }
+    }
+
+    // Tauri penceresi tam ekran desteği (Pardus / Linux / Desktop)
+    if (window.__TAURI__?.window) {
+      try {
+        const appWindow = window.__TAURI__.window.getCurrentWindow();
+        if (appWindow && typeof appWindow.setFullscreen === "function") {
+          appWindow.setFullscreen(true).catch(() => {});
+        }
+      } catch (e) {}
+    }
+
+    syncFullscreenUI();
+  }
+
+  function exitFullscreenGame() {
+    const layout = document.getElementById("game-active-layout");
+    const multLayout = document.getElementById("mult-active-layout");
+    const gamesContainer = document.getElementById("games");
+    if (layout) {
+      layout.classList.remove("game-layout-fullscreen");
+    }
+    if (multLayout) {
+      multLayout.classList.remove("game-layout-fullscreen");
+    }
+    document.body.classList.remove("game-fullscreen-active");
+
+    if (gamesContainer) {
+      gamesContainer.classList.remove("game-mode-fullscreen");
+    }
+    if (document.fullscreenElement) {
+      try {
+        if (document.exitFullscreen) {
+          document.exitFullscreen().catch(() => {});
+        } else if (document.webkitExitFullscreen) {
+          document.webkitExitFullscreen();
+        } else if (document.msExitFullscreen) {
+          document.msExitFullscreen();
+        }
+      } catch (e) {}
+    }
+
+    // Tauri penceresi tam ekrandan çıkma
+    if (window.__TAURI__?.window) {
+      try {
+        const appWindow = window.__TAURI__.window.getCurrentWindow();
+        if (appWindow && typeof appWindow.setFullscreen === "function") {
+          appWindow.setFullscreen(false).catch(() => {});
+        }
+      } catch (e) {}
+    }
+
+    syncFullscreenUI();
+  }
+
+  function toggleFullscreenGame() {
+    const layout = document.getElementById("game-active-layout");
+    const multLayout = document.getElementById("mult-active-layout");
+    const isLayoutFs = (layout && layout.classList.contains("game-layout-fullscreen")) ||
+                       (multLayout && multLayout.classList.contains("game-layout-fullscreen"));
+    const isDocFs = !!document.fullscreenElement;
+    if (isLayoutFs || isDocFs) {
+      exitFullscreenGame();
     } else {
-      if (document.exitFullscreen) {
-        document.exitFullscreen();
-      } else if (document.webkitExitFullscreen) {
-        document.webkitExitFullscreen();
-      } else if (document.msExitFullscreen) {
-        document.msExitFullscreen();
-      }
+      enterFullscreenGame();
     }
   }
 
   function syncFullscreenUI() {
-    const isFullscreen = !!document.fullscreenElement;
+    const layout = document.getElementById("game-active-layout");
+    const multLayout = document.getElementById("mult-active-layout");
+    const isFullscreen = !!document.fullscreenElement || 
+                         (layout && layout.classList.contains("game-layout-fullscreen")) ||
+                         (multLayout && multLayout.classList.contains("game-layout-fullscreen"));
     
     const iconOn = document.getElementById("fullscreen-icon-on");
     const iconOff = document.getElementById("fullscreen-icon-off");
+    const textSpan = document.getElementById("fullscreen-btn-text");
+    
     if (iconOn && iconOff) {
       if (isFullscreen) {
         iconOn.style.display = "none";
@@ -4052,6 +4295,9 @@
         iconOn.style.display = "inline";
         iconOff.style.display = "none";
       }
+    }
+    if (textSpan) {
+      textSpan.textContent = isFullscreen ? "Tam Ekrandan Çık" : "Tam Ekran (Tahta Modu)";
     }
 
     const multIconOn = document.getElementById("mult-fullscreen-icon-on");
@@ -4070,6 +4316,15 @@
       window.safeCreateIcons();
     }
   }
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      const layout = document.getElementById("game-active-layout");
+      if (layout && layout.classList.contains("game-layout-fullscreen")) {
+        exitFullscreenGame();
+      }
+    }
+  });
 
   // Utilities
   function escapeHTML(str) {

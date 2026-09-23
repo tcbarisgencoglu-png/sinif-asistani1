@@ -178,7 +178,7 @@
       <div id="sidebar-demo-container"></div>
       
       <div class="sidebar-footer" style="padding: 1rem; text-align: center; font-size: 0.8rem; color: var(--text-muted); border-top: 1px solid var(--border-color);">
-        <span id="app-sidebar-version-text">Sınıf Asistanı v1.0.22</span>
+        <span id="app-sidebar-version-text">Sınıf Asistanı v1.0.23</span>
       </div>
     </aside>
 
@@ -898,6 +898,28 @@
                   </select>
                 </div>
 
+                <!-- Active Class / Student Roster Info -->
+                <div class="setup-group" style="margin-top: 1.25rem;">
+                  <div id="setup-quiz-student-info" style="padding: 0.75rem 1rem; background: rgba(79, 70, 229, 0.06); border-radius: var(--radius-md); border: 1px solid rgba(79, 70, 229, 0.15); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem; max-width: 500px;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                      <i data-lucide="users" style="width: 18px; height: 18px; color: var(--primary);"></i>
+                      <span style="font-weight: 600; font-size: 0.88rem; color: var(--text-primary);">Katılacak Sınıf / Şube:</span>
+                      <span id="setup-quiz-branch-badge" class="badge" style="font-size: 0.82rem;">Tüm Şubeler</span>
+                    </div>
+                    <span id="setup-quiz-student-badge" class="badge" style="background: rgba(16, 185, 129, 0.12); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.25); font-size: 0.82rem;">- Kayıtlı Öğrenci</span>
+                  </div>
+                </div>
+
+                <!-- Fullscreen Option -->
+                <div class="setup-group" style="margin-top: 1rem;">
+                  <label style="display: inline-flex; align-items: center; gap: 0.5rem; cursor: pointer; font-weight: 600; font-size: 0.92rem; user-select: none; color: var(--text-primary);">
+                    <input type="checkbox" id="setup-quiz-fullscreen-chk" style="width: 18px; height: 18px; cursor: pointer; accent-color: var(--primary);">
+                    <i data-lucide="maximize" style="width: 16px; height: 16px; color: var(--primary);"></i>
+                    <span>Yarışma Sorularını Tam Ekran Olarak Başlat</span>
+                  </label>
+                  <p style="margin: 0.25rem 0 0 1.6rem; font-size: 0.78rem; color: var(--text-secondary);">Akıllı tahtalar için soruları ve seçenekleri dev ekran boyutunda açar.</p>
+                </div>
+
               </div>
               
               <button class="btn btn-primary btn-start-game" id="btn-quiz-start-game" style="margin-top: 2rem; padding: 0.85rem 2rem; font-size: 1rem;">
@@ -943,15 +965,23 @@
                   <div class="game-header">
                     <span id="question-index" class="badge">Soru: 0 / 0</span>
                     <span id="game-active-mode-badge" class="badge">Tip</span>
+                    
+                    <!-- Fullscreen Active Student Banner (Visible on Whiteboard) -->
+                    <div id="fullscreen-student-banner" class="fullscreen-student-banner" style="display: none;">
+                      <span class="fullscreen-student-label"><i data-lucide="user-check" style="width: 18px; height: 18px;"></i> Yarışmacı:</span>
+                      <span id="fullscreen-student-name" class="fullscreen-student-name">Öğrenci Seçilmedi</span>
+                    </div>
+
                     <!-- Sound controller -->
                     <button id="btn-sound-toggle" class="btn-icon" title="Sesi Aç/Kapat">
                       <i data-lucide="volume-2" id="sound-icon-on" style="width: 20px; height: 20px;"></i>
                       <i data-lucide="volume-x" id="sound-icon-off" class="hidden" style="width: 20px; height: 20px; display: none;"></i>
                     </button>
                     <!-- Fullscreen controller -->
-                    <button id="btn-fullscreen-toggle" class="btn-icon" title="Tam Ekran">
-                      <i data-lucide="maximize" id="fullscreen-icon-on" style="width: 20px; height: 20px;"></i>
-                      <i data-lucide="minimize" id="fullscreen-icon-off" class="hidden" style="width: 20px; height: 20px; display: none;"></i>
+                    <button id="btn-fullscreen-toggle" class="btn btn-secondary btn-sm" title="Tam Ekran (Tahta Modu) Aç/Kapat" style="display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.35rem 0.75rem; font-size: 0.85rem; font-weight: 600; border-radius: var(--radius-sm);">
+                      <i data-lucide="maximize" id="fullscreen-icon-on" style="width: 16px; height: 16px;"></i>
+                      <i data-lucide="minimize" id="fullscreen-icon-off" class="hidden" style="width: 16px; height: 16px; display: none;"></i>
+                      <span id="fullscreen-btn-text">Tam Ekran (Tahta Modu)</span>
                     </button>
                   </div>
 
@@ -984,6 +1014,9 @@
 
                   <!-- Footer actions -->
                   <div class="game-footer">
+                    <button id="btn-fullscreen-select-student" class="btn btn-primary fullscreen-select-btn" type="button" title="Tahtada Sıradaki Öğrenciyi Seç">
+                      <i data-lucide="refresh-cw" style="width: 18px; height: 18px;"></i> Rastgele Öğrenci Seç
+                    </button>
                     <button id="btn-exit-game" class="btn btn-secondary">
                       Yeni Yarışma Kur
                     </button>
@@ -7325,7 +7358,7 @@
               </p>
             </div>
             <div>
-              <a id="btn-download-deb" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/latest/download/sinif-asistani_1.0.22_amd64.deb" target="_blank" class="btn btn-primary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem; background: #ef4444; border-color: #ef4444; font-weight: 600;">
+              <a id="btn-download-deb" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/latest/download/sinif-asistani_1.0.23_amd64.deb" target="_blank" class="btn btn-primary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem; background: #ef4444; border-color: #ef4444; font-weight: 600;">
                 <i data-lucide="download" style="width: 16px; height: 16px;"></i> Pardus (.deb) İndir
               </a>
               <button type="button" onclick="window.openPardusInstallHelpModal()" style="width: 100%; margin-top: 0.5rem; background: rgba(239, 68, 68, 0.12); border: 1px dashed rgba(239, 68, 68, 0.5); color: #f87171; border-radius: var(--radius-sm, 8px); padding: 0.45rem 0.5rem; font-size: 0.78rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.35rem; transition: all 0.2s ease;">
@@ -7352,7 +7385,7 @@
               </p>
             </div>
             <div>
-              <a id="btn-download-exe" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/latest/download/sinif-asistani_1.0.22_x64-setup.exe" target="_blank" class="btn btn-primary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem; background: #0284c7; border-color: #0284c7; font-weight: 600;">
+              <a id="btn-download-exe" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/latest/download/sinif-asistani_1.0.23_x64-setup.exe" target="_blank" class="btn btn-primary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem; background: #0284c7; border-color: #0284c7; font-weight: 600;">
                 <i data-lucide="download" style="width: 16px; height: 16px;"></i> Windows (.exe) İndir
               </a>
               <button type="button" onclick="window.openWinInstallHelpModal()" style="width: 100%; margin-top: 0.5rem; background: rgba(2, 132, 199, 0.12); border: 1px dashed rgba(2, 132, 199, 0.5); color: #38bdf8; border-radius: var(--radius-sm, 8px); padding: 0.45rem 0.5rem; font-size: 0.78rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.35rem; transition: all 0.2s ease;">
@@ -7380,13 +7413,13 @@
             </div>
             <div>
               <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem;">
-                <a id="btn-download-dmg" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/latest/download/sinif-asistani_1.0.22_aarch64.dmg" target="_blank" class="btn btn-primary" style="flex: 1.1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.15rem; background: #8b5cf6; border-color: #8b5cf6; font-weight: 600; padding: 0.5rem 0.35rem; font-size: 0.78rem; text-align: center; text-decoration: none;">
+                <a id="btn-download-dmg" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/latest/download/sinif-asistani_1.0.23_aarch64.dmg" target="_blank" class="btn btn-primary" style="flex: 1.1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.15rem; background: #8b5cf6; border-color: #8b5cf6; font-weight: 600; padding: 0.5rem 0.35rem; font-size: 0.78rem; text-align: center; text-decoration: none;">
                   <span style="display: flex; align-items: center; gap: 0.25rem; font-weight: 700;">
                     <i data-lucide="download" style="width: 14px; height: 14px;"></i> Apple Silicon
                   </span>
                   <span style="font-size: 0.67rem; opacity: 0.92; font-weight: 500;">(M1 / M2 / M3 / M4)</span>
                 </a>
-                <a id="btn-download-dmg-intel" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/latest/download/sinif-asistani_1.0.22_x64.dmg" target="_blank" class="btn btn-secondary" style="flex: 0.9; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.15rem; font-weight: 600; padding: 0.5rem 0.35rem; font-size: 0.78rem; text-align: center; text-decoration: none; border: 1px solid rgba(139, 92, 246, 0.45); color: var(--text-primary);">
+                <a id="btn-download-dmg-intel" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/latest/download/sinif-asistani_1.0.23_x64.dmg" target="_blank" class="btn btn-secondary" style="flex: 0.9; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.15rem; font-weight: 600; padding: 0.5rem 0.35rem; font-size: 0.78rem; text-align: center; text-decoration: none; border: 1px solid rgba(139, 92, 246, 0.45); color: var(--text-primary);">
                   <span style="display: flex; align-items: center; gap: 0.25rem; font-weight: 700;">
                     <i data-lucide="download" style="width: 14px; height: 14px;"></i> Intel Mac
                   </span>
@@ -7416,7 +7449,7 @@
                 <strong>Kurulum gerektirmez!</strong> Özellikle ortaokul modunda sınıf sınıf gezen branş öğretmenleri, uygulamayı Flash diskine (USB) yükleyerek tüm sınıflardaki akıllı tahtalarda doğrudan flash bellek üzerinden tak-çalıştır şeklinde kullanabilir.
               </p>
             </div>
-            <a id="btn-download-appimage" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/latest/download/sinif-asistani_1.0.22_amd64.AppImage" target="_blank" class="btn btn-primary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem; background: #10b981; border-color: #10b981; font-weight: 600;">
+            <a id="btn-download-appimage" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/latest/download/sinif-asistani_1.0.23_amd64.AppImage" target="_blank" class="btn btn-primary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem; background: #10b981; border-color: #10b981; font-weight: 600;">
               <i data-lucide="download" style="width: 16px; height: 16px;"></i> AppImage (USB Uyumlu) İndir
             </a>
           </div>
