@@ -21,13 +21,501 @@
     return "ai_" + Date.now() + "_" + Math.random().toString(36).slice(2, 8);
   }
 
+  let _currentUnitsMap = null;
+  let _selectedOutcomes = []; // [{ text, topic, weekLabel, unitTitle }]
+  let _eventsInitialized = false;
+
+  // ─── Ders, Ünite ve Kazanım Hiyerarşik Seçim Mantığı ──────────────────────
+
+  function populateLessonDropdown() {
+    const dersSelect = document.getElementById("ai-ders-adi");
+    const sinifSelect = document.getElementById("ai-sinif-seviyesi");
+    if (!dersSelect) return;
+
+    const state = (window.stateManager && window.stateManager.state) ? window.stateManager.state : {};
+
+    // 1. Tanımlı dersler
+    let lessons = [];
+    if (window.stateManager && typeof window.stateManager.getLessons === "function") {
+      lessons = window.stateManager.getLessons();
+    } else if (state.definedLessons) {
+      lessons = state.definedLessons;
+    }
+
+    // 2. Yıllık planlardaki dersler (eğer definedLessons içinde yoksa dahil et)
+    const plans = state.plans || [];
+    const lessonNames = new Set();
+
+    lessons.forEach((l) => {
+      if (l && l.name && String(l.name).trim()) {
+        lessonNames.add(String(l.name).trim());
+      }
+    });
+
+    plans.forEach((p) => {
+      const pName = p ? String(p.courseName || p.title || "").trim() : "";
+      if (pName) lessonNames.add(pName);
+    });
+
+    const sortedNames = Array.from(lessonNames).sort((a, b) => a.localeCompare(b, "tr"));
+
+    let html = '<option value="">Ders Seçin...</option>';
+    sortedNames.forEach((name) => {
+      html += `<option value="${escH(name)}">${escH(name)}</option>`;
+    });
+
+    dersSelect.innerHTML = html;
+
+    // Sınıf seviyesi henüz seçilmemişse öğretmenin sınıfına göre otomatik belirle
+    if (sinifSelect && (!sinifSelect.value || sinifSelect.value === "")) {
+      const cls = state.className || "";
+      const m = String(cls).match(/(\d+)/);
+      if (m && m[1]) {
+        sinifSelect.value = m[1];
+      }
+    }
+  }
+
+  function onLessonChanged() {
+    const dersSelect = document.getElementById("ai-ders-adi");
+    const uniteSelect = document.getElementById("ai-unite-secimi");
+    const searchInput = document.getElementById("ai-kazanim-search");
+    const konuInput = document.getElementById("ai-konu-basligi");
+    const sinifSelect = document.getElementById("ai-sinif-seviyesi");
+
+    if (!dersSelect || !uniteSelect) return;
+
+    const selectedLesson = dersSelect.value.trim();
+    uniteSelect.innerHTML = "";
+    _currentUnitsMap = null;
+    _selectedOutcomes = [];
+    onSelectedOutcomesUpdated();
+
+    if (!selectedLesson) {
+      uniteSelect.disabled = true;
+      uniteSelect.innerHTML = '<option value="">Önce ders seçin...</option>';
+      renderOutcomesChecklist();
+      if (searchInput) searchInput.disabled = true;
+      return;
+    }
+
+    const state = (window.stateManager && window.stateManager.state) ? window.stateManager.state : {};
+    const plans = state.plans || [];
+
+    const matchedPlan = plans.find((p) => {
+      if (!p) return false;
+      if (window.isLessonPlanMatch) {
+        return window.isLessonPlanMatch(p.courseName || p.title, selectedLesson);
+      }
+      const cName = String(p.courseName || p.title || "").toLowerCase();
+      return cName.includes(selectedLesson.toLowerCase()) || selectedLesson.toLowerCase().includes(cName);
+    });
+
+    // Plandaki sınıf seviyesi ile formdaki sınıf seviyesini eşitle
+    if (matchedPlan && matchedPlan.className && sinifSelect) {
+      const gradeMatch = String(matchedPlan.className).match(/(\d+)/);
+      if (gradeMatch && gradeMatch[1]) {
+        sinifSelect.value = gradeMatch[1];
+      }
+    }
+
+    if (!matchedPlan) {
+      uniteSelect.disabled = true;
+      uniteSelect.innerHTML = '<option value="">Bu ders için yüklü yıllık plan bulunamadı</option>';
+      renderOutcomesChecklist();
+      if (searchInput) searchInput.disabled = true;
+      if (konuInput && !konuInput.value) {
+        konuInput.value = selectedLesson;
+      }
+      return;
+    }
+
+    const weeks = matchedPlan.weeklySchedule || matchedPlan.weeks || [];
+    if (!weeks || weeks.length === 0) {
+      uniteSelect.disabled = true;
+      uniteSelect.innerHTML = '<option value="">Planda haftalık ders akışı bulunamadı</option>';
+      renderOutcomesChecklist();
+      if (searchInput) searchInput.disabled = true;
+      return;
+    }
+
+    // Haftaları ünite bazında topla
+    const unitsMap = new Map();
+
+    weeks.forEach((w, idx) => {
+      if (!w || w.isHoliday) return;
+
+      let unitTitle = "";
+      if (w.unitName && String(w.unitName).trim()) {
+        const uNoStr = w.unitNo ? `${w.unitNo}. Ünite: ` : "";
+        unitTitle = `${uNoStr}${String(w.unitName).trim()}`;
+      } else if (w.topics && (Array.isArray(w.topics) ? w.topics.length > 0 : String(w.topics).trim())) {
+        const t = Array.isArray(w.topics) ? w.topics.join(", ") : String(w.topics);
+        unitTitle = t.trim();
+      } else if (w.month || w.weekLabel) {
+        unitTitle = `${w.month || ""} - ${w.weekLabel || (idx + 1) + ". Hafta"}`.trim();
+      } else {
+        unitTitle = "Genel";
+      }
+
+      let rawOutcomes = [];
+      if (Array.isArray(w.learningOutcomes)) {
+        rawOutcomes = w.learningOutcomes;
+      } else if (typeof w.learningOutcomes === "string" && w.learningOutcomes.trim()) {
+        rawOutcomes = w.learningOutcomes.split("\n");
+      }
+
+      const cleanOutcomes = rawOutcomes
+        .map((o) => String(o).trim())
+        .filter((o) => o.length > 0);
+
+      // Kazanım yoksa konuları kazanım gibi ele al
+      if (cleanOutcomes.length === 0 && w.topics) {
+        const topicArr = Array.isArray(w.topics) ? w.topics : [w.topics];
+        topicArr.forEach((t) => {
+          if (t && String(t).trim()) cleanOutcomes.push(String(t).trim());
+        });
+      }
+
+      if (cleanOutcomes.length === 0) return;
+
+      if (!unitsMap.has(unitTitle)) {
+        unitsMap.set(unitTitle, {
+          title: unitTitle,
+          outcomes: []
+        });
+      }
+
+      const unitObj = unitsMap.get(unitTitle);
+      const weekTopic = (Array.isArray(w.topics) && w.topics[0]) ? w.topics[0] : (w.unitName || unitTitle);
+      const weekLabel = w.weekLabel || ((idx + 1) + ". Hafta");
+
+      cleanOutcomes.forEach((outc) => {
+        if (!unitObj.outcomes.some((existing) => existing.text === outc)) {
+          unitObj.outcomes.push({
+            text: outc,
+            topic: weekTopic,
+            weekLabel: weekLabel,
+            unitTitle: unitTitle
+          });
+        }
+      });
+    });
+
+    if (unitsMap.size === 0) {
+      uniteSelect.disabled = true;
+      uniteSelect.innerHTML = '<option value="">Planda kayıtlı kazanım bulunamadı</option>';
+      renderOutcomesChecklist();
+      if (searchInput) searchInput.disabled = true;
+      return;
+    }
+
+    _currentUnitsMap = unitsMap;
+
+    uniteSelect.disabled = false;
+    let unitOptionsHtml = '<option value="">-- Ünite / Tema Seçin --</option>';
+    unitOptionsHtml += '<option value="__all__">Tüm Üniteler (Tüm Kazanımlar)</option>';
+
+    unitsMap.forEach((unitData, unitKey) => {
+      unitOptionsHtml += `<option value="${escH(unitKey)}">${escH(unitData.title)} (${unitData.outcomes.length} Kazanım)</option>`;
+    });
+
+    uniteSelect.innerHTML = unitOptionsHtml;
+    renderOutcomesChecklist();
+  }
+
+  function onUnitChanged() {
+    const uniteSelect = document.getElementById("ai-unite-secimi");
+    const konuInput = document.getElementById("ai-konu-basligi");
+    const searchInput = document.getElementById("ai-kazanim-search");
+
+    if (!uniteSelect) return;
+    const selectedUnitKey = uniteSelect.value;
+
+    if (searchInput) {
+      searchInput.disabled = !selectedUnitKey;
+      searchInput.value = "";
+    }
+
+    if (selectedUnitKey && selectedUnitKey !== "__all__" && _currentUnitsMap) {
+      const unitData = _currentUnitsMap.get(selectedUnitKey);
+      if (unitData && konuInput && (!konuInput.value || _selectedOutcomes.length === 0)) {
+        const cleanTitle = unitData.title.replace(/^(?:\d+|[IVXLCDM]+)\.?\s*(?:Ünite|Tema)?\s*[:-]?\s*/i, "").trim() || unitData.title;
+        konuInput.value = cleanTitle;
+      }
+    } else if (selectedUnitKey === "__all__" && konuInput && (!konuInput.value || _selectedOutcomes.length === 0)) {
+      const dersSelect = document.getElementById("ai-ders-adi");
+      if (dersSelect && dersSelect.value) {
+        konuInput.value = `${dersSelect.value} (Genel Tekrar)`;
+      }
+    }
+
+    renderOutcomesChecklist();
+  }
+
+  function getCurrentUnitOutcomes() {
+    if (!_currentUnitsMap) return [];
+    const uniteSelect = document.getElementById("ai-unite-secimi");
+    if (!uniteSelect || !uniteSelect.value) return [];
+
+    const selectedUnitKey = uniteSelect.value;
+    if (selectedUnitKey === "__all__") {
+      const all = [];
+      _currentUnitsMap.forEach(u => all.push(...u.outcomes));
+      return all;
+    }
+    const unit = _currentUnitsMap.get(selectedUnitKey);
+    return unit ? unit.outcomes : [];
+  }
+
+  function renderOutcomesChecklist(filterText = "") {
+    const container = document.getElementById("ai-kazanim-list-container");
+    const searchInput = document.getElementById("ai-kazanim-search");
+    if (!container) return;
+
+    const outcomes = getCurrentUnitOutcomes();
+    const q = filterText.trim().toLocaleLowerCase("tr-TR");
+
+    if (!outcomes || outcomes.length === 0) {
+      const uniteSelect = document.getElementById("ai-unite-secimi");
+      const hasLesson = document.getElementById("ai-ders-adi")?.value;
+      let msg = "Önce yukarıdan ders ve ünite seçin...";
+      if (hasLesson && (!_currentUnitsMap || _currentUnitsMap.size === 0)) {
+        msg = "Bu ders için plan bulunamadı. Kazanımları aşağıdaki kutuya kendiniz yazabilirsiniz.";
+      } else if (hasLesson && (!uniteSelect || !uniteSelect.value)) {
+        msg = "Lütfen yukarıdaki filtreden bir ünite seçin veya 'Tüm Üniteler'i seçin.";
+      }
+      container.innerHTML = `<div id="ai-kazanim-placeholder" style="text-align: center; color: var(--text-muted); padding: 1.5rem 0.5rem; font-size: 0.84rem;">${escH(msg)}</div>`;
+      if (searchInput) searchInput.disabled = true;
+      return;
+    }
+
+    if (searchInput) searchInput.disabled = false;
+
+    let filtered = outcomes;
+    if (q) {
+      filtered = outcomes.filter(o =>
+        (o.text && o.text.toLocaleLowerCase("tr-TR").includes(q)) ||
+        (o.topic && o.topic.toLocaleLowerCase("tr-TR").includes(q)) ||
+        (o.weekLabel && o.weekLabel.toLocaleLowerCase("tr-TR").includes(q))
+      );
+    }
+
+    if (filtered.length === 0) {
+      container.innerHTML = `<div style="text-align: center; color: var(--text-muted); padding: 1.25rem 0.5rem; font-size: 0.84rem;">"${escH(filterText)}" ile eşleşen kazanım bulunamadı.</div>`;
+      return;
+    }
+
+    let html = "";
+    filtered.forEach((item, idx) => {
+      const isChecked = _selectedOutcomes.some(o => o.text === item.text);
+      const itemId = `chk-kazanim-${idx}`;
+      html += `
+        <label class="kazanim-check-item ${isChecked ? 'selected' : ''}" for="${itemId}">
+          <input type="checkbox" id="${itemId}" class="kazanim-checkbox" data-text="${escH(item.text)}" data-topic="${escH(item.topic || '')}" data-week="${escH(item.weekLabel || '')}" data-unit="${escH(item.unitTitle || '')}" ${isChecked ? 'checked' : ''}>
+          <div class="kazanim-check-content">
+            <div class="kazanim-check-text">${escH(item.text)}</div>
+            <div class="kazanim-check-meta">
+              ${item.weekLabel ? `<span class="kazanim-tag"><i data-lucide="calendar" style="width:10px;height:10px;"></i> ${escH(item.weekLabel)}</span>` : ''}
+              ${item.topic ? `<span class="kazanim-tag"><i data-lucide="bookmark" style="width:10px;height:10px;"></i> ${escH(item.topic)}</span>` : ''}
+            </div>
+          </div>
+        </label>
+      `;
+    });
+
+    container.innerHTML = html;
+    if (window.safeCreateIcons) window.safeCreateIcons();
+
+    // Checkbox event listeners
+    const checkboxes = container.querySelectorAll(".kazanim-checkbox");
+    checkboxes.forEach(cb => {
+      cb.addEventListener("change", () => {
+        const text = cb.getAttribute("data-text");
+        const topic = cb.getAttribute("data-topic");
+        const weekLabel = cb.getAttribute("data-week");
+        const unitTitle = cb.getAttribute("data-unit");
+        const labelEl = cb.closest(".kazanim-check-item");
+
+        if (cb.checked) {
+          if (labelEl) labelEl.classList.add("selected");
+          if (!_selectedOutcomes.some(o => o.text === text)) {
+            _selectedOutcomes.push({ text, topic, weekLabel, unitTitle });
+          }
+        } else {
+          if (labelEl) labelEl.classList.remove("selected");
+          _selectedOutcomes = _selectedOutcomes.filter(o => o.text !== text);
+        }
+
+        onSelectedOutcomesUpdated();
+      });
+    });
+  }
+
+  function onSelectedOutcomesUpdated() {
+    const badge = document.getElementById("ai-kazanim-count-badge");
+    const chipsContainer = document.getElementById("ai-kazanim-selected-chips");
+    const textarea = document.getElementById("ai-kazanim");
+    const konuInput = document.getElementById("ai-konu-basligi");
+
+    // 1. Badge güncelle
+    if (badge) {
+      const count = _selectedOutcomes.length;
+      if (count === 0) {
+        badge.textContent = "0 Kazanım Seçildi";
+        badge.style.background = "rgba(59, 130, 246, 0.12)";
+        badge.style.color = "var(--primary, #3b82f6)";
+      } else if (count === 1) {
+        badge.textContent = "1 Kazanım Seçildi";
+        badge.style.background = "#dcfce7";
+        badge.style.color = "#15803d";
+      } else {
+        badge.textContent = `✨ ${count} Kazanım Harmanlanıyor`;
+        badge.style.background = "linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(6, 182, 212, 0.2))";
+        badge.style.color = "#7c3aed";
+      }
+    }
+
+    // 2. Seçilen etiketler (chips)
+    if (chipsContainer) {
+      if (_selectedOutcomes.length === 0) {
+        chipsContainer.style.display = "none";
+        chipsContainer.innerHTML = "";
+      } else {
+        chipsContainer.style.display = "flex";
+        let chipsHtml = "";
+        _selectedOutcomes.forEach((o) => {
+          const display = o.topic ? `[${o.topic}] ${o.text}` : o.text;
+          chipsHtml += `
+            <div class="kazanim-chip" title="${escH(display)}">
+              <span class="kazanim-chip-text">${escH(display)}</span>
+              <button type="button" class="kazanim-chip-remove" data-outcome="${escH(o.text)}" title="Kaldır">&times;</button>
+            </div>
+          `;
+        });
+        chipsContainer.innerHTML = chipsHtml;
+
+        chipsContainer.querySelectorAll(".kazanim-chip-remove").forEach(btn => {
+          btn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            const textToRemove = btn.getAttribute("data-outcome");
+            _selectedOutcomes = _selectedOutcomes.filter(o => o.text !== textToRemove);
+
+            // Listede varsa onay kutusunu kaldır
+            const checkboxes = document.querySelectorAll(".kazanim-checkbox");
+            checkboxes.forEach(cb => {
+              if (cb.getAttribute("data-text") === textToRemove) {
+                cb.checked = false;
+                const label = cb.closest(".kazanim-check-item");
+                if (label) label.classList.remove("selected");
+              }
+            });
+
+            onSelectedOutcomesUpdated();
+          });
+        });
+      }
+    }
+
+    // 3. Textarea: Harmanlanan listeyi formatla
+    if (textarea) {
+      if (_selectedOutcomes.length === 0) {
+        if (textarea.dataset.autoPopulated === "true") {
+          textarea.value = "";
+          delete textarea.dataset.autoPopulated;
+        }
+      } else if (_selectedOutcomes.length === 1) {
+        textarea.value = _selectedOutcomes[0].text;
+        textarea.dataset.autoPopulated = "true";
+      } else {
+        textarea.value = _selectedOutcomes
+          .map((o, i) => `${i + 1}. ${o.topic ? `[${o.topic}] ` : ""}${o.text}`)
+          .join("\n");
+        textarea.dataset.autoPopulated = "true";
+      }
+    }
+
+    // 4. Akıllı Konu / Paket Adı önerisi
+    if (konuInput && _selectedOutcomes.length > 0) {
+      const topics = [...new Set(_selectedOutcomes.map(o => o.topic).filter(Boolean))];
+      if (topics.length === 1) {
+        konuInput.value = topics[0];
+      } else if (topics.length === 2) {
+        konuInput.value = `${topics[0]} & ${topics[1]}`;
+      } else if (topics.length > 2) {
+        konuInput.value = `${topics[0]}, ${topics[1]}... (Harman)`;
+      }
+    }
+  }
+
+  function ensureEventsInitialized() {
+    if (_eventsInitialized) return;
+    const dersSelect = document.getElementById("ai-ders-adi");
+    const uniteSelect = document.getElementById("ai-unite-secimi");
+    const btnSelectAll = document.getElementById("btn-ai-select-all-kazanim");
+    const btnClearAll = document.getElementById("btn-ai-clear-all-kazanim");
+    const searchInput = document.getElementById("ai-kazanim-search");
+
+    if (dersSelect) {
+      dersSelect.addEventListener("change", onLessonChanged);
+    }
+    if (uniteSelect) {
+      uniteSelect.addEventListener("change", onUnitChanged);
+    }
+    if (btnSelectAll) {
+      btnSelectAll.addEventListener("click", () => {
+        const visibleCheckboxes = document.querySelectorAll(".kazanim-checkbox");
+        if (!visibleCheckboxes || visibleCheckboxes.length === 0) return;
+
+        visibleCheckboxes.forEach(cb => {
+          cb.checked = true;
+          const label = cb.closest(".kazanim-check-item");
+          if (label) label.classList.add("selected");
+
+          const text = cb.getAttribute("data-text");
+          const topic = cb.getAttribute("data-topic");
+          const weekLabel = cb.getAttribute("data-week");
+          const unitTitle = cb.getAttribute("data-unit");
+
+          if (!_selectedOutcomes.some(o => o.text === text)) {
+            _selectedOutcomes.push({ text, topic, weekLabel, unitTitle });
+          }
+        });
+
+        onSelectedOutcomesUpdated();
+      });
+    }
+    if (btnClearAll) {
+      btnClearAll.addEventListener("click", () => {
+        _selectedOutcomes = [];
+        const visibleCheckboxes = document.querySelectorAll(".kazanim-checkbox");
+        visibleCheckboxes.forEach(cb => {
+          cb.checked = false;
+          const label = cb.closest(".kazanim-check-item");
+          if (label) label.classList.remove("selected");
+        });
+        const textarea = document.getElementById("ai-kazanim");
+        if (textarea) textarea.value = "";
+        onSelectedOutcomesUpdated();
+      });
+    }
+    if (searchInput) {
+      searchInput.addEventListener("input", () => {
+        renderOutcomesChecklist(searchInput.value);
+      });
+    }
+
+    _eventsInitialized = true;
+  }
+
   // ─── Modal Aç / Kapat ──────────────────────────────────────────────────────
 
   window.openQuizAIGeneratorModal = function () {
     const modal = document.getElementById("modal-quiz-ai-generator");
     if (!modal) return;
-    // Formu sıfırla
+    ensureEventsInitialized();
     resetGeneratorForm();
+    populateLessonDropdown();
     modal.classList.add("active");
     modal.style.display = "flex";
   };
@@ -43,15 +531,36 @@
     const ids = [
       "ai-sinif-seviyesi",
       "ai-ders-adi",
+      "ai-unite-secimi",
       "ai-konu-basligi",
       "ai-kazanim",
+      "ai-kazanim-search",
     ];
     ids.forEach((id) => {
       const el = document.getElementById(id);
       if (el) el.value = "";
     });
+
+    const uniteSelect = document.getElementById("ai-unite-secimi");
+    if (uniteSelect) {
+      uniteSelect.disabled = true;
+      uniteSelect.innerHTML = '<option value="">Önce ders seçin...</option>';
+    }
+
+    const searchInput = document.getElementById("ai-kazanim-search");
+    if (searchInput) searchInput.disabled = true;
+
+    _selectedOutcomes = [];
+    _currentUnitsMap = null;
+    onSelectedOutcomesUpdated();
+    renderOutcomesChecklist();
+
+    const soruSayisiInput = document.getElementById("ai-soru-sayisi");
+    if (soruSayisiInput) {
+      soruSayisiInput.value = "10";
+    }
+
     const selects = {
-      "ai-soru-sayisi": "10",
       "ai-soru-tipi": "karisik",
       "ai-zorluk": "dengeli",
     };
@@ -59,6 +568,7 @@
       const el = document.getElementById(id);
       if (el) el.value = val;
     });
+
     clearPreview();
     showGeneratorStep("form");
   }
@@ -123,12 +633,25 @@
       zorluğAciklama = `Tüm sorular yüksek düşünme becerileri gerektiren, zorlu sorular olsun.`;
     }
 
+    const isBlended = kazanim && (kazanim.includes("\n") || _selectedOutcomes.length > 1);
+
+    const blendingSection = isBlended
+      ? `ÖĞRETMEN TARAFINDAN HARMANLANAN KAZANIMLAR VE KONULAR:
+${kazanim}
+
+ÖNEMLİ PEDAGOJİK HARMANLAMA TALİMATI:
+- Öğretmen yukarıdaki birden fazla kazanımı harmanlayarak kapsamlı bir yarışma testi oluşturmak istemektedir.
+- Üreteceğin tam ${soruSayisi} adet soruyu bu kazanımların tamamına dengeli bir şekilde dağıt.
+- Her bir soru, belirtilen kazanımlardan en az birini doğrudan ölçecek nitelikte olmalıdır.
+- Tek bir konuya veya kazanıma yığılma yapma; harmanlanan tüm kazanımları kapsayan zengin ve dengeli bir soru seti oluştur.`
+      : (kazanim ? `Kazanım/Açıklama: ${kazanim}` : "");
+
     return `Sen bir Türk ilkokul/ortaokul öğretmenisin. Aşağıdaki bilgilere göre tam olarak ${soruSayisi} adet bilgi yarışması sorusu üret.
 
 Sınıf Seviyesi: ${sinifSeviyesi}. Sınıf
 Ders: ${dersAdi}
 Konu Başlığı: ${konuBasligi}
-${kazanim ? `Kazanım/Açıklama: ${kazanim}` : ""}
+${blendingSection}
 
 Soru Türü Dağılımı: ${tipAciklama}
 Zorluk: ${zorluğAciklama}
@@ -318,7 +841,8 @@ Boşluk Doldurma (fib):
     const dersAdi = document.getElementById("ai-ders-adi")?.value?.trim();
     const konuBasligi = document.getElementById("ai-konu-basligi")?.value?.trim();
     const kazanim = document.getElementById("ai-kazanim")?.value?.trim();
-    const soruSayisi = parseInt(document.getElementById("ai-soru-sayisi")?.value) || 10;
+    const rawSoruSayisi = parseInt(document.getElementById("ai-soru-sayisi")?.value, 10);
+    const soruSayisi = (!isNaN(rawSoruSayisi) && rawSoruSayisi > 0) ? Math.min(Math.max(rawSoruSayisi, 1), 50) : 10;
     const soruTipi = document.getElementById("ai-soru-tipi")?.value || "karisik";
     const zorluk = document.getElementById("ai-zorluk")?.value || "dengeli";
 
@@ -327,7 +851,7 @@ Boşluk Doldurma (fib):
       return;
     }
     if (!dersAdi) {
-      alert("Lütfen ders adını girin.");
+      alert("Lütfen ders seçin.");
       return;
     }
     if (!konuBasligi) {

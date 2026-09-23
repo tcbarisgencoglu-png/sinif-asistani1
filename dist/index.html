@@ -178,7 +178,7 @@
       <div id="sidebar-demo-container"></div>
       
       <div class="sidebar-footer" style="padding: 1rem; text-align: center; font-size: 0.8rem; color: var(--text-muted); border-top: 1px solid var(--border-color);">
-        <span id="app-sidebar-version-text">Sınıf Asistanı v1.0.21</span>
+        <span id="app-sidebar-version-text">Sınıf Asistanı v1.0.22</span>
       </div>
     </aside>
 
@@ -4292,7 +4292,7 @@
 
         <!-- Defter Detay Görünümü (Defter Açıldığında) -->
         <div id="notebook-detail-view" style="display: none;">
-          <div class="page-header" style="margin-bottom: 1rem; align-items: center; flex-wrap: wrap; gap: 1rem;">
+          <div class="page-header" style="margin-bottom: 1rem; align-items: center; flex-wrap: wrap; gap: 1rem; position: relative; z-index: 50;">
             <div class="header-title-back" style="display: flex; align-items: center; gap: 1rem; flex: 1; min-width: 0;">
               <button class="btn btn-outline-secondary btn-sm" id="btn-back-to-notebooks" style="display: flex; align-items: center; gap: 0.35rem; white-space: nowrap;">
                 <i data-lucide="arrow-left" style="width: 16px; height: 16px;"></i> Geri Dön
@@ -4301,7 +4301,7 @@
                 <input type="text" id="notebook-title-input" class="notebook-title-edit" placeholder="Defter Başlığı..." value="" style="font-size: 1.2rem; font-weight: 700; color: var(--text-primary); border: 1px dashed transparent; background: transparent; padding: 0.2rem 0.5rem; border-radius: var(--radius-sm); width: 100%; outline: none; transition: border-color var(--transition-fast);">
               </div>
             </div>
-            <div class="notebook-actions" style="display: flex; gap: 0.5rem;">
+            <div class="notebook-actions" style="display: flex; gap: 0.5rem; position: relative; z-index: 60;">
               <button class="btn btn-sm btn-outline-danger" id="btn-red-title" style="display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; padding: 0; position: relative;" title="Yazı Rengi Değiştir">
                 <i data-lucide="palette" style="width: 16px; height: 16px;"></i>
                 <span id="notebook-color-indicator" style="position: absolute; bottom: 4px; right: 4px; display: inline-block; width: 8px; height: 8px; border-radius: 50%; background-color: #1e293b; border: 1px solid rgba(255,255,255,0.8);"></span>
@@ -4312,15 +4312,57 @@
               <button class="btn btn-sm btn-outline-primary" id="btn-add-sticky-note" style="display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; padding: 0;" title="Yapışkan Not Ekle">
                 <i data-lucide="sticky-note" style="width: 16px; height: 16px;"></i>
               </button>
-              <button class="btn btn-sm btn-outline-primary" id="btn-list-bullet" style="display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; padding: 0;" title="Madde İmleri">
-                <i data-lucide="list" style="width: 16px; height: 16px;"></i>
-              </button>
-              <button class="btn btn-sm btn-outline-primary" id="btn-list-number" style="display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; padding: 0;" title="Madde Numaraları">
-                <i data-lucide="list-ordered" style="width: 16px; height: 16px;"></i>
-              </button>
-              <button class="btn btn-sm btn-outline-primary" id="btn-list-number-restart" style="display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; padding: 0;" title="Numaralandırmayı 1'den Başlat / Devam Ettir">
-                <i data-lucide="rotate-ccw" style="width: 15px; height: 15px;"></i>
-              </button>
+              <!-- Madde İmleri ve Numaralandırma Menüsü -->
+              <div style="position: relative; display: inline-block; z-index: 65;">
+                <button class="btn btn-sm btn-outline-primary" id="btn-list-dropdown-trigger" style="display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; padding: 0;" title="Madde İmleri ve Numaralandırma">
+                  <i data-lucide="list" style="width: 16px; height: 16px;"></i>
+                </button>
+                <div class="dropdown-menu list-dropdown-menu" id="list-dropdown-menu" style="display: none; position: absolute; top: 100%; right: 0; background: var(--bg-secondary, #ffffff); border: 1px solid var(--border-color, #e2e8f0); border-radius: 8px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.15); z-index: 1050; width: 280px; margin-top: 4px; padding: 12px;">
+                  <!-- Madde Numarası Bölümü -->
+                  <div style="margin-bottom: 12px;">
+                    <div style="font-weight: 600; font-size: 0.82rem; color: var(--text-primary); margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
+                      <i data-lucide="list-ordered" style="width: 14px; height: 14px; color: var(--primary);"></i>
+                      <span>Madde Numarası</span>
+                    </div>
+                    <div style="display: flex; gap: 6px; margin-bottom: 6px;">
+                      <input type="text" class="form-control form-control-sm list-custom-number-input" id="list-custom-number-input" placeholder="Örn: 1. veya A)" value="1." style="flex: 1; font-size: 0.82rem; padding: 4px 8px; border: 1px solid var(--border-color); border-radius: 4px;">
+                      <button class="btn btn-sm btn-primary btn-apply-item-number" id="btn-apply-item-number" type="button" style="padding: 4px 10px; font-size: 0.82rem; white-space: nowrap;">Ekle</button>
+                    </div>
+                    <div class="list-quick-numbers" style="display: flex; gap: 4px; flex-wrap: wrap;">
+                      <button type="button" class="btn-list-quick-num" data-val="1.">1.</button>
+                      <button type="button" class="btn-list-quick-num" data-val="2.">2.</button>
+                      <button type="button" class="btn-list-quick-num" data-val="3.">3.</button>
+                      <button type="button" class="btn-list-quick-num" data-val="A.">A.</button>
+                      <button type="button" class="btn-list-quick-num" data-val="B.">B.</button>
+                      <button type="button" class="btn-list-quick-num" data-val="a)">a)</button>
+                      <button type="button" class="btn-list-quick-num" data-val="b)">b)</button>
+                    </div>
+                  </div>
+
+                  <div style="height: 1px; background: var(--border-color); margin: 10px 0;"></div>
+
+                  <!-- Madde İmi Bölümü -->
+                  <div>
+                    <div style="font-weight: 600; font-size: 0.82rem; color: var(--text-primary); margin-bottom: 6px; display: flex; align-items: center; justify-content: space-between;">
+                      <span style="display: flex; align-items: center; gap: 6px;">
+                        <i data-lucide="list" style="width: 14px; height: 14px; color: var(--primary);"></i>
+                        <span>Madde İmi</span>
+                      </span>
+                      <span style="font-size: 0.70rem; color: var(--text-muted); font-weight: normal;">(İçeri Girintili)</span>
+                    </div>
+                    <div class="list-bullet-grid" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px;">
+                      <button type="button" class="btn-list-bullet-option" data-bullet="•" title="Nokta">•</button>
+                      <button type="button" class="btn-list-bullet-option" data-bullet="⁃" title="Tire">⁃</button>
+                      <button type="button" class="btn-list-bullet-option" data-bullet="◦" title="Halka">◦</button>
+                      <button type="button" class="btn-list-bullet-option" data-bullet="◆" title="Baklava">◆</button>
+                      <button type="button" class="btn-list-bullet-option" data-bullet="▸" title="Üçgen">▸</button>
+                      <button type="button" class="btn-list-bullet-option" data-bullet="★" title="Yıldız">★</button>
+                      <button type="button" class="btn-list-bullet-option" data-bullet="✓" title="Onay">✓</button>
+                      <button type="button" class="btn-list-bullet-option" data-bullet="➔" title="Ok">➔</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
               <button class="btn btn-sm btn-outline-primary" id="btn-add-table" style="display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; padding: 0;" title="Tablo Ekle">
                 <i data-lucide="table" style="width: 16px; height: 16px;"></i>
               </button>
@@ -4330,11 +4372,11 @@
               <input type="file" id="notebook-image-input" accept="image/*" style="display: none;">
               
               <!-- Matematik Menüsü -->
-              <div style="position: relative; display: inline-block;">
+              <div style="position: relative; display: inline-block; z-index: 65;">
                 <button class="btn btn-sm btn-outline-primary" id="btn-math-dropdown-trigger" style="display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; padding: 0;" title="Matematiksel İfade Ekle">
                   <i data-lucide="pi" style="width: 16px; height: 16px;"></i>
                 </button>
-                <div class="dropdown-menu math-dropdown-menu" id="math-dropdown-menu" style="display: none; position: absolute; top: 100%; right: 0; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: var(--radius-sm); box-shadow: var(--shadow-md); z-index: 1001; min-width: 150px; margin-top: 4px; padding: 0.25rem 0;">
+                <div class="dropdown-menu math-dropdown-menu" id="math-dropdown-menu" style="display: none; position: absolute; top: 100%; right: 0; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: var(--radius-sm); box-shadow: var(--shadow-md); z-index: 1050; min-width: 150px; margin-top: 4px; padding: 0.25rem 0;">
                   <a class="dropdown-item math-template-btn" data-template="fraction" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem; font-size: 0.85rem; color: var(--text-primary); cursor: pointer; transition: background var(--transition-fast);">
                     <span style="font-weight: bold; width: 16px; display: inline-block; text-align: center;">½</span> Kesir (x/y)
                   </a>
@@ -4379,7 +4421,7 @@
             <div class="notebooks-main">
               <div id="notebook-editor-container" class="notebook-editor-card glass-card">
                 <!-- Tam Ekran Üst Menüsü (Sadece tam ekranda görünür) -->
-                <div class="notebook-editor-fullscreen-header" style="display: none; justify-content: space-between; align-items: center; padding: 0.75rem 1.5rem; background: var(--bg-secondary); border-bottom: 1px solid var(--border-color); z-index: 100;">
+                <div class="notebook-editor-fullscreen-header" style="display: none; justify-content: space-between; align-items: center; padding: 0.75rem 1.5rem; background: var(--bg-secondary); border-bottom: 1px solid var(--border-color); position: relative; z-index: 100;">
                   <div class="fullscreen-title-wrapper" style="display: flex; align-items: center; gap: 0.75rem;">
                     <button class="btn btn-sm btn-outline-secondary" id="btn-fullscreen-close" style="display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; padding: 0;" title="Tam Ekrandan Çık">
                       <i data-lucide="minimize" style="width: 16px; height: 16px;"></i>
@@ -4397,7 +4439,7 @@
                       </span>
                     </div>
                   </div>
-                  <div class="fullscreen-actions" style="display: flex; gap: 0.5rem;">
+                  <div class="fullscreen-actions" style="display: flex; gap: 0.5rem; position: relative; z-index: 60;">
                     <button class="btn btn-sm btn-outline-danger" id="btn-fullscreen-red-title" style="display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; padding: 0; position: relative;" title="Yazı Rengi Değiştir">
                       <i data-lucide="palette" style="width: 16px; height: 16px;"></i>
                       <span id="notebook-fullscreen-color-indicator" style="position: absolute; bottom: 4px; right: 4px; display: inline-block; width: 8px; height: 8px; border-radius: 50%; background-color: #1e293b; border: 1px solid rgba(255,255,255,0.8);"></span>
@@ -4408,15 +4450,57 @@
                     <button class="btn btn-sm btn-outline-primary" id="btn-fullscreen-add-sticky-note" style="display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; padding: 0;" title="Yapışkan Not Ekle">
                       <i data-lucide="sticky-note" style="width: 16px; height: 16px;"></i>
                     </button>
-                    <button class="btn btn-sm btn-outline-primary" id="btn-fullscreen-list-bullet" style="display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; padding: 0;" title="Madde İmleri">
-                      <i data-lucide="list" style="width: 16px; height: 16px;"></i>
-                    </button>
-                    <button class="btn btn-sm btn-outline-primary" id="btn-fullscreen-list-number" style="display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; padding: 0;" title="Madde Numaraları">
-                      <i data-lucide="list-ordered" style="width: 16px; height: 16px;"></i>
-                    </button>
-                    <button class="btn btn-sm btn-outline-primary" id="btn-fullscreen-list-number-restart" style="display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; padding: 0;" title="Numaralandırmayı 1'den Başlat / Devam Ettir">
-                      <i data-lucide="rotate-ccw" style="width: 15px; height: 15px;"></i>
-                    </button>
+                    <!-- Tam Ekran Madde İmleri ve Numaralandırma Menüsü -->
+                    <div style="position: relative; display: inline-block; z-index: 65;">
+                      <button class="btn btn-sm btn-outline-primary" id="btn-fullscreen-list-dropdown-trigger" style="display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; padding: 0;" title="Madde İmleri ve Numaralandırma">
+                        <i data-lucide="list" style="width: 16px; height: 16px;"></i>
+                      </button>
+                      <div class="dropdown-menu list-dropdown-menu" id="fullscreen-list-dropdown-menu" style="display: none; position: absolute; top: 100%; right: 0; background: var(--bg-secondary, #ffffff); border: 1px solid var(--border-color, #e2e8f0); border-radius: 8px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.15); z-index: 1050; width: 280px; margin-top: 4px; padding: 12px;">
+                        <!-- Madde Numarası Bölümü -->
+                        <div style="margin-bottom: 12px;">
+                          <div style="font-weight: 600; font-size: 0.82rem; color: var(--text-primary); margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
+                            <i data-lucide="list-ordered" style="width: 14px; height: 14px; color: var(--primary);"></i>
+                            <span>Madde Numarası</span>
+                          </div>
+                          <div style="display: flex; gap: 6px; margin-bottom: 6px;">
+                            <input type="text" class="form-control form-control-sm list-custom-number-input" id="fullscreen-list-custom-number-input" placeholder="Örn: 1. veya A)" value="1." style="flex: 1; font-size: 0.82rem; padding: 4px 8px; border: 1px solid var(--border-color); border-radius: 4px;">
+                            <button class="btn btn-sm btn-primary btn-apply-item-number" id="btn-fullscreen-apply-item-number" type="button" style="padding: 4px 10px; font-size: 0.82rem; white-space: nowrap;">Ekle</button>
+                          </div>
+                          <div class="list-quick-numbers" style="display: flex; gap: 4px; flex-wrap: wrap;">
+                            <button type="button" class="btn-list-quick-num" data-val="1.">1.</button>
+                            <button type="button" class="btn-list-quick-num" data-val="2.">2.</button>
+                            <button type="button" class="btn-list-quick-num" data-val="3.">3.</button>
+                            <button type="button" class="btn-list-quick-num" data-val="A.">A.</button>
+                            <button type="button" class="btn-list-quick-num" data-val="B.">B.</button>
+                            <button type="button" class="btn-list-quick-num" data-val="a)">a)</button>
+                            <button type="button" class="btn-list-quick-num" data-val="b)">b)</button>
+                          </div>
+                        </div>
+
+                        <div style="height: 1px; background: var(--border-color); margin: 10px 0;"></div>
+
+                        <!-- Madde İmi Bölümü -->
+                        <div>
+                          <div style="font-weight: 600; font-size: 0.82rem; color: var(--text-primary); margin-bottom: 6px; display: flex; align-items: center; justify-content: space-between;">
+                            <span style="display: flex; align-items: center; gap: 6px;">
+                              <i data-lucide="list" style="width: 14px; height: 14px; color: var(--primary);"></i>
+                              <span>Madde İmi</span>
+                            </span>
+                            <span style="font-size: 0.70rem; color: var(--text-muted); font-weight: normal;">(İçeri Girintili)</span>
+                          </div>
+                          <div class="list-bullet-grid" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px;">
+                            <button type="button" class="btn-list-bullet-option" data-bullet="•" title="Nokta">•</button>
+                            <button type="button" class="btn-list-bullet-option" data-bullet="⁃" title="Tire">⁃</button>
+                            <button type="button" class="btn-list-bullet-option" data-bullet="◦" title="Halka">◦</button>
+                            <button type="button" class="btn-list-bullet-option" data-bullet="◆" title="Baklava">◆</button>
+                            <button type="button" class="btn-list-bullet-option" data-bullet="▸" title="Üçgen">▸</button>
+                            <button type="button" class="btn-list-bullet-option" data-bullet="★" title="Yıldız">★</button>
+                            <button type="button" class="btn-list-bullet-option" data-bullet="✓" title="Onay">✓</button>
+                            <button type="button" class="btn-list-bullet-option" data-bullet="➔" title="Ok">➔</button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                     <button class="btn btn-sm btn-outline-primary" id="btn-fullscreen-add-table" style="display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; padding: 0;" title="Tablo Ekle">
                       <i data-lucide="table" style="width: 16px; height: 16px;"></i>
                     </button>
@@ -4425,11 +4509,11 @@
                     </button>
                     
                     <!-- Tam Ekran Matematik Menüsü -->
-                    <div style="position: relative; display: inline-block;">
+                    <div style="position: relative; display: inline-block; z-index: 65;">
                       <button class="btn btn-sm btn-outline-primary" id="btn-fullscreen-math-trigger" style="display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; padding: 0;" title="Matematiksel İfade Ekle">
                         <i data-lucide="pi" style="width: 16px; height: 16px;"></i>
                       </button>
-                      <div class="dropdown-menu math-dropdown-menu" id="fullscreen-math-dropdown-menu" style="display: none; position: absolute; top: 100%; right: 0; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: var(--radius-sm); box-shadow: var(--shadow-md); z-index: 1001; min-width: 150px; margin-top: 4px; padding: 0.25rem 0;">
+                      <div class="dropdown-menu math-dropdown-menu" id="fullscreen-math-dropdown-menu" style="display: none; position: absolute; top: 100%; right: 0; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: var(--radius-sm); box-shadow: var(--shadow-md); z-index: 1050; min-width: 150px; margin-top: 4px; padding: 0.25rem 0;">
                         <a class="dropdown-item math-template-btn" data-template="fraction" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem; font-size: 0.85rem; color: var(--text-primary); cursor: pointer; transition: background var(--transition-fast);">
                           <span style="font-weight: bold; width: 16px; display: inline-block; text-align: center;">½</span> Kesir (x/y)
                         </a>
@@ -5905,30 +5989,68 @@
             </div>
             <div class="form-group">
               <label style="font-weight: 600; font-size: 0.88rem;">Ders Adı <span style="color:#ef4444;">*</span></label>
-              <input type="text" id="ai-ders-adi" class="form-control" placeholder="örn. Türkçe, Matematik, Fen Bilimleri...">
+              <select id="ai-ders-adi" class="form-control">
+                <option value="">Ders Seçin...</option>
+              </select>
             </div>
+          </div>
+
+          <div class="form-group" style="margin-bottom: 1rem;">
+            <label style="font-weight: 600; font-size: 0.88rem;">1. Aşama: Ünite / Tema Filtresi</label>
+            <select id="ai-unite-secimi" class="form-control">
+              <option value="">Önce ders seçin...</option>
+            </select>
+            <small style="color: var(--text-muted); font-size: 0.78rem;">İstediğiniz üniteyi seçebilir veya "Tüm Üniteler" ile dersin tüm kazanımlarını harmanlayabilirsiniz.</small>
+          </div>
+
+          <div class="form-group" style="margin-bottom: 1rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.45rem; flex-wrap: wrap; gap: 0.5rem;">
+              <label style="font-weight: 600; font-size: 0.88rem; margin: 0; display: flex; align-items: center; gap: 0.4rem;">
+                <span>2. Aşama: Kazanım ve Konu Seçimi (Çoklu Seçim)</span>
+                <span id="ai-kazanim-count-badge" class="badge" style="background: rgba(59, 130, 246, 0.12); color: var(--primary, #3b82f6); font-size: 0.75rem; font-weight: 600; padding: 0.2rem 0.55rem; border-radius: 12px;">0 Kazanım Seçildi</span>
+              </label>
+              <div style="display: flex; gap: 0.35rem;">
+                <button type="button" class="btn btn-xs btn-outline-primary" id="btn-ai-select-all-kazanim" style="padding: 0.2rem 0.5rem; font-size: 0.75rem; display: flex; align-items: center; gap: 0.25rem;">
+                  <i data-lucide="check-square" style="width: 12px; height: 12px;"></i> Tümünü Seç
+                </button>
+                <button type="button" class="btn btn-xs btn-outline-secondary" id="btn-ai-clear-all-kazanim" style="padding: 0.2rem 0.5rem; font-size: 0.75rem; display: flex; align-items: center; gap: 0.25rem;">
+                  <i data-lucide="x-circle" style="width: 12px; height: 12px;"></i> Temizle
+                </button>
+              </div>
+            </div>
+
+            <!-- Hızlı Kazanım/Konu Arama -->
+            <div style="margin-bottom: 0.5rem;">
+              <input type="text" id="ai-kazanim-search" class="form-control form-control-sm" placeholder="🔍 Kazanımlarda veya konularda ara (örn: kesir, çarpma, toplama)..." style="font-size: 0.82rem; padding: 0.35rem 0.65rem;" disabled>
+            </div>
+
+            <!-- Seçilen Kazanım Rozetleri (Chips) -->
+            <div id="ai-kazanim-selected-chips" style="display: none; flex-wrap: wrap; gap: 6px; margin-bottom: 0.5rem; max-height: 80px; overflow-y: auto; padding: 6px; background: rgba(59, 130, 246, 0.04); border: 1px dashed var(--border-color); border-radius: 6px;"></div>
+
+            <!-- Kazanım Onay Kutuları Listesi -->
+            <div id="ai-kazanim-list-container" class="kazanim-checklist" style="max-height: 200px; min-height: 90px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 0.5rem; background: var(--bg-secondary);">
+              <div id="ai-kazanim-placeholder" style="text-align: center; color: var(--text-muted); padding: 1.5rem 0.5rem; font-size: 0.84rem;">
+                Önce yukarıdan ders ve ünite seçin...
+              </div>
+            </div>
+            <small style="color: var(--text-muted); font-size: 0.78rem; margin-top: 0.35rem; display: block;">💡 İpucu: Birden fazla kazanımı işaretleyerek yapay zekanın bu kazanımları harmanlayan dengeli sorular hazırlamasını sağlayabilirsiniz.</small>
           </div>
 
           <div class="form-group" style="margin-bottom: 1rem;">
             <label style="font-weight: 600; font-size: 0.88rem;">Konu Başlığı (Paket Adı) <span style="color:#ef4444;">*</span></label>
             <input type="text" id="ai-konu-basligi" class="form-control" placeholder="örn. Kesirler, Dünya'nın Yapısı, Atatürk'ün Hayatı...">
-            <small style="color: var(--text-muted); font-size: 0.78rem;">Bu başlık, soruların soru havuzundaki kategori adı olacak.</small>
+            <small style="color: var(--text-muted); font-size: 0.78rem;">Bu başlık, soruların soru havuzundaki kategori adı olacak (Kazanımlar seçildiğinde otomatik önerilir).</small>
           </div>
 
           <div class="form-group" style="margin-bottom: 1rem;">
-            <label style="font-weight: 600; font-size: 0.88rem;">Kazanım / Açıklama <span style="color: var(--text-muted); font-size: 0.8rem;">(isteğe bağlı)</span></label>
-            <textarea id="ai-kazanim" class="form-control" rows="2" placeholder="örn. Öğrenci kesirlerle toplama ve çıkarma yapabilir. Payı ve paydayı kavrar..."></textarea>
+            <label style="font-weight: 600; font-size: 0.88rem;">Harmanlanan Kazanımlar / Detay Açıklama <span style="color: var(--text-muted); font-size: 0.8rem;">(otomatik aktarılır; dilerseniz düzenleyebilirsiniz)</span></label>
+            <textarea id="ai-kazanim" class="form-control" rows="3" placeholder="Yukarıdaki listeden bir veya birden çok kazanım seçtiğinizde harmanlanan liste buraya aktarılır; dilerseniz düzenleyebilirsiniz..."></textarea>
           </div>
 
           <div class="form-grid-3" style="gap: 1rem; margin-bottom: 1.25rem;">
             <div class="form-group">
-              <label style="font-weight: 600; font-size: 0.88rem;">Soru Sayısı</label>
-              <select id="ai-soru-sayisi" class="form-control">
-                <option value="5">5 Soru</option>
-                <option value="10" selected>10 Soru</option>
-                <option value="15">15 Soru</option>
-                <option value="20">20 Soru</option>
-              </select>
+              <label style="font-weight: 600; font-size: 0.88rem;">Soru Sayısı <span style="color:#ef4444;">*</span></label>
+              <input type="number" id="ai-soru-sayisi" class="form-control" min="1" max="50" value="10" placeholder="örn. 10">
             </div>
             <div class="form-group">
               <label style="font-weight: 600; font-size: 0.88rem;">Soru Tipi</label>
@@ -5981,6 +6103,41 @@
         <button class="btn btn-success" id="btn-ai-save-to-pool" onclick="window.saveAIQuestionsToPool()" style="display: none;" disabled>
           <i data-lucide="download" style="width:16px;height:16px;"></i> Havuza İndir ve Kaydet
         </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: ÖNCEKİ SKOR TABLOSU UYARISI -->
+  <div class="modal" id="modal-quiz-score-warning" style="--max-width: 480px; z-index: 1060;">
+    <div class="modal-content" style="max-width: 480px;">
+      <div class="modal-header" style="display: flex; align-items: center; justify-content: space-between; padding: 1.1rem 1.4rem; border-bottom: 1px solid var(--border-color);">
+        <div style="display: flex; align-items: center; gap: 0.6rem;">
+          <div style="width: 36px; height: 36px; border-radius: 8px; background: rgba(245, 158, 11, 0.15); display: flex; align-items: center; justify-content: center; color: #f59e0b;">
+            <i data-lucide="alert-triangle" style="width: 20px; height: 20px;"></i>
+          </div>
+          <h3 style="margin: 0; font-size: 1.05rem; font-weight: 700;">Önceki Skor Tablosu Bulundu</h3>
+        </div>
+        <button class="close-btn" id="btn-close-score-warning-modal" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-secondary);">&times;</button>
+      </div>
+      <div class="modal-body" style="padding: 1.25rem 1.4rem;">
+        <p style="margin: 0 0 0.85rem 0; font-size: 0.92rem; line-height: 1.5; color: var(--text-primary);">
+          Önceki yarışmadan kalan kayıtlı puanlar ve öğrenci sıralaması bulunmaktadır.
+        </p>
+        <div style="background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.25); border-radius: 8px; padding: 0.85rem; font-size: 0.84rem; color: var(--text-secondary); margin-bottom: 1.25rem; line-height: 1.5;">
+          💡 <strong>Skorları Temizle ve Başlat:</strong> Önceki skor tablosunu sıfırlar ve yarışmayı temiz bir puan tablosuyla başlatır.<br><br>
+          📊 <strong>Mevcut Skorları Koru:</strong> Öğrencilerin önceki puanlarının üzerine devam ederek yarışmayı başlatır.
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 0.65rem;">
+          <button type="button" id="btn-score-warning-reset-start" class="btn btn-primary" style="display: flex; align-items: center; justify-content: center; gap: 0.5rem; font-weight: 600; padding: 0.75rem 1rem;">
+            <i data-lucide="rotate-ccw" style="width: 16px; height: 16px;"></i> Skorları Sıfırla ve Başlat
+          </button>
+          <button type="button" id="btn-score-warning-keep-start" class="btn btn-secondary" style="display: flex; align-items: center; justify-content: center; gap: 0.5rem; font-weight: 600; padding: 0.75rem 1rem;">
+            <i data-lucide="play" style="width: 16px; height: 16px;"></i> Mevcut Skorları Koru ve Başlat
+          </button>
+          <button type="button" id="btn-score-warning-cancel" class="btn btn-secondary" style="color: var(--text-muted); border-color: transparent; padding: 0.5rem 1rem; font-size: 0.85rem; background: transparent;">
+            Vazgeç
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -7168,7 +7325,7 @@
               </p>
             </div>
             <div>
-              <a id="btn-download-deb" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/latest/download/sinif-asistani_1.0.21_amd64.deb" target="_blank" class="btn btn-primary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem; background: #ef4444; border-color: #ef4444; font-weight: 600;">
+              <a id="btn-download-deb" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/latest/download/sinif-asistani_1.0.22_amd64.deb" target="_blank" class="btn btn-primary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem; background: #ef4444; border-color: #ef4444; font-weight: 600;">
                 <i data-lucide="download" style="width: 16px; height: 16px;"></i> Pardus (.deb) İndir
               </a>
               <button type="button" onclick="window.openPardusInstallHelpModal()" style="width: 100%; margin-top: 0.5rem; background: rgba(239, 68, 68, 0.12); border: 1px dashed rgba(239, 68, 68, 0.5); color: #f87171; border-radius: var(--radius-sm, 8px); padding: 0.45rem 0.5rem; font-size: 0.78rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.35rem; transition: all 0.2s ease;">
@@ -7195,7 +7352,7 @@
               </p>
             </div>
             <div>
-              <a id="btn-download-exe" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/latest/download/sinif-asistani_1.0.21_x64-setup.exe" target="_blank" class="btn btn-primary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem; background: #0284c7; border-color: #0284c7; font-weight: 600;">
+              <a id="btn-download-exe" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/latest/download/sinif-asistani_1.0.22_x64-setup.exe" target="_blank" class="btn btn-primary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem; background: #0284c7; border-color: #0284c7; font-weight: 600;">
                 <i data-lucide="download" style="width: 16px; height: 16px;"></i> Windows (.exe) İndir
               </a>
               <button type="button" onclick="window.openWinInstallHelpModal()" style="width: 100%; margin-top: 0.5rem; background: rgba(2, 132, 199, 0.12); border: 1px dashed rgba(2, 132, 199, 0.5); color: #38bdf8; border-radius: var(--radius-sm, 8px); padding: 0.45rem 0.5rem; font-size: 0.78rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.35rem; transition: all 0.2s ease;">
@@ -7223,13 +7380,13 @@
             </div>
             <div>
               <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem;">
-                <a id="btn-download-dmg" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/latest/download/sinif-asistani_1.0.21_aarch64.dmg" target="_blank" class="btn btn-primary" style="flex: 1.1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.15rem; background: #8b5cf6; border-color: #8b5cf6; font-weight: 600; padding: 0.5rem 0.35rem; font-size: 0.78rem; text-align: center; text-decoration: none;">
+                <a id="btn-download-dmg" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/latest/download/sinif-asistani_1.0.22_aarch64.dmg" target="_blank" class="btn btn-primary" style="flex: 1.1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.15rem; background: #8b5cf6; border-color: #8b5cf6; font-weight: 600; padding: 0.5rem 0.35rem; font-size: 0.78rem; text-align: center; text-decoration: none;">
                   <span style="display: flex; align-items: center; gap: 0.25rem; font-weight: 700;">
                     <i data-lucide="download" style="width: 14px; height: 14px;"></i> Apple Silicon
                   </span>
                   <span style="font-size: 0.67rem; opacity: 0.92; font-weight: 500;">(M1 / M2 / M3 / M4)</span>
                 </a>
-                <a id="btn-download-dmg-intel" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/latest/download/sinif-asistani_1.0.21_x64.dmg" target="_blank" class="btn btn-secondary" style="flex: 0.9; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.15rem; font-weight: 600; padding: 0.5rem 0.35rem; font-size: 0.78rem; text-align: center; text-decoration: none; border: 1px solid rgba(139, 92, 246, 0.45); color: var(--text-primary);">
+                <a id="btn-download-dmg-intel" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/latest/download/sinif-asistani_1.0.22_x64.dmg" target="_blank" class="btn btn-secondary" style="flex: 0.9; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.15rem; font-weight: 600; padding: 0.5rem 0.35rem; font-size: 0.78rem; text-align: center; text-decoration: none; border: 1px solid rgba(139, 92, 246, 0.45); color: var(--text-primary);">
                   <span style="display: flex; align-items: center; gap: 0.25rem; font-weight: 700;">
                     <i data-lucide="download" style="width: 14px; height: 14px;"></i> Intel Mac
                   </span>
@@ -7259,7 +7416,7 @@
                 <strong>Kurulum gerektirmez!</strong> Özellikle ortaokul modunda sınıf sınıf gezen branş öğretmenleri, uygulamayı Flash diskine (USB) yükleyerek tüm sınıflardaki akıllı tahtalarda doğrudan flash bellek üzerinden tak-çalıştır şeklinde kullanabilir.
               </p>
             </div>
-            <a id="btn-download-appimage" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/latest/download/sinif-asistani_1.0.21_amd64.AppImage" target="_blank" class="btn btn-primary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem; background: #10b981; border-color: #10b981; font-weight: 600;">
+            <a id="btn-download-appimage" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/latest/download/sinif-asistani_1.0.22_amd64.AppImage" target="_blank" class="btn btn-primary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem; background: #10b981; border-color: #10b981; font-weight: 600;">
               <i data-lucide="download" style="width: 16px; height: 16px;"></i> AppImage (USB Uyumlu) İndir
             </a>
           </div>

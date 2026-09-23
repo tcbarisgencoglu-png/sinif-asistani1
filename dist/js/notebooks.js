@@ -45,13 +45,15 @@
   let btnCancelStickyNoteModal = null;
   let stickyNoteText = null;
 
-  // Liste düğmeleri değişkenleri
-  let btnListBullet = null;
-  let btnListNumber = null;
-  let btnListNumberRestart = null;
-  let btnFullscreenListBullet = null;
-  let btnFullscreenListNumber = null;
-  let btnFullscreenListNumberRestart = null;
+  // Madde imi ve numaralandırma değişkenleri
+  let btnListDropdownTrigger = null;
+  let listDropdownMenu = null;
+  let listCustomNumberInput = null;
+  let btnApplyItemNumber = null;
+  let btnFullscreenListDropdownTrigger = null;
+  let fullscreenListDropdownMenu = null;
+  let fullscreenListCustomNumberInput = null;
+  let btnFullscreenApplyItemNumber = null;
 
   // Tablo ekleme değişkenleri
   let btnAddTable = null;
@@ -123,12 +125,14 @@
     btnCancelStickyNoteModal = document.getElementById('btn-cancel-sticky-note-modal');
     stickyNoteText = document.getElementById('sticky-note-text');
 
-    btnListBullet = document.getElementById('btn-list-bullet');
-    btnListNumber = document.getElementById('btn-list-number');
-    btnListNumberRestart = document.getElementById('btn-list-number-restart');
-    btnFullscreenListBullet = document.getElementById('btn-fullscreen-list-bullet');
-    btnFullscreenListNumber = document.getElementById('btn-fullscreen-list-number');
-    btnFullscreenListNumberRestart = document.getElementById('btn-fullscreen-list-number-restart');
+    btnListDropdownTrigger = document.getElementById('btn-list-dropdown-trigger');
+    listDropdownMenu = document.getElementById('list-dropdown-menu');
+    listCustomNumberInput = document.getElementById('list-custom-number-input');
+    btnApplyItemNumber = document.getElementById('btn-apply-item-number');
+    btnFullscreenListDropdownTrigger = document.getElementById('btn-fullscreen-list-dropdown-trigger');
+    fullscreenListDropdownMenu = document.getElementById('fullscreen-list-dropdown-menu');
+    fullscreenListCustomNumberInput = document.getElementById('fullscreen-list-custom-number-input');
+    btnFullscreenApplyItemNumber = document.getElementById('btn-fullscreen-apply-item-number');
 
     btnAddTable = document.getElementById('btn-add-table');
     btnFullscreenAddTable = document.getElementById('btn-fullscreen-add-table');
@@ -146,6 +150,31 @@
     // Güvenlik Kontrolü: Kritik DOM elemanları mevcut değilse kurulumu atla
     if (!notebookGrid || !modalNotebook || !formNotebook) {
       return;
+    }
+
+    function updateSavedRange() {
+      if (window.getSelection) {
+        const sel = window.getSelection();
+        if (sel.rangeCount > 0) {
+          const range = sel.getRangeAt(0);
+          let container = range.commonAncestorContainer;
+          if (container.nodeType === 3) {
+            container = container.parentNode;
+          }
+          let isInside = false;
+          let node = container;
+          while (node) {
+            if (node === notebookTextarea) {
+              isInside = true;
+              break;
+            }
+            node = node.parentNode;
+          }
+          if (isInside) {
+            savedRange = range.cloneRange();
+          }
+        }
+      }
     }
 
     // Olay Dinleyicileri
@@ -438,69 +467,207 @@
       }
     };
 
-    // Liste Olay Dinleyicileri
-    const handleBulletListToggle = () => {
-      if (notebookTextarea) {
-        notebookTextarea.focus();
-        document.execCommand('insertUnorderedList', false, null);
-        syncOrderedListContinuity();
-        triggerAutoSave();
-      }
-    };
-    const handleNumberListToggle = () => {
-      if (notebookTextarea) {
-        notebookTextarea.focus();
-        document.execCommand('insertOrderedList', false, null);
-        syncOrderedListContinuity();
-        triggerAutoSave();
-      }
-    };
-
-    const handleNumberListRestartToggle = () => {
+    // Madde İmi ve Numaralandırma Fonksiyonları
+    const insertNotebookListItem = (type, val) => {
       if (!notebookTextarea) return;
       notebookTextarea.focus();
 
       const sel = window.getSelection();
-      let targetOl = null;
-      if (sel && sel.rangeCount > 0) {
-        let node = sel.getRangeAt(0).startContainer;
-        if (node.nodeType === Node.TEXT_NODE) node = node.parentElement;
-        targetOl = node ? node.closest('ol') : null;
+      if (savedRange && sel) {
+        try {
+          sel.removeAllRanges();
+          sel.addRange(savedRange);
+        } catch (e) {}
       }
 
-      if (!targetOl) {
-        const allOls = notebookTextarea.querySelectorAll('ol');
-        if (allOls.length > 0) {
-          targetOl = allOls[allOls.length - 1];
+      let range = (sel && sel.rangeCount > 0) ? sel.getRangeAt(0) : null;
+      let currentBlock = null;
+
+      if (range) {
+        let node = range.commonAncestorContainer;
+        if (node.nodeType === Node.TEXT_NODE) node = node.parentNode;
+        while (node && node !== notebookTextarea) {
+          if (node.parentNode === notebookTextarea) {
+            currentBlock = node;
+            break;
+          }
+          node = node.parentNode;
         }
       }
 
-      if (!targetOl) {
-        if (window.showToast) window.showToast('İşlem yapmak için bir numaralı liste seçin veya içine tıklayın.', 'info');
-        return;
-      }
+      const isBullet = (type === 'bullet');
+      const lineClass = isBullet ? 'notebook-bullet-line' : 'notebook-numbered-line';
+      const formattedMarker = (val || (isBullet ? '•' : '1.')).trim();
+      const indentStyle = isBullet ? 'padding-left: 32px !important;' : 'padding-left: 0px !important;';
 
-      const currentMode = targetOl.getAttribute('data-list-mode');
-      const isCurrentlyRestarted = currentMode === 'restart' || (!currentMode && !targetOl.hasAttribute('start'));
+      const isBlockEmpty = currentBlock && (
+        currentBlock.textContent.trim() === '' &&
+        (currentBlock.innerHTML === '<br>' || currentBlock.innerHTML === '' || currentBlock.querySelector('br'))
+      );
 
-      if (isCurrentlyRestarted) {
-        targetOl.setAttribute('data-list-mode', 'continue');
-        if (window.showToast) window.showToast('Numaralandırma önceki listeden devam ettirildi.', 'success');
+      let targetLine = null;
+      if (currentBlock && isBlockEmpty) {
+        currentBlock.className = lineClass;
+        currentBlock.setAttribute('data-list-type', type);
+        currentBlock.setAttribute('data-marker', formattedMarker);
+        currentBlock.style.cssText = `${indentStyle} min-height: 44px; line-height: 44px; margin: 0;`;
+        currentBlock.innerHTML = `<strong class="notebook-item-marker">${escapeHTML(formattedMarker)}</strong>&nbsp;`;
+        targetLine = currentBlock;
       } else {
-        targetOl.setAttribute('data-list-mode', 'restart');
-        if (window.showToast) window.showToast('Numaralandırma 1\'den başlatıldı.', 'success');
+        const newLine = document.createElement('div');
+        newLine.className = lineClass;
+        newLine.setAttribute('data-list-type', type);
+        newLine.setAttribute('data-marker', formattedMarker);
+        newLine.style.cssText = `${indentStyle} min-height: 44px; line-height: 44px; margin: 0;`;
+        newLine.innerHTML = `<strong class="notebook-item-marker">${escapeHTML(formattedMarker)}</strong>&nbsp;`;
+
+        if (currentBlock && currentBlock.parentNode === notebookTextarea) {
+          if (currentBlock.nextSibling) {
+            notebookTextarea.insertBefore(newLine, currentBlock.nextSibling);
+          } else {
+            notebookTextarea.appendChild(newLine);
+          }
+        } else {
+          notebookTextarea.appendChild(newLine);
+        }
+        targetLine = newLine;
       }
 
-      syncOrderedListContinuity();
+      if (targetLine && sel) {
+        const newRange = document.createRange();
+        newRange.selectNodeContents(targetLine);
+        newRange.collapse(false);
+        sel.removeAllRanges();
+        sel.addRange(newRange);
+        savedRange = newRange.cloneRange();
+      }
+
+      if (listDropdownMenu) listDropdownMenu.style.display = 'none';
+      if (fullscreenListDropdownMenu) fullscreenListDropdownMenu.style.display = 'none';
+
       triggerAutoSave();
     };
 
-    if (btnListBullet) btnListBullet.addEventListener('click', handleBulletListToggle);
-    if (btnFullscreenListBullet) btnFullscreenListBullet.addEventListener('click', handleBulletListToggle);
-    if (btnListNumber) btnListNumber.addEventListener('click', handleNumberListToggle);
-    if (btnFullscreenListNumber) btnFullscreenListNumber.addEventListener('click', handleNumberListToggle);
-    if (btnListNumberRestart) btnListNumberRestart.addEventListener('click', handleNumberListRestartToggle);
-    if (btnFullscreenListNumberRestart) btnFullscreenListNumberRestart.addEventListener('click', handleNumberListRestartToggle);
+    const applyCustomNumber = (inputEl) => {
+      const val = (inputEl && inputEl.value.trim()) ? inputEl.value.trim() : '1.';
+      insertNotebookListItem('number', val);
+
+      // Otomatik sonraki madde numarasını hesapla ve kutucuklara yaz
+      const numMatch = val.match(/^(\d+)([\.\)\-:]?)$/);
+      const alphaMatch = val.match(/^([A-Za-z])([\.\)\-:]?)$/);
+      let nextVal = '';
+      if (numMatch) {
+        nextVal = `${parseInt(numMatch[1], 10) + 1}${numMatch[2] || '.'}`;
+      } else if (alphaMatch) {
+        nextVal = `${String.fromCharCode(alphaMatch[1].charCodeAt(0) + 1)}${alphaMatch[2] || '.'}`;
+      }
+      if (nextVal) {
+        if (listCustomNumberInput) listCustomNumberInput.value = nextVal;
+        if (fullscreenListCustomNumberInput) fullscreenListCustomNumberInput.value = nextVal;
+      }
+    };
+
+    if (btnListDropdownTrigger && listDropdownMenu) {
+      btnListDropdownTrigger.addEventListener('mousedown', () => {
+        updateSavedRange();
+      });
+      btnListDropdownTrigger.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isShown = listDropdownMenu.style.display === 'block';
+        if (listDropdownMenu) listDropdownMenu.style.display = 'none';
+        if (fullscreenListDropdownMenu) fullscreenListDropdownMenu.style.display = 'none';
+        if (mathDropdownMenu) mathDropdownMenu.style.display = 'none';
+        if (fullscreenMathDropdownMenu) fullscreenMathDropdownMenu.style.display = 'none';
+
+        if (!isShown) {
+          listDropdownMenu.style.display = 'block';
+          setTimeout(() => {
+            if (listCustomNumberInput) {
+              listCustomNumberInput.focus();
+              listCustomNumberInput.select();
+            }
+          }, 50);
+        }
+      });
+    }
+
+    if (btnFullscreenListDropdownTrigger && fullscreenListDropdownMenu) {
+      btnFullscreenListDropdownTrigger.addEventListener('mousedown', () => {
+        updateSavedRange();
+      });
+      btnFullscreenListDropdownTrigger.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isShown = fullscreenListDropdownMenu.style.display === 'block';
+        if (listDropdownMenu) listDropdownMenu.style.display = 'none';
+        if (fullscreenListDropdownMenu) fullscreenListDropdownMenu.style.display = 'none';
+        if (mathDropdownMenu) mathDropdownMenu.style.display = 'none';
+        if (fullscreenMathDropdownMenu) fullscreenMathDropdownMenu.style.display = 'none';
+
+        if (!isShown) {
+          fullscreenListDropdownMenu.style.display = 'block';
+          setTimeout(() => {
+            if (fullscreenListCustomNumberInput) {
+              fullscreenListCustomNumberInput.focus();
+              fullscreenListCustomNumberInput.select();
+            }
+          }, 50);
+        }
+      });
+    }
+
+    if (btnApplyItemNumber) {
+      btnApplyItemNumber.addEventListener('click', (e) => {
+        e.preventDefault();
+        applyCustomNumber(listCustomNumberInput);
+      });
+    }
+    if (btnFullscreenApplyItemNumber) {
+      btnFullscreenApplyItemNumber.addEventListener('click', (e) => {
+        e.preventDefault();
+        applyCustomNumber(fullscreenListCustomNumberInput);
+      });
+    }
+
+    if (listCustomNumberInput) {
+      listCustomNumberInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          applyCustomNumber(listCustomNumberInput);
+        }
+      });
+    }
+    if (fullscreenListCustomNumberInput) {
+      fullscreenListCustomNumberInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          applyCustomNumber(fullscreenListCustomNumberInput);
+        }
+      });
+    }
+
+    // Hızlı madde numarası seçimi butonları (Olay Delegasyonu)
+    document.addEventListener('click', (e) => {
+      const quickNumBtn = e.target.closest('.btn-list-quick-num');
+      if (quickNumBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        const val = quickNumBtn.getAttribute('data-val') || '1.';
+        if (listCustomNumberInput) listCustomNumberInput.value = val;
+        if (fullscreenListCustomNumberInput) fullscreenListCustomNumberInput.value = val;
+        insertNotebookListItem('number', val);
+      }
+    });
+
+    // Madde imi seçimi butonları (Olay Delegasyonu)
+    document.addEventListener('click', (e) => {
+      const bulletBtn = e.target.closest('.btn-list-bullet-option');
+      if (bulletBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        const bulletSymbol = bulletBtn.getAttribute('data-bullet') || '•';
+        insertNotebookListItem('bullet', bulletSymbol);
+      }
+    });
 
     // Defter Liste Sağ Tık Menüsü (Context Menu)
     if (notebookTextarea) {
@@ -670,33 +837,115 @@
           }
           syncOrderedListContinuity();
           triggerAutoSave();
+          return;
         }
-      });
 
-      const updateSavedRange = () => {
-        if (window.getSelection) {
+        // Madde imi ve madde numarası satırlarında Enter tuşu davranışı
+        if (e.key === 'Enter' && !e.shiftKey) {
           const sel = window.getSelection();
-          if (sel.rangeCount > 0) {
-            const range = sel.getRangeAt(0);
-            let container = range.commonAncestorContainer;
-            if (container.nodeType === 3) {
-              container = container.parentNode;
-            }
-            let isInside = false;
-            let node = container;
-            while (node) {
-              if (node === notebookTextarea) {
-                isInside = true;
-                break;
+          if (sel && sel.rangeCount > 0) {
+            let node = sel.getRangeAt(0).startContainer;
+            if (node.nodeType === Node.TEXT_NODE) node = node.parentNode;
+            const listLine = node ? node.closest('.notebook-bullet-line, .notebook-numbered-line') : null;
+            if (listLine) {
+              e.preventDefault();
+
+              const markerEl = listLine.querySelector('.notebook-item-marker');
+              const markerText = markerEl ? markerEl.textContent.trim() : (listLine.getAttribute('data-marker') || '');
+              const textWithoutMarker = listLine.textContent.replace(markerText, '').replace(/[\u200B-\u200D\uFEFF\s\u00A0]/g, '').trim();
+
+              // Eğer satırda sadece madde imi/numarası varsa ve metin yazılmamışsa liste modundan çık
+              if (!textWithoutMarker) {
+                listLine.className = '';
+                listLine.removeAttribute('data-list-type');
+                listLine.removeAttribute('data-marker');
+                listLine.style.cssText = 'min-height: 44px; line-height: 44px; padding-left: 0px; margin: 0;';
+                listLine.innerHTML = '<br>';
+
+                const newRange = document.createRange();
+                newRange.setStart(listLine, 0);
+                newRange.collapse(true);
+                sel.removeAllRanges();
+                sel.addRange(newRange);
+                savedRange = newRange.cloneRange();
+                triggerAutoSave();
+                return;
               }
-              node = node.parentNode;
-            }
-            if (isInside) {
-              savedRange = range.cloneRange();
+
+              // Yeni liste satırı oluştur (Madde imi veya artırılmış madde numarası)
+              const isBullet = listLine.classList.contains('notebook-bullet-line');
+              let nextMarker = markerText;
+              if (!isBullet) {
+                const numMatch = markerText.match(/^(\d+)([\.\)\-:]?)$/);
+                const alphaMatch = markerText.match(/^([A-Za-z])([\.\)\-:]?)$/);
+                if (numMatch) {
+                  const nextNum = parseInt(numMatch[1], 10) + 1;
+                  nextMarker = `${nextNum}${numMatch[2] || '.'}`;
+                } else if (alphaMatch) {
+                  const nextChar = String.fromCharCode(alphaMatch[1].charCodeAt(0) + 1);
+                  nextMarker = `${nextChar}${alphaMatch[2] || '.'}`;
+                }
+              }
+
+              const newLine = document.createElement('div');
+              newLine.className = isBullet ? 'notebook-bullet-line' : 'notebook-numbered-line';
+              newLine.setAttribute('data-list-type', isBullet ? 'bullet' : 'number');
+              newLine.setAttribute('data-marker', nextMarker);
+              const indentStyle = isBullet ? 'padding-left: 32px !important;' : 'padding-left: 0px !important;';
+              newLine.style.cssText = `${indentStyle} min-height: 44px; line-height: 44px; margin: 0;`;
+              newLine.innerHTML = `<strong class="notebook-item-marker">${escapeHTML(nextMarker)}</strong>&nbsp;`;
+
+              if (listLine.nextSibling) {
+                listLine.parentNode.insertBefore(newLine, listLine.nextSibling);
+              } else {
+                listLine.parentNode.appendChild(newLine);
+              }
+
+              const newRange = document.createRange();
+              newRange.selectNodeContents(newLine);
+              newRange.collapse(false);
+              sel.removeAllRanges();
+              sel.addRange(newRange);
+              savedRange = newRange.cloneRange();
+              triggerAutoSave();
+              return;
             }
           }
         }
-      };
+
+        // Boş liste satırında Backspace ile normal satıra dönme
+        if (e.key === 'Backspace') {
+          const sel = window.getSelection();
+          if (sel && sel.rangeCount > 0) {
+            let node = sel.getRangeAt(0).startContainer;
+            if (node.nodeType === Node.TEXT_NODE) node = node.parentNode;
+            const listLine = node ? node.closest('.notebook-bullet-line, .notebook-numbered-line') : null;
+            if (listLine) {
+              const markerEl = listLine.querySelector('.notebook-item-marker');
+              const markerText = markerEl ? markerEl.textContent.trim() : (listLine.getAttribute('data-marker') || '');
+              const textWithoutMarker = listLine.textContent.replace(markerText, '').replace(/[\u200B-\u200D\uFEFF\s\u00A0]/g, '').trim();
+              if (!textWithoutMarker) {
+                e.preventDefault();
+                listLine.className = '';
+                listLine.removeAttribute('data-list-type');
+                listLine.removeAttribute('data-marker');
+                listLine.style.cssText = 'min-height: 44px; line-height: 44px; padding-left: 0px; margin: 0;';
+                listLine.innerHTML = '<br>';
+
+                const newRange = document.createRange();
+                newRange.setStart(listLine, 0);
+                newRange.collapse(true);
+                sel.removeAllRanges();
+                sel.addRange(newRange);
+                savedRange = newRange.cloneRange();
+                triggerAutoSave();
+                return;
+              }
+            }
+          }
+        }
+      });
+
       notebookTextarea.addEventListener('keyup', updateSavedRange);
       notebookTextarea.addEventListener('mouseup', updateSavedRange);
       notebookTextarea.addEventListener('click', updateSavedRange);
@@ -732,6 +981,56 @@
           }
         }
       });
+
+      // Poster sayfasının boş alanlarına tıklandığında imleci doğrudan tıklanan satıra konumlandırma
+      notebookTextarea.addEventListener('click', (e) => {
+        if (e.target === notebookTextarea) {
+          const rect = notebookTextarea.getBoundingClientRect();
+          const clickY = e.clientY - rect.top + notebookTextarea.scrollTop;
+          
+          const lastChild = notebookTextarea.lastElementChild;
+          let lastBottomY = 20;
+          if (lastChild) {
+            const lastRect = lastChild.getBoundingClientRect();
+            lastBottomY = (lastRect.bottom - rect.top) + notebookTextarea.scrollTop;
+          }
+          
+          if (clickY > lastBottomY + 10) {
+            const linesNeeded = Math.max(1, Math.floor((clickY - lastBottomY) / 44));
+            let targetDiv = null;
+            for (let i = 0; i < linesNeeded; i++) {
+              const div = document.createElement('div');
+              div.innerHTML = '<br>';
+              notebookTextarea.appendChild(div);
+              targetDiv = div;
+            }
+            
+            if (targetDiv) {
+              const sel = window.getSelection();
+              const range = document.createRange();
+              range.setStart(targetDiv, 0);
+              range.collapse(true);
+              sel.removeAllRanges();
+              sel.addRange(range);
+              updateSavedRange();
+              triggerAutoSave();
+            }
+          }
+        }
+      });
+
+      // Poster sayfasının dinamik olarak aşağı doğru genişletilmesi
+      const checkAndExpandPosterPage = () => {
+        if (!notebookTextarea) return;
+        const currentPosterHeight = parseInt(getComputedStyle(notebookTextarea).getPropertyValue('--notebook-poster-height'), 10) || 3520;
+        if (notebookTextarea.scrollHeight > currentPosterHeight - 880) {
+          const newHeight = notebookTextarea.scrollHeight + 1760;
+          notebookTextarea.style.setProperty('--notebook-poster-height', newHeight + 'px');
+        }
+      };
+
+      notebookTextarea.addEventListener('input', checkAndExpandPosterPage);
+      notebookTextarea.addEventListener('scroll', checkAndExpandPosterPage);
     }
     if (notebookTitleInput) {
       notebookTitleInput.addEventListener('input', () => {
@@ -848,6 +1147,12 @@
       }
       if (fullscreenMathDropdownMenu && btnFullscreenMathTrigger && !btnFullscreenMathTrigger.contains(e.target) && !fullscreenMathDropdownMenu.contains(e.target)) {
         fullscreenMathDropdownMenu.style.display = 'none';
+      }
+      if (listDropdownMenu && btnListDropdownTrigger && !btnListDropdownTrigger.contains(e.target) && !listDropdownMenu.contains(e.target)) {
+        listDropdownMenu.style.display = 'none';
+      }
+      if (fullscreenListDropdownMenu && btnFullscreenListDropdownTrigger && !btnFullscreenListDropdownTrigger.contains(e.target) && !fullscreenListDropdownMenu.contains(e.target)) {
+        fullscreenListDropdownMenu.style.display = 'none';
       }
     });
 

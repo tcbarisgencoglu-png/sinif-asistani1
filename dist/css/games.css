@@ -1559,3 +1559,108 @@
   align-items: center;
   justify-content: center;
 }
+
+/* ─── Çoklu Kazanım ve Konu Harmanlama Seçim Listesi ─────────────────────── */
+.kazanim-checklist {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.kazanim-check-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  padding: 0.45rem 0.65rem;
+  border-radius: var(--radius-sm, 6px);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+  border: 1px solid transparent;
+  background: var(--bg-primary, #ffffff);
+}
+
+.kazanim-check-item:hover {
+  background: rgba(59, 130, 246, 0.05);
+  border-color: rgba(59, 130, 246, 0.2);
+}
+
+.kazanim-check-item.selected {
+  background: rgba(59, 130, 246, 0.08);
+  border-color: rgba(59, 130, 246, 0.35);
+}
+
+.kazanim-check-item input[type="checkbox"] {
+  margin-top: 3px;
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: var(--primary, #3b82f6);
+  flex-shrink: 0;
+}
+
+.kazanim-check-content {
+  flex: 1;
+  font-size: 0.84rem;
+  line-height: 1.35;
+  color: var(--text-primary);
+}
+
+.kazanim-check-meta {
+  display: flex;
+  gap: 0.35rem;
+  margin-top: 3px;
+  flex-wrap: wrap;
+}
+
+.kazanim-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  font-size: 0.72rem;
+  padding: 0.1rem 0.45rem;
+  border-radius: 4px;
+  background: var(--bg-secondary, rgba(0, 0, 0, 0.04));
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
+}
+
+.kazanim-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.75rem;
+  padding: 0.2rem 0.55rem;
+  border-radius: 14px;
+  background: rgba(59, 130, 246, 0.12);
+  color: var(--primary, #3b82f6);
+  border: 1px solid rgba(59, 130, 246, 0.25);
+  max-width: 320px;
+}
+
+.kazanim-chip-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.kazanim-chip-remove {
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.65;
+  font-size: 0.95rem;
+  line-height: 1;
+  width: 14px;
+  height: 14px;
+}
+
+.kazanim-chip-remove:hover {
+  opacity: 1;
+  color: #ef4444;
+}

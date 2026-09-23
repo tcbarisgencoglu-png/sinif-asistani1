@@ -421,17 +421,26 @@
   border: none;
   outline: none;
   resize: none;
-  padding: 18px 20px 36px 65px !important;
+  padding: 20px 20px 44px 65px !important;
   font-family: 'Comic Sans MS', 'Chalkboard SE', 'Comic Neue', sans-serif;
-  font-size: 22pt !important;
-  line-height: 36px !important;
+  font-size: 27pt !important;
+  line-height: 44px !important;
   color: #1e293b;
   box-sizing: border-box;
   background-color: #ffffff;
   overflow-y: auto;
-  min-height: 100%;
+  min-height: 0;
   -webkit-user-select: text;
   user-select: text;
+  position: relative;
+}
+
+/* Poster sayfası gibi aşağıya doğru genişleyen ferah defter alanı */
+.notebook-editor-textarea::after {
+  content: '';
+  display: block;
+  height: var(--notebook-poster-height, 3520px);
+  pointer-events: none;
 }
 
 /* Editör içindeki HTML elemanlarının satırlara hizalanma sıfırlaması */
@@ -439,10 +448,10 @@
 .notebook-editor-textarea p {
   margin: 0;
   padding: 0;
-  line-height: inherit;
+  line-height: 44px !important;
   font-family: inherit;
   font-size: inherit;
-  min-height: 36px;
+  min-height: 44px;
 }
 
 /* Çizgili Defter Stili - WebKitGTK / Pardus Akıllı Tahta & Tüm Tarayıcılar */
@@ -453,10 +462,11 @@
     /* Sol Dikey Kırmızı Kenar Çizgisi */
     linear-gradient(to right, transparent 50px, #ef4444 50px, #ef4444 52px, transparent 52px),
     /* Yatay Açık Mavi Satır Çizgileri */
-    repeating-linear-gradient(to bottom, transparent 0px, transparent 34px, #93c5fd 34px, #93c5fd 36px);
-  background-size: 100% 100%, 100% 36px;
-  background-position: 0 0, 0 9px;
+    repeating-linear-gradient(to bottom, transparent 0px, transparent 42px, #93c5fd 42px, #93c5fd 44px);
+  background-size: 100% 100%, 100% 44px;
+  background-position: 0 0, 0 14px;
   background-repeat: no-repeat, repeat;
+  background-attachment: local, local !important;
 }
 
 /* Kareli Defter Stili - WebKitGTK / Pardus Akıllı Tahta & Tüm Tarayıcılar */
@@ -467,12 +477,13 @@
     /* Sol Dikey Kırmızı Kenar Çizgisi */
     linear-gradient(to right, transparent 50px, #ef4444 50px, #ef4444 52px, transparent 52px),
     /* Yatay Kare Izgara Çizgileri */
-    repeating-linear-gradient(to bottom, transparent 0px, transparent 34px, #cbd5e1 34px, #cbd5e1 36px),
+    repeating-linear-gradient(to bottom, transparent 0px, transparent 42px, #cbd5e1 42px, #cbd5e1 44px),
     /* Dikey Kare Izgara Çizgileri */
-    repeating-linear-gradient(to right, transparent 0px, transparent 34px, #cbd5e1 34px, #cbd5e1 36px);
-  background-size: 100% 100%, 100% 36px, 36px 100%;
-  background-position: 0 0, 0 9px, 65px 0;
+    repeating-linear-gradient(to right, transparent 0px, transparent 42px, #cbd5e1 42px, #cbd5e1 44px);
+  background-size: 100% 100%, 100% 44px, 44px 100%;
+  background-position: 0 0, 0 14px, 65px 0;
   background-repeat: no-repeat, repeat-y, repeat-x;
+  background-attachment: local, local, local !important;
 }
 
 /* Modal Defter Tipi Seçenekleri */
@@ -654,6 +665,106 @@
   color: var(--primary) !important;
 }
 
+/* Defter Üst Menü ve Açılır Menü Stacking Context / z-index Düzeltmeleri */
+#notebook-detail-view .page-header {
+  position: relative !important;
+  z-index: 50 !important;
+}
+
+.notebook-editor-fullscreen-header {
+  position: relative !important;
+  z-index: 100 !important;
+}
+
+.notebook-actions,
+.fullscreen-actions {
+  position: relative;
+  z-index: 60;
+}
+
+.notebook-actions > div,
+.fullscreen-actions > div {
+  position: relative;
+}
+
+/* Madde İmleri ve Numaralandırma Menüsü Stilleri */
+.list-dropdown-menu,
+.math-dropdown-menu {
+  z-index: 1050 !important;
+}
+
+.list-dropdown-menu {
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2), 0 8px 10px -6px rgba(0, 0, 0, 0.1) !important;
+  animation: fadeInDropdown 0.15s ease-out;
+}
+
+@keyframes fadeInDropdown {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.btn-list-quick-num {
+  border: 1px solid var(--border-color, #cbd5e1);
+  background: var(--bg-primary, #f8fafc);
+  color: var(--text-primary, #1e293b);
+  border-radius: 4px;
+  padding: 3px 8px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-list-quick-num:hover {
+  background: var(--primary, #3b82f6);
+  color: #ffffff;
+  border-color: var(--primary, #3b82f6);
+}
+
+.btn-list-bullet-option {
+  border: 1px solid var(--border-color, #cbd5e1);
+  background: var(--bg-primary, #f8fafc);
+  color: var(--text-primary, #1e293b);
+  border-radius: 6px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.15rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-list-bullet-option:hover {
+  background: var(--primary, #3b82f6);
+  color: #ffffff;
+  border-color: var(--primary, #3b82f6);
+  transform: scale(1.05);
+}
+
+/* Defter Madde İmi ve Madde Numarası Satır Stilleri */
+.notebook-editor-textarea .notebook-numbered-line {
+  padding-left: 0px !important;
+  margin: 0;
+  min-height: 44px;
+  line-height: inherit;
+}
+
+.notebook-editor-textarea .notebook-bullet-line {
+  padding-left: 32px !important; /* Madde imi satıra madde numarasından biraz daha içeri girerek eklenir */
+  margin: 0;
+  min-height: 44px;
+  line-height: inherit;
+}
+
+.notebook-editor-textarea .notebook-item-marker {
+  font-weight: bold;
+  display: inline-block;
+  margin-right: 6px;
+  line-height: inherit;
+}
+
 /* Yapışkan Not Seçenekleri */
 .sticky-note-color-options label input[type="radio"]:checked + .color-dot {
   box-shadow: 0 0 0 2px var(--bg-primary), 0 0 0 4px var(--primary) !important;
@@ -676,42 +787,52 @@
 }
 
 .sticky-note-block {
-  display: inline-block;
+  display: block !important;
   width: 100%;
-  vertical-align: top;
-  margin: 18px 0 !important;
-  padding: 18px 20px 18px 50px !important;
+  box-sizing: border-box !important;
+  margin: 0 !important;
+  padding: 22px 36px 22px 54px !important;
+  min-height: 88px !important; /* Tam 2 satır: 2 x 44px */
   border-radius: 4px;
   position: relative;
   font-family: inherit;
-  font-size: 18pt !important; /* Slightly smaller than main editor's 22pt */
-  line-height: 36px !important;
+  font-size: 21pt !important; /* Ana editörün 27pt puntosuna oranla dengeli */
+  line-height: 44px !important;
   box-shadow: var(--shadow-sm);
-  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+  transition: box-shadow var(--transition-fast);
 }
 
 .sticky-note-block:hover {
-  transform: translateY(-2px);
   box-shadow: var(--shadow-md) !important;
 }
 
 .sticky-note-icon-container {
   position: absolute;
   left: 18px;
-  top: 26px; /* Centered with the first line height (36px) + 18px padding */
+  top: 32px; /* 44px ilk satır yüksekliğinin tam dikey orta noktası (22px + 10px) */
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 20px;
-  width: 20px;
+  height: 24px;
+  width: 24px;
 }
 
 .sticky-note-content {
   outline: none;
-  min-height: 36px;
+  min-height: 44px;
   width: 100%;
-  line-height: 36px !important;
+  line-height: 44px !important;
   font-family: inherit;
+  font-size: inherit;
+  word-break: break-word;
+}
+
+.sticky-note-content div,
+.sticky-note-content p {
+  margin: 0 !important;
+  padding: 0 !important;
+  line-height: 44px !important;
+  min-height: 44px !important;
 }
 
 /* Yapışkan Not Renk Temaları */
@@ -773,10 +894,10 @@
 .notebook-editor-textarea li {
   margin: 0;
   padding: 0;
-  line-height: 36px !important;
+  line-height: 44px !important;
   font-family: inherit;
   font-size: inherit;
-  min-height: 36px;
+  min-height: 44px;
 }
 
 /* Görsel Sildiğimiz Butonlu Wrapper */
@@ -866,7 +987,7 @@
 /* Tablo Elemanı ve Satır Çizgisi Uyumu */
 .notebook-table-wrapper {
   position: relative;
-  margin: 0 !important; /* Dikey 36px ızgarasıyla tam hizalanmak için dış boşlukları sıfırladık */
+  margin: 0 !important; /* Dikey 44px ızgarasıyla tam hizalanmak için dış boşlukları sıfırladık */
   padding: 0 !important;
   display: block;
 }
@@ -878,8 +999,8 @@
   border: none !important;
   margin: 0 !important;
   font-family: inherit;
-  font-size: 18pt !important;
-  line-height: 36px !important;
+  font-size: 21pt !important;
+  line-height: 44px !important;
   box-sizing: border-box;
   box-shadow: inset 1px 1px 0 var(--border-color); /* Tablo üst ve sol sınır çizgileri */
   background-color: #ffffff;
@@ -890,9 +1011,9 @@
   border: none !important;
   box-shadow: inset -1px -1px 0 var(--border-color); /* Hücre alt ve sağ sınır çizgileri */
   padding: 0 12px;
-  height: 36px;
-  min-height: 36px;
-  line-height: 36px !important;
+  height: 44px;
+  min-height: 44px;
+  line-height: 44px !important;
   text-align: left;
   vertical-align: middle;
   box-sizing: border-box;
@@ -978,6 +1099,16 @@
   }
 
   body.print-notebook .notebook-print-content {
+    line-height: 1.6 !important;
+  }
+
+  body.print-notebook .notebook-numbered-line {
+    padding-left: 0px !important;
+    line-height: 1.6 !important;
+  }
+
+  body.print-notebook .notebook-bullet-line {
+    padding-left: 24px !important;
     line-height: 1.6 !important;
   }
 

@@ -1014,6 +1014,9 @@
     // Set Drag and Drop for Boşluk Doldurma
     setupDragAndDrop();
 
+    // Skor uyarısı modal olay dinleyicilerini bağla
+    initScoreWarningModalEvents();
+
     // Export functions globally to be called from dynamically loaded rows
     window.editQuestion = editQuestion;
     window.deleteQuestion = deleteQuestion;
@@ -1150,6 +1153,133 @@
     renderQuestionLibrary();
   };
 
+  // ─── Skor Uyarısı ve Yarışma Başlatma Mantığı ──────────────────────────────
+
+  let _pendingScoreWarningGameType = "quiz";
+
+  function hasPreviousQuizScores() {
+    return studentScores && typeof studentScores === "object" && Object.values(studentScores).some(
+      s => s && ((s.score && s.score > 0) || (s.correctCount && s.correctCount > 0) || (s.incorrectCount && s.incorrectCount > 0) || (s.turnCount && s.turnCount > 0))
+    );
+  }
+
+  function hasPreviousMultScores() {
+    return multScores && typeof multScores === "object" && Object.values(multScores).some(
+      s => s && ((s.score && s.score > 0) || (s.correctCount && s.correctCount > 0) || (s.incorrectCount && s.incorrectCount > 0) || (s.turnCount && s.turnCount > 0))
+    );
+  }
+
+  function openScoreWarningModal(gameType) {
+    _pendingScoreWarningGameType = gameType;
+    const modal = document.getElementById("modal-quiz-score-warning");
+    if (modal) {
+      modal.classList.add("active");
+      if (window.safeCreateIcons) window.safeCreateIcons();
+    } else {
+      // Fallback: browser confirm
+      const shouldReset = confirm(
+        "Önceki yarışmadan kalan bir skor tablosu bulunmaktadır.\n\nSkor tablosunu sıfırlayarak başlamak ister misiniz?\n\n• [Tamam]: Skorları Sıfırla ve Başlat\n• [İptal]: Önceki Skorları Koru ve Başlat"
+      );
+      if (shouldReset) {
+        if (gameType === "quiz") {
+          resetQuizScoresAction();
+        } else {
+          resetMultScoresAction();
+        }
+      }
+      if (gameType === "quiz") {
+        executeStartQuizGame();
+      } else {
+        executeStartMultGame();
+      }
+    }
+  }
+
+  function closeScoreWarningModal() {
+    const modal = document.getElementById("modal-quiz-score-warning");
+    if (modal) {
+      modal.classList.remove("active");
+    }
+  }
+
+  function resetQuizScoresAction() {
+    for (let name in studentScores) {
+      studentScores[name] = { score: 0, correctCount: 0, incorrectCount: 0, totalTime: 0, turnCount: 0 };
+    }
+    totalScore = 0;
+    stats = { correct: 0, incorrect: 0, skipped: 0 };
+    const currentList = quizSelectedStudentNames;
+    unselectedStudents = [...currentList];
+    saveUnselectedStudents();
+    saveStudentScores();
+    saveGlobalProgress();
+    renderLeaderboard();
+    renderTopFive();
+    if (toastCallback) toastCallback("Önceki skor tablosu temizlendi.", "info");
+  }
+
+  function resetMultScoresAction() {
+    for (let name in multScores) {
+      multScores[name] = { score: 0, correctCount: 0, incorrectCount: 0, totalTime: 0, turnCount: 0 };
+    }
+    multStats = { correct: 0, incorrect: 0, skipped: 0 };
+    const currentList = multSelectedStudentNames;
+    multUnselectedStudents = [...currentList];
+    saveMultUnselectedStudents();
+    saveMultStudentScores();
+    saveMultGlobalProgress();
+    renderMultLeaderboard();
+    renderMultTopFive();
+    if (toastCallback) toastCallback("Önceki skor tablosu temizlendi.", "info");
+  }
+
+  let _scoreWarningEventsBound = false;
+  function initScoreWarningModalEvents() {
+    if (_scoreWarningEventsBound) return;
+    _scoreWarningEventsBound = true;
+
+    const btnResetStart = document.getElementById("btn-score-warning-reset-start");
+    const btnKeepStart = document.getElementById("btn-score-warning-keep-start");
+    const btnCancel = document.getElementById("btn-score-warning-cancel");
+    const btnClose = document.getElementById("btn-close-score-warning-modal");
+
+    if (btnResetStart) {
+      btnResetStart.addEventListener("click", () => {
+        closeScoreWarningModal();
+        if (_pendingScoreWarningGameType === "quiz") {
+          resetQuizScoresAction();
+          executeStartQuizGame();
+        } else {
+          resetMultScoresAction();
+          executeStartMultGame();
+        }
+      });
+    }
+
+    if (btnKeepStart) {
+      btnKeepStart.addEventListener("click", () => {
+        closeScoreWarningModal();
+        if (_pendingScoreWarningGameType === "quiz") {
+          executeStartQuizGame();
+        } else {
+          executeStartMultGame();
+        }
+      });
+    }
+
+    if (btnCancel) {
+      btnCancel.addEventListener("click", () => {
+        closeScoreWarningModal();
+      });
+    }
+
+    if (btnClose) {
+      btnClose.addEventListener("click", () => {
+        closeScoreWarningModal();
+      });
+    }
+  }
+
   function startQuizGame() {
     const currentList = quizSelectedStudentNames;
     if (currentList.length === 0) {
@@ -1173,6 +1303,16 @@
       return;
     }
 
+    // Skor tablosunda önceki yarışmadan kalan puan var mı kontrol et
+    if (hasPreviousQuizScores()) {
+      openScoreWarningModal("quiz");
+    } else {
+      executeStartQuizGame();
+    }
+  }
+
+  function executeStartQuizGame() {
+    const currentList = quizSelectedStudentNames;
     // Pad activeGameQuestions to be a multiple of currentList.length to guarantee fair turns
     const studentCount = currentList.length;
     if (studentCount > 0 && activeGameQuestions.length > 0) {
@@ -3082,7 +3222,16 @@
       alert("Lütfen önce oyuna katılacak en az bir öğrenci seçin!");
       return;
     }
-    
+
+    if (hasPreviousMultScores()) {
+      openScoreWarningModal("mult");
+    } else {
+      executeStartMultGame();
+    }
+  }
+
+  function executeStartMultGame() {
+    const currentList = multSelectedStudentNames;
     const countSelect = document.getElementById("mult-setup-count");
     multQuestionCount = parseInt(countSelect.value) || 10;
     
