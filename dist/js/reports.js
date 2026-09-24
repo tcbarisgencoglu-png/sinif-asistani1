@@ -616,7 +616,7 @@
 
       // D. Görev İstatistikleri
       if (showTasks) {
-        const studentTasks = (state.tasks || []).filter(t => t.studentId === student.id);
+        const studentTasks = (state.tasks || []).filter(t => String(t.studentId) === String(student.id));
         const completedTasks = studentTasks.filter(t => {
           if (t.status !== 'completed' || !t.completedDate) return false;
           const compD = new Date(t.completedDate);
@@ -907,7 +907,7 @@
 
     // 4. Görevler
     if (criteria.tasks) {
-      const studentTasks = (state.tasks || []).filter(t => t.studentId === student.id);
+      const studentTasks = (state.tasks || []).filter(t => String(t.studentId) === String(student.id));
       const completedTasks = studentTasks.filter(t => {
         if (t.status !== 'completed' || !t.completedDate) return false;
         const compD = new Date(t.completedDate);

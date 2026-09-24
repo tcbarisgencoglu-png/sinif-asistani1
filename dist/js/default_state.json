@@ -494,30 +494,7 @@
       "updatedAt": "2026-09-08T08:16:58.668Z"
     }
   ],
-  "tasks": [
-    {
-      "id": "task_asm_default",
-      "studentId": "std_1",
-      "description": "Sınıf Kitaplığını Düzenleme Görevi",
-      "points": 5,
-      "dueDate": "2026-08-28",
-      "status": "active",
-      "completedDate": null,
-      "performanceId": null,
-      "createdAt": "2026-08-23T23:08:45.942Z"
-    },
-    {
-      "id": "task_asm_1788855504479s3l42",
-      "studentId": "std_m8",
-      "description": "Atatürk'ün hayatı ile ilgili içerik hazırlama ve sınıfta sunum yapma",
-      "points": 5,
-      "dueDate": "2026-11-05",
-      "status": "active",
-      "completedDate": null,
-      "performanceId": null,
-      "createdAt": "2026-09-08T08:18:24.479Z"
-    }
-  ],
+  "tasks": [],
   "notebooks": [
     {
       "id": "notebook_1783807882134_2hrnzujhx",

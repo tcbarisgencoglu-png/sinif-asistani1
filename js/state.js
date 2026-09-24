@@ -686,30 +686,7 @@ const DEFAULT_STATE = {
       "updatedAt": "2026-09-08T08:16:58.668Z"
     }
   ],
-  "tasks": [
-    {
-      "id": "task_asm_default",
-      "studentId": "std_1",
-      "description": "Sınıf Kitaplığını Düzenleme Görevi",
-      "points": 5,
-      "dueDate": "2026-08-28",
-      "status": "active",
-      "completedDate": null,
-      "performanceId": null,
-      "createdAt": "2026-08-23T23:08:45.942Z"
-    },
-    {
-      "id": "task_asm_1788855504479s3l42",
-      "studentId": "std_m8",
-      "description": "Atatürk'ün hayatı ile ilgili içerik hazırlama ve sınıfta sunum yapma",
-      "points": 5,
-      "dueDate": "2026-11-05",
-      "status": "active",
-      "completedDate": null,
-      "performanceId": null,
-      "createdAt": "2026-09-08T08:18:24.479Z"
-    }
-  ],
+  "tasks": [],
   "notebooks": [
     {
       "id": "notebook_1783807882134_2hrnzujhx",
@@ -2112,6 +2089,33 @@ class StateManager {
             localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
           }
         }
+
+        // Sahipsiz Görev Kayıtlarını Temizleme: Öğrenci listesinde bulunmayan veya silinmiş öğrencilere ait görevleri ayıkla
+        if (parsed.tasks && Array.isArray(parsed.tasks)) {
+          const validStudentIds = new Set((parsed.students || []).map(s => String(s.id)));
+          const originalTasksCount = parsed.tasks.length;
+          parsed.tasks = parsed.tasks.filter(t => t && t.studentId && validStudentIds.has(String(t.studentId)));
+          if (parsed.tasks.length !== originalTasksCount) {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
+            console.log("loadState: Öğrenci kaydı bulunmayan sahipsiz görevler veritabanından temizlendi.");
+          }
+        }
+
+        // Hızlı Menü Kitap Yıldızı Geçişi: Eski "Kitap Okuma Puanı" kayıtlarını "Ders Kitabı Yıldızı" olarak güncelle
+        if (parsed.performance && Array.isArray(parsed.performance)) {
+          let perfUpdated = false;
+          parsed.performance.forEach(p => {
+            if (p && p.reason === 'Kitap Okuma Puanı') {
+              p.reason = 'Ders Kitabı Yıldızı';
+              p.extraData = p.extraData || {};
+              p.extraData.isBookStar = true;
+              perfUpdated = true;
+            }
+          });
+          if (perfUpdated) {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
+          }
+        }
         
         // Eğer veritabanı boşsa (0 öğrenci ve 0 kitap varsa), demo verilerini otomatik olarak yükle
         if ((!parsed.students || parsed.students.length === 0) && 
@@ -2228,6 +2232,61 @@ class StateManager {
           seatingPlans: parsed.seatingPlans || {},
           contributions: parsed.contributions || []
         };
+
+        // Görev kayıtlarını performans tablosuna bağlama (taskId senkronizasyonu)
+        if (loaded.tasks && loaded.performance) {
+          loaded.tasks.forEach(t => {
+            if (t.performanceId) {
+              const perf = loaded.performance.find(p => p.id === t.performanceId);
+              if (perf && !perf.taskId) {
+                perf.taskId = t.id;
+              }
+            } else if (t.status === 'completed' && t.studentId) {
+              const perf = loaded.performance.find(p =>
+                p.studentId === t.studentId &&
+                p.reason &&
+                (p.reason === `"${t.description}" Görevi Teslim Edildi` || p.reason.includes(t.description))
+              );
+              if (perf) {
+                t.performanceId = perf.id;
+                perf.taskId = t.id;
+              }
+            }
+          });
+        }
+
+        // İade kaydı bulunmayan yetim 'Kitap Okuma Tamamlandı' kayıtlarını temizleme
+        if (loaded.books && loaded.books.transactions && loaded.performance) {
+          const studentsWithReturnedBooks = new Set(
+            loaded.books.transactions
+              .filter(t => t.status === 'returned')
+              .map(t => t.studentId)
+          );
+
+          loaded.performance = loaded.performance.filter(p => {
+            if (p.reason && p.reason.startsWith('Kitap Okuma Tamamlandı:')) {
+              // Öğrencinin kütüphanede teslim edilmiş hiç kitabı yoksa bu yetim kayıttır
+              if (!studentsWithReturnedBooks.has(p.studentId)) {
+                return false;
+              }
+              // Kitap adına göre de kontrol et
+              const titleMatch = p.reason.match(/Kitap Okuma Tamamlandı:\s*([^(\n\r]+)/);
+              if (titleMatch) {
+                const title = titleMatch[1].trim();
+                const hasMatchingTx = loaded.books.transactions.some(t => {
+                  if (t.studentId !== p.studentId || t.status !== 'returned') return false;
+                  const b = (loaded.books.library || []).find(bk => bk.id === t.bookId);
+                  return b && b.title.trim().toLowerCase() === title.toLowerCase();
+                });
+                if (!hasMatchingTx) {
+                  return false;
+                }
+              }
+            }
+            return true;
+          });
+        }
+
         return wrapState(loaded, unfiltered);
       }
     } catch (e) {
@@ -2445,35 +2504,38 @@ class StateManager {
   }
 
   deleteStudent(id) {
+    const idStr = String(id);
     // Öğrenciyi sil
-    this.state.students = this.state.students.filter(s => s.id !== id);
+    this.state.students = this.state.students.filter(s => String(s.id) !== idStr);
     // Öğrenciye ait performans kayıtlarını sil
-    this.state.performance = this.state.performance.filter(p => p.studentId !== id);
-    // Kitap transactions güncelle (öğrenci silindi bilgisini ekle ya da sil)
-    this.state.books.transactions = this.state.books.transactions.filter(t => t.studentId !== id);
+    this.state.performance = this.state.performance.filter(p => String(p.studentId) !== idStr);
+    // Kitap transactions güncelle
+    this.state.books.transactions = this.state.books.transactions.filter(t => String(t.studentId) !== idStr);
     // Ödevlerden bu öğrenciyi sil
     this.state.homeworks.forEach(hw => {
-      if (hw.status && hw.status[id]) {
+      if (hw.status) {
         delete hw.status[id];
+        delete hw.status[idStr];
       }
     });
     // Görevlerden bu öğrenciyi sil
     if (this.state.tasks) {
-      this.state.tasks = this.state.tasks.filter(t => t.studentId !== id);
+      this.state.tasks = this.state.tasks.filter(t => String(t.studentId) !== idStr);
     }
     // Yoklamalardan bu öğrenciyi sil
     if (this.state.attendance) {
       for (const date in this.state.attendance) {
         if (Array.isArray(this.state.attendance[date])) {
-          this.state.attendance[date] = this.state.attendance[date].filter(sid => sid !== id);
+          this.state.attendance[date] = this.state.attendance[date].filter(sid => String(sid) !== idStr);
         }
       }
     }
     // Katkı ve tedarik takiplerinden bu öğrenciyi sil
     if (this.state.contributions) {
       this.state.contributions.forEach(c => {
-        if (c.records && c.records[id]) {
+        if (c.records) {
           delete c.records[id];
+          delete c.records[idStr];
         }
       });
     }
@@ -2516,7 +2578,7 @@ class StateManager {
   }
 
   // PERFORMANS İŞLEMLERİ
-  addPerformance(studentId, type, point, reason, weekId) {
+  addPerformance(studentId, type, point, reason, weekId, extraData = {}) {
     const record = {
       id: 'perf_' + Date.now() + Math.random().toString(36).substr(2, 5),
       studentId,
@@ -2524,7 +2586,8 @@ class StateManager {
       point: parseInt(point),
       reason,
       date: new Date().toISOString(),
-      weekId: weekId || window.getISOWeek()
+      weekId: weekId || window.getISOWeek(),
+      ...extraData
     };
     this.state.performance.push(record);
     this.saveState();
@@ -2532,7 +2595,15 @@ class StateManager {
   }
 
   deletePerformance(id) {
-    this.state.performance = this.state.performance.filter(p => p.id !== id);
+    this.state.performance = this.state.performance.filter(p => String(p.id) !== String(id));
+    if (this.state.tasks) {
+      const linkedTask = this.state.tasks.find(t => String(t.performanceId) === String(id));
+      if (linkedTask) {
+        linkedTask.status = 'active';
+        linkedTask.completedDate = null;
+        linkedTask.performanceId = null;
+      }
+    }
     this.saveState();
   }
 
@@ -2849,6 +2920,19 @@ class StateManager {
   }
 
   cancelBorrow(transactionId) {
+    const tx = (this.state.books.transactions || []).find(t => t.id === transactionId);
+    if (tx) {
+      const book = (this.state.books.library || []).find(b => b.id === tx.bookId);
+      const bookTitle = book ? book.title : '';
+      if (tx.studentId && bookTitle && Array.isArray(this.state.performance)) {
+        this.state.performance = this.state.performance.filter(p => {
+          if (p.studentId === tx.studentId && p.reason && p.reason.includes(`Kitap Okuma Tamamlandı: ${bookTitle}`)) {
+            return false;
+          }
+          return true;
+        });
+      }
+    }
     const initialLength = this.state.books.transactions.length;
     this.state.books.transactions = this.state.books.transactions.filter(t => t.id !== transactionId);
     if (this.state.books.transactions.length < initialLength) {
@@ -3219,7 +3303,8 @@ class StateManager {
         task.points >= 0 ? 'positive' : 'development',
         task.points,
         `"${task.description}" Görevi Teslim Edildi`,
-        weekId
+        weekId,
+        { taskId: task.id }
       );
       
       // Performans kaydının id'sini göreve bağla
@@ -3232,10 +3317,18 @@ class StateManager {
 
   undoTaskAssignmentCompletion(id) {
     if (!this.state.tasks) return false;
-    const task = this.state.tasks.find(t => t.id === id);
+    const task = this.state.tasks.find(t => String(t.id) === String(id));
     if (task && task.status === 'completed') {
       if (task.performanceId) {
         this.deletePerformance(task.performanceId);
+      }
+      if (Array.isArray(this.state.performance)) {
+        this.state.performance = this.state.performance.filter(p => {
+          if (task.performanceId && String(p.id) === String(task.performanceId)) return false;
+          if (p.taskId && String(p.taskId) === String(task.id)) return false;
+          if (p.extraData && p.extraData.taskId && String(p.extraData.taskId) === String(task.id)) return false;
+          return true;
+        });
       }
       task.status = 'active';
       task.completedDate = null;
@@ -3248,12 +3341,20 @@ class StateManager {
 
   deleteTaskAssignment(id) {
     if (!this.state.tasks) return;
-    const task = this.state.tasks.find(t => t.id === id);
+    const task = this.state.tasks.find(t => String(t.id) === String(id));
     if (task) {
-      if (task.status === 'completed' && task.performanceId) {
+      if (task.performanceId) {
         this.deletePerformance(task.performanceId);
       }
-      this.state.tasks = this.state.tasks.filter(t => t.id !== id);
+      if (Array.isArray(this.state.performance)) {
+        this.state.performance = this.state.performance.filter(p => {
+          if (task.performanceId && String(p.id) === String(task.performanceId)) return false;
+          if (p.taskId && String(p.taskId) === String(task.id)) return false;
+          if (p.extraData && p.extraData.taskId && String(p.extraData.taskId) === String(task.id)) return false;
+          return true;
+        });
+      }
+      this.state.tasks = this.state.tasks.filter(t => String(t.id) !== String(id));
       this.saveState();
     }
   }

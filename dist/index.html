@@ -178,7 +178,7 @@
       <div id="sidebar-demo-container"></div>
       
       <div class="sidebar-footer" style="padding: 1rem; text-align: center; font-size: 0.8rem; color: var(--text-muted); border-top: 1px solid var(--border-color);">
-        <span id="app-sidebar-version-text">Sınıf Asistanı v1.0.23</span>
+        <span id="app-sidebar-version-text">Sınıf Asistanı v1.0.24</span>
       </div>
     </aside>
 
@@ -281,6 +281,8 @@
                     <th style="width: 100px; text-align: center;">Okul No</th>
                     <th style="width: 120px; text-align: center;">Performans (Dojo)</th>
                     <th style="width: 120px; text-align: center;">Kitap Okuma</th>
+                    <th style="width: 120px; text-align: center; color: #f59e0b;">⭐ Kitap Yıldızı</th>
+                    <th style="width: 120px; text-align: center;">Görev Puanı</th>
                     <th style="width: 120px; text-align: center;">Ödev Puanı</th>
                     <th style="width: 120px; text-align: center;">Haftalık Sınav</th>
                     <th style="width: 120px; text-align: center; font-weight: 700; color: var(--primary);">Toplam Puan</th>
@@ -324,6 +326,8 @@
                     <th style="width: 100px; text-align: center;">Okul No</th>
                     <th style="width: 120px; text-align: center;">Performans (Dojo)</th>
                     <th style="width: 120px; text-align: center;">Kitap Okuma</th>
+                    <th style="width: 120px; text-align: center; color: #f59e0b;">⭐ Kitap Yıldızı</th>
+                    <th style="width: 120px; text-align: center;">Görev Puanı</th>
                     <th style="width: 120px; text-align: center;">Ödev Puanı</th>
                     <th style="width: 120px; text-align: center;">Sınav Puanı</th>
                     <th style="width: 120px; text-align: center; font-weight: 700; color: var(--primary);">Toplam Puan</th>
@@ -6175,18 +6179,18 @@
     </div>
   </div>
 
-  <!-- MODAL: TÜM SINIFA KİTAP PUANI GİRİŞİ -->
+  <!-- MODAL: TÜM SINIFA KİTAP YILDIZI GİRİŞİ (DERS KİTABI KONTROLÜ) -->
   <div class="modal" id="modal-bulk-book-points" style="--max-width: 760px; z-index: 1050;">
 
     <div class="modal-content" style="max-width: 760px; max-height: 90vh; display: flex; flex-direction: column;">
       <div class="modal-header" style="display: flex; align-items: center; justify-content: space-between; padding: 1rem 1.4rem; border-bottom: 1px solid var(--border-color);">
         <div style="display: flex; align-items: center; gap: 0.65rem;">
-          <div style="width: 38px; height: 38px; border-radius: 10px; background: rgba(99, 102, 241, 0.12); color: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">
-            📚
+          <div style="width: 38px; height: 38px; border-radius: 10px; background: rgba(245, 158, 11, 0.15); color: #d97706; display: flex; align-items: center; justify-content: center; font-size: 1.25rem;">
+            ⭐
           </div>
           <div>
-            <h3 style="margin: 0; font-size: 1.15rem; font-weight: 700; color: var(--text-primary);">Tüm Sınıfa Kitap Puanı Ver</h3>
-            <span id="bulk-book-points-subtitle" style="font-size: 0.8rem; color: var(--text-muted); font-weight: 500;">Tüm Sınıf Listesi</span>
+            <h3 style="margin: 0; font-size: 1.15rem; font-weight: 700; color: var(--text-primary);">Tüm Sınıfa Kitap Yıldızı Ver</h3>
+            <span id="bulk-book-points-subtitle" style="font-size: 0.8rem; color: var(--text-muted); font-weight: 500;">Ders Kitapları Kontrolü • Yıldız Girişi</span>
           </div>
         </div>
         <button class="close-btn" id="btn-close-bulk-book-points">&times;</button>
@@ -6199,10 +6203,10 @@
             <i data-lucide="search" style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); width: 15px; height: 15px; color: var(--text-muted);"></i>
             <input type="text" id="bulk-book-point-search" placeholder="Öğrenci adı veya numarası ara..." class="form-control" style="padding-left: 2.1rem; height: 36px; font-size: 0.85rem;">
           </div>
-          <div style="display: flex; align-items: center; gap: 0.4rem; background: rgba(99, 102, 241, 0.08); border: 1px solid rgba(99, 102, 241, 0.25); border-radius: 8px; padding: 0.25rem 0.5rem;">
-            <span style="font-size: 0.78rem; font-weight: 600; color: var(--text-secondary); white-space: nowrap;">Tümüne Ata:</span>
-            <input type="number" id="bulk-book-point-all-value" value="5" min="-100" max="100" style="width: 50px; height: 28px; text-align: center; font-weight: 700; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary); font-size: 0.85rem;">
-            <button type="button" class="btn btn-sm btn-primary" id="btn-bulk-book-point-apply-all" style="height: 28px; padding: 0 0.6rem; font-size: 0.78rem; font-weight: 700; display: inline-flex; align-items: center; gap: 0.25rem;">
+          <div style="display: flex; align-items: center; gap: 0.4rem; background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.25); border-radius: 8px; padding: 0.25rem 0.5rem;">
+            <span style="font-size: 0.78rem; font-weight: 600; color: var(--text-secondary); white-space: nowrap;">Tümüne Yıldız Ata:</span>
+            <input type="number" id="bulk-book-point-all-value" value="1" min="-100" max="100" style="width: 50px; height: 28px; text-align: center; font-weight: 700; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary); font-size: 0.85rem;">
+            <button type="button" class="btn btn-sm btn-primary" id="btn-bulk-book-point-apply-all" style="height: 28px; padding: 0 0.6rem; font-size: 0.78rem; font-weight: 700; display: inline-flex; align-items: center; gap: 0.25rem; background: #d97706; border-color: #d97706;">
               Uygula
             </button>
           </div>
@@ -6219,12 +6223,12 @@
 
       <div class="modal-footer" style="display: flex; align-items: center; justify-content: space-between; padding: 0.85rem 1.4rem; border-top: 1px solid var(--border-color);">
         <div id="bulk-book-points-summary" style="font-size: 0.88rem; font-weight: 500;">
-          <span style="color: var(--text-muted);">Henüz puan girilmedi</span>
+          <span style="color: var(--text-muted);">Henüz yıldız girilmedi</span>
         </div>
         <div style="display: flex; gap: 0.5rem;">
           <button type="button" class="btn btn-secondary" id="btn-close-bulk-book-points-footer">İptal</button>
-          <button type="button" class="btn btn-primary" id="btn-bulk-book-points-save" style="display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.5rem 1.25rem; font-weight: 700;" disabled>
-            <i data-lucide="check" style="width: 16px; height: 16px;"></i> Puanları Kaydet
+          <button type="button" class="btn btn-primary" id="btn-bulk-book-points-save" style="display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.5rem 1.25rem; font-weight: 700; background: #d97706; border-color: #d97706;" disabled>
+            <i data-lucide="star" style="width: 16px; height: 16px;"></i> Yıldızları Kaydet
           </button>
         </div>
       </div>
@@ -6266,6 +6270,7 @@
             <nav class="detail-tab-menu">
               <button class="detail-tab-btn active" data-detail-tab="detail-perf">Performans Günlüğü</button>
               <button class="detail-tab-btn" data-detail-tab="detail-books">Okuduğu Kitaplar</button>
+              <button class="detail-tab-btn" data-detail-tab="detail-tasks">Görevler</button>
               <button class="detail-tab-btn" data-detail-tab="detail-hw">Ödev Geçmişi</button>
               <button class="detail-tab-btn" data-detail-tab="detail-eval">Haftalık Değerlendirme</button>
             </nav>
@@ -6364,6 +6369,29 @@
                     </tr>
                   </thead>
                   <tbody id="detail-eval-tbody">
+                    <!-- JS ile doldurulacak -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- 5. Görevler Log -->
+            <div class="detail-tab-content" id="detail-tasks">
+              <h4 style="font-size: 0.95rem; margin-bottom: 0.75rem; font-weight: 700; display: flex; align-items: center; gap: 0.5rem; color: #8b5cf6;">
+                <i data-lucide="check-square" style="width: 16px; height: 16px;"></i> Görev ve Sorumluluk Geçmişi
+              </h4>
+              <div class="table-wrapper">
+                <table class="table" style="font-size: 0.85rem;">
+                  <thead>
+                    <tr>
+                      <th>Görev Açıklaması</th>
+                      <th style="text-align: center;">Puan</th>
+                      <th>Son Teslim</th>
+                      <th>Teslim Tarihi</th>
+                      <th style="text-align: center;">Durum</th>
+                    </tr>
+                  </thead>
+                  <tbody id="detail-tasks-tbody">
                     <!-- JS ile doldurulacak -->
                   </tbody>
                 </table>
@@ -6696,67 +6724,114 @@
 
   <!-- MODAL: SÜRE ÖLÇER (TIMER) -->
   <div class="modal" id="modal-timer" style="--max-width: 500px;">
-    <div class="modal-content" style="max-width: 500px; text-align: center;">
-      <div class="modal-header" style="background: rgba(99, 102, 241, 0.1); color: var(--primary);">
-        <h3 style="display: flex; align-items: center; gap: 0.5rem; font-size: 1.1rem; font-weight: 700; margin: 0;">
-          <i data-lucide="clock" style="width: 18px; height: 18px;"></i> Süre Ölçer
-        </h3>
-        <button class="close-btn" id="btn-close-timer-modal">&times;</button>
+    <div class="modal-content timer-modal-content" id="timer-modal-container" style="max-width: 500px; text-align: center;">
+      
+      <!-- MINI FLOATING VIEW (YÜZEN SAYAÇ - ARKA PLANI ASLA KAPATMAZ) -->
+      <div id="timer-mini-view" class="timer-mini-card" style="display: none;">
+        <div class="timer-mini-drag-handle" id="timer-mini-drag-handle" title="Taşımak için sürükleyin">
+          <i data-lucide="grip-vertical" style="width: 16px; height: 16px;"></i>
+        </div>
+        <div class="timer-mini-info">
+          <i data-lucide="clock" class="timer-mini-clock-icon" style="width: 18px; height: 18px;"></i>
+          <span id="timer-mini-time">00:00</span>
+        </div>
+        <div class="timer-mini-actions">
+          <button type="button" class="btn-timer-mini" id="btn-timer-mini-start-pause" title="Başlat / Duraklat">
+            <i id="btn-timer-mini-start-icon" data-lucide="play" style="width: 16px; height: 16px;"></i>
+          </button>
+          <button type="button" class="btn-timer-mini" id="btn-timer-mini-add" title="+1 Dakika Ekle">+1dk</button>
+          <button type="button" class="btn-timer-mini" id="btn-timer-mini-reset" title="Sıfırla">
+            <i data-lucide="rotate-ccw" style="width: 15px; height: 15px;"></i>
+          </button>
+          <button type="button" class="btn-timer-mini" id="btn-timer-mini-expand" title="Genişlet / Ayarlar">
+            <i data-lucide="maximize-2" style="width: 15px; height: 15px;"></i>
+          </button>
+          <button type="button" class="btn-timer-mini btn-timer-mini-close" id="btn-timer-mini-close" title="Kapat">&times;</button>
+        </div>
       </div>
-      <div class="modal-body" style="padding: 1.5rem; display: flex; flex-direction: column; align-items: center; gap: 1.5rem;">
+
+      <!-- FULL VIEW (NORMAL MOD - DRAGGABLE & NON-BLOCKING) -->
+      <div id="timer-full-view">
+        <div class="modal-header timer-modal-header" id="timer-full-header" style="background: rgba(99, 102, 241, 0.1); color: var(--primary); cursor: move;" title="Pencereyi taşımak için sürükleyin">
+          <h3 style="display: flex; align-items: center; gap: 0.5rem; font-size: 1.1rem; font-weight: 700; margin: 0; pointer-events: none;">
+            <i data-lucide="clock" style="width: 18px; height: 18px;"></i> Süre Ölçer
+          </h3>
+          <div style="display: flex; align-items: center; gap: 0.4rem;">
+            <button type="button" class="timer-header-btn" id="btn-timer-minimize" title="Yüzen Sayaç / Küçült (Arka planı gösterir)" style="background: none; border: none; cursor: pointer; color: inherit; padding: 4px; border-radius: 4px; display: flex; align-items: center;">
+              <i data-lucide="minimize-2" style="width: 16px; height: 16px;"></i>
+            </button>
+            <button type="button" class="close-btn" id="btn-close-timer-modal" title="Kapat" style="cursor: pointer; padding: 4px 8px; font-size: 1.5rem; line-height: 1; display: inline-flex; align-items: center; justify-content: center; background: none; border: none; color: inherit;">&times;</button>
+          </div>
+        </div>
         
-        <!-- Circular Timer Progress -->
-        <div class="timer-display-container" style="position: relative; width: 200px; height: 200px; display: flex; align-items: center; justify-content: center;">
-          <svg viewBox="0 0 200 200" style="width: 100%; height: 100%; transform: rotate(-90deg);">
-            <circle cx="100" cy="100" r="90" stroke="var(--border-color)" stroke-width="8" fill="transparent" />
-            <circle id="timer-progress-ring" cx="100" cy="100" r="90" stroke="var(--primary)" stroke-width="8" fill="transparent" 
-                    stroke-dasharray="565.48" stroke-dashoffset="0" stroke-linecap="round" style="transition: stroke-dashoffset 0.1s linear, stroke 0.3s ease;" />
-          </svg>
-          <div id="timer-modal-time" style="position: absolute; font-size: 3.5rem; font-weight: 800; font-family: monospace; color: var(--text-primary);">00:00</div>
-        </div>
+        <div class="modal-body" style="padding: 1.5rem; display: flex; flex-direction: column; align-items: center; gap: 1.25rem;">
+          
+          <!-- Circular Timer Progress -->
+          <div class="timer-display-container" style="position: relative; width: 190px; height: 190px; display: flex; align-items: center; justify-content: center;">
+            <svg viewBox="0 0 200 200" style="width: 100%; height: 100%; transform: rotate(-90deg);">
+              <circle cx="100" cy="100" r="90" stroke="var(--border-color)" stroke-width="8" fill="transparent" />
+              <circle id="timer-progress-ring" cx="100" cy="100" r="90" stroke="var(--primary)" stroke-width="8" fill="transparent" 
+                      stroke-dasharray="565.48" stroke-dashoffset="0" stroke-linecap="round" style="transition: stroke-dashoffset 0.1s linear, stroke 0.3s ease;" />
+            </svg>
+            <div id="timer-modal-time" style="position: absolute; font-size: 3.25rem; font-weight: 800; font-family: monospace; color: var(--text-primary);">00:00</div>
+          </div>
 
-        <!-- Presets -->
-        <div class="timer-presets" style="display: flex; gap: 0.5rem; flex-wrap: wrap; justify-content: center; width: 100%;">
-          <button class="btn btn-secondary btn-sm preset-btn" data-time="30">30sn</button>
-          <button class="btn btn-secondary btn-sm preset-btn" data-time="60">1dk</button>
-          <button class="btn btn-secondary btn-sm preset-btn" data-time="120">2dk</button>
-          <button class="btn btn-secondary btn-sm preset-btn" data-time="180">3dk</button>
-          <button class="btn btn-secondary btn-sm preset-btn" data-time="300">5dk</button>
-          <button class="btn btn-secondary btn-sm preset-btn" data-time="600">10dk</button>
-        </div>
+          <!-- Presets -->
+          <div class="timer-presets" style="display: flex; gap: 0.5rem; flex-wrap: wrap; justify-content: center; width: 100%;">
+            <button class="btn btn-secondary btn-sm preset-btn" data-time="30">30sn</button>
+            <button class="btn btn-secondary btn-sm preset-btn" data-time="60">1dk</button>
+            <button class="btn btn-secondary btn-sm preset-btn" data-time="120">2dk</button>
+            <button class="btn btn-secondary btn-sm preset-btn" data-time="180">3dk</button>
+            <button class="btn btn-secondary btn-sm preset-btn" data-time="300">5dk</button>
+            <button class="btn btn-secondary btn-sm preset-btn" data-time="600">10dk</button>
+          </div>
 
-        <!-- Custom Adjusters -->
-        <div class="timer-adjuster" style="display: flex; align-items: center; gap: 0.75rem;">
-          <button class="btn btn-secondary" id="btn-timer-dec-min" style="padding: 0.25rem 0.5rem; min-width: 32px;">-1dk</button>
-          <button class="btn btn-secondary" id="btn-timer-dec-sec" style="padding: 0.25rem 0.5rem; min-width: 32px;">-10sn</button>
-          <span style="font-weight: 600; color: var(--text-secondary); font-size: 0.9rem; min-width: 80px;">Süre Ayarı</span>
-          <button class="btn btn-secondary" id="btn-timer-inc-sec" style="padding: 0.25rem 0.5rem; min-width: 32px;">+10sn</button>
-          <button class="btn btn-secondary" id="btn-timer-inc-min" style="padding: 0.25rem 0.5rem; min-width: 32px;">+1dk</button>
-        </div>
+          <!-- Custom Adjusters -->
+          <div class="timer-adjuster" style="display: flex; align-items: center; gap: 0.75rem;">
+            <button class="btn btn-secondary" id="btn-timer-dec-min" style="padding: 0.25rem 0.5rem; min-width: 32px;">-1dk</button>
+            <button class="btn btn-secondary" id="btn-timer-dec-sec" style="padding: 0.25rem 0.5rem; min-width: 32px;">-10sn</button>
+            <span style="font-weight: 600; color: var(--text-secondary); font-size: 0.9rem; min-width: 80px;">Süre Ayarı</span>
+            <button class="btn btn-secondary" id="btn-timer-inc-sec" style="padding: 0.25rem 0.5rem; min-width: 32px;">+10sn</button>
+            <button class="btn btn-secondary" id="btn-timer-inc-min" style="padding: 0.25rem 0.5rem; min-width: 32px;">+1dk</button>
+          </div>
 
-        <!-- Active Controls -->
-        <div class="timer-controls" style="display: flex; gap: 0.75rem; width: 100%; justify-content: center; margin-top: 0.5rem;">
-          <button class="btn btn-secondary" id="btn-timer-reset" style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 0.25rem;">
-            <i data-lucide="rotate-ccw" style="width: 16px; height: 16px;"></i> Sıfırla
+          <!-- Active Controls -->
+          <div class="timer-controls" style="display: flex; gap: 0.75rem; width: 100%; justify-content: center; margin-top: 0.25rem;">
+            <button class="btn btn-secondary" id="btn-timer-reset" style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 0.25rem;">
+              <i data-lucide="rotate-ccw" style="width: 16px; height: 16px;"></i> Sıfırla
+            </button>
+            <button class="btn btn-primary" id="btn-timer-start-pause" style="flex: 2; display: flex; align-items: center; justify-content: center; gap: 0.25rem;">
+              <i id="btn-timer-start-icon" data-lucide="play" style="width: 16px; height: 16px;"></i> <span id="btn-timer-start-text">Başlat</span>
+            </button>
+          </div>
+
+          <!-- Options Toggles -->
+          <div style="display: flex; flex-direction: column; gap: 0.4rem; width: 100%; align-items: center; border-top: 1px dashed var(--border-color); padding-top: 0.75rem;">
+            <label for="timer-auto-minimize" style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; color: var(--text-primary); cursor: pointer; user-select: none;">
+              <input type="checkbox" id="timer-auto-minimize" checked style="cursor: pointer; width: 16px; height: 16px;">
+              <span>Başlatılınca yüzen sayaç moduna geç (arkayı kapatmaz)</span>
+            </label>
+            <label for="timer-sound-enable" style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; color: var(--text-secondary); cursor: pointer; user-select: none;">
+              <input type="checkbox" id="timer-sound-enable" checked style="cursor: pointer; width: 16px; height: 16px;">
+              <span>Sesler (Son %30'da hızlanan tik-tak ve bitiş alarmı)</span>
+            </label>
+          </div>
+
+        </div>
+        
+        <div class="modal-footer" style="padding: 0.75rem 1.25rem; display: flex; justify-content: space-between; align-items: center; width: 100%; box-sizing: border-box;">
+          <button class="btn btn-secondary" id="btn-timer-expand" title="Tam Ekran Zamanlayıcı" style="display: flex; align-items: center; gap: 0.25rem; font-size: 0.85rem; padding: 0.35rem 0.75rem;">
+            <i data-lucide="maximize" style="width: 14px; height: 14px;"></i> Ekranı Kapla
           </button>
-          <button class="btn btn-primary" id="btn-timer-start-pause" style="flex: 2; display: flex; align-items: center; justify-content: center; gap: 0.25rem;">
-            <i id="btn-timer-start-icon" data-lucide="play" style="width: 16px; height: 16px;"></i> <span id="btn-timer-start-text">Başlat</span>
-          </button>
+          <div style="display: flex; gap: 0.5rem;">
+            <button class="btn btn-secondary" id="btn-timer-float-action" style="font-size: 0.85rem; padding: 0.35rem 0.75rem; display: flex; align-items: center; gap: 0.25rem;">
+              <i data-lucide="minimize-2" style="width: 14px; height: 14px;"></i> Yüzen Sayaç
+            </button>
+            <button class="btn btn-secondary close-btn-action" id="btn-close-timer-modal-action" style="font-size: 0.85rem; padding: 0.35rem 0.75rem;">Kapat</button>
+          </div>
         </div>
-
-        <!-- Sound Option Toggle -->
-        <div style="display: flex; align-items: center; gap: 0.5rem; margin-top: 0.25rem;">
-          <input type="checkbox" id="timer-sound-enable" checked style="cursor: pointer; width: 16px; height: 16px;">
-          <label for="timer-sound-enable" style="font-size: 0.85rem; color: var(--text-secondary); cursor: pointer; user-select: none;">Süre bitince alarm çal</label>
-        </div>
-
       </div>
-      <div class="modal-footer" style="padding: 1rem 1.5rem; display: flex; justify-content: space-between; align-items: center; width: 100%; box-sizing: border-box;">
-        <button class="btn btn-secondary" id="btn-timer-expand" title="Tam Ekran Zamanlayıcı" style="display: flex; align-items: center; gap: 0.25rem; font-size: 0.85rem; padding: 0.35rem 0.75rem;">
-          <i data-lucide="maximize" style="width: 14px; height: 14px;"></i> Ekranı Kapla
-        </button>
-        <button class="btn btn-secondary close-btn-action" id="btn-close-timer-modal-action" style="font-size: 0.85rem; padding: 0.35rem 0.75rem;">Kapat</button>
-      </div>
+      
     </div>
   </div>
 
@@ -7358,7 +7433,7 @@
               </p>
             </div>
             <div>
-              <a id="btn-download-deb" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/latest/download/sinif-asistani_1.0.23_amd64.deb" target="_blank" class="btn btn-primary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem; background: #ef4444; border-color: #ef4444; font-weight: 600;">
+              <a id="btn-download-deb" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/latest/download/sinif-asistani_1.0.24_amd64.deb" target="_blank" class="btn btn-primary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem; background: #ef4444; border-color: #ef4444; font-weight: 600;">
                 <i data-lucide="download" style="width: 16px; height: 16px;"></i> Pardus (.deb) İndir
               </a>
               <button type="button" onclick="window.openPardusInstallHelpModal()" style="width: 100%; margin-top: 0.5rem; background: rgba(239, 68, 68, 0.12); border: 1px dashed rgba(239, 68, 68, 0.5); color: #f87171; border-radius: var(--radius-sm, 8px); padding: 0.45rem 0.5rem; font-size: 0.78rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.35rem; transition: all 0.2s ease;">
@@ -7385,7 +7460,7 @@
               </p>
             </div>
             <div>
-              <a id="btn-download-exe" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/latest/download/sinif-asistani_1.0.23_x64-setup.exe" target="_blank" class="btn btn-primary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem; background: #0284c7; border-color: #0284c7; font-weight: 600;">
+              <a id="btn-download-exe" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/latest/download/sinif-asistani_1.0.24_x64-setup.exe" target="_blank" class="btn btn-primary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem; background: #0284c7; border-color: #0284c7; font-weight: 600;">
                 <i data-lucide="download" style="width: 16px; height: 16px;"></i> Windows (.exe) İndir
               </a>
               <button type="button" onclick="window.openWinInstallHelpModal()" style="width: 100%; margin-top: 0.5rem; background: rgba(2, 132, 199, 0.12); border: 1px dashed rgba(2, 132, 199, 0.5); color: #38bdf8; border-radius: var(--radius-sm, 8px); padding: 0.45rem 0.5rem; font-size: 0.78rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.35rem; transition: all 0.2s ease;">
@@ -7413,13 +7488,13 @@
             </div>
             <div>
               <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem;">
-                <a id="btn-download-dmg" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/latest/download/sinif-asistani_1.0.23_aarch64.dmg" target="_blank" class="btn btn-primary" style="flex: 1.1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.15rem; background: #8b5cf6; border-color: #8b5cf6; font-weight: 600; padding: 0.5rem 0.35rem; font-size: 0.78rem; text-align: center; text-decoration: none;">
+                <a id="btn-download-dmg" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/latest/download/sinif-asistani_1.0.24_aarch64.dmg" target="_blank" class="btn btn-primary" style="flex: 1.1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.15rem; background: #8b5cf6; border-color: #8b5cf6; font-weight: 600; padding: 0.5rem 0.35rem; font-size: 0.78rem; text-align: center; text-decoration: none;">
                   <span style="display: flex; align-items: center; gap: 0.25rem; font-weight: 700;">
                     <i data-lucide="download" style="width: 14px; height: 14px;"></i> Apple Silicon
                   </span>
                   <span style="font-size: 0.67rem; opacity: 0.92; font-weight: 500;">(M1 / M2 / M3 / M4)</span>
                 </a>
-                <a id="btn-download-dmg-intel" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/latest/download/sinif-asistani_1.0.23_x64.dmg" target="_blank" class="btn btn-secondary" style="flex: 0.9; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.15rem; font-weight: 600; padding: 0.5rem 0.35rem; font-size: 0.78rem; text-align: center; text-decoration: none; border: 1px solid rgba(139, 92, 246, 0.45); color: var(--text-primary);">
+                <a id="btn-download-dmg-intel" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/latest/download/sinif-asistani_1.0.24_x64.dmg" target="_blank" class="btn btn-secondary" style="flex: 0.9; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.15rem; font-weight: 600; padding: 0.5rem 0.35rem; font-size: 0.78rem; text-align: center; text-decoration: none; border: 1px solid rgba(139, 92, 246, 0.45); color: var(--text-primary);">
                   <span style="display: flex; align-items: center; gap: 0.25rem; font-weight: 700;">
                     <i data-lucide="download" style="width: 14px; height: 14px;"></i> Intel Mac
                   </span>
@@ -7449,7 +7524,7 @@
                 <strong>Kurulum gerektirmez!</strong> Özellikle ortaokul modunda sınıf sınıf gezen branş öğretmenleri, uygulamayı Flash diskine (USB) yükleyerek tüm sınıflardaki akıllı tahtalarda doğrudan flash bellek üzerinden tak-çalıştır şeklinde kullanabilir.
               </p>
             </div>
-            <a id="btn-download-appimage" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/latest/download/sinif-asistani_1.0.23_amd64.AppImage" target="_blank" class="btn btn-primary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem; background: #10b981; border-color: #10b981; font-weight: 600;">
+            <a id="btn-download-appimage" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/latest/download/sinif-asistani_1.0.24_amd64.AppImage" target="_blank" class="btn btn-primary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem; background: #10b981; border-color: #10b981; font-weight: 600;">
               <i data-lucide="download" style="width: 16px; height: 16px;"></i> AppImage (USB Uyumlu) İndir
             </a>
           </div>

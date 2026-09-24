@@ -1,7 +1,7 @@
 /**
- * Toplu Kitap Puanı Girişi Modülü
- * Hızlı menü üzerinden tüm sınıfa tek ekranda pratik ve toplu kitap puanı verilmesini sağlar.
- * Puanlar "Kitap Okuma Puanı" olarak kaydedilir ve sistemde otomatik olarak Kitap Puanı (bookPoints) sütununa işlenir.
+ * Toplu Ders Kitabı Yıldızı Girişi Modülü
+ * Hızlı menü üzerinden öğretmenin ders kitaplarını kontrol edip öğrencilere kazandıkları yıldız sayısını girmesini sağlar.
+ * Puanlar "Ders Kitabı Yıldızı" olarak kaydedilir ve sistemde Kitap Yıldızı (starPoints) sütununa işlenir.
  */
 (() => {
   let modal = null;
@@ -68,16 +68,43 @@
   }
 
   function bindEvents() {
-    const closeFn = () => {
+    const closeFn = async () => {
+      // Girilmiş ve kaydedilmemiş değer var mı kontrol et
+      const hasUnsavedChanges = Object.values(studentPoints).some(val => val !== undefined && val !== 0 && !isNaN(val) && val !== '');
+      if (hasUnsavedChanges) {
+        let confirmed = false;
+        if (window.confirmAsync) {
+          confirmed = await window.confirmAsync('Girdiğiniz kitap yıldızları henüz kaydedilmedi. Çıkmak istediğinize emin misiniz?\n\n(Çıkarsanız girdiğiniz veriler silinecektir)');
+        } else {
+          confirmed = window.confirm('Girdiğiniz kitap yıldızları henüz kaydedilmedi. Çıkmak istediğinize emin misiniz?');
+        }
+        if (!confirmed) return;
+      }
+      studentPoints = {};
       if (modal) modal.classList.remove('active');
     };
 
     if (btnCloseHeader) btnCloseHeader.onclick = closeFn;
     if (btnCloseFooter) btnCloseFooter.onclick = closeFn;
 
+    // Dış alana (backdrop) tıklandığında pencerenin KAPANMASINI ENGELLE
     if (modal) {
       modal.onclick = (e) => {
-        if (e.target === modal) closeFn();
+        if (e.target === modal) {
+          e.preventDefault();
+          e.stopPropagation();
+          const modalContent = modal.querySelector('.modal-content');
+          if (modalContent) {
+            modalContent.classList.remove('modal-shake');
+            void modalContent.offsetWidth; // Reflow
+            modalContent.classList.add('modal-shake');
+            setTimeout(() => modalContent.classList.remove('modal-shake'), 400);
+          }
+          const hasUnsaved = Object.values(studentPoints).some(val => val !== undefined && val !== 0 && !isNaN(val) && val !== '');
+          if (hasUnsaved && window.showToast) {
+            window.showToast('Kaydedilmemiş kitap yıldızları var! Çıkmak için "Kapat", kaydetmek için "Yıldızları Kaydet" butonunu kullanın.', 'warning');
+          }
+        }
       };
     }
 
@@ -105,7 +132,7 @@
         filterAndRenderList();
         updateSummary();
         if (window.showToast) {
-          window.showToast(`Tüm öğrencilere ${val >= 0 ? '+' : ''}${val} puan atandı.`, 'info');
+          window.showToast(`Tüm öğrencilere ${val >= 0 ? '+' : ''}${val} yıldız atandı.`, 'info');
         }
       };
     }
@@ -165,12 +192,12 @@
     studentPoints = {};
     searchQuery = '';
     if (searchInput) searchInput.value = '';
-    if (allValueInput) allValueInput.value = '5'; // Varsayılan öneri: 5 puan
+    if (allValueInput) allValueInput.value = '1'; // Varsayılan öneri: 1 yıldız
 
     const subtitleEl = document.getElementById('bulk-book-points-subtitle');
     if (subtitleEl) {
       const branchText = isMiddle && activeBranch !== 'all' ? `${activeBranch} Şubesi • ` : '';
-      subtitleEl.textContent = `${branchText}${activeStudents.length} Öğrenci`;
+      subtitleEl.textContent = `${branchText}${activeStudents.length} Öğrenci • Ders Kitabı Kontrolü`;
     }
 
     filterAndRenderList();
@@ -206,11 +233,12 @@
     filtered.forEach(student => {
       const pts = studentPoints[student.id] !== undefined ? studentPoints[student.id] : '';
       
-      // Mevcut toplam kitap puanı
-      let currentBookPts = 0;
+      // Mevcut toplam kitap yıldızı
+      let currentStars = 0;
       performance.forEach(p => {
-        if (p.studentId === student.id && p.reason && p.reason.toLowerCase().includes('kitap')) {
-          currentBookPts += p.point;
+        const rLower = (p.reason || '').toLowerCase();
+        if (p.studentId === student.id && (rLower.includes('yıldız') || p.reason === 'Kitap Okuma Puanı' || (p.extraData && p.extraData.isBookStar))) {
+          currentStars += p.point;
         }
       });
 
@@ -234,17 +262,18 @@
               </div>
               <div style="font-size: 0.76rem; color: var(--text-muted); display: flex; align-items: center; gap: 0.4rem; margin-top: 0.1rem;">
                 <span>Mevcut:</span>
-                <span style="color: #6366f1; font-weight: 700;">📚 ${currentBookPts} Puan</span>
+                <span style="color: #f59e0b; font-weight: 700;">⭐ ${currentStars} Yıldız</span>
               </div>
             </div>
           </div>
 
-          <!-- Puan Giriş Kontrolleri -->
+          <!-- Yıldız Giriş Kontrolleri -->
           <div style="display: flex; align-items: center; gap: 0.4rem; flex-shrink: 0;">
             <div style="display: flex; align-items: center; gap: 0.25rem;">
-              <button type="button" class="btn-quick-step" data-id="${student.id}" data-delta="1" style="background: rgba(99, 102, 241, 0.12); color: var(--primary); border: 1px solid rgba(99, 102, 241, 0.25); border-radius: 6px; padding: 0.3rem 0.45rem; font-size: 0.76rem; font-weight: 700; cursor: pointer;">+1</button>
-              <button type="button" class="btn-quick-step" data-id="${student.id}" data-delta="5" style="background: rgba(99, 102, 241, 0.12); color: var(--primary); border: 1px solid rgba(99, 102, 241, 0.25); border-radius: 6px; padding: 0.3rem 0.45rem; font-size: 0.76rem; font-weight: 700; cursor: pointer;">+5</button>
-              <button type="button" class="btn-quick-step" data-id="${student.id}" data-delta="10" style="background: rgba(16, 185, 129, 0.12); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 6px; padding: 0.3rem 0.45rem; font-size: 0.76rem; font-weight: 700; cursor: pointer;">+10</button>
+              <button type="button" class="btn-quick-step" data-id="${student.id}" data-delta="1" style="background: rgba(245, 158, 11, 0.12); color: #d97706; border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 6px; padding: 0.3rem 0.45rem; font-size: 0.76rem; font-weight: 700; cursor: pointer;">+1 ⭐</button>
+              <button type="button" class="btn-quick-step" data-id="${student.id}" data-delta="2" style="background: rgba(245, 158, 11, 0.12); color: #d97706; border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 6px; padding: 0.3rem 0.45rem; font-size: 0.76rem; font-weight: 700; cursor: pointer;">+2 ⭐</button>
+              <button type="button" class="btn-quick-step" data-id="${student.id}" data-delta="3" style="background: rgba(245, 158, 11, 0.12); color: #d97706; border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 6px; padding: 0.3rem 0.45rem; font-size: 0.76rem; font-weight: 700; cursor: pointer;">+3 ⭐</button>
+              <button type="button" class="btn-quick-step" data-id="${student.id}" data-delta="5" style="background: rgba(16, 185, 129, 0.12); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 6px; padding: 0.3rem 0.45rem; font-size: 0.76rem; font-weight: 700; cursor: pointer;">+5 ⭐</button>
             </div>
             <div style="position: relative; width: 72px;">
               <input type="number" 
@@ -252,7 +281,7 @@
                 data-id="${student.id}" 
                 value="${pts}" 
                 placeholder="0" 
-                style="text-align: center; font-weight: 700; font-size: 0.95rem; height: 36px; padding: 0.2rem; border-radius: 8px; border: 1.5px solid ${pts !== '' && pts !== 0 ? 'var(--primary)' : 'var(--border-color)'}; background: ${pts !== '' && pts !== 0 ? 'rgba(99, 102, 241, 0.08)' : 'transparent'};">
+                style="text-align: center; font-weight: 700; font-size: 0.95rem; height: 36px; padding: 0.2rem; border-radius: 8px; border: 1.5px solid ${pts !== '' && pts !== 0 ? '#d97706' : 'var(--border-color)'}; background: ${pts !== '' && pts !== 0 ? 'rgba(245, 158, 11, 0.08)' : 'transparent'};">
             </div>
           </div>
         </div>
@@ -273,8 +302,8 @@
         } else {
           const num = parseInt(raw, 10) || 0;
           studentPoints[sId] = num;
-          e.target.style.borderColor = 'var(--primary)';
-          e.target.style.background = 'rgba(99, 102, 241, 0.08)';
+          e.target.style.borderColor = '#d97706';
+          e.target.style.background = 'rgba(245, 158, 11, 0.08)';
         }
         updateSummary();
       });
@@ -291,8 +320,8 @@
         const rowInput = studentsListContainer.querySelector(`.bulk-student-input[data-id="${sId}"]`);
         if (rowInput) {
           rowInput.value = next;
-          rowInput.style.borderColor = 'var(--primary)';
-          rowInput.style.background = 'rgba(99, 102, 241, 0.08)';
+          rowInput.style.borderColor = '#d97706';
+          rowInput.style.background = 'rgba(245, 158, 11, 0.08)';
         }
         updateSummary();
       });
@@ -303,10 +332,10 @@
     if (!summaryText) return;
     const count = Object.values(studentPoints).filter(v => v !== 0 && v !== undefined && !isNaN(v)).length;
     if (count === 0) {
-      summaryText.innerHTML = '<span style="color: var(--text-muted);">Henüz puan girilmedi</span>';
+      summaryText.innerHTML = '<span style="color: var(--text-muted);">Henüz yıldız girilmedi</span>';
       if (btnSave) btnSave.disabled = true;
     } else {
-      summaryText.innerHTML = `<strong style="color: var(--primary);">${count}</strong> öğrenciye kitap puanı girildi`;
+      summaryText.innerHTML = `<strong style="color: #d97706;">${count}</strong> öğrenciye kitap yıldızı girildi`;
       if (btnSave) btnSave.disabled = false;
     }
   }
@@ -314,7 +343,7 @@
   function saveBulkPoints() {
     const entries = Object.entries(studentPoints).filter(([id, val]) => val !== 0 && val !== undefined && !isNaN(val));
     if (entries.length === 0) {
-      if (window.showToast) window.showToast('Lütfen en az bir öğrenci için puan girin!', 'warning');
+      if (window.showToast) window.showToast('Lütfen en az bir öğrenci için yıldız girin!', 'warning');
       return;
     }
 
@@ -331,8 +360,9 @@
         studentId,
         pt >= 0 ? 'positive' : 'development',
         pt,
-        'Kitap Okuma Puanı', // 'kitap' içerdiği için doğrudan bookPoints kategorisine dahil olur
-        activeWeekId
+        'Ders Kitabı Yıldızı',
+        activeWeekId,
+        { isBookStar: true }
       );
       savedCount++;
     });
@@ -340,15 +370,18 @@
     playSuccessSound();
 
     if (window.showToast) {
-      window.showToast(`${savedCount} öğrencinin kitap okuma puanı başarıyla kaydedildi! 📚`, 'success');
+      window.showToast(`${savedCount} öğrencinin kitap yıldızı başarıyla kaydedildi! ⭐`, 'success');
     }
 
     // Ekranı ve tabloları anında yenile
     const ev = new CustomEvent('stateChanged');
     document.dispatchEvent(ev);
 
+    studentPoints = {};
     if (modal) modal.classList.remove('active');
   }
+
+  window.openBulkBookStarModal = window.openBulkBookPointModal;
 
   // DOM hazır olduğunda başlat
   if (document.readyState === 'loading') {

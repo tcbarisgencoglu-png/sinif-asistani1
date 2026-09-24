@@ -1,13 +1,14 @@
 {
-  "version": "1.0.23",
-  "releaseDate": "2026-09-23",
+  "version": "1.0.24",
+  "releaseDate": "2026-09-24",
   "minRequiredVersion": "1.0.0",
-  "title": "Sınıf Asistanı v1.0.23 Yayında!",
-  "description": "Bilgi Yarışması Akıllı Tahta Tam Ekran Modu ve Öğrenci Listesi Senkronizasyonu",
+  "title": "Sınıf Asistanı v1.0.24 Yayında!",
+  "description": "Şeffaf ve Yüzen Süre Sayacı, Son %30'da Hızlanan Tik-Tak Sesleri ve Ders Kitabı Yıldızı Güncellemeleri",
   "features": [
-    "Bilgi Yarışması Akıllı Tahta Tam Ekran Modu: Soru ve cevap alanını tüm sınıfın ve arka sıraların rahatça görebileceği devasa tipografi, genişletilmiş dokunmatik butonlar ve aktif yarışmacı başlığı ile tam ekrana taşıma desteği",
-    "Öğrenci Listesi ve Skor Senkronizasyonu: Yarışma alanında ve skor tablosunda yalnızca öğretmen tarafından seçilen kayıtlı öğrencilerin yer alması sağlandı; eski demo/test öğrenci kalıntıları tamamen temizlendi",
-    "Tahta İçi Rastgele Öğrenci Seçimi: Tam ekrandan çıkmadan yeni soruya veya sıradaki öğrenciye anında geçebilmeyi sağlayan beyaz tahta buton kontrolleri eklendi"
+    "Şeffaf ve Yüzen Süre Sayacı: Süre sayacı başlatıldığında arka planı karartmayan/kapatmayan şeffaf yapı ve akıllı tahtada ekranı kapatmayan sürüklenebilir kompakt yüzen mod desteği",
+    "Son %30'da Hızlanan Tik-Tak Sesleri: Kalan süre toplam sürenin %30'unun altına indiğinde devreye giren ve süre azaldıkça temposu artan gerçekçi mekanik saat tik-tak ses efekti",
+    "Kitap Yıldızı Modalında Veri Kaybı Koruması: Ders kitabı kontrolü sırasında pencere dışına tıklandığında modalın kapanması engellendi; kaydedilmemiş veri varken çıkışta onay isteme güvenliği eklendi",
+    "Haftalık ve Aylık Tablolarda Ders Kitabı Yıldızı: Kitap okuma puanından bağımsız, ders kitabı kontrolleri için ayrı yıldız sütunları ve performans entegrasyonu"
   ],
   "release_url": "https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/latest"
 }

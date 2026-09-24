@@ -135,7 +135,7 @@ fn save_portable_data(data_json: String, api_key: String) -> Result<bool, String
             .unwrap_or(0);
 
         let json_obj = serde_json::json!({
-            "version": "1.0.23",
+            "version": "1.0.24",
             "updated_at": now_sec,
             "sinif_asistani_data": data_json,
             "sinif_asistani_gemini_api_key": api_key,

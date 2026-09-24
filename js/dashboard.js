@@ -598,13 +598,13 @@ function renderDashboardHeaderActions() {
               </div>
             </div>
           </div>
-          <div class="flip-card" id="btn-dash-quick-puan" tabindex="0" role="button" title="Tüm Sınıfa Kitap Puanı Ver">
+          <div class="flip-card" id="btn-dash-quick-puan" tabindex="0" role="button" title="Tüm Sınıfa Kitap Yıldızı Ver (Ders Kitabı Kontrolü)">
             <div class="flip-card-inner">
               <div class="flip-card-front">
-                <i id="dash-quick-puan-icon" data-lucide="book-open"></i>
+                <i id="dash-quick-puan-icon" data-lucide="star" style="color: #f59e0b;"></i>
               </div>
               <div class="flip-card-back">
-                <span>Kitap Puanı</span>
+                <span>Kitap Yıldızı</span>
               </div>
             </div>
           </div>
@@ -684,6 +684,7 @@ function renderDashboardHeaderActions() {
         e.preventDefault();
         const timerModal = document.getElementById('modal-timer');
         if (timerModal) {
+          timerModal.style.display = '';
           timerModal.classList.add('active');
           if (window.initTimerModal) {
             window.initTimerModal();
@@ -1127,7 +1128,7 @@ function renderDashboardWeekly() {
   });
 
   if (activeStudents.length === 0) {
-    dashWeeklyTbody.innerHTML = '<tr><td colspan="9" style="text-align: center; color: var(--text-muted); padding: 2rem;">Kriterlere uygun kayıtlı öğrenci bulunmuyor.</td></tr>';
+    dashWeeklyTbody.innerHTML = '<tr><td colspan="11" style="text-align: center; color: var(--text-muted); padding: 2rem;">Kriterlere uygun kayıtlı öğrenci bulunmuyor.</td></tr>';
     return;
   }
 
@@ -1143,8 +1144,17 @@ function renderDashboardWeekly() {
       } else if (p.homeworkId) {
         const hw = state.homeworks.find(h => h.id === p.homeworkId);
         if (hw) recordWeek = window.getISOWeek(hw.dueDate);
+      } else if (p.taskId) {
+        const task = (state.tasks || []).find(t => t.id === p.taskId || t.performanceId === p.id);
+        if (task && task.completedDate) recordWeek = window.getISOWeek(task.completedDate);
+        else if (task && task.dueDate) recordWeek = window.getISOWeek(task.dueDate);
       } else {
-        recordWeek = window.getISOWeek(p.date);
+        const linkedTask = (state.tasks || []).find(t => t.performanceId === p.id);
+        if (linkedTask && linkedTask.completedDate) {
+          recordWeek = window.getISOWeek(linkedTask.completedDate);
+        } else {
+          recordWeek = window.getISOWeek(p.date);
+        }
       }
       
       return recordWeek === selectedWeek;
@@ -1152,15 +1162,41 @@ function renderDashboardWeekly() {
 
     let dojoPoints = 0;
     let bookPoints = 0;
+    let starPoints = 0;
+    let taskPoints = 0;
     let homeworkPoints = 0;
     let examPoints = 0;
 
     perfRecords.forEach(p => {
-      const reasonLower = p.reason ? p.reason.toLowerCase() : '';
+      const reason = p.reason || '';
+      const reasonLower = reason.toLowerCase();
+
+      // Görev kaydı kontrolü: taskId, t.performanceId veya Görev metinleri
+      const isTask = !!(
+        p.taskId ||
+        (state.tasks && state.tasks.some(t => t.performanceId === p.id || (t.id && t.id === p.taskId))) ||
+        reason.includes('Görevi Teslim Edildi') ||
+        reason.includes('Görevi Tamamlandı') ||
+        (/görev/i.test(reason) && !reasonLower.includes('kitap okuma tamamlandı'))
+      );
+
+      // Kitap Yıldızı (Ders Kitabı Yıldızı) kontrolü:
+      const isStar = !!(
+        (p.extraData && p.extraData.isBookStar) ||
+        reasonLower.includes('yıldız') ||
+        reason === 'Kitap Okuma Puanı' ||
+        reasonLower.includes('kitap yıldızı') ||
+        reasonLower.includes('ders kitabı')
+      );
+
       if (p.homeworkId) {
         homeworkPoints += p.point;
       } else if (p.examId || reasonLower.includes('sınav') || reasonLower.includes('değerlendirme')) {
         examPoints += p.point;
+      } else if (isTask) {
+        taskPoints += p.point;
+      } else if (isStar) {
+        starPoints += p.point;
       } else if (reasonLower.includes('kitap')) {
         bookPoints += p.point;
       } else {
@@ -1168,12 +1204,14 @@ function renderDashboardWeekly() {
       }
     });
 
-    const totalPoints = dojoPoints + bookPoints + homeworkPoints + examPoints;
+    const totalPoints = dojoPoints + bookPoints + starPoints + taskPoints + homeworkPoints + examPoints;
 
     return {
       student,
       dojoPoints,
       bookPoints,
+      starPoints,
+      taskPoints,
       homeworkPoints,
       examPoints,
       totalPoints
@@ -1223,6 +1261,8 @@ function renderDashboardWeekly() {
       <td style="text-align: center; color: var(--text-muted); font-size: 0.85rem;">${student.number}</td>
       <td style="text-align: center; font-weight: 600; color: ${row.dojoPoints >= 0 ? 'var(--text-primary)' : 'var(--danger)'};">${row.dojoPoints >= 0 ? '+' : ''}${row.dojoPoints}</td>
       <td style="text-align: center; font-weight: 600; color: ${row.bookPoints >= 0 ? 'var(--primary)' : 'var(--danger)'};">${row.bookPoints >= 0 ? '+' : ''}${row.bookPoints}</td>
+      <td style="text-align: center; font-weight: 600; color: ${row.starPoints >= 0 ? '#f59e0b' : 'var(--danger)'};">${row.starPoints >= 0 ? '+' : ''}${row.starPoints}</td>
+      <td style="text-align: center; font-weight: 600; color: ${row.taskPoints >= 0 ? '#8b5cf6' : 'var(--danger)'};">${row.taskPoints >= 0 ? '+' : ''}${row.taskPoints}</td>
       <td style="text-align: center; font-weight: 600; color: ${row.homeworkPoints >= 0 ? 'var(--success)' : 'var(--danger)'};">${row.homeworkPoints >= 0 ? '+' : ''}${row.homeworkPoints}</td>
       <td style="text-align: center; font-weight: 600; color: ${row.examPoints >= 0 ? 'var(--warning-dark)' : 'var(--danger)'};">${row.examPoints >= 0 ? '+' : ''}${row.examPoints}</td>
       <td style="text-align: center; font-weight: 700; font-size: 0.95rem; color: ${totalColor};">${totalSign}${row.totalPoints}</td>
@@ -1282,7 +1322,7 @@ function renderDashboardMonthly() {
   });
 
   if (activeStudents.length === 0) {
-    dashMonthlyTbody.innerHTML = '<tr><td colspan="9" style="text-align: center; color: var(--text-muted); padding: 2rem;">Kriterlere uygun kayıtlı öğrenci bulunmuyor.</td></tr>';
+    dashMonthlyTbody.innerHTML = '<tr><td colspan="11" style="text-align: center; color: var(--text-muted); padding: 2rem;">Kriterlere uygun kayıtlı öğrenci bulunmuyor.</td></tr>';
     return;
   }
 
@@ -1291,7 +1331,7 @@ function renderDashboardMonthly() {
     const perfRecords = state.performance.filter(p => {
       if (p.studentId !== student.id) return false;
       
-      // Kaydın ait olduğu ayı bul (Önce weekId/homeworkId, sonra date kontrol edilir)
+      // Kaydın ait olduğu ayı bul (Önce weekId/homeworkId/taskId, sonra date kontrol edilir)
       let recordMonth = '';
       if (p.weekId) {
         const parts = p.weekId.split('-W');
@@ -1313,7 +1353,19 @@ function renderDashboardMonthly() {
             recordMonth = `${yyyy}-${mm}`;
           }
         }
-      } else if (p.date) {
+      } else if (p.taskId) {
+        const task = (state.tasks || []).find(t => t.id === p.taskId || t.performanceId === p.id);
+        if (task && task.completedDate) {
+          recordMonth = task.completedDate.substring(0, 7);
+        }
+      } else {
+        const linkedTask = (state.tasks || []).find(t => t.performanceId === p.id);
+        if (linkedTask && linkedTask.completedDate) {
+          recordMonth = linkedTask.completedDate.substring(0, 7);
+        }
+      }
+
+      if (!recordMonth && p.date) {
         const d = new Date(p.date);
         if (!isNaN(d.getTime())) {
           const yyyy = d.getFullYear();
@@ -1327,15 +1379,41 @@ function renderDashboardMonthly() {
 
     let dojoPoints = 0;
     let bookPoints = 0;
+    let starPoints = 0;
+    let taskPoints = 0;
     let homeworkPoints = 0;
     let examPoints = 0;
 
     perfRecords.forEach(p => {
-      const reasonLower = p.reason ? p.reason.toLowerCase() : '';
+      const reason = p.reason || '';
+      const reasonLower = reason.toLowerCase();
+
+      // Görev kaydı kontrolü: taskId, t.performanceId veya Görev metinleri
+      const isTask = !!(
+        p.taskId ||
+        (state.tasks && state.tasks.some(t => t.performanceId === p.id || (t.id && t.id === p.taskId))) ||
+        reason.includes('Görevi Teslim Edildi') ||
+        reason.includes('Görevi Tamamlandı') ||
+        (/görev/i.test(reason) && !reasonLower.includes('kitap okuma tamamlandı'))
+      );
+
+      // Kitap Yıldızı (Ders Kitabı Yıldızı) kontrolü:
+      const isStar = !!(
+        (p.extraData && p.extraData.isBookStar) ||
+        reasonLower.includes('yıldız') ||
+        reason === 'Kitap Okuma Puanı' ||
+        reasonLower.includes('kitap yıldızı') ||
+        reasonLower.includes('ders kitabı')
+      );
+
       if (p.homeworkId) {
         homeworkPoints += p.point;
       } else if (p.examId || reasonLower.includes('sınav') || reasonLower.includes('değerlendirme')) {
         examPoints += p.point;
+      } else if (isTask) {
+        taskPoints += p.point;
+      } else if (isStar) {
+        starPoints += p.point;
       } else if (reasonLower.includes('kitap')) {
         bookPoints += p.point;
       } else {
@@ -1343,12 +1421,14 @@ function renderDashboardMonthly() {
       }
     });
 
-    const totalPoints = dojoPoints + bookPoints + homeworkPoints + examPoints;
+    const totalPoints = dojoPoints + bookPoints + starPoints + taskPoints + homeworkPoints + examPoints;
 
     return {
       student,
       dojoPoints,
       bookPoints,
+      starPoints,
+      taskPoints,
       homeworkPoints,
       examPoints,
       totalPoints
@@ -1398,6 +1478,8 @@ function renderDashboardMonthly() {
       <td style="text-align: center; color: var(--text-muted); font-size: 0.85rem;">${student.number}</td>
       <td style="text-align: center; font-weight: 600; color: ${row.dojoPoints >= 0 ? 'var(--text-primary)' : 'var(--danger)'};">${row.dojoPoints >= 0 ? '+' : ''}${row.dojoPoints}</td>
       <td style="text-align: center; font-weight: 600; color: ${row.bookPoints >= 0 ? 'var(--primary)' : 'var(--danger)'};">${row.bookPoints >= 0 ? '+' : ''}${row.bookPoints}</td>
+      <td style="text-align: center; font-weight: 600; color: ${row.starPoints >= 0 ? '#f59e0b' : 'var(--danger)'};">${row.starPoints >= 0 ? '+' : ''}${row.starPoints}</td>
+      <td style="text-align: center; font-weight: 600; color: ${row.taskPoints >= 0 ? '#8b5cf6' : 'var(--danger)'};">${row.taskPoints >= 0 ? '+' : ''}${row.taskPoints}</td>
       <td style="text-align: center; font-weight: 600; color: ${row.homeworkPoints >= 0 ? 'var(--success)' : 'var(--danger)'};">${row.homeworkPoints >= 0 ? '+' : ''}${row.homeworkPoints}</td>
       <td style="text-align: center; font-weight: 600; color: ${row.examPoints >= 0 ? 'var(--warning-dark)' : 'var(--danger)'};">${row.examPoints >= 0 ? '+' : ''}${row.examPoints}</td>
       <td style="text-align: center; font-weight: 700; font-size: 0.95rem; color: ${totalColor};">${totalSign}${row.totalPoints}</td>
@@ -1714,6 +1796,38 @@ function openStudentDetailModal(id) {
 
     if (!hasResults) {
       detailEvalTbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--text-muted);">Öğrenciye ait sınav sonucu bulunamadı.</td></tr>';
+    }
+  }
+
+  // 5. Sekme: Görev ve Sorumluluk Geçmişi
+  const detailTasksTbody = document.getElementById('detail-tasks-tbody');
+  if (detailTasksTbody) {
+    detailTasksTbody.innerHTML = '';
+    const studentTasks = (state.tasks || [])
+      .filter(t => t.studentId === id)
+      .sort((a, b) => new Date(b.dueDate || 0) - new Date(a.dueDate || 0));
+
+    if (studentTasks.length === 0) {
+      detailTasksTbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">Atanmış görev bulunamadı.</td></tr>';
+    } else {
+      studentTasks.forEach(task => {
+        const isCompleted = task.status === 'completed';
+        const statusBadge = isCompleted
+          ? '<span class="badge" style="background: rgba(16, 185, 129, 0.1); color: var(--success); font-weight: 600; padding: 0.25rem 0.6rem; border-radius: 4px;">Tamamlandı</span>'
+          : '<span class="badge" style="background: rgba(245, 158, 11, 0.1); color: var(--warning-dark); font-weight: 600; padding: 0.25rem 0.6rem; border-radius: 4px;">Bekliyor</span>';
+        const ptColor = task.points >= 0 ? '#8b5cf6' : 'var(--danger)';
+        const ptSign = task.points >= 0 ? '+' : '';
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><strong>${task.description}</strong></td>
+          <td style="text-align: center; font-weight: 700; color: ${ptColor};">${ptSign}${task.points}</td>
+          <td>${task.dueDate ? new Date(task.dueDate).toLocaleDateString('tr-TR') : '-'}</td>
+          <td>${task.completedDate ? new Date(task.completedDate).toLocaleDateString('tr-TR') : '-'}</td>
+          <td style="text-align: center;">${statusBadge}</td>
+        `;
+        detailTasksTbody.appendChild(tr);
+      });
     }
   }
 

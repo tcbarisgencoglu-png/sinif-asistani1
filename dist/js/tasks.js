@@ -89,8 +89,9 @@
       if (modalTaskDueAlert) modalTaskDueAlert.classList.remove('active');
       const state = stateManager.loadState();
       const todayStr = window.formatLocalDate ? window.formatLocalDate() : new Date().toISOString().slice(0, 10);
+      const validStudentIds = new Set((state.students || []).map(s => String(s.id)));
       const dueTaskIds = (state.tasks || [])
-        .filter(t => t.status === 'active' && t.dueDate && t.dueDate <= todayStr)
+        .filter(t => t.status === 'active' && t.dueDate && t.dueDate <= todayStr && validStudentIds.has(String(t.studentId)))
         .map(t => t.id);
       sessionStorage.setItem('sinif_asistani_dismissed_due_task_ids', JSON.stringify(dueTaskIds));
     };
@@ -275,10 +276,10 @@
 
     // Filter by student, query and branch
     const filteredList = listToRender.filter(t => {
-      const student = state.students.find(s => s.id === t.studentId);
+      const student = state.students.find(s => String(s.id) === String(t.studentId));
       if (!student) return false;
 
-      const matchesStudent = studentFilter === 'all' || t.studentId === studentFilter;
+      const matchesStudent = studentFilter === 'all' || String(t.studentId) === String(studentFilter);
       const matchesBranch = state.educationLevel === 'primary' || branchFilter === 'all' || student.branch === branchFilter;
       
       const fullName = `${student.name} ${student.surname}`.toLowerCase();
@@ -333,13 +334,18 @@
       let footerHtml = '';
       if (task.status === 'completed') {
         footerHtml = `
-          <div class="task-card-footer" style="margin-top: 1.25rem; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-color); padding-top: 0.75rem;">
+          <div class="task-card-footer" style="margin-top: 1.25rem; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-color); padding-top: 0.75rem; flex-wrap: wrap; gap: 0.5rem;">
             <span style="font-size: 0.75rem; color: var(--success); font-weight: 600; display: flex; align-items: center; gap: 0.25rem;">
               <i data-lucide="check-circle-2" style="width: 14px; height: 14px;"></i> Teslim Alındı: ${formatDateTR(task.completedDate)}
             </span>
-            <button class="btn btn-secondary btn-sm undo-task-btn" data-id="${task.id}" style="padding: 0.35rem 0.6rem; font-size: 0.75rem; display: flex; align-items: center; gap: 0.25rem;">
-              <i data-lucide="undo-2" style="width: 12px; height: 12px;"></i> Geri Al
-            </button>
+            <div style="display: flex; gap: 0.35rem;">
+              <button class="btn btn-danger btn-sm delete-task-btn" data-id="${task.id}" style="padding: 0.35rem; display: flex; align-items: center; justify-content: center;" title="Görevi Sil">
+                <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i>
+              </button>
+              <button class="btn btn-secondary btn-sm undo-task-btn" data-id="${task.id}" style="padding: 0.35rem 0.6rem; font-size: 0.75rem; display: flex; align-items: center; gap: 0.25rem;">
+                <i data-lucide="undo-2" style="width: 12px; height: 12px;"></i> Geri Al
+              </button>
+            </div>
           </div>
         `;
       } else {
@@ -385,8 +391,14 @@
       // Event listener: Delete task
       const btnDelete = card.querySelector('.delete-task-btn');
       if (btnDelete) {
-        btnDelete.addEventListener('click', () => {
-          if (confirm('Bu görev kaydını silmek istediğinize emin misiniz?')) {
+        btnDelete.addEventListener('click', async (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          const isConfirmed = window.confirmAsync 
+            ? await window.confirmAsync('Bu görev kaydını silmek istediğinize emin misiniz?') 
+            : confirm('Bu görev kaydını silmek istediğinize emin misiniz?');
+
+          if (isConfirmed) {
             stateManager.deleteTaskAssignment(task.id);
             if (toastCallback) toastCallback('Görev silindi.', 'success');
             renderTasksList();
@@ -400,7 +412,9 @@
       // Event listener: Trigger complete task date modal
       const btnComplete = card.querySelector('.complete-task-btn');
       if (btnComplete) {
-        btnComplete.addEventListener('click', () => {
+        btnComplete.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
           if (completeTaskId) completeTaskId.value = task.id;
           if (completeTaskDate) completeTaskDate.value = window.formatLocalDate();
           if (modalCompleteTask) modalCompleteTask.classList.add('active');
@@ -410,8 +424,14 @@
       // Event listener: Revert completion status
       const btnUndo = card.querySelector('.undo-task-btn');
       if (btnUndo) {
-        btnUndo.addEventListener('click', () => {
-          if (confirm('Bu görevin teslim edilme durumunu iptal etmek ve eklenen puanı silmek istediğinize emin misiniz?')) {
+        btnUndo.addEventListener('click', async (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          const isConfirmed = window.confirmAsync 
+            ? await window.confirmAsync('Bu görevin teslim edilme durumunu iptal etmek ve eklenen puanı silmek istediğinize emin misiniz?') 
+            : confirm('Bu görevin teslim edilme durumunu iptal etmek ve eklenen puanı silmek istediğinize emin misiniz?');
+
+          if (isConfirmed) {
             const success = stateManager.undoTaskAssignmentCompletion(task.id);
             if (success) {
               if (toastCallback) toastCallback('Görev teslim işlemi iptal edildi ve puanlar geri alındı.', 'success');
@@ -439,8 +459,10 @@
     const state = stateManager.loadState();
     const allTasks = state.tasks || [];
     const todayStr = window.formatLocalDate ? window.formatLocalDate() : new Date().toISOString().slice(0, 10);
+    const studentsMap = new Map((state.students || []).map(s => [String(s.id), s]));
 
-    const dueTasks = allTasks.filter(t => t.status === 'active' && t.dueDate && t.dueDate <= todayStr);
+    // Sadece gerçekten sistemde kayıtlı olan öğrencilerin aktif ve süresi gelmiş görevlerini filtrele
+    const dueTasks = allTasks.filter(t => t.status === 'active' && t.dueDate && t.dueDate <= todayStr && studentsMap.has(String(t.studentId)));
     if (dueTasks.length === 0) {
       modalTaskDueAlert.classList.remove('active');
       return;
@@ -461,10 +483,11 @@
 
     // Görev listesi html çıktısını üret
     listContainer.innerHTML = unhandledTasks.map(task => {
-      const student = state.students.find(s => s.id === task.studentId);
-      const studentName = student ? `${student.name} ${student.surname}` : 'Öğrenci';
-      const studentNo = student ? `No: ${student.number}` : '';
-      const branchText = student && student.branch ? ` [${student.branch}]` : '';
+      const student = studentsMap.get(String(task.studentId));
+      if (!student) return '';
+      const studentName = `${student.name} ${student.surname}`;
+      const studentNo = student.number ? `No: ${student.number}` : '';
+      const branchText = student.branch ? ` [${student.branch}]` : '';
       const isOverdue = task.dueDate < todayStr;
       const isToday = task.dueDate === todayStr;
       
@@ -493,7 +516,7 @@
           </div>
         </div>
       `;
-    }).join('');
+    }).filter(Boolean).join('');
 
     modalTaskDueAlert.classList.add('active');
     if (window.safeCreateIcons) window.safeCreateIcons();

@@ -1218,6 +1218,7 @@
       if (e) { e.preventDefault(); e.stopPropagation(); }
       const timerModal = document.getElementById('modal-timer');
       if (timerModal) {
+        timerModal.style.display = '';
         timerModal.classList.add('active');
         if (window.initTimerModal) window.initTimerModal();
       }
