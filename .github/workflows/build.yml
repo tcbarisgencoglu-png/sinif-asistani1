@@ -121,11 +121,10 @@ jobs:
           releaseName: "Sınıf Asistanı ${{ github.ref_name }}"
           releaseBody: |
             ### 🚀 Bu Sürümdeki Yenilikler (${{ github.ref_name }}):
-            - 🚀 **Taşınabilir USB (Flash Bellek) Otomatik Senkronizasyon:** Farklı sınıflarda akıllı tahta değiştiren branş öğretmenleri, hiçbir ayar yapmadan Flash diski taktıkları her tahtada tüm sınıflarına, notlarına ve **Yapay Zeka API anahtarına** anında erişir.
-            - 💾 **Doğrudan Flash Diske Kayıt:** AppImage sürümü USB disk üzerinden çalıştırıldığında verileri tahtanın hafızasına değil, doğrudan Flash diske yazar ve senkronize eder.
-            - 🔐 **Yedekleme Entegrasyonu:** Ayarlar > Veri Yedekleme (.json) indirme ve yükleme işlemlerine Yapay Zeka API anahtarı da dahil edildi.
-            - 🎮 **Bilgi Yarışması Soru Havuzu Paketleri:** Sorular konu başlıklarına göre paketler halinde şık kartlarla listelenir ve tek tıkla açılır (v1.0.20).
-            - ✨ **Özel Yapay Zeka (AI) Ayarlar Sekmesi:** Google Gemini API anahtarı yönetimi, bağlantı testi, silme ve Google AI Studio rehberi (v1.0.20).
+            - ⏱️ **Şeffaf ve Yüzen Süre Sayacı:** Süre sayacı başlatıldığında arka planı karartmayan/kapatmayan şeffaf yapı ve akıllı tahtada ekranı kapatmayan sürüklenebilir kompakt yüzen mod desteği.
+            - 🔔 **Son %30'da Hızlanan Tik-Tak Sesleri:** Kalan süre toplam sürenin %30'unun altına indiğinde devreye giren ve süre azaldıkça temposu artan gerçekçi mekanik saat tik-tak ses efekti.
+            - 🛡️ **Kitap Yıldızı Modalında Veri Kaybı Koruması:** Ders kitabı kontrolü sırasında pencere dışına tıklandığında modalın kapanması engellendi; kaydedilmemiş veri varken çıkışta onay isteme güvenliği eklendi.
+            - ⭐ **Haftalık ve Aylık Tablolarda Ders Kitabı Yıldızı:** Kitap okuma puanından bağımsız, ders kitabı kontrolleri için ayrı yıldız sütunları ve performans entegrasyonu.
 
             ---
             🛡️ **Veri Güvenliği:** Güncelleme yaptığınızda mevcut sınıflarınız, öğrencileriniz, ders programınız ve tüm verileriniz **kesinlikle silinmez, korunur**.
