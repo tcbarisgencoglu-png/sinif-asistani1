@@ -6759,3 +6759,269 @@ input:checked + .slider:before {
   cursor: not-allowed !important;
   transform: none !important;
 }
+
+/* ==========================================================================
+   Sınıf Başkanlığı Widget & Rozetleri
+   ========================================================================== */
+.dash-class-leaders-container {
+  display: flex;
+  align-items: center;
+}
+
+.class-leaders-widget {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.35rem 0.85rem;
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  border-radius: var(--radius-full);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.class-leaders-widget:hover {
+  background: rgba(245, 158, 11, 0.16);
+  border-color: rgba(245, 158, 11, 0.6);
+  transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgba(245, 158, 11, 0.15);
+}
+
+.class-leaders-widget .leader-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  white-space: nowrap;
+}
+
+.class-leaders-widget .leader-role {
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+  font-weight: 500;
+}
+
+.class-leaders-widget .leader-name {
+  color: var(--text-primary);
+  font-weight: 700;
+}
+
+.class-leaders-widget .leader-divider {
+  width: 1px;
+  height: 14px;
+  background: var(--border-color);
+  margin: 0 0.15rem;
+}
+
+.class-leaders-widget .leader-edit-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  margin-left: 0.2rem;
+  opacity: 0.7;
+  transition: all 0.2s;
+}
+
+.class-leaders-widget:hover .leader-edit-icon {
+  opacity: 1;
+  color: #d97706;
+}
+
+.class-leaders-widget.empty {
+  background: rgba(99, 102, 241, 0.06);
+  border: 1px dashed rgba(99, 102, 241, 0.35);
+  color: var(--text-secondary);
+}
+
+.class-leaders-widget.empty:hover {
+  background: rgba(99, 102, 241, 0.12);
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+/* Öğrenci Kartı Rozetleri */
+.student-leader-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.15rem 0.5rem;
+  border-radius: var(--radius-full);
+  margin-top: 0.3rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  white-space: nowrap;
+}
+
+.student-leader-tag.president {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.15), rgba(217, 119, 6, 0.25));
+  color: #b45309;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+}
+
+[data-theme="dark"] .student-leader-tag.president {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.25), rgba(217, 119, 6, 0.35));
+  color: #fde68a;
+  border-color: rgba(245, 158, 11, 0.5);
+}
+
+.student-leader-tag.vice {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.12), rgba(124, 58, 237, 0.2));
+  color: #6366f1;
+  border: 1px solid rgba(99, 102, 241, 0.35);
+}
+
+[data-theme="dark"] .student-leader-tag.vice {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.25), rgba(124, 58, 237, 0.3));
+  color: #c7d2fe;
+  border-color: rgba(99, 102, 241, 0.45);
+}
+
+/* Sınıf Başkanlığı Mini Kartları (Dashboard Sekme Satırı) */
+.dash-leaders-cards-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.leader-mini-card {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0.75rem 0.25rem 0.5rem;
+  border-radius: var(--radius-full);
+  background: var(--bg-card, rgba(255, 255, 255, 0.05));
+  border: 1px solid var(--border-color);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.leader-mini-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.leader-mini-card.president {
+  border-color: rgba(245, 158, 11, 0.45);
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.12), rgba(217, 119, 6, 0.05));
+}
+
+.leader-mini-card.president:hover {
+  border-color: #d97706;
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(217, 119, 6, 0.1));
+}
+
+.leader-mini-card.vice {
+  border-color: rgba(99, 102, 241, 0.45);
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.12), rgba(124, 58, 237, 0.05));
+}
+
+.leader-mini-card.vice:hover {
+  border-color: #6366f1;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(124, 58, 237, 0.1));
+}
+
+.leader-mini-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.leader-mini-avatar-placeholder {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.leader-mini-card.president .leader-mini-avatar {
+  border: 1.5px solid #d97706;
+}
+
+.leader-mini-card.president .leader-mini-avatar-placeholder {
+  background: rgba(245, 158, 11, 0.2);
+  color: #d97706;
+  border: 1.5px solid #d97706;
+}
+
+.leader-mini-card.vice .leader-mini-avatar {
+  border: 1.5px solid #6366f1;
+}
+
+.leader-mini-card.vice .leader-mini-avatar-placeholder {
+  background: rgba(99, 102, 241, 0.2);
+  color: #6366f1;
+  border: 1.5px solid #6366f1;
+}
+
+.leader-mini-info {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
+.leader-mini-role {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.leader-mini-card.president .leader-mini-role {
+  color: #d97706;
+}
+
+[data-theme="dark"] .leader-mini-card.president .leader-mini-role {
+  color: #fbbf24;
+}
+
+.leader-mini-card.vice .leader-mini-role {
+  color: #6366f1;
+}
+
+[data-theme="dark"] .leader-mini-card.vice .leader-mini-role {
+  color: #a5b4fc;
+}
+
+.leader-mini-name {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.btn-edit-leaders {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border-color);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.btn-edit-leaders:hover {
+  background: rgba(99, 102, 241, 0.15);
+  border-color: var(--primary);
+  color: var(--primary);
+  transform: scale(1.08);
+}

@@ -1,14 +1,14 @@
 {
-  "version": "1.0.24",
-  "releaseDate": "2026-09-24",
+  "version": "1.0.25",
+  "releaseDate": "2026-09-25",
   "minRequiredVersion": "1.0.0",
-  "title": "Sınıf Asistanı v1.0.24 Yayında!",
-  "description": "Şeffaf ve Yüzen Süre Sayacı, Son %30'da Hızlanan Tik-Tak Sesleri ve Ders Kitabı Yıldızı Güncellemeleri",
+  "title": "Sınıf Asistanı v1.0.25 Yayında!",
+  "description": "Seviye Bazlı Kitap Puanı Ayarları ve Sınav Puanları Güncellemeleri",
   "features": [
-    "Şeffaf ve Yüzen Süre Sayacı: Süre sayacı başlatıldığında arka planı karartmayan/kapatmayan şeffaf yapı ve akıllı tahtada ekranı kapatmayan sürüklenebilir kompakt yüzen mod desteği",
-    "Son %30'da Hızlanan Tik-Tak Sesleri: Kalan süre toplam sürenin %30'unun altına indiğinde devreye giren ve süre azaldıkça temposu artan gerçekçi mekanik saat tik-tak ses efekti",
-    "Kitap Yıldızı Modalında Veri Kaybı Koruması: Ders kitabı kontrolü sırasında pencere dışına tıklandığında modalın kapanması engellendi; kaydedilmemiş veri varken çıkışta onay isteme güvenliği eklendi",
-    "Haftalık ve Aylık Tablolarda Ders Kitabı Yıldızı: Kitap okuma puanından bağımsız, ders kitabı kontrolleri için ayrı yıldız sütunları ve performans entegrasyonu"
+    "Kitap Puanları Sekmesi: Genel puan ve kural ayarları altına 1. ve 2. seviye kitaplar için ayrı ayrı zamanında teslim, geç teslim ve makul okuma süresi (gün) kurallarını belirleme desteği eklendi",
+    "Akıllı Teslim ve Puanlama Mantığı: Kitap iadelerinde kitabın seviyesine göre tanımlanan gün sınırı ve puanlar (zamanında / gecikmeli) otomatik olarak işletilir",
+    "Sınav Puanları Sekmesi: Sınav Dereceleri sekmesi daha anlaşılır ve kapsayıcı olması adına Sınav Puanları olarak güncellendi",
+    "Davranış Puanları Sadeliği: Kullanıcı tarafından anlık değer girilen kitap aferinleri kaldırılarak kitap puanlaması tamamen kitaplar modülü seviye kurallarına bağlandı"
   ],
   "release_url": "https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/latest"
 }

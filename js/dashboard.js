@@ -382,6 +382,30 @@ function setupDashboardTab(showToast) {
     });
   });
 
+  // Sınıf Başkanlığı Modalı Kapatma & Kaydetme
+  const modalClassLeaders = document.getElementById('modal-class-leaders');
+  document.querySelectorAll('#btn-close-class-leaders-modal, #btn-cancel-class-leaders').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (modalClassLeaders) modalClassLeaders.classList.remove('active');
+    });
+  });
+
+  if (modalClassLeaders) {
+    modalClassLeaders.addEventListener('click', (e) => {
+      if (e.target === modalClassLeaders) {
+        modalClassLeaders.classList.remove('active');
+      }
+    });
+  }
+
+  const btnSaveClassLeaders = document.getElementById('btn-save-class-leaders');
+  if (btnSaveClassLeaders) {
+    btnSaveClassLeaders.addEventListener('click', (e) => {
+      e.preventDefault();
+      saveClassLeaders();
+    });
+  }
+
   // Detay Modalı Sekme Geçişleri
   const detailTabButtons = document.querySelectorAll('.detail-tab-btn');
   const detailTabContents = document.querySelectorAll('.detail-tab-content');
@@ -542,14 +566,281 @@ function setupDashboardTab(showToast) {
     if (flowModal && flowModal.classList.contains('active') && window.updateFlowContent) {
       window.updateFlowContent(false);
     }
+    renderClassLeadersBadge();
   });
 }
+
+function renderClassLeadersBadge() {
+  const container = document.getElementById('dash-class-leaders-container');
+  if (!container) return;
+
+  const state = stateManager.loadState();
+  const selectBranch = document.getElementById('dash-select-branch');
+  const isMiddle = state.educationLevel === 'middle';
+  const branchVal = selectBranch ? selectBranch.value : 'all';
+  const students = state.students || [];
+
+  // Toplanacak lider kayıtları listesi: { branch, president, vicePresident }
+  let leaderEntries = [];
+
+  if (!isMiddle || branchVal !== 'all') {
+    const key = isMiddle ? branchVal : 'all';
+    const leaders = stateManager.getClassLeaders(key);
+    const pres = leaders.presidentId ? students.find(s => s.id === leaders.presidentId) : null;
+    const vp = leaders.vicePresidentId ? students.find(s => s.id === leaders.vicePresidentId) : null;
+    if (pres || vp) {
+      leaderEntries.push({ branch: isMiddle ? key : '', president: pres, vicePresident: vp });
+    }
+  } else {
+    // Ortaokul ve 'Tüm Şubeler' seçiliyken:
+    // Önce doğrudan 'all' anahtarını kontrol et
+    const defL = stateManager.getClassLeaders('all');
+    const defPres = defL.presidentId ? students.find(s => s.id === defL.presidentId) : null;
+    const defVp = defL.vicePresidentId ? students.find(s => s.id === defL.vicePresidentId) : null;
+    if (defPres || defVp) {
+      leaderEntries.push({ branch: '', president: defPres, vicePresident: defVp });
+    }
+
+    // Ardından tüm şubeleri tara
+    const branches = [...new Set(students.map(s => s.branch).filter(Boolean))].sort();
+    branches.forEach(b => {
+      const l = stateManager.getClassLeaders(b);
+      const pres = l.presidentId ? students.find(s => s.id === l.presidentId) : null;
+      const vp = l.vicePresidentId ? students.find(s => s.id === l.vicePresidentId) : null;
+      if (pres || vp) {
+        leaderEntries.push({ branch: b, president: pres, vicePresident: vp });
+      }
+    });
+
+    // state.classLeaders içindeki diğer anahtarları da tara
+    if (leaderEntries.length === 0 && state.classLeaders) {
+      Object.keys(state.classLeaders).forEach(k => {
+        const l = stateManager.getClassLeaders(k);
+        const pres = l.presidentId ? students.find(s => s.id === l.presidentId) : null;
+        const vp = l.vicePresidentId ? students.find(s => s.id === l.vicePresidentId) : null;
+        if (pres || vp) {
+          leaderEntries.push({ branch: k === 'all' ? '' : k, president: pres, vicePresident: vp });
+        }
+      });
+    }
+  }
+
+  if (leaderEntries.length === 0) {
+    const branchLabel = (isMiddle && branchVal !== 'all') ? `${branchVal} ` : '';
+    container.innerHTML = `
+      <div class="class-leaders-widget empty" id="btn-open-class-leaders-modal" title="${branchLabel}Sınıf Başkanı ve Yardımcısını Belirle">
+        <span class="leader-icon">👑</span>
+        <span class="leader-name">${branchLabel}Başkan Belirle</span>
+        <span class="leader-edit-icon"><i data-lucide="plus" style="width: 14px; height: 14px;"></i></span>
+      </div>
+    `;
+  } else {
+    let cardsHtml = '<div class="dash-leaders-cards-wrapper">';
+
+    leaderEntries.forEach(entry => {
+      const bTag = entry.branch ? ` (${entry.branch})` : '';
+
+      // Başkan Kartı
+      if (entry.president) {
+        const initials = `${entry.president.name[0] || ''}${entry.president.surname[0] || ''}`.toUpperCase();
+        const avatarHtml = entry.president.photo
+          ? `<img src="${entry.president.photo}" class="leader-mini-avatar" alt="${entry.president.name}">`
+          : `<div class="leader-mini-avatar-placeholder">${initials}</div>`;
+
+        cardsHtml += `
+          <div class="leader-mini-card president" data-student-id="${entry.president.id}" title="👑 Sınıf Başkanı: ${entry.president.name} ${entry.president.surname}${bTag}">
+            <span class="leader-badge-icon" style="font-size: 1.05rem;">👑</span>
+            ${avatarHtml}
+            <div class="leader-mini-info">
+              <span class="leader-mini-role">Başkan${bTag}</span>
+              <span class="leader-mini-name">${entry.president.name} ${entry.president.surname}</span>
+            </div>
+          </div>
+        `;
+      }
+
+      // Başkan Yardımcısı Kartı
+      if (entry.vicePresident) {
+        const initials = `${entry.vicePresident.name[0] || ''}${entry.vicePresident.surname[0] || ''}`.toUpperCase();
+        const avatarHtml = entry.vicePresident.photo
+          ? `<img src="${entry.vicePresident.photo}" class="leader-mini-avatar" alt="${entry.vicePresident.name}">`
+          : `<div class="leader-mini-avatar-placeholder">${initials}</div>`;
+
+        cardsHtml += `
+          <div class="leader-mini-card vice" data-student-id="${entry.vicePresident.id}" title="🎖️ Başkan Yardımcısı: ${entry.vicePresident.name} ${entry.vicePresident.surname}${bTag}">
+            <span class="leader-badge-icon" style="font-size: 1.05rem;">🎖️</span>
+            ${avatarHtml}
+            <div class="leader-mini-info">
+              <span class="leader-mini-role">Bşk. Yrd.${bTag}</span>
+              <span class="leader-mini-name">${entry.vicePresident.name} ${entry.vicePresident.surname}</span>
+            </div>
+          </div>
+        `;
+      }
+    });
+
+    cardsHtml += `
+      <button type="button" class="btn-edit-leaders" id="btn-open-class-leaders-modal" title="Başkan ve Yardımcısını Düzenle / Değiştir">
+        <i data-lucide="edit-3" style="width: 14px; height: 14px;"></i>
+      </button>
+    </div>`;
+
+    container.innerHTML = cardsHtml;
+  }
+
+  // Tıklama olayları
+  const btnOpenModal = document.getElementById('btn-open-class-leaders-modal');
+  if (btnOpenModal) {
+    btnOpenModal.addEventListener('click', (e) => {
+      e.preventDefault();
+      openClassLeadersModal();
+    });
+  }
+
+  container.querySelectorAll('.leader-mini-card').forEach(card => {
+    card.addEventListener('click', (e) => {
+      e.preventDefault();
+      openClassLeadersModal();
+    });
+  });
+
+  if (window.safeCreateIcons) {
+    window.safeCreateIcons();
+  }
+}
+
+function populateLeaderStudentOptions(branchKey) {
+  const state = stateManager.loadState();
+  const selectPresident = document.getElementById('select-class-president');
+  const selectVicePresident = document.getElementById('select-class-vice-president');
+  if (!selectPresident || !selectVicePresident) return;
+
+  const isMiddle = state.educationLevel === 'middle';
+  const branchStudents = (state.students || []).filter(s => {
+    if (!isMiddle || branchKey === 'all') return true;
+    return s.branch === branchKey;
+  });
+
+  branchStudents.sort((a, b) => a.name.localeCompare(b.name, 'tr'));
+
+  selectPresident.innerHTML = '<option value="">-- Seçilmedi (Boş) --</option>';
+  selectVicePresident.innerHTML = '<option value="">-- Seçilmedi (Boş) --</option>';
+
+  branchStudents.forEach(s => {
+    const optP = document.createElement('option');
+    optP.value = s.id;
+    optP.textContent = `${s.number ? s.number + ' - ' : ''}${s.name} ${s.surname}`;
+    selectPresident.appendChild(optP);
+
+    const optVP = document.createElement('option');
+    optVP.value = s.id;
+    optVP.textContent = `${s.number ? s.number + ' - ' : ''}${s.name} ${s.surname}`;
+    selectVicePresident.appendChild(optVP);
+  });
+
+  const leaders = stateManager.getClassLeaders(branchKey);
+  selectPresident.value = leaders.presidentId || '';
+  selectVicePresident.value = leaders.vicePresidentId || '';
+}
+
+function openClassLeadersModal() {
+  const modal = document.getElementById('modal-class-leaders');
+  if (!modal) return;
+
+  const state = stateManager.loadState();
+  const selectBranch = document.getElementById('dash-select-branch');
+  const isMiddle = state.educationLevel === 'middle';
+  const groupBranch = document.getElementById('group-leader-branch');
+  const selectModalBranch = document.getElementById('select-leader-branch');
+
+  const branches = [...new Set((state.students || []).map(s => s.branch).filter(Boolean))].sort();
+
+  if (isMiddle && branches.length > 0) {
+    if (groupBranch) groupBranch.style.display = 'block';
+    if (selectModalBranch) {
+      selectModalBranch.innerHTML = '';
+      branches.forEach(b => {
+        const opt = document.createElement('option');
+        opt.value = b;
+        opt.textContent = `${b} Şubesi`;
+        selectModalBranch.appendChild(opt);
+      });
+
+      const currentDashVal = selectBranch ? selectBranch.value : 'all';
+      if (currentDashVal !== 'all' && branches.includes(currentDashVal)) {
+        selectModalBranch.value = currentDashVal;
+      } else {
+        const branchWithLeaders = branches.find(b => {
+          const l = stateManager.getClassLeaders(b);
+          return l.presidentId || l.vicePresidentId;
+        });
+        selectModalBranch.value = branchWithLeaders || branches[0];
+      }
+
+      selectModalBranch.onchange = () => {
+        populateLeaderStudentOptions(selectModalBranch.value);
+      };
+      populateLeaderStudentOptions(selectModalBranch.value);
+    } else {
+      populateLeaderStudentOptions(branches[0]);
+    }
+  } else {
+    if (groupBranch) groupBranch.style.display = 'none';
+    populateLeaderStudentOptions('all');
+  }
+
+  modal.classList.add('active');
+  if (window.safeCreateIcons) {
+    window.safeCreateIcons();
+  }
+}
+
+function saveClassLeaders() {
+  const modal = document.getElementById('modal-class-leaders');
+  const state = stateManager.loadState();
+  const isMiddle = state.educationLevel === 'middle';
+  const selectModalBranch = document.getElementById('select-leader-branch');
+  const selectPresident = document.getElementById('select-class-president');
+  const selectVicePresident = document.getElementById('select-class-vice-president');
+
+  const branchKey = isMiddle && selectModalBranch ? selectModalBranch.value : 'all';
+  const presidentId = selectPresident ? selectPresident.value : null;
+  const vicePresidentId = selectVicePresident ? selectVicePresident.value : null;
+
+  if (presidentId && vicePresidentId && presidentId === vicePresidentId) {
+    const msg = 'Sınıf başkanı ile başkan yardımcısı aynı öğrenci olamaz!';
+    if (typeof toastCallback === 'function') {
+      toastCallback(msg, 'warning');
+    } else if (window.showToast) {
+      window.showToast(msg, 'warning');
+    }
+    return;
+  }
+
+  stateManager.setClassLeaders(branchKey, presidentId, vicePresidentId);
+
+  const succMsg = 'Sınıf başkanlığı başarıyla kaydedildi.';
+  if (typeof toastCallback === 'function') {
+    toastCallback(succMsg, 'success');
+  } else if (window.showToast) {
+    window.showToast(succMsg, 'success');
+  }
+
+  if (modal) modal.classList.remove('active');
+  renderDashboard();
+}
+
+window.renderClassLeadersBadge = renderClassLeadersBadge;
+window.openClassLeadersModal = openClassLeadersModal;
 
 function renderDashboard() {
   // Sayfa başlığındaki canlı ders bilgisini güncelle
   if (typeof updateDashboardHeaderLessonInfo === 'function') {
     updateDashboardHeaderLessonInfo();
   }
+
+  // Sınıf Başkanlığı rozetini güncelle
+  renderClassLeadersBadge();
 
   // Sekme butonlarını ve içerik alanlarının görünürlüğünü aktif alt sekmeye göre senkronize et
   const dashTabButtons = document.querySelectorAll('[data-dash-tab]');
@@ -865,6 +1156,15 @@ function renderDashboardGeneral() {
     const examRatio = examCount > 0 ? Math.round(totalExamScore / examCount) : 0;
 
     const isAbsentToday = stateManager.isStudentAbsent(student.id);
+    const studentBranch = (state.educationLevel === 'primary') ? 'all' : (student.branch || 'all');
+    const branchLeaders = stateManager.getClassLeaders(studentBranch);
+    let leaderBadgeHtml = '';
+    if (branchLeaders.presidentId === student.id) {
+      leaderBadgeHtml = '<div class="student-leader-tag president" title="Sınıf Başkanı">👑 Sınıf Başkanı</div>';
+    } else if (branchLeaders.vicePresidentId === student.id) {
+      leaderBadgeHtml = '<div class="student-leader-tag vice" title="Sınıf Başkan Yardımcısı">🎖️ Başkan Yardımcısı</div>';
+    }
+
     const card = document.createElement('div');
     card.className = `glass-card student-card ${student.gender === 'female' ? 'female' : 'male'}${isAbsentToday ? ' absent' : ''}`;
 
@@ -891,6 +1191,7 @@ function renderDashboardGeneral() {
       <div class="student-info">
         <h3>${student.name} ${student.surname}</h3>
         <div class="std-no">Okul No: ${student.number}</div>
+        ${leaderBadgeHtml}
         
         <!-- Rasyolar/İstatistikler -->
         <div class="student-card-stats">
@@ -1651,22 +1952,47 @@ function openStudentDetailModal(id) {
   }
 
   // Henüz okunmayan kitaplar listesi
-  detailUnreadBooksTbody.innerHTML = '';
   const readBookIds = studentTxs.map(t => t.bookId);
   const unreadBooks = state.books.library.filter(b => !readBookIds.includes(b.id));
 
-  if (unreadBooks.length === 0) {
-    detailUnreadBooksTbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--text-muted); font-weight: 500;">Tebrikler! Kitaplıktaki tüm kitaplar okundu.</td></tr>';
-  } else {
-    unreadBooks.sort((a, b) => a.title.localeCompare(b.title, 'tr'));
-    unreadBooks.forEach(book => {
+  // Sayısal Kitap No sıralaması
+  unreadBooks.sort((a, b) => {
+    const noA = parseInt(a.bookNo, 10);
+    const noB = parseInt(b.bookNo, 10);
+    if (!isNaN(noA) && !isNaN(noB)) return noA - noB;
+    if (!isNaN(noA)) return -1;
+    if (!isNaN(noB)) return 1;
+    if (a.bookNo && b.bookNo) return a.bookNo.localeCompare(b.bookNo, 'tr', { numeric: true });
+    return a.title.localeCompare(b.title, 'tr');
+  });
+
+  const searchUnreadInput = document.getElementById('search-student-unread-books');
+  if (searchUnreadInput) {
+    searchUnreadInput.value = '';
+    searchUnreadInput.oninput = () => {
+      renderUnreadTable(searchUnreadInput.value.trim().toLowerCase());
+    };
+  }
+
+  function renderUnreadTable(q = '') {
+    detailUnreadBooksTbody.innerHTML = '';
+    const filteredUnread = q
+      ? unreadBooks.filter(b => (b.bookNo && b.bookNo.toLowerCase().includes(q)) || b.title.toLowerCase().includes(q) || b.author.toLowerCase().includes(q))
+      : unreadBooks;
+
+    if (filteredUnread.length === 0) {
+      detailUnreadBooksTbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--text-muted); font-weight: 500;">${q ? 'Aramaya uygun kitap bulunamadı.' : 'Tebrikler! Kitaplıktaki tüm kitaplar okundu.'}</td></tr>`;
+      return;
+    }
+
+    filteredUnread.forEach(book => {
       const isAlreadyBorrowed = state.books.transactions.some(
         t => t.bookId === book.id && t.status === 'reading'
       );
       
       const row = document.createElement('tr');
       row.innerHTML = `
-        <td><code>${book.bookNo || '-'}</code></td>
+        <td><code style="font-weight: 700; color: var(--primary);">${book.bookNo || '-'}</code></td>
         <td><strong>${book.title}</strong></td>
         <td>${book.author}</td>
         <td>${book.pages} s.</td>
@@ -1694,6 +2020,8 @@ function openStudentDetailModal(id) {
       detailUnreadBooksTbody.appendChild(row);
     });
   }
+
+  renderUnreadTable('');
 
   // 3. Sekme: Ödev Geçmişi ve Başarı Oranı
   let completedHw = 0;

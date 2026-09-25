@@ -536,9 +536,16 @@
     }
   },
   "bookSettings": {
-    "limitDays": 15,
-    "onTimePoints": 2,
-    "latePoints": 0
+    "level1": {
+      "onTimePoints": 2,
+      "latePoints": 0,
+      "limitDays": 10
+    },
+    "level2": {
+      "onTimePoints": 4,
+      "latePoints": 0,
+      "limitDays": 20
+    }
   },
   "performanceBehaviors": {
     "positive": [
@@ -576,11 +583,6 @@
         "name": "Örnek Davranış",
         "point": 3,
         "icon": "🏆"
-      },
-      {
-        "name": "Kitap Aferinleri",
-        "point": 0,
-        "icon": "📖"
       }
     ],
     "development": [

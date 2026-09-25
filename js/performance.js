@@ -289,9 +289,7 @@
       card.className = `behavior-card ${currentBehaviorType}`;
       
       const pointSign = bh.point >= 0 ? '+' : '';
-      const pointsText = bh.name === 'Kitap Aferinleri' 
-        ? 'Puan Girin' 
-        : `${pointSign}${bh.point} Puan`;
+      const pointsText = `${pointSign}${bh.point} Puan`;
 
       card.innerHTML = `
         <div class="behavior-icon" style="font-size: 1.5rem;">${bh.icon}</div>
@@ -299,22 +297,8 @@
         <div class="behavior-points" style="font-weight: 700; font-size: 0.75rem;">${pointsText}</div>
       `;
 
-      card.addEventListener('click', async () => {
-        if (bh.name === 'Kitap Aferinleri') {
-          const defaultVal = bh.point !== 0 ? bh.point.toString() : '5';
-          const inputVal = window.promptAsync ? 
-            await window.promptAsync('Lütfen "Kitap Aferinleri" için verilecek puanı girin:', defaultVal) :
-            prompt('Lütfen "Kitap Aferinleri" için verilecek puanı girin:', defaultVal);
-          if (inputVal === null) return; // cancelled
-          const parsedPoint = parseInt(inputVal);
-          if (isNaN(parsedPoint)) {
-            if (toastCallback) toastCallback('Lütfen geçerli bir puan değeri girin!', 'warning');
-            return;
-          }
-          applyQuickPointBehavior({ ...bh, point: parsedPoint });
-        } else {
-          applyQuickPointBehavior(bh);
-        }
+      card.addEventListener('click', () => {
+        applyQuickPointBehavior(bh);
       });
 
       behaviorGrid.appendChild(card);

@@ -1,15 +1,14 @@
 {
-  "version": "1.0.21",
-  "releaseDate": "2026-09-22",
+  "version": "1.0.25",
+  "releaseDate": "2026-09-25",
   "minRequiredVersion": "1.0.0",
-  "title": "Sınıf Asistanı v1.0.21 Yayında!",
-  "description": "Taşınabilir USB (Flash Bellek) Otomatik Veri & Yapay Zeka Senkronizasyonu ve Soru Havuzu Paketleri",
+  "title": "Sınıf Asistanı v1.0.25 Yayında!",
+  "description": "Seviye Bazlı Kitap Puanı Ayarları ve Sınav Puanları Güncellemeleri",
   "features": [
-    "Otomatik Taşınabilir Mod (USB / AppImage): Farklı sınıflardaki akıllı tahtalarda hiçbir ayar yapmadan Flash disk üzerinden tak-çalıştır kullanım",
-    "Yapay Zeka API Anahtarı ve tüm sınıf verileri doğrudan Flash diskte saklanır ve her tahtada anında hazır gelir",
-    "Yedekleme (Dışa/İçe Aktar) dosyalarına Yapay Zeka API anahtarı da dahil edildi",
-    "Bilgi Yarışması Soru Havuzu Paketleri: Sorular konu bazlı paketler halinde kartlarla listelenir (v1.0.20)",
-    "Ayarlar Bölümünde Özel Yapay Zeka (AI) Sekmesi: Canlı Google bağlantı testi, silme ve rehber (v1.0.20)"
+    "Kitap Puanları Sekmesi: Genel puan ve kural ayarları altına 1. ve 2. seviye kitaplar için ayrı ayrı zamanında teslim, geç teslim ve makul okuma süresi (gün) kurallarını belirleme desteği eklendi",
+    "Akıllı Teslim ve Puanlama Mantığı: Kitap iadelerinde kitabın seviyesine göre tanımlanan gün sınırı ve puanlar (zamanında / gecikmeli) otomatik olarak işletilir",
+    "Sınav Puanları Sekmesi: Sınav Dereceleri sekmesi daha anlaşılır ve kapsayıcı olması adına Sınav Puanları olarak güncellendi",
+    "Davranış Puanları Sadeliği: Kullanıcı tarafından anlık değer girilen kitap aferinleri kaldırılarak kitap puanlaması tamamen kitaplar modülü seviye kurallarına bağlandı"
   ],
   "release_url": "https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/latest"
 }

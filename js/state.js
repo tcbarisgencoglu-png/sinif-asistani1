@@ -728,9 +728,16 @@ const DEFAULT_STATE = {
     }
   },
   "bookSettings": {
-    "limitDays": 15,
-    "onTimePoints": 2,
-    "latePoints": 0
+    "level1": {
+      "onTimePoints": 2,
+      "latePoints": 0,
+      "limitDays": 10
+    },
+    "level2": {
+      "onTimePoints": 4,
+      "latePoints": 0,
+      "limitDays": 20
+    }
   },
   "performanceBehaviors": {
     "positive": [
@@ -768,11 +775,6 @@ const DEFAULT_STATE = {
         "name": "Örnek Davranış",
         "point": 3,
         "icon": "🏆"
-      },
-      {
-        "name": "Kitap Aferinleri",
-        "point": 0,
-        "icon": "📖"
       }
     ],
     "development": [
@@ -1913,7 +1915,8 @@ const DEFAULT_STATE = {
       "schoolLevel": "middle",
       "createdAt": "2026-08-23T23:08:45.942Z"
     }
-  ]
+  ],
+  "classLeaders": {}
 };
 
 function wrapState(parsed, unfiltered = false) {
@@ -2158,7 +2161,27 @@ class StateManager {
         }
         
         // bookSettings migration
-        const bs = parsed.bookSettings || { limitDays: 15, onTimePoints: 2, latePoints: 0 };
+        const bs = parsed.bookSettings || {};
+        if (!bs.level1) {
+          bs.level1 = {
+            onTimePoints: bs.level1Points !== undefined ? bs.level1Points : (bs.onTimePoints !== undefined ? bs.onTimePoints : 2),
+            latePoints: bs.latePoints !== undefined ? bs.latePoints : 0,
+            limitDays: bs.limitDays || 10
+          };
+        }
+        if (!bs.level2) {
+          bs.level2 = {
+            onTimePoints: bs.level2Points !== undefined ? bs.level2Points : 4,
+            latePoints: bs.latePoints !== undefined ? bs.latePoints : 0,
+            limitDays: bs.limitDays ? Math.max(bs.limitDays, 15) : 20
+          };
+        }
+        if (bs.level1.onTimePoints === undefined) bs.level1.onTimePoints = 2;
+        if (bs.level1.latePoints === undefined) bs.level1.latePoints = 0;
+        if (bs.level1.limitDays === undefined) bs.level1.limitDays = 10;
+        if (bs.level2.onTimePoints === undefined) bs.level2.onTimePoints = 4;
+        if (bs.level2.latePoints === undefined) bs.level2.latePoints = 0;
+        if (bs.level2.limitDays === undefined) bs.level2.limitDays = 20;
         
         // performanceBehaviors migration
         const pb = parsed.performanceBehaviors || {
@@ -2169,8 +2192,7 @@ class StateManager {
             { name: 'Kitap Okuma', point: 2, icon: '📚' },
             { name: 'Ödevini Tam Yapma', point: 1, icon: '✅' },
             { name: 'Görev Bilinci / Sorumluluk', point: 2, icon: '🎯' },
-            { name: 'Örnek Davranış', point: 3, icon: '🏆' },
-            { name: 'Kitap Aferinleri', point: 0, icon: '📖' }
+            { name: 'Örnek Davranış', point: 3, icon: '🏆' }
           ],
           development: [
             { name: 'Sınıf Düzenini Bozma', point: -1, icon: '📣' },
@@ -2189,16 +2211,8 @@ class StateManager {
               b.name = 'Kitap Okuma';
             }
           });
-        }
-
-        // Ensure 'Kitap Okuma' exists in positive behaviors
-        if (pb.positive && !pb.positive.some(b => b.name === 'Kitap Okuma')) {
-          pb.positive.push({ name: 'Kitap Okuma', point: 2, icon: '📚' });
-        }
-
-        // Ensure 'Kitap Aferinleri' exists in positive behaviors
-        if (pb.positive && !pb.positive.some(b => b.name === 'Kitap Aferinleri')) {
-          pb.positive.push({ name: 'Kitap Aferinleri', point: 0, icon: '📖' });
+          // Remove Kitap Aferinleri if present
+          pb.positive = pb.positive.filter(b => b.name !== 'Kitap Aferinleri');
         }
 
         const loaded = {
@@ -2230,7 +2244,8 @@ class StateManager {
           attendance: parsed.attendance || {},
           reports: parsed.reports || [],
           seatingPlans: parsed.seatingPlans || {},
-          contributions: parsed.contributions || []
+          contributions: parsed.contributions || [],
+          classLeaders: parsed.classLeaders || {}
         };
 
         // Görev kayıtlarını performans tablosuna bağlama (taskId senkronizasyonu)
@@ -3197,16 +3212,55 @@ class StateManager {
 
   getBookSettings() {
     if (!this.state.bookSettings) {
-      this.state.bookSettings = { limitDays: 15, onTimePoints: 2, latePoints: 0 };
+      this.state.bookSettings = {};
     }
-    return this.state.bookSettings;
+    const bs = this.state.bookSettings;
+    if (!bs.level1) {
+      bs.level1 = {
+        onTimePoints: bs.level1Points !== undefined ? bs.level1Points : (bs.onTimePoints !== undefined ? bs.onTimePoints : 2),
+        latePoints: bs.latePoints !== undefined ? bs.latePoints : 0,
+        limitDays: bs.limitDays || 10
+      };
+    }
+    if (!bs.level2) {
+      bs.level2 = {
+        onTimePoints: bs.level2Points !== undefined ? bs.level2Points : 4,
+        latePoints: bs.latePoints !== undefined ? bs.latePoints : 0,
+        limitDays: bs.limitDays ? Math.max(bs.limitDays, 15) : 20
+      };
+    }
+    if (bs.level1.onTimePoints === undefined) bs.level1.onTimePoints = 2;
+    if (bs.level1.latePoints === undefined) bs.level1.latePoints = 0;
+    if (bs.level1.limitDays === undefined) bs.level1.limitDays = 10;
+    if (bs.level2.onTimePoints === undefined) bs.level2.onTimePoints = 4;
+    if (bs.level2.latePoints === undefined) bs.level2.latePoints = 0;
+    if (bs.level2.limitDays === undefined) bs.level2.limitDays = 20;
+
+    // Backward compatibility aliases
+    bs.limitDays = bs.level1.limitDays;
+    bs.onTimePoints = bs.level1.onTimePoints;
+    bs.latePoints = bs.level1.latePoints;
+
+    return bs;
   }
 
   updateBookSettings(settings) {
+    const l1 = settings.level1 || {};
+    const l2 = settings.level2 || {};
     this.state.bookSettings = {
-      limitDays: parseInt(settings.limitDays) || 15,
-      onTimePoints: settings.onTimePoints !== undefined ? parseInt(settings.onTimePoints) : 2,
-      latePoints: settings.latePoints !== undefined ? parseInt(settings.latePoints) : 0
+      level1: {
+        onTimePoints: l1.onTimePoints !== undefined ? parseInt(l1.onTimePoints) : 2,
+        latePoints: l1.latePoints !== undefined ? parseInt(l1.latePoints) : 0,
+        limitDays: parseInt(l1.limitDays) || 10
+      },
+      level2: {
+        onTimePoints: l2.onTimePoints !== undefined ? parseInt(l2.onTimePoints) : 4,
+        latePoints: l2.latePoints !== undefined ? parseInt(l2.latePoints) : 0,
+        limitDays: parseInt(l2.limitDays) || 20
+      },
+      limitDays: parseInt(l1.limitDays) || 10,
+      onTimePoints: l1.onTimePoints !== undefined ? parseInt(l1.onTimePoints) : 2,
+      latePoints: l1.latePoints !== undefined ? parseInt(l1.latePoints) : 0
     };
     this.saveState();
   }
@@ -3221,8 +3275,7 @@ class StateManager {
           { name: 'Kitap Okuma', point: 2, icon: '📚' },
           { name: 'Ödevini Tam Yapma', point: 1, icon: '✅' },
           { name: 'Görev Bilinci / Sorumluluk', point: 2, icon: '🎯' },
-          { name: 'Örnek Davranış', point: 3, icon: '🏆' },
-          { name: 'Kitap Aferinleri', point: 0, icon: '📖' }
+          { name: 'Örnek Davranış', point: 3, icon: '🏆' }
         ],
         development: [
           { name: 'Sınıf Düzenini Bozma', point: -1, icon: '📣' },
@@ -3243,15 +3296,10 @@ class StateManager {
             changed = true;
           }
         });
-        
-        // Ensure new behaves exist
-        if (!this.state.performanceBehaviors.positive.some(b => b.name === 'Kitap Okuma')) {
-          this.state.performanceBehaviors.positive.push({ name: 'Kitap Okuma', point: 2, icon: '📚' });
-          changed = true;
-        }
-        
-        if (!this.state.performanceBehaviors.positive.some(b => b.name === 'Kitap Aferinleri')) {
-          this.state.performanceBehaviors.positive.push({ name: 'Kitap Aferinleri', point: 0, icon: '📖' });
+
+        // Remove Kitap Aferinleri if present
+        if (this.state.performanceBehaviors.positive.some(b => b.name === 'Kitap Aferinleri')) {
+          this.state.performanceBehaviors.positive = this.state.performanceBehaviors.positive.filter(b => b.name !== 'Kitap Aferinleri');
           changed = true;
         }
       }
@@ -3839,6 +3887,46 @@ class StateManager {
       return true;
     }
     return false;
+  }
+
+  getClassLeaders(branch = 'all') {
+    if (!this.state.classLeaders) {
+      this.state.classLeaders = {};
+    }
+    const key = branch || 'all';
+    const leaders = this.state.classLeaders[key] || { presidentId: null, vicePresidentId: null };
+    const students = this.state.rawStudents || this.state.students || [];
+    let changed = false;
+    let pId = leaders.presidentId;
+    let vpId = leaders.vicePresidentId;
+    if (pId && !students.some(s => s.id === pId)) {
+      pId = null;
+      changed = true;
+    }
+    if (vpId && !students.some(s => s.id === vpId)) {
+      vpId = null;
+      changed = true;
+    }
+    if (changed) {
+      this.state.classLeaders[key] = { presidentId: pId, vicePresidentId: vpId };
+      this.saveState();
+    }
+    return { presidentId: pId, vicePresidentId: vpId };
+  }
+
+  setClassLeaders(branch = 'all', presidentId = null, vicePresidentId = null) {
+    if (!this.state.classLeaders) {
+      this.state.classLeaders = {};
+    }
+    const key = branch || 'all';
+    this.state.classLeaders[key] = {
+      presidentId: presidentId || null,
+      vicePresidentId: vicePresidentId || null
+    };
+    this.saveState();
+    const event = new CustomEvent('stateChanged');
+    document.dispatchEvent(event);
+    return true;
   }
 }
 

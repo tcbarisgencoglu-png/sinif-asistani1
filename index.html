@@ -225,11 +225,18 @@
             </button>
           </div>
 
-          <div id="dash-download-app-tab-container" style="padding-bottom: 0.35rem;">
-            <button type="button" id="btn-dash-download-app-tab" class="btn" style="background: linear-gradient(135deg, #4f46e5, #7c3aed); color: #ffffff; border: none; padding: 0.45rem 1rem; border-radius: var(--radius-md); font-weight: 700; font-size: 0.85rem; display: flex; align-items: center; gap: 0.45rem; box-shadow: 0 4px 12px rgba(79, 70, 229, 0.25); cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;">
-              <i data-lucide="download" style="width: 16px; height: 16px;"></i>
-              <span>Masaüstü Uygulamasını İndir</span>
-            </button>
+          <div style="display: flex; align-items: center; gap: 0.75rem; margin-left: auto; flex-wrap: wrap; padding-bottom: 0.35rem;">
+            <!-- Sınıf Başkanlığı Rozeti / Butonu -->
+            <div id="dash-class-leaders-container" class="dash-class-leaders-container">
+              <!-- Dinamik render edilecek -->
+            </div>
+
+            <div id="dash-download-app-tab-container">
+              <button type="button" id="btn-dash-download-app-tab" class="btn" style="background: linear-gradient(135deg, #4f46e5, #7c3aed); color: #ffffff; border: none; padding: 0.45rem 1rem; border-radius: var(--radius-md); font-weight: 700; font-size: 0.85rem; display: flex; align-items: center; gap: 0.45rem; box-shadow: 0 4px 12px rgba(79, 70, 229, 0.25); cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;">
+                <i data-lucide="download" style="width: 16px; height: 16px;"></i>
+                <span>Masaüstü Uygulamasını İndir</span>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -514,6 +521,9 @@
               </div>
               <button class="btn btn-primary btn-sm" id="btn-save-late-limit" style="font-size: 0.8rem; padding: 0.4rem 0.75rem; font-weight: 600; display: inline-flex; align-items: center; gap: 0.25rem;">
                 <i data-lucide="save" style="width: 14px; height: 14px;"></i> Süreyi Güncelle
+              </button>
+              <button type="button" class="btn btn-secondary btn-sm" onclick="window.openGlobalSettingsModal && window.openGlobalSettingsModal('settings-books')" style="font-size: 0.8rem; padding: 0.4rem 0.75rem; font-weight: 600; display: inline-flex; align-items: center; gap: 0.25rem;">
+                <i data-lucide="sliders" style="width: 14px; height: 14px;"></i> Kitap Puan Ayarları
               </button>
             </div>
 
@@ -2470,8 +2480,11 @@
               <button type="button" class="sub-tab-btn" data-pt-tab="pt-homeworks" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;">
                 <i data-lucide="clipboard-check" style="width: 14px; height: 14px;"></i> Ödev Puanları
               </button>
+              <button type="button" class="sub-tab-btn" data-pt-tab="pt-books" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;">
+                <i data-lucide="book-open" style="width: 14px; height: 14px;"></i> Kitap Puanları
+              </button>
               <button type="button" class="sub-tab-btn" data-pt-tab="pt-exams" style="padding: 0.4rem 0.8rem; font-size: 0.8rem;">
-                <i data-lucide="trending-up" style="width: 14px; height: 14px;"></i> Sınav Dereceleri
+                <i data-lucide="trending-up" style="width: 14px; height: 14px;"></i> Sınav Puanları
               </button>
             </div>
 
@@ -2554,8 +2567,74 @@
                 </div>
               </div>
 
+              <!-- 3. SEKME: KİTAP PUANLARI -->
+              <div class="pt-tab-content" id="pt-books" style="display: none;">
+                <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.25rem; line-height: 1.5;">
+                  Kitap okuma takibinde her kitap seviyesi (1. ve 2. Seviye) için ayrı ayrı teslim süresi ve teslim durumuna göre öğrencilere verilecek puanları belirleyin.
+                </p>
 
-              <!-- 4. SEKME: SINAV DERECELERİ -->
+                <div style="display: flex; flex-direction: column; gap: 1.25rem;">
+                  <!-- 1. SEVİYE KİTAPLAR -->
+                  <div style="background: rgba(16, 185, 129, 0.05); border: 1.5px solid rgba(16, 185, 129, 0.3); border-radius: var(--radius-md); padding: 1.25rem;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem;">
+                      <span class="badge" style="background: var(--success); color: #fff; font-weight: 700; font-size: 0.8rem; padding: 0.2rem 0.6rem; border-radius: 20px;">1. Seviye</span>
+                      <h4 style="margin: 0; font-size: 0.95rem; font-weight: 700; color: var(--text-primary);">1. Seviye Kitaplar (Kolay / Temel)</h4>
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+                      <div class="form-group" style="margin-bottom: 0;">
+                        <label for="config-settings-book-l1-ontime" style="font-weight: 600; font-size: 0.85rem;">Zamanında Teslim Puanı (+)</label>
+                        <input type="number" class="form-control" id="config-settings-book-l1-ontime" required>
+                        <span style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.25rem; display: block;">Süresi içinde teslimde verilecek puan</span>
+                      </div>
+                      <div class="form-group" style="margin-bottom: 0;">
+                        <label for="config-settings-book-l1-late" style="font-weight: 600; font-size: 0.85rem;">Geç Teslim Puanı (0 / -)</label>
+                        <input type="number" class="form-control" id="config-settings-book-l1-late" required>
+                        <span style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.25rem; display: block;">Süre aşıldığında uygulanacak puan / kesinti</span>
+                      </div>
+                      <div class="form-group" style="margin-bottom: 0;">
+                        <label for="config-settings-book-l1-limit" style="font-weight: 600; font-size: 0.85rem;">Makul Okuma Süresi (Gün)</label>
+                        <input type="number" class="form-control" id="config-settings-book-l1-limit" required min="1">
+                        <span style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.25rem; display: block;">Gecikmeye girmeden okunacak azami gün sınırı</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- 2. SEVİYE KİTAPLAR -->
+                  <div style="background: rgba(147, 51, 234, 0.05); border: 1.5px solid rgba(147, 51, 234, 0.3); border-radius: var(--radius-md); padding: 1.25rem;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem;">
+                      <span class="badge" style="background: #9333ea; color: #fff; font-weight: 700; font-size: 0.8rem; padding: 0.2rem 0.6rem; border-radius: 20px;">2. Seviye</span>
+                      <h4 style="margin: 0; font-size: 0.95rem; font-weight: 700; color: var(--text-primary);">2. Seviye Kitaplar (İleri / Kalın)</h4>
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+                      <div class="form-group" style="margin-bottom: 0;">
+                        <label for="config-settings-book-l2-ontime" style="font-weight: 600; font-size: 0.85rem;">Zamanında Teslim Puanı (+)</label>
+                        <input type="number" class="form-control" id="config-settings-book-l2-ontime" required>
+                        <span style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.25rem; display: block;">Süresi içinde teslimde verilecek puan</span>
+                      </div>
+                      <div class="form-group" style="margin-bottom: 0;">
+                        <label for="config-settings-book-l2-late" style="font-weight: 600; font-size: 0.85rem;">Geç Teslim Puanı (0 / -)</label>
+                        <input type="number" class="form-control" id="config-settings-book-l2-late" required>
+                        <span style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.25rem; display: block;">Süre aşıldığında uygulanacak puan / kesinti</span>
+                      </div>
+                      <div class="form-group" style="margin-bottom: 0;">
+                        <label for="config-settings-book-l2-limit" style="font-weight: 600; font-size: 0.85rem;">Makul Okuma Süresi (Gün)</label>
+                        <input type="number" class="form-control" id="config-settings-book-l2-limit" required min="1">
+                        <span style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.25rem; display: block;">Gecikmeye girmeden okunacak azami gün sınırı</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Bilgi Kutusu -->
+                <div style="margin-top: 1.25rem; padding: 0.85rem 1rem; background: rgba(99, 102, 241, 0.06); border: 1px solid rgba(99, 102, 241, 0.2); border-radius: var(--radius-md); font-size: 0.8rem; color: var(--text-secondary); line-height: 1.5;">
+                  <div style="display: flex; align-items: center; gap: 0.4rem; font-weight: 700; color: var(--primary); margin-bottom: 0.35rem;">
+                    <i data-lucide="info" style="width: 15px; height: 15px;"></i> Puanlama Mantığı
+                  </div>
+                  Öğrenci 1. Seviye kitap teslim ettiğinde 1. Seviyenin teslim süresine ve durumuna (zamanında veya geç); 2. Seviye kitap teslim ettiğinde ise 2. Seviyenin teslim süresine ve durumuna göre belirlenen puanı alır.
+                </div>
+              </div>
+
+              <!-- 4. SEKME: SINAV PUANLARI -->
               <div class="pt-tab-content" id="pt-exams" style="display: none;">
                 <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.25rem; line-height: 1.5;">
                   Haftalık sınavlarda dereceye giren ilk kaç öğrenciye puan ödülü verileceğini ve puan miktarlarını belirleyin.
@@ -2890,13 +2969,12 @@
                     </p>
                     
                     <strong>3. Kitap Okuma Puanları:</strong>
-                    <p style="margin: 0;">Öğrencilerinizin kitap okuma durumlarına göre alacağı puanları belirleyin:
-                      <br>• <strong>Zamanında Getirdi:</strong> Kitabı belirlenen süre sınırı içinde okuyup teslim edenlerin kazanacağı puan.
-                      <br>• <strong>Gecikmeli Getirdi:</strong> Belirlenen gün sınırını aşarak teslim edenlerin alacağı (veya düşülecek) puan.
-                      <br>• <strong>Teslim Süresi Sınırı (Gün):</strong> Bir öğrencinin aldığı kitabı en fazla kaç gün elinde tutabileceğini belirler (Örn: 15 gün).
+                    <p style="margin: 0;">Kitap seviyelerine (1. ve 2. Seviye) göre okuma ve teslimat kurallarını belirleyin:
+                      <br>• <strong>1. Seviye Kitaplar (Kolay / Temel):</strong> Zamanında teslim puanı, geç teslim puanı ve makul okuma süresi (gün).
+                      <br>• <strong>2. Seviye Kitaplar (İleri / Kalın):</strong> Zamanında teslim puanı, geç teslim puanı ve makul okuma süresi (gün).
                     </p>
 
-                    <strong>4. Sınav Dereceleri Başarı Puanları:</strong>
+                    <strong>4. Sınav Puanları:</strong>
                     <p style="margin: 0;">Dönem içi yapılan sınavlarda dereceye giren öğrencileri ödüllendirmek için kullanılır. Örneğin, sınavda sınıf birincisi olan öğrenciye otomatik olarak +50, ikinciye +30, üçüncüye +20 puan eklenmesini sağlayabilirsiniz. Kaçıncı dereceye kadar puan verileceğini (ilk 3, ilk 5 vb.) seçebilirsiniz.</p>
                   </div>
                 </div>
@@ -5319,6 +5397,63 @@
     </div>
   </div>
 
+  <!-- MODAL: SINIF BAŞKANI VE YARDIMCISI BELİRLE -->
+  <div class="modal" id="modal-class-leaders" style="--max-width: 480px; z-index: 1050;">
+    <div class="modal-content" style="max-width: 480px;">
+      <div class="modal-header" style="background: rgba(245, 158, 11, 0.1); color: #d97706; display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.5rem; border-bottom: 1px solid var(--border-color);">
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <span style="font-size: 1.25rem;">👑</span>
+          <h3 style="margin: 0; font-size: 1.1rem; font-weight: 700; color: #d97706;">Sınıf Başkanlığı Yönetimi</h3>
+        </div>
+        <button type="button" class="close-btn" id="btn-close-class-leaders-modal">&times;</button>
+      </div>
+      <div class="modal-body" style="padding: 1.5rem; display: flex; flex-direction: column; gap: 1.25rem;">
+        <!-- Şube Seçimi (Ortaokulda şube varsa gösterilir) -->
+        <div class="form-group" id="group-leader-branch" style="display: none;">
+          <label for="select-leader-branch" style="font-weight: 600; font-size: 0.85rem; margin-bottom: 0.35rem; display: block; color: var(--text-primary);">
+            İlgili Şube:
+          </label>
+          <select id="select-leader-branch" class="form-control" style="width: 100%;">
+            <!-- Dinamik doldurulacak -->
+          </select>
+        </div>
+
+        <!-- Sınıf Başkanı -->
+        <div class="form-group">
+          <label for="select-class-president" style="font-weight: 600; font-size: 0.85rem; margin-bottom: 0.35rem; display: flex; align-items: center; gap: 0.4rem; color: var(--text-primary);">
+            <span>👑</span> Sınıf Başkanı:
+          </label>
+          <select id="select-class-president" class="form-control" style="width: 100%;">
+            <option value="">-- Seçilmedi (Boş) --</option>
+            <!-- Öğrenciler dinamik yüklenecek -->
+          </select>
+        </div>
+
+        <!-- Sınıf Başkan Yardımcısı -->
+        <div class="form-group">
+          <label for="select-class-vice-president" style="font-weight: 600; font-size: 0.85rem; margin-bottom: 0.35rem; display: flex; align-items: center; gap: 0.4rem; color: var(--text-primary);">
+            <span>🎖️</span> Sınıf Başkan Yardımcısı:
+          </label>
+          <select id="select-class-vice-president" class="form-control" style="width: 100%;">
+            <option value="">-- Seçilmedi (Boş) --</option>
+            <!-- Öğrenciler dinamik yüklenecek -->
+          </select>
+        </div>
+
+        <div style="font-size: 0.78rem; color: var(--text-muted); background: rgba(0, 0, 0, 0.03); padding: 0.6rem 0.8rem; border-radius: var(--radius-md); border-left: 3px solid #d97706; line-height: 1.4;">
+          💡 <strong>Bilgi:</strong> Seçtiğiniz başkan ve başkan yardımcısı, Dashboard sekme satırında ve öğrenci kartlarında özel rozetlerle gösterilecektir. İptal etmek için "-- Seçilmedi --" yapıp kaydedebilirsiniz.
+        </div>
+      </div>
+      <div class="modal-footer" style="background: rgba(255, 255, 255, 0.02); border-top: 1px solid var(--border-color); padding: 1rem 1.5rem; display: flex; justify-content: flex-end; gap: 0.75rem;">
+        <button type="button" class="btn btn-secondary close-btn-action" id="btn-cancel-class-leaders">Vazgeç</button>
+        <button type="button" class="btn btn-primary" id="btn-save-class-leaders" style="display: flex; align-items: center; gap: 0.4rem; background: linear-gradient(135deg, #d97706, #b45309); border: none; color: #fff; font-weight: 600;">
+          <i data-lucide="check" style="width: 16px; height: 16px;"></i>
+          <span>Kaydet</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- MODAL: ÖĞRENCİ EKLE / DÜZENLE -->
   <div class="modal" id="modal-student">
     <div class="modal-content">
@@ -5639,8 +5774,27 @@
               <option value="seviye_2">2. Seviye (Orta - İleri / Gelişmiş)</option>
             </select>
           </div>
+
+          <!-- Kitap No ile Hızlı Arama -->
+          <div class="form-group" style="background: rgba(99, 102, 241, 0.05); padding: 0.75rem 0.85rem; border-radius: var(--radius-md); border: 1.5px solid rgba(99, 102, 241, 0.25);">
+            <label for="borrow-book-no-input" style="font-weight: 700; display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.35rem; color: var(--primary);">
+              <span style="display: flex; align-items: center; gap: 0.35rem;">
+                <i data-lucide="hash" style="width: 15px; height: 15px;"></i> Kitap No ile Hızlı Bul:
+              </span>
+              <span style="font-size: 0.72rem; font-weight: normal; color: var(--text-muted);">(No yazarak anında seçebilirsiniz)</span>
+            </label>
+            <div style="position: relative; display: flex; align-items: center;">
+              <input type="text" class="form-control" id="borrow-book-no-input" placeholder="Kitap No girin (Örn: 24)..." autocomplete="off" style="font-weight: 700; font-size: 0.95rem; padding-right: 2rem;">
+              <button type="button" id="btn-clear-borrow-book-no" title="Temizle" style="display: none; position: absolute; right: 0.5rem; background: none; border: none; font-size: 1.15rem; color: var(--text-muted); cursor: pointer; line-height: 1; padding: 0.2rem;">&times;</button>
+            </div>
+            <div id="borrow-book-no-feedback" style="display: none; margin-top: 0.45rem; font-size: 0.82rem; padding: 0.4rem 0.65rem; border-radius: var(--radius-sm); font-weight: 600;"></div>
+          </div>
+
           <div class="form-group">
-            <label for="borrow-book-select">Kitap Seçin</label>
+            <label for="borrow-book-select" style="display: flex; justify-content: space-between; align-items: center;">
+              <span>Kitap Seçin</span>
+              <span id="borrow-book-count-badge" style="font-size: 0.72rem; color: var(--text-muted); font-weight: normal;"></span>
+            </label>
             <select class="form-control" id="borrow-book-select" required>
               <!-- Dinamik olarak doldurulacak -->
             </select>
@@ -6316,9 +6470,15 @@
                 </table>
               </div>
 
-              <h4 style="font-size: 0.95rem; margin-bottom: 0.75rem; font-weight: 700; display: flex; align-items: center; gap: 0.5rem; border-top: 1px solid var(--border-color); padding-top: 1.25rem; color: var(--warning);">
-                <i data-lucide="book" style="width: 16px; height: 16px;"></i> Kütüphanede Okumadığı Kitaplar
-              </h4>
+              <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-color); padding-top: 1.25rem; margin-bottom: 0.75rem; flex-wrap: wrap; gap: 0.5rem;">
+                <h4 style="font-size: 0.95rem; font-weight: 700; display: flex; align-items: center; gap: 0.5rem; color: var(--warning); margin: 0;">
+                  <i data-lucide="book" style="width: 16px; height: 16px;"></i> Kütüphanede Okumadığı Kitaplar
+                </h4>
+                <div style="position: relative; width: 220px;">
+                  <input type="text" id="search-student-unread-books" class="form-control form-control-sm" placeholder="No veya Ad ile ara..." style="font-size: 0.8rem; height: 32px; padding-left: 1.8rem;">
+                  <i data-lucide="search" style="position: absolute; left: 0.5rem; top: 8px; width: 14px; height: 14px; color: var(--text-muted); pointer-events: none;"></i>
+                </div>
+              </div>
               <div class="table-wrapper">
                 <table class="table" style="font-size: 0.85rem;">
                   <thead>

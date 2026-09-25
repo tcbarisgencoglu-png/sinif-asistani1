@@ -799,9 +799,16 @@ const SEED_DATA = {
     }
   },
   "bookSettings": {
-    "limitDays": 15,
-    "onTimePoints": 2,
-    "latePoints": 0
+    "level1": {
+      "onTimePoints": 2,
+      "latePoints": 0,
+      "limitDays": 10
+    },
+    "level2": {
+      "onTimePoints": 4,
+      "latePoints": 0,
+      "limitDays": 20
+    }
   },
   "performanceBehaviors": {
     "positive": [
@@ -839,11 +846,6 @@ const SEED_DATA = {
         "name": "Örnek Davranış",
         "point": 3,
         "icon": "🏆"
-      },
-      {
-        "name": "Kitap Aferinleri",
-        "point": 0,
-        "icon": "📖"
       }
     ],
     "development": [
@@ -2666,7 +2668,7 @@ async function initApp() {
 }
 
 // Mevcut uygulama sürümü (her güncellemede değişir)
-const APP_VERSION = '1.0.24';
+const APP_VERSION = '1.0.25';
 
 // GitHub & Tauri Auto-Updater kontrolü
 async function checkForUpdates() {

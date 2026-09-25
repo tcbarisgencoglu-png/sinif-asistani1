@@ -17,9 +17,12 @@
   let configHwIncomplete;
   let configHwMissing;
   let configHwExcused;
-  let configBookLimit;
-  let configBookOntime;
-  let configBookLate;
+  let configBookL1Ontime;
+  let configBookL1Late;
+  let configBookL1Limit;
+  let configBookL2Ontime;
+  let configBookL2Late;
+  let configBookL2Limit;
   let configExamTopcount;
   let configExamRanksContainer;
 
@@ -297,9 +300,12 @@
     configHwIncomplete = document.getElementById('config-settings-hw-incomplete');
     configHwMissing = document.getElementById('config-settings-hw-missing');
     configHwExcused = document.getElementById('config-settings-hw-excused');
-    configBookLimit = document.getElementById('config-settings-book-limit');
-    configBookOntime = document.getElementById('config-settings-book-ontime');
-    configBookLate = document.getElementById('config-settings-book-late');
+    configBookL1Ontime = document.getElementById('config-settings-book-l1-ontime');
+    configBookL1Late = document.getElementById('config-settings-book-l1-late');
+    configBookL1Limit = document.getElementById('config-settings-book-l1-limit');
+    configBookL2Ontime = document.getElementById('config-settings-book-l2-ontime');
+    configBookL2Late = document.getElementById('config-settings-book-l2-late');
+    configBookL2Limit = document.getElementById('config-settings-book-l2-limit');
     configExamTopcount = document.getElementById('config-settings-exam-topcount');
     configExamRanksContainer = document.getElementById('config-settings-exam-ranks-container');
 
@@ -378,14 +384,26 @@
         };
         stateManager.updateHomeworkSettings(hwSettings);
 
-        // 3. Book settings (Only save if config elements are present)
-        if (configBookLimit && configBookOntime && configBookLate) {
+        // 3. Book settings (1. Seviye ve 2. Seviye ayarları)
+        if (configBookL1Ontime && configBookL2Ontime) {
           const bookSettings = {
-            limitDays: parseInt(configBookLimit.value) || 15,
-            onTimePoints: parseInt(configBookOntime.value) || 0,
-            latePoints: parseInt(configBookLate.value) || 0
+            level1: {
+              onTimePoints: parseInt(configBookL1Ontime.value) || 0,
+              latePoints: parseInt(configBookL1Late.value) || 0,
+              limitDays: parseInt(configBookL1Limit.value) || 10
+            },
+            level2: {
+              onTimePoints: parseInt(configBookL2Ontime.value) || 0,
+              latePoints: parseInt(configBookL2Late.value) || 0,
+              limitDays: parseInt(configBookL2Limit.value) || 20
+            }
           };
           stateManager.updateBookSettings(bookSettings);
+
+          const booksLateLimitInput = document.getElementById('books-late-limit-input');
+          if (booksLateLimitInput) {
+            booksLateLimitInput.value = bookSettings.level1.limitDays;
+          }
         }
 
         // 4. Exam settings
@@ -876,9 +894,15 @@
     if (configHwExcused) configHwExcused.value = hwSettings.excused !== undefined ? hwSettings.excused : 0;
 
     const bookSettings = stateManager.getBookSettings();
-    if (configBookLimit) configBookLimit.value = bookSettings.limitDays;
-    if (configBookOntime) configBookOntime.value = bookSettings.onTimePoints;
-    if (configBookLate) configBookLate.value = bookSettings.latePoints;
+    const l1 = bookSettings.level1 || {};
+    const l2 = bookSettings.level2 || {};
+    if (configBookL1Ontime) configBookL1Ontime.value = l1.onTimePoints !== undefined ? l1.onTimePoints : 2;
+    if (configBookL1Late) configBookL1Late.value = l1.latePoints !== undefined ? l1.latePoints : 0;
+    if (configBookL1Limit) configBookL1Limit.value = l1.limitDays !== undefined ? l1.limitDays : 10;
+
+    if (configBookL2Ontime) configBookL2Ontime.value = l2.onTimePoints !== undefined ? l2.onTimePoints : 4;
+    if (configBookL2Late) configBookL2Late.value = l2.latePoints !== undefined ? l2.latePoints : 0;
+    if (configBookL2Limit) configBookL2Limit.value = l2.limitDays !== undefined ? l2.limitDays : 20;
 
     const examSettings = stateManager.getWeeklyExamSettings();
     if (configExamTopcount) configExamTopcount.value = examSettings.topCount;
@@ -1088,10 +1112,6 @@
   function addBehaviorRow(container, name = '', point = 1, icon = '⭐', type = 'positive', index) {
     if (!container) return null;
 
-    const isKitapOkuma = (name === 'Kitap Okuma');
-    const nameReadonlyAttr = isKitapOkuma ? 'readonly' : '';
-    const deleteBtnStyle = isKitapOkuma ? 'display: none;' : '';
-
     const row = document.createElement('div');
     row.className = `behavior-setting-row ${type}-row`;
     row.style.display = 'flex';
@@ -1104,9 +1124,9 @@
         <span class="bh-icon-preview">${icon}</span>
       </button>
       <input type="hidden" class="bh-icon-input" value="${icon}">
-      <input type="text" class="form-control bh-name-input" value="${name}" style="flex: 1; padding: 0.35rem 0.5rem;" placeholder="Açıklama" required ${nameReadonlyAttr}>
+      <input type="text" class="form-control bh-name-input" value="${name}" style="flex: 1; padding: 0.35rem 0.5rem;" placeholder="Açıklama" required>
       <input type="number" class="form-control bh-point-input" value="${point}" style="width: 60px; text-align: center; padding: 0.35rem 0.5rem;" placeholder="Puan" required>
-      <button type="button" class="action-btn-sm delete-bh-row" style="color: var(--danger); border-color: rgba(239, 68, 68, 0.2); background: rgba(239, 68, 68, 0.05); ${deleteBtnStyle}" title="Sil">
+      <button type="button" class="action-btn-sm delete-bh-row" style="color: var(--danger); border-color: rgba(239, 68, 68, 0.2); background: rgba(239, 68, 68, 0.05);" title="Sil">
         <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i>
       </button>
     `;
@@ -1123,10 +1143,6 @@
     });
 
     row.querySelector('.delete-bh-row').addEventListener('click', () => {
-      if (isKitapOkuma) {
-        if (toastCallback) toastCallback('"Kitap Okuma" davranışı silinemez!', 'warning');
-        return;
-      }
       row.remove();
     });
 
