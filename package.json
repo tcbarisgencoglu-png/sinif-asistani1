@@ -1,6 +1,6 @@
 {
   "name": "sinif-asistani",
-  "version": "1.0.25",
+  "version": "1.0.26",
   "description": "Sınıf Asistanı - Dijital Öğretmen Yardımcısı",
   "scripts": {
     "tauri": "tauri",

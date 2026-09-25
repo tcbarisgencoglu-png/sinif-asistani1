@@ -513,16 +513,20 @@
               </span>
             </div>
 
-            <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem; background: var(--bg-secondary); padding: 1rem; border-radius: var(--radius-md); border: 1px solid var(--border-color); flex-wrap: wrap;">
-              <div style="display: flex; align-items: center; gap: 0.5rem; flex: 1; min-width: 250px;">
-                <i data-lucide="settings" style="width: 20px; height: 20px; color: var(--primary);"></i>
-                <label for="books-late-limit-input" style="font-weight: 600; font-size: 0.9rem; color: var(--text-primary); margin: 0; white-space: nowrap;">Makul Okuma Süresi (Gün):</label>
-                <input type="number" id="books-late-limit-input" min="1" class="form-control" style="width: 80px; padding: 0.35rem 0.5rem; font-size: 0.85rem; text-align: center;" required>
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1.5rem; background: var(--bg-secondary); padding: 1rem; border-radius: var(--radius-md); border: 1px solid var(--border-color); flex-wrap: wrap;">
+              <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+                <div style="display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.85rem; font-weight: 600; color: var(--text-secondary);">
+                  <i data-lucide="layers" style="width: 16px; height: 16px; color: var(--primary);"></i>
+                  <span>Seviye Kriterleri:</span>
+                </div>
+                <span class="badge" style="background: rgba(59, 130, 246, 0.12); color: #3b82f6; border: 1px solid rgba(59, 130, 246, 0.3); font-weight: 600; font-size: 0.8rem; padding: 0.3rem 0.6rem; border-radius: 6px;">
+                  📘 1. Seviye: <strong id="late-info-l1-days">10</strong> Gün Sınırı
+                </span>
+                <span class="badge" style="background: rgba(139, 92, 246, 0.12); color: #8b5cf6; border: 1px solid rgba(139, 92, 246, 0.3); font-weight: 600; font-size: 0.8rem; padding: 0.3rem 0.6rem; border-radius: 6px;">
+                  📙 2. Seviye: <strong id="late-info-l2-days">20</strong> Gün Sınırı
+                </span>
               </div>
-              <button class="btn btn-primary btn-sm" id="btn-save-late-limit" style="font-size: 0.8rem; padding: 0.4rem 0.75rem; font-weight: 600; display: inline-flex; align-items: center; gap: 0.25rem;">
-                <i data-lucide="save" style="width: 14px; height: 14px;"></i> Süreyi Güncelle
-              </button>
-              <button type="button" class="btn btn-secondary btn-sm" onclick="window.openGlobalSettingsModal && window.openGlobalSettingsModal('settings-books')" style="font-size: 0.8rem; padding: 0.4rem 0.75rem; font-weight: 600; display: inline-flex; align-items: center; gap: 0.25rem;">
+              <button type="button" class="btn btn-secondary btn-sm" onclick="window.openGlobalSettingsModal && window.openGlobalSettingsModal('settings-books')" style="font-size: 0.8rem; padding: 0.45rem 0.85rem; font-weight: 600; display: inline-flex; align-items: center; gap: 0.35rem;">
                 <i data-lucide="sliders" style="width: 14px; height: 14px;"></i> Kitap Puan Ayarları
               </button>
             </div>
@@ -536,8 +540,8 @@
                     <th>Yazar</th>
                     <th>Öğrenci Adı Soyadı</th>
                     <th style="text-align: center; width: 100px;">Okul No</th>
-                    <th style="text-align: center; width: 120px;">Ödünç Alma Tarihi</th>
-                    <th style="text-align: center; width: 100px;">Geçen Gün</th>
+                    <th style="text-align: center; width: 120px;">Ödünç Tarihi</th>
+                    <th style="text-align: center; width: 140px;">Gecikme Süresi</th>
                     <th style="text-align: center; width: 120px;">İşlem</th>
                   </tr>
                 </thead>

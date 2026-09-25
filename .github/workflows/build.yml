@@ -121,10 +121,10 @@ jobs:
           releaseName: "Sınıf Asistanı ${{ github.ref_name }}"
           releaseBody: |
             ### 🚀 Bu Sürümdeki Yenilikler (${{ github.ref_name }}):
-            - 📚 **Seviye Bazlı Kitap Puanları:** Genel Puan ve Kural Ayarları içerisine eklenen yeni sekme ile 1. ve 2. seviye kitaplar için zamanında teslim, geç teslim puanları ve makul okuma süreleri (gün) bağımsız olarak belirlenebilir.
-            - ⏱️ **Akıllı İade Süreci ve Puanlama:** Kitap teslimlerinde iade edilen kitabın seviyesine göre süre kontrolü yapılarak zamanında veya gecikmeli teslim puanı otomatik işlenir.
-            - 📝 **Sınav Puanları Sekmesi:** Sınav ayarları sekmesi "Sınav Puanları" adıyla daha anlaşılır ve net hale getirildi.
-            - 🎯 **Davranış Puanları Sadeleştirmesi:** Davranışlar menüsündeki kitap aferinleri kaldırılarak kitap puanlama süreçleri tamamen Kitaplar modülü seviye standartlarına entegre edildi.
+            - 📚 **Seviyeye Göre Geciken Kitaplar Listesi:** Geciken kitaplar sekmesindeki tekil makul okuma süresi kaldırıldı; her kitabın 1. veya 2. seviye gün sınırına göre gecikme tespiti yapılması sağlandı.
+            - ⏱️ **Gecikme Süresi Fark Gösterimi:** Geciken kitaplar tablosunda toplam gün yerine makul süreden sonraki net gecikme farkı (+X gün gecikti) öncelikli ve belirgin olarak gösterildi.
+            - ⚠️ **Ödünç / Liderlik Tablosunda Gecikme Vurgusu:** Kitabı geciken öğrenciler liderlik listesinde dikkat çekici rozet ve renklendirme ile vurgulandı.
+            - 🖼️ **Öğrenci Detayında Vesikalık Fotoğraf:** Liderlik tablosundan öğrenci seçildiğinde sağdaki okuma geçmişi ve detay başlığına öğrenci fotoğrafı (veya tematik baş harf avatarı) eklendi.
 
             ---
             🛡️ **Veri Güvenliği:** Güncelleme yaptığınızda mevcut sınıflarınız, öğrencileriniz, ders programınız ve tüm verileriniz **kesinlikle silinmez, korunur**.

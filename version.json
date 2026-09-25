@@ -1,14 +1,14 @@
 {
-  "version": "1.0.25",
+  "version": "1.0.26",
   "releaseDate": "2026-09-25",
   "minRequiredVersion": "1.0.0",
-  "title": "Sınıf Asistanı v1.0.25 Yayında!",
-  "description": "Seviye Bazlı Kitap Puanı Ayarları ve Sınav Puanları Güncellemeleri",
+  "title": "Sınıf Asistanı v1.0.26 Yayında!",
+  "description": "Seviyeye Göre Geciken Kitaplar Listesi, Liderlik Tablosunda Gecikme Vurgusu ve Öğrenci Fotoğrafı",
   "features": [
-    "Kitap Puanları Sekmesi: Genel puan ve kural ayarları altına 1. ve 2. seviye kitaplar için ayrı ayrı zamanında teslim, geç teslim ve makul okuma süresi (gün) kurallarını belirleme desteği eklendi",
-    "Akıllı Teslim ve Puanlama Mantığı: Kitap iadelerinde kitabın seviyesine göre tanımlanan gün sınırı ve puanlar (zamanında / gecikmeli) otomatik olarak işletilir",
-    "Sınav Puanları Sekmesi: Sınav Dereceleri sekmesi daha anlaşılır ve kapsayıcı olması adına Sınav Puanları olarak güncellendi",
-    "Davranış Puanları Sadeliği: Kullanıcı tarafından anlık değer girilen kitap aferinleri kaldırılarak kitap puanlaması tamamen kitaplar modülü seviye kurallarına bağlandı"
+    "Geciken Kitaplar Sekmesinde Seviye Standartları: Sabit ve tekil makul okuma süresi kaldırıldı; her kitabın 1. veya 2. seviye sınırına göre gecikme tespiti yapılması sağlandı",
+    "Gecikme Süresi Fark Gösterimi: Geciken kitaplar listesinde toplam gün yerine makul süreden sonraki net gecikme farkı (+X gün gecikti) öncelikli olarak gösterildi",
+    "Ödünç / Liderlik Tablosunda Gecikme Vurgusu: Elinde süresi geçmiş kitap bulunan öğrenciler tabloda belirginleştirildi ve gecikme gün sayısı rozet olarak eklendi",
+    "Öğrenci Takip Panelinde Vesikalık Fotoğraf: Liderlik tablosundan öğrenci seçildiğinde sağdaki okuma geçmişi ve detay başlığına öğrenci fotoğrafı (veya tematik baş harf avatarı) eklendi"
   ],
   "release_url": "https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/latest"
 }

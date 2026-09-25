@@ -1276,32 +1276,7 @@ function setupBooksTab(showToast) {
     }
   }
 
-  // Makul Okuma Süresi Güncelleme
-  const btnSaveLateLimit = document.getElementById('btn-save-late-limit');
-  const booksLateLimitInput = document.getElementById('books-late-limit-input');
-
-  if (btnSaveLateLimit && booksLateLimitInput) {
-    booksLateLimitInput.value = stateManager.getBookSettings().limitDays || 15;
-
-    btnSaveLateLimit.addEventListener('click', (e) => {
-      e.preventDefault();
-      const limitDays = parseInt(booksLateLimitInput.value);
-      if (isNaN(limitDays) || limitDays < 1) {
-        if (toastCallback) toastCallback('Lütfen geçerli bir okuma süresi girin!', 'danger');
-        return;
-      }
-      const settings = stateManager.getBookSettings();
-      settings.limitDays = limitDays;
-      stateManager.updateBookSettings(settings);
-      
-      if (toastCallback) {
-        toastCallback(`Makul okuma süresi ${limitDays} gün olarak güncellendi.`, 'success');
-      }
-      
-      const event = new CustomEvent('stateChanged');
-      document.dispatchEvent(event);
-    });
-  }
+  // Makul Okuma Süresi seviye bazlı Genel Puan Ayarlarından yönetilmektedir
 
   // Kitap Soruları Modalı Kapatma ve Sonraki Soru Olayları
   document.querySelectorAll('#modal-book-questions .close-btn, #modal-book-questions .close-btn-action').forEach(btn => {
@@ -2632,13 +2607,17 @@ function renderLeaderboard() {
 
   tbody.innerHTML = '';
 
+  const bookSettings = stateManager.getBookSettings();
   const selectBranch = document.getElementById('books-select-branch');
   const branchFilter = selectBranch ? selectBranch.value : 'all';
   const activeStudents = state.students.filter(student => {
     return state.educationLevel === 'primary' || branchFilter === 'all' || student.branch === branchFilter;
   });
 
-  // 1. Her öğrenci için okuma verilerini topla
+  const today = new Date();
+  const todayPure = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+
+  // 1. Her öğrenci için okuma verilerini ve gecikme durumunu topla
   const studentData = activeStudents.map(student => {
     // Bu öğrencinin iade ettiği işlemleri filtrele
     const returnedTransactions = state.books.transactions.filter(t => t.studentId === student.id && t.status === 'returned');
@@ -2652,10 +2631,46 @@ function renderLeaderboard() {
       }
     });
 
+    // Aktif ödünç alınan (okunmakta olan) kitaplar ve seviyeye göre gecikme kontrolü
+    const activeTxs = state.books.transactions.filter(t => t.studentId === student.id && t.status === 'reading');
+    let hasOverdue = false;
+    let maxOverdueDays = 0;
+    let overdueBookTitle = '';
+    let overdueTotalDays = 0;
+    let overdueLimitDays = 0;
+
+    activeTxs.forEach(t => {
+      const book = state.books.library.find(b => b.id === t.bookId);
+      const isLevel2 = (book && book.level === 'seviye_2');
+      const lvlSettings = isLevel2 ? (bookSettings.level2 || {}) : (bookSettings.level1 || {});
+      const limitDays = (lvlSettings.limitDays !== undefined && lvlSettings.limitDays !== null) ? lvlSettings.limitDays : (isLevel2 ? 20 : 10);
+
+      const borrowDate = new Date(t.borrowDate);
+      const borrowDatePure = new Date(borrowDate.getFullYear(), borrowDate.getMonth(), borrowDate.getDate());
+      const diffTime = todayPure - borrowDatePure;
+      const diffDays = Math.max(0, Math.floor(diffTime / (1000 * 60 * 60 * 24)));
+
+      if (diffDays > limitDays) {
+        hasOverdue = true;
+        const overdue = diffDays - limitDays;
+        if (overdue > maxOverdueDays) {
+          maxOverdueDays = overdue;
+          overdueBookTitle = book ? book.title : 'Kitap';
+          overdueTotalDays = diffDays;
+          overdueLimitDays = limitDays;
+        }
+      }
+    });
+
     return {
       student,
       bookCount: returnedTransactions.length,
-      totalPages
+      totalPages,
+      hasOverdue,
+      maxOverdueDays,
+      overdueBookTitle,
+      overdueTotalDays,
+      overdueLimitDays
     };
   });
 
@@ -2705,6 +2720,10 @@ function renderLeaderboard() {
     if (data.student.id === selectedStudentId) {
       row.classList.add('active-student-row');
     }
+
+    if (data.hasOverdue) {
+      row.classList.add('has-overdue-book');
+    }
     
     row.innerHTML = `
       <td style="text-align: center; vertical-align: middle;">
@@ -2713,8 +2732,19 @@ function renderLeaderboard() {
         </div>
       </td>
       <td>
-        <strong>${data.student.name} ${data.student.surname}</strong>
-        <span style="color: var(--text-muted); font-size: 0.8rem; margin-left: 4px;">(${data.student.number})</span>
+        <div style="display: flex; flex-direction: column; gap: 0.2rem;">
+          <div style="display: flex; align-items: center; gap: 0.35rem; flex-wrap: wrap;">
+            <strong>${escapeHtml(data.student.name)} ${escapeHtml(data.student.surname)}</strong>
+            <span style="color: var(--text-muted); font-size: 0.8rem;">(${escapeHtml(data.student.number)})</span>
+          </div>
+          ${data.hasOverdue ? `
+            <div style="display: inline-flex; align-items: center; gap: 0.3rem; margin-top: 1px;">
+              <span class="badge" style="background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.35); font-size: 0.72rem; font-weight: 700; padding: 0.15rem 0.5rem; border-radius: 4px; display: inline-flex; align-items: center; gap: 0.25rem;" title="${escapeHtml(data.overdueBookTitle)} | Toplam ${data.overdueTotalDays} gün (Makul süre: ${data.overdueLimitDays} gün)">
+                ⚠️ ${data.maxOverdueDays} gün gecikti
+              </span>
+            </div>
+          ` : ''}
+        </div>
       </td>
       <td style="text-align: center;"><strong>${data.bookCount}</strong> adet</td>
       <td style="text-align: center;"><span class="status-badge positive-tab active" style="font-weight: 700; font-size: 0.85rem; padding: 0.35rem 0.75rem;">${data.totalPages}</span></td>
@@ -2764,39 +2794,46 @@ function renderLateBooksList() {
   tbody.innerHTML = '';
   
   const bookSettings = stateManager.getBookSettings();
-  const limitDays = bookSettings.limitDays || 15;
 
-  const booksLateLimitInput = document.getElementById('books-late-limit-input');
-  if (booksLateLimitInput) {
-    booksLateLimitInput.value = limitDays;
+  const lateInfoL1 = document.getElementById('late-info-l1-days');
+  const lateInfoL2 = document.getElementById('late-info-l2-days');
+  if (lateInfoL1) {
+    lateInfoL1.textContent = (bookSettings.level1 && bookSettings.level1.limitDays) || 10;
+  }
+  if (lateInfoL2) {
+    lateInfoL2.textContent = (bookSettings.level2 && bookSettings.level2.limitDays) || 20;
   }
 
   const activeTransactions = state.books.transactions.filter(t => t.status === 'reading');
   const lateTransactions = [];
   
+  const today = new Date();
+  const todayPure = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+
   activeTransactions.forEach(t => {
     const book = state.books.library.find(b => b.id === t.bookId);
     const borrowDate = new Date(t.borrowDate);
-    const today = new Date();
-    
     const borrowDatePure = new Date(borrowDate.getFullYear(), borrowDate.getMonth(), borrowDate.getDate());
-    const todayPure = new Date(today.getFullYear(), today.getMonth(), today.getDate());
     const diffTime = todayPure - borrowDatePure;
-    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    const diffDays = Math.max(0, Math.floor(diffTime / (1000 * 60 * 60 * 24)));
     
     const isLevel2 = (book && book.level === 'seviye_2');
     const lvlSettings = isLevel2 ? (bookSettings.level2 || {}) : (bookSettings.level1 || {});
-    const bookLimit = lvlSettings.limitDays || (isLevel2 ? 20 : 10);
+    const bookLimit = (lvlSettings.limitDays !== undefined && lvlSettings.limitDays !== null) ? lvlSettings.limitDays : (isLevel2 ? 20 : 10);
     
     if (diffDays > bookLimit) {
       lateTransactions.push({
         transaction: t,
-        diffDays: diffDays
+        diffDays: diffDays,
+        overdueDays: diffDays - bookLimit,
+        bookLimit: bookLimit,
+        isLevel2: isLevel2,
+        levelLabel: isLevel2 ? '2. Seviye' : '1. Seviye'
       });
     }
   });
 
-  lateTransactions.sort((a, b) => b.diffDays - a.diffDays);
+  lateTransactions.sort((a, b) => b.overdueDays - a.overdueDays);
 
   if (lateTransactions.length === 0) {
     tbody.innerHTML = `
@@ -2819,22 +2856,30 @@ function renderLateBooksList() {
     const row = document.createElement('tr');
     
     row.innerHTML = `
-      <td style="text-align: center; font-weight: 600;">${book.bookNo || '-'}</td>
+      <td style="text-align: center; font-weight: 600;">${escapeHtml(book.bookNo || '-')}</td>
       <td>
-        <div style="display: flex; flex-direction: column;">
-          <a class="book-title-question-link" data-book-id="${book.id}" title="Kitap Sorularını Gör" style="display: inline-flex; align-items: center; gap: 0.25rem; width: fit-content; font-weight: 700; color: var(--text-primary);">
-            <i data-lucide="help-circle" style="width: 14px; height: 14px;"></i>${book.title}
-          </a>
+        <div style="display: flex; flex-direction: column; gap: 0.2rem;">
+          <div style="display: flex; align-items: center; gap: 0.35rem; flex-wrap: wrap;">
+            <a class="book-title-question-link" data-book-id="${book.id}" title="Kitap Sorularını Gör" style="display: inline-flex; align-items: center; gap: 0.25rem; width: fit-content; font-weight: 700; color: var(--text-primary); cursor: pointer;">
+              <i data-lucide="help-circle" style="width: 14px; height: 14px;"></i>${escapeHtml(book.title)}
+            </a>
+            <span class="badge" style="background: ${item.isLevel2 ? 'rgba(139, 92, 246, 0.15)' : 'rgba(59, 130, 246, 0.15)'}; color: ${item.isLevel2 ? '#8b5cf6' : '#3b82f6'}; font-size: 0.7rem; font-weight: 700; padding: 0.15rem 0.4rem; border-radius: 4px;">
+              ${item.levelLabel}
+            </span>
+          </div>
         </div>
       </td>
-      <td>${book.author}</td>
-      <td><strong>${student.name} ${student.surname}</strong></td>
-      <td style="text-align: center;">${student.number}</td>
+      <td>${escapeHtml(book.author || '-')}</td>
+      <td><strong>${escapeHtml(student.name)} ${escapeHtml(student.surname)}</strong></td>
+      <td style="text-align: center;">${escapeHtml(student.number)}</td>
       <td style="text-align: center;">${formatDateTR(t.borrowDate)}</td>
       <td style="text-align: center;">
-        <span class="status-badge missing" style="font-weight: 700; font-size: 0.8rem; padding: 0.25rem 0.5rem;">
-          ${diffDays} gün
+        <span class="status-badge missing" style="font-weight: 700; font-size: 0.8rem; padding: 0.25rem 0.55rem; display: inline-flex; align-items: center; gap: 0.25rem;">
+          ⚠️ ${item.overdueDays} gün gecikti
         </span>
+        <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 3px;">
+          Toplam: ${diffDays} gün | Sınır: ${item.bookLimit} gün
+        </div>
       </td>
       <td style="text-align: center;">
         <button class="btn btn-success btn-return-late" style="padding: 0.35rem 0.75rem; font-size: 0.75rem; display: inline-flex; align-items: center; gap: 0.25rem; font-weight: 600;">
@@ -2926,15 +2971,35 @@ function renderStudentDetailPanel() {
     return;
   }
 
-  // 1. Öğrenci Başlığı
+  // 1. Öğrenci Başlığı (Fotoğraf + İsim/Bilgi)
   const headerDiv = document.createElement('div');
   headerDiv.style.borderBottom = '1px solid var(--border-color)';
-  headerDiv.style.paddingBottom = '0.75rem';
+  headerDiv.style.paddingBottom = '0.85rem';
+  headerDiv.style.display = 'flex';
+  headerDiv.style.alignItems = 'center';
+  headerDiv.style.gap = '0.85rem';
+
+  const initials = `${(student.name || '')[0] || ''}${(student.surname || '')[0] || ''}`;
+  const isFemale = student.gender === 'female';
+  const photoHtml = student.photo
+    ? `<img src="${student.photo}" alt="${escapeHtml(student.name)}" style="width: 48px; height: 48px; border-radius: 50%; object-fit: cover; border: 2px solid ${isFemale ? 'rgba(236, 72, 153, 0.4)' : 'rgba(99, 102, 241, 0.4)'}; box-shadow: 0 2px 8px rgba(0,0,0,0.1); flex-shrink: 0;">`
+    : `<div style="width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1.1rem; text-transform: uppercase; flex-shrink: 0; box-shadow: 0 2px 8px rgba(0,0,0,0.06); ${
+        isFemale
+          ? 'background-color: rgba(236, 72, 153, 0.15); color: rgb(236, 72, 153); border: 2px solid rgba(236, 72, 153, 0.35);'
+          : 'background-color: var(--primary-light); color: var(--primary); border: 2px solid rgba(99, 102, 241, 0.35);'
+      }">${initials}</div>`;
+
   headerDiv.innerHTML = `
-    <h3 style="margin-bottom: 0.25rem; color: var(--primary); font-weight: 700; display: flex; align-items: center; gap: 0.5rem; font-size: 1.15rem;">
-      <i data-lucide="user" style="width: 20px; height: 20px;"></i> ${student.name} ${student.surname}
-    </h3>
-    <span style="font-size: 0.8rem; color: var(--text-muted); font-weight: 500;">Okul No: ${student.number} | Kitap Ödünç & İade Detayları</span>
+    ${photoHtml}
+    <div style="display: flex; flex-direction: column; gap: 0.15rem; min-width: 0;">
+      <h3 style="margin: 0; color: var(--text-primary); font-weight: 800; font-size: 1.15rem; display: flex; align-items: center; gap: 0.45rem; flex-wrap: wrap;">
+        <span>${escapeHtml(student.name)} ${escapeHtml(student.surname)}</span>
+        ${student.branch ? `<span class="badge" style="background: rgba(99, 102, 241, 0.1); color: var(--primary); font-size: 0.72rem; font-weight: 700; padding: 0.12rem 0.45rem; border-radius: 4px;">${escapeHtml(student.branch)}</span>` : ''}
+      </h3>
+      <span style="font-size: 0.8rem; color: var(--text-muted); font-weight: 500;">
+        Okul No: <strong>${escapeHtml(student.number || '-')}</strong> | Kitap Ödünç & İade Detayları
+      </span>
+    </div>
   `;
   panel.appendChild(headerDiv);
 
@@ -2954,23 +3019,29 @@ function renderStudentDetailPanel() {
           const bookSettings = stateManager.getBookSettings();
           const borrowDate = new Date(activeTx.borrowDate);
           const today = new Date();
-          const diffTime = Math.abs(today - borrowDate);
-          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+          const borrowDatePure = new Date(borrowDate.getFullYear(), borrowDate.getMonth(), borrowDate.getDate());
+          const todayPure = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+          const diffTime = todayPure - borrowDatePure;
+          const diffDays = Math.max(0, Math.floor(diffTime / (1000 * 60 * 60 * 24)));
           const isLevel2 = (book.level === 'seviye_2');
           const lvlSettings = isLevel2 ? (bookSettings.level2 || {}) : (bookSettings.level1 || {});
-          const limitDays = lvlSettings.limitDays || (isLevel2 ? 20 : 10);
+          const limitDays = (lvlSettings.limitDays !== undefined && lvlSettings.limitDays !== null) ? lvlSettings.limitDays : (isLevel2 ? 20 : 10);
           const isLate = diffDays > limitDays;
+          const overdueDays = diffDays - limitDays;
           return `
-            <div class="reading-item glass-card" data-tx-id="${activeTx.id}" data-book-id="${book.id}" data-book-level="${book.level || 'seviye_1'}" data-book-title="${(book.title || '').replace(/"/g, '&quot;')}" data-book-author="${(book.author || '').replace(/"/g, '&quot;')}" style="border: 1.5px solid var(--primary); background: var(--primary-light); padding: 1.25rem; border-radius: var(--radius-md); box-sizing: border-box;">
+            <div class="reading-item glass-card" data-tx-id="${activeTx.id}" data-book-id="${book.id}" data-book-level="${book.level || 'seviye_1'}" data-book-title="${(book.title || '').replace(/"/g, '&quot;')}" data-book-author="${(book.author || '').replace(/"/g, '&quot;')}" style="border: 1.5px solid ${isLate ? '#ef4444' : 'var(--primary)'}; background: ${isLate ? 'rgba(239, 68, 68, 0.06)' : 'var(--primary-light)'}; padding: 1.25rem; border-radius: var(--radius-md); box-sizing: border-box;">
               <div style="display: flex; flex-direction: column; gap: 0.75rem;">
                 <div style="width: 100%;">
                   <div style="display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap;">
                     ${book.bookNo ? `<span class="badge" style="background: rgba(99, 102, 241, 0.15); color: var(--primary); font-weight: 700; font-size: 0.75rem; padding: 0.15rem 0.45rem; border-radius: 4px;">No: ${escapeHtml(book.bookNo)}</span>` : ''}
                     <strong style="font-size: 1.05rem; color: var(--text-primary);">${escapeHtml(book.title)}</strong>
+                    <span class="badge" style="background: ${isLevel2 ? 'rgba(139, 92, 246, 0.15)' : 'rgba(59, 130, 246, 0.15)'}; color: ${isLevel2 ? '#8b5cf6' : '#3b82f6'}; font-size: 0.7rem; font-weight: 700; padding: 0.15rem 0.4rem; border-radius: 4px;">
+                      ${isLevel2 ? '2. Seviye' : '1. Seviye'}
+                    </span>
                   </div>
                   <div style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.25rem;">${escapeHtml(book.author)} | ${book.pages} Sayfa</div>
                   <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">Veriliş Tarihi: ${borrowDate.toLocaleDateString('tr-TR')} (${diffDays} gündür)</div>
-                  ${isLate ? `<span class="status-badge missing" style="margin-top: 0.5rem; display: inline-block;">Gecikti (${diffDays} gün)</span>` : ''}
+                  ${isLate ? `<span class="status-badge missing" style="margin-top: 0.5rem; display: inline-flex; align-items: center; gap: 0.3rem; font-weight: 700;">⚠️ ${overdueDays} Gün Gecikti <small style="font-weight: normal; opacity: 0.85;">(Toplam ${diffDays} gün, Makul: ${limitDays} gün)</small></span>` : ''}
                 </div>
                 <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; justify-content: flex-start; border-top: 1px solid rgba(0,0,0,0.06); padding-top: 0.75rem; margin-top: 0.25rem;">
                   <button class="btn btn-warning btn-ask-question" style="padding: 0.5rem 0.85rem; font-size: 0.8rem; display: inline-flex; align-items: center; gap: 0.25rem; font-weight:600;">

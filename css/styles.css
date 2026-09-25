@@ -2897,6 +2897,20 @@ th:hover .hw-col-actions {
   border-left: 3px solid var(--primary);
 }
 
+.leaderboard-row.has-overdue-book {
+  background-color: rgba(239, 68, 68, 0.05);
+  border-left: 3px solid #ef4444 !important;
+}
+
+.leaderboard-row.has-overdue-book:hover {
+  background-color: rgba(239, 68, 68, 0.1) !important;
+}
+
+.leaderboard-row.has-overdue-book.active-student-row {
+  background-color: rgba(239, 68, 68, 0.12) !important;
+  border-left: 3px solid #ef4444 !important;
+}
+
 /* Soru Geçiş Animasyonu */
 .question-fade {
   animation: questionFadeIn 0.35s cubic-bezier(0.4, 0, 0.2, 1) forwards;
