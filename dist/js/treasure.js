@@ -290,6 +290,11 @@
   const btnAwardDojo = document.getElementById("btn-treasure-award-dojo");
   const btnCloseVictory = document.getElementById("btn-treasure-close-victory");
 
+  // Reward visibility states
+  let isRewardInputHidden = false;
+  let isActiveRewardPeeked = false;
+  let isVictoryRewardHidden = false;
+
   // Load active students from StateManager
   function getActiveStudents() {
     if (window.stateManager && window.stateManager.state && window.stateManager.state.students) {
@@ -416,16 +421,24 @@
   function getAnswerDisplay(q) {
     if (q.type === "tf") {
       return q.answer === true || q.answer === "true" ? "DOĞRU" : "YANLIŞ";
-    } else if (q.type === "mc" || q.type === "fib") {
+    } else if (q.type === "mc") {
       if (q.options && Array.isArray(q.options)) {
         const idx = parseInt(q.answer);
         if (!isNaN(idx) && idx >= 0 && idx < q.options.length) {
-          return q.options[idx];
+          const letters = ["A", "B", "C", "D", "E"];
+          return `${letters[idx] || ''}) ${q.options[idx]}`;
         }
       }
-      return q.answer;
+      return q.answer || "";
+    } else if (q.type === "fib") {
+      if (q.options && Array.isArray(q.options) && q.options[0]) {
+        return q.options[0];
+      }
+      return q.answer || "";
+    } else if (q.type === "open") {
+      return q.answer || "";
     }
-    return "";
+    return q.answer || "";
   }
 
   // Populate Soru Kütüphanesi category filter dropdown
@@ -450,137 +463,1073 @@
     }
   }
 
-  // Render questions table list in Soru Kütüphanesi
-  function renderTreasureQuestionLibrary() {
-    if (!questionListBody) return;
-    
-    questionListBody.innerHTML = "";
-    
-    const categoryFilter = libraryCategoryFilter ? libraryCategoryFilter.value : "all";
-    let filteredQuestions = questions;
-    
-    if (categoryFilter !== "all") {
-      filteredQuestions = questions.filter(q => q.category === categoryFilter);
+  function escapeHTML(str) {
+    if (str === null || str === undefined) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function triggerDownload(content, fileName, mimeType) {
+    const blob = new Blob([content], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", fileName);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+
+  let _allTreasurePackagesExpanded = false;
+
+  window.toggleAllTreasurePackages = function() {
+    _allTreasurePackagesExpanded = !_allTreasurePackagesExpanded;
+    document.querySelectorAll(".treasure-package-body").forEach(el => {
+      el.style.display = _allTreasurePackagesExpanded ? "block" : "none";
+    });
+    document.querySelectorAll(".treasure-package-chevron-box i").forEach(el => {
+      el.style.transform = _allTreasurePackagesExpanded ? "rotate(180deg)" : "rotate(0deg)";
+    });
+    const btn = document.getElementById("btn-treasure-toggle-all-packages");
+    if (btn) {
+      btn.innerHTML = _allTreasurePackagesExpanded 
+        ? '<i data-lucide="chevrons-up" style="width: 14px; height: 14px;"></i> Tümünü Kapat'
+        : '<i data-lucide="chevrons-up-down" style="width: 14px; height: 14px;"></i> Tümünü Aç / Kapat';
     }
-    
-    if (questionCountBadge) {
-      questionCountBadge.textContent = `${filteredQuestions.length} Soru`;
+    if (window.safeCreateIcons) window.safeCreateIcons();
+  };
+
+  window.toggleTreasurePackage = function(safeId) {
+    const body = document.getElementById(`treasure-body-${safeId}`);
+    const chevron = document.getElementById(`treasure-chevron-${safeId}`);
+    if (!body) return;
+    const isClosed = body.style.display === "none";
+    body.style.display = isClosed ? "block" : "none";
+    if (chevron) {
+      chevron.style.transform = isClosed ? "rotate(180deg)" : "rotate(0deg)";
     }
-    
-    if (filteredQuestions.length === 0) {
-      const row = document.createElement("tr");
-      row.innerHTML = `
-        <td colspan="5" style="text-align: center; color: var(--text-secondary); padding: 2rem 0;">
-          Kütüphanede soru bulunmuyor. Yeni bir soru ekleyin!
-        </td>
-      `;
-      questionListBody.appendChild(row);
+  };
+
+  window.startTreasureWithPackage = function(catName) {
+    activeCategory = catName;
+    if (gameCategorySelect) {
+      gameCategorySelect.value = catName;
+    }
+    switchTreasureSubTab("play");
+    if (toastCallback) {
+      toastCallback(`"${catName}" paketi seçildi. Oyunu başlatabilirsiniz!`, "info");
+    }
+  };
+
+  window.deleteTreasurePackage = function(catName) {
+    const pkgCount = questions.filter(q => (q.category || "Genel") === catName).length;
+    if (confirm(`"${catName}" paketindeki TÜM soruları (${pkgCount} soru) silmek istediğinize emin misiniz?`)) {
+      questions = questions.filter(q => (q.category || "Genel") !== catName);
+      saveQuestions();
+      populateLibraryCategoryFilter();
+      populateCategorySelector();
+      renderTreasureQuestionLibrary();
+      if (toastCallback) toastCallback(`"${catName}" paketi silindi.`, "info");
+    }
+  };
+
+  window.exportTreasurePackageJson = function(catName) {
+    const catQuestions = questions.filter(q => (q.category || "Genel").trim() === catName.trim());
+    if (catQuestions.length === 0) {
+      alert("Bu pakette indirilecek soru bulunamadı.");
       return;
     }
-    
-    filteredQuestions.forEach(q => {
-      const row = document.createElement("tr");
-      
-      let typeText = "Doğru / Yanlış";
-      if (q.type === "mc") {
-        typeText = "Çoktan Seçmeli";
-      } else if (q.type === "fib") {
-        typeText = "Boşluk Doldurma";
+    const exportData = catQuestions.map(q => ({
+      type: q.type || "tf",
+      category: q.category || "Genel",
+      text: q.text || "",
+      answer: q.answer,
+      options: q.options || undefined,
+      explanation: q.explanation || "",
+      image: q.image || ""
+    }));
+    const cleanSlug = catName.toLowerCase().replace(/[^a-z0-9ğüşıöç]+/gi, '_').replace(/^_+|_+$/g, '') || 'paket';
+    const fileName = `hazine_sandigi_${cleanSlug}.json`;
+    triggerDownload(JSON.stringify(exportData, null, 2), fileName, "application/json;charset=utf-8;");
+    const msg = `"${catName}" paketi (${exportData.length} soru) JSON olarak indirildi.`;
+    if (toastCallback) toastCallback(msg, "success");
+    else alert(msg);
+  };
+
+  window.exportAllTreasureQuestionsJson = function() {
+    if (questions.length === 0) {
+      alert("Kütüphanede indirilecek soru bulunmuyor.");
+      return;
+    }
+    const exportData = questions.map(q => ({
+      type: q.type || "tf",
+      category: q.category || "Genel",
+      text: q.text || "",
+      answer: q.answer,
+      options: q.options || undefined,
+      explanation: q.explanation || "",
+      image: q.image || ""
+    }));
+    triggerDownload(JSON.stringify(exportData, null, 2), "hazine_sandigi_tum_soru_paketleri.json", "application/json;charset=utf-8;");
+    const msg = `Tüm hazine soru kütüphanesi (${exportData.length} soru) JSON olarak indirildi.`;
+    if (toastCallback) toastCallback(msg, "success");
+    else alert(msg);
+  };
+
+  function importTreasureJSON(jsonText) {
+    let data = JSON.parse(jsonText);
+    if (!Array.isArray(data) && data && Array.isArray(data.questions)) {
+      data = data.questions;
+    }
+    if (!Array.isArray(data)) {
+      throw new Error("JSON içeriği bir liste (array) olmalıdır.");
+    }
+
+    let addedCount = 0;
+    let startId = questions.length > 0 ? Math.max(...questions.map(q => parseInt(q.id) || 0)) + 1 : 1;
+
+    data.forEach(item => {
+      if (item.text && item.text.trim().length > 0) {
+        const qType = (item.type === "mc" || item.type === "fib") ? item.type : "tf";
+        const category = item.category ? item.category.trim() : "Genel";
+        let ans;
+        if (qType === "tf") {
+          if (typeof item.answer === 'boolean') {
+            ans = item.answer;
+          } else if (typeof item.answer === 'string') {
+            ans = (item.answer.toLowerCase() === 'true' || item.answer === '1' || item.answer.toLowerCase() === 'doğru' || item.answer.toLowerCase() === 'dogru');
+          } else {
+            ans = false;
+          }
+        } else {
+          ans = parseInt(item.answer);
+          if (isNaN(ans)) ans = 0;
+        }
+
+        const options = Array.isArray(item.options) 
+          ? item.options.map(o => o.toString().trim()) 
+          : (qType === "fib" && typeof item.answer === "string" ? [item.answer.trim()] : undefined);
+
+        questions.push({
+          id: startId++,
+          type: qType,
+          category: category,
+          text: item.text.trim(),
+          answer: ans,
+          options: options,
+          explanation: item.explanation ? item.explanation.trim() : "",
+          image: item.image ? item.image.trim() : ""
+        });
+        addedCount++;
       }
-      
-      const answerDisplayVal = getAnswerDisplay(q);
-      
-      row.innerHTML = `
-        <td>
-          <span class="badge" style="font-size: 0.7rem; padding: 0.15rem 0.4rem; background: rgba(0, 0, 0, 0.05); color: var(--text-primary);">
-            ${typeText}
-          </span>
-        </td>
-        <td>
-          <span style="font-weight: 600; color: var(--primary); font-size: 0.8rem;">
-            ${q.category || "Genel"}
-          </span>
-        </td>
-        <td>
-          <div style="max-width: 350px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${q.text}">
-            ${q.text}
-          </div>
-        </td>
-        <td>
-          <span style="font-weight: 500; font-size: 0.8rem; color: var(--text-primary);">
-            ${answerDisplayVal}
-          </span>
-        </td>
-        <td style="text-align: center;">
-          <div style="display: flex; gap: 0.25rem; justify-content: center;">
-            <button class="btn btn-outline btn-sm btn-edit-question-lib" data-id="${q.id}" style="padding: 0.2rem 0.4rem; height: auto; font-size: 0.75rem;" title="Düzenle">
-              <i data-lucide="edit-3" style="width: 12px; height: 12px;"></i>
-            </button>
-            <button class="btn btn-outline btn-sm btn-delete-question-lib" data-id="${q.id}" style="padding: 0.2rem 0.4rem; height: auto; font-size: 0.75rem; color: var(--danger); border-color: rgba(239, 68, 68, 0.2);" title="Sil">
-              <i data-lucide="trash-2" style="width: 12px; height: 12px;"></i>
-            </button>
-          </div>
-        </td>
-      `;
-      
-      const editBtn = row.querySelector(".btn-edit-question-lib");
-      if (editBtn) {
-        editBtn.addEventListener("click", () => editTreasureQuestion(q.id));
-      }
-      
-      const deleteBtn = row.querySelector(".btn-delete-question-lib");
-      if (deleteBtn) {
-        deleteBtn.addEventListener("click", () => deleteTreasureQuestion(q.id));
-      }
-      
-      questionListBody.appendChild(row);
     });
-    
+
+    if (addedCount > 0) {
+      saveQuestions();
+      populateLibraryCategoryFilter();
+      populateCategorySelector();
+      renderTreasureQuestionLibrary();
+      const succMsg = `${addedCount} adet soru başarıyla kütüphaneye eklendi!`;
+      if (toastCallback) toastCallback(succMsg, "success");
+      else alert(succMsg);
+    } else {
+      alert("Yüklenebilir geçerli soru bulunamadı.");
+    }
+  }
+  window.importTreasureJSON = importTreasureJSON;
+
+  // Render questions packages list in Soru Kütüphanesi
+  function renderTreasureQuestionLibrary() {
+    const pkgContainer = document.getElementById("treasure-packages-container");
+    if (questionCountBadge) {
+      questionCountBadge.textContent = `${questions.length} Soru`;
+    }
+    if (!pkgContainer) return;
+    pkgContainer.innerHTML = "";
+
+    if (questions.length === 0) {
+      pkgContainer.innerHTML = `
+        <div class="glass-card" style="text-align: center; padding: 2.5rem 1.5rem; color: var(--text-muted);">
+          <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">📦</div>
+          <h4 style="font-weight: 700; color: var(--text-primary); margin-bottom: 0.35rem;">Soru Havuzu Boş</h4>
+          <p style="font-size: 0.88rem; margin: 0;">Henüz sisteme eklenmiş bir soru paketi bulunmuyor. Sol taraftaki formdan hemen yeni soru ekleyebilir veya <strong>JSON Yükle</strong> butonu ile hazır soru paketi yükleyebilirsiniz.</p>
+        </div>
+      `;
+      return;
+    }
+
+    const categoryFilter = libraryCategoryFilter ? libraryCategoryFilter.value : "all";
+
+    // Soruları kategoriye/pakete göre grupla
+    const grouped = {};
+    questions.forEach(q => {
+      const cat = (q.category || "Genel").trim() || "Genel";
+      if (!grouped[cat]) grouped[cat] = [];
+      grouped[cat].push(q);
+    });
+
+    const categoryNames = Object.keys(grouped).sort();
+    const filteredCategories = categoryFilter === "all"
+      ? categoryNames
+      : categoryNames.filter(cat => cat === categoryFilter);
+
+    if (filteredCategories.length === 0) {
+      pkgContainer.innerHTML = `
+        <div class="glass-card" style="text-align: center; padding: 2rem; color: var(--text-muted);">
+          <p style="margin: 0; font-size: 0.9rem;">"${escapeHTML(categoryFilter)}" paketinde soru bulunamadı.</p>
+        </div>
+      `;
+      return;
+    }
+
+    filteredCategories.forEach((catName, index) => {
+      const catQuestions = grouped[catName];
+      const safeId = "tpkg_" + catName.replace(/[^a-zA-Z0-9]/g, "_") + "_" + index;
+
+      const tfCount = catQuestions.filter(q => q.type === "tf").length;
+      const mcCount = catQuestions.filter(q => q.type === "mc").length;
+      const fibCount = catQuestions.filter(q => q.type === "fib").length;
+      const openCount = catQuestions.filter(q => q.type === "open").length;
+
+      const typeBadges = [];
+      if (mcCount > 0) typeBadges.push(`<span class="badge" style="background: rgba(139, 92, 246, 0.12); color: #8b5cf6;">${mcCount} Çoktan Seçmeli</span>`);
+      if (fibCount > 0) typeBadges.push(`<span class="badge" style="background: rgba(16, 185, 129, 0.12); color: #10b981;">${fibCount} Boşluk Doldurma</span>`);
+      if (openCount > 0) typeBadges.push(`<span class="badge" style="background: rgba(245, 158, 11, 0.12); color: #d97706;">${openCount} Açık Uçlu</span>`);
+      if (tfCount > 0) typeBadges.push(`<span class="badge" style="background: rgba(59, 130, 246, 0.12); color: #3b82f6;">${tfCount} D/Y</span>`);
+
+      let questionsRowsHtml = "";
+      catQuestions.forEach((q, qIdx) => {
+        const qType = q.type || "open";
+        const typeBadge = qType === "mc"
+          ? `<span class="badge" style="background: rgba(139, 92, 246, 0.15); color: #8b5cf6; font-weight: 700;">Ç.S.</span>`
+          : qType === "fib"
+            ? `<span class="badge" style="background: rgba(16, 185, 129, 0.15); color: #10b981; font-weight: 700;">B.D.</span>`
+            : qType === "open"
+              ? `<span class="badge" style="background: rgba(245, 158, 11, 0.15); color: #d97706; font-weight: 700;">A.U.</span>`
+              : `<span class="badge" style="background: rgba(59, 130, 246, 0.15); color: #3b82f6; font-weight: 700;">D/Y</span>`;
+
+        let answerHtml = "";
+        if (qType === "tf") {
+          answerHtml = (q.answer === true || q.answer === "true")
+            ? `<span class="badge" style="background: rgba(16, 185, 129, 0.15); color: #10b981; font-weight: 600;">✓ Doğru</span>`
+            : `<span class="badge" style="background: rgba(239, 68, 68, 0.15); color: #ef4444; font-weight: 600;">✗ Yanlış</span>`;
+        } else if (qType === "mc") {
+          const letters = ["A", "B", "C", "D", "E"];
+          const correctOptIdx = parseInt(q.answer) || 0;
+          const correctOptVal = q.options ? q.options[correctOptIdx] : "";
+          answerHtml = `<span class="badge" style="background: rgba(16, 185, 129, 0.15); color: #10b981; font-weight: 600;" title="${escapeHTML(correctOptVal || '')}">${letters[correctOptIdx] || 'A'}) ${escapeHTML(correctOptVal || '')}</span>`;
+        } else if (qType === "fib") {
+          const correctVal = q.options && q.options.length > 0 ? q.options[0] : (typeof q.answer === "string" ? q.answer : "");
+          answerHtml = `<span class="badge" style="background: rgba(6, 182, 212, 0.15); color: #06b6d4; font-weight: 600;">✓ ${escapeHTML(correctVal || '')}</span>`;
+        } else if (qType === "open") {
+          const ansStr = typeof q.answer === "string" ? q.answer : "";
+          answerHtml = `<span class="badge" style="background: rgba(245, 158, 11, 0.15); color: #d97706; font-weight: 600;" title="${escapeHTML(ansStr)}">💬 ${escapeHTML(ansStr || 'Model cevap')}</span>`;
+        }
+
+        questionsRowsHtml += `
+          <tr class="quiz-pkg-q-row">
+            <td style="width: 45px; text-align: center; color: var(--text-muted); font-size: 0.78rem;">#${qIdx + 1}</td>
+            <td style="width: 65px;">${typeBadge}</td>
+            <td style="font-weight: 500; color: var(--text-primary); line-height: 1.45;">
+              ${escapeHTML(q.text)}
+              ${q.explanation ? `<div style="font-size: 0.78rem; color: var(--text-secondary); margin-top: 3px; font-style: italic;">💡 ${escapeHTML(q.explanation)}</div>` : ''}
+            </td>
+            <td style="width: 170px;">${answerHtml}</td>
+            <td style="width: 100px; text-align: right;">
+              <div style="display: inline-flex; gap: 4px;">
+                <button type="button" class="btn btn-secondary btn-xs btn-edit-treasure-q" data-id="${q.id}" title="Düzenle">
+                  <i data-lucide="edit-2" style="width:13px;height:13px;"></i>
+                </button>
+                <button type="button" class="btn btn-danger btn-xs btn-delete-treasure-q" data-id="${q.id}" title="Sil">
+                  <i data-lucide="trash-2" style="width:13px;height:13px;"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        `;
+      });
+
+      const pkgCard = document.createElement("div");
+      pkgCard.className = "quiz-package-card";
+      pkgCard.id = `treasure-card-${safeId}`;
+
+      pkgCard.innerHTML = `
+        <div class="quiz-package-header" onclick="window.toggleTreasurePackage('${safeId}')">
+          <div class="quiz-package-left">
+            <div class="quiz-package-icon" style="background: rgba(245, 158, 11, 0.15); color: #d97706;">
+              <i data-lucide="folder" style="width: 22px; height: 22px;"></i>
+            </div>
+            <div>
+              <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                <h4 class="quiz-package-title">${escapeHTML(catName)}</h4>
+                <span class="quiz-package-count-badge" style="background: var(--warning-dark, #d97706);">${catQuestions.length} Soru</span>
+              </div>
+              <div class="quiz-package-badges-row">
+                ${typeBadges.join(" ")}
+              </div>
+            </div>
+          </div>
+
+          <div class="quiz-package-right" onclick="event.stopPropagation()">
+            <button type="button" class="btn btn-warning btn-sm" onclick="window.startTreasureWithPackage('${escapeHTML(catName)}')" style="display: inline-flex; align-items: center; gap: 0.3rem; font-weight: 600;">
+              <i data-lucide="play" style="width: 13px; height: 13px;"></i> Bu Paketle Oyna
+            </button>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="window.exportTreasurePackageJson('${escapeHTML(catName)}')" style="display: inline-flex; align-items: center; gap: 0.3rem;" title="Bu soru paketini JSON dosyası olarak indir">
+              <i data-lucide="download" style="width: 13px; height: 13px;"></i> JSON İndir
+            </button>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="window.deleteTreasurePackage('${escapeHTML(catName)}')" style="display: inline-flex; align-items: center; gap: 0.3rem; color: #ef4444;" title="Bu paketteki tüm soruları sil">
+              <i data-lucide="trash-2" style="width: 13px; height: 13px;"></i> Paketi Sil
+            </button>
+            <div class="quiz-package-chevron-box treasure-package-chevron-box" onclick="window.toggleTreasurePackage('${safeId}')" style="cursor: pointer;">
+              <i data-lucide="chevron-down" id="treasure-chevron-${safeId}" style="width: 20px; height: 20px; transition: transform 0.2s;"></i>
+            </div>
+          </div>
+        </div>
+
+        <div class="quiz-package-body treasure-package-body" id="treasure-body-${safeId}" style="display: none;">
+          <div style="overflow-x: auto;">
+            <table class="table" style="font-size: 0.85rem; width: 100%; margin: 0;">
+              <thead>
+                <tr style="background: rgba(0,0,0,0.02);">
+                  <th style="width: 45px; text-align: center;">No</th>
+                  <th style="width: 65px;">Tip</th>
+                  <th>Soru & Açıklama</th>
+                  <th style="width: 170px;">Doğru Cevap</th>
+                  <th style="width: 100px; text-align: right;">İşlemler</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${questionsRowsHtml}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      `;
+
+      pkgContainer.appendChild(pkgCard);
+    });
+
+    // Attach edit & delete events
+    pkgContainer.querySelectorAll(".btn-edit-treasure-q").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const id = parseInt(btn.getAttribute("data-id"));
+        editTreasureQuestion(id);
+      });
+    });
+
+    pkgContainer.querySelectorAll(".btn-delete-treasure-q").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const id = parseInt(btn.getAttribute("data-id"));
+        deleteTreasureQuestion(id);
+      });
+    });
+
     if (window.safeCreateIcons) window.safeCreateIcons();
   }
 
-  // Populate Form fields for editing
-  function editTreasureQuestion(id) {
-    const question = questions.find(q => q.id === id);
-    if (!question) return;
-    
-    if (editQuestionId) editQuestionId.value = question.id;
-    if (questionTypeSelect) {
-      questionTypeSelect.value = question.type;
-      toggleQuestionTypeUI(question.type);
-    }
-    if (questionCategoryInput) questionCategoryInput.value = question.category || "";
-    if (questionSentenceTextarea) questionSentenceTextarea.value = question.text || "";
-    if (questionExplanationInput) questionExplanationInput.value = question.explanation || "";
-    
-    if (question.type === "tf") {
-      if (questionAnswerTfSelect) {
-        questionAnswerTfSelect.value = question.answer === true || question.answer === "true" ? "true" : "false";
-      }
-    } else if (question.type === "mc") {
-      if (questionAnswerInput && question.options && question.options.length > 0) {
-        const correctIdx = parseInt(question.answer) || 0;
-        questionAnswerInput.value = question.options[correctIdx] || "";
-        
-        const wrongOpts = question.options.filter((_, idx) => idx !== correctIdx);
-        if (questionWrongOptionsInput) {
-          questionWrongOptionsInput.value = wrongOpts.join(", ");
-        }
-      }
-    } else if (question.type === "fib") {
-      if (questionAnswerInput) {
-        if (question.options && question.options.length > 0) {
-          const correctIdx = parseInt(question.answer) || 0;
-          questionAnswerInput.value = question.options[correctIdx] || "";
-        } else {
-          questionAnswerInput.value = question.answer || "";
-        }
-      }
-    }
-    
-    if (questionFormTitle) questionFormTitle.textContent = "Soruyu Düzenle";
-    if (btnCancelQuestionEdit) btnCancelQuestionEdit.style.display = "inline-block";
+  // ─── MODAL: TEK SORU DÜZENLEME ──────────────────────────────────────────
+  let _editingQuestionId = null;
+
+  function openTreasureEditQuestionModal(id) {
+    const q = questions.find(item => item.id === id);
+    if (!q) return;
+    _editingQuestionId = id;
+
+    const modal = document.getElementById("modal-treasure-edit-question");
+    if (!modal) return;
+
+    document.getElementById("treasure-modal-edit-title").textContent = `Soruyu Düzenle (#${q.id})`;
+    document.getElementById("treasure-edit-q-id").value = q.id;
+    document.getElementById("treasure-edit-q-category").value = q.category || "Genel";
+    document.getElementById("treasure-edit-q-type").value = q.type || "open";
+    document.getElementById("treasure-edit-q-text").value = q.text || "";
+    document.getElementById("treasure-edit-q-explanation").value = q.explanation || "";
+
+    renderTreasureEditAnswerField(q);
+
+    modal.classList.add("active");
+    modal.style.display = "flex";
+    if (window.safeCreateIcons) window.safeCreateIcons();
   }
+
+  function closeTreasureEditQuestionModal() {
+    const modal = document.getElementById("modal-treasure-edit-question");
+    if (!modal) return;
+    modal.classList.remove("active");
+    modal.style.display = "none";
+    _editingQuestionId = null;
+  }
+
+  function onTreasureEditTypeChange() {
+    const type = document.getElementById("treasure-edit-q-type").value;
+    const q = questions.find(item => item.id === _editingQuestionId) || {};
+    renderTreasureEditAnswerField({ ...q, type: type });
+    if (window.safeCreateIcons) window.safeCreateIcons();
+  }
+
+  function renderTreasureEditAnswerField(q) {
+    const container = document.getElementById("treasure-edit-q-answer-container");
+    if (!container) return;
+
+    if (q.type === "mc") {
+      const letters = ["A", "B", "C", "D"];
+      const opts = Array.isArray(q.options) && q.options.length >= 4 ? q.options : ["", "", "", ""];
+      const correctIdx = parseInt(q.answer) || 0;
+      container.innerHTML = `
+        <label style="font-weight: 600; font-size: 0.85rem; margin-bottom: 0.35rem; display: block;">Seçenekler ve Doğru Cevap (Doğru şıkkı işaretleyin):</label>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+          ${letters.map((let, optIdx) => `
+            <div style="display: flex; align-items: center; gap: 0.4rem; background: var(--bg-primary); padding: 0.3rem 0.5rem; border: 1px solid var(--border-color); border-radius: 6px;">
+              <input type="radio" name="edit_mc_ans" id="edit_mc_opt_${optIdx}" value="${optIdx}" ${correctIdx === optIdx ? 'checked' : ''}>
+              <label for="edit_mc_opt_${optIdx}" style="font-weight: 700; font-size: 0.82rem; color: var(--primary); margin: 0; min-width: 18px;">${let})</label>
+              <input type="text" class="form-control form-control-sm edit-mc-input" id="edit-mc-val-${optIdx}" value="${escapeHTML(opts[optIdx] || '')}" placeholder="${let} seçeneği..." style="flex: 1; height: 30px; font-size: 0.82rem;">
+            </div>
+          `).join("")}
+        </div>
+      `;
+    } else if (q.type === "tf") {
+      const isTrue = q.answer === true || q.answer === "true";
+      container.innerHTML = `
+        <label style="font-weight: 600; font-size: 0.85rem; margin-bottom: 0.25rem; display: block;">Doğru Cevap:</label>
+        <select id="edit-tf-select" class="form-control" style="width: 100%; height: 35px;">
+          <option value="true" ${isTrue ? 'selected' : ''}>DOĞRU</option>
+          <option value="false" ${!isTrue ? 'selected' : ''}>YANLIŞ</option>
+        </select>
+      `;
+    } else {
+      const ansVal = typeof q.answer === "string" ? q.answer : (q.options && q.options[0] ? q.options[0] : "");
+      const labelText = q.type === "fib" ? "Boşluğa Gelecek Doğru Kelime ([___] boşluğu):" : "Model / Doğru Cevap:";
+      container.innerHTML = `
+        <label style="font-weight: 600; font-size: 0.85rem; margin-bottom: 0.25rem; display: block;">${labelText}</label>
+        <input type="text" id="edit-text-ans" class="form-control" value="${escapeHTML(ansVal)}" placeholder="Doğru cevabı yazın..." style="width: 100%; height: 35px;">
+      `;
+    }
+  }
+
+  function saveTreasureEditedQuestion() {
+    if (!_editingQuestionId) return;
+    const qIndex = questions.findIndex(item => item.id === _editingQuestionId);
+    if (qIndex === -1) return;
+
+    const qType = document.getElementById("treasure-edit-q-type").value;
+    const category = document.getElementById("treasure-edit-q-category").value.trim() || "Genel";
+    const text = document.getElementById("treasure-edit-q-text").value.trim();
+    const explanation = document.getElementById("treasure-edit-q-explanation").value.trim();
+
+    if (!text) {
+      alert("Soru metni boş olamaz!");
+      return;
+    }
+
+    let answer = "";
+    let options = undefined;
+
+    if (qType === "mc") {
+      const opts = [];
+      for (let i = 0; i < 4; i++) {
+        const inp = document.getElementById(`edit-mc-val-${i}`);
+        opts.push(inp ? inp.value.trim() : "");
+      }
+      options = opts;
+      const checkedRadio = document.querySelector('input[name="edit_mc_ans"]:checked');
+      answer = checkedRadio ? parseInt(checkedRadio.value) || 0 : 0;
+    } else if (qType === "tf") {
+      const sel = document.getElementById("edit-tf-select");
+      answer = sel ? sel.value === "true" : true;
+    } else if (qType === "fib") {
+      const inp = document.getElementById("edit-text-ans");
+      answer = inp ? inp.value.trim() : "";
+      options = [answer];
+    } else if (qType === "open") {
+      const inp = document.getElementById("edit-text-ans");
+      answer = inp ? inp.value.trim() : "";
+    }
+
+    questions[qIndex] = {
+      ...questions[qIndex],
+      type: qType,
+      category: category,
+      text: text,
+      answer: answer,
+      options: options,
+      explanation: explanation
+    };
+
+    saveQuestions();
+    populateLibraryCategoryFilter();
+    populateCategorySelector();
+    renderTreasureQuestionLibrary();
+    closeTreasureEditQuestionModal();
+
+    if (toastCallback) toastCallback("Soru başarıyla güncellendi!", "success");
+  }
+
+  function editTreasureQuestion(id) {
+    openTreasureEditQuestionModal(id);
+  }
+
+  // ─── MODAL: PAKET FORMU İLE OLUŞTURUCU ────────────────────────────────────
+  let _pkgQuestionsData = [];
+
+  function openTreasurePackageCreatorModal() {
+    const modal = document.getElementById("modal-treasure-package-creator");
+    if (!modal) return;
+    document.getElementById("treasure-pkg-title").value = "";
+    document.getElementById("treasure-pkg-count").value = "5";
+    document.getElementById("treasure-pkg-type").value = "mc";
+    document.getElementById("treasure-pkg-difficulty").value = "dengeli";
+
+    document.getElementById("treasure-pkg-step-setup").style.display = "block";
+    document.getElementById("treasure-pkg-step-questions").style.display = "none";
+    document.getElementById("btn-treasure-pkg-create-step").style.display = "inline-flex";
+    document.getElementById("btn-treasure-pkg-save").style.display = "none";
+
+    _pkgQuestionsData = [];
+    modal.classList.add("active");
+    modal.style.display = "flex";
+    if (window.safeCreateIcons) window.safeCreateIcons();
+  }
+
+  function closeTreasurePackageCreatorModal() {
+    const modal = document.getElementById("modal-treasure-package-creator");
+    if (!modal) return;
+    modal.classList.remove("active");
+    modal.style.display = "none";
+    _pkgQuestionsData = [];
+  }
+
+  function prepareTreasurePackageQuestions() {
+    const title = document.getElementById("treasure-pkg-title").value.trim();
+    if (!title) {
+      alert("Lütfen paket ismini giriniz!");
+      document.getElementById("treasure-pkg-title").focus();
+      return;
+    }
+    const count = parseInt(document.getElementById("treasure-pkg-count").value) || 5;
+    const pType = document.getElementById("treasure-pkg-type").value;
+
+    _pkgQuestionsData = [];
+    for (let i = 0; i < count; i++) {
+      let qType = pType;
+      if (pType === "karisik") {
+        const types = ["mc", "fib", "open"];
+        qType = types[i % 3];
+      }
+      _pkgQuestionsData.push({
+        type: qType,
+        text: "",
+        answer: qType === "mc" ? 0 : "",
+        options: qType === "mc" ? ["", "", "", ""] : [],
+        explanation: ""
+      });
+    }
+
+    renderTreasurePackageQuestionCards();
+
+    document.getElementById("treasure-pkg-step-setup").style.display = "none";
+    document.getElementById("treasure-pkg-step-questions").style.display = "block";
+    document.getElementById("btn-treasure-pkg-create-step").style.display = "none";
+    document.getElementById("btn-treasure-pkg-save").style.display = "inline-flex";
+
+    const titleEl = document.getElementById("treasure-pkg-step2-title");
+    const badgeEl = document.getElementById("treasure-pkg-step2-badge");
+    if (titleEl) titleEl.textContent = `📦 ${title}`;
+    if (badgeEl) badgeEl.textContent = `Toplam ${_pkgQuestionsData.length} soru hazırlanıyor`;
+    if (window.safeCreateIcons) window.safeCreateIcons();
+  }
+
+  function renderTreasurePackageQuestionCards() {
+    const container = document.getElementById("treasure-pkg-questions-container");
+    if (!container) return;
+    container.innerHTML = "";
+
+    _pkgQuestionsData.forEach((q, idx) => {
+      const card = document.createElement("div");
+      card.className = "glass-card";
+      card.style.padding = "1rem 1.25rem";
+      card.style.border = "1px solid var(--border-color)";
+      card.style.borderRadius = "10px";
+      card.style.position = "relative";
+
+      let answerFieldsHtml = "";
+      if (q.type === "mc") {
+        const letters = ["A", "B", "C", "D"];
+        answerFieldsHtml = `
+          <div style="margin-top: 0.5rem;">
+            <label style="font-weight: 600; font-size: 0.82rem; margin-bottom: 0.35rem; display: block;">Seçenekler ve Doğru Cevap (Doğru şıkkı işaretleyin):</label>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+              ${letters.map((let, optIdx) => `
+                <div style="display: flex; align-items: center; gap: 0.4rem; background: var(--bg-primary); padding: 0.3rem 0.5rem; border: 1px solid var(--border-color); border-radius: 6px;">
+                  <input type="radio" name="pkg_q_ans_${idx}" id="pkg_q_${idx}_opt_${optIdx}" value="${optIdx}" ${q.answer === optIdx ? 'checked' : ''} onchange="window.updateTreasurePackageCardAnswer(${idx}, ${optIdx})">
+                  <label for="pkg_q_${idx}_opt_${optIdx}" style="font-weight: 700; font-size: 0.82rem; color: var(--primary); margin: 0; min-width: 18px;">${let})</label>
+                  <input type="text" class="form-control form-control-sm" placeholder="${let} seçeneği..." value="${escapeHTML(q.options[optIdx] || '')}" oninput="window.updateTreasurePackageCardOption(${idx}, ${optIdx}, this.value)" style="flex: 1; height: 30px; font-size: 0.82rem;">
+                </div>
+              `).join("")}
+            </div>
+          </div>
+        `;
+      } else if (q.type === "fib") {
+        answerFieldsHtml = `
+          <div style="margin-top: 0.5rem;">
+            <label style="font-weight: 600; font-size: 0.82rem; margin-bottom: 0.25rem; display: block;">Boşluğa Gelecek Doğru Kelime / Sayı: <small style="color: var(--text-muted);">(Cümle içine [___] yazabilirsiniz)</small></label>
+            <input type="text" class="form-control form-control-sm" placeholder="Örn: Ankara veya 1923" value="${escapeHTML(typeof q.answer === 'string' ? q.answer : '')}" oninput="window.updateTreasurePackageCardAnswerText(${idx}, this.value)" style="width: 100%; height: 34px; font-size: 0.85rem;">
+          </div>
+        `;
+      } else if (q.type === "open") {
+        answerFieldsHtml = `
+          <div style="margin-top: 0.5rem;">
+            <label style="font-weight: 600; font-size: 0.82rem; margin-bottom: 0.25rem; display: block;">Doğru / Örnek Model Cevap:</label>
+            <input type="text" class="form-control form-control-sm" placeholder="Örn: Akciğer solunumu yaparlar" value="${escapeHTML(typeof q.answer === 'string' ? q.answer : '')}" oninput="window.updateTreasurePackageCardAnswerText(${idx}, this.value)" style="width: 100%; height: 34px; font-size: 0.85rem;">
+          </div>
+        `;
+      }
+
+      card.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.65rem;">
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <span class="badge" style="background: rgba(245, 158, 11, 0.15); color: #d97706; font-weight: 800;">Soru #${idx + 1}</span>
+            <select class="form-control form-control-sm" onchange="window.changeTreasurePackageCardType(${idx}, this.value)" style="width: 155px; height: 28px; font-size: 0.78rem; padding: 0 0.4rem;">
+              <option value="mc" ${q.type === 'mc' ? 'selected' : ''}>Çoktan Seçmeli</option>
+              <option value="fib" ${q.type === 'fib' ? 'selected' : ''}>Boşluk Doldurma</option>
+              <option value="open" ${q.type === 'open' ? 'selected' : ''}>Açık Uçlu</option>
+            </select>
+          </div>
+          <button type="button" class="btn btn-outline btn-xs" onclick="window.removeTreasurePackageCard(${idx})" style="color: var(--danger); padding: 2px 6px;" title="Bu soruyu sil">
+            <i data-lucide="trash-2" style="width: 13px; height: 13px;"></i>
+          </button>
+        </div>
+
+        <div class="form-group" style="margin-bottom: 0.5rem;">
+          <textarea class="form-control" rows="2" placeholder="Soru metnini yazın..." oninput="window.updateTreasurePackageCardText(${idx}, this.value)" style="width: 100%; font-size: 0.85rem; padding: 0.45rem 0.65rem;">${escapeHTML(q.text || '')}</textarea>
+        </div>
+
+        ${answerFieldsHtml}
+
+        <div style="margin-top: 0.45rem;">
+          <input type="text" class="form-control form-control-sm" placeholder="Açıklama / İpucu (Opsiyonel)" value="${escapeHTML(q.explanation || '')}" oninput="window.updateTreasurePackageCardExplanation(${idx}, this.value)" style="width: 100%; height: 28px; font-size: 0.78rem; color: var(--text-secondary);">
+        </div>
+      `;
+
+      container.appendChild(card);
+    });
+
+    if (window.safeCreateIcons) window.safeCreateIcons();
+  }
+
+  function addMoreTreasurePackageQuestion() {
+    const pType = document.getElementById("treasure-pkg-type").value;
+    const qType = pType === "karisik" ? "mc" : pType;
+    _pkgQuestionsData.push({
+      type: qType,
+      text: "",
+      answer: qType === "mc" ? 0 : "",
+      options: qType === "mc" ? ["", "", "", ""] : [],
+      explanation: ""
+    });
+    renderTreasurePackageQuestionCards();
+    const badgeEl = document.getElementById("treasure-pkg-step2-badge");
+    if (badgeEl) badgeEl.textContent = `Toplam ${_pkgQuestionsData.length} soru hazırlanıyor`;
+  }
+
+  function removeTreasurePackageCard(idx) {
+    if (_pkgQuestionsData.length <= 1) {
+      alert("Pakette en az 1 soru bulunmalıdır!");
+      return;
+    }
+    _pkgQuestionsData.splice(idx, 1);
+    renderTreasurePackageQuestionCards();
+    const badgeEl = document.getElementById("treasure-pkg-step2-badge");
+    if (badgeEl) badgeEl.textContent = `Toplam ${_pkgQuestionsData.length} soru hazırlanıyor`;
+  }
+
+  function backToTreasurePackageSetup() {
+    document.getElementById("treasure-pkg-step-setup").style.display = "block";
+    document.getElementById("treasure-pkg-step-questions").style.display = "none";
+    document.getElementById("btn-treasure-pkg-create-step").style.display = "inline-flex";
+    document.getElementById("btn-treasure-pkg-save").style.display = "none";
+  }
+
+  function changeTreasurePackageCardType(idx, newType) {
+    if (!_pkgQuestionsData[idx]) return;
+    _pkgQuestionsData[idx].type = newType;
+    if (newType === "mc") {
+      if (!_pkgQuestionsData[idx].options || _pkgQuestionsData[idx].options.length < 4) {
+        _pkgQuestionsData[idx].options = ["", "", "", ""];
+      }
+      _pkgQuestionsData[idx].answer = 0;
+    } else if (newType === "fib" || newType === "open") {
+      _pkgQuestionsData[idx].answer = "";
+      _pkgQuestionsData[idx].options = [];
+    }
+    renderTreasurePackageQuestionCards();
+  }
+
+  function updateTreasurePackageCardText(idx, val) {
+    if (_pkgQuestionsData[idx]) _pkgQuestionsData[idx].text = val;
+  }
+  function updateTreasurePackageCardAnswer(idx, ansIdx) {
+    if (_pkgQuestionsData[idx]) _pkgQuestionsData[idx].answer = ansIdx;
+  }
+  function updateTreasurePackageCardOption(idx, optIdx, val) {
+    if (_pkgQuestionsData[idx] && _pkgQuestionsData[idx].options) {
+      _pkgQuestionsData[idx].options[optIdx] = val;
+    }
+  }
+  function updateTreasurePackageCardAnswerText(idx, val) {
+    if (_pkgQuestionsData[idx]) {
+      _pkgQuestionsData[idx].answer = val;
+      if (_pkgQuestionsData[idx].type === "fib") {
+        _pkgQuestionsData[idx].options = [val];
+      }
+    }
+  }
+  function updateTreasurePackageCardExplanation(idx, val) {
+    if (_pkgQuestionsData[idx]) _pkgQuestionsData[idx].explanation = val;
+  }
+
+  function saveTreasurePackageFromModal() {
+    const title = document.getElementById("treasure-pkg-title").value.trim();
+    if (!title) {
+      alert("Paket ismi boş olamaz!");
+      return;
+    }
+
+    const validQuestions = _pkgQuestionsData.filter(q => q.text && q.text.trim().length > 0);
+    if (validQuestions.length === 0) {
+      alert("Lütfen en az bir sorunun metnini yazınız!");
+      return;
+    }
+
+    let startId = questions.length > 0 ? Math.max(...questions.map(q => parseInt(q.id) || 0)) + 1 : 1;
+
+    validQuestions.forEach(q => {
+      let finalOptions = undefined;
+      let finalAnswer = q.answer;
+
+      if (q.type === "mc") {
+        finalOptions = q.options.map(o => o.trim());
+        finalAnswer = parseInt(q.answer) || 0;
+      } else if (q.type === "fib") {
+        finalOptions = [String(q.answer || "").trim()];
+        finalAnswer = String(q.answer || "").trim();
+      } else if (q.type === "open") {
+        finalAnswer = String(q.answer || "").trim();
+      }
+
+      questions.push({
+        id: startId++,
+        type: q.type,
+        category: title,
+        text: q.text.trim(),
+        answer: finalAnswer,
+        options: finalOptions,
+        explanation: (q.explanation || "").trim()
+      });
+    });
+
+    saveQuestions();
+    populateLibraryCategoryFilter();
+    populateCategorySelector();
+    renderTreasureQuestionLibrary();
+    closeTreasurePackageCreatorModal();
+
+    const msg = `✅ "${title}" paketi (${validQuestions.length} soru) başarıyla kaydedildi!`;
+    if (toastCallback) toastCallback(msg, "success");
+    else alert(msg);
+  }
+
+  // ─── MODAL: KOPYALA & YAPIŞTIR İLE SORU EKLEME ────────────────────────────
+  let _cpParsedQuestions = [];
+
+  function openTreasureCopyPasteModal() {
+    const modal = document.getElementById("modal-treasure-copy-paste");
+    if (!modal) return;
+    document.getElementById("treasure-cp-category").value = "";
+    document.getElementById("treasure-cp-text").value = "";
+    document.getElementById("treasure-cp-type").value = "auto";
+    document.getElementById("treasure-cp-input-section").style.display = "block";
+    document.getElementById("treasure-cp-preview-section").style.display = "none";
+    document.getElementById("btn-treasure-cp-parse").style.display = "inline-flex";
+    document.getElementById("btn-treasure-cp-save").style.display = "none";
+    _cpParsedQuestions = [];
+    modal.classList.add("active");
+    modal.style.display = "flex";
+    if (window.safeCreateIcons) window.safeCreateIcons();
+  }
+
+  function closeTreasureCopyPasteModal() {
+    const modal = document.getElementById("modal-treasure-copy-paste");
+    if (!modal) return;
+    modal.classList.remove("active");
+    modal.style.display = "none";
+    _cpParsedQuestions = [];
+  }
+
+  function loadTreasureCopyPasteSample() {
+    document.getElementById("treasure-cp-category").value = "4. Sınıf Fen - Canlılar Dünyası";
+    document.getElementById("treasure-cp-text").value = 
+`1. Aşağıdakilerden hangisi kendi besinini kendisi üretebilen bir canlıdır?
+A) Mantarlar
+B) Yeşil bitkiler
+C) İnsanlar
+D) Kuşlar
+Cevap: B
+Açıklama: Yeşil bitkiler klorofil ve güneş ışığı ile fotosentez yapar.
+
+2. Soluk alıp verirken vücudumuza aldığımız yaşamsal gaz [___] gazıdır.
+Cevap: Oksijen
+
+3. Memeli hayvanların en belirgin özelliklerinden üç tanesini yazınız.
+Cevap: Doğurarak çoğalırlar, yavrularını sütle beslerler ve vücutları kıllarla kaplıdır.
+
+4. Aşağıdaki organlardan hangisi boşaltım sisteminin ana organıdır?
+A) Kalp
+B) Mide
+C) Böbrek
+D) Karaciğer
+Cevap: C`;
+  }
+
+  function parseTreasureCopyPasteText(previewOnly = true) {
+    const category = document.getElementById("treasure-cp-category").value.trim() || "Genel Paket";
+    const text = document.getElementById("treasure-cp-text").value.trim();
+    const forcedType = document.getElementById("treasure-cp-type").value;
+
+    if (!text) {
+      alert("Lütfen metin alanına soru listesini yapıştırın!");
+      return;
+    }
+
+    const lines = text.split("\n");
+    const itemStartRegex = /^\s*(?:Soru\s*)?(\d+)[\.\)\-:\/]\s*(.*)$/i;
+
+    let items = [];
+    let currentItem = null;
+
+    lines.forEach(line => {
+      const trimmed = line.trim();
+      if (!trimmed) return;
+      const match = trimmed.match(itemStartRegex);
+      if (match) {
+        if (currentItem) items.push(currentItem);
+        currentItem = {
+          num: match[1],
+          rawLines: [match[2]]
+        };
+      } else {
+        if (currentItem) {
+          currentItem.rawLines.push(trimmed);
+        } else {
+          currentItem = {
+            num: (items.length + 1).toString(),
+            rawLines: [trimmed]
+          };
+        }
+      }
+    });
+    if (currentItem) items.push(currentItem);
+
+    if (items.length === 0) {
+      alert("Metin içerisinde madde veya soru numarası bulunamadı! Lütfen 1. 2. gibi madde numaraları kullanın.");
+      return;
+    }
+
+    _cpParsedQuestions = [];
+
+    items.forEach((item, idx) => {
+      const rawBody = item.rawLines.join("\n");
+      let qType = forcedType === "auto" ? "open" : forcedType;
+      let qText = "";
+      let answer = "";
+      let options = [];
+      let explanation = "";
+
+      const ansMatch = rawBody.match(/(?:^|\n)\s*(?:Doğru\s*)?(?:Cevap|Yanıt|Cevap\s*Anahtarı)\s*[:=\-]\s*([^\n]+)/i);
+      if (ansMatch) {
+        answer = ansMatch[1].trim();
+      }
+
+      const expMatch = rawBody.match(/(?:^|\n)\s*(?:Açıklama|Çözüm|İpucu)\s*[:=\-]\s*([^\n]+)/i);
+      if (expMatch) {
+        explanation = expMatch[1].trim();
+      }
+
+      const optRegex = /(?:^|\n)\s*([A-Ea-e])[\.\)\-:]\s*([^\n]+)/g;
+      const foundOptions = [];
+      let optMatch;
+      while ((optMatch = optRegex.exec(rawBody)) !== null) {
+        foundOptions.push({
+          letter: optMatch[1].toUpperCase(),
+          val: optMatch[2].trim()
+        });
+      }
+
+      if (forcedType === "mc" || (forcedType === "auto" && foundOptions.length >= 2)) {
+        qType = "mc";
+        options = foundOptions.map(o => o.val);
+        const firstOptIndex = rawBody.search(/(?:^|\n)\s*[A-Ea-e][\.\)\-:]/);
+        if (firstOptIndex !== -1) {
+          qText = rawBody.substring(0, firstOptIndex).trim();
+        } else {
+          qText = rawBody;
+        }
+
+        let ansIdx = 0;
+        if (answer) {
+          const letterMatch = answer.match(/^[A-Ea-e]$/);
+          if (letterMatch) {
+            ansIdx = letterMatch[0].toUpperCase().charCodeAt(0) - 65;
+          } else {
+            const matchIdx = options.findIndex(o => o.toLowerCase() === answer.toLowerCase());
+            if (matchIdx !== -1) ansIdx = matchIdx;
+          }
+        }
+        answer = Math.max(0, Math.min(options.length - 1, ansIdx));
+      } else {
+        if (forcedType === "fib" || (forcedType === "auto" && (rawBody.includes("[___]") || rawBody.includes("_____")))) {
+          qType = "fib";
+          qText = rawBody.split(/(?:^|\n)\s*(?:Doğru\s*)?(?:Cevap|Yanıt|Açıklama)/i)[0].trim();
+          options = answer ? [answer] : [];
+        } else {
+          qType = forcedType === "auto" ? "open" : forcedType;
+          qText = rawBody.split(/(?:^|\n)\s*(?:Doğru\s*)?(?:Cevap|Yanıt|Açıklama)/i)[0].trim();
+        }
+      }
+
+      _cpParsedQuestions.push({
+        type: qType,
+        text: qText || `Soru #${idx + 1}`,
+        answer: answer,
+        options: options,
+        explanation: explanation,
+        category: category
+      });
+    });
+
+    if (previewOnly) {
+      renderTreasureCopyPastePreview();
+      document.getElementById("treasure-cp-input-section").style.display = "none";
+      document.getElementById("treasure-cp-preview-section").style.display = "block";
+      document.getElementById("btn-treasure-cp-parse").style.display = "none";
+      document.getElementById("btn-treasure-cp-save").style.display = "inline-flex";
+    } else {
+      saveTreasureCopyPastePackage();
+    }
+  }
+
+  function renderTreasureCopyPastePreview() {
+    const container = document.getElementById("treasure-cp-preview-container");
+    const countEl = document.getElementById("treasure-cp-preview-count");
+    if (!container) return;
+    container.innerHTML = "";
+    if (countEl) countEl.textContent = `✅ ${_cpParsedQuestions.length} Adet Soru Başarıyla Ayrıştırıldı`;
+
+    _cpParsedQuestions.forEach((q, idx) => {
+      const card = document.createElement("div");
+      card.className = "glass-card";
+      card.style.padding = "0.85rem 1rem";
+      card.style.border = "1px solid var(--border-color)";
+      card.style.borderRadius = "8px";
+
+      const typeLabel = q.type === "mc" ? "Çoktan Seçmeli" : (q.type === "fib" ? "Boşluk Doldurma" : "Açık Uçlu");
+      const typeColor = q.type === "mc" ? "#8b5cf6" : (q.type === "fib" ? "#10b981" : "#d97706");
+
+      let ansDesc = "";
+      if (q.type === "mc") {
+        const letters = ["A", "B", "C", "D", "E"];
+        const correctOpt = q.options[q.answer] || "";
+        ansDesc = `<strong>Doğru Şık:</strong> ${letters[q.answer] || 'A'}) ${escapeHTML(correctOpt)}<br><small style="color:var(--text-muted);">Şıklar: ${escapeHTML(q.options.join(" | "))}</small>`;
+      } else {
+        ansDesc = `<strong>Doğru/Model Cevap:</strong> ${escapeHTML(q.answer || 'Cevap belirtilmemiş')}`;
+      }
+
+      card.innerHTML = `
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.35rem;">
+          <span style="font-weight:700; font-size:0.85rem; color:var(--text-primary);">Soru #${idx + 1}</span>
+          <span class="badge" style="background:${typeColor}22; color:${typeColor}; font-weight:700;">${typeLabel}</span>
+        </div>
+        <p style="font-size:0.88rem; font-weight:500; margin:0 0 0.4rem 0; color:var(--text-primary);">${escapeHTML(q.text)}</p>
+        <div style="font-size:0.82rem; background:rgba(0,0,0,0.02); padding:0.4rem 0.6rem; border-radius:6px; border:1px dashed var(--border-color);">
+          ${ansDesc}
+          ${q.explanation ? `<div style="font-size:0.75rem; color:var(--text-secondary); margin-top:2px;">💡 ${escapeHTML(q.explanation)}</div>` : ''}
+        </div>
+      `;
+      container.appendChild(card);
+    });
+    if (window.safeCreateIcons) window.safeCreateIcons();
+  }
+
+  function backToTreasureCopyPasteInput() {
+    document.getElementById("treasure-cp-input-section").style.display = "block";
+    document.getElementById("treasure-cp-preview-section").style.display = "none";
+    document.getElementById("btn-treasure-cp-parse").style.display = "inline-flex";
+    document.getElementById("btn-treasure-cp-save").style.display = "none";
+  }
+
+  function saveTreasureCopyPastePackage() {
+    if (_cpParsedQuestions.length === 0) {
+      alert("Ayrıştırılmış soru bulunamadı!");
+      return;
+    }
+    const category = document.getElementById("treasure-cp-category").value.trim() || "Genel Paket";
+    let startId = questions.length > 0 ? Math.max(...questions.map(q => parseInt(q.id) || 0)) + 1 : 1;
+
+    _cpParsedQuestions.forEach(q => {
+      questions.push({
+        id: startId++,
+        type: q.type,
+        category: category,
+        text: q.text,
+        answer: q.answer,
+        options: q.options && q.options.length > 0 ? q.options : undefined,
+        explanation: q.explanation || ""
+      });
+    });
+
+    saveQuestions();
+    populateLibraryCategoryFilter();
+    populateCategorySelector();
+    renderTreasureQuestionLibrary();
+    closeTreasureCopyPasteModal();
+
+    const msg = `✅ "${category}" paketi (${_cpParsedQuestions.length} soru) başarıyla kütüphaneye eklendi!`;
+    if (toastCallback) toastCallback(msg, "success");
+    else alert(msg);
+  }
+
+  // Window global exposures for package and edit modals
+  window.openTreasurePackageCreatorModal = openTreasurePackageCreatorModal;
+  window.closeTreasurePackageCreatorModal = closeTreasurePackageCreatorModal;
+  window.prepareTreasurePackageQuestions = prepareTreasurePackageQuestions;
+  window.renderTreasurePackageQuestionCards = renderTreasurePackageQuestionCards;
+  window.addMoreTreasurePackageQuestion = addMoreTreasurePackageQuestion;
+  window.removeTreasurePackageCard = removeTreasurePackageCard;
+  window.backToTreasurePackageSetup = backToTreasurePackageSetup;
+  window.changeTreasurePackageCardType = changeTreasurePackageCardType;
+  window.updateTreasurePackageCardText = updateTreasurePackageCardText;
+  window.updateTreasurePackageCardAnswer = updateTreasurePackageCardAnswer;
+  window.updateTreasurePackageCardOption = updateTreasurePackageCardOption;
+  window.updateTreasurePackageCardAnswerText = updateTreasurePackageCardAnswerText;
+  window.updateTreasurePackageCardExplanation = updateTreasurePackageCardExplanation;
+  window.saveTreasurePackageFromModal = saveTreasurePackageFromModal;
+
+  window.openTreasureCopyPasteModal = openTreasureCopyPasteModal;
+  window.closeTreasureCopyPasteModal = closeTreasureCopyPasteModal;
+  window.loadTreasureCopyPasteSample = loadTreasureCopyPasteSample;
+  window.parseTreasureCopyPasteText = parseTreasureCopyPasteText;
+  window.renderTreasureCopyPastePreview = renderTreasureCopyPastePreview;
+  window.backToTreasureCopyPasteInput = backToTreasureCopyPasteInput;
+  window.saveTreasureCopyPastePackage = saveTreasureCopyPastePackage;
+
+  window.openTreasureEditQuestionModal = openTreasureEditQuestionModal;
+  window.closeTreasureEditQuestionModal = closeTreasureEditQuestionModal;
+  window.onTreasureEditTypeChange = onTreasureEditTypeChange;
+  window.saveTreasureEditedQuestion = saveTreasureEditedQuestion;
 
   // Delete single question
   function deleteTreasureQuestion(id) {
@@ -744,11 +1693,79 @@
     if (answerContainer) {
       answerContainer.style.display = "block";
     }
+
+    if (currentQuestion.type === "mc") {
+      const correctIdx = parseInt(currentQuestion.answer) || 0;
+      const optEl = document.getElementById(`treasure-mc-opt-${correctIdx}`);
+      if (optEl) {
+        optEl.style.borderColor = "var(--success, #10b981)";
+        optEl.style.background = "rgba(16, 185, 129, 0.15)";
+        optEl.style.boxShadow = "0 0 10px rgba(16, 185, 129, 0.25)";
+        optEl.style.fontWeight = "700";
+      }
+    }
     
     if (btnShowAnswer) {
       btnShowAnswer.setAttribute("disabled", "disabled");
       btnShowAnswer.disabled = true;
     }
+  }
+
+  // Toggle reward text visibility in Setup screen
+  function toggleRewardInputVisibility() {
+    isRewardInputHidden = !isRewardInputHidden;
+    const input = document.getElementById("treasure-reward-text");
+    const btnText = document.getElementById("text-toggle-reward-visibility");
+    const iconHeader = document.getElementById("icon-toggle-reward-visibility");
+    const iconEye = document.getElementById("icon-reward-eye");
+    
+    if (isRewardInputHidden) {
+      if (input) input.type = "password";
+      if (btnText) btnText.textContent = "Ödülü Göster";
+      if (iconHeader) iconHeader.setAttribute("data-lucide", "eye");
+      if (iconEye) iconEye.setAttribute("data-lucide", "eye");
+    } else {
+      if (input) input.type = "text";
+      if (btnText) btnText.textContent = "Ödülü Gizle";
+      if (iconHeader) iconHeader.setAttribute("data-lucide", "eye-off");
+      if (iconEye) iconEye.setAttribute("data-lucide", "eye-off");
+    }
+    if (window.safeCreateIcons) window.safeCreateIcons();
+  }
+
+  // Toggle reward text visibility in Active Play screen
+  function toggleActiveRewardVisibility() {
+    isActiveRewardPeeked = !isActiveRewardPeeked;
+    const icon = document.getElementById("icon-active-reward");
+    if (!activeRewardDisplay) return;
+
+    if (isActiveRewardPeeked) {
+      activeRewardDisplay.textContent = rewardText;
+      if (icon) icon.setAttribute("data-lucide", "eye-off");
+    } else {
+      activeRewardDisplay.textContent = "Gizli 🔒";
+      if (icon) icon.setAttribute("data-lucide", "eye");
+    }
+    if (window.safeCreateIcons) window.safeCreateIcons();
+  }
+
+  // Toggle reward text visibility in Victory Overlay screen
+  function toggleVictoryRewardVisibility() {
+    isVictoryRewardHidden = !isVictoryRewardHidden;
+    const icon = document.getElementById("icon-victory-reward");
+    const textSpan = document.getElementById("text-victory-reward");
+    if (!winnerReward) return;
+
+    if (isVictoryRewardHidden) {
+      winnerReward.textContent = "🔒 Gizli Ödül";
+      if (icon) icon.setAttribute("data-lucide", "eye");
+      if (textSpan) textSpan.textContent = "Göster";
+    } else {
+      winnerReward.textContent = rewardText;
+      if (icon) icon.setAttribute("data-lucide", "eye-off");
+      if (textSpan) textSpan.textContent = "Gizle";
+    }
+    if (window.safeCreateIcons) window.safeCreateIcons();
   }
 
   // Initialize Game Setup Screen
@@ -763,7 +1780,18 @@
     // Default config values
     if (targetScoreInput) targetScoreInput.value = "50";
     if (timerLimitInput) timerLimitInput.value = "30";
-    if (rewardTextInput) rewardTextInput.value = "";
+    if (rewardTextInput) {
+      rewardTextInput.value = "";
+      rewardTextInput.type = "text";
+    }
+    isRewardInputHidden = false;
+    const btnText = document.getElementById("text-toggle-reward-visibility");
+    if (btnText) btnText.textContent = "Ödülü Gizle";
+    const iconHeader = document.getElementById("icon-toggle-reward-visibility");
+    if (iconHeader) iconHeader.setAttribute("data-lucide", "eye-off");
+    const iconEye = document.getElementById("icon-reward-eye");
+    if (iconEye) iconEye.setAttribute("data-lucide", "eye-off");
+
     if (groupCountSelect) groupCountSelect.value = "3";
     
     // Clear search filter & dropdowns on init
@@ -1158,7 +2186,10 @@
     
     // Display updates
     if (activeTargetScoreDisplay) activeTargetScoreDisplay.textContent = targetScore;
+    isActiveRewardPeeked = false;
     if (activeRewardDisplay) activeRewardDisplay.textContent = "Gizli 🔒";
+    const activeIcon = document.getElementById("icon-active-reward");
+    if (activeIcon) activeIcon.setAttribute("data-lucide", "eye");
     if (activeChestVisual) {
       activeChestVisual.classList.remove("open");
       const padlock = activeChestVisual.querySelector(".chest-padlock");
@@ -1420,6 +2451,7 @@
     currentQuestion = pool[randomIdx];
     
     // Render question
+    const mcContainer = document.getElementById("treasure-mc-options-container");
     if (treasureQuestionText) {
       let text = currentQuestion.text;
       // Strip bracket placeholders for FIB
@@ -1427,6 +2459,26 @@
         text = text.replace(/\[___\]/g, "_______");
       }
       treasureQuestionText.textContent = text;
+    }
+
+    if (mcContainer) {
+      if (currentQuestion.type === "mc" && Array.isArray(currentQuestion.options) && currentQuestion.options.length > 0) {
+        mcContainer.style.display = "block";
+        const letters = ["A", "B", "C", "D", "E"];
+        mcContainer.innerHTML = `
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0.65rem; text-align: left;">
+            ${currentQuestion.options.map((opt, i) => `
+              <div class="treasure-mc-opt-card" id="treasure-mc-opt-${i}" style="background: var(--bg-secondary); border: 1.5px solid var(--border-color); border-radius: 8px; padding: 0.65rem 0.85rem; display: flex; align-items: center; gap: 0.6rem; font-size: 0.95rem; transition: all 0.2s;">
+                <span style="display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 50%; background: rgba(79, 70, 229, 0.12); color: var(--primary); font-weight: 700; font-size: 0.82rem; flex-shrink: 0;">${letters[i] || ''}</span>
+                <span style="font-weight: 500; color: var(--text-primary); line-height: 1.35;">${escapeHTML(opt)}</span>
+              </div>
+            `).join("")}
+          </div>
+        `;
+      } else {
+        mcContainer.style.display = "none";
+        mcContainer.innerHTML = "";
+      }
     }
     
     if (questionCategoryBadge) {
@@ -1458,6 +2510,11 @@
     if (winnerTitle) {
       winnerTitle.textContent = `${group.name} Hazineyi Açtı!`;
     }
+    isVictoryRewardHidden = false;
+    const victoryIcon = document.getElementById("icon-victory-reward");
+    const victoryText = document.getElementById("text-victory-reward");
+    if (victoryIcon) victoryIcon.setAttribute("data-lucide", "eye-off");
+    if (victoryText) victoryText.textContent = "Gizle";
     if (winnerReward) {
       winnerReward.textContent = rewardText;
     }
@@ -1734,6 +2791,24 @@
       btnDeleteAllQuestions.addEventListener("click", deleteAllTreasureQuestions);
     }
 
+    const importFileInput = document.getElementById("treasure-import-json-file");
+    if (importFileInput) {
+      importFileInput.addEventListener("change", function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(evt) {
+          try {
+            importTreasureJSON(evt.target.result);
+          } catch (err) {
+            alert("JSON dosyası ayrıştırılırken hata oluştu: " + err.message);
+          }
+          importFileInput.value = "";
+        };
+        reader.readAsText(file);
+      });
+    }
+
     // Search filter input listener
     const searchInput = document.getElementById("treasure-unassigned-search");
     if (searchInput) {
@@ -1780,6 +2855,24 @@
     }
     if (btnCloseVictory) {
       btnCloseVictory.addEventListener("click", closeVictoryOverlay);
+    }
+
+    // Reward visibility controls
+    const btnToggleRewardVis = document.getElementById("btn-toggle-reward-visibility");
+    if (btnToggleRewardVis) {
+      btnToggleRewardVis.addEventListener("click", toggleRewardInputVisibility);
+    }
+    const btnRewardEye = document.getElementById("btn-reward-eye");
+    if (btnRewardEye) {
+      btnRewardEye.addEventListener("click", toggleRewardInputVisibility);
+    }
+    const btnActiveToggleReward = document.getElementById("btn-active-toggle-reward");
+    if (btnActiveToggleReward) {
+      btnActiveToggleReward.addEventListener("click", toggleActiveRewardVisibility);
+    }
+    const btnVictoryToggleReward = document.getElementById("btn-victory-toggle-reward");
+    if (btnVictoryToggleReward) {
+      btnVictoryToggleReward.addEventListener("click", toggleVictoryRewardVisibility);
     }
     
     // Initial data load

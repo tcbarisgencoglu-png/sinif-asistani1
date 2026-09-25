@@ -508,14 +508,60 @@
     _eventsInitialized = true;
   }
 
+  let _activeGameMode = "quiz"; // "quiz" veya "treasure"
+
   // ─── Modal Aç / Kapat ──────────────────────────────────────────────────────
 
   window.openQuizAIGeneratorModal = function () {
+    _activeGameMode = "quiz";
     const modal = document.getElementById("modal-quiz-ai-generator");
     if (!modal) return;
     ensureEventsInitialized();
     resetGeneratorForm();
     populateLessonDropdown();
+
+    const titleEl = modal.querySelector(".modal-header h3");
+    const subEl = modal.querySelector(".modal-header p");
+    if (titleEl) titleEl.textContent = "✨ Yapay Zeka ile Soru Üret";
+    if (subEl) subEl.textContent = "Gemini AI — Bilgi Yarışması Soru Havuzu";
+
+    const tipiSelect = document.getElementById("ai-soru-tipi");
+    if (tipiSelect) {
+      tipiSelect.innerHTML = `
+        <option value="karisik" selected>Karışık (D/Y + ÇS + BF)</option>
+        <option value="tf">Sadece Doğru/Yanlış</option>
+        <option value="mc">Sadece Çoktan Seçmeli</option>
+        <option value="fib">Sadece Boşluk Doldurma</option>
+      `;
+    }
+
+    modal.classList.add("active");
+    modal.style.display = "flex";
+  };
+
+  window.openTreasureAIGeneratorModal = function () {
+    _activeGameMode = "treasure";
+    const modal = document.getElementById("modal-quiz-ai-generator");
+    if (!modal) return;
+    ensureEventsInitialized();
+    resetGeneratorForm();
+    populateLessonDropdown();
+
+    const titleEl = modal.querySelector(".modal-header h3");
+    const subEl = modal.querySelector(".modal-header p");
+    if (titleEl) titleEl.textContent = "✨ Yapay Zeka ile Soru Üret";
+    if (subEl) subEl.textContent = "Gemini AI — Hazine Sandığı Soru Havuzu";
+
+    const tipiSelect = document.getElementById("ai-soru-tipi");
+    if (tipiSelect) {
+      tipiSelect.innerHTML = `
+        <option value="karisik" selected>Karışık (Ç.S. + Boşluk Doldurma + Açık Uçlu)</option>
+        <option value="mc">Sadece Çoktan Seçmeli</option>
+        <option value="fib">Sadece Boşluk Doldurma</option>
+        <option value="open">Sadece Açık Uçlu</option>
+      `;
+    }
+
     modal.classList.add("active");
     modal.style.display = "flex";
   };
@@ -612,14 +658,26 @@
     } = params;
 
     let tipAciklama = "";
-    if (soruTipi === "karisik") {
-      tipAciklama = `Soruların yaklaşık üçte biri Doğru/Yanlış (tf), üçte biri Çoktan Seçmeli (mc), üçte biri Boşluk Doldurma (fib) türünde olsun.`;
-    } else if (soruTipi === "tf") {
-      tipAciklama = `Tüm sorular Doğru/Yanlış (tf) türünde olsun.`;
-    } else if (soruTipi === "mc") {
-      tipAciklama = `Tüm sorular Çoktan Seçmeli (mc), 4 şık olsun.`;
-    } else if (soruTipi === "fib") {
-      tipAciklama = `Tüm sorular Boşluk Doldurma (fib) türünde olsun. Cümle içindeki boşluğu [___] ile göster.`;
+    if (_activeGameMode === "treasure") {
+      if (soruTipi === "karisik") {
+        tipAciklama = `Soruların yaklaşık üçte biri Çoktan Seçmeli (mc - 4 şık), üçte biri Boşluk Doldurma (fib - [___] boşluklu), üçte biri Açık Uçlu (open - düşünmeye sevk eden soru ve model cevap) türünde olsun. Doğru/Yanlış sorusu kesinlikle üretme.`;
+      } else if (soruTipi === "mc") {
+        tipAciklama = `Tüm sorular Çoktan Seçmeli (mc), 4 şık olsun.`;
+      } else if (soruTipi === "fib") {
+        tipAciklama = `Tüm sorular Boşluk Doldurma (fib) türünde olsun. Cümle içindeki boşluğu [___] ile göster.`;
+      } else if (soruTipi === "open") {
+        tipAciklama = `Tüm sorular Açık Uçlu (open) türünde olsun. Düşünmeye, kavramları açıklamaya yönelik açık uçlu sorular ve beklenen doğru/örnek cevaplar olsun.`;
+      }
+    } else {
+      if (soruTipi === "karisik") {
+        tipAciklama = `Soruların yaklaşık üçte biri Doğru/Yanlış (tf), üçte biri Çoktan Seçmeli (mc), üçte biri Boşluk Doldurma (fib) türünde olsun.`;
+      } else if (soruTipi === "tf") {
+        tipAciklama = `Tüm sorular Doğru/Yanlış (tf) türünde olsun.`;
+      } else if (soruTipi === "mc") {
+        tipAciklama = `Tüm sorular Çoktan Seçmeli (mc), 4 şık olsun.`;
+      } else if (soruTipi === "fib") {
+        tipAciklama = `Tüm sorular Boşluk Doldurma (fib) türünde olsun. Cümle içindeki boşluğu [___] ile göster.`;
+      }
     }
 
     let zorluğAciklama = "";
@@ -646,7 +704,9 @@ ${kazanim}
 - Tek bir konuya veya kazanıma yığılma yapma; harmanlanan tüm kazanımları kapsayan zengin ve dengeli bir soru seti oluştur.`
       : (kazanim ? `Kazanım/Açıklama: ${kazanim}` : "");
 
-    return `Sen bir Türk ilkokul/ortaokul öğretmenisin. Aşağıdaki bilgilere göre tam olarak ${soruSayisi} adet bilgi yarışması sorusu üret.
+    const oyunAdi = _activeGameMode === "treasure" ? "Hazine Sandığı oyunu" : "Bilgi Yarışması";
+
+    return `Sen bir Türk ilkokul/ortaokul öğretmenisin. Aşağıdaki bilgilere göre tam olarak ${soruSayisi} adet ${oyunAdi} sorusu üret.
 
 Sınıf Seviyesi: ${sinifSeviyesi}. Sınıf
 Ders: ${dersAdi}
@@ -668,13 +728,14 @@ Doğru/Yanlış (tf):
 (answer: doğru şıkkın 0 tabanlı indeksi)
 
 Boşluk Doldurma (fib):
-{ "type": "fib", "text": "Cümlede [___] var.", "options": ["doğru cevap", "yanlış1", "yanlış2", "yanlış3"], "answer": 0, "explanation": "..." }
-(answer her zaman 0; options[0] doğru cevap, diğerleri çeldirici)
+{ "type": "fib", "text": "Cümlede [___] var.", "options": ["doğru kelime"], "answer": "doğru kelime", "explanation": "..." }
+
+Açık Uçlu (open):
+{ "type": "open", "text": "Soru metni?", "answer": "Model/örnek doğru cevap", "explanation": "İpucu veya açıklama" }
 
 3. Dil: Türkçe, öğrenci seviyesine uygun, açık ve anlaşılır.
 4. Sorular MEB müfredatına uygun, kazanım odaklı olsun.
-5. Doğru/Yanlış sorularında cümle içinde en az bir doğrulanabilir bilgi olsun.
-6. JSON geçerli ve eksiksiz olmalı. Eksik alan olmasın.
+5. JSON geçerli ve eksiksiz olmalı. Eksik alan olmasın.
 
 Şimdi yalnızca JSON dizisini yaz:`;
   }
@@ -753,9 +814,14 @@ Boşluk Doldurma (fib):
         };
         if (q.type === "tf") {
           base.answer = Boolean(q.answer);
-        } else if (q.type === "mc" || q.type === "fib") {
+        } else if (q.type === "mc") {
           base.options = Array.isArray(q.options) ? q.options : ["", "", "", ""];
           base.answer = typeof q.answer === "number" ? q.answer : 0;
+        } else if (q.type === "fib") {
+          base.options = Array.isArray(q.options) ? q.options : (typeof q.answer === "string" ? [q.answer] : [""]);
+          base.answer = typeof q.answer === "string" ? q.answer : (base.options[0] || "");
+        } else if (q.type === "open") {
+          base.answer = typeof q.answer === "string" ? q.answer : (typeof q.answer === "object" ? JSON.stringify(q.answer) : String(q.answer || ""));
         }
         return base;
       });
@@ -774,12 +840,16 @@ Boşluk Doldurma (fib):
           ? "D/Y"
           : q.type === "mc"
           ? "ÇS"
+          : q.type === "open"
+          ? "Açık Uçlu"
           : "BF";
       const typeColor =
         q.type === "tf"
           ? "#3b82f6"
           : q.type === "mc"
           ? "#8b5cf6"
+          : q.type === "open"
+          ? "#d97706"
           : "#10b981";
 
       let answerHtml = "";
@@ -793,7 +863,9 @@ Boşluk Doldurma (fib):
           })
           .join("");
       } else if (q.type === "fib" && Array.isArray(q.options)) {
-        answerHtml = `<span class="ai-answer-badge ai-answer-fib">✓ ${escH(q.options[0] || "")}</span>`;
+        answerHtml = `<span class="ai-answer-badge ai-answer-fib">✓ ${escH(q.options[0] || q.answer || "")}</span>`;
+      } else if (q.type === "open") {
+        answerHtml = `<span class="ai-answer-badge" style="background: rgba(245, 158, 11, 0.15); color: #d97706; border-color: rgba(245, 158, 11, 0.3);">💬 Model Cevap: ${escH(q.answer || "")}</span>`;
       }
 
       container.innerHTML += `
@@ -910,23 +982,43 @@ Boşluk Doldurma (fib):
     const count = _pendingQuestions.length;
     _pendingQuestions = [];
 
-    // games.js'deki dropdown'ları ve tabloyu güncelle
-    if (window.refreshQuizQuestions) {
-      window.refreshQuizQuestions();
-    }
-
-    // Yeni kategoriyi setup dropdown'ında seç
-    setTimeout(() => {
-      const setupSelect = document.getElementById("setup-category");
-      if (setupSelect && category) {
-        for (const opt of setupSelect.options) {
-          if (opt.value === category) {
-            setupSelect.value = category;
-            break;
+    if (_activeGameMode === "treasure") {
+      if (window.renderTreasureQuestionLibrary) {
+        window.renderTreasureQuestionLibrary();
+      }
+      if (window.renderTreasureGame) {
+        window.renderTreasureGame();
+      }
+      setTimeout(() => {
+        const trSelect = document.getElementById("treasure-game-category");
+        if (trSelect && category) {
+          for (const opt of trSelect.options) {
+            if (opt.value === category) {
+              trSelect.value = category;
+              break;
+            }
           }
         }
+      }, 100);
+    } else {
+      // games.js'deki dropdown'ları ve tabloyu güncelle
+      if (window.refreshQuizQuestions) {
+        window.refreshQuizQuestions();
       }
-    }, 100);
+
+      // Yeni kategoriyi setup dropdown'ında seç
+      setTimeout(() => {
+        const setupSelect = document.getElementById("setup-category");
+        if (setupSelect && category) {
+          for (const opt of setupSelect.options) {
+            if (opt.value === category) {
+              setupSelect.value = category;
+              break;
+            }
+          }
+        }
+      }, 100);
+    }
 
     window.closeQuizAIGeneratorModal();
 

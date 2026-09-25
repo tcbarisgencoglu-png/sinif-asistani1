@@ -2705,6 +2705,9 @@
             <button type="button" class="btn btn-primary btn-sm" onclick="window.startQuizWithPackage('${escapeHTML(catName)}')" style="display: inline-flex; align-items: center; gap: 0.3rem;">
               <i data-lucide="play" style="width: 13px; height: 13px;"></i> Bu Paketle Yarış
             </button>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="window.exportQuizPackageJson('${escapeHTML(catName)}')" style="display: inline-flex; align-items: center; gap: 0.3rem;" title="Bu soru paketini JSON olarak indir">
+              <i data-lucide="download" style="width: 13px; height: 13px;"></i> JSON İndir
+            </button>
             <button type="button" class="btn btn-secondary btn-sm" onclick="window.deleteQuizPackage('${escapeHTML(catName)}')" style="display: inline-flex; align-items: center; gap: 0.3rem; color: #ef4444;" title="Bu paketteki tüm soruları sil">
               <i data-lucide="trash-2" style="width: 13px; height: 13px;"></i> Paketi Sil
             </button>
@@ -2792,6 +2795,49 @@
         toastCallback(`"${catName}" paketi silindi.`, "info");
       }
     }
+  };
+
+  window.exportQuizPackageJson = function(catName) {
+    const catQuestions = questions.filter(q => (q.category || "Genel").trim() === catName.trim());
+    if (catQuestions.length === 0) {
+      alert("Bu pakette indirilecek soru bulunamadı.");
+      return;
+    }
+    const exportData = catQuestions.map(q => ({
+      type: q.type || "tf",
+      category: q.category || "Genel",
+      text: q.text || "",
+      answer: q.answer,
+      options: q.options || undefined,
+      explanation: q.explanation || "",
+      image: q.image || ""
+    }));
+    const cleanSlug = catName.toLowerCase().replace(/[^a-z0-9ğüşıöç]+/gi, '_').replace(/^_+|_+$/g, '') || 'paket';
+    const fileName = `bilgi_yarismasi_${cleanSlug}.json`;
+    triggerDownload(JSON.stringify(exportData, null, 2), fileName, "application/json;charset=utf-8;");
+    const msg = `"${catName}" paketi (${exportData.length} soru) JSON olarak indirildi.`;
+    if (typeof showNotification === "function") showNotification(msg, "success");
+    else if (toastCallback) toastCallback(msg, "success");
+  };
+
+  window.exportAllQuizQuestionsJson = function() {
+    if (questions.length === 0) {
+      alert("Kütüphanede indirilecek soru bulunmuyor.");
+      return;
+    }
+    const exportData = questions.map(q => ({
+      type: q.type || "tf",
+      category: q.category || "Genel",
+      text: q.text || "",
+      answer: q.answer,
+      options: q.options || undefined,
+      explanation: q.explanation || "",
+      image: q.image || ""
+    }));
+    triggerDownload(JSON.stringify(exportData, null, 2), "bilgi_yarismasi_tum_soru_paketleri.json", "application/json;charset=utf-8;");
+    const msg = `Tüm soru kütüphanesi (${exportData.length} soru) JSON olarak indirildi.`;
+    if (typeof showNotification === "function") showNotification(msg, "success");
+    else if (toastCallback) toastCallback(msg, "success");
   };
 
 

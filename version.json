@@ -1,14 +1,15 @@
 {
-  "version": "1.0.26",
+  "version": "1.0.27",
   "releaseDate": "2026-09-25",
   "minRequiredVersion": "1.0.0",
-  "title": "Sınıf Asistanı v1.0.26 Yayında!",
-  "description": "Seviyeye Göre Geciken Kitaplar Listesi, Liderlik Tablosunda Gecikme Vurgusu ve Öğrenci Fotoğrafı",
+  "title": "Sınıf Asistanı v1.0.27 Yayında!",
+  "description": "Hazine Sandığı Soru Paketi Oluşturucu (AI / Form / Kopyala-Yapıştır) ve Çoktan Seçmeli & Açık Uçlu Soru Desteği",
   "features": [
-    "Geciken Kitaplar Sekmesinde Seviye Standartları: Sabit ve tekil makul okuma süresi kaldırıldı; her kitabın 1. veya 2. seviye sınırına göre gecikme tespiti yapılması sağlandı",
-    "Gecikme Süresi Fark Gösterimi: Geciken kitaplar listesinde toplam gün yerine makul süreden sonraki net gecikme farkı (+X gün gecikti) öncelikli olarak gösterildi",
-    "Ödünç / Liderlik Tablosunda Gecikme Vurgusu: Elinde süresi geçmiş kitap bulunan öğrenciler tabloda belirginleştirildi ve gecikme gün sayısı rozet olarak eklendi",
-    "Öğrenci Takip Panelinde Vesikalık Fotoğraf: Liderlik tablosundan öğrenci seçildiğinde sağdaki okuma geçmişi ve detay başlığına öğrenci fotoğrafı (veya tematik baş harf avatarı) eklendi"
+    "Hazine Sandığı Soru Paketleri: Soruları tek tek eklemek yerine 3 pratik yöntemle (Yapay Zeka, Dinamik Paket Formu, Kopyala & Yapıştır) soru paketi hazırlama",
+    "Gelişmiş Kopyala-Yapıştır İçe Aktarma: Word veya metin belgelerinden numaralı soru listelerini, seçenekleri ve cevapları otomatik ayrıştırarak pakete dönüştürme",
+    "Yıllık Plan & Gemini AI Entegrasyonu: Yıllık planlardan ders ve kazanım seçerek Hazine Sandığı formatında soru paketi üretebilme",
+    "Çoktan Seçmeli, Boşluk Doldurma ve Açık Uçlu Soru Tipleri: Hazine Sandığı için şıklı (A,B,C,D) kartlar, boşluk doldurma ve model cevaplı açık uçlu sorular",
+    "Sandık Ödülü Gizleme Özelliği: Oyun kurulumunda ve aktif yarışma esnasında sandık ödülünün metnini gizleme/gösterme butonu"
   ],
   "release_url": "https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/latest"
 }
