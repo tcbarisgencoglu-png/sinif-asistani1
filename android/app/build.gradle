@@ -34,8 +34,8 @@ android {
 }
 
 task copyWebAssets(type: Copy) {
-    from '../../dist'
-    into 'src/main/assets'
+    from "${project.rootDir}/../dist"
+    into "${projectDir}/src/main/assets"
 }
 preBuild.dependsOn(copyWebAssets)
 

@@ -162,7 +162,7 @@ jobs:
       - name: Gradle kur ve yapılandır
         uses: gradle/actions/setup-gradle@v3
         with:
-          gradle-version: '8.2.2'
+          gradle-version: '8.5'
 
       - name: Android APK Derle
         run: |
