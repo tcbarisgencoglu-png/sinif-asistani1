@@ -86,6 +86,7 @@ jobs:
         run: |
           mkdir -p dist
           cp index.html dist/
+          cp mobile.html dist/
           cp -r css dist/
           cp -r js dist/
 
@@ -96,6 +97,7 @@ jobs:
           if (Test-Path dist) { Remove-Item -Recurse -Force dist }
           New-Item -ItemType Directory -Path dist
           Copy-Item index.html dist/
+          Copy-Item mobile.html dist/
           Copy-Item -Recurse css dist/
           Copy-Item -Recurse js dist/
 
@@ -121,13 +123,67 @@ jobs:
           releaseName: "Sınıf Asistanı ${{ github.ref_name }}"
           releaseBody: |
             ### 🚀 Bu Sürümdeki Yenilikler (${{ github.ref_name }}):
-            - 📚 **Seviyeye Göre Geciken Kitaplar Listesi:** Geciken kitaplar sekmesindeki tekil makul okuma süresi kaldırıldı; her kitabın 1. veya 2. seviye gün sınırına göre gecikme tespiti yapılması sağlandı.
-            - ⏱️ **Gecikme Süresi Fark Gösterimi:** Geciken kitaplar tablosunda toplam gün yerine makul süreden sonraki net gecikme farkı (+X gün gecikti) öncelikli ve belirgin olarak gösterildi.
-            - ⚠️ **Ödünç / Liderlik Tablosunda Gecikme Vurgusu:** Kitabı geciken öğrenciler liderlik listesinde dikkat çekici rozet ve renklendirme ile vurgulandı.
-            - 🖼️ **Öğrenci Detayında Vesikalık Fotoğraf:** Liderlik tablosundan öğrenci seçildiğinde sağdaki okuma geçmişi ve detay başlığına öğrenci fotoğrafı (veya tematik baş harf avatarı) eklendi.
+            - 📱 **Mobil Cep Asistanı:** Derste ayakta ve tek elle kullanıma uygun, masaüstünden bağımsız yeni mobil sürüm (`mobile.html`).
+            - 🚶‍♂️ **Seri Sıra Gezme (Ödev Takibi):** Masaları gezerken tek dokunuşla ödev kontrolü ve otomatik sonraki öğrenciye geçiş.
+            - ⚡ **Hızlı Dojo & Yoklama:** Mobil ekranda titreşimli geri bildirimle tek dokunuşla puan verme ve yoklama tamamlama.
+            - 🤖 **Android Uygulaması (.apk):** Telefonlara doğrudan indirilip kurulabilen Android paket desteği (`sinif-asistani.apk`).
+            - 🎨 **Masaüstü Arayüz İyileştirmeleri:** Ders materyalleri yerleşimi ve açılır seçim menülerindeki metin kesilme sorunları giderildi.
 
             ---
             🛡️ **Veri Güvenliği:** Güncelleme yaptığınızda mevcut sınıflarınız, öğrencileriniz, ders programınız ve tüm verileriniz **kesinlikle silinmez, korunur**.
           releaseDraft: false
           prerelease: false
           args: ${{ matrix.args }}
+
+  build-android:
+    name: "Android APK Derle"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Kodu indir
+        uses: actions/checkout@v4
+
+      - name: Node.js kur
+        uses: actions/setup-node@v4
+        with:
+          node-version: "lts/*"
+          cache: "npm"
+
+      - name: Bağımlılıkları yükle ve dist klasörünü hazırla
+        run: |
+          npm install
+          npm run sync
+
+      - name: Java 17 kur
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Gradle kur ve yapılandır
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: '8.2.2'
+
+      - name: Android APK Derle
+        run: |
+          cd android
+          gradle assembleRelease --stacktrace
+
+      - name: APK Dosyasını Hazırla
+        run: |
+          mkdir -p artifacts
+          cp android/app/build/outputs/apk/release/app-release.apk artifacts/sinif-asistani.apk
+
+      - name: APK'yı Artifact Olarak Kaydet (Push)
+        uses: actions/upload-artifact@v4
+        with:
+          name: sinif-asistani-android-apk
+          path: artifacts/sinif-asistani.apk
+
+      - name: Release'e APK Ekle (Etiket Push)
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/sinif-asistani.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

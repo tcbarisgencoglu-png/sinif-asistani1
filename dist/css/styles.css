@@ -1317,24 +1317,59 @@ select,
 select.form-control,
 .form-control select {
   width: 100%;
-  padding: 0.6rem 2.2rem 0.6rem 0.85rem !important;
-  border: 1px solid var(--border-color) !important;
+  box-sizing: border-box;
+  padding: 0.45rem 1.85rem 0.45rem 0.75rem;
+  min-height: 35px;
+  line-height: 1.3;
+  border: 1px solid var(--border-color);
   background-color: var(--bg-secondary) !important;
   color: var(--text-primary) !important;
-  border-radius: var(--radius-md) !important;
-  outline: none !important;
-  font-size: 0.9rem !important;
-  font-family: inherit !important;
-  font-weight: 500 !important;
-  cursor: pointer !important;
-  -webkit-appearance: none !important;
-  -moz-appearance: none !important;
-  appearance: none !important;
+  border-radius: var(--radius-md);
+  outline: none;
+  font-size: 0.88rem;
+  font-family: inherit;
+  font-weight: 500;
+  cursor: pointer;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
   background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e") !important;
   background-repeat: no-repeat !important;
-  background-position: right 0.75rem center !important;
-  background-size: 1rem !important;
-  transition: border-color var(--transition-fast), box-shadow var(--transition-fast) !important;
+  background-position: right 0.65rem center !important;
+  background-size: 0.85rem !important;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+/* Küçük / Kompakt Select ve Input Elemanları */
+.form-control-sm,
+input.form-control-sm {
+  font-size: 0.8rem;
+  padding: 0.25rem 0.6rem;
+  height: 32px;
+  line-height: 1.25;
+  box-sizing: border-box;
+}
+
+select.form-control-sm,
+.form-control-sm select {
+  font-size: 0.78rem;
+  padding: 0.2rem 1.4rem 0.2rem 0.5rem;
+  height: 32px;
+  min-height: 32px;
+  line-height: 1.25;
+  background-position: right 0.4rem center !important;
+  background-size: 0.75rem !important;
+  box-sizing: border-box;
+}
+
+/* Yüksekliği kısıtlanmış (<36px) select öğelerinde metnin dikey kesilmesini önleme */
+select[style*="height: 28px"],
+select[style*="height: 30px"],
+select[style*="height: 32px"],
+select[style*="height: 34px"],
+select[style*="height: 35px"] {
+  line-height: 1.25;
+  box-sizing: border-box;
 }
 
 select:focus,

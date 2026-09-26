@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#ffffff">
+  <title>Sınıf Asistanı — Cep Asistanı</title>
+  
+  <link rel="stylesheet" href="css/mobile.css?v=1">
+  <link rel="shortcut icon" href="icons/icon-128.png" type="image/png">
+  
+  <!-- Lucide İkonları -->
+  <script src="js/lucide.min.js"></script>
+</head>
+<body>
+
+  <!-- ==========================================================================
+       MOBİL ÜST BAR (APP BAR)
+       ========================================================================== -->
+  <header class="mobile-appbar">
+    <div class="appbar-left">
+      <div class="appbar-logo-icon">
+        <i data-lucide="graduation-cap" style="width: 20px; height: 20px;"></i>
+      </div>
+      <div>
+        <div class="appbar-brand-title">Sınıf Asistanı</div>
+      </div>
+      <span class="appbar-branch-badge" id="appbar-branch-text">Tüm Sınıf</span>
+    </div>
+
+    <div class="appbar-right">
+      <button class="appbar-btn" title="Karanlık/Aydınlık Tema" onclick="document.body.dataset.theme = document.body.dataset.theme === 'dark' ? 'light' : 'dark';">
+        <i data-lucide="moon" style="width: 18px; height: 18px;"></i>
+      </button>
+      <button class="appbar-btn" title="Hızlı Sayaç" onclick="window.switchTab('more')">
+        <i data-lucide="timer" style="width: 18px; height: 18px;"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- ==========================================================================
+       ANA İÇERİK KAPSAYICISI
+       ========================================================================== -->
+  <main class="mobile-view-container">
+
+    <!-- CANLI DERS KARTI (HER EKRANDA ÜSTTE YER ALIR) -->
+    <section class="live-lesson-card">
+      <div class="live-lesson-info">
+        <div class="live-lesson-time-badge">
+          <i data-lucide="activity" style="width: 12px; height: 12px;"></i>
+          <span id="live-lesson-time-span">Canlı Ders</span>
+        </div>
+        <div class="live-lesson-title" id="live-lesson-name">Yükleniyor...</div>
+        <div class="live-lesson-topic" id="live-lesson-topic-text">Müfredat Konusu Getiriliyor...</div>
+      </div>
+      <button class="live-lesson-action-btn" onclick="window.switchTab('attendance')">
+        <i data-lucide="user-check" style="width: 14px; height: 14px;"></i> Yoklama
+      </button>
+    </section>
+
+    <!-- FİLTRE VE ARAMA ÇUBUĞU (PERFORMANS VE ÖDEV İÇİN) -->
+    <div class="mobile-filter-bar" id="mobile-filter-bar">
+      <div class="mobile-search-box">
+        <i data-lucide="search"></i>
+        <input type="text" id="m-search-input" placeholder="Öğrenci adı veya numara ara...">
+      </div>
+      <select class="mobile-select" id="m-branch-select">
+        <option value="all">Tüm Şubeler</option>
+      </select>
+    </div>
+
+    <!-- 1. SEKME: PERFORMANS (HIZLI PUAN & DOJO) -->
+    <div class="tab-pane active" id="tab-performance">
+      <div class="students-grid" id="m-students-grid">
+        <!-- Dinamik öğrenci kartları -->
+      </div>
+    </div>
+
+    <!-- 2. SEKME: SERİ ÖDEV KONTROLÜ (SIRA GEZME MODU) -->
+    <div class="tab-pane" id="tab-homework">
+      <div class="hw-mode-toggle">
+        <button class="hw-mode-btn active" id="btn-hw-mode-walk">🚶‍♂️ Sıra Gezme (Seri Mod)</button>
+        <button class="hw-mode-btn" id="btn-hw-mode-list">📋 Tüm Liste</button>
+      </div>
+
+      <!-- Sıra Sıra Gezme Odak Kartı -->
+      <div id="hw-walk-container">
+        <div class="hw-walk-card" id="hw-walk-card-inner">
+          <!-- Dinamik öğrenci odak kartı -->
+        </div>
+      </div>
+
+      <!-- Alternatif Liste Modu -->
+      <div id="hw-list-container" class="attendance-list" style="display: none;">
+        <!-- Dinamik ödev listesi -->
+      </div>
+    </div>
+
+    <!-- 3. SEKME: CEP KİTAPLIĞI -->
+    <div class="tab-pane" id="tab-books">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+        <h4 style="font-size: 0.95rem; font-weight: 800; color: var(--m-text);">📖 Şu Anda Okunan Kitaplar</h4>
+      </div>
+      <div id="m-books-list">
+        <!-- Dinamik okunan kitaplar listesi -->
+      </div>
+    </div>
+
+    <!-- 4. SEKME: HIZLI YOKLAMA -->
+    <div class="tab-pane" id="tab-attendance">
+      <div class="attendance-summary-card">
+        <div>
+          <div class="att-stat-num" id="att-stat-present" style="color: var(--m-success);">0</div>
+          <div class="att-stat-lbl">Sınıfta (Var)</div>
+        </div>
+        <div style="width: 1px; background: var(--m-border);"></div>
+        <div>
+          <div class="att-stat-num" id="att-stat-absent" style="color: var(--m-danger);">0</div>
+          <div class="att-stat-lbl">Gelmeyen (Yok)</div>
+        </div>
+      </div>
+
+      <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
+        <button class="hw-nav-btn" style="flex: 1; justify-content: center; background: var(--m-success-light); color: var(--m-success); border-color: var(--m-success);" onclick="window.markAllAttendance('present')">
+          <i data-lucide="check-check" style="width: 16px; height: 16px;"></i> Tümünü Var Yap
+        </button>
+        <button class="hw-nav-btn" style="flex: 1; justify-content: center; background: var(--m-primary); color: #fff; border-color: var(--m-primary);" onclick="window.saveAttendance()">
+          <i data-lucide="save" style="width: 16px; height: 16px;"></i> Kaydet
+        </button>
+      </div>
+
+      <div class="attendance-list" id="m-attendance-list">
+        <!-- Dinamik yoklama listesi -->
+      </div>
+    </div>
+
+    <!-- 5. SEKME: DAHA FAZLA / ARAÇLAR -->
+    <div class="tab-pane" id="tab-more">
+      <!-- Şanslı Öğrenci Çağırıcı -->
+      <div class="attendance-row" style="flex-direction: column; align-items: stretch; margin-bottom: 1rem; padding: 1.25rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <div>
+            <div style="font-weight: 800; font-size: 1rem; display: flex; align-items: center; gap: 6px;">
+              <i data-lucide="sparkles" style="width: 18px; height: 18px; color: var(--m-warning);"></i> Şanslı Öğrenci (Kura)
+            </div>
+            <div style="font-size: 0.75rem; color: var(--m-text-muted); margin-top: 2px;">Sözlü veya etkinlik için rastgele öğrenci seçin.</div>
+          </div>
+          <button class="btn-book-action" onclick="window.drawLuckyStudent()" style="background: linear-gradient(135deg, #f59e0b, #d97706);">
+            <i data-lucide="shuffle" style="width: 14px; height: 14px;"></i> Kura Çek
+          </button>
+        </div>
+        <div id="lucky-student-result" style="display: none;"></div>
+      </div>
+
+      <!-- Hızlı Sayaç / Zil -->
+      <div class="attendance-row" style="flex-direction: column; align-items: stretch; margin-bottom: 1rem; padding: 1.25rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+          <div>
+            <div style="font-weight: 800; font-size: 1rem; display: flex; align-items: center; gap: 6px;">
+              <i data-lucide="clock" style="width: 18px; height: 18px; color: var(--m-primary);"></i> Sınıf Sayacı
+            </div>
+            <div style="font-size: 0.75rem; color: var(--m-text-muted); margin-top: 2px;">Etkinlik veya sınav süresini başlatın.</div>
+          </div>
+          <div id="m-timer-display" style="font-size: 1.4rem; font-weight: 800; color: var(--m-primary);">00:00</div>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px;">
+          <button class="hw-nav-btn" style="justify-content: center; padding: 6px;" onclick="window.startMobileTimer(1)">1 dk</button>
+          <button class="hw-nav-btn" style="justify-content: center; padding: 6px;" onclick="window.startMobileTimer(3)">3 dk</button>
+          <button class="hw-nav-btn" style="justify-content: center; padding: 6px;" onclick="window.startMobileTimer(5)">5 dk</button>
+          <button class="hw-nav-btn" style="justify-content: center; padding: 6px;" onclick="window.startMobileTimer(10)">10 dk</button>
+        </div>
+      </div>
+
+      <!-- Veri ve Masaüstü Bağlantısı -->
+      <div class="attendance-row" style="flex-direction: column; align-items: stretch; padding: 1.25rem;">
+        <div style="font-weight: 800; font-size: 1rem; margin-bottom: 0.75rem;">💾 Veri & Yönetim</div>
+        <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
+          <button class="hw-nav-btn" style="flex: 1; justify-content: center;" onclick="window.exportMobileData ? window.exportMobileData() : (window.stateManager && window.stateManager.exportData())">
+            <i data-lucide="download" style="width: 14px; height: 14px;"></i> Yedek İndir / Paylaş
+          </button>
+          <button class="hw-nav-btn" style="flex: 1; justify-content: center;" onclick="document.getElementById('m-file-import').click()">
+            <i data-lucide="upload" style="width: 14px; height: 14px;"></i> Yedeği Yükle
+          </button>
+          <input type="file" id="m-file-import" accept=".json" style="display: none;" onchange="
+            const file = this.files[0];
+            if (file) {
+              const reader = new FileReader();
+              reader.onload = (e) => {
+                if (window.stateManager && window.stateManager.importData(e.target.result)) {
+                  alert('Verileriniz başarıyla yüklendi!');
+                  location.reload();
+                }
+              };
+              reader.readAsText(file);
+            }
+          ">
+        </div>
+
+        <a href="index.html" class="hw-nav-btn" style="justify-content: center; text-decoration: none; background: var(--m-surface-subtle); color: var(--m-text); font-weight: 700;">
+          <i data-lucide="monitor" style="width: 16px; height: 16px;"></i> Masaüstü Görünümüne Geç
+        </a>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ==========================================================================
+       HIZLI PUAN VERME ALTTAN AÇILAN PENCERE (BOTTOM SHEET)
+       ========================================================================== -->
+  <div class="bottom-sheet-backdrop" id="sheet-backdrop" onclick="window.closeBottomSheet()"></div>
+  <div class="bottom-sheet" id="sheet-points">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header">
+      <div>
+        <div class="sheet-title" id="sheet-student-name">Öğrenci Adı</div>
+        <div style="font-size: 0.8rem; color: var(--m-text-muted);" id="sheet-student-current-score">Toplam Puan: 0</div>
+      </div>
+      <button class="sheet-close-btn" onclick="window.closeBottomSheet()">&times;</button>
+    </div>
+
+    <div class="quick-points-grid">
+      <button class="point-action-btn" onclick="window.giveQuickPoint(1, 'Derse Katılım')">
+        <span class="point-badge plus">+1</span>
+        <span>Derse Katılım</span>
+      </button>
+      <button class="point-action-btn" onclick="window.giveQuickPoint(1, 'Parmak Kaldırma')">
+        <span class="point-badge plus">+1</span>
+        <span>Parmak Kaldırma</span>
+      </button>
+      <button class="point-action-btn" onclick="window.giveQuickPoint(1, 'Ödev Başarısı')">
+        <span class="point-badge plus">+1</span>
+        <span>Ödev Başarısı</span>
+      </button>
+      <button class="point-action-btn" onclick="window.giveQuickPoint(1, 'Kitap Okuma')">
+        <span class="point-badge plus">+1</span>
+        <span>Kitap Okuma</span>
+      </button>
+      <button class="point-action-btn" onclick="window.giveQuickPoint(1, 'Yardımlaşma & Düzen')">
+        <span class="point-badge plus">+1</span>
+        <span>Yardımlaşma</span>
+      </button>
+      <button class="point-action-btn" onclick="window.giveQuickPoint(-1, 'Ders Düzenini Bozma')">
+        <span class="point-badge minus">-1</span>
+        <span>Düzen Bozma</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       SABİT ALT MENÜ (BOTTOM NAVIGATION BAR)
+       ========================================================================== -->
+  <nav class="mobile-bottom-nav">
+    <button class="nav-item-btn active" data-tab="performance">
+      <i data-lucide="award"></i>
+      <span>Puan</span>
+    </button>
+    <button class="nav-item-btn" data-tab="homework">
+      <i data-lucide="clipboard-check"></i>
+      <span>Ödev</span>
+    </button>
+    <button class="nav-item-btn" data-tab="books">
+      <i data-lucide="book-open"></i>
+      <span>Kitap</span>
+    </button>
+    <button class="nav-item-btn" data-tab="attendance">
+      <i data-lucide="user-check"></i>
+      <span>Yoklama</span>
+    </button>
+    <button class="nav-item-btn" data-tab="more">
+      <i data-lucide="layout-grid"></i>
+      <span>Diğer</span>
+    </button>
+  </nav>
+
+  <!-- Veri Motoru ve Mobil Kontrolcü -->
+  <script src="js/state.js"></script>
+  <script src="js/mobile.js"></script>
+
+</body>
+</html>

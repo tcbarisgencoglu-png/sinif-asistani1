@@ -1,15 +1,15 @@
 {
-  "version": "1.0.27",
-  "releaseDate": "2026-09-25",
+  "version": "1.0.28",
+  "releaseDate": "2026-09-26",
   "minRequiredVersion": "1.0.0",
-  "title": "Sınıf Asistanı v1.0.27 Yayında!",
-  "description": "Hazine Sandığı Soru Paketi Oluşturucu (AI / Form / Kopyala-Yapıştır) ve Çoktan Seçmeli & Açık Uçlu Soru Desteği",
+  "title": "Sınıf Asistanı v1.0.28 Yayında!",
+  "description": "Mobil Cep Asistanı Arayüzü, Android (.apk) Desteği ve Arayüz Düzenlemeleri",
   "features": [
-    "Hazine Sandığı Soru Paketleri: Soruları tek tek eklemek yerine 3 pratik yöntemle (Yapay Zeka, Dinamik Paket Formu, Kopyala & Yapıştır) soru paketi hazırlama",
-    "Gelişmiş Kopyala-Yapıştır İçe Aktarma: Word veya metin belgelerinden numaralı soru listelerini, seçenekleri ve cevapları otomatik ayrıştırarak pakete dönüştürme",
-    "Yıllık Plan & Gemini AI Entegrasyonu: Yıllık planlardan ders ve kazanım seçerek Hazine Sandığı formatında soru paketi üretebilme",
-    "Çoktan Seçmeli, Boşluk Doldurma ve Açık Uçlu Soru Tipleri: Hazine Sandığı için şıklı (A,B,C,D) kartlar, boşluk doldurma ve model cevaplı açık uçlu sorular",
-    "Sandık Ödülü Gizleme Özelliği: Oyun kurulumunda ve aktif yarışma esnasında sandık ödülünün metnini gizleme/gösterme butonu"
+    "Mobil Cep Asistanı: Derste ayakta ve tek elle kullanıma özel bağımsız cep asistanı arayüzü",
+    "Seri Sıra Gezme (Ödev Kontrolü): Masaları gezerken tek tıkla ödev kontrolü ve otomatik sonraki öğrenciye geçiş",
+    "Hızlı Dojo & Yoklama: Mobil ekranda titreşimli geri bildirimle tek tıkla puan verme ve yoklama tamamlama",
+    "Android Uygulaması (.apk): GitHub Releases üzerinden telefonlara doğrudan indirilip kurulabilen Android paketi",
+    "Masaüstü Arayüz Düzeltmeleri: Ders materyalleri yerleşimi ve açılır kutu metin kesilmeleri giderildi"
   ],
   "release_url": "https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/latest"
 }

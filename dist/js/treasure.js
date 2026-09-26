@@ -219,6 +219,7 @@
   const assignedCountDisplay = document.getElementById("treasure-assigned-count");
   const totalStudentsCountDisplay = document.getElementById("treasure-total-students-count");
   const genderFilterSelect = document.getElementById("treasure-gender-filter");
+  const branchFilterSelect = document.getElementById("treasure-branch-filter");
   const assignmentFilterSelect = document.getElementById("treasure-assignment-filter");
   
   const btnAutoDistribute = document.getElementById("btn-treasure-auto-distribute");
@@ -297,14 +298,75 @@
 
   // Load active students from StateManager
   function getActiveStudents() {
-    if (window.stateManager && window.stateManager.state && window.stateManager.state.students) {
-      let list = window.stateManager.state.students;
-      if (window.LicenseConfig && window.LicenseConfig.isDemo) {
-        list = list.slice(0, window.LicenseConfig.studentLimit);
-      }
-      return [...list];
+    if (!window.stateManager) return [];
+    
+    // Get state filtered by education level (primary vs middle)
+    let students = [];
+    if (typeof window.stateManager.getStudents === 'function') {
+      students = window.stateManager.getStudents(false);
+    } else if (typeof window.stateManager.loadState === 'function') {
+      const state = window.stateManager.loadState(false);
+      students = (state && state.students) || [];
+    } else if (window.stateManager.state && window.stateManager.state.students) {
+      students = window.stateManager.state.students;
     }
-    return [];
+
+    if (!Array.isArray(students)) return [];
+    
+    // Demo / test öğrencilerini ayıkla (eğer kullanıcının kendi kayıtlı öğrencileri varsa)
+    const demoIds = new Set([
+      'std_1', '101', '102', '103',
+      'std_m1', 'std_m2', 'std_m3', 'std_m4', 'std_m5', 
+      'std_m6', 'std_m7', 'std_m8', 'std_m9', 'std_m10'
+    ]);
+    const demoNormalized = new Set([
+      'ahmetyilmaz', 'ahmetyılmaz', 'candemir', 'zeynepkaya', 'ayseyilmaz', 'ayşeyılmaz',
+      'hakanyildiz', 'hakanyıldız', 'zeynepdemir', 'omeraslan', 'ömeraslan',
+      'cerenyilmaz', 'cerenyılmaz', 'keremkaya', 'melissahin', 'melisşahin',
+      'burakcelik', 'burakçelik', 'edaozturk', 'edaöztürk'
+    ]);
+    
+    const isDemo = (s) => {
+      if (!s) return false;
+      if (s.id && (demoIds.has(String(s.id)) || String(s.id).startsWith('std_m'))) return true;
+      const fullName = `${s.name || ''} ${s.surname || ''}`.trim();
+      const norm = fullName.toLowerCase().replace(/[\s\.\-_]/g, '');
+      if (demoNormalized.has(norm)) return true;
+      if ((s.number === '101' && (s.name || '').toLowerCase().includes('ahmet')) ||
+          (s.number === '103' && (s.name || '').toLowerCase().includes('can'))) {
+        return true;
+      }
+      return false;
+    };
+
+    const hasRealStudents = students.some(s => !isDemo(s));
+    if (hasRealStudents) {
+      students = students.filter(s => !isDemo(s));
+    }
+    
+    if (window.LicenseConfig && window.LicenseConfig.isDemo) {
+      students = students.slice(0, window.LicenseConfig.studentLimit);
+    }
+    
+    // Check branch filter ONLY for middle school AND ONLY when branchFilter is not "all"
+    const currentLevel = (window.stateManager && window.stateManager.state && window.stateManager.state.educationLevel) || 'primary';
+    const treasureBranchSelect = document.getElementById("treasure-branch-filter") 
+      || document.getElementById("dash-select-branch");
+    const branchFilter = (treasureBranchSelect && treasureBranchSelect.value) ? treasureBranchSelect.value : "all";
+    
+    if (currentLevel === "middle" && branchFilter !== "all") {
+      const branchFiltered = students.filter(s => s.branch === branchFilter);
+      if (branchFiltered.length > 0) {
+        students = branchFiltered;
+      }
+    }
+    
+    // Check absent status
+    if (typeof window.stateManager.isStudentAbsent === "function") {
+      students = students.filter(s => !window.stateManager.isStudentAbsent(s.id));
+    }
+    
+    return [...students];
   }
 
   // Load questions list from localStorage
@@ -1093,7 +1155,7 @@
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.65rem;">
           <div style="display: flex; align-items: center; gap: 0.5rem;">
             <span class="badge" style="background: rgba(245, 158, 11, 0.15); color: #d97706; font-weight: 800;">Soru #${idx + 1}</span>
-            <select class="form-control form-control-sm" onchange="window.changeTreasurePackageCardType(${idx}, this.value)" style="width: 155px; height: 28px; font-size: 0.78rem; padding: 0 0.4rem;">
+            <select class="form-control form-control-sm" onchange="window.changeTreasurePackageCardType(${idx}, this.value)" style="width: 155px; height: 32px; font-size: 0.78rem; padding: 0.2rem 1.4rem 0.2rem 0.45rem;">
               <option value="mc" ${q.type === 'mc' ? 'selected' : ''}>Çoktan Seçmeli</option>
               <option value="fib" ${q.type === 'fib' ? 'selected' : ''}>Boşluk Doldurma</option>
               <option value="open" ${q.type === 'open' ? 'selected' : ''}>Açık Uçlu</option>
@@ -1803,6 +1865,32 @@ Cevap: C`;
     
     if (genderFilterSelect) genderFilterSelect.value = "all";
     if (assignmentFilterSelect) assignmentFilterSelect.value = "unassigned";
+
+    // Ortaokul modunda şube seçimini göster ve doldur
+    const currentLevel = (window.stateManager && window.stateManager.state && window.stateManager.state.educationLevel) || 'primary';
+    if (branchFilterSelect) {
+      if (currentLevel === 'middle') {
+        branchFilterSelect.style.display = 'block';
+        const allStudents = (typeof window.stateManager.getStudents === 'function') 
+          ? window.stateManager.getStudents(false) 
+          : ((window.stateManager.state && window.stateManager.state.students) || []);
+        const branches = [...new Set(allStudents.map(s => s.branch).filter(Boolean))].sort();
+        const activeDashBranch = document.getElementById('dash-select-branch')?.value || 'all';
+        
+        const prevVal = branchFilterSelect.value || activeDashBranch;
+        branchFilterSelect.innerHTML = '<option value="all">Tüm Şubeler</option>';
+        branches.forEach(b => {
+          const opt = document.createElement('option');
+          opt.value = b;
+          opt.textContent = `${b} Şubesi`;
+          if (b === prevVal) opt.selected = true;
+          branchFilterSelect.appendChild(opt);
+        });
+      } else {
+        branchFilterSelect.style.display = 'none';
+        branchFilterSelect.value = 'all';
+      }
+    }
     
     // Prepare initial groups
     updateGroupsCount();
@@ -2823,6 +2911,14 @@ Cevap: C`;
     if (genderFilterEl) {
       genderFilterEl.addEventListener("change", (e) => {
         renderUnassignedStudents();
+      });
+    }
+
+    // Branch filter change listener
+    const branchFilterEl = document.getElementById("treasure-branch-filter");
+    if (branchFilterEl) {
+      branchFilterEl.addEventListener("change", () => {
+        updateGroupsCount();
       });
     }
 

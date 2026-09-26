@@ -2070,18 +2070,48 @@ class StateManager {
           localStorage.setItem('sinif_asistani_migration_v4', 'true');
         }
 
-        // Demo/Test Ortaokul Öğrencileri Temizliği: Eğer kullanıcının kendi kayıtlı öğrencileri varsa test dummy öğrencilerini ayıkla
+        // Demo/Test Öğrencileri Temizliği: Eğer kullanıcının kendi kayıtlı öğrencileri varsa test dummy/şablon öğrencilerini ayıkla
         if (parsed.students && Array.isArray(parsed.students)) {
-          const demoTestIds = new Set(['std_m1', 'std_m2', 'std_m3', 'std_m4', 'std_m5', 'std_m6', 'std_m7', 'std_m8', 'std_m9', 'std_m10']);
-          const demoTestNames = new Set(['Hakan Yıldız', 'Zeynep Demir', 'Ömer Aslan', 'Ceren Yılmaz', 'Kerem Kaya', 'Melis Şahin', 'Burak Çelik', 'Eda Öztürk']);
-          const hasRealStudents = parsed.students.some(s => !demoTestIds.has(s.id) && !demoTestNames.has(`${s.name || ''} ${s.surname || ''}`.trim()));
+          const demoTestIds = new Set([
+            'std_1', '101', '102', '103',
+            'std_m1', 'std_m2', 'std_m3', 'std_m4', 'std_m5', 
+            'std_m6', 'std_m7', 'std_m8', 'std_m9', 'std_m10'
+          ]);
+          const demoTestNormalized = new Set([
+            'ahmetyilmaz', 'ahmetyılmaz', 
+            'candemir', 
+            'zeynepkaya', 
+            'ayseyilmaz', 'ayşeyılmaz',
+            'hakanyildiz', 'hakanyıldız', 
+            'zeynepdemir', 
+            'omeraslan', 'ömeraslan', 
+            'cerenyilmaz', 'cerenyılmaz', 
+            'keremkaya', 
+            'melissahin', 'melisşahin', 
+            'burakcelik', 'burakçelik', 
+            'edaozturk', 'edaöztürk'
+          ]);
+
+          const isDemoStudent = (s) => {
+            if (!s) return false;
+            if (s.id && demoTestIds.has(String(s.id))) return true;
+            const norm = `${s.name || ''}${s.surname || ''}`.toLowerCase().replace(/[\s\.\-_]/g, '');
+            if (demoTestNormalized.has(norm)) return true;
+            if ((s.number === '101' && (s.name || '').toLowerCase().includes('ahmet')) ||
+                (s.number === '103' && (s.name || '').toLowerCase().includes('can'))) {
+              return true;
+            }
+            return false;
+          };
+
+          const hasRealStudents = parsed.students.some(s => !isDemoStudent(s));
           
           if (hasRealStudents) {
             const originalCount = parsed.students.length;
-            parsed.students = parsed.students.filter(s => !demoTestIds.has(s.id) && !demoTestNames.has(`${s.name || ''} ${s.surname || ''}`.trim()));
+            parsed.students = parsed.students.filter(s => !isDemoStudent(s));
             if (parsed.students.length !== originalCount) {
               localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
-              console.log("loadState: Test/demo ortaokul öğrencileri veritabanından başarıyla temizlendi.");
+              console.log("loadState: Test/demo öğrencileri (Ahmet Yılmaz, Can Demir vb.) veritabanından başarıyla temizlendi.");
             }
           }
 

@@ -42,3 +42,12 @@ veri yedek/
 src-tauri/*.key
 src-tauri/*.key.pub
 
+# Android
+.gradle/
+android/.gradle/
+android/build/
+android/app/build/
+android/app/src/main/assets/
+*.apk
+*.aab
+

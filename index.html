@@ -403,7 +403,7 @@
                 </h3>
                 <div class="branch-filter-container" id="books-branch-filter-container" style="display: none; align-items: center; gap: 0.25rem;">
                   <span style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary);">Şube:</span>
-                  <select class="form-control" id="books-select-branch" style="width: 110px; height: 30px; padding: 0.2rem 0.4rem; font-size: 0.8rem;">
+                  <select class="form-control" id="books-select-branch" style="width: 125px; height: 32px; padding: 0.2rem 1.4rem 0.2rem 0.45rem; font-size: 0.8rem;">
                     <!-- Dinamik doldurulacak -->
                   </select>
                 </div>
@@ -1828,23 +1828,29 @@
                     </h5>
                     
                     <!-- Arama ve Filtre Kontrolleri -->
-                    <div class="students-column-filters" style="display: flex; gap: 0.4rem; align-items: center; width: 100%; margin-top: 0.75rem; flex-wrap: wrap;">
-                      <div class="unassigned-search-container" style="flex: 1; min-width: 120px; position: relative; margin-bottom: 0;">
-                        <input type="text" id="treasure-unassigned-search" class="form-control form-control-sm" placeholder="Öğrenci ara..." style="width: 100%; height: 32px; font-size: 0.75rem; padding-left: 1.8rem; border-radius: var(--radius-sm);">
+                    <div class="students-column-filters" style="display: flex; flex-direction: column; gap: 0.4rem; width: 100%; margin-top: 0.75rem;">
+                      <div class="unassigned-search-container" style="width: 100%; position: relative; margin-bottom: 0;">
+                        <input type="text" id="treasure-unassigned-search" class="form-control form-control-sm" placeholder="Öğrenci ara..." style="width: 100%; height: 32px; font-size: 0.8rem; padding-left: 1.8rem; border-radius: var(--radius-sm);">
                         <i data-lucide="search" style="position: absolute; left: 0.5rem; top: 50%; transform: translateY(-50%); width: 12px; height: 12px; color: var(--text-muted); pointer-events: none;"></i>
                       </div>
                       
-                      <select id="treasure-gender-filter" class="form-control form-control-sm" style="width: 110px; height: 32px; font-size: 0.75rem; padding: 0.25rem 0.5rem;">
-                        <option value="all">Tüm Cinsiyetler</option>
-                        <option value="female">Kızlar</option>
-                        <option value="male">Erkekler</option>
-                      </select>
-                      
-                      <select id="treasure-assignment-filter" class="form-control form-control-sm" style="width: 120px; height: 32px; font-size: 0.75rem; padding: 0.25rem 0.5rem;">
-                        <option value="all">Tüm Liste</option>
-                        <option value="unassigned" selected>Yerleşmeyenler</option>
-                        <option value="assigned">Yerleşenler</option>
-                      </select>
+                      <div class="unassigned-filters-row" style="display: flex; gap: 0.35rem; width: 100%; align-items: center;">
+                        <select id="treasure-gender-filter" class="form-control form-control-sm" style="flex: 1; min-width: 0; height: 32px; font-size: 0.78rem; padding: 0.2rem 1.4rem 0.2rem 0.45rem;">
+                          <option value="all">Tüm Cinsiyetler</option>
+                          <option value="female">Kızlar</option>
+                          <option value="male">Erkekler</option>
+                        </select>
+                        
+                        <select id="treasure-branch-filter" class="form-control form-control-sm" style="display: none; flex: 1; min-width: 0; height: 32px; font-size: 0.78rem; padding: 0.2rem 1.4rem 0.2rem 0.45rem;" title="Şube Filtresi">
+                          <option value="all">Tüm Şubeler</option>
+                        </select>
+                        
+                        <select id="treasure-assignment-filter" class="form-control form-control-sm" style="flex: 1.25; min-width: 0; height: 32px; font-size: 0.78rem; padding: 0.2rem 1.4rem 0.2rem 0.45rem;">
+                          <option value="all">Tüm Liste</option>
+                          <option value="unassigned" selected>Yerleşmeyenler</option>
+                          <option value="assigned">Yerleşenler</option>
+                        </select>
+                      </div>
                     </div>
                   </div>
                   
@@ -1914,7 +1920,7 @@
                   <div class="game-header" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 0.75rem; flex-wrap: wrap; gap: 0.5rem;">
                     <div style="display: flex; align-items: center; gap: 0.5rem;">
                       <span class="badge" id="treasure-question-category-badge" style="background: var(--primary-light); color: var(--primary); border-color: rgba(79, 70, 229, 0.2);">Serbest Soru</span>
-                      <select class="form-control" id="treasure-game-category" style="width: 140px; height: 28px; padding: 0 0.5rem; font-size: 0.75rem;">
+                      <select class="form-control" id="treasure-game-category" style="width: 155px; height: 32px; padding: 0.2rem 1.4rem 0.2rem 0.45rem; font-size: 0.78rem;">
                         <option value="all">Tüm Kategoriler</option>
                       </select>
                     </div>
@@ -2096,10 +2102,6 @@
                   <table style="display: none;"><tbody id="treasure-question-list-body"></tbody></table>
                 </div>
               </div>
-
-            </div>
-          </div>
-        </div>
 
         <!-- HAZİNE SANDIĞI ZAFER EKRANI (OVERLAY) -->
         <div id="treasure-victory-overlay" class="feedback-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.85); z-index: 9999; align-items: center; justify-content: center; backdrop-filter: blur(8px);">
@@ -4866,8 +4868,8 @@
   </div>
 
   <!-- MODAL: DERS AKIŞ BİLGİSİ -->
-  <div class="modal" id="modal-flow-info" style="--max-width: 550px;">
-    <div class="modal-content" style="max-width: 550px; width: 95%; max-height: 85vh; display: flex; flex-direction: column;">
+  <div class="modal" id="modal-flow-info" style="--max-width: 620px;">
+    <div class="modal-content" style="max-width: 620px; width: 95%; max-height: 85vh; display: flex; flex-direction: column;">
       <div class="modal-header" style="background: rgba(99, 102, 241, 0.1); color: var(--primary); display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.5rem; border-bottom: 1px solid var(--border-color); flex-shrink: 0;">
         <h3 style="display: flex; align-items: center; gap: 0.5rem; font-size: 1.1rem; font-weight: 700; margin: 0;">
           <i data-lucide="activity" style="width: 18px; height: 18px;"></i> Ders ve Konu Akışı
@@ -4883,16 +4885,16 @@
             <span id="flow-current-status" style="font-weight: 800; font-size: 0.75rem; color: #10b981; background: rgba(16, 185, 129, 0.1); padding: 2px 6px; border-radius: 4px; display: none;">CANLI</span>
           </div>
           
-          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.5rem;">
+          <div style="display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 0.5rem;">
             <div>
               <label style="font-size: 0.7rem; font-weight: 600; color: var(--text-secondary); display: block; margin-bottom: 0.25rem;">Hafta</label>
-              <select id="flow-select-week" class="form-control" style="font-size: 0.85rem; padding: 0.4rem; height: 34px; width: 100%; border-radius: var(--radius-sm); border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary);">
+              <select id="flow-select-week" class="form-control" style="font-size: 0.82rem; padding: 0.25rem 1.6rem 0.25rem 0.6rem; height: 36px; min-height: 36px; width: 100%; border-radius: var(--radius-sm); border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary); line-height: 1.3;">
                 <option value="auto">Otomatik</option>
               </select>
             </div>
             <div>
               <label style="font-size: 0.7rem; font-weight: 600; color: var(--text-secondary); display: block; margin-bottom: 0.25rem;">Gün</label>
-              <select id="flow-select-day" class="form-control" style="font-size: 0.85rem; padding: 0.4rem; height: 34px; width: 100%; border-radius: var(--radius-sm); border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary);">
+              <select id="flow-select-day" class="form-control" style="font-size: 0.82rem; padding: 0.25rem 1.6rem 0.25rem 0.6rem; height: 36px; min-height: 36px; width: 100%; border-radius: var(--radius-sm); border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary); line-height: 1.3;">
                 <option value="1">Pazartesi</option>
                 <option value="2">Salı</option>
                 <option value="3">Çarşamba</option>
@@ -4902,7 +4904,7 @@
             </div>
             <div>
               <label style="font-size: 0.7rem; font-weight: 600; color: var(--text-secondary); display: block; margin-bottom: 0.25rem;">Ders Saati</label>
-              <select id="flow-select-period" class="form-control" style="font-size: 0.85rem; padding: 0.4rem; height: 34px; width: 100%; border-radius: var(--radius-sm); border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary);">
+              <select id="flow-select-period" class="form-control" style="font-size: 0.82rem; padding: 0.25rem 1.6rem 0.25rem 0.6rem; height: 36px; min-height: 36px; width: 100%; border-radius: var(--radius-sm); border: 1px solid var(--border-color); background: var(--bg-primary); color: var(--text-primary); line-height: 1.3;">
                 <option value="p1">1. Ders</option>
                 <option value="p2">2. Ders</option>
                 <option value="p3">3. Ders</option>

@@ -255,17 +255,23 @@
       students = state.rawStudents;
     }
 
-    // Demo/test ortaokul öğrencilerini ayıkla (eğer kullanıcının kendi kayıtlı öğrencileri varsa)
-    const demoMiddleNames = new Set(["Hakan Yıldız", "Zeynep Demir", "Ömer Aslan", "Ceren Yılmaz", "Kerem Kaya", "Melis Şahin", "Burak Çelik", "Eda Öztürk"]);
-    const hasCustomStudents = students.some(s => {
+    // Demo/test öğrencilerini ayıkla (eğer kullanıcının kendi kayıtlı öğrencileri varsa)
+    const demoMiddleNames = new Set([
+      "Hakan Yıldız", "Zeynep Demir", "Ömer Aslan", "Ceren Yılmaz", "Kerem Kaya", "Melis Şahin", "Burak Çelik", "Eda Öztürk",
+      "Ahmet Yılmaz", "Can Demir", "Zeynep Kaya", "Ayşe Yılmaz"
+    ]);
+    const demoMiddleIds = new Set(['std_1', '101', '102', '103', 'std_m1', 'std_m2', 'std_m3', 'std_m4', 'std_m5', 'std_m6', 'std_m7', 'std_m8', 'std_m9', 'std_m10']);
+    const isDemoRecord = (s) => {
       const fullName = `${s.name || ''} ${s.surname || ''}`.trim();
-      return !demoMiddleNames.has(fullName) && (!s.id || !s.id.startsWith('std_m'));
-    });
+      const norm = fullName.toLowerCase().replace(/[\s\.\-_]/g, '');
+      if (demoMiddleNames.has(fullName)) return true;
+      if (norm === 'candemir' || norm === 'ahmetyilmaz' || norm === 'ahmetyılmaz') return true;
+      if (s.id && (demoMiddleIds.has(String(s.id)) || String(s.id).startsWith('std_m'))) return true;
+      return false;
+    };
+    const hasCustomStudents = students.some(s => !isDemoRecord(s));
     if (hasCustomStudents) {
-      students = students.filter(s => {
-        const fullName = `${s.name || ''} ${s.surname || ''}`.trim();
-        return !demoMiddleNames.has(fullName) && (!s.id || !s.id.startsWith('std_m'));
-      });
+      students = students.filter(s => !isDemoRecord(s));
     }
 
     if (window.LicenseConfig && window.LicenseConfig.isDemo) {
@@ -437,8 +443,8 @@
       unselectedStudents = [];
     }
 
-    // Demo/test ortaokul öğrencilerini temizle (kullanıcının kendi öğrencileri varsa)
-    const demoMiddleNames = ["Hakan Yıldız", "Zeynep Demir", "Ömer Aslan", "Ceren Yılmaz", "Kerem Kaya", "Melis Şahin", "Burak Çelik", "Eda Öztürk"];
+    // Demo/test öğrencilerini temizle (kullanıcının kendi öğrencileri varsa)
+    const demoMiddleNames = ["Hakan Yıldız", "Zeynep Demir", "Ömer Aslan", "Ceren Yılmaz", "Kerem Kaya", "Melis Şahin", "Burak Çelik", "Eda Öztürk", "Ahmet Yılmaz", "Can Demir", "candemir", "Zeynep Kaya", "Ayşe Yılmaz"];
     const validStudents = getActiveStudentsList();
     const hasRealRegisteredStudents = validStudents.some(s => !demoMiddleNames.includes(`${s.name || ''} ${s.surname || ''}`.trim()));
     if (hasRealRegisteredStudents) {
