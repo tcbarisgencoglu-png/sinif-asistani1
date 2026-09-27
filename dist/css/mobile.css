@@ -877,3 +877,272 @@ body {
   opacity: 1;
   transform: translateX(-50%) translateY(0);
 }
+
+/* ==========================================================================
+   ÖDEV TARİH NAVİGASYONU & GELİŞMİŞ LİSTE MODU
+   ========================================================================== */
+.hw-date-navigator {
+  background: var(--m-surface);
+  border: 1px solid var(--m-border);
+  border-radius: var(--m-radius-md);
+  padding: 0.65rem 0.85rem;
+  margin-bottom: 0.85rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: var(--m-shadow-sm);
+}
+
+.hw-date-nav-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: var(--m-radius-sm);
+  border: 1px solid var(--m-border);
+  background: var(--m-surface-subtle);
+  color: var(--m-text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.hw-date-nav-btn:active {
+  transform: scale(0.92);
+  background: var(--m-primary-light);
+  color: var(--m-primary);
+}
+
+.hw-date-center {
+  flex: 1;
+  text-align: center;
+  cursor: pointer;
+  padding: 0 0.5rem;
+}
+
+.hw-date-title {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--m-text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.hw-date-sub {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--m-primary);
+  margin-top: 1px;
+}
+
+.hw-today-badge {
+  display: inline-block;
+  padding: 2px 7px;
+  background: var(--m-primary-light);
+  color: var(--m-primary);
+  border-radius: var(--m-radius-full);
+  font-size: 0.68rem;
+  font-weight: 800;
+}
+
+/* Ödev Liste Özet Barı */
+.hw-list-summary-bar {
+  background: var(--m-surface);
+  border: 1px solid var(--m-border);
+  border-radius: var(--m-radius-md);
+  padding: 0.65rem 0.85rem;
+  margin-bottom: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.hw-stat-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: var(--m-radius-full);
+}
+.hw-stat-badge.completed { background: var(--m-success-light); color: var(--m-success); }
+.hw-stat-badge.incomplete { background: var(--m-warning-light); color: var(--m-warning); }
+.hw-stat-badge.missing { background: var(--m-danger-light); color: var(--m-danger); }
+.hw-stat-badge.none { background: var(--m-surface-subtle); color: var(--m-text-muted); }
+
+/* Ödev Butonları (Tüm Liste İçi) */
+.hw-status-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--m-radius-sm);
+  border: 1.5px solid var(--m-border);
+  background: var(--m-surface-subtle);
+  color: var(--m-text-muted);
+  font-size: 0.95rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.hw-status-btn:active {
+  transform: scale(0.9);
+}
+
+.hw-status-btn.active.btn-completed {
+  background: var(--m-success);
+  border-color: var(--m-success);
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.4);
+}
+
+.hw-status-btn.active.btn-incomplete {
+  background: var(--m-warning);
+  border-color: var(--m-warning);
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.4);
+}
+
+.hw-status-btn.active.btn-missing {
+  background: var(--m-danger);
+  border-color: var(--m-danger);
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(244, 63, 94, 0.4);
+}
+
+/* ==========================================================================
+   BENTO MENU & GRID NAVIGATION (DİĞER SEKMESİ)
+   ========================================================================== */
+.bento-header {
+  margin-bottom: 1.25rem;
+}
+
+.bento-header-title {
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: var(--m-text);
+  letter-spacing: -0.3px;
+}
+
+.bento-header-subtitle {
+  font-size: 0.8rem;
+  color: var(--m-text-muted);
+  margin-top: 2px;
+}
+
+.bento-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.85rem;
+  margin-bottom: 1.5rem;
+}
+
+.bento-card {
+  text-decoration: none;
+  background: var(--m-surface);
+  border: 1px solid var(--m-border);
+  border-radius: var(--m-radius-md);
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 120px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: var(--m-shadow-sm);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+  cursor: pointer;
+}
+
+.bento-card:active {
+  transform: scale(0.97);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+/* Featured / 2-Sütun Geniş Kart */
+.bento-card-featured {
+  grid-column: 1 / -1;
+  min-height: 90px;
+  flex-direction: row;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.15rem 1.25rem;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.08), rgba(79, 70, 229, 0.04));
+  border-color: rgba(16, 185, 129, 0.25);
+}
+
+.bento-icon-box {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--m-radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: transform 0.2s;
+}
+
+.bento-card:active .bento-icon-box {
+  transform: scale(1.1);
+}
+
+.bento-icon-box i, .bento-icon-box svg {
+  width: 22px;
+  height: 22px;
+}
+
+/* Modüle Özel Renk Vurguları */
+.bento-weekly .bento-icon-box { background: rgba(16, 185, 129, 0.15); color: #10b981; }
+.bento-games .bento-icon-box { background: rgba(245, 158, 11, 0.15); color: #f59e0b; }
+.bento-tasks .bento-icon-box { background: rgba(99, 102, 241, 0.15); color: #6366f1; }
+.bento-tools .bento-icon-box { background: rgba(6, 182, 212, 0.15); color: #06b6d4; }
+.bento-reports .bento-icon-box { background: rgba(244, 63, 94, 0.15); color: #f43f5e; }
+.bento-notebooks .bento-icon-box { background: rgba(20, 184, 166, 0.15); color: #14b8a6; }
+.bento-config .bento-icon-box { background: rgba(100, 116, 139, 0.15); color: #64748b; }
+
+.bento-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.bento-card:not(.bento-card-featured) .bento-info {
+  margin-top: 0.75rem;
+}
+
+.bento-title {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--m-text);
+  line-height: 1.25;
+  margin-bottom: 0.2rem;
+}
+
+.bento-desc {
+  font-size: 0.73rem;
+  color: var(--m-text-muted);
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.bento-arrow {
+  color: var(--m-text-light);
+  display: flex;
+  align-items: center;
+  transition: transform 0.15s, color 0.15s;
+}
+
+.bento-card:hover .bento-arrow,
+.bento-card:active .bento-arrow {
+  transform: translateX(3px);
+  color: var(--m-primary);
+}

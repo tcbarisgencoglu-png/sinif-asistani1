@@ -2663,6 +2663,19 @@ async function initApp() {
     console.error("URL parse error:", e);
   }
 
+  // URL parametresinden otomatik sekme açma (?tab=...)
+  try {
+    const urlParams = new URLSearchParams(window.location.search);
+    const tabFromUrl = urlParams.get('tab');
+    if (tabFromUrl && typeof switchTab === 'function') {
+      setTimeout(() => {
+        switchTab(tabFromUrl);
+      }, 50);
+    }
+  } catch (e) {
+    console.error("URL tab switch error:", e);
+  }
+
   // Güncelleme kontrolü — arka planda, uygulamayı bekletmeden
   checkForUpdates();
 }

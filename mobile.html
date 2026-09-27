@@ -53,9 +53,6 @@
         <div class="live-lesson-title" id="live-lesson-name">Yükleniyor...</div>
         <div class="live-lesson-topic" id="live-lesson-topic-text">Müfredat Konusu Getiriliyor...</div>
       </div>
-      <button class="live-lesson-action-btn" onclick="window.switchTab('attendance')">
-        <i data-lucide="user-check" style="width: 14px; height: 14px;"></i> Yoklama
-      </button>
     </section>
 
     <!-- FİLTRE VE ARAMA ÇUBUĞU (PERFORMANS VE ÖDEV İÇİN) -->
@@ -76,11 +73,25 @@
       </div>
     </div>
 
-    <!-- 2. SEKME: SERİ ÖDEV KONTROLÜ (SIRA GEZME MODU) -->
+    <!-- 2. SEKME: SERİ ÖDEV KONTROLÜ -->
     <div class="tab-pane" id="tab-homework">
+      <!-- Gün Navigasyonu (1 Günlük Liste Kontrolü) -->
+      <div class="hw-date-navigator">
+        <button class="hw-date-nav-btn" id="btn-hw-prev-day" title="Önceki Gün">
+          <i data-lucide="chevron-left"></i>
+        </button>
+        <div class="hw-date-center" id="btn-hw-today-jump" title="Bugüne Dönmek İçin Dokunun">
+          <div class="hw-date-title" id="hw-current-date-title">Yükleniyor...</div>
+          <div class="hw-date-sub" id="hw-current-date-sub">📅 Günlük Ödev Kontrolü</div>
+        </div>
+        <button class="hw-date-nav-btn" id="btn-hw-next-day" title="Sonraki Gün">
+          <i data-lucide="chevron-right"></i>
+        </button>
+      </div>
+
       <div class="hw-mode-toggle">
-        <button class="hw-mode-btn active" id="btn-hw-mode-walk">🚶‍♂️ Sıra Gezme (Seri Mod)</button>
         <button class="hw-mode-btn" id="btn-hw-mode-list">📋 Tüm Liste</button>
+        <button class="hw-mode-btn active" id="btn-hw-mode-walk">🚶‍♂️ Sıra Gezme</button>
       </div>
 
       <!-- Sıra Sıra Gezme Odak Kartı -->
@@ -90,9 +101,14 @@
         </div>
       </div>
 
-      <!-- Alternatif Liste Modu -->
-      <div id="hw-list-container" class="attendance-list" style="display: none;">
-        <!-- Dinamik ödev listesi -->
+      <!-- 1 Günlük Tüm Liste Modu -->
+      <div id="hw-list-wrapper" style="display: none;">
+        <div class="hw-list-summary-bar" id="hw-list-summary-bar">
+          <!-- Dinamik özet istatistikler -->
+        </div>
+        <div id="hw-list-container" class="attendance-list">
+          <!-- Dinamik ödev listesi -->
+        </div>
       </div>
     </div>
 
@@ -134,16 +150,138 @@
       </div>
     </div>
 
-    <!-- 5. SEKME: DAHA FAZLA / ARAÇLAR -->
+    <!-- 5. SEKME: DİĞER (BENTO MENU & GRID NAVIGATION) -->
     <div class="tab-pane" id="tab-more">
+      <div class="bento-header">
+        <div class="bento-header-title">Ek Modüller & Menüler</div>
+        <div class="bento-header-subtitle">Masaüstü sürümdeki tüm menülere mobil ortamdan doğrudan erişin.</div>
+      </div>
+
+      <div class="bento-grid">
+        <!-- 1. Haftalık Değerlendirme (Featured Geniş Kart) -->
+        <a href="index.html?tab=weekly&from=mobile" class="bento-card bento-card-featured bento-weekly">
+          <div class="bento-icon-box">
+            <i data-lucide="calendar-check"></i>
+          </div>
+          <div class="bento-info">
+            <div class="bento-title">Haftalık Değerlendirme</div>
+            <div class="bento-desc">Haftalık kazanım, ödev performansı ve öğrenci gelişim takip çizelgesi.</div>
+          </div>
+          <div class="bento-arrow">
+            <i data-lucide="chevron-right" style="width: 20px; height: 20px;"></i>
+          </div>
+        </a>
+
+        <!-- 2. Oyunlar -->
+        <a href="index.html?tab=games&from=mobile" class="bento-card bento-games">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+            <div class="bento-icon-box">
+              <i data-lucide="gamepad-2"></i>
+            </div>
+            <div class="bento-arrow">
+              <i data-lucide="chevron-right" style="width: 18px; height: 18px;"></i>
+            </div>
+          </div>
+          <div class="bento-info">
+            <div class="bento-title">Oyunlar</div>
+            <div class="bento-desc">Hazine Sandığı, Çarkıfelek ve interaktif sınıf oyunları.</div>
+          </div>
+        </a>
+
+        <!-- 3. Görevler -->
+        <a href="index.html?tab=tasks&from=mobile" class="bento-card bento-tasks">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+            <div class="bento-icon-box">
+              <i data-lucide="check-square"></i>
+            </div>
+            <div class="bento-arrow">
+              <i data-lucide="chevron-right" style="width: 18px; height: 18px;"></i>
+            </div>
+          </div>
+          <div class="bento-info">
+            <div class="bento-title">Görevler</div>
+            <div class="bento-desc">Nöbetçi öğrenci, kulüpler ve sınıf içi görev dağılımı.</div>
+          </div>
+        </a>
+
+        <!-- 4. Araçlar -->
+        <a href="index.html?tab=tools&from=mobile" class="bento-card bento-tools">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+            <div class="bento-icon-box">
+              <i data-lucide="wrench"></i>
+            </div>
+            <div class="bento-arrow">
+              <i data-lucide="chevron-right" style="width: 18px; height: 18px;"></i>
+            </div>
+          </div>
+          <div class="bento-info">
+            <div class="bento-title">Araçlar</div>
+            <div class="bento-desc">Akıllı sayaç, kura çekici, grup oluşturucu ve zil sesleri.</div>
+          </div>
+        </a>
+
+        <!-- 5. Raporlar -->
+        <a href="index.html?tab=reports&from=mobile" class="bento-card bento-reports">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+            <div class="bento-icon-box">
+              <i data-lucide="printer"></i>
+            </div>
+            <div class="bento-arrow">
+              <i data-lucide="chevron-right" style="width: 18px; height: 18px;"></i>
+            </div>
+          </div>
+          <div class="bento-info">
+            <div class="bento-title">Raporlar</div>
+            <div class="bento-desc">Öğrenci karnesi, gelişim grafikleri ve PDF dökümleri.</div>
+          </div>
+        </a>
+
+        <!-- 6. Ders Materyalleri -->
+        <a href="index.html?tab=notebooks&from=mobile" class="bento-card bento-notebooks">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+            <div class="bento-icon-box">
+              <i data-lucide="notebook"></i>
+            </div>
+            <div class="bento-arrow">
+              <i data-lucide="chevron-right" style="width: 18px; height: 18px;"></i>
+            </div>
+          </div>
+          <div class="bento-info">
+            <div class="bento-title">Ders Materyalleri</div>
+            <div class="bento-desc">Yıllık planlar, zümre evrakları ve öğretmen defteri.</div>
+          </div>
+        </a>
+
+        <!-- 7. Asistan Konfigürasyonu -->
+        <a href="index.html?tab=assistant-config&from=mobile" class="bento-card bento-config">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+            <div class="bento-icon-box">
+              <i data-lucide="settings"></i>
+            </div>
+            <div class="bento-arrow">
+              <i data-lucide="chevron-right" style="width: 18px; height: 18px;"></i>
+            </div>
+          </div>
+          <div class="bento-info">
+            <div class="bento-title">Asistan Konfigürasyonu</div>
+            <div class="bento-desc">Şube, kademe, puan baremleri ve sistem ayarları.</div>
+          </div>
+        </a>
+      </div>
+
+      <!-- Hızlı Araçlar ve Veri Yönetimi -->
+      <div style="font-weight: 800; font-size: 0.95rem; margin-bottom: 0.75rem; color: var(--m-text); display: flex; align-items: center; gap: 6px;">
+        <i data-lucide="zap" style="width: 18px; height: 18px; color: var(--m-warning);"></i> Hızlı Masaüstü & Sistem Araçları
+      </div>
+
       <!-- Şanslı Öğrenci Çağırıcı -->
-      <div class="attendance-row" style="flex-direction: column; align-items: stretch; margin-bottom: 1rem; padding: 1.25rem;">
+      <div class="attendance-row" style="flex-direction: column; align-items: stretch; margin-bottom: 0.75rem; padding: 1.15rem;">
         <div style="display: flex; justify-content: space-between; align-items: center;">
           <div>
-            <div style="font-weight: 800; font-size: 1rem; display: flex; align-items: center; gap: 6px;">
-              <i data-lucide="sparkles" style="width: 18px; height: 18px; color: var(--m-warning);"></i> Şanslı Öğrenci (Kura)
+            <div style="font-weight: 800; font-size: 0.95rem; display: flex; align-items: center; gap: 6px;">
+              <i data-lucide="sparkles" style="width: 16px; height: 16px; color: var(--m-warning);"></i> Şanslı Öğrenci (Kura)
             </div>
-            <div style="font-size: 0.75rem; color: var(--m-text-muted); margin-top: 2px;">Sözlü veya etkinlik için rastgele öğrenci seçin.</div>
+            <div style="font-size: 0.72rem; color: var(--m-text-muted); margin-top: 2px;">Sözlü veya etkinlik için rastgele öğrenci seçin.</div>
           </div>
           <button class="btn-book-action" onclick="window.drawLuckyStudent()" style="background: linear-gradient(135deg, #f59e0b, #d97706);">
             <i data-lucide="shuffle" style="width: 14px; height: 14px;"></i> Kura Çek
@@ -153,15 +291,15 @@
       </div>
 
       <!-- Hızlı Sayaç / Zil -->
-      <div class="attendance-row" style="flex-direction: column; align-items: stretch; margin-bottom: 1rem; padding: 1.25rem;">
+      <div class="attendance-row" style="flex-direction: column; align-items: stretch; margin-bottom: 0.75rem; padding: 1.15rem;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
           <div>
-            <div style="font-weight: 800; font-size: 1rem; display: flex; align-items: center; gap: 6px;">
-              <i data-lucide="clock" style="width: 18px; height: 18px; color: var(--m-primary);"></i> Sınıf Sayacı
+            <div style="font-weight: 800; font-size: 0.95rem; display: flex; align-items: center; gap: 6px;">
+              <i data-lucide="clock" style="width: 16px; height: 16px; color: var(--m-primary);"></i> Hızlı Sayaç
             </div>
-            <div style="font-size: 0.75rem; color: var(--m-text-muted); margin-top: 2px;">Etkinlik veya sınav süresini başlatın.</div>
+            <div style="font-size: 0.72rem; color: var(--m-text-muted); margin-top: 2px;">Etkinlik veya sınav süresini başlatın.</div>
           </div>
-          <div id="m-timer-display" style="font-size: 1.4rem; font-weight: 800; color: var(--m-primary);">00:00</div>
+          <div id="m-timer-display" style="font-size: 1.3rem; font-weight: 800; color: var(--m-primary);">00:00</div>
         </div>
         <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px;">
           <button class="hw-nav-btn" style="justify-content: center; padding: 6px;" onclick="window.startMobileTimer(1)">1 dk</button>
@@ -172,9 +310,9 @@
       </div>
 
       <!-- Veri ve Masaüstü Bağlantısı -->
-      <div class="attendance-row" style="flex-direction: column; align-items: stretch; padding: 1.25rem;">
-        <div style="font-weight: 800; font-size: 1rem; margin-bottom: 0.75rem;">💾 Veri & Yönetim</div>
-        <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
+      <div class="attendance-row" style="flex-direction: column; align-items: stretch; padding: 1.15rem;">
+        <div style="font-weight: 800; font-size: 0.95rem; margin-bottom: 0.75rem;">💾 Veri & Yönetim</div>
+        <div style="display: flex; gap: 0.5rem; margin-bottom: 0.75rem;">
           <button class="hw-nav-btn" style="flex: 1; justify-content: center;" onclick="window.exportMobileData ? window.exportMobileData() : (window.stateManager && window.stateManager.exportData())">
             <i data-lucide="download" style="width: 14px; height: 14px;"></i> Yedek İndir / Paylaş
           </button>

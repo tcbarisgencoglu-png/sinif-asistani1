@@ -2098,6 +2098,24 @@ select option {
     color: var(--primary);
   }
 
+  .mobile-back-to-app-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: var(--primary);
+    color: #ffffff !important;
+    text-decoration: none;
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 0.35rem 0.75rem;
+    border-radius: 20px;
+    box-shadow: 0 2px 8px rgba(79, 70, 229, 0.35);
+    transition: transform 0.15s, opacity 0.15s;
+  }
+  .mobile-back-to-app-btn:active {
+    transform: scale(0.95);
+  }
+
   /* Sidebar Drawer Görünümü */
   .sidebar {
     position: fixed !important;

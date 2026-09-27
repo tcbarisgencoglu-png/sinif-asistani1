@@ -2805,7 +2805,11 @@ class StateManager {
     const hw = this.state.homeworks.find(h => h.id === homeworkId);
     if (hw) {
       if (!hw.status) hw.status = {};
-      hw.status[studentId] = status;
+      if (status === 'none') {
+        delete hw.status[studentId];
+      } else {
+        hw.status[studentId] = status;
+      }
 
       // Önce bu ödev ve öğrenci için var olan performans kaydını sil
       this.state.performance = this.state.performance.filter(
@@ -2853,6 +2857,47 @@ class StateManager {
       return true;
     }
     return false;
+  }
+
+  getHomeworkRecord(studentId, dateStr) {
+    if (!this.state.homeworks) this.state.homeworks = [];
+    const student = this.getStudentById ? this.getStudentById(studentId) : null;
+    const branch = student ? student.branch : '';
+
+    const hw = this.state.homeworks.find(h => {
+      const matchDate = h.dueDate === dateStr;
+      const matchBranch = this.state.educationLevel === 'primary' || !branch || !h.branch || h.branch === branch || h.branch === 'all';
+      return matchDate && matchBranch;
+    });
+
+    if (hw && hw.status && hw.status[studentId]) {
+      return { status: hw.status[studentId], homeworkId: hw.id, homework: hw };
+    }
+    return { status: 'none', homeworkId: hw ? hw.id : null, homework: hw };
+  }
+
+  saveHomeworkRecord(studentId, dateStr, status) {
+    if (!this.state.homeworks) this.state.homeworks = [];
+    const student = this.getStudentById ? this.getStudentById(studentId) : null;
+    const branch = student ? student.branch : '';
+
+    let hw = this.state.homeworks.find(h => {
+      const matchDate = h.dueDate === dateStr;
+      const matchBranch = this.state.educationLevel === 'primary' || !branch || !h.branch || h.branch === branch || h.branch === 'all';
+      return matchDate && matchBranch;
+    });
+
+    if (!hw) {
+      hw = this.addHomework({
+        title: `${dateStr} Ödevi`,
+        description: 'Günlük ödev kontrolü',
+        dueDate: dateStr,
+        branch: (this.state.educationLevel === 'middle' && branch) ? branch : ''
+      });
+    }
+
+    this.updateHomeworkStatus(hw.id, studentId, status);
+    return hw;
   }
 
   // KİTAP TAKİP İŞLEMLERİ

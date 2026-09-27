@@ -13,9 +13,21 @@
   let selectedStudentForPoints = null;
   let hwWalkIndex = 0;
   let hwMode = 'walk'; // 'walk' veya 'list'
+  let currentHwDate = getTodayDateStr();
   let attendanceData = {}; // Tarihe göre geçici yoklama durumu
   let timerInterval = null;
   let timerSecondsLeft = 0;
+
+  function getTodayDateStr() {
+    if (typeof window.formatLocalDate === 'function') {
+      return window.formatLocalDate();
+    }
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    const d = String(now.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }
 
   // DOM Yüklendiğinde Başlat
   document.addEventListener('DOMContentLoaded', () => {
@@ -60,12 +72,65 @@
       });
     }
 
+    // Ödev Tarih Navigasyonu
+    const btnHwPrevDay = document.getElementById('btn-hw-prev-day');
+    const btnHwNextDay = document.getElementById('btn-hw-next-day');
+    const btnHwTodayJump = document.getElementById('btn-hw-today-jump');
+
+    if (btnHwPrevDay) {
+      btnHwPrevDay.addEventListener('click', () => {
+        changeHwDate(-1);
+      });
+    }
+    if (btnHwNextDay) {
+      btnHwNextDay.addEventListener('click', () => {
+        changeHwDate(1);
+      });
+    }
+    if (btnHwTodayJump) {
+      btnHwTodayJump.addEventListener('click', () => {
+        currentHwDate = getTodayDateStr();
+        window.vibrate(25);
+        renderHomeworkTab();
+      });
+    }
+
+    // Ödev Mod Değiştiricileri
+    const btnHwModeWalk = document.getElementById('btn-hw-mode-walk');
+    const btnHwModeList = document.getElementById('btn-hw-mode-list');
+    if (btnHwModeWalk) {
+      btnHwModeWalk.addEventListener('click', () => {
+        hwMode = 'walk';
+        btnHwModeWalk.classList.add('active');
+        if (btnHwModeList) btnHwModeList.classList.remove('active');
+        renderHomeworkTab();
+      });
+    }
+    if (btnHwModeList) {
+      btnHwModeList.addEventListener('click', () => {
+        hwMode = 'list';
+        currentHwDate = getTodayDateStr(); // Her girişte içinde bulunulan günün listesi
+        btnHwModeList.classList.add('active');
+        if (btnHwModeWalk) btnHwModeWalk.classList.remove('active');
+        renderHomeworkTab();
+      });
+    }
+
     // Canlı Ders Bilgisini Güncelle
     updateLiveLessonCard();
     setInterval(updateLiveLessonCard, 30000); // 30 saniyede bir güncelle
 
+    // URL Parametresi Kontrolü (?tab=...)
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      const initialTab = urlParams.get('tab');
+      if (initialTab) {
+        currentTab = initialTab;
+      }
+    } catch (e) {}
+
     // İlk Ekranı Çiz
-    renderActiveTab();
+    switchTab(currentTab);
 
     // Haptic desteği kontrolü (Android Native + Web API)
     window.vibrate = (ms = 35) => {
@@ -83,6 +148,11 @@
   // ==========================================================================
   function switchTab(tabId) {
     currentTab = tabId;
+
+    if (tabId === 'homework') {
+      // Ödev menüsüne her girişte içinde bulunulan günün listesi açılacak
+      currentHwDate = getTodayDateStr();
+    }
 
     // Alt menü butonlarını güncelle
     document.querySelectorAll('.nav-item-btn').forEach(btn => {
@@ -105,6 +175,7 @@
     window.vibrate(25);
     renderActiveTab();
   }
+  window.switchTab = switchTab;
 
   function renderActiveTab() {
     switch (currentTab) {
@@ -289,29 +360,71 @@
   };
 
   // ==========================================================================
-  // 2. MODÜL: SERİ ÖDEV KONTROLÜ (SIRA GEZME / ADIM ADIM MODU)
+  // 2. MODÜL: SERİ ÖDEV KONTROLÜ (1 GÜNLÜK LİSTE & SIRA GEZME MODU)
   // ==========================================================================
+  function changeHwDate(deltaDays) {
+    const parts = currentHwDate.split('-');
+    const curDate = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+    curDate.setDate(curDate.getDate() + deltaDays);
+    currentHwDate = (typeof window.formatLocalDate === 'function')
+      ? window.formatLocalDate(curDate)
+      : `${curDate.getFullYear()}-${String(curDate.getMonth() + 1).padStart(2, '0')}-${String(curDate.getDate()).padStart(2, '0')}`;
+    window.vibrate(20);
+    renderHomeworkTab();
+  }
+
+  function updateHwDateDisplay() {
+    const titleEl = document.getElementById('hw-current-date-title');
+    const subEl = document.getElementById('hw-current-date-sub');
+    if (!titleEl) return;
+
+    const todayStr = getTodayDateStr();
+    const parts = currentHwDate.split('-');
+    const d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+    const days = ['Pazar', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi'];
+    const months = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
+
+    const dayName = days[d.getDay()];
+    const dateFormatted = `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}, ${dayName}`;
+
+    if (currentHwDate === todayStr) {
+      titleEl.innerHTML = `<span class="hw-today-badge">Bugün</span> ${dateFormatted}`;
+    } else {
+      titleEl.textContent = dateFormatted;
+    }
+
+    if (subEl) {
+      const state = window.stateManager ? window.stateManager.loadState() : null;
+      const hw = (state && state.homeworks) ? state.homeworks.find(h => h.dueDate === currentHwDate) : null;
+      if (hw && hw.title) {
+        subEl.textContent = `📚 ${hw.title}`;
+      } else {
+        subEl.textContent = '📅 Günlük Ödev Kontrolü';
+      }
+    }
+  }
+
   function renderHomeworkTab() {
     const students = getFilteredStudents();
     const walkContainer = document.getElementById('hw-walk-container');
-    const listContainer = document.getElementById('hw-list-container');
+    const listWrapper = document.getElementById('hw-list-wrapper');
     const toggleWalkBtn = document.getElementById('btn-hw-mode-walk');
     const toggleListBtn = document.getElementById('btn-hw-mode-list');
 
     if (toggleWalkBtn && toggleListBtn) {
-      toggleWalkBtn.onclick = () => { hwMode = 'walk'; renderHomeworkTab(); };
-      toggleListBtn.onclick = () => { hwMode = 'list'; renderHomeworkTab(); };
       toggleWalkBtn.classList.toggle('active', hwMode === 'walk');
       toggleListBtn.classList.toggle('active', hwMode === 'list');
     }
 
+    updateHwDateDisplay();
+
     if (hwMode === 'walk') {
       if (walkContainer) walkContainer.style.display = 'block';
-      if (listContainer) listContainer.style.display = 'none';
+      if (listWrapper) listWrapper.style.display = 'none';
       renderHomeworkWalkCard(students);
     } else {
       if (walkContainer) walkContainer.style.display = 'none';
-      if (listContainer) listContainer.style.display = 'block';
+      if (listWrapper) listWrapper.style.display = 'block';
       renderHomeworkList(students);
     }
   }
@@ -330,22 +443,33 @@
 
     const st = students[hwWalkIndex];
     const avatarColor = getAvatarColor(st.id || st.name);
-    const today = new Date().toISOString().slice(0, 10);
+    const record = (window.stateManager && typeof window.stateManager.getHomeworkRecord === 'function')
+      ? window.stateManager.getHomeworkRecord(st.id, currentHwDate)
+      : null;
+    const curStatus = record ? record.status : 'none';
+    const statusLabel = curStatus === 'completed' ? '✓ Yaptı (+)' : (curStatus === 'incomplete' || curStatus === 'partial') ? '/ Yarım (/)' : curStatus === 'missing' ? '✗ Yok (-)' : 'Henüz Kontrol Edilmedi';
+    const statusColor = curStatus === 'completed' ? 'var(--m-success)' : (curStatus === 'incomplete' || curStatus === 'partial') ? 'var(--m-warning)' : curStatus === 'missing' ? 'var(--m-danger)' : 'var(--m-text-muted)';
 
     container.innerHTML = `
       <div class="hw-walk-counter">Sıradaki: ${hwWalkIndex + 1} / ${students.length} (%${Math.round(((hwWalkIndex + 1) / students.length) * 100)})</div>
       <div class="hw-walk-avatar" style="background-color: ${avatarColor};">
-        ${st.photo ? `<img src="${st.photo}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">` : st.name.charAt(0).toUpperCase()}
+        ${st.photo ? `<img src="${st.photo}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">` : escapeHTML(st.name.charAt(0).toUpperCase())}
       </div>
       <div class="hw-walk-name">${escapeHTML(st.name)} ${escapeHTML(st.surname || '')}</div>
       <div class="hw-walk-no">No: ${escapeHTML(st.number || '-')} ${st.branch ? '• ' + escapeHTML(st.branch) : ''}</div>
+
+      <div style="margin-bottom: 1.25rem;">
+        <span style="font-size: 0.78rem; font-weight: 700; color: ${statusColor}; background: var(--m-surface-subtle); padding: 4px 12px; border-radius: var(--m-radius-full); border: 1px solid var(--m-border);">
+          Durum: ${statusLabel}
+        </span>
+      </div>
 
       <div class="hw-action-grid">
         <button class="hw-btn hw-btn-success" onclick="window.markHomeworkWalk('${st.id}', 'completed')">
           <i data-lucide="check" style="width: 26px; height: 26px;"></i>
           <span>Yaptı (+)</span>
         </button>
-        <button class="hw-btn hw-btn-partial" onclick="window.markHomeworkWalk('${st.id}', 'partial')">
+        <button class="hw-btn hw-btn-partial" onclick="window.markHomeworkWalk('${st.id}', 'incomplete')">
           <i data-lucide="minus" style="width: 26px; height: 26px;"></i>
           <span>Yarım (/)</span>
         </button>
@@ -366,14 +490,15 @@
 
   window.markHomeworkWalk = (studentId, status) => {
     if (!window.stateManager) return;
-    const today = new Date().toISOString().slice(0, 10);
-    
-    // StateManager ödev kaydı
-    window.stateManager.saveHomeworkRecord(studentId, today, status);
+    const normStatus = (status === 'partial') ? 'incomplete' : status;
+
+    if (typeof window.stateManager.saveHomeworkRecord === 'function') {
+      window.stateManager.saveHomeworkRecord(studentId, currentHwDate, normStatus);
+    }
     window.vibrate(35);
 
     const st = window.stateManager.getStudentById(studentId);
-    const statusText = status === 'completed' ? 'Yaptı (+)' : status === 'partial' ? 'Yarım (/)' : 'Yapmadı (-)';
+    const statusText = normStatus === 'completed' ? 'Yaptı (+)' : normStatus === 'incomplete' ? 'Yarım (/)' : 'Yapmadı (-)';
     showMobileToast(`${st ? st.name : 'Öğrenci'}: ${statusText}`);
 
     // Otomatik bir sonraki öğrenciye geç
@@ -403,31 +528,126 @@
 
   function renderHomeworkList(students) {
     const list = document.getElementById('hw-list-container');
+    const summaryBar = document.getElementById('hw-list-summary-bar');
     if (!list) return;
 
     list.innerHTML = '';
-    const today = new Date().toISOString().slice(0, 10);
+
+    if (!students || students.length === 0) {
+      list.innerHTML = `
+        <div style="text-align: center; padding: 2.5rem 1rem; color: var(--m-text-muted);">
+          <i data-lucide="clipboard-list" style="width: 36px; height: 36px; opacity: 0.5; margin-bottom: 0.5rem;"></i>
+          <p style="font-weight: 600;">Ödev kontrolü için öğrenci bulunamadı.</p>
+        </div>
+      `;
+      if (summaryBar) summaryBar.innerHTML = '';
+      if (window.lucide) window.lucide.createIcons();
+      return;
+    }
+
+    let countCompleted = 0;
+    let countIncomplete = 0;
+    let countMissing = 0;
+    let countNone = 0;
 
     students.forEach(st => {
-      const row = document.createElement('div');
-      row.className = 'attendance-row';
-      const record = window.stateManager ? window.stateManager.getHomeworkRecord(st.id, today) : null;
+      const record = (window.stateManager && typeof window.stateManager.getHomeworkRecord === 'function')
+        ? window.stateManager.getHomeworkRecord(st.id, currentHwDate)
+        : null;
       const status = record ? record.status : 'none';
 
+      if (status === 'completed') countCompleted++;
+      else if (status === 'incomplete' || status === 'partial') countIncomplete++;
+      else if (status === 'missing') countMissing++;
+      else countNone++;
+
+      const row = document.createElement('div');
+      row.className = 'attendance-row';
+      const avatarColor = getAvatarColor(st.id || st.name);
+
       row.innerHTML = `
-        <div>
-          <div style="font-weight: 700; font-size: 0.9rem;">${escapeHTML(st.name)} ${escapeHTML(st.surname || '')}</div>
-          <div style="font-size: 0.72rem; color: var(--m-text-muted);">No: ${escapeHTML(st.number || '-')}</div>
+        <div style="display: flex; align-items: center; gap: 10px; min-width: 0; flex: 1;">
+          <div style="width: 38px; height: 38px; border-radius: 50%; background-color: ${avatarColor}; color: #fff; font-weight: 800; font-size: 0.85rem; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+            ${st.photo ? `<img src="${st.photo}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">` : escapeHTML(st.name.charAt(0).toUpperCase())}
+          </div>
+          <div style="min-width: 0;">
+            <div style="font-weight: 800; font-size: 0.92rem; color: var(--m-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+              ${escapeHTML(st.name)} ${escapeHTML(st.surname || '')}
+            </div>
+            <div style="font-size: 0.72rem; color: var(--m-text-muted);">
+              No: ${escapeHTML(st.number || '-')} ${st.branch ? '• ' + escapeHTML(st.branch) : ''}
+            </div>
+          </div>
         </div>
-        <div style="display: flex; gap: 6px;">
-          <button class="attendance-status-pill ${status === 'completed' ? 'status-present' : ''}" style="padding: 4px 8px;" onclick="window.markHomeworkWalk('${st.id}', 'completed'); window.renderActiveTab();">✓</button>
-          <button class="attendance-status-pill ${status === 'partial' ? 'status-late' : ''}" style="padding: 4px 8px;" onclick="window.markHomeworkWalk('${st.id}', 'partial'); window.renderActiveTab();">/</button>
-          <button class="attendance-status-pill ${status === 'missing' ? 'status-absent' : ''}" style="padding: 4px 8px;" onclick="window.markHomeworkWalk('${st.id}', 'missing'); window.renderActiveTab();">✗</button>
+
+        <div style="display: flex; gap: 6px; align-items: center; flex-shrink: 0;">
+          <button class="hw-status-btn btn-completed ${status === 'completed' ? 'active' : ''}"
+                  title="Yaptı / Tam (+)"
+                  onclick="window.toggleHwStatus('${st.id}', 'completed')">
+            ✓
+          </button>
+          <button class="hw-status-btn btn-incomplete ${(status === 'incomplete' || status === 'partial') ? 'active' : ''}"
+                  title="Yarım / Eksik (/)"
+                  onclick="window.toggleHwStatus('${st.id}', 'incomplete')">
+            /
+          </button>
+          <button class="hw-status-btn btn-missing ${status === 'missing' ? 'active' : ''}"
+                  title="Yok / Yapılmadı (-)"
+                  onclick="window.toggleHwStatus('${st.id}', 'missing')">
+            ✗
+          </button>
         </div>
       `;
       list.appendChild(row);
     });
+
+    if (summaryBar) {
+      summaryBar.innerHTML = `
+        <div style="display: flex; gap: 6px; flex-wrap: wrap; align-items: center;">
+          <span class="hw-stat-badge completed" title="Yaptı">✓ ${countCompleted}</span>
+          <span class="hw-stat-badge incomplete" title="Yarım">/ ${countIncomplete}</span>
+          <span class="hw-stat-badge missing" title="Yapmadı">✗ ${countMissing}</span>
+          <span class="hw-stat-badge none" title="Bekliyor">⚪ ${countNone}</span>
+        </div>
+        <button class="hw-nav-btn" style="padding: 4px 10px; font-size: 0.75rem; background: var(--m-success-light); color: var(--m-success); border-color: var(--m-success);" onclick="window.markAllHomeworkCompleted()">
+          <i data-lucide="check-check" style="width: 14px; height: 14px;"></i> Tümünü Yaptı Yap
+        </button>
+      `;
+    }
+
+    if (window.lucide) window.lucide.createIcons();
   }
+
+  window.toggleHwStatus = (studentId, newStatus) => {
+    if (!window.stateManager) return;
+    const currentRecord = (typeof window.stateManager.getHomeworkRecord === 'function')
+      ? window.stateManager.getHomeworkRecord(studentId, currentHwDate)
+      : null;
+    const cur = currentRecord ? currentRecord.status : 'none';
+    const targetStatus = (cur === newStatus) ? 'none' : newStatus;
+
+    if (typeof window.stateManager.saveHomeworkRecord === 'function') {
+      window.stateManager.saveHomeworkRecord(studentId, currentHwDate, targetStatus);
+    }
+    window.vibrate(30);
+
+    const st = window.stateManager.getStudentById(studentId);
+    const statusText = targetStatus === 'completed' ? 'Tam (+)' : targetStatus === 'incomplete' ? 'Yarım (/)' : targetStatus === 'missing' ? 'Yapılmadı (-)' : 'Temizlendi';
+    showMobileToast(`${st ? st.name : 'Öğrenci'}: ${statusText}`);
+
+    renderHomeworkTab();
+  };
+
+  window.markAllHomeworkCompleted = () => {
+    if (!window.stateManager || typeof window.stateManager.saveHomeworkRecord !== 'function') return;
+    const students = getFilteredStudents();
+    students.forEach(st => {
+      window.stateManager.saveHomeworkRecord(st.id, currentHwDate, 'completed');
+    });
+    window.vibrate(50);
+    showMobileToast('Tüm öğrencilerin ödevi "Yaptı" olarak işaretlendi.');
+    renderHomeworkTab();
+  };
 
   // ==========================================================================
   // 3. MODÜL: CEP KİTAPLIĞI
