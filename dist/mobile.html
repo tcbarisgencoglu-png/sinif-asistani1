@@ -154,12 +154,12 @@
     <div class="tab-pane" id="tab-more">
       <div class="bento-header">
         <div class="bento-header-title">Ek Modüller & Menüler</div>
-        <div class="bento-header-subtitle">Masaüstü sürümdeki tüm menülere mobil ortamdan doğrudan erişin.</div>
+        <div class="bento-header-subtitle">Tüm modüllere doğrudan mobil arayüzle erişin.</div>
       </div>
 
       <div class="bento-grid">
         <!-- 1. Haftalık Değerlendirme (Featured Geniş Kart) -->
-        <a href="index.html?tab=weekly&from=mobile" class="bento-card bento-card-featured bento-weekly">
+        <div class="bento-card bento-card-featured bento-weekly" onclick="window.openMobileSubview('weekly')">
           <div class="bento-icon-box">
             <i data-lucide="calendar-check"></i>
           </div>
@@ -170,10 +170,10 @@
           <div class="bento-arrow">
             <i data-lucide="chevron-right" style="width: 20px; height: 20px;"></i>
           </div>
-        </a>
+        </div>
 
         <!-- 2. Oyunlar -->
-        <a href="index.html?tab=games&from=mobile" class="bento-card bento-games">
+        <div class="bento-card bento-games" onclick="window.openMobileSubview('games')">
           <div style="display: flex; justify-content: space-between; align-items: flex-start;">
             <div class="bento-icon-box">
               <i data-lucide="gamepad-2"></i>
@@ -184,12 +184,12 @@
           </div>
           <div class="bento-info">
             <div class="bento-title">Oyunlar</div>
-            <div class="bento-desc">Hazine Sandığı, Çarkıfelek ve interaktif sınıf oyunları.</div>
+            <div class="bento-desc">Bilgi Yarışması, Çarpım Tablosu ve Hazine Sandığı.</div>
           </div>
-        </a>
+        </div>
 
         <!-- 3. Görevler -->
-        <a href="index.html?tab=tasks&from=mobile" class="bento-card bento-tasks">
+        <div class="bento-card bento-tasks" onclick="window.openMobileSubview('tasks')">
           <div style="display: flex; justify-content: space-between; align-items: flex-start;">
             <div class="bento-icon-box">
               <i data-lucide="check-square"></i>
@@ -200,12 +200,12 @@
           </div>
           <div class="bento-info">
             <div class="bento-title">Görevler</div>
-            <div class="bento-desc">Nöbetçi öğrenci, kulüpler ve sınıf içi görev dağılımı.</div>
+            <div class="bento-desc">Görev takip asistanı, aktif ve teslim edilen görevler.</div>
           </div>
-        </a>
+        </div>
 
         <!-- 4. Araçlar -->
-        <a href="index.html?tab=tools&from=mobile" class="bento-card bento-tools">
+        <div class="bento-card bento-tools" onclick="window.openMobileSubview('tools')">
           <div style="display: flex; justify-content: space-between; align-items: flex-start;">
             <div class="bento-icon-box">
               <i data-lucide="wrench"></i>
@@ -216,12 +216,12 @@
           </div>
           <div class="bento-info">
             <div class="bento-title">Araçlar</div>
-            <div class="bento-desc">Akıllı sayaç, kura çekici, grup oluşturucu ve zil sesleri.</div>
+            <div class="bento-desc">Sayaç, kura, gruplar, nöbet ve ses efektleri.</div>
           </div>
-        </a>
+        </div>
 
         <!-- 5. Raporlar -->
-        <a href="index.html?tab=reports&from=mobile" class="bento-card bento-reports">
+        <div class="bento-card bento-reports" onclick="window.openMobileSubview('reports')">
           <div style="display: flex; justify-content: space-between; align-items: flex-start;">
             <div class="bento-icon-box">
               <i data-lucide="printer"></i>
@@ -232,12 +232,12 @@
           </div>
           <div class="bento-info">
             <div class="bento-title">Raporlar</div>
-            <div class="bento-desc">Öğrenci karnesi, gelişim grafikleri ve PDF dökümleri.</div>
+            <div class="bento-desc">Gelişim raporu oluşturma, görüntüleme ve WhatsApp paylaşımı.</div>
           </div>
-        </a>
+        </div>
 
         <!-- 6. Ders Materyalleri -->
-        <a href="index.html?tab=notebooks&from=mobile" class="bento-card bento-notebooks">
+        <div class="bento-card bento-notebooks" onclick="window.openMobileSubview('materials')">
           <div style="display: flex; justify-content: space-between; align-items: flex-start;">
             <div class="bento-icon-box">
               <i data-lucide="notebook"></i>
@@ -248,12 +248,12 @@
           </div>
           <div class="bento-info">
             <div class="bento-title">Ders Materyalleri</div>
-            <div class="bento-desc">Yıllık planlar, zümre evrakları ve öğretmen defteri.</div>
+            <div class="bento-desc">Öğrenci defterleri ve ders kitapları kontrol listesi.</div>
           </div>
-        </a>
+        </div>
 
         <!-- 7. Asistan Konfigürasyonu -->
-        <a href="index.html?tab=assistant-config&from=mobile" class="bento-card bento-config">
+        <div class="bento-card bento-config" onclick="window.openMobileSubview('config')">
           <div style="display: flex; justify-content: space-between; align-items: flex-start;">
             <div class="bento-icon-box">
               <i data-lucide="settings"></i>
@@ -264,9 +264,9 @@
           </div>
           <div class="bento-info">
             <div class="bento-title">Asistan Konfigürasyonu</div>
-            <div class="bento-desc">Şube, kademe, puan baremleri ve sistem ayarları.</div>
+            <div class="bento-desc">Şube, puan baremleri, AI anahtarı ve sistem ayarları.</div>
           </div>
-        </a>
+        </div>
       </div>
 
       <!-- Hızlı Araçlar ve Veri Yönetimi -->
@@ -341,6 +341,813 @@
     </div>
 
   </main>
+
+  <!-- ==========================================================================
+       SUBVIEW 1: HAFTALIK DEĞERLENDİRME
+       ========================================================================== -->
+  <div class="mobile-subview" id="subview-weekly">
+    <div class="subview-header-bar">
+      <button class="subview-back-btn" onclick="window.closeMobileSubview()">
+        <i data-lucide="chevron-left" style="width: 18px; height: 18px;"></i>
+        <span>Geri</span>
+      </button>
+      <div class="subview-header-title">Haftalık Değerlendirme</div>
+      <div style="width: 40px;"></div>
+    </div>
+
+    <div class="subview-info-banner">
+      <div class="subview-info-text">
+        Bu hafta öğrencilerin ders içi katılım, kitap okuma ve ödev performanslarını genel olarak inceleyin.
+      </div>
+      <div style="display: flex; gap: 8px; align-items: center; justify-content: space-between;">
+        <button class="m-btn-sm" onclick="window.changeWeeklyOffset(-1)"><i data-lucide="chevron-left" style="width: 14px; height: 14px;"></i> Önceki Hafta</button>
+        <span id="m-weekly-week-label" style="font-weight: 800; font-size: 0.85rem; color: var(--m-primary);">Mevcut Hafta</span>
+        <button class="m-btn-sm" onclick="window.changeWeeklyOffset(1)">Sonraki Hafta <i data-lucide="chevron-right" style="width: 14px; height: 14px;"></i></button>
+      </div>
+    </div>
+
+    <div id="m-weekly-list-container">
+      <!-- JS ile doldurulacak -->
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       SUBVIEW 2: OYUNLAR (QUIZ, ÇARPIM TABLOSU, HAZİNE SANDIĞI)
+       ========================================================================== -->
+  <div class="mobile-subview" id="subview-games">
+    <div class="subview-header-bar">
+      <button class="subview-back-btn" onclick="window.closeMobileSubview()">
+        <i data-lucide="chevron-left" style="width: 18px; height: 18px;"></i>
+        <span>Geri</span>
+      </button>
+      <div class="subview-header-title" id="m-games-header-title">Sınıf Oyunları</div>
+      <div style="width: 40px;"></div>
+    </div>
+
+    <!-- Oyunlar Menüsü (Landing) -->
+    <div id="m-games-landing">
+      <div class="subview-info-banner">
+        <div class="subview-info-text">
+          Dersi eğlenceli ve interaktif kılmak için 3 sınıf oyunundan birini seçin.
+        </div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 12px;">
+        <!-- Oyun 1: Bilgi Yarışması -->
+        <div class="m-item-card" onclick="window.startMobileQuizGame()" style="cursor: pointer;">
+          <div style="display: flex; align-items: center; gap: 14px;">
+            <div style="width: 48px; height: 48px; border-radius: var(--m-radius-md); background: rgba(79, 70, 229, 0.12); color: var(--m-primary); display: flex; align-items: center; justify-content: center; font-size: 1.5rem;">
+              ❔
+            </div>
+            <div style="flex: 1;">
+              <div style="font-weight: 800; font-size: 1rem; color: var(--m-text);">Bilgi Yarışması</div>
+              <div style="font-size: 0.78rem; color: var(--m-text-muted); margin-top: 2px;">Çoktan seçmeli sorularla yarışma ve puan kazanımı.</div>
+            </div>
+            <i data-lucide="chevron-right" style="color: var(--m-text-light);"></i>
+          </div>
+        </div>
+
+        <!-- Oyun 2: Çarpım Tablosu -->
+        <div class="m-item-card" onclick="window.startMobileMathGame()" style="cursor: pointer;">
+          <div style="display: flex; align-items: center; gap: 14px;">
+            <div style="width: 48px; height: 48px; border-radius: var(--m-radius-md); background: rgba(16, 185, 129, 0.12); color: var(--m-success); display: flex; align-items: center; justify-content: center; font-size: 1.5rem;">
+              ✖️
+            </div>
+            <div style="flex: 1;">
+              <div style="font-weight: 800; font-size: 1rem; color: var(--m-text);">Çarpım Tablosu Düellosu</div>
+              <div style="font-size: 0.78rem; color: var(--m-text-muted); margin-top: 2px;">Zamana karşı hızlı matematik ve zihinden işlem pratiği.</div>
+            </div>
+            <i data-lucide="chevron-right" style="color: var(--m-text-light);"></i>
+          </div>
+        </div>
+
+        <!-- Oyun 3: Hazine Sandığı -->
+        <div class="m-item-card" onclick="window.startMobileTreasureGame()" style="cursor: pointer;">
+          <div style="display: flex; align-items: center; gap: 14px;">
+            <div style="width: 48px; height: 48px; border-radius: var(--m-radius-md); background: rgba(245, 158, 11, 0.12); color: var(--m-warning); display: flex; align-items: center; justify-content: center; font-size: 1.5rem;">
+              🪙
+            </div>
+            <div style="flex: 1;">
+              <div style="font-weight: 800; font-size: 1rem; color: var(--m-text);">Hazine Sandığı</div>
+              <div style="font-size: 0.78rem; color: var(--m-text-muted); margin-top: 2px;">Sandıklardan birini seçin, gizemli puan ve ödülleri toplayın.</div>
+            </div>
+            <i data-lucide="chevron-right" style="color: var(--m-text-light);"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Arena 1: Bilgi Yarışması Oyun Ekranı -->
+    <div id="m-arena-quiz" style="display: none;">
+      <div class="game-arena-card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+          <span class="m-badge m-badge-active" id="m-quiz-category">Genel Kültür</span>
+          <span style="font-weight: 800; font-size: 0.85rem; color: var(--m-primary);" id="m-quiz-score-badge">Puan: 0</span>
+        </div>
+        <div style="font-size: 1.15rem; font-weight: 800; line-height: 1.4; color: var(--m-text); min-height: 70px; display: flex; align-items: center; justify-content: center;" id="m-quiz-question-text">
+          Soru yükleniyor...
+        </div>
+
+        <div class="game-quiz-options" id="m-quiz-options-container">
+          <!-- Seçenekler JS ile yüklenecek -->
+        </div>
+
+        <div style="display: flex; gap: 10px; margin-top: 1.5rem;">
+          <button class="m-btn-sm" onclick="window.backToGamesLanding()">Menüye Dön</button>
+          <button class="m-btn-sm primary" id="btn-quiz-next-question" onclick="window.nextQuizQuestion()">Sonraki Soru <i data-lucide="arrow-right" style="width: 14px; height: 14px;"></i></button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Arena 2: Çarpım Tablosu Oyun Ekranı -->
+    <div id="m-arena-math" style="display: none;">
+      <div class="game-arena-card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+          <span class="m-badge m-badge-warning" id="m-math-streak">🔥 Seri: 0</span>
+          <span style="font-weight: 800; font-size: 0.85rem; color: var(--m-success);" id="m-math-score">Doğru: 0</span>
+        </div>
+        <div style="font-size: 2.8rem; font-weight: 900; color: var(--m-primary); margin: 1rem 0; letter-spacing: 2px;" id="m-math-formula">
+          7 × 8 = ?
+        </div>
+        <div style="font-size: 0.85rem; color: var(--m-text-muted); margin-bottom: 1rem;">Doğru cevaba dokunun</div>
+
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;" id="m-math-options-container">
+          <!-- 4 buton JS ile gelecek -->
+        </div>
+
+        <div style="display: flex; gap: 10px; margin-top: 1.5rem;">
+          <button class="m-btn-sm" onclick="window.backToGamesLanding()">Menüye Dön</button>
+          <button class="m-btn-sm" onclick="window.startMobileMathGame()">Yeniden Başlat</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Arena 3: Hazine Sandığı Oyun Ekranı -->
+    <div id="m-arena-treasure" style="display: none;">
+      <div class="game-arena-card">
+        <div style="font-size: 1rem; font-weight: 800; color: var(--m-text); margin-bottom: 0.25rem;">Bir Sandığa Dokunun!</div>
+        <div style="font-size: 0.8rem; color: var(--m-text-muted); margin-bottom: 1rem;">Hazine sandığını açın ve ödülü kazanın.</div>
+
+        <div class="treasure-chests-grid" id="m-treasure-chests-grid">
+          <!-- 6 sandık JS ile gelecek -->
+        </div>
+
+        <div id="m-treasure-result" style="display: none; padding: 1rem; border-radius: var(--m-radius-md); background: rgba(245, 158, 11, 0.12); border: 1px solid var(--m-warning); margin-top: 1rem;">
+          <!-- Sonuç -->
+        </div>
+
+        <div style="display: flex; gap: 10px; margin-top: 1.5rem;">
+          <button class="m-btn-sm" onclick="window.backToGamesLanding()">Menüye Dön</button>
+          <button class="m-btn-sm primary" onclick="window.resetTreasureChests()">Yeni Tur</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       SUBVIEW 3: GÖREVLER (GÖREV TAKİP ASİSTANI)
+       ========================================================================== -->
+  <div class="mobile-subview" id="subview-tasks">
+    <div class="subview-header-bar">
+      <button class="subview-back-btn" onclick="window.closeMobileSubview()">
+        <i data-lucide="chevron-left" style="width: 18px; height: 18px;"></i>
+        <span>Geri</span>
+      </button>
+      <div class="subview-header-title">Görev Takip Asistanı</div>
+      <div style="width: 40px;"></div>
+    </div>
+
+    <div class="subview-info-banner">
+      <div class="subview-info-text">
+        Öğrencilerinize özel görev ve sorumluluklar tanımlayın, teslim tarihlerini ve puan ödüllerini Android üzerinden kolayca takip edin.
+      </div>
+      <button class="subview-primary-action-btn" onclick="window.openAssignTaskModal()">
+        <i data-lucide="plus-circle" style="width: 18px; height: 18px;"></i>
+        <span>Görev Tanımla / Ver</span>
+      </button>
+    </div>
+
+    <!-- Aktif Filtre Başlığı -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; padding: 0 4px;">
+      <div style="font-weight: 800; font-size: 0.9rem; color: var(--m-text);" id="m-tasks-filter-title">Aktif Görevler</div>
+      <div style="font-size: 0.75rem; color: var(--m-text-muted);" id="m-tasks-count-badge">0 Görev</div>
+    </div>
+
+    <!-- Görev Kartları Listesi -->
+    <div id="m-tasks-list-container">
+      <!-- JS ile doldurulacak -->
+    </div>
+
+    <!-- Görevler Yüzen Menü (FAB) -->
+    <div class="mobile-fab-container">
+      <div class="mobile-fab-menu" id="m-tasks-fab-menu">
+        <button class="mobile-fab-item active" onclick="window.setTasksFilter('active')">
+          <span class="mobile-fab-dot" style="background: var(--m-primary);"></span>
+          <span>Aktif Görevler</span>
+        </button>
+        <button class="mobile-fab-item" onclick="window.setTasksFilter('completed')">
+          <span class="mobile-fab-dot" style="background: var(--m-success);"></span>
+          <span>Teslim Edilenler</span>
+        </button>
+        <button class="mobile-fab-item" onclick="window.setTasksFilter('passive')">
+          <span class="mobile-fab-dot" style="background: var(--m-text-light);"></span>
+          <span>Pasif / Arşiv</span>
+        </button>
+      </div>
+      <button class="mobile-fab-btn" id="m-tasks-fab-btn" onclick="window.toggleTasksFab()" title="Görevleri Filtrele">
+        <i data-lucide="layers" style="width: 24px; height: 24px;"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       SUBVIEW 4: ARAÇLAR (SINIF YARDIMCI ARAÇLARI)
+       ========================================================================== -->
+  <div class="mobile-subview" id="subview-tools">
+    <div class="subview-header-bar">
+      <button class="subview-back-btn" onclick="window.closeMobileSubview()">
+        <i data-lucide="chevron-left" style="width: 18px; height: 18px;"></i>
+        <span>Geri</span>
+      </button>
+      <div class="subview-header-title">Sınıf Yardımcı Araçları</div>
+      <div style="width: 40px;"></div>
+    </div>
+
+    <div class="subview-info-banner">
+      <div class="subview-info-text">
+        Sınıf yönetimi ve ders içi aktivitelerde pratik kullanım sağlayan kompakt araçlar.
+      </div>
+    </div>
+
+    <!-- Araçlar Küçük Kartlar Izgarası -->
+    <div class="tools-grid-compact">
+      <!-- 1. Kura -->
+      <div class="tool-compact-card" onclick="window.openToolModal('lucky')">
+        <div class="tool-icon-circle" style="background: rgba(245, 158, 11, 0.12); color: var(--m-warning);">
+          🎲
+        </div>
+        <div style="font-weight: 800; font-size: 0.88rem; color: var(--m-text);">Şanslı Öğrenci</div>
+        <div style="font-size: 0.7rem; color: var(--m-text-muted);">Sözlü & etkinlik kurası</div>
+      </div>
+
+      <!-- 2. Sayaç -->
+      <div class="tool-compact-card" onclick="window.openToolModal('timer')">
+        <div class="tool-icon-circle" style="background: rgba(79, 70, 229, 0.12); color: var(--m-primary);">
+          ⏱️
+        </div>
+        <div style="font-weight: 800; font-size: 0.88rem; color: var(--m-text);">Akıllı Sayaç</div>
+        <div style="font-size: 0.7rem; color: var(--m-text-muted);">Geri sayım ve alarm</div>
+      </div>
+
+      <!-- 3. Sesler -->
+      <div class="tool-compact-card" onclick="window.openToolModal('sounds')">
+        <div class="tool-icon-circle" style="background: rgba(244, 63, 94, 0.12); color: var(--m-danger);">
+          🔔
+        </div>
+        <div style="font-weight: 800; font-size: 0.88rem; color: var(--m-text);">Zil & Sesler</div>
+        <div style="font-size: 0.7rem; color: var(--m-text-muted);">Zil, alkış ve efektler</div>
+      </div>
+
+      <!-- 4. Grup Oluşturucu -->
+      <div class="tool-compact-card" onclick="window.openToolModal('groups')">
+        <div class="tool-icon-circle" style="background: rgba(16, 185, 129, 0.12); color: var(--m-success);">
+          👥
+        </div>
+        <div style="font-weight: 800; font-size: 0.88rem; color: var(--m-text);">Grup Kurucu</div>
+        <div style="font-size: 0.7rem; color: var(--m-text-muted);">Rastgele takım oluştur</div>
+      </div>
+
+      <!-- 5. Nöbet Listesi -->
+      <div class="tool-compact-card" onclick="window.openToolModal('roster')">
+        <div class="tool-icon-circle" style="background: rgba(6, 182, 212, 0.12); color: var(--m-info);">
+          📅
+        </div>
+        <div style="font-weight: 800; font-size: 0.88rem; color: var(--m-text);">Nöbetçi Listesi</div>
+        <div style="font-size: 0.7rem; color: var(--m-text-muted);">Haftalık sınıf nöbeti</div>
+      </div>
+
+      <!-- 6. Oturma Planı -->
+      <div class="tool-compact-card" onclick="window.openToolModal('seating')">
+        <div class="tool-icon-circle" style="background: rgba(139, 92, 246, 0.12); color: #8b5cf6;">
+          🗺️
+        </div>
+        <div style="font-weight: 800; font-size: 0.88rem; color: var(--m-text);">Oturma Planı</div>
+        <div style="font-size: 0.7rem; color: var(--m-text-muted);">Sıra ve masa düzeni</div>
+      </div>
+
+      <!-- 7. Ders Programı -->
+      <div class="tool-compact-card" onclick="window.openToolModal('schedule')">
+        <div class="tool-icon-circle" style="background: rgba(59, 130, 246, 0.12); color: #3b82f6;">
+          📖
+        </div>
+        <div style="font-weight: 800; font-size: 0.88rem; color: var(--m-text);">Ders Programı</div>
+        <div style="font-size: 0.7rem; color: var(--m-text-muted);">Günlük ders saatleri</div>
+      </div>
+
+      <!-- 8. Katkı & Tedarik -->
+      <div class="tool-compact-card" onclick="window.openToolModal('supplies')">
+        <div class="tool-icon-circle" style="background: rgba(234, 88, 12, 0.12); color: #ea580c;">
+          📦
+        </div>
+        <div style="font-weight: 800; font-size: 0.88rem; color: var(--m-text);">Katkı & Tedarik</div>
+        <div style="font-size: 0.7rem; color: var(--m-text-muted);">Sınıf ihtiyaç takibi</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       SUBVIEW 5: RAPORLAR (GELİŞİM RAPORLARI)
+       ========================================================================== -->
+  <div class="mobile-subview" id="subview-reports">
+    <div class="subview-header-bar">
+      <button class="subview-back-btn" onclick="window.closeMobileSubview()">
+        <i data-lucide="chevron-left" style="width: 18px; height: 18px;"></i>
+        <span>Geri</span>
+      </button>
+      <div class="subview-header-title">Öğrenci Raporları</div>
+      <div style="width: 40px;"></div>
+    </div>
+
+    <div class="subview-info-banner">
+      <div class="subview-info-text">
+        Öğrencilerinizin akademik, kitap okuma ve ödev istatistiklerini içeren detaylı raporlar oluşturun, görüntüleyin ve velilere doğrudan paylaşın.
+      </div>
+      <button class="subview-primary-action-btn" onclick="window.openCreateReportModal()">
+        <i data-lucide="file-plus" style="width: 18px; height: 18px;"></i>
+        <span>Rapor Oluştur</span>
+      </button>
+    </div>
+
+    <!-- Raporlar Listesi Başlığı -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; padding: 0 4px;">
+      <div style="font-weight: 800; font-size: 0.9rem; color: var(--m-text);">Oluşturulan Raporlar</div>
+      <div style="font-size: 0.75rem; color: var(--m-text-muted);" id="m-reports-count-badge">0 Rapor</div>
+    </div>
+
+    <!-- Tarihe Göre Rapor Kartları -->
+    <div id="m-reports-list-container">
+      <!-- JS ile doldurulacak -->
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       SUBVIEW 6: DERS MATERYALLERİ (DEFTERLER VE KİTAPLAR)
+       ========================================================================== -->
+  <div class="mobile-subview" id="subview-materials">
+    <div class="subview-header-bar">
+      <button class="subview-back-btn" onclick="window.closeMobileSubview()">
+        <i data-lucide="chevron-left" style="width: 18px; height: 18px;"></i>
+        <span>Geri</span>
+      </button>
+      <div class="subview-header-title">Ders Materyalleri</div>
+      <div style="width: 40px;"></div>
+    </div>
+
+    <div class="subview-info-banner">
+      <div class="subview-info-text">
+        Öğrenci defter ve ders kitaplarının düzenli kontrolünü sağlayın, derste tek dokunuşla puan işleyin.
+      </div>
+      <button class="subview-primary-action-btn" onclick="window.openCreateMaterialModal()">
+        <i data-lucide="plus-circle" style="width: 18px; height: 18px;"></i>
+        <span>Materyal Oluştur</span>
+      </button>
+    </div>
+
+    <!-- Aktif Filtre Başlığı -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; padding: 0 4px;">
+      <div style="font-weight: 800; font-size: 0.9rem; color: var(--m-text);" id="m-materials-filter-title">Öğrenci Defterleri</div>
+      <div style="font-size: 0.75rem; color: var(--m-text-muted);" id="m-materials-count-badge">0 Materyal</div>
+    </div>
+
+    <!-- Materyaller Listesi -->
+    <div id="m-materials-list-container">
+      <!-- JS ile doldurulacak -->
+    </div>
+
+    <!-- Materyaller Yüzen Menü (FAB) -->
+    <div class="mobile-fab-container">
+      <div class="mobile-fab-menu" id="m-materials-fab-menu">
+        <button class="mobile-fab-item active" onclick="window.setMaterialsFilter('notebooks')">
+          <i data-lucide="notebook" style="width: 16px; height: 16px; color: var(--m-primary);"></i>
+          <span>Öğrenci Defterleri</span>
+        </button>
+        <button class="mobile-fab-item" onclick="window.setMaterialsFilter('textbooks')">
+          <i data-lucide="book" style="width: 16px; height: 16px; color: var(--m-warning);"></i>
+          <span>Ders Kitapları</span>
+        </button>
+      </div>
+      <button class="mobile-fab-btn" id="m-materials-fab-btn" onclick="window.toggleMaterialsFab()" title="Materyalleri Değiştir">
+        <i data-lucide="layers" style="width: 24px; height: 24px;"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       SUBVIEW 7: ASİSTAN KONFİGÜRASYONU (HAMBURGER MENÜLÜ)
+       ========================================================================== -->
+  <div class="mobile-subview" id="subview-config">
+    <div class="subview-header-bar">
+      <button class="subview-back-btn" onclick="window.closeMobileSubview()">
+        <i data-lucide="chevron-left" style="width: 18px; height: 18px;"></i>
+        <span>Geri</span>
+      </button>
+      <div class="subview-header-title" id="m-config-panel-title">Genel Ayarlar</div>
+      <button class="subview-header-action" onclick="window.openConfigDrawer()" title="Menü">
+        <i data-lucide="menu" style="width: 20px; height: 20px;"></i>
+      </button>
+    </div>
+
+    <!-- Konfigürasyon İçerik Panelleri -->
+    <div id="m-config-panels-wrapper" style="padding-top: 4px;">
+      <!-- Panel 1: Genel Ayarlar -->
+      <div class="config-panel active" id="config-panel-general">
+        <div class="m-form-card">
+          <div style="font-weight: 800; font-size: 0.95rem; margin-bottom: 1rem; color: var(--m-primary); display: flex; align-items: center; gap: 8px;">
+            <i data-lucide="settings" style="width: 18px; height: 18px;"></i> Genel Sistem Ayarları
+          </div>
+
+          <div class="m-form-group">
+            <label class="m-form-label">Okul Kademesi</label>
+            <select class="m-form-select" id="m-cfg-level">
+              <option value="primary">İlkokul (1-4. Sınıf)</option>
+              <option value="middle">Ortaokul (5-8. Sınıf)</option>
+            </select>
+          </div>
+
+          <div class="m-form-group">
+            <label class="m-form-label">Ders / Branş Adı</label>
+            <input type="text" class="m-form-input" id="m-cfg-branch-name" placeholder="Örn: Fen Bilimleri / Sınıf Öğretmeni">
+          </div>
+
+          <div class="m-form-group">
+            <label class="m-form-label">Görünüm Teması</label>
+            <select class="m-form-select" id="m-cfg-theme" onchange="window.setMobileTheme(this.value)">
+              <option value="light">Açık Tema (Modern)</option>
+              <option value="dark">Koyu Tema (Gece Modu)</option>
+            </select>
+          </div>
+
+          <button class="subview-primary-action-btn" onclick="window.saveMobileGeneralConfig()">
+            <i data-lucide="check" style="width: 18px; height: 18px;"></i> Değişiklikleri Kaydet
+          </button>
+        </div>
+
+        <!-- Veri Yedekleme -->
+        <div class="m-form-card">
+          <div style="font-weight: 800; font-size: 0.95rem; margin-bottom: 0.75rem; color: var(--m-text); display: flex; align-items: center; gap: 8px;">
+            <i data-lucide="database" style="width: 18px; height: 18px; color: var(--m-info);"></i> Veri Güvenliği & Yedekleme
+          </div>
+          <div style="font-size: 0.78rem; color: var(--m-text-muted); line-height: 1.4; margin-bottom: 1rem;">
+            Tüm sınıflarınızı, öğrencilerinizi ve puanlarınızı güvenle indirin veya başka bir cihaza aktarın.
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <button class="m-btn-sm primary" onclick="window.exportMobileData()">
+              <i data-lucide="download" style="width: 14px; height: 14px;"></i> Yedeği İndir
+            </button>
+            <button class="m-btn-sm" onclick="document.getElementById('m-cfg-file-import').click()">
+              <i data-lucide="upload" style="width: 14px; height: 14px;"></i> Yedeği Yükle
+            </button>
+            <input type="file" id="m-cfg-file-import" accept=".json" style="display: none;" onchange="window.importMobileData(event)">
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel 2: Yapay Zeka (AI) -->
+      <div class="config-panel" id="config-panel-ai" style="display: none;">
+        <div class="m-form-card">
+          <div style="font-weight: 800; font-size: 0.95rem; margin-bottom: 1rem; color: #8b5cf6; display: flex; align-items: center; gap: 8px;">
+            <i data-lucide="sparkles" style="width: 18px; height: 18px;"></i> Google Gemini AI Entegrasyonu
+          </div>
+          <div style="font-size: 0.78rem; color: var(--m-text-muted); line-height: 1.4; margin-bottom: 1rem;">
+            Soru havuzu üretimi ve akıllı asistan özellikleri için Google AI Studio anahtarınızı tanımlayın.
+          </div>
+
+          <div class="m-form-group">
+            <label class="m-form-label">Gemini API Anahtarı</label>
+            <input type="password" class="m-form-input" id="m-cfg-ai-key" placeholder="AIzaSy...">
+          </div>
+
+          <div class="m-form-group">
+            <label class="m-form-label">Yapay Zeka Modeli</label>
+            <select class="m-form-select" id="m-cfg-ai-model">
+              <option value="gemini-1.5-flash">Gemini 1.5 Flash (Hızlı ve Önerilen)</option>
+              <option value="gemini-1.5-pro">Gemini 1.5 Pro (Gelişmiş)</option>
+            </select>
+          </div>
+
+          <div style="display: flex; gap: 8px;">
+            <button class="m-btn-sm primary" onclick="window.saveMobileAIConfig()">Kaydet</button>
+            <button class="m-btn-sm" onclick="window.testMobileAIKey()">Bağlantıyı Test Et</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel 3: Puan Ayarları -->
+      <div class="config-panel" id="config-panel-points" style="display: none;">
+        <div class="m-form-card">
+          <div style="font-weight: 800; font-size: 0.95rem; margin-bottom: 1rem; color: var(--m-warning); display: flex; align-items: center; gap: 8px;">
+            <i data-lucide="award" style="width: 18px; height: 18px;"></i> Puan & Kural Standartları
+          </div>
+
+          <div class="m-form-group">
+            <label class="m-form-label">Zamanında Ödev Teslim Puanı</label>
+            <input type="number" class="m-form-input" id="m-cfg-pt-hw-full" value="4">
+          </div>
+          <div class="m-form-group">
+            <label class="m-form-label">Eksik Ödev Teslim Puanı</label>
+            <input type="number" class="m-form-input" id="m-cfg-pt-hw-half" value="2">
+          </div>
+          <div class="m-form-group">
+            <label class="m-form-label">Ödev Yapmama Cezası</label>
+            <input type="number" class="m-form-input" id="m-cfg-pt-hw-zero" value="-4">
+          </div>
+          <div class="m-form-group">
+            <label class="m-form-label">1. Seviye Kitap Okuma Puanı</label>
+            <input type="number" class="m-form-input" id="m-cfg-pt-book1" value="10">
+          </div>
+          <div class="m-form-group">
+            <label class="m-form-label">2. Seviye Kitap Okuma Puanı</label>
+            <input type="number" class="m-form-input" id="m-cfg-pt-book2" value="20">
+          </div>
+
+          <button class="subview-primary-action-btn" onclick="window.saveMobilePointRules()">
+            <i data-lucide="check" style="width: 18px; height: 18px;"></i> Puan Ayarlarını Kaydet
+          </button>
+        </div>
+      </div>
+
+      <!-- Panel 4: Geçerli Hafta -->
+      <div class="config-panel" id="config-panel-week" style="display: none;">
+        <div class="m-form-card">
+          <div style="font-weight: 800; font-size: 0.95rem; margin-bottom: 1rem; color: var(--m-info); display: flex; align-items: center; gap: 8px;">
+            <i data-lucide="calendar" style="width: 18px; height: 18px;"></i> Aktif Eğitim Haftası
+          </div>
+          <div style="font-size: 0.78rem; color: var(--m-text-muted); line-height: 1.4; margin-bottom: 1rem;">
+            Ders programı ve haftalık değerlendirmelerin işleneceği çalışma haftasını belirleyin.
+          </div>
+
+          <div class="m-form-group">
+            <label class="m-form-label">Çalışma Haftası (1 - 36)</label>
+            <select class="m-form-select" id="m-cfg-week-select">
+              <!-- 1-36 haftalar JS ile gelecek -->
+            </select>
+          </div>
+
+          <button class="subview-primary-action-btn" onclick="window.saveMobileActiveWeek()">
+            <i data-lucide="check" style="width: 18px; height: 18px;"></i> Haftayı Güncelle
+          </button>
+        </div>
+      </div>
+
+      <!-- Panel 5: Öğrenci Yönetimi -->
+      <div class="config-panel" id="config-panel-students" style="display: none;">
+        <div class="m-form-card">
+          <div style="font-weight: 800; font-size: 0.95rem; margin-bottom: 1rem; color: var(--m-success); display: flex; align-items: center; gap: 8px;">
+            <i data-lucide="user-plus" style="width: 18px; height: 18px;"></i> Yeni Öğrenci Ekle
+          </div>
+
+          <div class="m-form-group">
+            <label class="m-form-label">Öğrenci Adı</label>
+            <input type="text" class="m-form-input" id="m-cfg-st-name" placeholder="Ad">
+          </div>
+          <div class="m-form-group">
+            <label class="m-form-label">Öğrenci Soyadı</label>
+            <input type="text" class="m-form-input" id="m-cfg-st-surname" placeholder="Soyad">
+          </div>
+          <div class="m-form-group">
+            <label class="m-form-label">Okul Numarası</label>
+            <input type="number" class="m-form-input" id="m-cfg-st-no" placeholder="Örn: 104">
+          </div>
+          <div class="m-form-group">
+            <label class="m-form-label">Şube</label>
+            <select class="m-form-select" id="m-cfg-st-branch">
+              <!-- Şubeler -->
+            </select>
+          </div>
+
+          <button class="subview-primary-action-btn" onclick="window.addMobileStudent()">
+            <i data-lucide="plus" style="width: 18px; height: 18px;"></i> Öğrenciyi Kaydet
+          </button>
+        </div>
+
+        <div style="font-weight: 800; font-size: 0.9rem; margin-bottom: 0.5rem; color: var(--m-text);">
+          Kayıtlı Öğrenciler (<span id="m-cfg-st-total">0</span>)
+        </div>
+        <div id="m-cfg-students-list">
+          <!-- Öğrenci listesi -->
+        </div>
+      </div>
+
+      <!-- Panel 6: Şifre Kontrolü (Uygulama Kilidi) -->
+      <div class="config-panel" id="config-panel-lock" style="display: none;">
+        <div class="m-form-card">
+          <div style="font-weight: 800; font-size: 0.95rem; margin-bottom: 1rem; color: var(--m-danger); display: flex; align-items: center; gap: 8px;">
+            <i data-lucide="lock" style="width: 18px; height: 18px;"></i> Uygulama Kilidi & PIN Güvenliği
+          </div>
+          <div style="font-size: 0.78rem; color: var(--m-text-muted); line-height: 1.4; margin-bottom: 1rem;">
+            Öğrencilerin akıllı tahtada veya telefonda notlara ve ayarlara erişmesini engellemek için 4 haneli PIN belirleyin.
+          </div>
+
+          <div class="m-form-group">
+            <label class="m-form-label">PIN Kodu (4 Hane)</label>
+            <input type="password" maxlength="4" class="m-form-input" id="m-cfg-pin-code" placeholder="****" style="text-align: center; font-size: 1.25rem; letter-spacing: 6px;">
+          </div>
+
+          <div style="display: flex; gap: 8px;">
+            <button class="m-btn-sm primary" onclick="window.saveMobilePin()">PIN'i Güncelle</button>
+            <button class="m-btn-sm" onclick="window.removeMobilePin()">Kilidi Kaldır</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel 7: Kullanım Kılavuzu & Bilgi -->
+      <div class="config-panel" id="config-panel-manual" style="display: none;">
+        <div class="m-form-card">
+          <div style="font-weight: 800; font-size: 0.95rem; margin-bottom: 0.5rem; color: var(--m-primary);">
+            📱 Sınıf Asistanı Android Sürümü
+          </div>
+          <div style="font-size: 0.8rem; color: var(--m-text-muted); margin-bottom: 1rem;">
+            Versiyon: <strong>v1.0.29</strong> — Geliştirici: Barış Gençoğlu
+          </div>
+
+          <div style="font-size: 0.82rem; line-height: 1.5; color: var(--m-text); display: flex; flex-direction: column; gap: 8px;">
+            <div>✅ <strong>Bento Menü & Modüller:</strong> Tüm sekmeler yerel Android arayüzüne taşınmıştır, web moduna geçiş yapmaz.</div>
+            <div>✅ <strong>Hızlı Ödev Takibi:</strong> Tüm liste sekmesinde gün gün ödev kontrolü yapılabilir.</div>
+            <div>✅ <strong>Yüzen Menü (FAB):</strong> Görevler ve ders materyallerinde hızlı filtreleme sağlar.</div>
+            <div>✅ <strong>Hamburger Menü:</strong> Asistan ayarları arasında tek dokunuşla geçiş imkanı tanır.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hamburger Çekmecesi (Drawer) & Arka Plan Karartması -->
+  <div class="config-drawer-backdrop" id="config-drawer-backdrop" onclick="window.closeConfigDrawer()"></div>
+  <div class="config-drawer" id="config-drawer">
+    <div class="config-drawer-header">
+      <div class="config-drawer-title">
+        <i data-lucide="settings" style="width: 20px; height: 20px; color: var(--m-primary);"></i>
+        <span>Konfigürasyon</span>
+      </div>
+      <button class="sheet-close-btn" onclick="window.closeConfigDrawer()">&times;</button>
+    </div>
+
+    <div class="config-drawer-list">
+      <button class="config-drawer-item active" data-panel="general" onclick="window.switchConfigPanel('general')">
+        <i data-lucide="sliders" style="width: 18px; height: 18px;"></i>
+        <span>Genel Ayarlar</span>
+      </button>
+      <button class="config-drawer-item" data-panel="ai" onclick="window.switchConfigPanel('ai')">
+        <i data-lucide="sparkles" style="width: 18px; height: 18px; color: #8b5cf6;"></i>
+        <span>Yapay Zeka (AI)</span>
+      </button>
+      <button class="config-drawer-item" data-panel="points" onclick="window.switchConfigPanel('points')">
+        <i data-lucide="award" style="width: 18px; height: 18px; color: var(--m-warning);"></i>
+        <span>Puan Ayarları</span>
+      </button>
+      <button class="config-drawer-item" data-panel="week" onclick="window.switchConfigPanel('week')">
+        <i data-lucide="calendar" style="width: 18px; height: 18px; color: var(--m-info);"></i>
+        <span>Geçerli Hafta</span>
+      </button>
+      <button class="config-drawer-item" data-panel="students" onclick="window.switchConfigPanel('students')">
+        <i data-lucide="users" style="width: 18px; height: 18px; color: var(--m-success);"></i>
+        <span>Öğrenci Yönetimi</span>
+      </button>
+      <button class="config-drawer-item" data-panel="lock" onclick="window.switchConfigPanel('lock')">
+        <i data-lucide="lock" style="width: 18px; height: 18px; color: var(--m-danger);"></i>
+        <span>Şifre Kontrolü</span>
+      </button>
+      <button class="config-drawer-item" data-panel="manual" onclick="window.switchConfigPanel('manual')">
+        <i data-lucide="help-circle" style="width: 18px; height: 18px;"></i>
+        <span>Kullanım Kılavuzu</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       MODALLER (GÖREV TANIMLAMA, RAPOR OLUŞTURMA, MATERYAL, ARAÇLAR)
+       ========================================================================== -->
+  <!-- 1. Görev Tanımla Modalı -->
+  <div class="bottom-sheet" id="modal-assign-task" style="z-index: 200;">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header">
+      <div class="sheet-title">Yeni Görev Tanımla</div>
+      <button class="sheet-close-btn" onclick="window.closeBottomSheet()">&times;</button>
+    </div>
+    <div style="padding: 0 1.25rem 1.5rem 1.25rem;">
+      <div class="m-form-group">
+        <label class="m-form-label">Görev Başlığı</label>
+        <input type="text" class="m-form-input" id="m-task-title" placeholder="Örn: Fen Proje Maketi / Sunum">
+      </div>
+      <div class="m-form-group">
+        <label class="m-form-label">Açıklama</label>
+        <textarea class="m-form-textarea" id="m-task-desc" rows="2" placeholder="Görev detayları..."></textarea>
+      </div>
+      <div class="m-form-group">
+        <label class="m-form-label">Öğrenci Seçimi</label>
+        <select class="m-form-select" id="m-task-student">
+          <option value="all">Tüm Sınıf</option>
+        </select>
+      </div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+        <div class="m-form-group">
+          <label class="m-form-label">Son Teslim</label>
+          <input type="date" class="m-form-input" id="m-task-deadline">
+        </div>
+        <div class="m-form-group">
+          <label class="m-form-label">Ödül Puanı</label>
+          <input type="number" class="m-form-input" id="m-task-points" value="10">
+        </div>
+      </div>
+      <button class="subview-primary-action-btn" onclick="window.saveNewTask()">
+        <i data-lucide="check" style="width: 18px; height: 18px;"></i> Görevi Kaydet & Dağıt
+      </button>
+    </div>
+  </div>
+
+  <!-- 2. Rapor Oluştur Modalı -->
+  <div class="bottom-sheet" id="modal-create-report" style="z-index: 200;">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header">
+      <div class="sheet-title">Gelişim Raporu Üret</div>
+      <button class="sheet-close-btn" onclick="window.closeBottomSheet()">&times;</button>
+    </div>
+    <div style="padding: 0 1.25rem 1.5rem 1.25rem;">
+      <div class="m-form-group">
+        <label class="m-form-label">Tarih Aralığı</label>
+        <select class="m-form-select" id="m-report-range" onchange="window.handleReportRangeChange(this.value)">
+          <option value="today">Bugün</option>
+          <option value="this-week" selected>Bu Hafta (Pzt - Cuma)</option>
+          <option value="this-month">Bu Ay</option>
+        </select>
+      </div>
+      <div class="m-form-group">
+        <label class="m-form-label">Dahil Edilecek Alanlar</label>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 0.85rem; font-weight: 700;">
+          <label style="display: flex; align-items: center; gap: 6px;"><input type="checkbox" id="m-rep-chk-points" checked> Davranış Puanı</label>
+          <label style="display: flex; align-items: center; gap: 6px;"><input type="checkbox" id="m-rep-chk-hw" checked> Ödev Takibi</label>
+          <label style="display: flex; align-items: center; gap: 6px;"><input type="checkbox" id="m-rep-chk-books" checked> Kitap Okuma</label>
+          <label style="display: flex; align-items: center; gap: 6px;"><input type="checkbox" id="m-rep-chk-att" checked> Yoklama</label>
+        </div>
+      </div>
+      <button class="subview-primary-action-btn" onclick="window.generateNewReport()">
+        <i data-lucide="sparkles" style="width: 18px; height: 18px;"></i> Raporu Oluştur
+      </button>
+    </div>
+  </div>
+
+  <!-- 3. Rapor Görüntüle Modalı -->
+  <div class="bottom-sheet" id="modal-view-report" style="z-index: 200; max-height: 85vh;">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header">
+      <div class="sheet-title" id="m-view-report-title">Rapor Detayı</div>
+      <button class="sheet-close-btn" onclick="window.closeBottomSheet()">&times;</button>
+    </div>
+    <div style="padding: 0 1.25rem 1.5rem 1.25rem; overflow-y: auto;" id="m-view-report-content">
+      <!-- Rapor İçeriği -->
+    </div>
+  </div>
+
+  <!-- 4. Materyal Oluştur Modalı -->
+  <div class="bottom-sheet" id="modal-create-material" style="z-index: 200;">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header">
+      <div class="sheet-title">Yeni Materyal Tanımla</div>
+      <button class="sheet-close-btn" onclick="window.closeBottomSheet()">&times;</button>
+    </div>
+    <div style="padding: 0 1.25rem 1.5rem 1.25rem;">
+      <div class="m-form-group">
+        <label class="m-form-label">Materyal Türü</label>
+        <select class="m-form-select" id="m-mat-type">
+          <option value="notebook">Öğrenci Defteri</option>
+          <option value="textbook">Ders Kitabı</option>
+        </select>
+      </div>
+      <div class="m-form-group">
+        <label class="m-form-label">Materyal Adı</label>
+        <input type="text" class="m-form-input" id="m-mat-name" placeholder="Örn: Fen Bilimleri Defteri">
+      </div>
+      <div class="m-form-group">
+        <label class="m-form-label">Kontrol Puanı (+)</label>
+        <input type="number" class="m-form-input" id="m-mat-points" value="5">
+      </div>
+      <button class="subview-primary-action-btn" onclick="window.saveNewMaterial()">
+        <i data-lucide="check" style="width: 18px; height: 18px;"></i> Materyali Kaydet
+      </button>
+    </div>
+  </div>
+
+  <!-- 5. Araç Modalı (Genel Araç Gösterim Penceresi) -->
+  <div class="bottom-sheet" id="modal-tool-window" style="z-index: 200; max-height: 80vh;">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header">
+      <div class="sheet-title" id="m-tool-window-title">Araç</div>
+      <button class="sheet-close-btn" onclick="window.closeBottomSheet()">&times;</button>
+    </div>
+    <div style="padding: 0 1.25rem 1.5rem 1.25rem; overflow-y: auto;" id="m-tool-window-body">
+      <!-- Dinamik Araç İçeriği -->
+    </div>
+  </div>
 
   <!-- ==========================================================================
        HIZLI PUAN VERME ALTTAN AÇILAN PENCERE (BOTTOM SHEET)

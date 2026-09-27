@@ -11,6 +11,7 @@ yarn-error.log*
 # Tauri / Rust
 src-tauri/target/
 !src-tauri/target/.gitkeep
+src-tauri/gen/android/
 
 # Build artifacts (only Rust target, not dist)
 build/
