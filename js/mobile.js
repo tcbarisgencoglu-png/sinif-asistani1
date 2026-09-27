@@ -3457,7 +3457,12 @@
     const aiKey = document.getElementById('m-cfg-ai-key');
     if (aiKey) aiKey.value = localStorage.getItem('sinif_asistani_gemini_api_key') || '';
     const aiModel = document.getElementById('m-cfg-ai-model');
-    if (aiModel) aiModel.value = localStorage.getItem('sinif_asistani_gemini_model') || 'gemini-1.5-flash';
+    let savedAiModel = localStorage.getItem('sinif_asistani_gemini_model') || 'gemini-1.5-flash';
+    if (savedAiModel === 'gemini-1.5-pro') {
+      savedAiModel = 'gemini-1.5-flash';
+      localStorage.setItem('sinif_asistani_gemini_model', 'gemini-1.5-flash');
+    }
+    if (aiModel) aiModel.value = savedAiModel;
 
     // 5. Hafta Seçici ve Göstergesi
     updateMobileWeekUI();
@@ -4199,16 +4204,74 @@
 
   async function analyzeStudentListWithGemini(base64Data, mimeType) {
     const apiKey = (localStorage.getItem('sinif_asistani_gemini_api_key') || '').trim();
-    if (!apiKey) throw new Error('API anahtarı bulunamadı');
+    if (!apiKey) throw new Error('API anahtarı bulunamadı. Lütfen Ayarlar > Yapay Zeka menüsünden Gemini API anahtarınızı girin.');
 
-    const savedModel = (localStorage.getItem('sinif_asistani_gemini_model') || 'gemini-1.5-flash').trim();
-    const candidateModels = [
+    // 1. API anahtarının erişebildiği aktif modelleri ve desteklenen API sürümünü Google'dan doğrudan çek
+    let listData = null;
+    let listError = null;
+
+    for (const apiVer of ['v1beta', 'v1']) {
+      try {
+        const listRes = await fetch(`https://generativelanguage.googleapis.com/${apiVer}/models?key=${apiKey}`);
+        const json = await listRes.json();
+        if (listRes.ok && json.models && json.models.length > 0) {
+          listData = { version: apiVer, models: json.models };
+          break;
+        } else if (!listRes.ok) {
+          listError = json.error?.message || `HTTP ${listRes.status}`;
+        }
+      } catch (e) {
+        listError = e.message;
+      }
+    }
+
+    if (!listData) {
+      if (listError && (listError.toLowerCase().includes('api key not valid') || listError.toLowerCase().includes('invalid'))) {
+        throw new Error('Google API anahtarı geçersiz! Lütfen anahtarınızı kontrol edip tekrar kaydedin.');
+      }
+      if (listError && (listError.includes('not been used in project') || listError.includes('disabled'))) {
+        throw new Error('Google Cloud projenizde Generative Language API henüz etkin değil. Google AI Studio üzerinden yeni bir anahtar oluşturabilirsiniz.');
+      }
+      throw new Error(`Google API bağlantı hatası: ${listError || 'Modeller sorgulanamadı'}`);
+    }
+
+    // 2. generateContent destekleyen modelleri filtrele
+    const supportedModels = listData.models.filter(m =>
+      !m.supportedGenerationMethods || m.supportedGenerationMethods.includes('generateContent')
+    );
+
+    if (supportedModels.length === 0) {
+      throw new Error('Bu API anahtarının içerik üretme modellerine izni bulunmuyor.');
+    }
+
+    // Kullanıcının kayıtlı tercihini ve hızlı flash modellerini önceliklendir
+    let savedModel = (localStorage.getItem('sinif_asistani_gemini_model') || 'gemini-1.5-flash').trim();
+    if (savedModel === 'gemini-1.5-pro') {
+      savedModel = 'gemini-1.5-flash';
+    }
+
+    const candidatePreferences = [
       savedModel,
-      'gemini-1.5-flash',
       'gemini-2.0-flash',
+      'gemini-1.5-flash',
+      'gemini-2.5-flash',
       'gemini-2.0-flash-lite',
-      'gemini-1.5-pro'
-    ].filter((v, i, a) => a.indexOf(v) === i);
+      'gemini-1.5-flash-latest',
+      ...supportedModels.map(m => m.name.replace(/^models\//, ''))
+    ];
+
+    // Sadece Google'ın bu anahtar için izin verdiği geçerli modelleri listeye ekle
+    const validCandidatePaths = [];
+    for (const pref of candidatePreferences) {
+      const match = supportedModels.find(sm => sm.name === pref || sm.name === `models/${pref}` || sm.name.endsWith(`/${pref}`));
+      if (match && !validCandidatePaths.includes(match.name)) {
+        validCandidatePaths.push(match.name);
+      }
+    }
+
+    if (validCandidatePaths.length === 0) {
+      validCandidatePaths.push(supportedModels[0].name);
+    }
 
     const promptText = `Bu görsel bir okul sınıf listesidir. Görseldeki tüm öğrencileri satır satır tespit et.
 Her öğrenci için okul numarasını, adını, soyadını ve cinsiyetini ('male' veya 'female') çıkar.
@@ -4224,9 +4287,9 @@ SADECE VE SADECE GEÇERLİ BİR JSON DİZİSİ DÖNDÜR. Markdown (örneğin \`\
 
     let lastError = null;
 
-    for (const model of candidateModels) {
-      const cleanModelName = model.startsWith('models/') ? model : `models/${model}`;
-      const url = `https://generativelanguage.googleapis.com/v1beta/${cleanModelName}:generateContent?key=${encodeURIComponent(apiKey)}`;
+    for (const modelPath of validCandidatePaths) {
+      const cleanPath = modelPath.startsWith('models/') ? modelPath : `models/${modelPath}`;
+      const url = `https://generativelanguage.googleapis.com/${listData.version}/${cleanPath}:generateContent?key=${apiKey}`;
 
       try {
         let res = await fetch(url, {
@@ -4238,8 +4301,8 @@ SADECE VE SADECE GEÇERLİ BİR JSON DİZİSİ DÖNDÜR. Markdown (örneğin \`\
                 parts: [
                   { text: promptText },
                   {
-                    inlineData: {
-                      mimeType: mimeType || 'image/jpeg',
+                    inline_data: {
+                      mime_type: mimeType || 'image/jpeg',
                       data: base64Data
                     }
                   }
@@ -4253,6 +4316,7 @@ SADECE VE SADECE GEÇERLİ BİR JSON DİZİSİ DÖNDÜR. Markdown (örneğin \`\
           })
         });
 
+        // 400 hatası (responseMimeType desteklenmezse) formatsız tekrar dene
         if (res.status === 400) {
           res = await fetch(url, {
             method: 'POST',
@@ -4263,8 +4327,8 @@ SADECE VE SADECE GEÇERLİ BİR JSON DİZİSİ DÖNDÜR. Markdown (örneğin \`\
                   parts: [
                     { text: promptText },
                     {
-                      inlineData: {
-                        mimeType: mimeType || 'image/jpeg',
+                      inline_data: {
+                        mime_type: mimeType || 'image/jpeg',
                         data: base64Data
                       }
                     }
@@ -4278,8 +4342,23 @@ SADECE VE SADECE GEÇERLİ BİR JSON DİZİSİ DÖNDÜR. Markdown (örneğin \`\
 
         if (res.ok) {
           const data = await res.json();
-          let rawText = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-          rawText = rawText.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
+          let rawText = '';
+          const parts = data.candidates?.[0]?.content?.parts || [];
+          for (const p of parts) {
+            if (p.text) rawText += p.text;
+          }
+          if (!rawText && data.candidates?.[0]?.content?.parts?.[0]?.text) {
+            rawText = data.candidates[0].content.parts[0].text;
+          }
+
+          // JSON dizisini regex ile ayıkla
+          const jsonMatch = rawText.match(/\[\s*\{[\s\S]*\}\s*\]/);
+          if (jsonMatch) {
+            rawText = jsonMatch[0];
+          } else {
+            rawText = rawText.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
+          }
+
           const parsed = JSON.parse(rawText);
           if (Array.isArray(parsed) && parsed.length > 0) {
             return parsed;
