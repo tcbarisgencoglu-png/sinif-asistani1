@@ -16,7 +16,18 @@
   let currentHwDate = getTodayDateStr();
   let attendanceData = {}; // Tarihe göre geçici yoklama durumu
   let timerInterval = null;
-  let timerSecondsLeft = 0;
+  // Haptic desteği kontrolü (Android Native + Web API)
+  window.vibrate = (ms = 35) => {
+    try {
+      if (window.AndroidBridge && typeof window.AndroidBridge.vibrate === 'function') {
+        window.AndroidBridge.vibrate(ms);
+        return;
+      }
+      if (navigator && typeof navigator.vibrate === 'function') {
+        navigator.vibrate(ms);
+      }
+    } catch (e) {}
+  };
 
   function getTodayDateStr() {
     if (typeof window.formatLocalDate === 'function') {
@@ -131,16 +142,6 @@
 
     // İlk Ekranı Çiz
     switchTab(currentTab);
-
-    // Haptic desteği kontrolü (Android Native + Web API)
-    window.vibrate = (ms = 35) => {
-      if (window.AndroidBridge && typeof window.AndroidBridge.vibrate === 'function') {
-        try { window.AndroidBridge.vibrate(ms); return; } catch (e) {}
-      }
-      if ('vibrate' in navigator) {
-        try { navigator.vibrate(ms); } catch (e) {}
-      }
-    };
   }
 
   // ==========================================================================
