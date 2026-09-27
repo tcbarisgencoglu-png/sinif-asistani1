@@ -599,19 +599,161 @@ body {
 }
 
 /* ==========================================================================
-   8. 3. MODÜL: CEP KİTAPLIĞI (HIZLI TESLİM & ÖDÜNÇ)
+   8. 3. MODÜL: CEP KİTAPLIĞI (İKİ SEKME: ŞU AN OKUNANLAR & ÖĞRENCİ KİTAPLIĞI)
    ========================================================================== */
+.books-subnav {
+  display: flex;
+  background: var(--m-surface-subtle);
+  border-radius: var(--m-radius-md);
+  padding: 4px;
+  margin-bottom: 0.85rem;
+}
+
+.books-subnav-btn {
+  flex: 1;
+  border: none;
+  background: transparent;
+  color: var(--m-text-muted);
+  font-weight: 700;
+  font-size: 0.82rem;
+  padding: 0.55rem;
+  border-radius: var(--m-radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.books-subnav-btn.active {
+  background: var(--m-surface);
+  color: var(--m-primary);
+  box-shadow: var(--m-shadow-sm);
+}
+
+.books-action-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 0.85rem;
+}
+
+.books-summary-badge {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--m-text-muted);
+  background: var(--m-surface-subtle);
+  padding: 5px 10px;
+  border-radius: var(--m-radius-full);
+  border: 1px solid var(--m-border);
+}
+
 .book-reading-card {
   background: var(--m-surface);
-  border: 1px solid var(--m-border);
+  border: 1.5px solid var(--m-border);
   border-radius: var(--m-radius-md);
-  padding: 1rem;
+  padding: 0.85rem 1rem;
   margin-bottom: 0.75rem;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
   box-shadow: var(--m-shadow-sm);
+  cursor: pointer;
+  transition: transform 0.15s, border-color 0.15s;
+}
+
+.book-reading-card:active {
+  transform: scale(0.98);
+  border-color: var(--m-primary);
+}
+
+.book-reading-card.is-overdue {
+  border-left: 4px solid var(--m-danger);
+}
+
+.book-reading-card.is-ontime {
+  border-left: 4px solid var(--m-success);
+}
+
+/* Çoklu Kitap Üst Üste Oturmuş Kart Tasarımı (Stacked Cards) */
+.book-reading-card.is-multi-book {
+  position: relative;
+  margin-bottom: 1.15rem;
+  border-top-color: var(--m-primary);
+  border-right-color: var(--m-primary);
+  box-shadow: 
+    0 3px 0 0 var(--m-surface),
+    0 4px 0 1px rgba(99, 102, 241, 0.4),
+    0 7px 0 0 var(--m-surface),
+    0 8px 0 1px rgba(99, 102, 241, 0.25),
+    0 10px 18px rgba(0, 0, 0, 0.1);
+}
+
+.book-reading-card.is-multi-book::before {
+  content: '';
+  position: absolute;
+  top: -4px;
+  left: 8px;
+  right: 8px;
+  height: 6px;
+  background: var(--m-surface-alt);
+  border: 1px solid var(--m-border);
+  border-bottom: none;
+  border-radius: var(--m-radius-md) var(--m-radius-md) 0 0;
+  z-index: -1;
+  opacity: 0.8;
+}
+
+.book-reading-card.is-multi-book::after {
+  content: '';
+  position: absolute;
+  top: -7px;
+  left: 16px;
+  right: 16px;
+  height: 6px;
+  background: var(--m-surface-subtle);
+  border: 1px solid var(--m-border);
+  border-bottom: none;
+  border-radius: var(--m-radius-md) var(--m-radius-md) 0 0;
+  z-index: -2;
+  opacity: 0.5;
+}
+
+.multi-book-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: linear-gradient(135deg, var(--m-primary), #4338ca);
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: 10px;
+  box-shadow: 0 2px 5px rgba(79, 70, 229, 0.25);
+}
+
+.multi-book-item-card {
+  background: var(--m-surface);
+  border: 1.5px solid var(--m-border);
+  border-radius: var(--m-radius-md);
+  padding: 0.9rem;
+  margin-bottom: 0.85rem;
+  box-shadow: var(--m-shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.multi-book-item-card.is-overdue {
+  border-left: 4px solid var(--m-danger);
+  background: rgba(239, 68, 68, 0.02);
+}
+
+.multi-book-item-card.is-ontime {
+  border-left: 4px solid var(--m-success);
 }
 
 .book-info-col {
@@ -620,50 +762,277 @@ body {
 }
 
 .book-student-name {
-  font-size: 0.85rem;
-  font-weight: 700;
-  color: var(--m-primary);
+  font-size: 0.88rem;
+  font-weight: 800;
+  color: var(--m-text);
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .book-title-text {
-  font-size: 0.95rem;
-  font-weight: 800;
-  color: var(--m-text);
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--m-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-.book-due-badge {
-  font-size: 0.72rem;
-  font-weight: 600;
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
   margin-top: 2px;
 }
 
-.book-due-badge.overdue {
-  color: var(--m-danger);
+.book-meta-sub {
+  font-size: 0.72rem;
+  color: var(--m-text-muted);
+  margin-top: 2px;
 }
 
-.book-due-badge.ok {
-  color: var(--m-success);
-}
-
-.btn-book-action {
-  background: var(--m-primary);
-  color: #fff;
-  border: none;
-  padding: 0.5rem 0.85rem;
-  border-radius: var(--m-radius-md);
-  font-size: 0.78rem;
-  font-weight: 700;
-  display: flex;
+.book-delay-badge {
+  font-size: 0.72rem;
+  font-weight: 800;
+  display: inline-flex;
   align-items: center;
   gap: 4px;
+  padding: 3px 8px;
+  border-radius: var(--m-radius-full);
+  margin-top: 4px;
+}
+
+.book-delay-badge.overdue {
+  background: var(--m-danger-light);
+  color: var(--m-danger);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.book-delay-badge.ontime {
+  background: var(--m-success-light);
+  color: var(--m-success);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+/* Öğrenci Kitaplığı İstatistikleri */
+.books-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 0.85rem;
+}
+
+.books-stat-card {
+  background: var(--m-surface);
+  border: 1px solid var(--m-border);
+  border-radius: var(--m-radius-md);
+  padding: 0.75rem 0.5rem;
+  text-align: center;
+  box-shadow: var(--m-shadow-sm);
+}
+
+.books-stat-num {
+  font-size: 1.25rem;
+  font-weight: 900;
+  color: var(--m-primary);
+  line-height: 1.1;
+}
+
+.books-stat-lbl {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--m-text-muted);
+  margin-top: 4px;
+}
+
+.books-history-item {
+  background: var(--m-surface);
+  border: 1px solid var(--m-border);
+  border-radius: var(--m-radius-md);
+  padding: 0.75rem 0.85rem;
+  margin-bottom: 0.6rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.books-suggestion-box {
+  background: var(--m-surface-subtle);
+  border: 1px solid var(--m-border);
+  border-radius: var(--m-radius-md);
+  padding: 0.85rem;
+  margin-top: 1rem;
+}
+
+.books-suggestion-item {
+  background: var(--m-surface);
+  border: 1px solid var(--m-border);
+  border-radius: var(--m-radius-sm);
+  padding: 0.65rem 0.75rem;
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+/* ==========================================================================
+   KİTAPLIK KLASÖRLERİ & KİTAP SORULARI STİLLERİ
+   ========================================================================== */
+.catalog-folder-card {
+  background: var(--m-surface);
+  border: 1px solid var(--m-border);
+  border-radius: var(--m-radius-md);
+  margin-bottom: 0.85rem;
+  overflow: hidden;
+  box-shadow: var(--m-shadow-sm);
+}
+
+.catalog-folder-header {
+  padding: 0.75rem 1rem;
+  background: var(--m-surface-subtle);
+  border-bottom: 1px solid var(--m-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   cursor: pointer;
-  flex-shrink: 0;
+}
+
+.catalog-folder-title {
+  font-size: 0.9rem;
+  font-weight: 800;
+  color: var(--m-text);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.catalog-folder-badge {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--m-primary);
+  background: var(--m-primary-light);
+  padding: 2px 8px;
+  border-radius: var(--m-radius-full);
+}
+
+.catalog-books-list {
+  padding: 0.65rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.catalog-book-card {
+  background: var(--m-surface);
+  border: 1.5px solid var(--m-border);
+  border-radius: var(--m-radius-sm);
+  padding: 0.75rem 0.85rem;
+  cursor: pointer;
+  transition: transform 0.12s, border-color 0.12s;
+}
+
+.catalog-book-card:active {
+  transform: scale(0.98);
+  border-color: var(--m-primary);
+}
+
+.catalog-book-card.is-borrowed {
+  border-left: 4px solid var(--m-warning);
+}
+
+.catalog-book-card.is-available {
+  border-left: 4px solid var(--m-success);
+}
+
+.catalog-status-tag {
+  font-size: 0.72rem;
+  font-weight: 800;
+  padding: 3px 8px;
+  border-radius: var(--m-radius-full);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.catalog-status-tag.borrowed {
+  background: var(--m-warning-light);
+  color: var(--m-warning);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.catalog-status-tag.available {
+  background: var(--m-success-light);
+  color: var(--m-success);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.catalog-questions-tag {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--m-primary);
+  background: var(--m-primary-light);
+  padding: 3px 8px;
+  border-radius: var(--m-radius-full);
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+/* Soru Modalı Stilleri */
+.question-bubble-card {
+  background: var(--m-surface-subtle);
+  border: 1px solid var(--m-border);
+  border-radius: var(--m-radius-md);
+  padding: 0.85rem;
+  margin-bottom: 0.75rem;
+  position: relative;
+}
+
+.question-bubble-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.4rem;
+}
+
+.question-num-pill {
+  font-size: 0.72rem;
+  font-weight: 800;
+  background: var(--m-primary);
+  color: #ffffff;
+  padding: 2px 7px;
+  border-radius: var(--m-radius-full);
+}
+
+.question-del-btn {
+  background: transparent;
+  border: none;
+  color: var(--m-danger);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+}
+
+.question-text-content {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--m-text);
+  line-height: 1.35;
+  margin-bottom: 0.4rem;
+}
+
+.answer-text-content {
+  font-size: 0.8rem;
+  color: var(--m-text-muted);
+  background: var(--m-surface);
+  padding: 0.4rem 0.65rem;
+  border-radius: var(--m-radius-sm);
+  border-left: 3px solid var(--m-success);
+}
+
+.new-question-box {
+  background: var(--m-surface);
+  border: 1.5px dashed var(--m-primary);
+  border-radius: var(--m-radius-md);
+  padding: 1rem;
+  margin-top: 1.25rem;
 }
 
 /* ==========================================================================
@@ -744,8 +1113,7 @@ body {
 .bottom-sheet-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(15, 23, 42, 0.55);
-  backdrop-filter: blur(4px);
+  background: rgba(15, 23, 42, 0.65);
   z-index: 1000;
   display: none;
   opacity: 0;
@@ -765,10 +1133,10 @@ body {
   background: var(--m-surface);
   border-radius: var(--m-radius-lg) var(--m-radius-lg) 0 0;
   padding: 1.25rem 1.25rem calc(1.5rem + var(--safe-bottom));
-  z-index: 1001;
+  z-index: 1100 !important;
   transform: translateY(100%);
   transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
-  box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.35);
   max-height: 85vh;
   overflow-y: auto;
 }
@@ -1722,4 +2090,146 @@ body {
   justify-content: center;
   font-size: 1.35rem;
 }
+
+/* ==========================================================================
+   KONFİGÜRASYON GELİŞMİŞ BİLEŞENLER (DAVRANIŞLAR, AKORDEON, VB.)
+   ========================================================================== */
+.m-behavior-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.55rem 0.75rem;
+  background: var(--m-bg);
+  border: 1px solid var(--m-border);
+  border-radius: var(--m-radius-sm);
+  font-size: 0.82rem;
+  font-weight: 600;
+  gap: 8px;
+}
+
+.m-accordion-item {
+  border: 1px solid var(--m-border);
+  border-radius: var(--m-radius-md);
+  margin-bottom: 0.65rem;
+  overflow: hidden;
+  background: var(--m-surface);
+  transition: border-color 0.15s;
+}
+
+.m-accordion-header {
+  padding: 0.85rem 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: var(--m-text);
+  cursor: pointer;
+  background: var(--m-surface);
+}
+
+.m-accordion-header:active {
+  background: var(--m-surface-alt);
+}
+
+.m-accordion-body {
+  display: none;
+  padding: 0.85rem 1rem;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: var(--m-text-muted);
+  border-top: 1px solid var(--m-border);
+  background: var(--m-bg);
+}
+
+.m-accordion-item.active .m-accordion-body {
+  display: block;
+}
+
+.m-accordion-item.active .m-accordion-chevron {
+  transform: rotate(180deg);
+}
+
+.m-accordion-chevron {
+  transition: transform 0.2s ease;
+  width: 16px;
+  height: 16px;
+  color: var(--m-text-muted);
+}
+
+/* ==========================================================================
+   YAPAY ZEKA İLE ÖĞRENCİ TARAMA & ÖNİZLEME STİLLERİ
+   ========================================================================== */
+.m-ai-scan-btn {
+  background: linear-gradient(135deg, #8b5cf6, #6366f1);
+  color: white;
+  border: none;
+  font-weight: 700;
+  padding: 6px 12px;
+  font-size: 0.75rem;
+  border-radius: var(--m-radius-full);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.25);
+  cursor: pointer;
+}
+
+.m-ai-scan-btn:active {
+  transform: scale(0.97);
+}
+
+.ai-preview-card {
+  background: var(--m-surface);
+  border: 1px solid var(--m-border);
+  border-radius: var(--m-radius-md);
+  padding: 0.65rem 0.8rem;
+  margin-bottom: 0.6rem;
+  box-shadow: var(--m-shadow-sm);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: opacity 0.2s, background-color 0.2s;
+}
+
+.ai-preview-card.excluded {
+  opacity: 0.45;
+  background: var(--m-bg);
+}
+
+.ai-preview-inputs {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.ai-preview-row-top {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.ai-preview-row-bottom {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+@keyframes mPulse {
+  0% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.08); opacity: 0.85; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes mSpin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.m-spinner {
+  animation: mSpin 0.8s linear infinite;
+}
+
 

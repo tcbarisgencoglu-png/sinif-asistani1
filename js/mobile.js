@@ -40,6 +40,108 @@
     return `${y}-${m}-${d}`;
   }
 
+  function getStudentByIdSafe(studentId) {
+    if (!studentId && studentId !== 0) return null;
+    if (window.stateManager && typeof window.stateManager.getStudentById === 'function') {
+      return window.stateManager.getStudentById(studentId);
+    }
+    if (window.stateManager && typeof window.stateManager.getStudents === 'function') {
+      const all = window.stateManager.getStudents(true);
+      return all.find(s => String(s.id) === String(studentId)) || null;
+    }
+    return null;
+  }
+
+  function isMiddleSchool() {
+    if (!window.stateManager || !window.stateManager.state) return false;
+    const lvl = (typeof window.stateManager.getEducationLevel === 'function')
+      ? window.stateManager.getEducationLevel()
+      : (window.stateManager.state.educationLevel || window.stateManager.state.gradeLevel || 'middle');
+    return lvl === 'middle';
+  }
+
+  function formatStudentSubtitle(st) {
+    const isMiddle = isMiddleSchool();
+    const no = escapeHTML(st.number || '-');
+    if (isMiddle && st.branch) {
+      return `No: ${no} • ${escapeHTML(st.branch)}`;
+    }
+    return `No: ${no}`;
+  }
+
+  function syncEducationLevelUI() {
+    const isMiddle = isMiddleSchool();
+
+    // 1. Üst Bar Şube Rozeti (#appbar-branch-text)
+    const appbarBranchBadge = document.getElementById('appbar-branch-text');
+    if (appbarBranchBadge) {
+      appbarBranchBadge.style.display = isMiddle ? 'inline-block' : 'none';
+      if (isMiddle) {
+        appbarBranchBadge.textContent = (activeBranch === 'all') ? 'Tüm Sınıf' : `${activeBranch} Şubesi`;
+      }
+    }
+
+    // 2. Filtre Barındaki Şube Seçici Dropdown (#m-branch-select)
+    const branchSelect = document.getElementById('m-branch-select');
+    if (branchSelect) {
+      branchSelect.style.display = isMiddle ? 'inline-block' : 'none';
+    }
+    if (!isMiddle) {
+      activeBranch = 'all';
+    }
+
+    // 3. Konfigürasyon: Yeni Öğrenci Ekleme Şube Alanı (#m-cfg-st-branch-group)
+    const stBranchGroup = document.getElementById('m-cfg-st-branch-group');
+    const stNoBranchRow = document.getElementById('m-cfg-st-no-branch-row');
+    if (stBranchGroup) {
+      stBranchGroup.style.display = isMiddle ? 'block' : 'none';
+    }
+    if (stNoBranchRow) {
+      stNoBranchRow.style.gridTemplateColumns = isMiddle ? '1fr 1fr' : '1fr';
+    }
+
+    // 4. Konfigürasyon: Kayıtlı Öğrenciler Şube Filtresi (#m-cfg-st-branch-filter)
+    const stBranchFilter = document.getElementById('m-cfg-st-branch-filter');
+    if (stBranchFilter) {
+      stBranchFilter.style.display = isMiddle ? 'inline-block' : 'none';
+      if (!isMiddle) stBranchFilter.value = 'all';
+    }
+
+    // 5. Öğrenci Düzenleme Modalı Şube Alanı (#m-edit-st-branch-group)
+    const editBranchGroup = document.getElementById('m-edit-st-branch-group');
+    const editNoBranchRow = document.getElementById('m-edit-st-no-branch-row');
+    if (editBranchGroup) {
+      editBranchGroup.style.display = isMiddle ? 'block' : 'none';
+    }
+    if (editNoBranchRow) {
+      editNoBranchRow.style.gridTemplateColumns = isMiddle ? '1fr 1fr' : '1fr';
+    }
+
+    // 6. AI Öğrenci Önizleme Modalı Şube Seçimi (#m-ai-branch-container)
+    const aiBranchContainer = document.getElementById('m-ai-branch-container');
+    if (aiBranchContainer) {
+      aiBranchContainer.style.display = isMiddle ? 'flex' : 'none';
+    }
+  }
+
+  window.handleLevelChange = (newLevel) => {
+    if (window.stateManager) {
+      if (typeof window.stateManager.setEducationLevel === 'function') {
+        window.stateManager.setEducationLevel(newLevel);
+      } else {
+        window.stateManager.state.educationLevel = newLevel;
+        window.stateManager.state.gradeLevel = newLevel;
+      }
+      window.stateManager.saveState();
+    }
+    syncEducationLevelUI();
+    renderConfigStudentsList();
+    renderActiveTab();
+    window.vibrate(20);
+    const isMiddle = (newLevel === 'middle');
+    showMobileToast(isMiddle ? '🏫 Ortaokul modu seçildi (Şubeler aktif)' : '🎒 İlkokul modu seçildi (Şube özelliği kaldırıldı)');
+  };
+
   // DOM Yüklendiğinde Başlat
   document.addEventListener('DOMContentLoaded', () => {
     initApp();
@@ -49,6 +151,14 @@
     // Lucide ikonlarını güvenle render et
     if (window.lucide) {
       window.lucide.createIcons();
+    }
+
+    // Kademe arayüzünü senkronize et (İlkokul / Ortaokul)
+    syncEducationLevelUI();
+
+    // Haftayı otomatik kontrol et (Pazartesi otomatik geçiş tetiklemesi)
+    if (window.stateManager && typeof window.stateManager.getSelectedWeek === 'function') {
+      window.stateManager.getSelectedWeek();
     }
 
     // Alt Navigasyon Butonlarını Dinle
@@ -142,6 +252,31 @@
 
     // İlk Ekranı Çiz
     switchTab(currentTab);
+
+    // Dışarı tıklandığında yüzen menüleri kapat
+    document.addEventListener('click', (e) => {
+      const booksFab = document.getElementById('m-books-fab-container');
+      const booksToggle = e.target.closest('[onclick*="toggleBooksFabMenu"]');
+      if (booksFab && !booksFab.contains(e.target) && !booksToggle) {
+        const menu = document.getElementById('m-books-fab-menu');
+        const btn = document.getElementById('m-books-fab-btn');
+        if (menu && menu.classList.contains('show')) {
+          menu.classList.remove('show');
+          if (btn) btn.classList.remove('active');
+        }
+      }
+
+      const cfgFab = document.getElementById('m-config-fab-container');
+      const cfgToggle = e.target.closest('[onclick*="toggleConfigFabMenu"]');
+      if (cfgFab && !cfgFab.contains(e.target) && !cfgToggle) {
+        const menu = document.getElementById('m-config-fab-menu');
+        const btn = document.getElementById('m-config-fab-btn');
+        if (menu && menu.classList.contains('show')) {
+          menu.classList.remove('show');
+          if (btn) btn.classList.remove('active');
+        }
+      }
+    });
   }
 
   // ==========================================================================
@@ -149,6 +284,28 @@
   // ==========================================================================
   function switchTab(tabId) {
     currentTab = tabId;
+
+    // Aktif olan tüm alt ekranları (subviews), modalları ve çekmeceleri kapat
+    if (typeof activeMobileSubview !== 'undefined') {
+      activeMobileSubview = null;
+    }
+    document.querySelectorAll('.mobile-subview').forEach(v => v.classList.remove('active'));
+    if (typeof window.closeBottomSheet === 'function') {
+      window.closeBottomSheet();
+    }
+    if (typeof window.closeConfigDrawer === 'function') {
+      window.closeConfigDrawer();
+    }
+    if (typeof window.backToGamesLanding === 'function') {
+      window.backToGamesLanding();
+    }
+    document.querySelectorAll('.bottom-sheet').forEach(s => s.classList.remove('active'));
+    const backdrop = document.getElementById('sheet-backdrop');
+    if (backdrop) backdrop.classList.remove('active');
+    const fabMenu = document.getElementById('m-books-fab-menu');
+    const fabBtn = document.getElementById('m-books-fab-btn');
+    if (fabMenu) fabMenu.classList.remove('show');
+    if (fabBtn) fabBtn.classList.remove('active');
 
     if (tabId === 'homework') {
       // Ödev menüsüne her girişte içinde bulunulan günün listesi açılacak
@@ -304,7 +461,7 @@
         </div>
         <div class="student-card-info">
           <div class="student-card-name">${escapeHTML(st.name)} ${escapeHTML(st.surname || '')}</div>
-          <div class="student-card-no">No: ${escapeHTML(st.number || '-')} ${st.branch ? '• ' + escapeHTML(st.branch) : ''}</div>
+          <div class="student-card-no">${formatStudentSubtitle(st)}</div>
         </div>
         <div class="student-card-score" id="score-badge-${st.id}">${score >= 0 ? '+' : ''}${score}</div>
       `;
@@ -346,7 +503,7 @@
     window.vibrate(45);
 
     // Rozet skorunu hemen güncelle
-    const updatedStudent = window.stateManager.getStudentById(selectedStudentForPoints.id);
+    const updatedStudent = getStudentByIdSafe(selectedStudentForPoints.id);
     const newTotal = (updatedStudent && updatedStudent.scores && updatedStudent.scores.total) || 0;
 
     const badge = document.getElementById(`score-badge-${selectedStudentForPoints.id}`);
@@ -457,7 +614,7 @@
         ${st.photo ? `<img src="${st.photo}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">` : escapeHTML(st.name.charAt(0).toUpperCase())}
       </div>
       <div class="hw-walk-name">${escapeHTML(st.name)} ${escapeHTML(st.surname || '')}</div>
-      <div class="hw-walk-no">No: ${escapeHTML(st.number || '-')} ${st.branch ? '• ' + escapeHTML(st.branch) : ''}</div>
+      <div class="hw-walk-no">${formatStudentSubtitle(st)}</div>
 
       <div style="margin-bottom: 1.25rem;">
         <span style="font-size: 0.78rem; font-weight: 700; color: ${statusColor}; background: var(--m-surface-subtle); padding: 4px 12px; border-radius: var(--m-radius-full); border: 1px solid var(--m-border);">
@@ -498,7 +655,7 @@
     }
     window.vibrate(35);
 
-    const st = window.stateManager.getStudentById(studentId);
+    const st = getStudentByIdSafe(studentId);
     const statusText = normStatus === 'completed' ? 'Yaptı (+)' : normStatus === 'incomplete' ? 'Yarım (/)' : 'Yapmadı (-)';
     showMobileToast(`${st ? st.name : 'Öğrenci'}: ${statusText}`);
 
@@ -576,7 +733,7 @@
               ${escapeHTML(st.name)} ${escapeHTML(st.surname || '')}
             </div>
             <div style="font-size: 0.72rem; color: var(--m-text-muted);">
-              No: ${escapeHTML(st.number || '-')} ${st.branch ? '• ' + escapeHTML(st.branch) : ''}
+              ${formatStudentSubtitle(st)}
             </div>
           </div>
         </div>
@@ -632,7 +789,7 @@
     }
     window.vibrate(30);
 
-    const st = window.stateManager.getStudentById(studentId);
+    const st = getStudentByIdSafe(studentId);
     const statusText = targetStatus === 'completed' ? 'Tam (+)' : targetStatus === 'incomplete' ? 'Yarım (/)' : targetStatus === 'missing' ? 'Yapılmadı (-)' : 'Temizlendi';
     showMobileToast(`${st ? st.name : 'Öğrenci'}: ${statusText}`);
 
@@ -651,76 +808,1121 @@
   };
 
   // ==========================================================================
-  // 3. MODÜL: CEP KİTAPLIĞI
+  // 3. MODÜL: CEP KİTAPLIĞI (İKİ SEKME: ŞU AN OKUNANLAR & ÖĞRENCİ KİTAPLIĞI)
   // ==========================================================================
+  let currentBooksSubTab = 'reading'; // 'reading' | 'library' | 'catalog'
+  let selectedBooksStudentId = null;
+  let catalogSearchTerm = '';
+  let catalogFolderFilter = 'all';
+
+  window.toggleBooksFabMenu = () => {
+    window.vibrate(15);
+    const menu = document.getElementById('m-books-fab-menu');
+    const btn = document.getElementById('m-books-fab-btn');
+    if (!menu) return;
+    const isShowing = menu.classList.toggle('show');
+    if (btn) {
+      btn.classList.toggle('active', isShowing);
+    }
+  };
+
+  window.switchBooksSubTab = (subTab) => {
+    currentBooksSubTab = subTab;
+    window.vibrate(20);
+
+    const menu = document.getElementById('m-books-fab-menu');
+    const fabBtn = document.getElementById('m-books-fab-btn');
+    if (menu) menu.classList.remove('show');
+    if (fabBtn) fabBtn.classList.remove('active');
+
+    const btnReading = document.getElementById('btn-books-subtab-reading');
+    const btnLibrary = document.getElementById('btn-books-subtab-library');
+    const btnCatalog = document.getElementById('btn-books-subtab-catalog');
+    const paneReading = document.getElementById('books-pane-reading');
+    const paneLibrary = document.getElementById('books-pane-library');
+    const paneCatalog = document.getElementById('books-pane-catalog');
+
+    if (btnReading) btnReading.classList.toggle('active', subTab === 'reading');
+    if (btnLibrary) btnLibrary.classList.toggle('active', subTab === 'library');
+    if (btnCatalog) btnCatalog.classList.toggle('active', subTab === 'catalog');
+    if (paneReading) paneReading.style.display = (subTab === 'reading') ? 'block' : 'none';
+    if (paneLibrary) paneLibrary.style.display = (subTab === 'library') ? 'block' : 'none';
+    if (paneCatalog) paneCatalog.style.display = (subTab === 'catalog') ? 'block' : 'none';
+
+    // FAB menu active indicators
+    const fabReading = document.getElementById('fab-item-reading');
+    const fabLibrary = document.getElementById('fab-item-library');
+    const fabCatalog = document.getElementById('fab-item-catalog');
+    if (fabReading) fabReading.classList.toggle('active', subTab === 'reading');
+    if (fabLibrary) fabLibrary.classList.toggle('active', subTab === 'library');
+    if (fabCatalog) fabCatalog.classList.toggle('active', subTab === 'catalog');
+
+    // Header title & subtitle
+    const activeTitle = document.getElementById('m-books-active-title');
+    const activeSub = document.getElementById('m-books-active-subtitle');
+    if (activeTitle && activeSub) {
+      if (subTab === 'reading') {
+        activeTitle.innerHTML = '📖 Şu An Okunanlar';
+        activeSub.textContent = 'Ödünçteki kitaplar ve teslim durumları';
+      } else if (subTab === 'library') {
+        activeTitle.innerHTML = '👤 Öğrenci Kitaplığı';
+        activeSub.textContent = 'Öğrencinin okuduğu kitaplar ve okuma istatistikleri';
+      } else if (subTab === 'catalog') {
+        activeTitle.innerHTML = '📚 Kütüphane Kitaplığı';
+        activeSub.textContent = 'Kitap listesi, soru havuzu ve detaylar';
+      }
+    }
+
+    renderBooksTab();
+  };
+
   function renderBooksTab() {
-    const container = document.getElementById('m-books-list');
+    if (currentBooksSubTab === 'reading') {
+      renderBooksReadingPane();
+    } else if (currentBooksSubTab === 'library') {
+      renderBooksLibraryPane();
+    } else if (currentBooksSubTab === 'catalog') {
+      renderBooksCatalogPane();
+    }
+    if (window.lucide) window.lucide.createIcons();
+  }
+
+  // 1. SEKME: ŞU AN OKUNANLAR (ÖĞRENCİ BAZLI GRUPLAMA & ÇOKLU KİTAP İÇİN ÜST ÜSTE OTURMUŞ KARTLAR)
+  function renderBooksReadingPane() {
+    const container = document.getElementById('m-books-reading-list');
+    const badge = document.getElementById('books-reading-count-badge');
     if (!container) return;
 
     container.innerHTML = '';
-    const books = window.stateManager ? window.stateManager.getBooks() : [];
-    const activeReadings = [];
+    if (!window.stateManager) return;
 
-    // Halen okunmakta olan kitapları derle
-    books.forEach(bk => {
-      if (bk.borrowedBy && bk.borrowedBy.studentId) {
-        const student = window.stateManager.getStudentById(bk.borrowedBy.studentId);
-        if (student) {
-          activeReadings.push({
-            book: bk,
-            student: student,
-            borrowDate: bk.borrowedBy.date || '',
-            isOverdue: isBookOverdue(bk.borrowedBy.date)
-          });
-        }
+    const books = window.stateManager.getBooks ? window.stateManager.getBooks() : (window.stateManager.state.books ? window.stateManager.state.books.library || [] : []);
+    const transactions = window.stateManager.getBookTransactions ? window.stateManager.getBookTransactions() : (window.stateManager.state.books ? window.stateManager.state.books.transactions || [] : []);
+    const bookSettings = (typeof window.stateManager.getBookSettings === 'function') ? window.stateManager.getBookSettings() : {};
+
+    // Sadece şu an okunanlar (status === 'reading')
+    const activeTx = transactions.filter(t => t.status === 'reading');
+    
+    // Öğrenci bazında grupla
+    const studentGroups = new Map();
+    activeTx.forEach(t => {
+      const student = getStudentByIdSafe(t.studentId);
+      const book = books.find(b => b.id === t.bookId);
+      if (!student || !book) return;
+
+      const bDateStr = (t.borrowDate || '').split('T')[0];
+      const todayStr = getTodayDateStr();
+      const bParts = bDateStr ? bDateStr.split('-').map(Number) : [2026, 1, 1];
+      const tParts = todayStr.split('-').map(Number);
+      const dBorrow = new Date(bParts[0], bParts[1] - 1, bParts[2]);
+      const dToday = new Date(tParts[0], tParts[1] - 1, tParts[2]);
+      const diffDays = Math.max(0, Math.round((dToday - dBorrow) / (1000 * 60 * 60 * 24)));
+
+      const isLevel2 = (book.level === 'seviye_2');
+      const lvlSettings = isLevel2 ? (bookSettings.level2 || {}) : (bookSettings.level1 || {});
+      const limitDays = parseInt(lvlSettings.readingLimitDays || lvlSettings.limitDays) || (isLevel2 ? 7 : (bookSettings.limitDays || 4));
+
+      const overdueDays = diffDays - limitDays;
+      const isOverdue = overdueDays > 0;
+
+      const item = {
+        transaction: t,
+        student,
+        book,
+        diffDays,
+        limitDays,
+        overdueDays,
+        isOverdue
+      };
+
+      if (!studentGroups.has(t.studentId)) {
+        studentGroups.set(t.studentId, {
+          student,
+          items: []
+        });
       }
+      studentGroups.get(t.studentId).items.push(item);
     });
 
-    if (activeReadings.length === 0) {
+    const studentEntries = Array.from(studentGroups.values());
+
+    // Sıralama: En çok gecikmesi olan öğrenciler en üstte
+    studentEntries.forEach(entry => {
+      entry.items.sort((a, b) => b.overdueDays - a.overdueDays);
+      entry.maxOverdue = Math.max(...entry.items.map(it => it.overdueDays));
+      entry.hasOverdue = entry.items.some(it => it.isOverdue);
+    });
+
+    studentEntries.sort((a, b) => {
+      if (b.maxOverdue !== a.maxOverdue) {
+        return b.maxOverdue - a.maxOverdue;
+      }
+      return b.items.length - a.items.length;
+    });
+
+    const totalActiveBooks = activeTx.length;
+    const totalOverdueBooks = studentEntries.reduce((acc, entry) => acc + entry.items.filter(it => it.isOverdue).length, 0);
+
+    if (badge) {
+      badge.textContent = `${totalActiveBooks} Kitap (${studentEntries.length} Öğrenci)${totalOverdueBooks > 0 ? ` • ${totalOverdueBooks} Gecikmeli` : ''}`;
+      badge.style.color = totalOverdueBooks > 0 ? 'var(--m-danger)' : 'var(--m-text-muted)';
+    }
+
+    if (studentEntries.length === 0) {
       container.innerHTML = `
-        <div style="text-align: center; padding: 3rem 1rem; color: var(--m-text-muted);">
+        <div style="text-align: center; padding: 2.5rem 1rem; color: var(--m-text-muted);">
           <i data-lucide="book-check" style="width: 44px; height: 44px; margin-bottom: 0.5rem; opacity: 0.5;"></i>
           <p style="font-weight: 700;">Şu anda ödünçte kitap yok.</p>
-          <p style="font-size: 0.8rem; margin-top: 0.25rem;">Tüm kitaplar kütüphanede teslim edilmiş durumda.</p>
+          <p style="font-size: 0.8rem; margin-top: 0.25rem;">Yukarıdaki <strong>+ Kitap Ekle</strong> ve <strong>+ Kitap Ver</strong> butonları ile kitap dağıtabilirsiniz.</p>
         </div>
       `;
       return;
     }
 
-    activeReadings.forEach(item => {
+    studentEntries.forEach(entry => {
+      const student = entry.student;
+      const items = entry.items;
+      const isMulti = items.length > 1;
+      const hasOverdue = entry.hasOverdue;
+
       const card = document.createElement('div');
-      card.className = 'book-reading-card';
-      card.innerHTML = `
-        <div class="book-info-col">
-          <div class="book-student-name">${escapeHTML(item.student.name)} ${escapeHTML(item.student.surname || '')}</div>
-          <div class="book-title-text">${escapeHTML(item.book.title)}</div>
-          <div class="book-due-badge ${item.isOverdue ? 'overdue' : 'ok'}">
-            <i data-lucide="${item.isOverdue ? 'alert-circle' : 'clock'}" style="width: 12px; height: 12px;"></i>
-            ${item.isOverdue ? 'Süresi Gecikti!' : 'Okuma Devam Ediyor'}
+      card.className = `book-reading-card ${isMulti ? 'is-multi-book' : ''} ${hasOverdue ? 'is-overdue' : 'is-ontime'}`;
+      card.onclick = () => window.openManageStudentBooksModal(student.id);
+
+      const avatarColor = getAvatarColor(student.id || student.name);
+
+      let delayHtml = '';
+      if (isMulti) {
+        const overdueCount = items.filter(it => it.isOverdue).length;
+        if (overdueCount > 0) {
+          delayHtml = `<span class="book-delay-badge overdue">⚠️ ${overdueCount} kitap makul süreyi aştı</span>`;
+        } else {
+          delayHtml = `<span class="book-delay-badge ontime">✓ ${items.length} kitap da süresinde</span>`;
+        }
+      } else {
+        const item = items[0];
+        if (item.isOverdue) {
+          delayHtml = `<span class="book-delay-badge overdue">⚠️ ${item.overdueDays} gün gecikti (Makul: ${item.limitDays} gün)</span>`;
+        } else if (item.diffDays === item.limitDays) {
+          delayHtml = `<span class="book-delay-badge ontime" style="background: var(--m-warning-light); color: var(--m-warning);">⏳ Son gün (${item.diffDays}/${item.limitDays} gün)</span>`;
+        } else {
+          const remaining = item.limitDays - item.diffDays;
+          delayHtml = `<span class="book-delay-badge ontime">✓ Süresinde (${remaining} gün kaldı)</span>`;
+        }
+      }
+
+      let booksListHtml = '';
+      if (isMulti) {
+        booksListHtml = `
+          <div style="margin: 4px 0 6px 0; display: flex; flex-direction: column; gap: 3px;">
+            ${items.map((it, idx) => `
+              <div style="font-size: 0.82rem; font-weight: 700; color: var(--m-primary); display: flex; align-items: center; justify-content: space-between; gap: 6px;">
+                <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">📖 ${idx + 1}. ${escapeHTML(it.book.title)}</span>
+                ${it.isOverdue ? `<span style="font-size: 0.68rem; color: var(--m-danger); font-weight: 800; flex-shrink: 0;">+${it.overdueDays} gün</span>` : `<span style="font-size: 0.68rem; color: var(--m-success); font-weight: 700; flex-shrink: 0;">(Süresinde)</span>`}
+              </div>
+            `).join('')}
           </div>
+        `;
+      } else {
+        const item = items[0];
+        booksListHtml = `
+          <div class="book-title-text">${escapeHTML(item.book.title)}</div>
+          <div class="book-meta-sub">
+            <span>Veriliş: ${item.diffDays} gün önce</span> • <span>${item.book.pages ? item.book.pages + ' sayfa' : 'Sayfa belirtilmemiş'}</span>
+          </div>
+        `;
+      }
+
+      card.innerHTML = `
+        <div style="width: 44px; height: 44px; border-radius: 50%; background: ${avatarColor}; color: #fff; font-weight: 800; font-size: 0.9rem; display: flex; align-items: center; justify-content: center; flex-shrink: 0; position: relative;">
+          ${student.photo ? `<img src="${student.photo}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">` : escapeHTML(student.name.charAt(0).toUpperCase())}
+          ${isMulti ? `<div style="position: absolute; bottom: -4px; right: -4px; background: var(--m-primary); color: white; border-radius: 50%; width: 18px; height: 18px; font-size: 0.68rem; font-weight: 800; display: flex; align-items: center; justify-content: center; border: 1.5px solid var(--m-surface);">${items.length}</div>` : ''}
         </div>
-        <button class="btn-book-action" onclick="window.returnBookMobile('${item.book.id}', '${item.student.id}')">
-          <i data-lucide="check-circle" style="width: 14px; height: 14px;"></i> Teslim Al
-        </button>
+        <div class="book-info-col">
+          <div class="book-student-name">
+            <span>${escapeHTML(student.name)} ${escapeHTML(student.surname || '')}</span>
+            <span style="font-size: 0.72rem; color: var(--m-text-muted); font-weight: 600;">(No: ${escapeHTML(student.number || '-')})</span>
+            ${isMulti ? `<span class="multi-book-badge">📚 ${items.length} Kitap</span>` : ''}
+          </div>
+          ${booksListHtml}
+          <div>${delayHtml}</div>
+        </div>
+        <div style="display: flex; flex-direction: column; align-items: flex-end; justify-content: center; gap: 4px; flex-shrink: 0;">
+          <span style="font-size: 0.74rem; color: var(--m-primary); font-weight: 700; display: flex; align-items: center; gap: 2px;">
+            İşlemler <i data-lucide="chevron-right" style="width: 14px; height: 14px;"></i>
+          </span>
+        </div>
       `;
       container.appendChild(card);
     });
   }
 
-  window.returnBookMobile = (bookId, studentId) => {
+  // 2. SEKME: ÖĞRENCİ KİTAPLIĞI
+  function renderBooksLibraryPane() {
+    const select = document.getElementById('m-books-student-select');
+    const statsContainer = document.getElementById('m-books-student-stats');
+    const historyList = document.getElementById('m-books-student-history');
+    const countBadge = document.getElementById('m-books-history-count');
+    if (!select || !statsContainer || !historyList) return;
+
     if (!window.stateManager) return;
-    window.stateManager.returnBook(bookId);
-    window.vibrate(40);
-    showMobileToast('Kitap teslim alındı ve okuma puanı işlendi!');
+    const students = getFilteredStudents();
+
+    if (students.length === 0) {
+      statsContainer.innerHTML = '<p style="color: var(--m-text-muted); padding: 1rem;">Öğrenci bulunamadı.</p>';
+      historyList.innerHTML = '';
+      return;
+    }
+
+    // Seçili öğrenci yoksa ilk öğrenciyi seç
+    if (!selectedBooksStudentId || !students.some(s => String(s.id) === String(selectedBooksStudentId))) {
+      selectedBooksStudentId = students[0].id;
+    }
+
+    // Select kutusunu güncelle
+    select.innerHTML = students.map(s => `
+      <option value="${s.id}" ${String(s.id) === String(selectedBooksStudentId) ? 'selected' : ''}>
+        ${escapeHTML(s.name)} ${escapeHTML(s.surname || '')} (${s.number || '-'})${isMiddleSchool() && s.branch ? ' • ' + s.branch : ''}
+      </option>
+    `).join('');
+
+    const books = window.stateManager.getBooks ? window.stateManager.getBooks() : (window.stateManager.state.books ? window.stateManager.state.books.library || [] : []);
+    const transactions = window.stateManager.getBookTransactions ? window.stateManager.getBookTransactions() : (window.stateManager.state.books ? window.stateManager.state.books.transactions || [] : []);
+
+    const studentTx = transactions.filter(t => String(t.studentId) === String(selectedBooksStudentId));
+    const completedTx = studentTx.filter(t => t.status === 'returned');
+    const activeTx = studentTx.find(t => t.status === 'reading');
+
+    // Toplam sayfa ve kitap sayısı
+    let totalPages = 0;
+    completedTx.forEach(t => {
+      const book = books.find(b => b.id === t.bookId);
+      if (book && book.pages) {
+        totalPages += parseInt(book.pages) || 0;
+      }
+    });
+
+    const activeBook = activeTx ? books.find(b => b.id === activeTx.bookId) : null;
+
+    statsContainer.innerHTML = `
+      <div class="books-stat-card">
+        <div class="books-stat-num">${completedTx.length}</div>
+        <div class="books-stat-lbl">Okunan Kitap</div>
+      </div>
+      <div class="books-stat-card">
+        <div class="books-stat-num">${totalPages}</div>
+        <div class="books-stat-lbl">Toplam Sayfa</div>
+      </div>
+      <div class="books-stat-card" style="${activeBook ? 'border-color: var(--m-primary);' : ''}">
+        <div class="books-stat-num" style="font-size: 0.85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 4px;">
+          ${activeBook ? escapeHTML(activeBook.title) : 'Yok'}
+        </div>
+        <div class="books-stat-lbl">${activeBook ? 'Şu An Okuyor' : 'Aktif Kitap Yok'}</div>
+      </div>
+    `;
+
+    if (countBadge) {
+      countBadge.textContent = `${completedTx.length} Kitap Teslim Edildi`;
+    }
+
+    if (completedTx.length === 0) {
+      historyList.innerHTML = `
+        <div style="text-align: center; padding: 2rem 1rem; color: var(--m-text-muted);">
+          <i data-lucide="book-open" style="width: 36px; height: 36px; opacity: 0.4; margin-bottom: 0.5rem;"></i>
+          <p style="font-weight: 700;">Bu öğrenci henüz teslim edilmiş bir kitap okumamış.</p>
+        </div>
+      `;
+      return;
+    }
+
+    // Ters kronolojik sıralama (son teslim edilen en üstte)
+    completedTx.sort((a, b) => new Date(b.returnDate || b.borrowDate) - new Date(a.returnDate || a.borrowDate));
+
+    historyList.innerHTML = '';
+    completedTx.forEach(t => {
+      const book = books.find(b => b.id === t.bookId) || { title: 'Bilinmeyen Kitap', pages: 0, author: '-' };
+      const item = document.createElement('div');
+      item.className = 'books-history-item';
+      item.innerHTML = `
+        <div style="flex: 1; min-width: 0;">
+          <div style="font-weight: 800; font-size: 0.9rem; color: var(--m-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+            ${escapeHTML(book.title)}
+          </div>
+          <div style="font-size: 0.72rem; color: var(--m-text-muted); margin-top: 2px;">
+            <span>${escapeHTML(book.author || 'Yazar Belirtilmemiş')}</span> • <span>${book.pages || 0} Sayfa</span>
+          </div>
+          <div style="font-size: 0.7rem; color: var(--m-primary); margin-top: 3px; font-weight: 600;">
+            📅 Teslim: ${t.returnDate || 'Tamamlandı'} (Veriliş: ${t.borrowDate || '-'})
+          </div>
+        </div>
+        <div style="background: var(--m-success-light); color: var(--m-success); padding: 4px 8px; border-radius: var(--m-radius-sm); font-size: 0.75rem; font-weight: 800;">
+          ✓ Okundu
+        </div>
+      `;
+      historyList.appendChild(item);
+    });
+  }
+
+  window.selectBooksStudent = (studentId) => {
+    selectedBooksStudentId = studentId;
+    window.vibrate(15);
+    renderBooksLibraryPane();
+    if (window.lucide) window.lucide.createIcons();
+  };
+
+  // ==========================================================================
+  // YENİ KİTAP EKLE MODALI
+  // ==========================================================================
+  window.openAddBookModal = () => {
+    window.vibrate(15);
+    const titleInput = document.getElementById('m-new-book-title');
+    const authorInput = document.getElementById('m-new-book-author');
+    const pagesInput = document.getElementById('m-new-book-pages');
+    const noInput = document.getElementById('m-new-book-no');
+    const levelSelect = document.getElementById('m-new-book-level');
+
+    if (titleInput) titleInput.value = '';
+    if (authorInput) authorInput.value = '';
+    if (pagesInput) pagesInput.value = '';
+    if (noInput) noInput.value = '';
+    if (levelSelect) levelSelect.value = 'seviye_1';
+
+    window.openBottomSheet('modal-add-book');
+    setTimeout(() => {
+      if (titleInput) titleInput.focus();
+    }, 250);
+  };
+
+  window.saveNewBook = () => {
+    const titleInput = document.getElementById('m-new-book-title');
+    const authorInput = document.getElementById('m-new-book-author');
+    const pagesInput = document.getElementById('m-new-book-pages');
+    const noInput = document.getElementById('m-new-book-no');
+    const levelSelect = document.getElementById('m-new-book-level');
+
+    const title = titleInput ? titleInput.value.trim() : '';
+    if (!title) {
+      showMobileToast('Lütfen kitap adını girin');
+      if (titleInput) titleInput.focus();
+      return;
+    }
+
+    const author = (authorInput && authorInput.value.trim()) ? authorInput.value.trim() : 'Bilinmiyor';
+    const pages = pagesInput ? (parseInt(pagesInput.value) || 0) : 0;
+    const bookNo = noInput ? noInput.value.trim() : '';
+    const level = levelSelect ? levelSelect.value : 'seviye_1';
+
+    if (!window.stateManager) {
+      showMobileToast('Veri motoru yüklenemedi');
+      return;
+    }
+
+    let added = null;
+    if (typeof window.stateManager.addBook === 'function') {
+      added = window.stateManager.addBook({
+        title,
+        author,
+        pages,
+        bookNo,
+        level
+      });
+      if (!added) return; // Demo limit hit or error
+    } else {
+      if (!window.stateManager.state.books) window.stateManager.state.books = { library: [], transactions: [] };
+      if (!window.stateManager.state.books.library) window.stateManager.state.books.library = [];
+
+      added = {
+        id: 'book_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+        title,
+        author,
+        pages,
+        bookNo,
+        level,
+        createdAt: new Date().toISOString()
+      };
+      window.stateManager.state.books.library.push(added);
+      window.stateManager.saveState();
+    }
+
+    window.vibrate(30);
+    playSynthChime('correct');
+    showMobileToast(`✅ "${title}" kütüphaneye eklendi!`);
+    window.closeBottomSheet();
+
+    // Paneli güncelle
     renderBooksTab();
   };
 
-  function isBookOverdue(borrowDateStr) {
-    if (!borrowDateStr) return false;
-    const bDate = new Date(borrowDateStr);
-    const diffDays = Math.floor((Date.now() - bDate.getTime()) / (1000 * 60 * 60 * 24));
-    return diffDays > 14; // 14 günden fazla ise gecikmiş
+  // ==========================================================================
+  // KİTAP VER MODALI
+  // ==========================================================================
+  window.openGiveBookModal = (preselectedStudentId = null) => {
+    if (!window.stateManager) return;
+    const students = getFilteredStudents();
+    const books = window.stateManager.getBooks ? window.stateManager.getBooks() : (window.stateManager.state.books ? window.stateManager.state.books.library || [] : []);
+    const transactions = window.stateManager.getBookTransactions ? window.stateManager.getBookTransactions() : (window.stateManager.state.books ? window.stateManager.state.books.transactions || [] : []);
+
+    // Şu an başkasında olan kitapların ID'leri
+    const currentlyReadingBookIds = new Set(
+      transactions.filter(t => t.status === 'reading').map(t => t.bookId)
+    );
+
+    // Kütüphanede müsait olan kitaplar
+    const availableBooks = books.filter(b => !currentlyReadingBookIds.has(b.id));
+
+    const stSelect = document.getElementById('m-give-book-student');
+    const bkSelect = document.getElementById('m-give-book-book');
+    const dateInput = document.getElementById('m-give-book-date');
+
+    if (stSelect) {
+      stSelect.innerHTML = students.map(s => `
+        <option value="${s.id}" ${s.id === preselectedStudentId ? 'selected' : ''}>
+          ${escapeHTML(s.name)} ${escapeHTML(s.surname || '')} (${s.number || '-'})${isMiddleSchool() && s.branch ? ' • ' + s.branch : ''}
+        </option>
+      `).join('');
+    }
+
+    if (bkSelect) {
+      if (availableBooks.length === 0) {
+        bkSelect.innerHTML = '<option value="">(Kütüphanede müsait kitap yok)</option>';
+      } else {
+        bkSelect.innerHTML = availableBooks.map(b => `
+          <option value="${b.id}">
+            ${escapeHTML(b.title)} - ${escapeHTML(b.author || '')} (${b.pages || 0} Sayfa)
+          </option>
+        `).join('');
+      }
+    }
+
+    if (dateInput) {
+      dateInput.value = getTodayDateStr();
+    }
+
+    openBottomSheet('modal-give-book');
+  };
+
+  window.submitGiveBook = () => {
+    const stSelect = document.getElementById('m-give-book-student');
+    const bkSelect = document.getElementById('m-give-book-book');
+    const dateInput = document.getElementById('m-give-book-date');
+
+    if (!stSelect || !bkSelect) return;
+    const studentId = stSelect.value;
+    const bookId = bkSelect.value;
+    const borrowDate = dateInput ? (dateInput.value || getTodayDateStr()) : getTodayDateStr();
+
+    if (!studentId) {
+      showMobileToast('❌ Lütfen bir öğrenci seçin');
+      return;
+    }
+    if (!bookId) {
+      showMobileToast('❌ Lütfen verilecek bir kitap seçin');
+      return;
+    }
+
+    const res = window.stateManager.borrowBook(studentId, bookId, borrowDate);
+    if (res && res.success) {
+      window.vibrate(35);
+      const student = getStudentByIdSafe(studentId);
+      const books = window.stateManager.getBooks ? window.stateManager.getBooks() : (window.stateManager.state.books ? window.stateManager.state.books.library || [] : []);
+      const book = books.find(b => b.id === bookId);
+      showMobileToast(`📖 "${book ? book.title : 'Kitap'}" ${student ? student.name : 'öğrenciye'} verildi!`);
+      closeBottomSheet();
+      renderBooksTab();
+    } else {
+      showMobileToast(res ? res.message : '❌ Kitap verilemedi');
+    }
+  };
+
+  // ==========================================================================
+  // KİTAP YÖNETİM & TESLİM ALMA & ÖNERİ MODALI (ÇOKLU KİTAP DESTEĞİ)
+  // ==========================================================================
+  window.openManageStudentBooksModal = (studentId) => {
+    if (!window.stateManager) return;
+    const transactions = window.stateManager.getBookTransactions ? window.stateManager.getBookTransactions() : (window.stateManager.state.books ? window.stateManager.state.books.transactions || [] : []);
+    const books = window.stateManager.getBooks ? window.stateManager.getBooks() : (window.stateManager.state.books ? window.stateManager.state.books.library || [] : []);
+    const bookSettings = (typeof window.stateManager.getBookSettings === 'function') ? window.stateManager.getBookSettings() : {};
+    const student = getStudentByIdSafe(studentId);
+    if (!student) return;
+
+    // Bu öğrencinin şu anda okuduğu tüm kitapları bul
+    const activeStudentTx = transactions.filter(t => t.studentId === studentId && t.status === 'reading');
+
+    if (activeStudentTx.length === 0) {
+      showMobileToast('Bu öğrencinin şu anda okuduğu kitap kalmadı.');
+      window.closeBottomSheet();
+      renderBooksTab();
+      return;
+    }
+
+    const items = [];
+    activeStudentTx.forEach(t => {
+      const book = books.find(b => b.id === t.bookId);
+      if (!book) return;
+
+      const bDateStr = (t.borrowDate || '').split('T')[0];
+      const todayStr = getTodayDateStr();
+      const bParts = bDateStr ? bDateStr.split('-').map(Number) : [2026, 1, 1];
+      const tParts = todayStr.split('-').map(Number);
+      const dBorrow = new Date(bParts[0], bParts[1] - 1, bParts[2]);
+      const dToday = new Date(tParts[0], tParts[1] - 1, tParts[2]);
+      const diffDays = Math.max(0, Math.round((dToday - dBorrow) / (1000 * 60 * 60 * 24)));
+
+      const isLevel2 = (book.level === 'seviye_2');
+      const lvlSettings = isLevel2 ? (bookSettings.level2 || {}) : (bookSettings.level1 || {});
+      const limitDays = parseInt(lvlSettings.readingLimitDays || lvlSettings.limitDays) || (isLevel2 ? 7 : 4);
+      const overdueDays = diffDays - limitDays;
+      const isOverdue = overdueDays > 0;
+
+      items.push({
+        transaction: t,
+        book,
+        diffDays,
+        limitDays,
+        overdueDays,
+        isOverdue
+      });
+    });
+
+    const titleEl = document.getElementById('m-manage-book-header-title');
+    const bodyEl = document.getElementById('m-manage-book-body');
+    if (titleEl) {
+      titleEl.innerHTML = `👤 ${escapeHTML(student.name)} ${escapeHTML(student.surname || '')} <span style="font-size: 0.78rem; font-weight: 600; color: var(--m-text-muted);">(${items.length} Kitap)</span>`;
+    }
+
+    if (!bodyEl) return;
+
+    bodyEl.innerHTML = `
+      <div style="font-size: 0.8rem; color: var(--m-text-muted); margin-bottom: 0.85rem; line-height: 1.45;">
+        ${items.length > 1 ? `Öğrencinin okumakta olduğu <strong>${items.length} kitap</strong> aşağıdadır. Dilediğiniz kitabı tek tek teslim alabilirsiniz:` : 'Öğrencinin okumakta olduğu kitap:'}
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 1.25rem;">
+        ${items.map(it => `
+          <div class="multi-book-item-card ${it.isOverdue ? 'is-overdue' : 'is-ontime'}">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 8px;">
+              <div style="flex: 1; min-width: 0;">
+                <div style="font-weight: 800; font-size: 0.95rem; color: var(--m-primary);">${escapeHTML(it.book.title)}</div>
+                <div style="font-size: 0.76rem; color: var(--m-text-muted); margin-top: 2px;">
+                  ${escapeHTML(it.book.author || 'Yazar Belirtilmemiş')} • ${it.book.pages || 0} Sayfa • <span class="badge" style="background: ${it.book.level === 'seviye_2' ? '#9333ea' : 'var(--m-success)'}; color: white; padding: 1px 6px; border-radius: 8px; font-size: 0.68rem; font-weight: 700;">${it.book.level === 'seviye_2' ? '2. Seviye' : '1. Seviye'}</span>
+                </div>
+                <div style="font-size: 0.74rem; color: var(--m-text-secondary); margin-top: 5px;">
+                  📅 Veriliş: <strong>${it.diffDays} gün önce</strong> (${it.transaction.borrowDate || '-'})
+                </div>
+              </div>
+              <div style="flex-shrink: 0;">
+                ${it.isOverdue ? `<span class="book-delay-badge overdue">⚠️ ${it.overdueDays} gün gecikti</span>` : `<span class="book-delay-badge ontime">✓ Süresinde (${it.limitDays - it.diffDays} gün kaldı)</span>`}
+              </div>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 6px; padding-top: 8px; border-top: 1px dashed var(--m-border);">
+              <span style="font-size: 0.72rem; color: var(--m-text-muted);">Makul okuma süresi: ${it.limitDays} gün</span>
+              <button class="m-btn-sm" style="background: linear-gradient(135deg, var(--m-success), #059669); color: white; border: none; font-weight: 700; padding: 6px 14px; gap: 6px; border-radius: var(--m-radius-sm); box-shadow: 0 2px 6px rgba(16, 185, 129, 0.3);" onclick="window.confirmReturnStudentBook('${it.transaction.id}', '${student.id}')">
+                <i data-lucide="check-circle" style="width: 15px; height: 15px;"></i>
+                <span>İade Al</span>
+              </button>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+
+      <button class="subview-secondary-btn" onclick="window.closeBottomSheet()">
+        Kapat
+      </button>
+    `;
+
+    openBottomSheet('modal-manage-reading-book');
+    if (window.lucide) window.lucide.createIcons();
+  };
+
+  // Geriye dönük uyumluluk için alias
+  window.openManageBookModal = (transactionId) => {
+    if (!window.stateManager) return;
+    const transactions = window.stateManager.getBookTransactions ? window.stateManager.getBookTransactions() : (window.stateManager.state.books ? window.stateManager.state.books.transactions || [] : []);
+    const t = transactions.find(item => item.id === transactionId);
+    if (t) {
+      window.openManageStudentBooksModal(t.studentId);
+    }
+  };
+
+  window.confirmReturnStudentBook = (transactionId, studentId) => {
+    if (!window.stateManager) return;
+    const transactions = window.stateManager.getBookTransactions ? window.stateManager.getBookTransactions() : (window.stateManager.state.books ? window.stateManager.state.books.transactions || [] : []);
+    const t = transactions.find(item => item.id === transactionId);
+    if (!t) return;
+
+    const bookId = t.bookId;
+    const student = getStudentByIdSafe(studentId);
+    const books = window.stateManager.getBooks ? window.stateManager.getBooks() : (window.stateManager.state.books ? window.stateManager.state.books.library || [] : []);
+    const returnedBook = books.find(b => b.id === bookId);
+
+    // İade al
+    window.stateManager.returnBook(transactionId);
+    window.vibrate(35);
+    playSynthChime('correct');
+
+    // Performans puanı ekle
+    if (window.stateManager.addPerformance && student && returnedBook) {
+      const bookSettings = (typeof window.stateManager.getBookSettings === 'function') ? window.stateManager.getBookSettings() : {};
+      const isLevel2 = (returnedBook.level === 'seviye_2');
+      const lvlSettings = isLevel2 ? (bookSettings.level2 || {}) : (bookSettings.level1 || {});
+      const limitDays = parseInt(lvlSettings.readingLimitDays || lvlSettings.limitDays) || (isLevel2 ? 7 : 4);
+
+      const bDate = new Date(t.borrowDate);
+      const diffDays = Math.max(0, Math.round((new Date() - bDate) / (1000 * 60 * 60 * 24)));
+      const isOnTime = diffDays <= limitDays;
+      const points = isOnTime ? (lvlSettings.ontime !== undefined ? lvlSettings.ontime : 10) : (lvlSettings.late !== undefined ? lvlSettings.late : 5);
+
+      window.stateManager.addPerformance(
+        student.id,
+        points >= 0 ? 'positive' : 'development',
+        points,
+        `Kitap Teslim Edildi: ${returnedBook.title}${isOnTime ? ' (Zamanında)' : ' (Gecikmeli)'}`,
+        window.stateManager.getSelectedWeek ? window.stateManager.getSelectedWeek() : '1'
+      );
+    }
+
+    showMobileToast(`✅ "${returnedBook ? returnedBook.title : 'Kitap'}" teslim alındı!`);
+    renderBooksTab();
+
+    // Öğrencinin başka okuduğu kitap var mı kontrol et
+    const updatedTransactions = window.stateManager.getBookTransactions ? window.stateManager.getBookTransactions() : (window.stateManager.state.books ? window.stateManager.state.books.transactions || [] : []);
+    const remainingActive = updatedTransactions.filter(item => item.studentId === studentId && item.status === 'reading');
+
+    if (remainingActive.length > 0) {
+      // Hala okuduğu kitap var: Modalı kalan kitaplarla anında yenile
+      window.openManageStudentBooksModal(studentId);
+    } else {
+      // Tüm kitapları teslim edildi: Yeni kitap önerme ekranına geç
+      renderBookSuggestionsStep(studentId);
+    }
+  };
+
+  // Geriye dönük uyumluluk aliası
+  window.confirmReturnBook = (transactionId) => {
+    if (!window.stateManager) return;
+    const transactions = window.stateManager.getBookTransactions ? window.stateManager.getBookTransactions() : (window.stateManager.state.books ? window.stateManager.state.books.transactions || [] : []);
+    const t = transactions.find(item => item.id === transactionId);
+    if (t) {
+      window.confirmReturnStudentBook(transactionId, t.studentId);
+    }
+  };
+
+  function renderBookSuggestionsStep(studentId) {
+    const bodyEl = document.getElementById('m-manage-book-body');
+    const titleEl = document.getElementById('m-manage-book-header-title');
+    if (!bodyEl) return;
+
+    const student = getStudentByIdSafe(studentId);
+    if (titleEl) titleEl.textContent = `🎉 Yeni Kitap Öner: ${student ? student.name : ''}`;
+
+    const books = window.stateManager.getBooks ? window.stateManager.getBooks() : (window.stateManager.state.books ? window.stateManager.state.books.library || [] : []);
+    const transactions = window.stateManager.getBookTransactions ? window.stateManager.getBookTransactions() : (window.stateManager.state.books ? window.stateManager.state.books.transactions || [] : []);
+
+    // Şu an başkalarında olan kitaplar
+    const currentlyReadingBookIds = new Set(
+      transactions.filter(t => t.status === 'reading').map(t => t.bookId)
+    );
+
+    // Bu öğrencinin daha önce okuduğu kitaplar
+    const alreadyReadBookIds = new Set(
+      transactions.filter(t => String(t.studentId) === String(studentId) && t.status === 'returned').map(t => t.bookId)
+    );
+
+    // Müsait kitaplar (başkasında olmayan)
+    const availableBooks = books.filter(b => !currentlyReadingBookIds.has(b.id));
+
+    // Öncelikli olarak öğrencinin henüz okumadığı kitaplar
+    const unreadAvailable = availableBooks.filter(b => !alreadyReadBookIds.has(b.id));
+    const suggestedBooks = unreadAvailable.length > 0 ? unreadAvailable : availableBooks;
+
+    let suggestionsHtml = '';
+    if (suggestedBooks.length === 0) {
+      suggestionsHtml = `
+        <div style="text-align: center; padding: 1.5rem; color: var(--m-text-muted);">
+          <p>Kütüphanede şu an verilebilecek müsait kitap bulunamadı.</p>
+        </div>
+      `;
+    } else {
+      suggestionsHtml = suggestedBooks.slice(0, 5).map(b => `
+        <div class="books-suggestion-item">
+          <div style="flex: 1; min-width: 0;">
+            <div style="font-weight: 800; font-size: 0.88rem; color: var(--m-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+              ${escapeHTML(b.title)}
+            </div>
+            <div style="font-size: 0.72rem; color: var(--m-text-muted);">
+              ${escapeHTML(b.author || 'Yazar Belirtilmemiş')} • ${b.pages || 0} Sayfa
+            </div>
+          </div>
+          <button class="btn-primary-action" style="padding: 0.4rem 0.75rem; font-size: 0.78rem;" onclick="window.quickAssignSuggestedBook('${studentId}', '${b.id}')">
+            Seç ve Ver
+          </button>
+        </div>
+      `).join('');
+    }
+
+    bodyEl.innerHTML = `
+      <div style="text-align: center; margin-bottom: 1rem;">
+        <div style="width: 48px; height: 48px; border-radius: 50%; background: var(--m-success-light); color: var(--m-success); font-size: 1.5rem; display: flex; align-items: center; justify-content: center; margin: 0 auto 0.5rem auto;">
+          ✓
+        </div>
+        <div style="font-weight: 800; font-size: 1.05rem; color: var(--m-text);">Kitap Başarıyla Teslim Alındı</div>
+        <p style="font-size: 0.8rem; color: var(--m-text-muted); margin-top: 2px;">
+          ${student ? student.name : 'Öğrenci'} için kütüphaneden aktif okuyabileceği kitaplar:
+        </p>
+      </div>
+
+      <div class="books-suggestion-box">
+        <div style="font-size: 0.8rem; font-weight: 800; color: var(--m-primary); margin-bottom: 0.5rem; display: flex; align-items: center; gap: 4px;">
+          <i data-lucide="sparkles" style="width: 14px; height: 14px;"></i> Önerilen Müsait Kitaplar
+        </div>
+        ${suggestionsHtml}
+      </div>
+
+      <button class="subview-secondary-btn" style="margin-top: 1rem;" onclick="window.closeBottomSheet()">
+        Şimdilik Kitap Verme / Kapat
+      </button>
+    `;
+
+    if (window.lucide) window.lucide.createIcons();
   }
+
+  window.quickAssignSuggestedBook = (studentId, bookId) => {
+    if (!window.stateManager) return;
+    const res = window.stateManager.borrowBook(studentId, bookId, getTodayDateStr());
+    if (res && res.success) {
+      window.vibrate(35);
+      const student = getStudentByIdSafe(studentId);
+      const books = window.stateManager.getBooks ? window.stateManager.getBooks() : (window.stateManager.state.books ? window.stateManager.state.books.library || [] : []);
+      const book = books.find(b => b.id === bookId);
+      showMobileToast(`📖 "${book ? book.title : 'Kitap'}" ${student ? student.name : 'öğrenciye'} verildi!`);
+      closeBottomSheet();
+      renderBooksTab();
+    } else {
+      showMobileToast(res ? res.message : '❌ Kitap verilemedi');
+    }
+  };
+
+  // ==========================================================================
+  // 3. ALT SEKME: KİTAPLIK (KLASÖRLER HALİNDE & SORU EKLEME)
+  // ==========================================================================
+  window.filterCatalogBooks = (term) => {
+    catalogSearchTerm = (term || '').trim().toLowerCase();
+    renderBooksCatalogPane();
+  };
+
+  window.filterCatalogFolder = (filter) => {
+    catalogFolderFilter = filter || 'all';
+    window.vibrate(15);
+    renderBooksCatalogPane();
+  };
+
+  function renderBooksCatalogPane() {
+    const container = document.getElementById('m-catalog-folders-container');
+    const countText = document.getElementById('m-catalog-count-text');
+    if (!container) return;
+
+    container.innerHTML = '';
+    if (!window.stateManager) return;
+
+    const allBooks = window.stateManager.getBooks ? window.stateManager.getBooks() : (window.stateManager.state.books ? window.stateManager.state.books.library || [] : []);
+    const transactions = window.stateManager.getBookTransactions ? window.stateManager.getBookTransactions() : (window.stateManager.state.books ? window.stateManager.state.books.transactions || [] : []);
+
+    // Aktif okunan kitapların bilgisi (bookId -> readerName)
+    const readingMap = {};
+    transactions.filter(t => t.status === 'reading').forEach(t => {
+      const student = getStudentByIdSafe(t.studentId);
+      readingMap[t.bookId] = student ? `${student.name} ${student.surname || ''}`.trim() : 'Öğrenci';
+    });
+
+    // Filtreleme
+    const filtered = allBooks.filter(b => {
+      const isReading = !!readingMap[b.id];
+      const level = b.level || 'seviye_1';
+
+      if (catalogSearchTerm) {
+        const titleMatch = (b.title || '').toLowerCase().includes(catalogSearchTerm);
+        const authorMatch = (b.author || '').toLowerCase().includes(catalogSearchTerm);
+        const noMatch = (b.bookNo || '').toLowerCase().includes(catalogSearchTerm);
+        if (!titleMatch && !authorMatch && !noMatch) return false;
+      }
+
+      if (catalogFolderFilter === 'seviye_1' && level !== 'seviye_1') return false;
+      if (catalogFolderFilter === 'seviye_2' && level !== 'seviye_2') return false;
+      if (catalogFolderFilter === 'reading' && !isReading) return false;
+      if (catalogFolderFilter === 'available' && isReading) return false;
+
+      return true;
+    });
+
+    const totalReadingCount = Object.keys(readingMap).length;
+    if (countText) {
+      countText.textContent = `${filtered.length} Kitap (${totalReadingCount} Öğrencide)`;
+    }
+
+    if (filtered.length === 0) {
+      container.innerHTML = `
+        <div style="text-align: center; padding: 2.5rem 1rem; color: var(--m-text-muted);">
+          <i data-lucide="book-x" style="width: 40px; height: 40px; opacity: 0.4; margin-bottom: 0.5rem;"></i>
+          <p style="font-weight: 700;">Aramanıza uygun kitap bulunamadı.</p>
+        </div>
+      `;
+      if (window.lucide) window.lucide.createIcons();
+      return;
+    }
+
+    // Klasörlere Ayırma
+    const folderGroups = [
+      {
+        id: 'folder-level-1',
+        title: '📁 1. Seviye Kitaplar (Kolay / Başlangıç)',
+        books: filtered.filter(b => (b.level || 'seviye_1') === 'seviye_1')
+      },
+      {
+        id: 'folder-level-2',
+        title: '📁 2. Seviye Kitaplar (İleri Seviye)',
+        books: filtered.filter(b => b.level === 'seviye_2')
+      },
+      {
+        id: 'folder-other',
+        title: '📁 Genel / Diğer Kitaplar',
+        books: filtered.filter(b => b.level && b.level !== 'seviye_1' && b.level !== 'seviye_2')
+      }
+    ].filter(f => f.books.length > 0);
+
+    folderGroups.forEach((folder) => {
+      const folderCard = document.createElement('div');
+      folderCard.className = 'catalog-folder-card';
+
+      const folderHeader = document.createElement('div');
+      folderHeader.className = 'catalog-folder-header';
+      folderHeader.innerHTML = `
+        <div class="catalog-folder-title">
+          <span>${folder.title}</span>
+          <span class="catalog-folder-badge">${folder.books.length} Kitap</span>
+        </div>
+        <i data-lucide="chevron-down" style="width: 18px; height: 18px; color: var(--m-text-muted); transition: transform 0.2s;" id="chevron-${folder.id}"></i>
+      `;
+
+      const folderContent = document.createElement('div');
+      folderContent.className = 'catalog-books-list';
+      folderContent.id = `content-${folder.id}`;
+
+      folder.books.forEach(b => {
+        const isReading = !!readingMap[b.id];
+        const readerName = readingMap[b.id] || '';
+        const qCount = Array.isArray(b.questions) ? b.questions.length : 0;
+
+        const card = document.createElement('div');
+        card.className = `catalog-book-card ${isReading ? 'is-borrowed' : 'is-available'}`;
+        card.onclick = () => window.openBookQuestionsModal(b.id);
+
+        let statusBadge = '';
+        if (isReading) {
+          statusBadge = `<span class="catalog-status-tag borrowed">👤 ${escapeHTML(readerName)}'da (Okuyor)</span>`;
+        } else {
+          statusBadge = `<span class="catalog-status-tag available">✓ Kütüphanede (Müsait)</span>`;
+        }
+
+        card.innerHTML = `
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; gap: 6px;">
+            ${statusBadge}
+            <span class="catalog-questions-tag">
+              <i data-lucide="help-circle" style="width: 12px; height: 12px;"></i> ${qCount > 0 ? qCount + ' Soru' : '+ Soru Ekle'}
+            </span>
+          </div>
+          <div style="font-weight: 800; font-size: 0.92rem; color: var(--m-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+            ${escapeHTML(b.title)}
+          </div>
+          <div style="font-size: 0.74rem; color: var(--m-text-muted); margin-top: 2px;">
+            <span>${escapeHTML(b.author || 'Yazar Belirtilmemiş')}</span> • <span>${b.pages || 0} Sayfa</span> ${b.bookNo ? '• No: ' + escapeHTML(b.bookNo) : ''}
+          </div>
+        `;
+        folderContent.appendChild(card);
+      });
+
+      // Accordion toggle
+      folderHeader.onclick = () => {
+        const isOpen = folderContent.style.display !== 'none';
+        folderContent.style.display = isOpen ? 'none' : 'flex';
+        const ch = document.getElementById(`chevron-${folder.id}`);
+        if (ch) ch.style.transform = isOpen ? 'rotate(-90deg)' : 'rotate(0deg)';
+        window.vibrate(15);
+      };
+
+      folderCard.appendChild(folderHeader);
+      folderCard.appendChild(folderContent);
+      container.appendChild(folderCard);
+    });
+
+    if (window.lucide) window.lucide.createIcons();
+  }
+
+  // ==========================================================================
+  // KİTAP SORULARI GÖRÜNTÜLEME VE EKLEME MODALI
+  // ==========================================================================
+  const DEFAULT_STARTER_QUESTIONS = [
+    { question: "Kitabın ana kahramanı kimdir ve en belirgin özellikleri nelerdir?", answer: "Ana karakter ve kişilik özellikleri." },
+    { question: "Kitaptaki olayların geçtiği ana mekan ve zaman dilimi neresidir?", answer: "Olayların geçtiği yer ve çevre." },
+    { question: "Kitapta karakterin karşılaştığı en büyük zorluk veya problem neydi?", answer: "Karşılaşılan engel ve çözüm yolu." },
+    { question: "Bu kitabı okuduktan sonra kendinize çıkardığınız ana fikir veya ders nedir?", answer: "Kitabın ana fikri ve verilen mesaj." }
+  ];
+
+  window.openBookQuestionsModal = (bookId) => {
+    if (!window.stateManager) return;
+    const allBooks = window.stateManager.getBooks ? window.stateManager.getBooks() : (window.stateManager.state.books ? window.stateManager.state.books.library || [] : []);
+    const book = allBooks.find(b => b.id === bookId);
+    if (!book) return;
+
+    const titleEl = document.getElementById('m-questions-book-title');
+    const authorEl = document.getElementById('m-questions-book-author');
+    const bodyEl = document.getElementById('m-book-questions-body');
+
+    if (titleEl) titleEl.textContent = `📖 ${book.title}`;
+    if (authorEl) authorEl.textContent = `${book.author || 'Bilinmiyor'} • ${book.pages || 0} Sayfa (Sorular & Değerlendirme)`;
+
+    if (!bodyEl) return;
+
+    const questions = Array.isArray(book.questions) ? [...book.questions] : [];
+
+    let questionsListHtml = '';
+    if (questions.length === 0) {
+      questionsListHtml = `
+        <div style="text-align: center; padding: 1.5rem 1rem; color: var(--m-text-muted); background: var(--m-surface-subtle); border-radius: var(--m-radius-md); border: 1px dashed var(--m-border); margin-bottom: 1rem;">
+          <i data-lucide="help-circle" style="width: 32px; height: 32px; opacity: 0.4; margin-bottom: 0.4rem;"></i>
+          <p style="font-weight: 700; margin: 0; font-size: 0.85rem;">Bu kitaba henüz özel soru eklenmemiş.</p>
+          <p style="font-size: 0.75rem; margin-top: 4px;">Aşağıdaki formu kullanarak kitaba dilediğiniz kadar soru ve cevap ekleyebilirsiniz.</p>
+          <button class="btn-primary-action" style="margin: 0.75rem auto 0 auto; font-size: 0.75rem; padding: 0.4rem 0.85rem;" onclick="window.loadStarterQuestionsToBook('${book.id}')">
+            ✨ Standart Soruları Otomatik Ekle
+          </button>
+        </div>
+      `;
+    } else {
+      questionsListHtml = questions.map((q, idx) => `
+        <div class="question-bubble-card">
+          <div class="question-bubble-header">
+            <span class="question-num-pill">Soru ${idx + 1}</span>
+            <button class="question-del-btn" title="Soruyu Sil" onclick="window.deleteBookQuestion('${book.id}', ${idx})">
+              <i data-lucide="trash-2" style="width: 15px; height: 15px;"></i>
+            </button>
+          </div>
+          <div class="question-text-content">❓ ${escapeHTML(q.question)}</div>
+          <div class="answer-text-content">
+            <strong style="color: var(--m-success);">Cevap:</strong> ${escapeHTML(q.answer || 'Cevap belirtilmemiş')}
+          </div>
+        </div>
+      `).join('');
+    }
+
+    bodyEl.innerHTML = `
+      <div style="margin-bottom: 1rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.65rem;">
+          <h4 style="font-size: 0.88rem; font-weight: 800; color: var(--m-text);">
+            Kayıtlı Sorular (${questions.length})
+          </h4>
+        </div>
+        ${questionsListHtml}
+      </div>
+
+      <!-- Yeni Soru Ekleme Formu -->
+      <div class="new-question-box">
+        <div style="font-size: 0.85rem; font-weight: 800; color: var(--m-primary); margin-bottom: 0.65rem; display: flex; align-items: center; gap: 4px;">
+          <i data-lucide="plus-circle" style="width: 16px; height: 16px;"></i> Bu Kitaba Yeni Soru Ekle
+        </div>
+        <div class="mobile-input-group" style="margin-bottom: 0.65rem;">
+          <label style="font-size: 0.75rem; font-weight: 700; color: var(--m-text-muted); display: block; margin-bottom: 3px;">Soru Metni</label>
+          <input type="text" id="m-new-q-text" class="mobile-input" placeholder="Örn: Zeze'nin şeker portakalı fidanının adı nedir?">
+        </div>
+        <div class="mobile-input-group" style="margin-bottom: 0.85rem;">
+          <label style="font-size: 0.75rem; font-weight: 700; color: var(--m-text-muted); display: block; margin-bottom: 3px;">Beklenen Cevap (İsteğe Bağlı)</label>
+          <input type="text" id="m-new-q-ans" class="mobile-input" placeholder="Örn: Minguinho">
+        </div>
+        <button class="subview-primary-action-btn" onclick="window.saveNewBookQuestion('${book.id}')">
+          <i data-lucide="check" style="width: 16px; height: 16px;"></i> Soruyu Kaydet
+        </button>
+      </div>
+
+      <button class="subview-secondary-btn" style="margin-top: 1rem;" onclick="window.closeBottomSheet()">
+        Kapat
+      </button>
+    `;
+
+    openBottomSheet('modal-book-questions');
+    if (window.lucide) window.lucide.createIcons();
+  };
+
+  window.saveNewBookQuestion = (bookId) => {
+    const qInput = document.getElementById('m-new-q-text');
+    const aInput = document.getElementById('m-new-q-ans');
+    if (!qInput) return;
+
+    const qText = qInput.value.trim();
+    const aText = aInput ? aInput.value.trim() : '';
+
+    if (!qText) {
+      showMobileToast('❌ Lütfen soru metnini yazın');
+      return;
+    }
+
+    const allBooks = window.stateManager.getBooks ? window.stateManager.getBooks() : (window.stateManager.state.books ? window.stateManager.state.books.library || [] : []);
+    const book = allBooks.find(b => b.id === bookId);
+    if (!book) return;
+
+    if (!Array.isArray(book.questions)) {
+      book.questions = [];
+    }
+
+    book.questions.push({ question: qText, answer: aText });
+
+    if (typeof window.stateManager.updateBookQuestions === 'function') {
+      window.stateManager.updateBookQuestions(bookId, book.questions);
+    } else {
+      window.stateManager.saveState();
+    }
+
+    window.vibrate(30);
+    showMobileToast('✅ Soru kitaba başarıyla eklendi!');
+    window.openBookQuestionsModal(bookId);
+    renderBooksCatalogPane();
+  };
+
+  window.deleteBookQuestion = (bookId, qIdx) => {
+    const allBooks = window.stateManager.getBooks ? window.stateManager.getBooks() : (window.stateManager.state.books ? window.stateManager.state.books.library || [] : []);
+    const book = allBooks.find(b => b.id === bookId);
+    if (!book || !Array.isArray(book.questions)) return;
+
+    book.questions.splice(qIdx, 1);
+
+    if (typeof window.stateManager.updateBookQuestions === 'function') {
+      window.stateManager.updateBookQuestions(bookId, book.questions);
+    } else {
+      window.stateManager.saveState();
+    }
+
+    window.vibrate(25);
+    showMobileToast('🗑️ Soru silindi');
+    window.openBookQuestionsModal(bookId);
+    renderBooksCatalogPane();
+  };
+
+  window.loadStarterQuestionsToBook = (bookId) => {
+    const allBooks = window.stateManager.getBooks ? window.stateManager.getBooks() : (window.stateManager.state.books ? window.stateManager.state.books.library || [] : []);
+    const book = allBooks.find(b => b.id === bookId);
+    if (!book) return;
+
+    book.questions = JSON.parse(JSON.stringify(DEFAULT_STARTER_QUESTIONS));
+
+    if (typeof window.stateManager.updateBookQuestions === 'function') {
+      window.stateManager.updateBookQuestions(bookId, book.questions);
+    } else {
+      window.stateManager.saveState();
+    }
+
+    window.vibrate(35);
+    showMobileToast('✨ Standart sorular kitaba yüklendi!');
+    window.openBookQuestionsModal(bookId);
+    renderBooksCatalogPane();
+  };
 
   // ==========================================================================
   // 4. MODÜL: HIZLI YOKLAMA
@@ -844,7 +2046,11 @@
   // ==========================================================================
   function getFilteredStudents() {
     if (!window.stateManager) return [];
-    let list = window.stateManager.getStudents(activeBranch) || [];
+    let list = window.stateManager.getStudents(true) || [];
+    const isMiddle = isMiddleSchool();
+    if (isMiddle && activeBranch && activeBranch !== 'all') {
+      list = list.filter(st => st.branch === activeBranch);
+    }
     if (activeSearchTerm) {
       list = list.filter(st => {
         const full = `${st.name} ${st.surname || ''} ${st.number || ''}`.toLowerCase();
@@ -948,12 +2154,31 @@
     document.querySelectorAll('.mobile-subview').forEach(v => v.classList.remove('active'));
     window.closeBottomSheet();
     window.closeConfigDrawer();
+    const configFabMenu = document.getElementById('m-config-fab-menu');
+    const configFabBtn = document.getElementById('m-config-fab-btn');
+    if (configFabMenu) configFabMenu.classList.remove('show');
+    if (configFabBtn) configFabBtn.classList.remove('active');
     // Diğer sekmesine dön
     switchTab('more');
   };
 
   // Android Donanım Geri Tuşu Yönetimi
   window.handleAndroidBack = () => {
+    // 0. Yüzen menüler (FAB) açıksa kapat
+    const configFabMenu = document.getElementById('m-config-fab-menu');
+    if (configFabMenu && configFabMenu.classList.contains('show')) {
+      configFabMenu.classList.remove('show');
+      const btn = document.getElementById('m-config-fab-btn');
+      if (btn) btn.classList.remove('active');
+      return true;
+    }
+    const booksFabMenu = document.getElementById('m-books-fab-menu');
+    if (booksFabMenu && booksFabMenu.classList.contains('show')) {
+      booksFabMenu.classList.remove('show');
+      const btn = document.getElementById('m-books-fab-btn');
+      if (btn) btn.classList.remove('active');
+      return true;
+    }
     // 1. Çekmece açıksa kapat
     const drawer = document.getElementById('config-drawer');
     if (drawer && drawer.classList.contains('active')) {
@@ -1811,7 +3036,7 @@
             <div>
               <div class="m-item-title">${escapeHTML(rep.title || 'Gelişim Değerlendirme Raporu')}</div>
               <div style="font-size: 0.75rem; color: var(--m-text-muted); margin-top: 2px;">
-                📅 ${escapeHTML(dateStr)} • Şube: ${escapeHTML(rep.branch || 'Tümü')}
+                📅 ${escapeHTML(dateStr)}${isMiddleSchool() ? ' • Şube: ' + escapeHTML(rep.branch || 'Tümü') : ''}
               </div>
             </div>
             <span class="m-badge m-badge-active">${studentCount} Öğrenci</span>
@@ -2148,30 +3373,64 @@
     if (backdrop) backdrop.classList.remove('active');
   };
 
+  // ==========================================================================
+  // 7. ASİSTAN KONFİGÜRASYONU YÖNETİMİ (YÜZEN MENÜ & TÜM AYARLAR)
+  // ==========================================================================
+  let currentConfigPanel = 'general';
+
+  window.toggleConfigFabMenu = () => {
+    window.vibrate(15);
+    const menu = document.getElementById('m-config-fab-menu');
+    const btn = document.getElementById('m-config-fab-btn');
+    if (!menu) return;
+    const isShowing = menu.classList.toggle('show');
+    if (btn) btn.classList.toggle('active', isShowing);
+  };
+
   window.switchConfigPanel = (panelName) => {
-    window.closeConfigDrawer();
+    currentConfigPanel = panelName;
     window.vibrate(15);
 
-    document.querySelectorAll('#m-config-panels-wrapper .config-panel').forEach(p => p.style.display = 'none');
-    document.querySelectorAll('.config-drawer-item').forEach(b => b.classList.remove('active'));
+    const menu = document.getElementById('m-config-fab-menu');
+    const btn = document.getElementById('m-config-fab-btn');
+    if (menu) menu.classList.remove('show');
+    if (btn) btn.classList.remove('active');
 
+    // Panelleri gizle / hedef paneli aç
+    document.querySelectorAll('#m-config-panels-wrapper .config-panel').forEach(p => p.style.display = 'none');
     const targetPanel = document.getElementById(`config-panel-${panelName}`);
     if (targetPanel) targetPanel.style.display = 'block';
 
-    const drawerBtn = document.querySelector(`.config-drawer-item[data-panel="${panelName}"]`);
-    if (drawerBtn) drawerBtn.classList.add('active');
+    // Sayfayı en yukarı kaydır
+    const subview = document.getElementById('subview-config');
+    if (subview) subview.scrollTo({ top: 0, behavior: 'smooth' });
 
+    // Yüzen menüdeki aktif elemanı işaretle
+    document.querySelectorAll('#m-config-fab-menu .mobile-fab-item').forEach(b => b.classList.remove('active'));
+    const fabItem = document.getElementById(`cfg-fab-${panelName}`);
+    if (fabItem) fabItem.classList.add('active');
+
+    // Üst başlık ve alt başlığı güncelle
     const titleEl = document.getElementById('m-config-panel-title');
-    const titles = {
-      'general': 'Genel Ayarlar',
-      'ai': 'Yapay Zeka (AI)',
-      'points': 'Puan Ayarları',
-      'week': 'Geçerli Hafta',
-      'students': 'Öğrenci Yönetimi',
-      'lock': 'Şifre Kontrolü',
-      'manual': 'Kullanım Kılavuzu'
+    const subtitleEl = document.getElementById('m-config-panel-subtitle');
+    const panelMeta = {
+      'general': { title: '⚙️ Genel Ayarlar & Lisans', sub: 'Tema, kademe, yedekleme ve lisans yönetimi' },
+      'ai': { title: '✨ Yapay Zeka (AI)', sub: 'Google Gemini AI entegrasyonu ve model seçimi' },
+      'points': { title: '🏆 Puan & Kural Standartları', sub: 'Davranışlar, ödevler, kitaplar ve sınav ödülleri' },
+      'week': { title: '📅 Geçerli Çalışma Haftası', sub: 'Aktif eğitim haftası ve otomatik takvim' },
+      'students': { title: '👥 Öğrenci Yönetimi', sub: 'Öğrenci ekleme, düzenleme ve listeleme' },
+      'lock': { title: '🔒 Şifre Kontrolü & PIN', sub: 'Uygulama kilidi ve güvenlik ayarları' },
+      'manual': { title: '📖 Kullanım Kılavuzu', sub: 'Modüller hakkında detaylı rehber ve SSS' }
     };
-    if (titleEl) titleEl.textContent = titles[panelName] || 'Konfigürasyon';
+    const meta = panelMeta[panelName] || { title: 'Ayarlar', sub: '' };
+    if (titleEl) titleEl.textContent = meta.title;
+    if (subtitleEl) subtitleEl.textContent = meta.sub;
+
+    if (panelName === 'general') renderMobileLicenseInfo();
+    else if (panelName === 'points') renderMobilePointsConfig();
+    else if (panelName === 'week') updateMobileWeekUI();
+    else if (panelName === 'students') renderConfigStudentsList();
+    else if (panelName === 'lock') checkMobilePinStatus();
 
     if (window.lucide) window.lucide.createIcons();
   };
@@ -2179,70 +3438,1137 @@
   function initMobileConfig() {
     const state = window.stateManager ? window.stateManager.state : {};
 
-    // 1. Genel
+    // 1. Genel: Kademe
     const lvl = document.getElementById('m-cfg-level');
-    if (lvl) lvl.value = state.gradeLevel || 'primary';
+    if (lvl) lvl.value = (window.stateManager && typeof window.stateManager.getEducationLevel === 'function')
+      ? window.stateManager.getEducationLevel()
+      : (state.educationLevel || state.gradeLevel || 'middle');
 
+    // 2. Branş Adı
     const branchName = document.getElementById('m-cfg-branch-name');
     if (branchName) branchName.value = state.branchName || '';
 
-    // 2. AI
+    // 3. Tema
+    const themeSelect = document.getElementById('m-cfg-theme');
+    const savedTheme = localStorage.getItem('sinif_asistani_theme') || document.documentElement.getAttribute('data-theme') || 'light';
+    if (themeSelect) themeSelect.value = savedTheme;
+
+    // 4. AI Anahtarı ve Modeli
     const aiKey = document.getElementById('m-cfg-ai-key');
     if (aiKey) aiKey.value = localStorage.getItem('sinif_asistani_gemini_api_key') || '';
+    const aiModel = document.getElementById('m-cfg-ai-model');
+    if (aiModel) aiModel.value = localStorage.getItem('sinif_asistani_gemini_model') || 'gemini-1.5-flash';
 
-    // 3. Hafta Seçici (1-36)
-    const weekSelect = document.getElementById('m-cfg-week-select');
-    if (weekSelect) {
-      weekSelect.innerHTML = '';
-      for (let w = 1; w <= 36; w++) {
-        const opt = document.createElement('option');
-        opt.value = w;
-        opt.textContent = `${w}. Çalışma Haftası`;
-        if (state.currentWeek == w) opt.selected = true;
-        weekSelect.appendChild(opt);
-      }
-    }
+    // 5. Hafta Seçici ve Göstergesi
+    updateMobileWeekUI();
 
-    // 4. Şube Seçici (Öğrenci Yönetimi)
+    // 6. Şube Seçicileri
     const stBranch = document.getElementById('m-cfg-st-branch');
     if (stBranch) populateBranchOptions(stBranch);
 
+    const stBranchFilter = document.getElementById('m-cfg-st-branch-filter');
+    if (stBranchFilter) {
+      populateBranchOptions(stBranchFilter);
+      // 'Tümü' seçeneğini ekle
+      const allOpt = document.createElement('option');
+      allOpt.value = 'all';
+      allOpt.textContent = 'Tüm Şubeler';
+      allOpt.selected = true;
+      stBranchFilter.insertBefore(allOpt, stBranchFilter.firstChild);
+    }
+
+    const editBranch = document.getElementById('m-edit-st-branch');
+    if (editBranch) populateBranchOptions(editBranch);
+
+    // Panelleri hazırla
+    renderMobileLicenseInfo();
+    renderMobilePointsConfig();
     renderConfigStudentsList();
+    checkMobilePinStatus();
+
+    switchConfigPanel(currentConfigPanel || 'general');
   }
 
+  // --- LİSANS YÖNETİMİ ---
+  function renderMobileLicenseInfo() {
+    const badge = document.getElementById('m-cfg-license-badge');
+    const details = document.getElementById('m-cfg-license-details');
+    const btnRemove = document.getElementById('btn-m-cfg-remove-license');
+    if (!badge || !details) return;
+
+    const licenseConfig = window.LicenseConfig;
+    const isLicensed = licenseConfig ? licenseConfig.isLicensed : false;
+    const isDemo = licenseConfig ? licenseConfig.isDemo : true;
+    const licensee = licenseConfig ? (licenseConfig.licensee || 'Belirtilmedi') : 'Kullanıcı';
+    const expiry = licenseConfig ? (licenseConfig.expiryDate === 'never' ? 'Süresiz / Ömür Boyu' : licenseConfig.expiryDate) : 'Süresiz';
+    const devId = (licenseConfig && licenseConfig.deviceId) ? licenseConfig.deviceId : (localStorage.getItem('sinif_asistani_device_uuid') || 'Android Cihaz');
+
+    if (isLicensed && !isDemo) {
+      badge.innerHTML = `<span style="background: var(--m-success); color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.72rem; font-weight: 700;">✅ Aktif (Lisanslı)</span>`;
+      details.innerHTML = `
+        <div><strong>Lisans Sahibi:</strong> ${escapeHTML(licensee)}</div>
+        <div><strong>Geçerlilik:</strong> ${escapeHTML(expiry)}</div>
+        <div><strong>Cihaz ID:</strong> <span style="font-family: monospace;">${escapeHTML(devId.substring(0, 16))}...</span></div>
+      `;
+      if (btnRemove) btnRemove.style.display = 'inline-block';
+    } else {
+      badge.innerHTML = `<span style="background: #f59e0b; color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.72rem; font-weight: 700;">⭐ Demo / Deneme Sürümü</span>`;
+      details.innerHTML = `
+        <div>Sınıf Asistanı tüm özellikleri ile deneme sürümündedir. Lisans anahtarınızı girerek sınırsız tam sürüme geçebilirsiniz.</div>
+        <div><strong>Cihaz ID:</strong> <span style="font-family: monospace;">${escapeHTML(devId.substring(0, 16))}...</span></div>
+      `;
+      if (btnRemove) btnRemove.style.display = 'none';
+    }
+  }
+
+  window.activateMobileLicense = async () => {
+    const keyInput = document.getElementById('m-cfg-license-key');
+    const key = keyInput ? keyInput.value.trim() : '';
+    if (!key) {
+      showMobileToast('Lütfen geçerli bir lisans anahtarı girin');
+      return;
+    }
+
+    if (window.LicenseConfig && typeof window.LicenseConfig.activateLicense === 'function') {
+      showMobileToast('🔄 Lisans doğrulanıyor...');
+      try {
+        const res = await window.LicenseConfig.activateLicense(key);
+        if (res && res.success) {
+          window.vibrate(50);
+          playSynthChime('correct');
+          showMobileToast('🎉 Lisans başarıyla aktifleştirildi!');
+          if (keyInput) keyInput.value = '';
+          renderMobileLicenseInfo();
+        } else {
+          window.vibrate(100);
+          showMobileToast('❌ ' + (res.reason || 'Geçersiz ürün anahtarı!'));
+        }
+      } catch (e) {
+        showMobileToast('❌ Lisans doğrulama hatası');
+      }
+    } else {
+      localStorage.setItem('sinif_asistani_license_key', key);
+      showMobileToast('✅ Lisans anahtarı kaydedildi');
+      renderMobileLicenseInfo();
+    }
+  };
+
+  window.removeMobileLicense = () => {
+    if (!confirm('Lisansı bu cihazdan kaldırmak istediğinize emin misiniz?')) return;
+    if (window.LicenseConfig && typeof window.LicenseConfig.removeLicense === 'function') {
+      window.LicenseConfig.removeLicense();
+    } else {
+      localStorage.removeItem('sinif_asistani_license_key');
+    }
+    window.vibrate(20);
+    showMobileToast('Lisans kaldırıldı');
+    renderMobileLicenseInfo();
+  };
+
+  window.buyMobileLicense = () => {
+    const devId = localStorage.getItem('sinif_asistani_device_uuid') || '';
+    const msg = encodeURIComponent(`Merhaba, Sınıf Asistanı Android sürümü için lisans satın almak istiyorum. Cihaz ID: ${devId}`);
+    window.open(`https://wa.me/905335601267?text=${msg}`, '_blank');
+  };
+
+  // --- SİSTEM SIFIRLAMA ---
+  window.resetMobileSystem = () => {
+    if (!confirm('⚠️ DİKKAT: Tüm veriler (öğrenciler, notlar, ödevler, kitaplar) silinecek ve fabrika ayarlarına dönülecektir!\n\nBu işlem geri alınamaz. Devam etmek istiyor musunuz?')) return;
+    if (window.stateManager && typeof window.stateManager.resetState === 'function') {
+      window.stateManager.resetState();
+      window.vibrate(50);
+      showMobileToast('🔄 Sistem fabrika ayarlarına sıfırlandı');
+      setTimeout(() => {
+        window.location.reload();
+      }, 900);
+    }
+  };
+
+  // --- PUAN AYARLARI ---
+  function renderMobilePointsConfig() {
+    if (!window.stateManager) return;
+
+    // 1. Davranışlar
+    const behaviors = (typeof window.stateManager.getPerformanceBehaviors === 'function')
+      ? window.stateManager.getPerformanceBehaviors()
+      : (window.stateManager.state.performanceBehaviors || { positive: [], development: [] });
+
+    const posContainer = document.getElementById('m-cfg-pos-behaviors-list');
+    if (posContainer) {
+      const posList = behaviors.positive || [];
+      posContainer.innerHTML = posList.length === 0
+        ? '<div style="font-size: 0.75rem; color: var(--m-text-muted); padding: 4px;">Kayıtlı olumlu davranış bulunmuyor.</div>'
+        : posList.map(b => `
+          <div class="m-behavior-row">
+            <span style="flex: 1;">${escapeHTML(b.title)}</span>
+            <span class="badge" style="background: var(--m-success); color: white; padding: 2px 7px; border-radius: 10px; font-size: 0.72rem; font-weight: 700;">+${b.points}</span>
+            <button onclick="window.deleteMobileBehavior('positive', '${b.id}')" style="background: none; border: none; padding: 2px 4px; color: var(--m-danger); cursor: pointer;">
+              <i data-lucide="x" style="width: 14px; height: 14px;"></i>
+            </button>
+          </div>
+        `).join('');
+    }
+
+    const devContainer = document.getElementById('m-cfg-dev-behaviors-list');
+    if (devContainer) {
+      const devList = behaviors.development || [];
+      devContainer.innerHTML = devList.length === 0
+        ? '<div style="font-size: 0.75rem; color: var(--m-text-muted); padding: 4px;">Kayıtlı geliştirilmeli davranış bulunmuyor.</div>'
+        : devList.map(b => `
+          <div class="m-behavior-row">
+            <span style="flex: 1;">${escapeHTML(b.title)}</span>
+            <span class="badge" style="background: var(--m-danger); color: white; padding: 2px 7px; border-radius: 10px; font-size: 0.72rem; font-weight: 700;">${b.points}</span>
+            <button onclick="window.deleteMobileBehavior('development', '${b.id}')" style="background: none; border: none; padding: 2px 4px; color: var(--m-danger); cursor: pointer;">
+              <i data-lucide="x" style="width: 14px; height: 14px;"></i>
+            </button>
+          </div>
+        `).join('');
+    }
+
+    // 2. Ödev Puanları
+    const hwSettings = (typeof window.stateManager.getHomeworkSettings === 'function')
+      ? window.stateManager.getHomeworkSettings()
+      : {};
+    const hwFull = document.getElementById('m-cfg-pt-hw-full');
+    const hwHalf = document.getElementById('m-cfg-pt-hw-half');
+    const hwZero = document.getElementById('m-cfg-pt-hw-zero');
+    const hwExcused = document.getElementById('m-cfg-pt-hw-excused');
+    const hwWhatsApp = document.getElementById('m-cfg-hw-whatsapp');
+
+    if (hwFull) hwFull.value = hwSettings.completed ?? 4;
+    if (hwHalf) hwHalf.value = hwSettings.incomplete ?? 2;
+    if (hwZero) hwZero.value = hwSettings.missing ?? -4;
+    if (hwExcused) hwExcused.value = hwSettings.excused ?? 0;
+    if (hwWhatsApp) hwWhatsApp.value = hwSettings.whatsappGroupLink || '';
+
+    // 3. Kitap Puanları
+    const bookSettings = (typeof window.stateManager.getBookSettings === 'function')
+      ? window.stateManager.getBookSettings()
+      : {};
+    const b1Ontime = document.getElementById('m-cfg-book-l1-ontime');
+    const b1Late = document.getElementById('m-cfg-book-l1-late');
+    const b1Limit = document.getElementById('m-cfg-book-l1-limit');
+    const b2Ontime = document.getElementById('m-cfg-book-l2-ontime');
+    const b2Late = document.getElementById('m-cfg-book-l2-late');
+    const b2Limit = document.getElementById('m-cfg-book-l2-limit');
+
+    if (b1Ontime) b1Ontime.value = (bookSettings.level1 && bookSettings.level1.ontime) ?? 10;
+    if (b1Late) b1Late.value = (bookSettings.level1 && bookSettings.level1.late) ?? 5;
+    if (b1Limit) b1Limit.value = (bookSettings.level1 && bookSettings.level1.readingLimitDays) ?? 4;
+    if (b2Ontime) b2Ontime.value = (bookSettings.level2 && bookSettings.level2.ontime) ?? 20;
+    if (b2Late) b2Late.value = (bookSettings.level2 && bookSettings.level2.late) ?? 10;
+    if (b2Limit) b2Limit.value = (bookSettings.level2 && bookSettings.level2.readingLimitDays) ?? 7;
+
+    // 4. Sınav Puanları
+    const examSettings = (typeof window.stateManager.getWeeklyExamSettings === 'function')
+      ? window.stateManager.getWeeklyExamSettings()
+      : {};
+    const topCountEl = document.getElementById('m-cfg-exam-topcount');
+    if (topCountEl) topCountEl.value = examSettings.topCount || 3;
+    window.renderMobileExamRanks();
+
+    if (window.lucide) window.lucide.createIcons();
+  }
+
+  window.renderMobileExamRanks = () => {
+    const topCountEl = document.getElementById('m-cfg-exam-topcount');
+    const container = document.getElementById('m-cfg-exam-ranks-container');
+    if (!container || !topCountEl) return;
+
+    const count = parseInt(topCountEl.value) || 3;
+    const examSettings = (window.stateManager && typeof window.stateManager.getWeeklyExamSettings === 'function')
+      ? window.stateManager.getWeeklyExamSettings()
+      : {};
+    const currentRanks = examSettings.rankPoints || { 1: 50, 2: 30, 3: 15 };
+
+    container.innerHTML = '';
+    for (let r = 1; r <= count; r++) {
+      const val = currentRanks[r] !== undefined ? currentRanks[r] : Math.max(10, 50 - (r - 1) * 10);
+      const div = document.createElement('div');
+      div.innerHTML = `
+        <label style="font-size: 0.72rem; font-weight: 700; color: var(--m-text); display: block; margin-bottom: 2px;">${r}. Derece (+)</label>
+        <input type="number" class="m-form-input m-cfg-exam-rank-input" data-rank="${r}" value="${val}" style="padding: 6px; text-align: center; font-size: 0.85rem;">
+      `;
+      container.appendChild(div);
+    }
+  };
+
+  window.addMobilePosBehavior = () => {
+    const nameEl = document.getElementById('m-new-pos-name');
+    const ptsEl = document.getElementById('m-new-pos-pts');
+    const title = nameEl ? nameEl.value.trim() : '';
+    const points = ptsEl ? (parseInt(ptsEl.value) || 5) : 5;
+
+    if (!title) {
+      showMobileToast('Lütfen davranış başlığı girin');
+      return;
+    }
+
+    if (!window.stateManager.state.performanceBehaviors) {
+      window.stateManager.state.performanceBehaviors = { positive: [], development: [] };
+    }
+    if (!window.stateManager.state.performanceBehaviors.positive) {
+      window.stateManager.state.performanceBehaviors.positive = [];
+    }
+
+    const newBh = {
+      id: 'bh_' + Date.now(),
+      title,
+      points: Math.abs(points),
+      icon: '⭐',
+      category: 'positive'
+    };
+    window.stateManager.state.performanceBehaviors.positive.push(newBh);
+    window.stateManager.saveState();
+
+    if (nameEl) nameEl.value = '';
+    window.vibrate(20);
+    renderMobilePointsConfig();
+    showMobileToast('✅ Olumlu davranış eklendi');
+  };
+
+  window.addMobileDevBehavior = () => {
+    const nameEl = document.getElementById('m-new-dev-name');
+    const ptsEl = document.getElementById('m-new-dev-pts');
+    const title = nameEl ? nameEl.value.trim() : '';
+    let points = ptsEl ? (parseInt(ptsEl.value) || -5) : -5;
+    if (points > 0) points = -points;
+
+    if (!title) {
+      showMobileToast('Lütfen davranış başlığı girin');
+      return;
+    }
+
+    if (!window.stateManager.state.performanceBehaviors) {
+      window.stateManager.state.performanceBehaviors = { positive: [], development: [] };
+    }
+    if (!window.stateManager.state.performanceBehaviors.development) {
+      window.stateManager.state.performanceBehaviors.development = [];
+    }
+
+    const newBh = {
+      id: 'bh_' + Date.now(),
+      title,
+      points,
+      icon: '⚠️',
+      category: 'development'
+    };
+    window.stateManager.state.performanceBehaviors.development.push(newBh);
+    window.stateManager.saveState();
+
+    if (nameEl) nameEl.value = '';
+    window.vibrate(20);
+    renderMobilePointsConfig();
+    showMobileToast('✅ Geliştirilmeli davranış eklendi');
+  };
+
+  window.deleteMobileBehavior = (type, id) => {
+    if (!confirm('Bu davranışı silmek istediğinize emin misiniz?')) return;
+    if (window.stateManager && window.stateManager.state.performanceBehaviors) {
+      const list = window.stateManager.state.performanceBehaviors[type] || [];
+      window.stateManager.state.performanceBehaviors[type] = list.filter(b => b.id !== id);
+      window.stateManager.saveState();
+      window.vibrate(15);
+      renderMobilePointsConfig();
+      showMobileToast('Davranış silindi');
+    }
+  };
+
+  window.testMobileWhatsApp = () => {
+    const linkInput = document.getElementById('m-cfg-hw-whatsapp');
+    const url = linkInput ? linkInput.value.trim() : '';
+    if (!url) {
+      showMobileToast('Lütfen test edilecek bir WhatsApp linki girin');
+      return;
+    }
+    window.open(url, '_blank');
+  };
+
+  window.saveMobilePointRules = () => {
+    if (!window.stateManager) return;
+
+    // 1. Ödev Puanları
+    const hwFull = document.getElementById('m-cfg-pt-hw-full');
+    const hwHalf = document.getElementById('m-cfg-pt-hw-half');
+    const hwZero = document.getElementById('m-cfg-pt-hw-zero');
+    const hwExcused = document.getElementById('m-cfg-pt-hw-excused');
+    const hwWhatsApp = document.getElementById('m-cfg-hw-whatsapp');
+
+    const hwSettings = {
+      completed: hwFull ? (parseInt(hwFull.value) || 4) : 4,
+      incomplete: hwHalf ? (parseInt(hwHalf.value) || 2) : 2,
+      missing: hwZero ? (parseInt(hwZero.value) || -4) : -4,
+      excused: hwExcused ? (parseInt(hwExcused.value) || 0) : 0,
+      whatsappGroupLink: hwWhatsApp ? hwWhatsApp.value.trim() : ''
+    };
+    if (typeof window.stateManager.updateHomeworkSettings === 'function') {
+      window.stateManager.updateHomeworkSettings(hwSettings);
+    }
+
+    // 2. Kitap Puanları
+    const b1Ontime = document.getElementById('m-cfg-book-l1-ontime');
+    const b1Late = document.getElementById('m-cfg-book-l1-late');
+    const b1Limit = document.getElementById('m-cfg-book-l1-limit');
+    const b2Ontime = document.getElementById('m-cfg-book-l2-ontime');
+    const b2Late = document.getElementById('m-cfg-book-l2-late');
+    const b2Limit = document.getElementById('m-cfg-book-l2-limit');
+
+    const bookSettings = {
+      level1: {
+        ontime: b1Ontime ? (parseInt(b1Ontime.value) || 10) : 10,
+        late: b1Late ? (parseInt(b1Late.value) || 5) : 5,
+        readingLimitDays: b1Limit ? (parseInt(b1Limit.value) || 4) : 4
+      },
+      level2: {
+        ontime: b2Ontime ? (parseInt(b2Ontime.value) || 20) : 20,
+        late: b2Late ? (parseInt(b2Late.value) || 10) : 10,
+        readingLimitDays: b2Limit ? (parseInt(b2Limit.value) || 7) : 7
+      }
+    };
+    if (typeof window.stateManager.updateBookSettings === 'function') {
+      window.stateManager.updateBookSettings(bookSettings);
+    }
+
+    // 3. Sınav Puanları
+    const topCountEl = document.getElementById('m-cfg-exam-topcount');
+    const topCount = topCountEl ? (parseInt(topCountEl.value) || 3) : 3;
+    const rankPoints = {};
+    document.querySelectorAll('.m-cfg-exam-rank-input').forEach(input => {
+      const r = input.getAttribute('data-rank');
+      rankPoints[r] = parseInt(input.value) || 0;
+    });
+    if (typeof window.stateManager.updateWeeklyExamSettings === 'function') {
+      window.stateManager.updateWeeklyExamSettings({ topCount, rankPoints });
+    }
+
+    window.stateManager.saveState();
+    window.vibrate(30);
+    showMobileToast('✅ Tüm puan ve kural standartları kaydedildi');
+  };
+
+  // --- HAFTA YÖNETİMİ ---
+  function updateMobileWeekUI(targetWeekId) {
+    if (!window.stateManager) return;
+    const currentWeekId = targetWeekId || (typeof window.stateManager.getSelectedWeek === 'function' ? window.stateManager.getSelectedWeek() : (window.getISOWeek ? window.getISOWeek() : ''));
+
+    // 1. Badge Göstergesi
+    const badgeText = document.getElementById('m-cfg-week-display-badge');
+    if (badgeText) {
+      if (typeof window.formatWeekTR === 'function') {
+        badgeText.textContent = window.formatWeekTR(currentWeekId, 'full') || currentWeekId;
+      } else {
+        badgeText.textContent = currentWeekId || '-';
+      }
+    }
+
+    // 2. Açılır Hafta Seçim Listesi (Tüm Eğitim Haftaları 1..40)
+    const weekSelect = document.getElementById('m-cfg-week-select');
+    if (weekSelect) {
+      weekSelect.innerHTML = '';
+
+      const currInfo = typeof window.getEducationWeekInfo === 'function' ? window.getEducationWeekInfo(currentWeekId) : null;
+      const startYear = currInfo ? parseInt(currInfo.academicYear.split('-')[0], 10) : (new Date().getMonth() >= 8 ? new Date().getFullYear() : new Date().getFullYear() - 1);
+      const opening = typeof window.getSchoolOpeningMonday === 'function' ? window.getSchoolOpeningMonday(startYear) : new Date(startYear, 8, 15);
+
+      for (let k = 1; k <= 40; k++) {
+        const d = new Date(opening.getTime() + (k - 1) * 7 * 24 * 60 * 60 * 1000);
+        const iso = typeof window.getISOWeek === 'function' ? window.getISOWeek(d) : `W${k}`;
+        const inf = typeof window.getEducationWeekInfo === 'function' ? window.getEducationWeekInfo(iso) : null;
+
+        const opt = document.createElement('option');
+        opt.value = iso;
+        opt.textContent = inf ? inf.label : `${k}. Hafta (${iso})`;
+        if (iso === currentWeekId) opt.selected = true;
+        weekSelect.appendChild(opt);
+      }
+
+      // Eğer mevcut hafta 1..40 aralığı dışındaysa (tatil / dönem öncesi) başa ekle
+      if (currentWeekId && !Array.from(weekSelect.options).some(o => o.value === currentWeekId)) {
+        const opt = document.createElement('option');
+        opt.value = currentWeekId;
+        opt.textContent = typeof window.formatWeekTR === 'function' ? window.formatWeekTR(currentWeekId, 'full') : currentWeekId;
+        opt.selected = true;
+        weekSelect.insertBefore(opt, weekSelect.firstChild);
+      }
+    }
+  }
+
+  window.adjustMobileWeek = (offset) => {
+    if (!window.stateManager) return;
+    let curWeek = typeof window.stateManager.getSelectedWeek === 'function' ? window.stateManager.getSelectedWeek() : '';
+    if (!curWeek) curWeek = typeof window.getISOWeek === 'function' ? window.getISOWeek(new Date()) : '';
+    if (!curWeek) return;
+
+    const parts = curWeek.split('-W');
+    if (parts.length === 2) {
+      const year = parseInt(parts[0], 10);
+      const week = parseInt(parts[1], 10);
+      const d = window.getDayInWeek ? window.getDayInWeek(year, week, 4) : new Date();
+      d.setDate(d.getDate() + (offset * 7));
+      const newWeek = typeof window.getISOWeek === 'function' ? window.getISOWeek(d) : curWeek;
+      window.stateManager.setSelectedWeek(newWeek);
+      updateMobileWeekUI(newWeek);
+      window.vibrate(20);
+      const weekLabel = typeof window.formatWeekTR === 'function' ? window.formatWeekTR(newWeek, 'short') : newWeek;
+      showMobileToast(`📅 Hafta değiştirildi: ${weekLabel}`);
+      renderActiveTab();
+    }
+  };
+
+  window.resetMobileWeekToCurrent = () => {
+    if (!window.stateManager) return;
+    const thisWeek = typeof window.getISOWeek === 'function' ? window.getISOWeek(new Date()) : '';
+    if (thisWeek) {
+      window.stateManager.setSelectedWeek(thisWeek);
+      updateMobileWeekUI(thisWeek);
+      window.vibrate(25);
+      showMobileToast('📅 Güncel eğitim haftasına (Bugün) dönüldü');
+      renderActiveTab();
+    }
+  };
+
+  window.saveMobileActiveWeek = () => {
+    const sel = document.getElementById('m-cfg-week-select');
+    if (sel && window.stateManager) {
+      const newWeek = sel.value;
+      window.stateManager.setSelectedWeek(newWeek);
+      updateMobileWeekUI(newWeek);
+      window.vibrate(30);
+      const weekLabel = typeof window.formatWeekTR === 'function' ? window.formatWeekTR(newWeek, 'short') : newWeek;
+      showMobileToast(`✅ Aktif çalışma haftası güncellendi: ${weekLabel}`);
+      renderActiveTab();
+    }
+  };
+
+  // --- ÖĞRENCİ YÖNETİMİ ---
   function renderConfigStudentsList() {
     const container = document.getElementById('m-cfg-students-list');
     const totalEl = document.getElementById('m-cfg-st-total');
     if (!container) return;
 
-    const students = getFilteredStudents();
+    const searchTerm = (document.getElementById('m-cfg-st-search') ? document.getElementById('m-cfg-st-search').value.trim().toLowerCase() : '');
+    const branchFilter = (document.getElementById('m-cfg-st-branch-filter') ? document.getElementById('m-cfg-st-branch-filter').value : 'all');
+
+    const isMiddle = isMiddleSchool();
+    let students = window.stateManager ? (window.stateManager.state.students || []) : [];
+
+    if (isMiddle && branchFilter !== 'all') {
+      students = students.filter(s => s.branch === branchFilter);
+    }
+    if (searchTerm) {
+      students = students.filter(s => {
+        const full = `${s.name || ''} ${s.surname || ''} ${s.number || ''}`.toLowerCase();
+        return full.includes(searchTerm);
+      });
+    }
+
     if (totalEl) totalEl.textContent = students.length;
 
-    container.innerHTML = students.map(st => `
-      <div class="m-item-card" style="padding: 0.65rem 0.85rem; flex-direction: row; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-        <div>
-          <div style="font-weight: 700; font-size: 0.88rem;">${escapeHTML(st.name)} ${escapeHTML(st.surname || '')}</div>
-          <div style="font-size: 0.72rem; color: var(--m-text-muted);">No: ${escapeHTML(st.number || '-')} • Şube: ${escapeHTML(st.branch || '-')}</div>
+    if (students.length === 0) {
+      container.innerHTML = `
+        <div style="text-align: center; padding: 2rem 1rem; color: var(--m-text-muted);">
+          <i data-lucide="users" style="width: 32px; height: 32px; opacity: 0.5; margin-bottom: 0.5rem;"></i>
+          <div style="font-weight: 700; font-size: 0.88rem;">Kayıtlı öğrenci bulunamadı</div>
         </div>
-        <button class="m-btn-sm" style="flex: 0 0 36px; padding: 0.4rem;" onclick="window.deleteConfigStudent('${st.id}')">
-          <i data-lucide="trash-2" style="width: 14px; height: 14px; color: var(--m-danger);"></i>
-        </button>
+      `;
+      if (window.lucide) window.lucide.createIcons();
+      return;
+    }
+
+    container.innerHTML = students.map(st => `
+      <div class="m-item-card" style="padding: 0.75rem 0.85rem; flex-direction: row; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+        <div style="min-width: 0; flex: 1;">
+          <div style="font-weight: 800; font-size: 0.9rem; color: var(--m-text);">${escapeHTML(st.name)} ${escapeHTML(st.surname || '')}</div>
+          <div style="font-size: 0.74rem; color: var(--m-text-muted); margin-top: 2px;">
+            No: <strong>${escapeHTML(st.number || '-')}</strong>${(isMiddle && st.branch) ? ` • Şube: <strong>${escapeHTML(st.branch)}</strong>` : ''}
+            ${st.phone ? ` • 📞 ${escapeHTML(st.phone)}` : ''}
+          </div>
+        </div>
+        <div style="display: flex; gap: 6px; flex-shrink: 0;">
+          <button class="m-btn-sm" style="padding: 6px 10px; font-size: 0.75rem;" onclick="window.editMobileStudent('${st.id}')">
+            <i data-lucide="edit-3" style="width: 14px; height: 14px;"></i> Düzenle
+          </button>
+          <button class="m-btn-sm danger" style="padding: 6px 8px;" onclick="window.deleteConfigStudent('${st.id}')">
+            <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i>
+          </button>
+        </div>
       </div>
     `).join('');
 
     if (window.lucide) window.lucide.createIcons();
   }
 
+  window.addMobileStudent = () => {
+    const nameEl = document.getElementById('m-cfg-st-name');
+    const surEl = document.getElementById('m-cfg-st-surname');
+    const noEl = document.getElementById('m-cfg-st-no');
+    const brEl = document.getElementById('m-cfg-st-branch');
+    const genEl = document.getElementById('m-cfg-st-gender');
+    const phEl = document.getElementById('m-cfg-st-phone');
+
+    const name = nameEl ? nameEl.value.trim() : '';
+    if (!name) {
+      showMobileToast('Lütfen öğrenci adı girin');
+      return;
+    }
+
+    const newStudent = {
+      id: 'st_' + Date.now(),
+      name,
+      surname: surEl ? surEl.value.trim() : '',
+      number: noEl ? noEl.value.trim() : '',
+      branch: isMiddleSchool() ? ((brEl && brEl.value !== 'all') ? brEl.value : (activeBranch !== 'all' ? activeBranch : 'A')) : '',
+      gender: genEl ? genEl.value : 'male',
+      phone: phEl ? phEl.value.trim() : '',
+      points: 0,
+      booksRead: 0
+    };
+
+    if (!window.stateManager.state.students) window.stateManager.state.students = [];
+    window.stateManager.state.students.push(newStudent);
+    window.stateManager.saveState();
+
+    if (nameEl) nameEl.value = '';
+    if (surEl) surEl.value = '';
+    if (noEl) noEl.value = '';
+    if (phEl) phEl.value = '';
+
+    window.vibrate(30);
+    showMobileToast('✅ Öğrenci kaydedildi');
+    window.closeBottomSheet();
+    renderConfigStudentsList();
+    renderActiveTab();
+  };
+
+  window.editMobileStudent = (studentId) => {
+    const student = (window.stateManager.state.students || []).find(s => s.id === studentId);
+    if (!student) return;
+
+    const idEl = document.getElementById('m-edit-st-id');
+    const nameEl = document.getElementById('m-edit-st-name');
+    const surEl = document.getElementById('m-edit-st-surname');
+    const noEl = document.getElementById('m-edit-st-no');
+    const brEl = document.getElementById('m-edit-st-branch');
+    const genEl = document.getElementById('m-edit-st-gender');
+    const phEl = document.getElementById('m-edit-st-phone');
+
+    if (idEl) idEl.value = student.id;
+    if (nameEl) nameEl.value = student.name || '';
+    if (surEl) surEl.value = student.surname || '';
+    if (noEl) noEl.value = student.number || '';
+    if (brEl) {
+      populateBranchOptions(brEl);
+      brEl.value = student.branch || 'A';
+    }
+    if (genEl) genEl.value = student.gender || 'male';
+    if (phEl) phEl.value = student.phone || '';
+
+    syncEducationLevelUI();
+    window.openBottomSheet('modal-edit-student');
+  };
+
+  window.saveEditedStudent = () => {
+    const idEl = document.getElementById('m-edit-st-id');
+    const nameEl = document.getElementById('m-edit-st-name');
+    const surEl = document.getElementById('m-edit-st-surname');
+    const noEl = document.getElementById('m-edit-st-no');
+    const brEl = document.getElementById('m-edit-st-branch');
+    const genEl = document.getElementById('m-edit-st-gender');
+    const phEl = document.getElementById('m-edit-st-phone');
+
+    const id = idEl ? idEl.value : null;
+    const name = nameEl ? nameEl.value.trim() : '';
+    if (!id || !name) {
+      showMobileToast('Lütfen öğrenci adı girin');
+      return;
+    }
+
+    const student = (window.stateManager.state.students || []).find(s => s.id === id);
+    if (student) {
+      student.name = name;
+      student.surname = surEl ? surEl.value.trim() : '';
+      student.number = noEl ? noEl.value.trim() : '';
+      student.branch = isMiddleSchool() ? (brEl ? brEl.value : 'A') : '';
+      student.gender = genEl ? genEl.value : 'male';
+      student.phone = phEl ? phEl.value.trim() : '';
+      window.stateManager.saveState();
+      window.vibrate(25);
+      showMobileToast('✅ Öğrenci bilgileri güncellendi');
+      window.closeBottomSheet();
+      renderConfigStudentsList();
+      renderActiveTab();
+    }
+  };
+
+  window.deleteConfigStudent = (studentId) => {
+    if (!confirm('Bu öğrenciyi silmek istediğinize emin misiniz?')) return;
+    window.stateManager.state.students = (window.stateManager.state.students || []).filter(s => s.id !== studentId);
+    window.stateManager.saveState();
+    window.vibrate(20);
+    showMobileToast('Öğrenci silindi');
+    renderConfigStudentsList();
+    renderActiveTab();
+  };
+
+  // ==========================================================================
+  // YAPAY ZEKA (AI) İLE ÖĞRENCİ EKLEME & YÖNTEM SEÇİMİ
+  // ==========================================================================
+  window.openAddStudentMethodModal = () => {
+    window.vibrate(20);
+    openBottomSheet('modal-add-student-method');
+  };
+
+  window.selectAddStudentMethod = (method) => {
+    window.vibrate(20);
+    if (method === 'manual') {
+      window.closeBottomSheet();
+      if (activeMobileSubview !== 'config') {
+        window.openMobileSubview('config');
+      }
+      window.switchConfigPanel('students');
+      setTimeout(() => {
+        const brEl = document.getElementById('m-cfg-st-branch');
+        if (brEl) {
+          populateBranchOptions(brEl);
+          if (activeBranch !== 'all') brEl.value = activeBranch;
+        }
+        syncEducationLevelUI();
+        window.openBottomSheet('modal-add-student-manual');
+        const nameInput = document.getElementById('m-cfg-st-name');
+        if (nameInput) nameInput.focus();
+      }, 200);
+    } else if (method === 'ai') {
+      window.triggerAiStudentScan();
+    }
+  };
+
+  window.triggerAiStudentScan = () => {
+    const apiKey = (localStorage.getItem('sinif_asistani_gemini_api_key') || '').trim();
+    if (!apiKey) {
+      window.closeBottomSheet();
+      showMobileToast('⚠️ Yapay zeka ile liste taramak için lütfen önce Gemini API anahtarınızı kaydedin');
+      if (activeMobileSubview !== 'config') {
+        window.openMobileSubview('config');
+      }
+      window.switchConfigPanel('ai');
+      return;
+    }
+
+    window.closeBottomSheet();
+    const fileInput = document.getElementById('m-ai-student-file-input');
+    if (fileInput) {
+      fileInput.value = '';
+      fileInput.click();
+    }
+  };
+
+  function processImageFileForGemini(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const maxDim = 1600;
+          let w = img.width;
+          let h = img.height;
+          if (w > maxDim || h > maxDim) {
+            if (w > h) {
+              h = Math.round((h * maxDim) / w);
+              w = maxDim;
+            } else {
+              w = Math.round((w * maxDim) / h);
+              h = maxDim;
+            }
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, w, h);
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+          const base64 = dataUrl.split(',')[1];
+          resolve({ base64, mimeType: 'image/jpeg' });
+        };
+        img.onerror = () => reject(new Error('Görsel yüklenemedi'));
+        img.src = e.target.result;
+      };
+      reader.onerror = () => reject(new Error('Dosya okunamadı'));
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async function analyzeStudentListWithGemini(base64Data, mimeType) {
+    const apiKey = (localStorage.getItem('sinif_asistani_gemini_api_key') || '').trim();
+    if (!apiKey) throw new Error('API anahtarı bulunamadı');
+
+    const savedModel = (localStorage.getItem('sinif_asistani_gemini_model') || 'gemini-1.5-flash').trim();
+    const candidateModels = [
+      savedModel,
+      'gemini-1.5-flash',
+      'gemini-2.0-flash',
+      'gemini-2.0-flash-lite',
+      'gemini-1.5-pro'
+    ].filter((v, i, a) => a.indexOf(v) === i);
+
+    const promptText = `Bu görsel bir okul sınıf listesidir. Görseldeki tüm öğrencileri satır satır tespit et.
+Her öğrenci için okul numarasını, adını, soyadını ve cinsiyetini ('male' veya 'female') çıkar.
+Ad ve soyad ayrılmış olmalıdır.
+Eğer cinsiyet listede açıkça belirtilmemişse Türk isim yapısına göre tahmin et ('male' ya da 'female').
+Numara yoksa boş bırak ("").
+
+SADECE VE SADECE GEÇERLİ BİR JSON DİZİSİ DÖNDÜR. Markdown (örneğin \`\`\`json) veya başka hiçbir metin/açıklama ekleme:
+[
+  {"number": "101", "name": "Ahmet", "surname": "Yılmaz", "gender": "male"},
+  {"number": "105", "name": "Zeynep", "surname": "Kaya", "gender": "female"}
+]`;
+
+    let lastError = null;
+
+    for (const model of candidateModels) {
+      const cleanModelName = model.startsWith('models/') ? model : `models/${model}`;
+      const url = `https://generativelanguage.googleapis.com/v1beta/${cleanModelName}:generateContent?key=${encodeURIComponent(apiKey)}`;
+
+      try {
+        let res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [
+              {
+                parts: [
+                  { text: promptText },
+                  {
+                    inlineData: {
+                      mimeType: mimeType || 'image/jpeg',
+                      data: base64Data
+                    }
+                  }
+                ]
+              }
+            ],
+            generationConfig: {
+              temperature: 0.1,
+              responseMimeType: 'application/json'
+            }
+          })
+        });
+
+        if (res.status === 400) {
+          res = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [
+                {
+                  parts: [
+                    { text: promptText },
+                    {
+                      inlineData: {
+                        mimeType: mimeType || 'image/jpeg',
+                        data: base64Data
+                      }
+                    }
+                  ]
+                }
+              ],
+              generationConfig: { temperature: 0.1 }
+            })
+          });
+        }
+
+        if (res.ok) {
+          const data = await res.json();
+          let rawText = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+          rawText = rawText.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
+          const parsed = JSON.parse(rawText);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            return parsed;
+          }
+        } else {
+          const errData = await res.json().catch(() => ({}));
+          lastError = new Error((errData.error && errData.error.message) || `HTTP ${res.status}`);
+        }
+      } catch (err) {
+        lastError = err;
+      }
+    }
+
+    throw lastError || new Error('Yapay zeka görseli okuyamadı');
+  }
+
+  window.handleAiStudentImageSelected = async (event) => {
+    const file = event.target.files && event.target.files[0];
+    if (!file) return;
+
+    openBottomSheet('modal-ai-student-loading');
+
+    try {
+      const processed = await processImageFileForGemini(file);
+      const students = await analyzeStudentListWithGemini(processed.base64, processed.mimeType);
+
+      if (!students || students.length === 0) {
+        window.closeBottomSheet();
+        showMobileToast('❌ Listede öğrenci bulunamadı. Lütfen daha net bir fotoğraf çekin.');
+        return;
+      }
+
+      window.tempAiScannedStudents = students.map((s, idx) => ({
+        index: idx,
+        number: String(s.number || s.no || '').trim(),
+        name: String(s.name || s.ad || '').trim(),
+        surname: String(s.surname || s.soyad || '').trim(),
+        gender: (s.gender === 'female' || s.gender === 'kız' || s.gender === 'K') ? 'female' : 'male',
+        selected: true
+      }));
+
+      renderAiStudentPreviewModal();
+      openBottomSheet('modal-ai-student-preview');
+      window.vibrate(35);
+      showMobileToast(`📸 ${window.tempAiScannedStudents.length} öğrenci tespit edildi!`);
+    } catch (err) {
+      window.closeBottomSheet();
+      console.error('AI student scan error:', err);
+      showMobileToast(`❌ Hata: ${err.message || 'Görsel işlenirken bir sorun oluştu'}`);
+    }
+  };
+
+  function renderAiStudentPreviewModal() {
+    const list = window.tempAiScannedStudents || [];
+    const container = document.getElementById('m-ai-preview-list-container');
+    const countBadge = document.getElementById('m-ai-preview-count');
+    const branchSelect = document.getElementById('m-ai-preview-branch');
+    const confirmBtnText = document.getElementById('m-ai-confirm-btn-text');
+    const toggleSelectText = document.getElementById('m-ai-toggle-select-text');
+
+    if (countBadge) countBadge.textContent = list.length;
+
+    // Şube seçiciyi doldur
+    if (branchSelect && branchSelect.options.length === 0) {
+      const branches = window.stateManager && window.stateManager.getBranches ? window.stateManager.getBranches() : [];
+      const opts = branches.length > 0 ? branches : ['A', 'B', 'C', 'D'];
+      branchSelect.innerHTML = '';
+      opts.forEach(b => {
+        const opt = document.createElement('option');
+        opt.value = b;
+        opt.textContent = `${b} Şubesi`;
+        if (b === (activeBranch !== 'all' ? activeBranch : 'A')) opt.selected = true;
+        branchSelect.appendChild(opt);
+      });
+    }
+
+    const selectedCount = list.filter(s => s.selected).length;
+    if (confirmBtnText) {
+      confirmBtnText.textContent = `${selectedCount} Öğrenciyi Sınıfa Ekle`;
+    }
+    if (toggleSelectText) {
+      toggleSelectText.textContent = (selectedCount === list.length) ? 'Tümünü Kaldır' : 'Tümünü Seç';
+    }
+
+    if (!container) return;
+
+    if (list.length === 0) {
+      container.innerHTML = `
+        <div style="text-align: center; padding: 2rem 1rem; color: var(--m-text-muted);">
+          <i data-lucide="users" style="width: 32px; height: 32px; opacity: 0.5; margin-bottom: 0.5rem;"></i>
+          <div style="font-weight: 700;">Listelenecek öğrenci kalmadı</div>
+        </div>
+      `;
+      if (window.lucide) window.lucide.createIcons();
+      return;
+    }
+
+    container.innerHTML = list.map(st => `
+      <div class="ai-preview-card ${st.selected ? '' : 'excluded'}" id="ai-row-${st.index}">
+        <input type="checkbox" id="ai-check-${st.index}" ${st.selected ? 'checked' : ''} onchange="window.toggleAiRowCheck(${st.index})" style="width: 20px; height: 20px; accent-color: var(--m-primary); cursor: pointer; flex-shrink: 0;">
+        <div class="ai-preview-inputs">
+          <div class="ai-preview-row-top">
+            <input type="text" id="ai-no-${st.index}" value="${escapeHTML(st.number)}" placeholder="No" class="m-form-input" onchange="window.updateAiRowField(${st.index}, 'number', this.value)" style="width: 60px; font-weight: 700; padding: 5px 6px; font-size: 0.8rem; text-align: center;">
+            <input type="text" id="ai-name-${st.index}" value="${escapeHTML(st.name)}" placeholder="Ad" class="m-form-input" onchange="window.updateAiRowField(${st.index}, 'name', this.value)" style="flex: 1; font-weight: 700; padding: 5px 8px; font-size: 0.8rem;">
+            <input type="text" id="ai-surname-${st.index}" value="${escapeHTML(st.surname)}" placeholder="Soyad" class="m-form-input" onchange="window.updateAiRowField(${st.index}, 'surname', this.value)" style="flex: 1; font-weight: 700; padding: 5px 8px; font-size: 0.8rem;">
+          </div>
+          <div class="ai-preview-row-bottom">
+            <select id="ai-gender-${st.index}" class="m-form-select" onchange="window.updateAiRowField(${st.index}, 'gender', this.value)" style="padding: 4px 8px; font-size: 0.74rem; width: auto; font-weight: 700;">
+              <option value="male" ${st.gender === 'male' ? 'selected' : ''}>👦 Erkek</option>
+              <option value="female" ${st.gender === 'female' ? 'selected' : ''}>👧 Kız</option>
+            </select>
+            <button type="button" class="m-btn-sm danger" onclick="window.removeAiPreviewRow(${st.index})" style="padding: 4px 8px; font-size: 0.74rem; margin-left: auto; border: none; border-radius: var(--m-radius-sm);">
+              <i data-lucide="trash-2" style="width: 13px; height: 13px;"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    `).join('');
+
+    if (window.lucide) window.lucide.createIcons();
+  }
+
+  window.toggleAiRowCheck = (index) => {
+    const list = window.tempAiScannedStudents || [];
+    const item = list.find(s => s.index === index);
+    if (!item) return;
+
+    item.selected = !item.selected;
+    const rowEl = document.getElementById(`ai-row-${index}`);
+    if (rowEl) {
+      rowEl.classList.toggle('excluded', !item.selected);
+    }
+
+    const selectedCount = list.filter(s => s.selected).length;
+    const confirmBtnText = document.getElementById('m-ai-confirm-btn-text');
+    const toggleSelectText = document.getElementById('m-ai-toggle-select-text');
+    if (confirmBtnText) confirmBtnText.textContent = `${selectedCount} Öğrenciyi Sınıfa Ekle`;
+    if (toggleSelectText) {
+      toggleSelectText.textContent = (selectedCount === list.length) ? 'Tümünü Kaldır' : 'Tümünü Seç';
+    }
+  };
+
+  window.updateAiRowField = (index, field, value) => {
+    const list = window.tempAiScannedStudents || [];
+    const item = list.find(s => s.index === index);
+    if (item) {
+      item[field] = value.trim();
+    }
+  };
+
+  window.toggleSelectAllAiStudents = () => {
+    const list = window.tempAiScannedStudents || [];
+    const allSelected = list.every(s => s.selected);
+    list.forEach(s => { s.selected = !allSelected; });
+    renderAiStudentPreviewModal();
+  };
+
+  window.removeAiPreviewRow = (index) => {
+    window.vibrate(15);
+    window.tempAiScannedStudents = (window.tempAiScannedStudents || []).filter(s => s.index !== index);
+    renderAiStudentPreviewModal();
+  };
+
+  window.updateAiPreviewBranch = (val) => {
+    // Toplu şube seçimi güncellendi
+  };
+
+  window.confirmSaveAiStudents = () => {
+    const list = (window.tempAiScannedStudents || []).filter(s => s.selected);
+    if (list.length === 0) {
+      showMobileToast('Lütfen eklenecek en az bir öğrenci seçin');
+      return;
+    }
+
+    const isMiddle = isMiddleSchool();
+    const branchSelect = document.getElementById('m-ai-preview-branch');
+    const targetBranch = isMiddle ? (branchSelect ? branchSelect.value : (activeBranch !== 'all' ? activeBranch : 'A')) : '';
+
+    if (!window.stateManager.state.students) window.stateManager.state.students = [];
+
+    let addedCount = 0;
+    list.forEach((st, idx) => {
+      if (!st.name) return;
+      const newStudent = {
+        id: 'st_' + Date.now() + '_' + idx + '_' + Math.random().toString(36).substr(2, 5),
+        name: st.name,
+        surname: st.surname || '',
+        number: st.number || '',
+        branch: targetBranch,
+        gender: st.gender || 'male',
+        phone: '',
+        points: 0,
+        booksRead: 0
+      };
+      window.stateManager.state.students.push(newStudent);
+      addedCount++;
+    });
+
+    window.stateManager.saveState();
+    window.closeBottomSheet();
+    window.vibrate(40);
+    showMobileToast(`🎉 ${addedCount} öğrenci başarıyla ${targetBranch ? targetBranch + ' şubesine ' : ''}eklendi!`);
+
+    if (activeMobileSubview !== 'config') {
+      window.openMobileSubview('config');
+    }
+    window.switchConfigPanel('students');
+    renderConfigStudentsList();
+    renderActiveTab();
+  };
+
+  // --- PIN GÜVENLİK ---
+  function checkMobilePinStatus() {
+    const statusEl = document.getElementById('m-cfg-pin-status');
+    const pin = localStorage.getItem('sinif_asistani_app_pin');
+    if (!statusEl) return;
+    if (pin && pin.length >= 4) {
+      statusEl.innerHTML = `<span style="background: var(--m-danger); color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.72rem; font-weight: 700;">🔒 Şifreli Giriş Aktif</span>`;
+    } else {
+      statusEl.innerHTML = `<span style="background: var(--m-text-muted); color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.72rem; font-weight: 700;">🔓 Kilit Devre Dışı</span>`;
+    }
+  }
+
+  window.saveMobilePin = () => {
+    const pin = document.getElementById('m-cfg-pin-code');
+    if (!pin || pin.value.length < 4) {
+      showMobileToast('Lütfen 4 haneli PIN girin');
+      return;
+    }
+    localStorage.setItem('sinif_asistani_app_pin', pin.value);
+    window.vibrate(30);
+    showMobileToast('✅ PIN kodu belirlendi');
+    checkMobilePinStatus();
+  };
+
+  window.removeMobilePin = () => {
+    localStorage.removeItem('sinif_asistani_app_pin');
+    const pin = document.getElementById('m-cfg-pin-code');
+    if (pin) pin.value = '';
+    window.vibrate(20);
+    showMobileToast('Kilit kaldırıldı');
+    checkMobilePinStatus();
+  };
+
+  // --- KULLANIM KILAVUZU AKORDEON ---
+  window.toggleMobileManualAccordion = (itemEl) => {
+    if (!itemEl) return;
+    window.vibrate(10);
+    const wasActive = itemEl.classList.contains('active');
+    document.querySelectorAll('.m-accordion-item').forEach(el => el.classList.remove('active'));
+    if (!wasActive) {
+      itemEl.classList.add('active');
+    }
+  };
+
+  // --- ŞİFRE GÖSTER / GİZLE ---
+  window.togglePasswordVisibility = (inputId) => {
+    const input = document.getElementById(inputId);
+    if (!input) return;
+    input.type = (input.type === 'password') ? 'text' : 'password';
+  };
+
+  // --- GENEL AYARLARI KAYDETME ---
   window.saveMobileGeneralConfig = () => {
     const lvl = document.getElementById('m-cfg-level');
     const branchName = document.getElementById('m-cfg-branch-name');
 
-    if (lvl) window.stateManager.state.gradeLevel = lvl.value;
-    if (branchName) window.stateManager.state.branchName = branchName.value.trim();
+    if (window.stateManager) {
+      if (lvl) {
+        if (typeof window.stateManager.setEducationLevel === 'function') {
+          window.stateManager.setEducationLevel(lvl.value);
+        } else {
+          window.stateManager.state.educationLevel = lvl.value;
+          window.stateManager.state.gradeLevel = lvl.value;
+        }
+      }
+      if (branchName) {
+        window.stateManager.state.branchName = branchName.value.trim();
+      }
+      window.stateManager.saveState();
+    }
 
-    window.stateManager.saveState();
+    syncEducationLevelUI();
+    renderConfigStudentsList();
+    renderActiveTab();
+
     window.vibrate(30);
-    showMobileToast('✅ Genel ayarlar kaydedildi');
+    const isMiddle = isMiddleSchool();
+    showMobileToast(isMiddle ? '✅ Ortaokul modu kaydedildi (Şubeler aktif)' : '✅ İlkokul modu kaydedildi (Şube özelliği kaldırıldı)');
   };
 
   window.saveMobileAIConfig = () => {
@@ -2259,7 +4585,8 @@
   };
 
   window.testMobileAIKey = async () => {
-    const key = localStorage.getItem('sinif_asistani_gemini_api_key');
+    const keyInput = document.getElementById('m-cfg-ai-key');
+    const key = (keyInput && keyInput.value.trim()) || localStorage.getItem('sinif_asistani_gemini_api_key');
     if (!key) {
       showMobileToast('Lütfen önce API anahtarı girin');
       return;
@@ -2278,96 +4605,6 @@
     } catch (e) {
       showMobileToast('❌ Ağ hatası: İnternet bağlantınızı kontrol edin');
     }
-  };
-
-  window.saveMobilePointRules = () => {
-    const hwFull = document.getElementById('m-cfg-pt-hw-full');
-    const hwHalf = document.getElementById('m-cfg-pt-hw-half');
-    const hwZero = document.getElementById('m-cfg-pt-hw-zero');
-
-    if (!window.stateManager.state.rules) window.stateManager.state.rules = {};
-    if (hwFull) window.stateManager.state.rules.homeworkFull = parseInt(hwFull.value) || 4;
-    if (hwHalf) window.stateManager.state.rules.homeworkHalf = parseInt(hwHalf.value) || 2;
-    if (hwZero) window.stateManager.state.rules.homeworkZero = parseInt(hwZero.value) || -4;
-
-    window.stateManager.saveState();
-    window.vibrate(30);
-    showMobileToast('✅ Puan kuralları güncellendi');
-  };
-
-  window.saveMobileActiveWeek = () => {
-    const sel = document.getElementById('m-cfg-week-select');
-    if (sel) {
-      window.stateManager.state.currentWeek = parseInt(sel.value) || 1;
-      window.stateManager.saveState();
-      window.vibrate(30);
-      showMobileToast(`✅ ${sel.value}. Çalışma Haftası aktif edildi`);
-    }
-  };
-
-  window.addMobileStudent = () => {
-    const nameEl = document.getElementById('m-cfg-st-name');
-    const surEl = document.getElementById('m-cfg-st-surname');
-    const noEl = document.getElementById('m-cfg-st-no');
-    const brEl = document.getElementById('m-cfg-st-branch');
-
-    const name = nameEl ? nameEl.value.trim() : '';
-    if (!name) {
-      showMobileToast('Lütfen öğrenci adı girin');
-      return;
-    }
-
-    const newStudent = {
-      id: 'st_' + Date.now(),
-      name,
-      surname: surEl ? surEl.value.trim() : '',
-      number: noEl ? noEl.value.trim() : '',
-      branch: (brEl && brEl.value !== 'all') ? brEl.value : (activeBranch !== 'all' ? activeBranch : 'A'),
-      points: 0,
-      booksRead: 0
-    };
-
-    if (!window.stateManager.state.students) window.stateManager.state.students = [];
-    window.stateManager.state.students.push(newStudent);
-    window.stateManager.saveState();
-
-    if (nameEl) nameEl.value = '';
-    if (surEl) surEl.value = '';
-    if (noEl) noEl.value = '';
-
-    window.vibrate(30);
-    showMobileToast('✅ Öğrenci kaydedildi');
-    renderConfigStudentsList();
-    renderActiveTab();
-  };
-
-  window.deleteConfigStudent = (studentId) => {
-    if (!confirm('Bu öğrenciyi silmek istediğinize emin misiniz?')) return;
-    window.stateManager.state.students = (window.stateManager.state.students || []).filter(s => s.id !== studentId);
-    window.stateManager.saveState();
-    window.vibrate(20);
-    showMobileToast('Öğrenci silindi');
-    renderConfigStudentsList();
-    renderActiveTab();
-  };
-
-  window.saveMobilePin = () => {
-    const pin = document.getElementById('m-cfg-pin-code');
-    if (!pin || pin.value.length < 4) {
-      showMobileToast('Lütfen 4 haneli PIN girin');
-      return;
-    }
-    localStorage.setItem('sinif_asistani_app_pin', pin.value);
-    window.vibrate(30);
-    showMobileToast('✅ PIN kodu belirlendi');
-  };
-
-  window.removeMobilePin = () => {
-    localStorage.removeItem('sinif_asistani_app_pin');
-    const pin = document.getElementById('m-cfg-pin-code');
-    if (pin) pin.value = '';
-    window.vibrate(20);
-    showMobileToast('Kilit kaldırıldı');
   };
 
   // ==========================================================================
@@ -2412,7 +4649,7 @@
             <div>
               <div class="m-item-title">${escapeHTML(st.name)} ${escapeHTML(st.surname || '')}</div>
               <div style="font-size: 0.75rem; color: var(--m-text-muted); margin-top: 2px;">
-                No: ${escapeHTML(st.number || '-')} • Şube: ${escapeHTML(st.branch || '-')}
+                ${formatStudentSubtitle(st)}
               </div>
             </div>
             <div style="font-size: 1.1rem;">${stars}</div>

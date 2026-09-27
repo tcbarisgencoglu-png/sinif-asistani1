@@ -51,4 +51,6 @@ android/app/build/
 android/app/src/main/assets/
 *.apk
 *.aab
+local.properties
+android/local.properties
 

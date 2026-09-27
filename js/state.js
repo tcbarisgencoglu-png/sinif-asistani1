@@ -2506,6 +2506,12 @@ class StateManager {
     return (state && state.students) ? state.students : ((this.state && this.state.students) || []);
   }
 
+  getStudentById(studentId) {
+    if (!studentId && studentId !== 0) return null;
+    const students = this.getStudents(true);
+    return students.find(s => String(s.id) === String(studentId)) || null;
+  }
+
   addStudent(studentData) {
     // Demo limit kontrolü
     if (window.LicenseConfig && window.LicenseConfig.isDemo) {
@@ -2870,8 +2876,11 @@ class StateManager {
       return matchDate && matchBranch;
     });
 
-    if (hw && hw.status && hw.status[studentId]) {
-      return { status: hw.status[studentId], homeworkId: hw.id, homework: hw };
+    if (hw && hw.status) {
+      const stStatus = hw.status[studentId] || hw.status[String(studentId)];
+      if (stStatus) {
+        return { status: stStatus, homeworkId: hw.id, homework: hw };
+      }
     }
     return { status: 'none', homeworkId: hw ? hw.id : null, homework: hw };
   }
@@ -2901,6 +2910,18 @@ class StateManager {
   }
 
   // KİTAP TAKİP İŞLEMLERİ
+  getBooks() {
+    if (!this.state.books) this.state.books = { library: [], transactions: [] };
+    if (!this.state.books.library) this.state.books.library = [];
+    return this.state.books.library;
+  }
+
+  getBookTransactions() {
+    if (!this.state.books) this.state.books = { library: [], transactions: [] };
+    if (!this.state.books.transactions) this.state.books.transactions = [];
+    return this.state.books.transactions;
+  }
+
   addBook(bookData) {
     // Demo limit kontrolü
     if (window.LicenseConfig && window.LicenseConfig.isDemo) {

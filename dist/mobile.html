@@ -112,13 +112,114 @@
       </div>
     </div>
 
-    <!-- 3. SEKME: CEP KİTAPLIĞI -->
+    <!-- 3. SEKME: CEP KİTAPLIĞI (YÜZEN MENÜ & 3 MODÜL) -->
     <div class="tab-pane" id="tab-books">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
-        <h4 style="font-size: 0.95rem; font-weight: 800; color: var(--m-text);">📖 Şu Anda Okunan Kitaplar</h4>
+      <!-- Üst Başlık & Aktif Görünüm Bilgisi -->
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.85rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--m-border);">
+        <div>
+          <div style="font-size: 1.05rem; font-weight: 800; color: var(--m-text);" id="m-books-active-title">📖 Şu An Okunanlar</div>
+          <div style="font-size: 0.74rem; color: var(--m-text-muted);" id="m-books-active-subtitle">Ödünçteki kitaplar ve teslim durumları</div>
+        </div>
+        <button class="m-btn-sm primary" style="font-size: 0.78rem; font-weight: 700; padding: 6px 12px; border-radius: var(--m-radius-full); display: inline-flex; align-items: center; gap: 5px;" onclick="window.openAddBookModal()">
+          <i data-lucide="plus-circle" style="width: 15px; height: 15px;"></i>
+          <span>Kitap Ekle</span>
+        </button>
       </div>
-      <div id="m-books-list">
-        <!-- Dinamik okunan kitaplar listesi -->
+
+      <!-- 1. ALT SEKME: ŞU AN OKUNANLAR -->
+      <div id="books-pane-reading">
+        <div class="books-action-bar">
+          <button class="btn-primary-action" onclick="window.openGiveBookModal()">
+            <i data-lucide="plus-circle" style="width: 16px; height: 16px;"></i>
+            <span>+ Kitap Ver</span>
+          </button>
+          <div class="books-summary-badge" id="books-reading-count-badge">
+            0 Kitap Okunuyor
+          </div>
+        </div>
+
+        <div id="m-books-reading-list" class="books-reading-list">
+          <!-- Dinamik okunan kitaplar listesi -->
+        </div>
+      </div>
+
+      <!-- 2. ALT SEKME: ÖĞRENCİ KİTAPLIĞI -->
+      <div id="books-pane-library" style="display: none;">
+        <div class="mobile-input-group" style="margin-bottom: 0.85rem;">
+          <label style="font-size: 0.8rem; font-weight: 700; color: var(--m-text-muted); display: block; margin-bottom: 4px;">Öğrenci Seçin</label>
+          <select id="m-books-student-select" class="mobile-input" style="font-weight: 700; color: var(--m-text); background: var(--m-surface);" onchange="window.selectBooksStudent(this.value)">
+            <!-- JS ile doldurulacak -->
+          </select>
+        </div>
+
+        <!-- Öğrenci İstatistik Kartları -->
+        <div class="books-stats-grid" id="m-books-student-stats">
+          <!-- JS ile doldurulacak -->
+        </div>
+
+        <!-- Öğrenci Kitap Geçmişi -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin: 1.15rem 0 0.5rem 0;">
+          <h4 style="font-size: 0.92rem; font-weight: 800; color: var(--m-text);">📜 Okunan Kitaplar Geçmişi</h4>
+          <span id="m-books-history-count" style="font-size: 0.75rem; font-weight: 700; color: var(--m-primary);">0 Kitap</span>
+        </div>
+
+        <div id="m-books-student-history" class="books-history-list">
+          <!-- JS ile doldurulacak -->
+        </div>
+      </div>
+
+      <!-- 3. ALT SEKME: KİTAPLIK (KLASÖRLER HALİNDE & SORU EKLEME) -->
+      <div id="books-pane-catalog" style="display: none;">
+        <!-- Arama ve Klasör Filtresi -->
+        <div style="display: flex; gap: 8px; margin-bottom: 0.85rem;">
+          <div class="mobile-search-box" style="flex: 1;">
+            <i data-lucide="search" style="width: 16px; height: 16px;"></i>
+            <input type="text" id="m-catalog-search-input" placeholder="Kitap veya yazar ara..." oninput="window.filterCatalogBooks(this.value)">
+          </div>
+          <select id="m-catalog-folder-select" class="mobile-select" style="max-width: 135px;" onchange="window.filterCatalogFolder(this.value)">
+            <option value="all">Tüm Klasörler</option>
+            <option value="seviye_1">📁 1. Seviye</option>
+            <option value="seviye_2">📁 2. Seviye</option>
+            <option value="reading">👤 Okunanlar</option>
+            <option value="available">✓ Boştakiler</option>
+          </select>
+        </div>
+
+        <div class="books-action-bar">
+          <button class="btn-primary-action" onclick="window.openAddBookModal()">
+            <i data-lucide="plus-circle" style="width: 16px; height: 16px;"></i>
+            <span>+ Kitap Ekle</span>
+          </button>
+          <div style="font-size: 0.8rem; font-weight: 800; color: var(--m-text);" id="m-catalog-count-text">
+            Yükleniyor...
+          </div>
+        </div>
+
+        <!-- Klasörler ve Kitaplar Listesi -->
+        <div id="m-catalog-folders-container">
+          <!-- JS ile klasörler ve kitaplar render edilecek -->
+        </div>
+      </div>
+
+      <!-- Kitaplık Yüzen Menü (FAB) -->
+      <div class="mobile-fab-container" id="m-books-fab-container">
+        <div class="mobile-fab-menu" id="m-books-fab-menu">
+          <button class="mobile-fab-item active" id="fab-item-reading" onclick="window.switchBooksSubTab('reading')">
+            <i data-lucide="book-open" style="width: 16px; height: 16px; color: var(--m-primary);"></i>
+            <span>Şu An Okunanlar</span>
+          </button>
+          <button class="mobile-fab-item" id="fab-item-library" onclick="window.switchBooksSubTab('library')">
+            <i data-lucide="contact-2" style="width: 16px; height: 16px; color: var(--m-warning);"></i>
+            <span>Öğrenci Kitaplığı</span>
+          </button>
+          <button class="mobile-fab-item" id="fab-item-catalog" onclick="window.switchBooksSubTab('catalog')">
+            <i data-lucide="library" style="width: 16px; height: 16px; color: var(--m-success);"></i>
+            <span>Kütüphane Kitaplığı</span>
+          </button>
+        </div>
+        <button class="mobile-fab-btn" id="m-books-fab-btn" onclick="window.toggleBooksFabMenu()" title="Görünüm Seç">
+          <i data-lucide="layers" style="width: 22px; height: 22px;"></i>
+        </button>
       </div>
     </div>
 
@@ -746,44 +847,56 @@
        SUBVIEW 7: ASİSTAN KONFİGÜRASYONU (HAMBURGER MENÜLÜ)
        ========================================================================== -->
   <div class="mobile-subview" id="subview-config">
-    <div class="subview-header-bar">
+    <!-- Üst Başlık & Bölüm Seçimi Barı -->
+    <div class="subview-header-bar" style="position: sticky; top: 0; z-index: 100; background: var(--m-surface); border-bottom: 1px solid var(--m-border); padding: 0.75rem 1rem; display: flex; align-items: center; justify-content: space-between;">
       <button class="subview-back-btn" onclick="window.closeMobileSubview()">
         <i data-lucide="chevron-left" style="width: 18px; height: 18px;"></i>
         <span>Geri</span>
       </button>
-      <div class="subview-header-title" id="m-config-panel-title">Genel Ayarlar</div>
-      <button class="subview-header-action" onclick="window.openConfigDrawer()" title="Menü">
-        <i data-lucide="menu" style="width: 20px; height: 20px;"></i>
+      <div style="flex: 1; min-width: 0; margin: 0 10px;">
+        <div class="subview-header-title" id="m-config-panel-title" style="font-size: 0.95rem; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">⚙️ Genel Ayarlar & Lisans</div>
+        <div id="m-config-panel-subtitle" style="font-size: 0.72rem; color: var(--m-text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Tema, kademe, yedekleme ve lisans yönetimi</div>
+      </div>
+      <button class="m-btn-sm" style="background: linear-gradient(135deg, var(--m-primary), #4f46e5); color: white; border: none; font-size: 0.75rem; font-weight: 800; padding: 6px 12px; border-radius: var(--m-radius-full); display: inline-flex; align-items: center; gap: 5px; flex-shrink: 0; box-shadow: 0 2px 8px rgba(79, 70, 229, 0.25);" onclick="window.openAddStudentMethodModal()">
+        <i data-lucide="user-plus" style="width: 14px; height: 14px;"></i>
+        <span>Öğrenci Ekle</span>
       </button>
     </div>
 
     <!-- Konfigürasyon İçerik Panelleri -->
-    <div id="m-config-panels-wrapper" style="padding-top: 4px;">
-      <!-- Panel 1: Genel Ayarlar -->
+    <div id="m-config-panels-wrapper" style="padding-top: 6px; padding-bottom: 95px;">
+      
+      <!-- ==========================================
+           PANEL 1: GENEL AYARLAR & LİSANS YÖNETİMİ
+           ========================================== -->
       <div class="config-panel active" id="config-panel-general">
+        <!-- 1.1 Görünüm & Sistem Ayarları -->
         <div class="m-form-card">
           <div style="font-weight: 800; font-size: 0.95rem; margin-bottom: 1rem; color: var(--m-primary); display: flex; align-items: center; gap: 8px;">
-            <i data-lucide="settings" style="width: 18px; height: 18px;"></i> Genel Sistem Ayarları
+            <i data-lucide="settings" style="width: 18px; height: 18px;"></i> Sistem & Görünüm Ayarları
           </div>
 
           <div class="m-form-group">
-            <label class="m-form-label">Okul Kademesi</label>
-            <select class="m-form-select" id="m-cfg-level">
-              <option value="primary">İlkokul (1-4. Sınıf)</option>
-              <option value="middle">Ortaokul (5-8. Sınıf)</option>
+            <label class="m-form-label">Eğitim Kademesi</label>
+            <select class="m-form-select" id="m-cfg-level" onchange="window.handleLevelChange(this.value)">
+              <option value="primary">İlkokul (1-4. Sınıf - Tek Sınıf / Şubesiz)</option>
+              <option value="middle">Ortaokul (5-8. Sınıf - Çoklu Şube)</option>
             </select>
+            <span style="font-size: 0.72rem; color: var(--m-text-muted); margin-top: 0.2rem; display: block;">İlkokul seçildiğinde şube özelliği gizlenir, ortaokulda şubeler aktif olur.</span>
           </div>
 
           <div class="m-form-group">
             <label class="m-form-label">Ders / Branş Adı</label>
-            <input type="text" class="m-form-input" id="m-cfg-branch-name" placeholder="Örn: Fen Bilimleri / Sınıf Öğretmeni">
+            <input type="text" class="m-form-input" id="m-cfg-branch-name" placeholder="Örn: Fen Bilimleri / Sınıf Öğretmenliği">
           </div>
 
           <div class="m-form-group">
-            <label class="m-form-label">Görünüm Teması</label>
+            <label class="m-form-label">Uygulama Teması</label>
             <select class="m-form-select" id="m-cfg-theme" onchange="window.setMobileTheme(this.value)">
-              <option value="light">Açık Tema (Modern)</option>
-              <option value="dark">Koyu Tema (Gece Modu)</option>
+              <option value="light">Açık Tema (Modern & Aydınlık)</option>
+              <option value="dark">Koyu Tema (Göz Yormayan Gece Modu)</option>
+              <option value="vibrant">Canlı Tema (Renkli & Enerjik)</option>
+              <option value="pastel">Pastel Tema (Yumuşak Tonlar)</option>
             </select>
           </div>
 
@@ -792,234 +905,580 @@
           </button>
         </div>
 
-        <!-- Veri Yedekleme -->
+        <!-- 1.2 Veri Güvenliği, Yedekleme & Fabrika Ayarları -->
         <div class="m-form-card">
-          <div style="font-weight: 800; font-size: 0.95rem; margin-bottom: 0.75rem; color: var(--m-text); display: flex; align-items: center; gap: 8px;">
+          <div style="font-weight: 800; font-size: 0.95rem; margin-bottom: 0.65rem; color: var(--m-text); display: flex; align-items: center; gap: 8px;">
             <i data-lucide="database" style="width: 18px; height: 18px; color: var(--m-info);"></i> Veri Güvenliği & Yedekleme
           </div>
           <div style="font-size: 0.78rem; color: var(--m-text-muted); line-height: 1.4; margin-bottom: 1rem;">
-            Tüm sınıflarınızı, öğrencilerinizi ve puanlarınızı güvenle indirin veya başka bir cihaza aktarın.
+            Tüm sınıflarınızı, öğrencilerinizi, ödevlerinizi ve puan kayıtlarınızı tek dosya olarak yedekleyebilir veya başka bir cihaza aktarabilirsiniz.
           </div>
-          <div style="display: flex; gap: 8px;">
-            <button class="m-btn-sm primary" onclick="window.exportMobileData()">
-              <i data-lucide="download" style="width: 14px; height: 14px;"></i> Yedeği İndir
+          <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 1.25rem;">
+            <button class="m-btn-sm primary" onclick="window.exportMobileData()" style="flex: 1; justify-content: center;">
+              <i data-lucide="download" style="width: 14px; height: 14px;"></i> Yedek Al (JSON)
             </button>
-            <button class="m-btn-sm" onclick="document.getElementById('m-cfg-file-import').click()">
+            <button class="m-btn-sm" onclick="document.getElementById('m-cfg-file-import').click()" style="flex: 1; justify-content: center;">
               <i data-lucide="upload" style="width: 14px; height: 14px;"></i> Yedeği Yükle
             </button>
             <input type="file" id="m-cfg-file-import" accept=".json" style="display: none;" onchange="window.importMobileData(event)">
           </div>
+
+          <!-- Sistemi Sıfırla (Fabrika Ayarları) -->
+          <div style="background: rgba(239, 68, 68, 0.06); border: 1.5px dashed rgba(239, 68, 68, 0.3); border-radius: var(--m-radius-sm); padding: 0.85rem;">
+            <div style="font-size: 0.82rem; font-weight: 700; color: var(--m-danger); margin-bottom: 0.25rem; display: flex; align-items: center; gap: 5px;">
+              <i data-lucide="alert-triangle" style="width: 15px; height: 15px;"></i> Sistemi Sıfırla
+            </div>
+            <div style="font-size: 0.74rem; color: var(--m-text-muted); line-height: 1.35; margin-bottom: 0.75rem;">
+              Tüm öğrenci, ödev, kitap ve puan verilerini temizleyerek uygulamayı ilk kurulum haline döndürür.
+            </div>
+            <button class="m-btn-sm danger" onclick="window.resetMobileSystem()" style="width: 100%; justify-content: center;">
+              <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i> Fabrika Ayarlarına Döndür
+            </button>
+          </div>
+        </div>
+
+        <!-- 1.3 Lisans Yönetimi Kartı -->
+        <div class="m-form-card">
+          <div style="font-weight: 800; font-size: 0.95rem; margin-bottom: 0.75rem; color: #d97706; display: flex; align-items: center; gap: 8px;">
+            <i data-lucide="crown" style="width: 18px; height: 18px;"></i> Lisans Yönetimi
+          </div>
+          
+          <!-- Lisans Durumu Kutusu -->
+          <div style="background: var(--m-bg); border: 1px solid var(--m-border); border-radius: var(--m-radius-sm); padding: 0.85rem; margin-bottom: 1rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+              <span style="font-size: 0.82rem; font-weight: 700; color: var(--m-text);">Lisans Durumu:</span>
+              <span id="m-cfg-license-badge">Yükleniyor...</span>
+            </div>
+            <div id="m-cfg-license-details" style="font-size: 0.76rem; color: var(--m-text-muted); line-height: 1.45;">
+              <!-- JS ile doldurulacak -->
+            </div>
+          </div>
+
+          <!-- Lisans Anahtarı Girişi -->
+          <div class="m-form-group">
+            <label class="m-form-label">Lisans Anahtarı</label>
+            <input type="text" class="m-form-input" id="m-cfg-license-key" placeholder="XXXX-XXXX-XXXX-XXXX" style="font-family: monospace; letter-spacing: 1px; font-weight: 700;">
+          </div>
+          <div style="display: flex; gap: 8px; margin-bottom: 1.25rem;">
+            <button class="m-btn-sm primary" onclick="window.activateMobileLicense()" style="flex: 1; justify-content: center;">
+              <i data-lucide="check-circle" style="width: 14px; height: 14px;"></i> Lisansı Aktifleştir
+            </button>
+            <button class="m-btn-sm" id="btn-m-cfg-remove-license" onclick="window.removeMobileLicense()" style="display: none;">
+              Kaldır
+            </button>
+          </div>
+
+          <!-- WhatsApp Lisans Satın Alma / İletişim -->
+          <div style="background: rgba(37, 211, 102, 0.08); border: 1.5px solid rgba(37, 211, 102, 0.3); border-radius: var(--m-radius-sm); padding: 0.85rem; display: flex; flex-direction: column; gap: 0.65rem;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <div style="width: 32px; height: 32px; border-radius: 50%; background: #25D366; display: flex; align-items: center; justify-content: center; color: white; flex-shrink: 0;">
+                <i data-lucide="message-circle" style="width: 18px; height: 18px;"></i>
+              </div>
+              <div>
+                <div style="font-size: 0.85rem; font-weight: 800; color: #15803d;">Lisans Satın Alma & Destek</div>
+                <div style="font-size: 0.72rem; color: var(--m-text-muted);">Ömür boyu tam sürüm lisansı için WhatsApp'tan ulaşın.</div>
+              </div>
+            </div>
+            <button class="m-btn-sm" onclick="window.buyMobileLicense()" style="background: #25D366; color: #fff; font-weight: 700; justify-content: center; border: none; padding: 0.6rem;">
+              <i data-lucide="message-circle" style="width: 16px; height: 16px;"></i> WhatsApp ile İletişime Geç
+            </button>
+          </div>
         </div>
       </div>
 
-      <!-- Panel 2: Yapay Zeka (AI) -->
+      <!-- ==========================================
+           PANEL 2: YAPAY ZEKA (AI)
+           ========================================== -->
       <div class="config-panel" id="config-panel-ai" style="display: none;">
         <div class="m-form-card">
-          <div style="font-weight: 800; font-size: 0.95rem; margin-bottom: 1rem; color: #8b5cf6; display: flex; align-items: center; gap: 8px;">
+          <div style="font-weight: 800; font-size: 0.95rem; margin-bottom: 0.75rem; color: #8b5cf6; display: flex; align-items: center; gap: 8px;">
             <i data-lucide="sparkles" style="width: 18px; height: 18px;"></i> Google Gemini AI Entegrasyonu
           </div>
           <div style="font-size: 0.78rem; color: var(--m-text-muted); line-height: 1.4; margin-bottom: 1rem;">
-            Soru havuzu üretimi ve akıllı asistan özellikleri için Google AI Studio anahtarınızı tanımlayın.
+            Kitap soruları havuzu otomatik soru üretimi ve yapay zeka destekli ders materyalleri için Google AI Studio anahtarınızı kaydedin.
           </div>
 
           <div class="m-form-group">
             <label class="m-form-label">Gemini API Anahtarı</label>
-            <input type="password" class="m-form-input" id="m-cfg-ai-key" placeholder="AIzaSy...">
+            <div style="position: relative;">
+              <input type="password" class="m-form-input" id="m-cfg-ai-key" placeholder="AIzaSy..." style="padding-right: 42px; font-family: monospace;">
+              <button type="button" onclick="window.togglePasswordVisibility('m-cfg-ai-key')" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--m-text-muted); cursor: pointer; padding: 4px;">
+                <i data-lucide="eye" style="width: 16px; height: 16px;"></i>
+              </button>
+            </div>
           </div>
 
           <div class="m-form-group">
             <label class="m-form-label">Yapay Zeka Modeli</label>
             <select class="m-form-select" id="m-cfg-ai-model">
               <option value="gemini-1.5-flash">Gemini 1.5 Flash (Hızlı ve Önerilen)</option>
-              <option value="gemini-1.5-pro">Gemini 1.5 Pro (Gelişmiş)</option>
+              <option value="gemini-1.5-pro">Gemini 1.5 Pro (Gelişmiş Düşünme)</option>
+              <option value="gemini-2.0-flash">Gemini 2.0 Flash (Yeni Nesil)</option>
             </select>
           </div>
 
-          <div style="display: flex; gap: 8px;">
-            <button class="m-btn-sm primary" onclick="window.saveMobileAIConfig()">Kaydet</button>
-            <button class="m-btn-sm" onclick="window.testMobileAIKey()">Bağlantıyı Test Et</button>
+          <div style="display: flex; gap: 8px; margin-bottom: 1.25rem;">
+            <button class="m-btn-sm primary" onclick="window.saveMobileAIConfig()" style="flex: 1; justify-content: center;">
+              <i data-lucide="check" style="width: 14px; height: 14px;"></i> Ayarları Kaydet
+            </button>
+            <button class="m-btn-sm" onclick="window.testMobileAIKey()" style="flex: 1; justify-content: center;">
+              <i data-lucide="zap" style="width: 14px; height: 14px;"></i> Bağlantıyı Test Et
+            </button>
+          </div>
+
+          <!-- Bilgilendirme Kutusu -->
+          <div style="background: rgba(139, 92, 246, 0.07); border: 1px solid rgba(139, 92, 246, 0.25); border-radius: var(--m-radius-sm); padding: 0.85rem; font-size: 0.76rem; color: var(--m-text-secondary); line-height: 1.45;">
+            <div style="font-weight: 700; color: #7c3aed; margin-bottom: 0.35rem; display: flex; align-items: center; gap: 5px;">
+              <i data-lucide="info" style="width: 14px; height: 14px;"></i> Ücretsiz API Anahtarı Nasıl Alınır?
+            </div>
+            <strong>aistudio.google.com</strong> adresine gidip Google hesabınızla giriş yaparak <em>"Get API Key"</em> butonuna tıklayın ve ücretsiz Gemini anahtarınızı alıp buraya yapıştırın.
           </div>
         </div>
       </div>
 
-      <!-- Panel 3: Puan Ayarları -->
+      <!-- ==========================================
+           PANEL 3: PUAN AYARLARI & STANDARTLAR
+           ========================================== -->
       <div class="config-panel" id="config-panel-points" style="display: none;">
+        
+        <!-- 3.1 Davranış Puanları (+ / -) -->
         <div class="m-form-card">
-          <div style="font-weight: 800; font-size: 0.95rem; margin-bottom: 1rem; color: var(--m-warning); display: flex; align-items: center; gap: 8px;">
-            <i data-lucide="award" style="width: 18px; height: 18px;"></i> Puan & Kural Standartları
+          <div style="font-weight: 800; font-size: 0.95rem; margin-bottom: 0.5rem; color: var(--m-warning); display: flex; align-items: center; gap: 8px;">
+            <i data-lucide="award" style="width: 18px; height: 18px;"></i> Davranış Puanları (+ / -)
+          </div>
+          <div style="font-size: 0.76rem; color: var(--m-text-muted); line-height: 1.4; margin-bottom: 1rem;">
+            Öğrencilere sınıf içinde verebileceğiniz olumlu ve geliştirilmesi gereken davranışları belirleyin.
           </div>
 
-          <div class="m-form-group">
-            <label class="m-form-label">Zamanında Ödev Teslim Puanı</label>
-            <input type="number" class="m-form-input" id="m-cfg-pt-hw-full" value="4">
-          </div>
-          <div class="m-form-group">
-            <label class="m-form-label">Eksik Ödev Teslim Puanı</label>
-            <input type="number" class="m-form-input" id="m-cfg-pt-hw-half" value="2">
-          </div>
-          <div class="m-form-group">
-            <label class="m-form-label">Ödev Yapmama Cezası</label>
-            <input type="number" class="m-form-input" id="m-cfg-pt-hw-zero" value="-4">
-          </div>
-          <div class="m-form-group">
-            <label class="m-form-label">1. Seviye Kitap Okuma Puanı</label>
-            <input type="number" class="m-form-input" id="m-cfg-pt-book1" value="10">
-          </div>
-          <div class="m-form-group">
-            <label class="m-form-label">2. Seviye Kitap Okuma Puanı</label>
-            <input type="number" class="m-form-input" id="m-cfg-pt-book2" value="20">
+          <!-- Olumlu Davranışlar -->
+          <div style="margin-bottom: 1.25rem;">
+            <div style="font-size: 0.84rem; font-weight: 800; color: var(--m-success); margin-bottom: 0.5rem; display: flex; align-items: center; justify-content: space-between;">
+              <span>⭐ Olumlu Davranışlar (+)</span>
+            </div>
+            <div id="m-cfg-pos-behaviors-list" style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 0.65rem;">
+              <!-- JS ile doldurulacak -->
+            </div>
+            <!-- Yeni Olumlu Ekle -->
+            <div style="display: flex; gap: 6px;">
+              <input type="text" id="m-new-pos-name" class="m-form-input" placeholder="Yeni olumlu davranış adı..." style="flex: 2; font-size: 0.8rem; padding: 6px 10px;">
+              <input type="number" id="m-new-pos-pts" class="m-form-input" value="5" min="1" max="100" style="flex: 1; font-size: 0.8rem; padding: 6px 8px; text-align: center;">
+              <button class="m-btn-sm primary" onclick="window.addMobilePosBehavior()" style="padding: 6px 12px;">Ekle</button>
+            </div>
           </div>
 
-          <button class="subview-primary-action-btn" onclick="window.saveMobilePointRules()">
-            <i data-lucide="check" style="width: 18px; height: 18px;"></i> Puan Ayarlarını Kaydet
+          <!-- Geliştirilmeli Davranışlar -->
+          <div>
+            <div style="font-size: 0.84rem; font-weight: 800; color: var(--m-danger); margin-bottom: 0.5rem;">
+              <span>⚠️ Geliştirilmeli Davranışlar (-)</span>
+            </div>
+            <div id="m-cfg-dev-behaviors-list" style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 0.65rem;">
+              <!-- JS ile doldurulacak -->
+            </div>
+            <!-- Yeni Geliştirilmeli Ekle -->
+            <div style="display: flex; gap: 6px;">
+              <input type="text" id="m-new-dev-name" class="m-form-input" placeholder="Yeni geliştirilmeli davranış adı..." style="flex: 2; font-size: 0.8rem; padding: 6px 10px;">
+              <input type="number" id="m-new-dev-pts" class="m-form-input" value="-5" max="-1" style="flex: 1; font-size: 0.8rem; padding: 6px 8px; text-align: center;">
+              <button class="m-btn-sm danger" onclick="window.addMobileDevBehavior()" style="padding: 6px 12px;">Ekle</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3.2 Ödev Puanları & WhatsApp -->
+        <div class="m-form-card">
+          <div style="font-weight: 800; font-size: 0.95rem; margin-bottom: 0.5rem; color: var(--m-primary); display: flex; align-items: center; gap: 8px;">
+            <i data-lucide="clipboard-check" style="width: 18px; height: 18px;"></i> Ödev Puanları & WhatsApp Linki
+          </div>
+          <div style="font-size: 0.76rem; color: var(--m-text-muted); line-height: 1.4; margin-bottom: 1rem;">
+            Ödev kontrolü yapıldığında öğrencilerin durumlarına göre verilecek puanları belirleyin.
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 1rem;">
+            <div class="m-form-group" style="margin-bottom: 0;">
+              <label class="m-form-label" style="color: var(--m-success);">Tam Yaparsa (+)</label>
+              <input type="number" class="m-form-input" id="m-cfg-pt-hw-full" value="4">
+            </div>
+            <div class="m-form-group" style="margin-bottom: 0;">
+              <label class="m-form-label" style="color: var(--m-warning);">Yarım Yaparsa (+)</label>
+              <input type="number" class="m-form-input" id="m-cfg-pt-hw-half" value="2">
+            </div>
+            <div class="m-form-group" style="margin-bottom: 0;">
+              <label class="m-form-label" style="color: var(--m-danger);">Yapmazsa (-)</label>
+              <input type="number" class="m-form-input" id="m-cfg-pt-hw-zero" value="-4">
+            </div>
+            <div class="m-form-group" style="margin-bottom: 0;">
+              <label class="m-form-label">Muaf Olursa (0/+)</label>
+              <input type="number" class="m-form-input" id="m-cfg-pt-hw-excused" value="0">
+            </div>
+          </div>
+
+          <!-- WhatsApp Grup Linki -->
+          <div style="background: rgba(37, 211, 102, 0.07); border: 1px solid rgba(37, 211, 102, 0.25); border-radius: var(--m-radius-sm); padding: 0.85rem;">
+            <label class="m-form-label" style="color: #15803d; font-weight: 700;">Sınıf WhatsApp Grup Davet Linki</label>
+            <div style="display: flex; gap: 6px;">
+              <input type="url" class="m-form-input" id="m-cfg-hw-whatsapp" placeholder="https://chat.whatsapp.com/..." style="flex: 1; font-size: 0.8rem;">
+              <button type="button" class="m-btn-sm" onclick="window.testMobileWhatsApp()" style="background: #25D366; color: white; border: none; padding: 6px 12px; font-weight: 700;">
+                Test Et
+              </button>
+            </div>
+            <span style="font-size: 0.72rem; color: var(--m-text-muted); margin-top: 0.3rem; display: block;">Ödev raporunu WhatsApp'tan gönderirken doğrudan bu gruba aktarır.</span>
+          </div>
+        </div>
+
+        <!-- 3.3 Kitap Puanları (Seviye 1 & Seviye 2) -->
+        <div class="m-form-card">
+          <div style="font-weight: 800; font-size: 0.95rem; margin-bottom: 0.5rem; color: #0284c7; display: flex; align-items: center; gap: 8px;">
+            <i data-lucide="book-open" style="width: 18px; height: 18px;"></i> Kitap Okuma Kriterleri & Süreleri
+          </div>
+          <div style="font-size: 0.76rem; color: var(--m-text-muted); line-height: 1.4; margin-bottom: 1rem;">
+            1. ve 2. seviye kitaplar için teslim puanı, geç teslim cezası ve makul okuma süresi (gün) sınırını ayarlayın.
+          </div>
+
+          <!-- 1. Seviye -->
+          <div style="background: rgba(16, 185, 129, 0.05); border: 1.5px solid rgba(16, 185, 129, 0.3); border-radius: var(--m-radius-sm); padding: 0.85rem; margin-bottom: 10px;">
+            <div style="font-weight: 800; font-size: 0.85rem; color: #059669; margin-bottom: 0.65rem;">📗 1. Seviye Kitaplar (Temel / İnce)</div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;">
+              <div>
+                <label style="font-size: 0.7rem; font-weight: 700; display: block; margin-bottom: 2px;">Zamanında (+)</label>
+                <input type="number" class="m-form-input" id="m-cfg-book-l1-ontime" value="10" style="padding: 6px; text-align: center;">
+              </div>
+              <div>
+                <label style="font-size: 0.7rem; font-weight: 700; display: block; margin-bottom: 2px;">Geç Teslim (0/-)</label>
+                <input type="number" class="m-form-input" id="m-cfg-book-l1-late" value="5" style="padding: 6px; text-align: center;">
+              </div>
+              <div>
+                <label style="font-size: 0.7rem; font-weight: 700; display: block; margin-bottom: 2px;">Süre (Gün)</label>
+                <input type="number" class="m-form-input" id="m-cfg-book-l1-limit" value="4" min="1" style="padding: 6px; text-align: center;">
+              </div>
+            </div>
+          </div>
+
+          <!-- 2. Seviye -->
+          <div style="background: rgba(147, 51, 234, 0.05); border: 1.5px solid rgba(147, 51, 234, 0.3); border-radius: var(--m-radius-sm); padding: 0.85rem;">
+            <div style="font-weight: 800; font-size: 0.85rem; color: #7c3aed; margin-bottom: 0.65rem;">📘 2. Seviye Kitaplar (İleri / Kalın)</div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;">
+              <div>
+                <label style="font-size: 0.7rem; font-weight: 700; display: block; margin-bottom: 2px;">Zamanında (+)</label>
+                <input type="number" class="m-form-input" id="m-cfg-book-l2-ontime" value="20" style="padding: 6px; text-align: center;">
+              </div>
+              <div>
+                <label style="font-size: 0.7rem; font-weight: 700; display: block; margin-bottom: 2px;">Geç Teslim (0/-)</label>
+                <input type="number" class="m-form-input" id="m-cfg-book-l2-late" value="10" style="padding: 6px; text-align: center;">
+              </div>
+              <div>
+                <label style="font-size: 0.7rem; font-weight: 700; display: block; margin-bottom: 2px;">Süre (Gün)</label>
+                <input type="number" class="m-form-input" id="m-cfg-book-l2-limit" value="7" min="1" style="padding: 6px; text-align: center;">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 3.4 Haftalık Sınav Başarı Puanları -->
+        <div class="m-form-card">
+          <div style="font-weight: 800; font-size: 0.95rem; margin-bottom: 0.5rem; color: var(--m-text); display: flex; align-items: center; gap: 8px;">
+            <i data-lucide="trending-up" style="width: 18px; height: 18px; color: var(--m-success);"></i> Haftalık Sınav Başarı Ödülleri
+          </div>
+          <div style="font-size: 0.76rem; color: var(--m-text-muted); line-height: 1.4; margin-bottom: 0.85rem;">
+            Haftalık sınavlarda dereceye giren ilk kaç öğrenciye puan verileceğini ve derecelerin puanlarını belirleyin.
+          </div>
+
+          <div class="m-form-group" style="max-width: 200px;">
+            <label class="m-form-label">Derece Sayısı (İlk N)</label>
+            <input type="number" class="m-form-input" id="m-cfg-exam-topcount" min="1" max="10" value="3" onchange="window.renderMobileExamRanks()">
+          </div>
+
+          <div id="m-cfg-exam-ranks-container" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 8px; margin-bottom: 1.25rem;">
+            <!-- JS ile dinamik gelecek -->
+          </div>
+
+          <!-- Puanları Kaydet Butonu -->
+          <button class="subview-primary-action-btn" onclick="window.saveMobilePointRules()" style="background: linear-gradient(135deg, var(--m-success), #059669);">
+            <i data-lucide="save" style="width: 18px; height: 18px;"></i> Tüm Puan & Kural Ayarlarını Kaydet
           </button>
         </div>
       </div>
 
-      <!-- Panel 4: Geçerli Hafta -->
+      <!-- ==========================================
+           PANEL 4: GEÇERLİ HAFTA
+           ========================================== -->
       <div class="config-panel" id="config-panel-week" style="display: none;">
         <div class="m-form-card">
-          <div style="font-weight: 800; font-size: 0.95rem; margin-bottom: 1rem; color: var(--m-info); display: flex; align-items: center; gap: 8px;">
+          <div style="font-weight: 800; font-size: 0.95rem; margin-bottom: 0.5rem; color: var(--m-info); display: flex; align-items: center; gap: 8px;">
             <i data-lucide="calendar" style="width: 18px; height: 18px;"></i> Aktif Eğitim Haftası
           </div>
-          <div style="font-size: 0.78rem; color: var(--m-text-muted); line-height: 1.4; margin-bottom: 1rem;">
-            Ders programı ve haftalık değerlendirmelerin işleneceği çalışma haftasını belirleyin.
+          <div style="font-size: 0.78rem; color: var(--m-text-muted); line-height: 1.45; margin-bottom: 1rem;">
+            Uygulamanın tamamında (ödevler, kitaplar, haftalık değerlendirme) geçerli olan çalışma haftasıdır.
           </div>
 
+          <!-- Aktif Hafta Göstergesi & Hızlı Gezinme -->
+          <div style="background: var(--m-bg); border: 1.5px solid var(--m-border); border-radius: var(--m-radius-sm); padding: 0.85rem; margin-bottom: 1rem; text-align: center;">
+            <div style="font-size: 0.72rem; text-transform: uppercase; font-weight: 800; color: var(--m-text-muted); letter-spacing: 0.5px; margin-bottom: 0.35rem;">
+              Şu An Takip Edilen Hafta
+            </div>
+            <div id="m-cfg-week-display-badge" style="font-size: 0.96rem; font-weight: 800; color: var(--m-primary); padding: 0.35rem 0.5rem; word-break: break-word;">
+              -
+            </div>
+            
+            <div style="display: flex; gap: 8px; margin-top: 0.75rem; justify-content: center;">
+              <button type="button" class="m-btn-sm" onclick="window.adjustMobileWeek(-1)" style="flex: 1; justify-content: center; background: var(--m-surface); border: 1px solid var(--m-border); color: var(--m-text); font-weight: 700; padding: 7px 8px;">
+                <i data-lucide="chevron-left" style="width: 16px; height: 16px;"></i> Önceki
+              </button>
+              <button type="button" class="m-btn-sm" onclick="window.resetMobileWeekToCurrent()" style="flex: 1.3; justify-content: center; background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); color: #2563eb; font-weight: 800; padding: 7px 8px;">
+                <i data-lucide="calendar-check" style="width: 16px; height: 16px;"></i> Bugün
+              </button>
+              <button type="button" class="m-btn-sm" onclick="window.adjustMobileWeek(1)" style="flex: 1; justify-content: center; background: var(--m-surface); border: 1px solid var(--m-border); color: var(--m-text); font-weight: 700; padding: 7px 8px;">
+                Sonraki <i data-lucide="chevron-right" style="width: 16px; height: 16px;"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- Haftalar Listesinden Seçim -->
           <div class="m-form-group">
-            <label class="m-form-label">Çalışma Haftası (1 - 36)</label>
-            <select class="m-form-select" id="m-cfg-week-select">
-              <!-- 1-36 haftalar JS ile gelecek -->
+            <label class="m-form-label">Tüm Eğitim Haftaları (1 - 40)</label>
+            <select class="m-form-select" id="m-cfg-week-select" onchange="window.saveMobileActiveWeek()" style="font-weight: 700; font-size: 0.88rem;">
+              <!-- Haftalar JS ile gelecek -->
             </select>
           </div>
 
-          <button class="subview-primary-action-btn" onclick="window.saveMobileActiveWeek()">
-            <i data-lucide="check" style="width: 18px; height: 18px;"></i> Haftayı Güncelle
-          </button>
+          <!-- Otomatik Pazartesi Bilgilendirme Kutusu -->
+          <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: var(--m-radius-sm); padding: 0.85rem; margin-top: 0.75rem;">
+            <div style="font-size: 0.84rem; font-weight: 800; color: #059669; margin-bottom: 0.35rem; display: flex; align-items: center; gap: 6px;">
+              <i data-lucide="refresh-cw" style="width: 16px; height: 16px;"></i> Otomatik Pazartesi Geçişi
+            </div>
+            <div style="font-size: 0.74rem; color: var(--m-text-muted); line-height: 1.45;">
+              Web sürümünde olduğu gibi, her <strong>Pazartesi</strong> günü yeni çalışma haftasına sistem tarafından otomatik olarak geçilir. Manuel olarak haftayı kapatmanıza gerek yoktur.
+            </div>
+          </div>
         </div>
       </div>
 
-      <!-- Panel 5: Öğrenci Yönetimi -->
+      <!-- ==========================================
+           PANEL 5: ÖĞRENCİ YÖNETİMİ
+           ========================================== -->
       <div class="config-panel" id="config-panel-students" style="display: none;">
+        
+        <!-- 5.1 Kayıtlı Öğrenci Listesi -->
         <div class="m-form-card">
-          <div style="font-weight: 800; font-size: 0.95rem; margin-bottom: 1rem; color: var(--m-success); display: flex; align-items: center; gap: 8px;">
-            <i data-lucide="user-plus" style="width: 18px; height: 18px;"></i> Yeni Öğrenci Ekle
-          </div>
-
-          <div class="m-form-group">
-            <label class="m-form-label">Öğrenci Adı</label>
-            <input type="text" class="m-form-input" id="m-cfg-st-name" placeholder="Ad">
-          </div>
-          <div class="m-form-group">
-            <label class="m-form-label">Öğrenci Soyadı</label>
-            <input type="text" class="m-form-input" id="m-cfg-st-surname" placeholder="Soyad">
-          </div>
-          <div class="m-form-group">
-            <label class="m-form-label">Okul Numarası</label>
-            <input type="number" class="m-form-input" id="m-cfg-st-no" placeholder="Örn: 104">
-          </div>
-          <div class="m-form-group">
-            <label class="m-form-label">Şube</label>
-            <select class="m-form-select" id="m-cfg-st-branch">
-              <!-- Şubeler -->
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+            <div style="font-weight: 800; font-size: 0.95rem; color: var(--m-text);">
+              Kayıtlı Öğrenciler (<span id="m-cfg-st-total">0</span>)
+            </div>
+            <select class="m-form-select" id="m-cfg-st-branch-filter" onchange="window.renderConfigStudentsList()" style="width: auto; padding: 4px 8px; font-size: 0.78rem;">
+              <!-- Şube filtreleri -->
             </select>
           </div>
 
-          <button class="subview-primary-action-btn" onclick="window.addMobileStudent()">
-            <i data-lucide="plus" style="width: 18px; height: 18px;"></i> Öğrenciyi Kaydet
-          </button>
-        </div>
+          <!-- Arama Kutusu -->
+          <div class="search-box-wrap" style="margin-bottom: 0.85rem;">
+            <i data-lucide="search" class="search-box-icon"></i>
+            <input type="text" class="search-box-input" id="m-cfg-st-search" placeholder="Öğrenci adı veya numarası ara..." oninput="window.renderConfigStudentsList()">
+          </div>
 
-        <div style="font-weight: 800; font-size: 0.9rem; margin-bottom: 0.5rem; color: var(--m-text);">
-          Kayıtlı Öğrenciler (<span id="m-cfg-st-total">0</span>)
-        </div>
-        <div id="m-cfg-students-list">
-          <!-- Öğrenci listesi -->
+          <div id="m-cfg-students-list">
+            <!-- Öğrenci listesi -->
+          </div>
         </div>
       </div>
 
-      <!-- Panel 6: Şifre Kontrolü (Uygulama Kilidi) -->
+      <!-- ==========================================
+           PANEL 6: ŞİFRE KONTROLÜ (UYGULAMA KİLİDİ)
+           ========================================== -->
       <div class="config-panel" id="config-panel-lock" style="display: none;">
         <div class="m-form-card">
-          <div style="font-weight: 800; font-size: 0.95rem; margin-bottom: 1rem; color: var(--m-danger); display: flex; align-items: center; gap: 8px;">
+          <div style="font-weight: 800; font-size: 0.95rem; margin-bottom: 0.65rem; color: var(--m-danger); display: flex; align-items: center; gap: 8px;">
             <i data-lucide="lock" style="width: 18px; height: 18px;"></i> Uygulama Kilidi & PIN Güvenliği
           </div>
-          <div style="font-size: 0.78rem; color: var(--m-text-muted); line-height: 1.4; margin-bottom: 1rem;">
-            Öğrencilerin akıllı tahtada veya telefonda notlara ve ayarlara erişmesini engellemek için 4 haneli PIN belirleyin.
+          <div style="font-size: 0.78rem; color: var(--m-text-muted); line-height: 1.45; margin-bottom: 1rem;">
+            Öğrencilerin akıllı tahtada veya telefonda notlara ve hassas ayarlara erişmesini engellemek için 4 haneli PIN belirleyin.
+          </div>
+
+          <!-- Kilit Durumu -->
+          <div style="background: var(--m-bg); border: 1px solid var(--m-border); border-radius: var(--m-radius-sm); padding: 0.75rem; display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+            <span style="font-size: 0.82rem; font-weight: 700;">Kilit Durumu:</span>
+            <span id="m-cfg-pin-status">Yükleniyor...</span>
           </div>
 
           <div class="m-form-group">
             <label class="m-form-label">PIN Kodu (4 Hane)</label>
-            <input type="password" maxlength="4" class="m-form-input" id="m-cfg-pin-code" placeholder="****" style="text-align: center; font-size: 1.25rem; letter-spacing: 6px;">
+            <input type="password" maxlength="4" class="m-form-input" id="m-cfg-pin-code" placeholder="****" style="text-align: center; font-size: 1.35rem; letter-spacing: 8px; font-weight: 800;">
           </div>
 
           <div style="display: flex; gap: 8px;">
-            <button class="m-btn-sm primary" onclick="window.saveMobilePin()">PIN'i Güncelle</button>
-            <button class="m-btn-sm" onclick="window.removeMobilePin()">Kilidi Kaldır</button>
+            <button class="m-btn-sm primary" onclick="window.saveMobilePin()" style="flex: 1; justify-content: center;">
+              <i data-lucide="save" style="width: 14px; height: 14px;"></i> PIN'i Kaydet
+            </button>
+            <button class="m-btn-sm danger" onclick="window.removeMobilePin()" style="flex: 1; justify-content: center;">
+              <i data-lucide="unlock" style="width: 14px; height: 14px;"></i> Kilidi Kaldır
+            </button>
           </div>
         </div>
       </div>
 
-      <!-- Panel 7: Kullanım Kılavuzu & Bilgi -->
+      <!-- ==========================================
+           PANEL 7: KULLANIM KILAVUZU & MODÜL REHBERİ
+           ========================================== -->
       <div class="config-panel" id="config-panel-manual" style="display: none;">
         <div class="m-form-card">
-          <div style="font-weight: 800; font-size: 0.95rem; margin-bottom: 0.5rem; color: var(--m-primary);">
-            📱 Sınıf Asistanı Android Sürümü
+          <div style="font-weight: 800; font-size: 0.95rem; margin-bottom: 0.35rem; color: var(--m-primary);">
+            📱 Sınıf Asistanı Kullanım Kılavuzu
           </div>
-          <div style="font-size: 0.8rem; color: var(--m-text-muted); margin-bottom: 1rem;">
-            Versiyon: <strong>v1.0.29</strong> — Geliştirici: Barış Gençoğlu
+          <div style="font-size: 0.75rem; color: var(--m-text-muted); margin-bottom: 1rem;">
+            Versiyon: <strong>v1.0.30</strong> — Geliştirici: <strong>Barış Gençoğlu</strong>
           </div>
 
-          <div style="font-size: 0.82rem; line-height: 1.5; color: var(--m-text); display: flex; flex-direction: column; gap: 8px;">
-            <div>✅ <strong>Bento Menü & Modüller:</strong> Tüm sekmeler yerel Android arayüzüne taşınmıştır, web moduna geçiş yapmaz.</div>
-            <div>✅ <strong>Hızlı Ödev Takibi:</strong> Tüm liste sekmesinde gün gün ödev kontrolü yapılabilir.</div>
-            <div>✅ <strong>Yüzen Menü (FAB):</strong> Görevler ve ders materyallerinde hızlı filtreleme sağlar.</div>
-            <div>✅ <strong>Hamburger Menü:</strong> Asistan ayarları arasında tek dokunuşla geçiş imkanı tanır.</div>
+          <div style="display: flex; flex-direction: column;">
+            <!-- Konu 1 -->
+            <div class="m-accordion-item" onclick="window.toggleMobileManualAccordion(this)">
+              <div class="m-accordion-header">
+                <span>⚙️ Genel Ayarlar ve Lisans Yönetimi</span>
+                <i data-lucide="chevron-down" class="m-accordion-chevron"></i>
+              </div>
+              <div class="m-accordion-body">
+                Tema seçimi, kademe ayarları, veri yedekleme ve lisans aktifleştirme işlemleri bu bölümden yönetilir. Lisans anahtarınızı girerek tüm cihaz özelliklerini sınırsızca kullanabilirsiniz.
+              </div>
+            </div>
+
+            <!-- Konu 2 -->
+            <div class="m-accordion-item" onclick="window.toggleMobileManualAccordion(this)">
+              <div class="m-accordion-header">
+                <span>🏆 Puanlama ve Davranış Takibi</span>
+                <i data-lucide="chevron-down" class="m-accordion-chevron"></i>
+              </div>
+              <div class="m-accordion-body">
+                Öğrencilere derste gösterdikleri olumlu veya geliştirilmesi gereken tutumlar için hızlıca artı ve eksi puanlar verebilirsiniz. Davranış başlıklarını Puan Ayarları bölümünden dilediğiniz gibi özelleştirebilirsiniz.
+              </div>
+            </div>
+
+            <!-- Konu 3 -->
+            <div class="m-accordion-item" onclick="window.toggleMobileManualAccordion(this)">
+              <div class="m-accordion-header">
+                <span>📝 Ödev Takip Sistemi & WhatsApp</span>
+                <i data-lucide="chevron-down" class="m-accordion-chevron"></i>
+              </div>
+              <div class="m-accordion-body">
+                Günlük ödev kontrolünü hızlı liste veya tek tek öğrenci kartı moduyla tamamlayabilirsiniz. Ödev kontrolü bittiğinde tek dokunuşla sınıf WhatsApp grubuna ödev yapmayanların listesini otomatik mesaj olarak paylaşabilirsiniz.
+              </div>
+            </div>
+
+            <!-- Konu 4 -->
+            <div class="m-accordion-item" onclick="window.toggleMobileManualAccordion(this)">
+              <div class="m-accordion-header">
+                <span>📚 Kitap Okuma Takibi & Soru Havuzu</span>
+                <i data-lucide="chevron-down" class="m-accordion-chevron"></i>
+              </div>
+              <div class="m-accordion-body">
+                Öğrencilere kitap ödünç verebilir, makul okuma süresini aşan gecikmeleri renkli rozetlerle takip edebilirsiniz. Kitap tesliminde yapay zeka ile kitaba özel soru havuzu oluşturabilir ve değerlendirebilirsiniz.
+              </div>
+            </div>
+
+            <!-- Konu 5 -->
+            <div class="m-accordion-item" onclick="window.toggleMobileManualAccordion(this)">
+              <div class="m-accordion-header">
+                <span>📊 Raporlama, İstatistikler ve Karne</span>
+                <i data-lucide="chevron-down" class="m-accordion-chevron"></i>
+              </div>
+              <div class="m-accordion-body">
+                Haftalık veya dönemlik olarak sınıfın genel başarı durumunu, en çok kitap okuyanları ve ödev performanslarını tek tıkla görsel karne veya PDF raporu olarak dışa aktarabilirsiniz.
+              </div>
+            </div>
+
+            <!-- Konu 6 -->
+            <div class="m-accordion-item" onclick="window.toggleMobileManualAccordion(this)">
+              <div class="m-accordion-header">
+                <span>🎲 Oyunlar, Çarkıfelek ve Materyaller</span>
+                <i data-lucide="chevron-down" class="m-accordion-chevron"></i>
+              </div>
+              <div class="m-accordion-body">
+                Dersi eğlenceli hale getirmek için Çarkıfelek, kronometre, rastgele öğrenci seçici ve ders materyallerini dilediğiniz zaman Diğer menüsünden başlatabilirsiniz.
+              </div>
+            </div>
           </div>
         </div>
       </div>
+
+    </div>
+
+    <!-- Konfigürasyon Yüzen Menüsü (FAB - Floating Action Button) -->
+    <div class="mobile-fab-container" id="m-config-fab-container">
+      <div class="mobile-fab-menu" id="m-config-fab-menu" style="min-width: 210px; max-height: 70vh; overflow-y: auto;">
+        <button class="mobile-fab-item active" id="cfg-fab-general" onclick="window.switchConfigPanel('general')">
+          <i data-lucide="settings" style="width: 16px; height: 16px; color: var(--m-primary);"></i>
+          <span>Genel & Lisans</span>
+        </button>
+        <button class="mobile-fab-item" id="cfg-fab-ai" onclick="window.switchConfigPanel('ai')">
+          <i data-lucide="sparkles" style="width: 16px; height: 16px; color: #8b5cf6;"></i>
+          <span>Yapay Zeka (AI)</span>
+        </button>
+        <button class="mobile-fab-item" id="cfg-fab-points" onclick="window.switchConfigPanel('points')">
+          <i data-lucide="award" style="width: 16px; height: 16px; color: var(--m-warning);"></i>
+          <span>Puan & Kurallar</span>
+        </button>
+        <button class="mobile-fab-item" id="cfg-fab-week" onclick="window.switchConfigPanel('week')">
+          <i data-lucide="calendar" style="width: 16px; height: 16px; color: var(--m-info);"></i>
+          <span>Geçerli Hafta</span>
+        </button>
+        <button class="mobile-fab-item" id="cfg-fab-students" onclick="window.switchConfigPanel('students')">
+          <i data-lucide="users" style="width: 16px; height: 16px; color: var(--m-success);"></i>
+          <span>Öğrenci Yönetimi</span>
+        </button>
+        <button class="mobile-fab-item" id="cfg-fab-lock" onclick="window.switchConfigPanel('lock')">
+          <i data-lucide="lock" style="width: 16px; height: 16px; color: var(--m-danger);"></i>
+          <span>Şifre Kontrolü</span>
+        </button>
+        <button class="mobile-fab-item" id="cfg-fab-manual" onclick="window.switchConfigPanel('manual')">
+          <i data-lucide="help-circle" style="width: 16px; height: 16px; color: #64748b;"></i>
+          <span>Kullanım Kılavuzu</span>
+        </button>
+      </div>
+      <button class="mobile-fab-btn" id="m-config-fab-btn" onclick="window.toggleConfigFabMenu()" title="Ayarlar Menüsü">
+        <i data-lucide="sliders" style="width: 22px; height: 22px;"></i>
+      </button>
     </div>
   </div>
 
-  <!-- Hamburger Çekmecesi (Drawer) & Arka Plan Karartması -->
-  <div class="config-drawer-backdrop" id="config-drawer-backdrop" onclick="window.closeConfigDrawer()"></div>
-  <div class="config-drawer" id="config-drawer">
-    <div class="config-drawer-header">
-      <div class="config-drawer-title">
-        <i data-lucide="settings" style="width: 20px; height: 20px; color: var(--m-primary);"></i>
-        <span>Konfigürasyon</span>
-      </div>
-      <button class="sheet-close-btn" onclick="window.closeConfigDrawer()">&times;</button>
+  <!-- Öğrenci Düzenleme Bottom Sheet Modalı -->
+  <div class="bottom-sheet" id="modal-edit-student" style="max-height: 85vh;">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header">
+      <div class="sheet-title">Öğrenci Bilgilerini Düzenle</div>
+      <button class="sheet-close-btn" onclick="window.closeBottomSheet()">&times;</button>
     </div>
-
-    <div class="config-drawer-list">
-      <button class="config-drawer-item active" data-panel="general" onclick="window.switchConfigPanel('general')">
-        <i data-lucide="sliders" style="width: 18px; height: 18px;"></i>
-        <span>Genel Ayarlar</span>
-      </button>
-      <button class="config-drawer-item" data-panel="ai" onclick="window.switchConfigPanel('ai')">
-        <i data-lucide="sparkles" style="width: 18px; height: 18px; color: #8b5cf6;"></i>
-        <span>Yapay Zeka (AI)</span>
-      </button>
-      <button class="config-drawer-item" data-panel="points" onclick="window.switchConfigPanel('points')">
-        <i data-lucide="award" style="width: 18px; height: 18px; color: var(--m-warning);"></i>
-        <span>Puan Ayarları</span>
-      </button>
-      <button class="config-drawer-item" data-panel="week" onclick="window.switchConfigPanel('week')">
-        <i data-lucide="calendar" style="width: 18px; height: 18px; color: var(--m-info);"></i>
-        <span>Geçerli Hafta</span>
-      </button>
-      <button class="config-drawer-item" data-panel="students" onclick="window.switchConfigPanel('students')">
-        <i data-lucide="users" style="width: 18px; height: 18px; color: var(--m-success);"></i>
-        <span>Öğrenci Yönetimi</span>
-      </button>
-      <button class="config-drawer-item" data-panel="lock" onclick="window.switchConfigPanel('lock')">
-        <i data-lucide="lock" style="width: 18px; height: 18px; color: var(--m-danger);"></i>
-        <span>Şifre Kontrolü</span>
-      </button>
-      <button class="config-drawer-item" data-panel="manual" onclick="window.switchConfigPanel('manual')">
-        <i data-lucide="help-circle" style="width: 18px; height: 18px;"></i>
-        <span>Kullanım Kılavuzu</span>
+    <div style="padding: 0 1.25rem 1.5rem 1.25rem;">
+      <input type="hidden" id="m-edit-st-id">
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+        <div class="m-form-group">
+          <label class="m-form-label">Ad</label>
+          <input type="text" class="m-form-input" id="m-edit-st-name">
+        </div>
+        <div class="m-form-group">
+          <label class="m-form-label">Soyad</label>
+          <input type="text" class="m-form-input" id="m-edit-st-surname">
+        </div>
+      </div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;" id="m-edit-st-no-branch-row">
+        <div class="m-form-group">
+          <label class="m-form-label">Okul No</label>
+          <input type="number" class="m-form-input" id="m-edit-st-no">
+        </div>
+        <div class="m-form-group" id="m-edit-st-branch-group">
+          <label class="m-form-label">Şube</label>
+          <select class="m-form-select" id="m-edit-st-branch"></select>
+        </div>
+      </div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+        <div class="m-form-group">
+          <label class="m-form-label">Cinsiyet</label>
+          <select class="m-form-select" id="m-edit-st-gender">
+            <option value="male">Erkek</option>
+            <option value="female">Kız</option>
+          </select>
+        </div>
+        <div class="m-form-group">
+          <label class="m-form-label">Veli Telefonu</label>
+          <input type="tel" class="m-form-input" id="m-edit-st-phone">
+        </div>
+      </div>
+      <button class="subview-primary-action-btn" onclick="window.saveEditedStudent()">
+        <i data-lucide="check" style="width: 18px; height: 18px;"></i> Güncellemeyi Kaydet
       </button>
     </div>
   </div>
@@ -1028,7 +1487,7 @@
        MODALLER (GÖREV TANIMLAMA, RAPOR OLUŞTURMA, MATERYAL, ARAÇLAR)
        ========================================================================== -->
   <!-- 1. Görev Tanımla Modalı -->
-  <div class="bottom-sheet" id="modal-assign-task" style="z-index: 200;">
+  <div class="bottom-sheet" id="modal-assign-task">
     <div class="sheet-handle"></div>
     <div class="sheet-header">
       <div class="sheet-title">Yeni Görev Tanımla</div>
@@ -1066,7 +1525,7 @@
   </div>
 
   <!-- 2. Rapor Oluştur Modalı -->
-  <div class="bottom-sheet" id="modal-create-report" style="z-index: 200;">
+  <div class="bottom-sheet" id="modal-create-report">
     <div class="sheet-handle"></div>
     <div class="sheet-header">
       <div class="sheet-title">Gelişim Raporu Üret</div>
@@ -1097,7 +1556,7 @@
   </div>
 
   <!-- 3. Rapor Görüntüle Modalı -->
-  <div class="bottom-sheet" id="modal-view-report" style="z-index: 200; max-height: 85vh;">
+  <div class="bottom-sheet" id="modal-view-report" style="max-height: 85vh;">
     <div class="sheet-handle"></div>
     <div class="sheet-header">
       <div class="sheet-title" id="m-view-report-title">Rapor Detayı</div>
@@ -1109,7 +1568,7 @@
   </div>
 
   <!-- 4. Materyal Oluştur Modalı -->
-  <div class="bottom-sheet" id="modal-create-material" style="z-index: 200;">
+  <div class="bottom-sheet" id="modal-create-material">
     <div class="sheet-handle"></div>
     <div class="sheet-header">
       <div class="sheet-title">Yeni Materyal Tanımla</div>
@@ -1138,7 +1597,7 @@
   </div>
 
   <!-- 5. Araç Modalı (Genel Araç Gösterim Penceresi) -->
-  <div class="bottom-sheet" id="modal-tool-window" style="z-index: 200; max-height: 80vh;">
+  <div class="bottom-sheet" id="modal-tool-window" style="max-height: 80vh;">
     <div class="sheet-handle"></div>
     <div class="sheet-header">
       <div class="sheet-title" id="m-tool-window-title">Araç</div>
@@ -1146,6 +1605,272 @@
     </div>
     <div style="padding: 0 1.25rem 1.5rem 1.25rem; overflow-y: auto;" id="m-tool-window-body">
       <!-- Dinamik Araç İçeriği -->
+    </div>
+  </div>
+
+  <!-- 6. Kitap Ver Modalı -->
+  <div class="bottom-sheet" id="modal-give-book" style="max-height: 85vh;">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header">
+      <div class="sheet-title">📖 Öğrenciye Kitap Ver</div>
+      <button class="sheet-close-btn" onclick="window.closeBottomSheet()">&times;</button>
+    </div>
+    <div style="padding: 0 1.25rem 1.75rem 1.25rem; overflow-y: auto;">
+      <div class="mobile-input-group" style="margin-bottom: 0.85rem;">
+        <label style="font-size: 0.8rem; font-weight: 700; color: var(--m-text-muted); display: block; margin-bottom: 4px;">Öğrenci</label>
+        <select id="m-give-book-student" class="mobile-input">
+          <!-- JS ile doldurulacak -->
+        </select>
+      </div>
+      <div class="mobile-input-group" style="margin-bottom: 0.85rem;">
+        <label style="font-size: 0.8rem; font-weight: 700; color: var(--m-text-muted); display: block; margin-bottom: 4px;">Kitap (Kütüphanede Müsait Olanlar)</label>
+        <select id="m-give-book-book" class="mobile-input">
+          <!-- JS ile doldurulacak -->
+        </select>
+      </div>
+      <div class="mobile-input-group" style="margin-bottom: 1.15rem;">
+        <label style="font-size: 0.8rem; font-weight: 700; color: var(--m-text-muted); display: block; margin-bottom: 4px;">Veriliş Tarihi</label>
+        <input type="date" id="m-give-book-date" class="mobile-input">
+      </div>
+      <button class="subview-primary-action-btn" onclick="window.submitGiveBook()">
+        <i data-lucide="check" style="width: 18px; height: 18px;"></i> Kitabı Öğrenciye Teslim Et
+      </button>
+    </div>
+  </div>
+
+  <!-- 7. Kitap Yönetim ve Teslim Alma Modalı -->
+  <div class="bottom-sheet" id="modal-manage-reading-book" style="max-height: 90vh;">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header">
+      <div class="sheet-title" id="m-manage-book-header-title">Kitap Detayı</div>
+      <button class="sheet-close-btn" onclick="window.closeBottomSheet()">&times;</button>
+    </div>
+    <div style="padding: 0 1.25rem 1.75rem 1.25rem; overflow-y: auto;" id="m-manage-book-body">
+      <!-- Dinamik İçerik -->
+    </div>
+  </div>
+
+  <!-- 8. Kitap Soruları Modalı (Soru Görüntüleme & Ekleme) -->
+  <div class="bottom-sheet" id="modal-book-questions" style="max-height: 90vh;">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header">
+      <div style="min-width: 0; flex: 1;">
+        <div class="sheet-title" id="m-questions-book-title" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Kitap Soruları</div>
+        <div style="font-size: 0.75rem; color: var(--m-text-muted);" id="m-questions-book-author">Yazar</div>
+      </div>
+      <button class="sheet-close-btn" onclick="window.closeBottomSheet()">&times;</button>
+    </div>
+    <div style="padding: 0 1.25rem 1.75rem 1.25rem; overflow-y: auto;" id="m-book-questions-body">
+      <!-- Dinamik: Mevcut sorular listesi + Yeni soru ekleme formu -->
+    </div>
+  </div>
+
+  <!-- 9. Yeni Kitap Ekle Modalı -->
+  <div class="bottom-sheet" id="modal-add-book" style="max-height: 85vh;">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header">
+      <div class="sheet-title">📚 Yeni Kitap Ekle</div>
+      <button class="sheet-close-btn" onclick="window.closeBottomSheet()">&times;</button>
+    </div>
+    <div style="padding: 0 1.25rem 1.75rem 1.25rem; overflow-y: auto;">
+      <div class="m-form-group">
+        <label class="m-form-label">Kitap Adı *</label>
+        <input type="text" class="m-form-input" id="m-new-book-title" placeholder="Örn: Küçük Prens">
+      </div>
+      <div class="m-form-group">
+        <label class="m-form-label">Yazar Adı</label>
+        <input type="text" class="m-form-input" id="m-new-book-author" placeholder="Örn: Antoine de Saint-Exupéry">
+      </div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+        <div class="m-form-group">
+          <label class="m-form-label">Sayfa Sayısı</label>
+          <input type="number" class="m-form-input" id="m-new-book-pages" placeholder="Örn: 96" min="1">
+        </div>
+        <div class="m-form-group">
+          <label class="m-form-label">Kitap No / Barkod</label>
+          <input type="text" class="m-form-input" id="m-new-book-no" placeholder="Örn: 12">
+        </div>
+      </div>
+      <div class="m-form-group">
+        <label class="m-form-label">Kitap Seviyesi</label>
+        <select class="m-form-select" id="m-new-book-level">
+          <option value="seviye_1">1. Seviye (Temel / İnce Kitaplar)</option>
+          <option value="seviye_2">2. Seviye (İleri / Kalın Kitaplar)</option>
+        </select>
+        <span style="font-size: 0.72rem; color: var(--m-text-muted); margin-top: 2px; display: block;">Kitabın seviyesine göre teslim süresi ve okuma puanı hesaplanır.</span>
+      </div>
+      <button class="subview-primary-action-btn" onclick="window.saveNewBook()" style="background: linear-gradient(135deg, var(--m-success), #059669); margin-top: 0.5rem;">
+        <i data-lucide="check" style="width: 18px; height: 18px;"></i> Kitabı Kütüphaneye Kaydet
+      </button>
+    </div>
+  </div>
+
+  <!-- Gizli AI Kamera / Görsel Dosya Girişi -->
+  <input type="file" id="m-ai-student-file-input" accept="image/*" capture="environment" style="display: none;" onchange="window.handleAiStudentImageSelected(event)">
+
+  <!-- 10. Öğrenci Ekleme Yöntemi Seçim Modalı -->
+  <div class="bottom-sheet" id="modal-add-student-method" style="max-height: 80vh;">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header">
+      <div class="sheet-title">👤 Öğrenci Ekle</div>
+      <button class="sheet-close-btn" onclick="window.closeBottomSheet()">&times;</button>
+    </div>
+    <div style="padding: 0 1.25rem 1.75rem 1.25rem;">
+      <div style="font-size: 0.8rem; color: var(--m-text-muted); line-height: 1.4; margin-bottom: 1.25rem;">
+        Sınıfa yeni öğrencileri nasıl eklemek istersiniz?
+      </div>
+
+      <!-- Seçenek 1: Yapay Zeka ile Ekle -->
+      <div class="m-card-btn" onclick="window.selectAddStudentMethod('ai')" style="display: flex; align-items: center; gap: 14px; padding: 1.1rem; border-radius: var(--m-radius-md); background: linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(168, 85, 247, 0.12)); border: 1.5px solid rgba(139, 92, 246, 0.35); margin-bottom: 0.85rem; cursor: pointer;">
+        <div style="width: 46px; height: 46px; border-radius: 12px; background: linear-gradient(135deg, #6366f1, #a855f7); display: flex; align-items: center; justify-content: center; color: white; flex-shrink: 0; box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);">
+          <i data-lucide="sparkles" style="width: 24px; height: 24px;"></i>
+        </div>
+        <div style="flex: 1; min-width: 0;">
+          <div style="font-weight: 800; font-size: 0.95rem; color: var(--m-text); display: flex; align-items: center; gap: 6px;">
+            <span>Yapay Zeka ile Listeden Tara</span>
+            <span style="background: #a855f7; color: white; font-size: 0.65rem; font-weight: 800; padding: 2px 6px; border-radius: 999px;">Önerilen</span>
+          </div>
+          <div style="font-size: 0.74rem; color: var(--m-text-muted); line-height: 1.35; margin-top: 3px;">
+            Sınıf listesinin fotoğrafını çekin, yapay zeka tüm öğrencileri otomatik okuyup eklesin.
+          </div>
+        </div>
+        <i data-lucide="chevron-right" style="width: 18px; height: 18px; color: var(--m-text-muted);"></i>
+      </div>
+
+      <!-- Seçenek 2: Manuel Ekle -->
+      <div class="m-card-btn" onclick="window.selectAddStudentMethod('manual')" style="display: flex; align-items: center; gap: 14px; padding: 1.1rem; border-radius: var(--m-radius-md); background: var(--m-surface); border: 1.5px solid var(--m-border); cursor: pointer;">
+        <div style="width: 46px; height: 46px; border-radius: 12px; background: rgba(59, 130, 246, 0.12); color: #2563eb; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+          <i data-lucide="edit-3" style="width: 22px; height: 22px;"></i>
+        </div>
+        <div style="flex: 1; min-width: 0;">
+          <div style="font-weight: 800; font-size: 0.95rem; color: var(--m-text);">
+            Manuel (Elle) Ekle
+          </div>
+          <div style="font-size: 0.74rem; color: var(--m-text-muted); line-height: 1.35; margin-top: 3px;">
+            Öğrenci bilgilerini (Ad, Soyad, Numara, Şube) form üzerinden tek tek elle girin.
+          </div>
+        </div>
+        <i data-lucide="chevron-right" style="width: 18px; height: 18px; color: var(--m-text-muted);"></i>
+      </div>
+    </div>
+  </div>
+
+  <!-- 10.1 Manuel Öğrenci Ekleme Modalı -->
+  <div class="bottom-sheet" id="modal-add-student-manual" style="max-height: 85vh;">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header">
+      <div class="sheet-title">👤 Yeni Öğrenci Ekle</div>
+      <button class="sheet-close-btn" onclick="window.closeBottomSheet()">&times;</button>
+    </div>
+    <div style="padding: 0 1.25rem 1.5rem 1.25rem; overflow-y: auto;">
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+        <div class="m-form-group">
+          <label class="m-form-label">Ad</label>
+          <input type="text" class="m-form-input" id="m-cfg-st-name" placeholder="Örn: Ahmet">
+        </div>
+        <div class="m-form-group">
+          <label class="m-form-label">Soyad</label>
+          <input type="text" class="m-form-input" id="m-cfg-st-surname" placeholder="Örn: Yılmaz">
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;" id="m-cfg-st-no-branch-row">
+        <div class="m-form-group">
+          <label class="m-form-label">Okul Numarası</label>
+          <input type="number" class="m-form-input" id="m-cfg-st-no" placeholder="Örn: 104">
+        </div>
+        <div class="m-form-group" id="m-cfg-st-branch-group">
+          <label class="m-form-label">Şube</label>
+          <select class="m-form-select" id="m-cfg-st-branch">
+            <!-- Şubeler -->
+          </select>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+        <div class="m-form-group">
+          <label class="m-form-label">Cinsiyet</label>
+          <select class="m-form-select" id="m-cfg-st-gender">
+            <option value="male">Erkek</option>
+            <option value="female">Kız</option>
+          </select>
+        </div>
+        <div class="m-form-group">
+          <label class="m-form-label">Veli Telefonu</label>
+          <input type="tel" class="m-form-input" id="m-cfg-st-phone" placeholder="05XXXXXXXXX">
+        </div>
+      </div>
+
+      <button class="subview-primary-action-btn" onclick="window.addMobileStudent()" style="background: linear-gradient(135deg, var(--m-success), #059669); margin-top: 1rem;">
+        <i data-lucide="plus" style="width: 18px; height: 18px;"></i> Öğrenciyi Kaydet
+      </button>
+    </div>
+  </div>
+
+  <!-- 11. AI Görsel Analiz Bekleme Modalı -->
+  <div class="bottom-sheet" id="modal-ai-student-loading" style="max-height: 60vh; text-align: center;">
+    <div class="sheet-handle"></div>
+    <div style="padding: 2.25rem 1.5rem; display: flex; flex-direction: column; align-items: center;">
+      <div style="width: 64px; height: 64px; border-radius: 20px; background: linear-gradient(135deg, #6366f1, #a855f7); display: flex; align-items: center; justify-content: center; color: white; margin-bottom: 1.25rem; animation: mPulse 1.5s infinite; box-shadow: 0 8px 24px rgba(139, 92, 246, 0.35);">
+        <i data-lucide="sparkles" style="width: 32px; height: 32px;"></i>
+      </div>
+      <div style="font-weight: 800; font-size: 1.1rem; color: var(--m-text); margin-bottom: 0.5rem;" id="m-ai-loading-title">
+        Görsel Analiz Ediliyor...
+      </div>
+      <div style="font-size: 0.8rem; color: var(--m-text-muted); line-height: 1.45; max-width: 280px;" id="m-ai-loading-desc">
+        Google Gemini yapay zekası sınıf listenizdeki öğrencileri ve numaraları inceliyor. Lütfen bekleyin...
+      </div>
+      <div style="margin-top: 1.5rem; display: flex; align-items: center; gap: 8px; color: var(--m-primary); font-size: 0.78rem; font-weight: 700;">
+        <span class="m-spinner" style="width: 16px; height: 16px; border: 2px solid var(--m-primary); border-top-color: transparent; border-radius: 50%; display: inline-block;"></span>
+        <span>Yapay zeka yanıtı bekleniyor...</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 12. AI Tespit Edilen Öğrenciler Önizleme Modalı -->
+  <div class="bottom-sheet" id="modal-ai-student-preview" style="max-height: 90vh; display: flex; flex-direction: column;">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header" style="flex-shrink: 0;">
+      <div>
+        <div class="sheet-title" style="display: flex; align-items: center; gap: 6px;">
+          <span>📸 Tespit Edilen Öğrenciler</span>
+          <span class="m-badge m-badge-active" id="m-ai-preview-count" style="font-size: 0.75rem;">0</span>
+        </div>
+        <div style="font-size: 0.72rem; color: var(--m-text-muted); margin-top: 2px;">
+          Öğrencileri kontrol edip onaylayarak sınıfa kaydedin
+        </div>
+      </div>
+      <button class="sheet-close-btn" onclick="window.closeBottomSheet()">&times;</button>
+    </div>
+
+    <!-- Üst Kontrol Barı: Şube Seçimi ve Toplu Seçim -->
+    <div style="padding: 0.6rem 1.25rem; background: var(--m-bg); border-bottom: 1px solid var(--m-border); display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-shrink: 0;">
+      <div style="display: flex; align-items: center; gap: 6px; flex: 1;" id="m-ai-branch-container">
+        <label style="font-size: 0.75rem; font-weight: 700; color: var(--m-text-muted); white-space: nowrap;">Eklenecek Şube:</label>
+        <select class="m-form-select" id="m-ai-preview-branch" onchange="window.updateAiPreviewBranch(this.value)" style="padding: 4px 8px; font-size: 0.8rem; font-weight: 700; min-width: 90px;">
+          <!-- Şubeler JS ile dolacak -->
+        </select>
+      </div>
+
+      <button type="button" class="m-btn-sm" onclick="window.toggleSelectAllAiStudents()" style="background: var(--m-surface); border: 1px solid var(--m-border); font-size: 0.72rem; padding: 5px 8px; font-weight: 700; border-radius: var(--m-radius-sm); white-space: nowrap;">
+        <span id="m-ai-toggle-select-text">Tümünü Kaldır</span>
+      </button>
+    </div>
+
+    <!-- Kaydırılabilir Öğrenci Listesi -->
+    <div id="m-ai-preview-list-container" style="flex: 1; overflow-y: auto; padding: 0.75rem 1.25rem; min-height: 180px;">
+      <!-- Dinamik öğrenci satırları -->
+    </div>
+
+    <!-- Alt Butonlar -->
+    <div style="padding: 0.85rem 1.25rem 1.5rem 1.25rem; border-top: 1px solid var(--m-border); background: var(--m-surface); flex-shrink: 0; display: flex; gap: 8px;">
+      <button type="button" class="subview-secondary-btn" style="flex: 1; margin: 0; padding: 0.75rem;" onclick="window.closeBottomSheet()">
+        İptal
+      </button>
+      <button type="button" class="subview-primary-action-btn" style="flex: 2; margin: 0; padding: 0.75rem; background: linear-gradient(135deg, #10b981, #059669);" onclick="window.confirmSaveAiStudents()">
+        <i data-lucide="user-check" style="width: 18px; height: 18px;"></i>
+        <span id="m-ai-confirm-btn-text">Seçilenleri Sınıfa Ekle</span>
+      </button>
     </div>
   </div>
 
@@ -1195,29 +1920,30 @@
        SABİT ALT MENÜ (BOTTOM NAVIGATION BAR)
        ========================================================================== -->
   <nav class="mobile-bottom-nav">
-    <button class="nav-item-btn active" data-tab="performance">
+    <button class="nav-item-btn active" data-tab="performance" onclick="window.switchTab('performance')">
       <i data-lucide="award"></i>
       <span>Puan</span>
     </button>
-    <button class="nav-item-btn" data-tab="homework">
+    <button class="nav-item-btn" data-tab="homework" onclick="window.switchTab('homework')">
       <i data-lucide="clipboard-check"></i>
       <span>Ödev</span>
     </button>
-    <button class="nav-item-btn" data-tab="books">
+    <button class="nav-item-btn" data-tab="books" onclick="window.switchTab('books')">
       <i data-lucide="book-open"></i>
       <span>Kitap</span>
     </button>
-    <button class="nav-item-btn" data-tab="attendance">
+    <button class="nav-item-btn" data-tab="attendance" onclick="window.switchTab('attendance')">
       <i data-lucide="user-check"></i>
       <span>Yoklama</span>
     </button>
-    <button class="nav-item-btn" data-tab="more">
+    <button class="nav-item-btn" data-tab="more" onclick="window.switchTab('more')">
       <i data-lucide="layout-grid"></i>
       <span>Diğer</span>
     </button>
   </nav>
 
   <!-- Veri Motoru ve Mobil Kontrolcü -->
+  <script src="js/license-config.js"></script>
   <script src="js/state.js"></script>
   <script src="js/mobile.js"></script>
 
