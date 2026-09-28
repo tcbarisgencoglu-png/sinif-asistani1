@@ -2,6 +2,21 @@ plugins {
     id 'com.android.application'
 }
 
+import groovy.json.JsonSlurper
+
+def packageJsonFile = file("${project.rootDir}/../package.json")
+def pkg = packageJsonFile.exists() ? new JsonSlurper().parse(packageJsonFile) : null
+def appVersion = pkg?.version ?: "1.0.30"
+def verParts = appVersion.tokenize('.')
+def appVersionCode = 30
+if (verParts.size() >= 3) {
+    try {
+        appVersionCode = (verParts[0].toInteger() * 10000) + (verParts[1].toInteger() * 100) + verParts[2].toInteger()
+    } catch (Exception e) {
+        appVersionCode = 30
+    }
+}
+
 android {
     namespace 'com.sinifasistani.app'
     compileSdk 34
@@ -10,8 +25,8 @@ android {
         applicationId "com.sinifasistani.app"
         minSdk 24
         targetSdk 34
-        versionCode 30
-        versionName "1.0.30"
+        versionCode appVersionCode
+        versionName appVersion
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }

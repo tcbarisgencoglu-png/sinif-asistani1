@@ -3407,46 +3407,65 @@ function updateFlowContent(syncWithRealTime = true) {
     modal.classList.add('active');
     if (window.safeCreateIcons) window.safeCreateIcons();
 
-    // Dinamik olarak GitHub API'den en son sürüm bilgilerini al
+    // Dinamik olarak GitHub API'den en son sürüm bilgilerini al (çoklu release desteği)
     try {
-      const response = await fetch('https://api.github.com/repos/tcbarisgencoglu-png/sinif-asistani1/releases/latest');
+      const response = await fetch('https://api.github.com/repos/tcbarisgencoglu-png/sinif-asistani1/releases?per_page=10');
       if (response.ok) {
-        const release = await response.json();
-        const tagName = release.tag_name || 'v1.0.12';
-        
-        const badge = document.getElementById('download-app-version-badge');
-        if (badge) badge.textContent = `${tagName} (En Son)`;
+        const releases = await response.json();
+        if (Array.isArray(releases) && releases.length > 0) {
+          const latestRelease = releases[0];
+          const tagName = latestRelease.tag_name || 'v1.0.29';
+          
+          const badge = document.getElementById('download-app-version-badge');
+          if (badge) badge.textContent = `${tagName} (En Son)`;
 
-        if (Array.isArray(release.assets)) {
-          release.assets.forEach(asset => {
-            const name = (asset.name || '').toLowerCase();
-            const url = asset.browser_download_url;
-            if (!url) return;
-            
-            if (name.endsWith('.deb')) {
-              const btn = document.getElementById('btn-download-deb');
-              if (btn) btn.href = url;
-            } else if (name.endsWith('.exe')) {
-              const btn = document.getElementById('btn-download-exe');
-              if (btn) btn.href = url;
-            } else if (name.endsWith('.dmg')) {
-              const btnArm = document.getElementById('btn-download-dmg');
-              const btnIntel = document.getElementById('btn-download-dmg-intel');
-              
-              if (name.includes('aarch64') || name.includes('arm64') || name.includes('apple-silicon')) {
-                if (btnArm) btnArm.href = url;
-              } else if (name.includes('x64') || name.includes('x86_64') || name.includes('intel')) {
-                if (btnIntel) btnIntel.href = url;
-              } else {
-                // Her iki mimariyi destekleyen universal paket veya genel link
-                if (btnArm) btnArm.href = url;
-                if (btnIntel) btnIntel.href = url;
+          let foundDeb = false;
+          let foundExe = false;
+          let foundArmDmg = false;
+          let foundIntelDmg = false;
+          let foundAppImage = false;
+          let foundApk = false;
+
+          for (const rel of releases) {
+            if (!Array.isArray(rel.assets)) continue;
+            for (const asset of rel.assets) {
+              const name = (asset.name || '').toLowerCase();
+              const url = asset.browser_download_url;
+              if (!url) continue;
+
+              if (!foundDeb && name.endsWith('.deb')) {
+                const btn = document.getElementById('btn-download-deb');
+                if (btn) btn.href = url;
+                foundDeb = true;
               }
-            } else if (name.endsWith('.appimage')) {
-              const btn = document.getElementById('btn-download-appimage');
-              if (btn) btn.href = url;
+              if (!foundExe && name.endsWith('.exe')) {
+                const btn = document.getElementById('btn-download-exe');
+                if (btn) btn.href = url;
+                foundExe = true;
+              }
+              if (!foundArmDmg && name.endsWith('.dmg') && (name.includes('aarch64') || name.includes('arm64') || name.includes('apple-silicon'))) {
+                const btnArm = document.getElementById('btn-download-dmg');
+                if (btnArm) btnArm.href = url;
+                foundArmDmg = true;
+              }
+              if (!foundIntelDmg && name.endsWith('.dmg') && (name.includes('x64') || name.includes('x86_64') || name.includes('intel'))) {
+                const btnIntel = document.getElementById('btn-download-dmg-intel');
+                if (btnIntel) btnIntel.href = url;
+                foundIntelDmg = true;
+              }
+              if (!foundAppImage && name.endsWith('.appimage')) {
+                const btn = document.getElementById('btn-download-appimage');
+                if (btn) btn.href = url;
+                foundAppImage = true;
+              }
+              if (!foundApk && name.endsWith('.apk')) {
+                const btnApk = document.getElementById('btn-download-apk');
+                if (btnApk) btnApk.href = url;
+                foundApk = true;
+              }
             }
-          });
+            if (foundDeb && foundExe && foundArmDmg && foundIntelDmg && foundAppImage && foundApk) break;
+          }
         }
       }
     } catch (err) {

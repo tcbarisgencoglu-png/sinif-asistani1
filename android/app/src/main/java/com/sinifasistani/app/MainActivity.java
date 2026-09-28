@@ -68,6 +68,22 @@ public class MainActivity extends AppCompatActivity {
                 runOnUiThread(() -> Toast.makeText(mContext, "Paylaşım hatası: " + e.getMessage(), Toast.LENGTH_SHORT).show());
             }
         }
+
+        @JavascriptInterface
+        public void printDocument(String documentName) {
+            try {
+                runOnUiThread(() -> {
+                    android.print.PrintManager printManager = (android.print.PrintManager) getSystemService(Context.PRINT_SERVICE);
+                    if (printManager != null && webView != null) {
+                        String jobName = (documentName != null && !documentName.isEmpty()) ? documentName : "Sinif_Asistani_Belge";
+                        android.print.PrintDocumentAdapter printAdapter = webView.createPrintDocumentAdapter(jobName);
+                        printManager.print(jobName, printAdapter, new android.print.PrintAttributes.Builder().build());
+                    }
+                });
+            } catch (Exception e) {
+                runOnUiThread(() -> Toast.makeText(mContext, "Yazdırma hatası: " + e.getMessage(), Toast.LENGTH_SHORT).show());
+            }
+        }
     }
 
     @SuppressLint("SetJavaScriptEnabled")

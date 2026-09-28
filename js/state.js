@@ -1933,7 +1933,8 @@ function wrapState(parsed, unfiltered = false) {
       get() {
         const currentLevel = this.educationLevel || 'middle';
         return this.rawStudents.filter(s => {
-          const isMiddleStudent = s.schoolLevel === 'middle' || (s.branch && ['5', '6', '7', '8'].includes(s.branch.trim()[0]));
+          const isMiddleStudent = s.schoolLevel === 'middle' || 
+            (s.schoolLevel !== 'primary' && s.branch && (['5', '6', '7', '8'].includes(s.branch.trim()[0]) || s.branch.trim().length > 0));
           if (currentLevel === 'middle') {
             return isMiddleStudent;
           } else {
@@ -2504,6 +2505,21 @@ class StateManager {
     }
     const state = this.loadState();
     return (state && state.students) ? state.students : ((this.state && this.state.students) || []);
+  }
+
+  getBranches() {
+    const students = this.getStudents(true);
+    const set = new Set();
+    students.forEach(s => {
+      const isMiddle = s.schoolLevel === 'middle' || (s.schoolLevel !== 'primary' && s.branch && s.branch.trim().length > 0);
+      if (isMiddle && s.branch && s.branch.trim()) {
+        set.add(s.branch.trim());
+      }
+    });
+    if (set.size === 0) {
+      ['5/A', '5/B', '6/A', '6/B', '7/A', '7/B', '8/A', '8/B'].forEach(b => set.add(b));
+    }
+    return Array.from(set).sort((a, b) => a.localeCompare(b, 'tr'));
   }
 
   getStudentById(studentId) {

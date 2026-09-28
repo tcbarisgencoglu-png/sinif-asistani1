@@ -1,15 +1,14 @@
 {
-  "version": "1.0.28",
-  "releaseDate": "2026-09-26",
+  "version": "1.0.30",
+  "releaseDate": "2026-09-28",
   "minRequiredVersion": "1.0.0",
-  "title": "Sınıf Asistanı v1.0.28 Yayında!",
-  "description": "Mobil Cep Asistanı Arayüzü, Android (.apk) Desteği ve Arayüz Düzenlemeleri",
+  "title": "Sınıf Asistanı v1.0.30 Yayında!",
+  "description": "Ders Akışı Entegrasyonu, Gölge Düzeltmeleri, Mobil APK Desteği ve Birleşik Sürüm Altyapısı",
   "features": [
-    "Mobil Cep Asistanı: Derste ayakta ve tek elle kullanıma özel bağımsız cep asistanı arayüzü",
-    "Seri Sıra Gezme (Ödev Kontrolü): Masaları gezerken tek tıkla ödev kontrolü ve otomatik sonraki öğrenciye geçiş",
-    "Hızlı Dojo & Yoklama: Mobil ekranda titreşimli geri bildirimle tek tıkla puan verme ve yoklama tamamlama",
-    "Android Uygulaması (.apk): GitHub Releases üzerinden telefonlara doğrudan indirilip kurulabilen Android paketi",
-    "Masaüstü Arayüz Düzeltmeleri: Ders materyalleri yerleşimi ve açılır kutu metin kesilmeleri giderildi"
+    "Ders Akışı: Haftalık ders programı, MEB/Excel/AI planları ve ders saatleri sihirbazı içeren 3 sekmeli dikey akış aracı",
+    "Arayüz İyileştirmeleri: Mobil alt gezinme çubuğundaki siyah gölge katmanı kaldırıldı ve akıcı menü geçişleri sağlandı",
+    "Doğrudan Android APK Dağıtımı: Web tanıtım ve masaüstü indirme ekranlarına mobil APK seçeneği eklendi",
+    "Birleşik Sürüm Senkronizasyonu: Masaüstü, Android ve Web sürümleri tek merkezden otomatik eşitlenen akıllı versiyonlama altyapısı"
   ],
   "release_url": "https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/latest"
 }

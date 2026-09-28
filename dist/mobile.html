@@ -44,14 +44,39 @@
   <main class="mobile-view-container">
 
     <!-- CANLI DERS KARTI (HER EKRANDA ÜSTTE YER ALIR) -->
-    <section class="live-lesson-card">
-      <div class="live-lesson-info">
-        <div class="live-lesson-time-badge">
-          <i data-lucide="activity" style="width: 12px; height: 12px;"></i>
-          <span id="live-lesson-time-span">Canlı Ders</span>
+    <section class="live-lesson-card" id="m-live-lesson-card">
+      <div class="live-lesson-header-row">
+        <div class="live-lesson-time-badge" id="live-lesson-time-badge">
+          <i data-lucide="clock" style="width: 13px; height: 13px;"></i>
+          <span id="live-lesson-period-span">Ders Yükleniyor...</span>
+          <span style="opacity: 0.4;">•</span>
+          <span id="live-lesson-week-span">📅 Aktif Hafta</span>
         </div>
-        <div class="live-lesson-title" id="live-lesson-name">Yükleniyor...</div>
+        <button type="button" class="live-lesson-action-btn" id="btn-live-lesson-outcome" onclick="window.showLiveLessonOutcomeModal()" title="Haftalık Kazanımı Görüntüle">
+          <i data-lucide="target" style="width: 13px; height: 13px;"></i>
+          <span>Kazanım</span>
+        </button>
+      </div>
+
+      <!-- Azalan Kalan Zaman Çubuğu ve Ders Adı (Masaüstü Birebir Uyumlu) -->
+      <div class="m-lesson-progress-container" id="m-lesson-progress-container">
+        <div class="m-lesson-progress-bar" id="m-live-lesson-progress-bar" style="width: 100%;"></div>
+        <div class="m-lesson-progress-content">
+          <div class="m-lesson-progress-left">
+            <i data-lucide="book-open" id="m-live-lesson-icon" style="width: 16px; height: 16px; color: var(--m-primary);"></i>
+            <span class="live-lesson-title" id="live-lesson-name">YÜKLENİYOR...</span>
+          </div>
+          <div class="m-lesson-progress-time" id="m-live-lesson-time-wrap">
+            <i data-lucide="hourglass" style="width: 12px; height: 12px;"></i>
+            <span id="live-lesson-remaining-text">--:--</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Alt Kısım: Konu Bilgisi ve İşlendi Rozeti -->
+      <div class="live-lesson-topic-row">
         <div class="live-lesson-topic" id="live-lesson-topic-text">Müfredat Konusu Getiriliyor...</div>
+        <span id="live-lesson-completed-badge" style="display: none; font-size: 0.7rem; font-weight: 800; color: #10b981; background: rgba(16, 185, 129, 0.12); padding: 2px 7px; border-radius: 6px; flex-shrink: 0;">✓ İşlendi</span>
       </div>
     </section>
 
@@ -444,31 +469,57 @@
   </main>
 
   <!-- ==========================================================================
+  <!-- ==========================================================================
        SUBVIEW 1: HAFTALIK DEĞERLENDİRME
        ========================================================================== -->
   <div class="mobile-subview" id="subview-weekly">
     <div class="subview-header-bar">
-      <button class="subview-back-btn" onclick="window.closeMobileSubview()">
+      <button type="button" class="subview-back-btn" onclick="window.closeMobileSubview()">
         <i data-lucide="chevron-left" style="width: 18px; height: 18px;"></i>
         <span>Geri</span>
       </button>
       <div class="subview-header-title">Haftalık Değerlendirme</div>
-      <div style="width: 40px;"></div>
+      <button type="button" class="m-btn-sm primary" onclick="window.openAddWeeklyExamModal()" style="padding: 6px 12px; font-weight: 700; display: flex; align-items: center; gap: 4px;">
+        <i data-lucide="plus" style="width: 14px; height: 14px;"></i>
+        <span>Sınav Ekle</span>
+      </button>
     </div>
 
-    <div class="subview-info-banner">
-      <div class="subview-info-text">
-        Bu hafta öğrencilerin ders içi katılım, kitap okuma ve ödev performanslarını genel olarak inceleyin.
-      </div>
+    <!-- Hafta Seçim Çubuğu -->
+    <div class="subview-info-banner" style="margin-bottom: 0.75rem;">
       <div style="display: flex; gap: 8px; align-items: center; justify-content: space-between;">
-        <button class="m-btn-sm" onclick="window.changeWeeklyOffset(-1)"><i data-lucide="chevron-left" style="width: 14px; height: 14px;"></i> Önceki Hafta</button>
-        <span id="m-weekly-week-label" style="font-weight: 800; font-size: 0.85rem; color: var(--m-primary);">Mevcut Hafta</span>
-        <button class="m-btn-sm" onclick="window.changeWeeklyOffset(1)">Sonraki Hafta <i data-lucide="chevron-right" style="width: 14px; height: 14px;"></i></button>
+        <button type="button" class="m-btn-sm" onclick="window.changeWeeklyOffset(-1)">
+          <i data-lucide="chevron-left" style="width: 14px; height: 14px;"></i> Önceki
+        </button>
+        <div style="text-align: center; cursor: pointer;" onclick="window.resetWeeklyToActiveConfigWeek()" title="Ayarlardaki geçerli haftaya dön">
+          <div id="m-weekly-week-label" style="font-weight: 800; font-size: 0.88rem; color: var(--m-primary);">Mevcut Hafta</div>
+          <div id="m-weekly-week-sub" style="font-size: 0.68rem; color: var(--m-text-muted);">Haftalık Sınavlar</div>
+        </div>
+        <button type="button" class="m-btn-sm" onclick="window.changeWeeklyOffset(1)">
+          Sonraki <i data-lucide="chevron-right" style="width: 14px; height: 14px;"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Aksiyon Kartı & Filtre Sekmeleri -->
+    <div style="margin-bottom: 0.75rem; display: flex; flex-direction: column; gap: 8px;">
+      <button type="button" class="subview-primary-action-btn" onclick="window.openAddWeeklyExamModal()" style="margin: 0; box-shadow: 0 4px 14px rgba(79, 70, 229, 0.35);">
+        <i data-lucide="plus-circle" style="width: 18px; height: 18px;"></i>
+        <span>Yeni Değerlendirme Sınavı Ekle</span>
+      </button>
+
+      <div class="m-std-tabs" id="m-weekly-filter-tabs">
+        <button type="button" class="m-std-tab-btn active" data-filter="week" onclick="window.setWeeklyFilter('week')">
+          <i data-lucide="calendar" style="width: 14px; height: 14px;"></i> Bu Haftanın Sınavları
+        </button>
+        <button type="button" class="m-std-tab-btn" data-filter="all" onclick="window.setWeeklyFilter('all')">
+          <i data-lucide="layers" style="width: 14px; height: 14px;"></i> Tüm Sınavlar
+        </button>
       </div>
     </div>
 
     <div id="m-weekly-list-container">
-      <!-- JS ile doldurulacak -->
+      <!-- Dinamik sınav kartları yüklenecek -->
     </div>
   </div>
 
@@ -539,25 +590,256 @@
     </div>
 
     <!-- Arena 1: Bilgi Yarışması Oyun Ekranı -->
-    <div id="m-arena-quiz" style="display: none;">
-      <div class="game-arena-card">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-          <span class="m-badge m-badge-active" id="m-quiz-category">Genel Kültür</span>
-          <span style="font-weight: 800; font-size: 0.85rem; color: var(--m-primary);" id="m-quiz-score-badge">Puan: 0</span>
+    <div id="m-arena-quiz" style="display: none; position: relative; padding-bottom: 5.5rem;">
+      
+      <!-- Üst Kontrol Barı -->
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem; background: var(--m-surface); border: 1.5px solid var(--m-border); border-radius: 14px; padding: 8px 12px;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <button type="button" class="subview-back-btn" onclick="window.confirmExitQuizGame()" style="padding: 4px 8px; font-size: 0.76rem;">
+            <i data-lucide="chevron-left" style="width: 16px; height: 16px;"></i>
+            <span>Çıkış</span>
+          </button>
+          <span id="m-quiz-current-view-badge" class="m-badge m-badge-active" style="font-size: 0.72rem; padding: 2px 8px; font-weight: 800;">
+            🎮 Yarışma
+          </span>
         </div>
-        <div style="font-size: 1.15rem; font-weight: 800; line-height: 1.4; color: var(--m-text); min-height: 70px; display: flex; align-items: center; justify-content: center;" id="m-quiz-question-text">
-          Soru yükleniyor...
-        </div>
-
-        <div class="game-quiz-options" id="m-quiz-options-container">
-          <!-- Seçenekler JS ile yüklenecek -->
-        </div>
-
-        <div style="display: flex; gap: 10px; margin-top: 1.5rem;">
-          <button class="m-btn-sm" onclick="window.backToGamesLanding()">Menüye Dön</button>
-          <button class="m-btn-sm primary" id="btn-quiz-next-question" onclick="window.nextQuizQuestion()">Sonraki Soru <i data-lucide="arrow-right" style="width: 14px; height: 14px;"></i></button>
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <button type="button" class="m-icon-btn" id="m-quiz-sound-toggle-btn" onclick="window.toggleQuizSound()" title="Ses Açık/Kapalı" style="width: 32px; height: 32px; border-radius: 8px; background: var(--m-surface-subtle); border: 1px solid var(--m-border); display: flex; align-items: center; justify-content: center; cursor: pointer;">
+            <span id="m-quiz-sound-icon">🔊</span>
+          </button>
+          <button type="button" class="m-icon-btn" onclick="window.openQuizSettingsModal()" title="Zaman ve Kurulum Ayarları" style="width: 32px; height: 32px; border-radius: 8px; background: var(--m-surface-subtle); border: 1px solid var(--m-border); display: flex; align-items: center; justify-content: center; cursor: pointer;">
+            <span>⏱️</span>
+          </button>
         </div>
       </div>
+
+      <!-- ==========================================
+           GÖRÜNÜM 1: YARIŞMA / OYNA (m-quiz-view-play)
+           ========================================== -->
+      <div id="m-quiz-view-play">
+        <!-- Yarışmacı Öğrenci Banner -->
+        <div style="background: linear-gradient(135deg, rgba(99, 102, 241, 0.12), rgba(168, 85, 247, 0.08)); border: 1.5px solid rgba(99, 102, 241, 0.25); border-radius: 14px; padding: 10px 14px; margin-bottom: 0.85rem; display: flex; align-items: center; justify-content: space-between;">
+          <div style="display: flex; align-items: center; gap: 10px; overflow: hidden;">
+            <div style="width: 38px; height: 38px; border-radius: 12px; background: var(--m-primary); color: white; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; flex-shrink: 0; box-shadow: 0 2px 8px rgba(99, 102, 241, 0.35);">
+              🎯
+            </div>
+            <div style="overflow: hidden;">
+              <div style="font-size: 0.68rem; font-weight: 700; color: var(--m-primary); text-transform: uppercase; letter-spacing: 0.5px;">Sıradaki Yarışmacı</div>
+              <div id="m-quiz-active-student-name" style="font-size: 0.95rem; font-weight: 800; color: var(--m-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                Öğrenci Seçilmedi
+              </div>
+            </div>
+          </div>
+          <button type="button" class="m-btn-sm" onclick="window.pickRandomQuizStudent()" style="background: var(--m-surface); border: 1.5px solid var(--m-primary); color: var(--m-primary); font-weight: 800; font-size: 0.74rem; padding: 6px 10px; border-radius: 10px; display: flex; align-items: center; gap: 4px; cursor: pointer; white-space: nowrap; box-shadow: 0 2px 6px rgba(0,0,0,0.04);">
+            <span>🎲 Kura Çek</span>
+          </button>
+        </div>
+
+        <!-- Soru Arenası Kartı -->
+        <div class="game-arena-card" style="box-shadow: 0 4px 16px rgba(0,0,0,0.06); padding: 1.25rem 1rem;">
+          <!-- Kart Üst Barı: Tur, Kategori, Sayaç ve Skor -->
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; flex-wrap: wrap; gap: 6px;">
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <span class="m-badge" id="m-quiz-round-badge" style="background: rgba(16, 185, 129, 0.12); color: #10b981; font-weight: 800;">
+                1. Tur
+              </span>
+              <span class="m-badge" id="m-quiz-category-badge" style="background: var(--m-surface-subtle); color: var(--m-text-muted); font-weight: 700;">
+                Genel Kültür
+              </span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <!-- Geri Sayım Sayacı -->
+              <div id="m-quiz-timer-pill" style="display: inline-flex; align-items: center; gap: 4px; font-weight: 800; font-size: 0.85rem; padding: 3px 9px; border-radius: 20px; background: rgba(99, 102, 241, 0.1); color: var(--m-primary); border: 1px solid rgba(99, 102, 241, 0.2);">
+                <span>⏱️</span>
+                <span id="m-quiz-timer-text">15s</span>
+              </div>
+              <span style="font-weight: 800; font-size: 0.85rem; color: #10b981;" id="m-quiz-score-badge">
+                Skor: 0
+              </span>
+            </div>
+          </div>
+
+          <!-- Süre İlerleme Çubuğu (Timer Progress Bar) -->
+          <div id="m-quiz-timer-bar-wrap" style="height: 4px; background: var(--m-border); border-radius: 2px; overflow: hidden; margin-bottom: 1rem;">
+            <div id="m-quiz-timer-bar" style="height: 100%; width: 100%; background: linear-gradient(90deg, #10b981, #6366f1); transition: width 0.9s linear;"></div>
+          </div>
+
+          <!-- Soru Tipi Rozeti -->
+          <div style="margin-bottom: 0.5rem;">
+            <span id="m-quiz-qtype-badge" class="m-badge" style="font-size: 0.7rem; font-weight: 800; background: rgba(59, 130, 246, 0.12); color: #3b82f6;">
+              Çoktan Seçmeli
+            </span>
+          </div>
+
+          <!-- Soru Metni -->
+          <div style="font-size: 1.05rem; font-weight: 800; line-height: 1.45; color: var(--m-text); min-height: 60px; display: flex; align-items: center; justify-content: center; text-align: center; margin-bottom: 0.75rem;" id="m-quiz-question-text">
+            Soru yükleniyor...
+          </div>
+
+          <!-- Soru Görseli (Varsa) -->
+          <div id="m-quiz-question-image-wrap" style="display: none; text-align: center; margin-bottom: 1rem;">
+            <img id="m-quiz-question-image" src="" alt="Soru Görseli" style="max-width: 100%; max-height: 160px; border-radius: 10px; object-fit: contain; border: 1px solid var(--m-border);">
+          </div>
+
+          <!-- Seçenekler Kapsayıcısı (Dinamik D/Y veya Çoktan Seçmeli) -->
+          <div class="game-quiz-options" id="m-quiz-options-container">
+            <!-- Seçenekler JS ile yüklenecek -->
+          </div>
+
+          <!-- Açıklama / Geri Bildirim Kutusu -->
+          <div id="m-quiz-explanation-box" style="display: none; margin-top: 1rem; padding: 10px 12px; border-radius: 10px; background: rgba(99, 102, 241, 0.08); border: 1px solid rgba(99, 102, 241, 0.2); font-size: 0.78rem; color: var(--m-text); line-height: 1.4;">
+            <div style="font-weight: 800; color: var(--m-primary); margin-bottom: 3px;">💡 Açıklama:</div>
+            <div id="m-quiz-explanation-text"></div>
+          </div>
+
+          <!-- Oyun Alt Butonları -->
+          <div style="display: flex; gap: 8px; margin-top: 1.25rem;">
+            <button class="m-btn-sm" onclick="window.skipQuizQuestion()" style="flex: 1; padding: 9px; font-weight: 700; border-radius: 10px; background: var(--m-surface); border: 1.5px solid var(--m-border); display: flex; align-items: center; justify-content: center; gap: 5px;">
+              <span>⏭️</span> <span>Pas Geç</span>
+            </button>
+            <button class="m-btn-sm primary" id="btn-quiz-next-question" onclick="window.nextQuizQuestion()" style="flex: 1.5; padding: 9px; font-weight: 800; border-radius: 10px; display: flex; align-items: center; justify-content: center; gap: 5px; box-shadow: 0 3px 10px rgba(99, 102, 241, 0.35);">
+              <span>Sonraki Soru</span> <i data-lucide="arrow-right" style="width: 15px; height: 15px;"></i>
+            </button>
+            <button class="m-btn-sm" onclick="window.restartQuizGame()" title="Yeniden Başlat" style="flex: 0 0 42px; border-radius: 10px; border: 1.5px solid var(--m-border); background: var(--m-surface); display: flex; align-items: center; justify-content: center;">
+              <span>🔄</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ==========================================
+           GÖRÜNÜM 2: ÖĞRENCİ SEÇ & KURA (m-quiz-view-students)
+           ========================================== -->
+      <div id="m-quiz-view-students" style="display: none;">
+        <div class="m-item-card" style="margin-bottom: 0.85rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+            <div style="font-weight: 800; font-size: 0.95rem; color: var(--m-text);">Yarışmacı Havuzu</div>
+            <span class="m-badge m-badge-active" id="m-quiz-students-count-badge">0 / 0 Seçili</span>
+          </div>
+          <div style="font-size: 0.75rem; color: var(--m-text-muted); margin-bottom: 0.85rem;">
+            Kura çekimine katılacak öğrencileri işaretleyin. Her turda tüm öğrenciler eşit sayıda soru cevaplar.
+          </div>
+
+          <!-- Kura Çek Butonu -->
+          <button type="button" class="subview-primary-action-btn" onclick="window.pickRandomQuizStudent()" style="margin-bottom: 0.75rem; box-shadow: 0 4px 14px rgba(139, 92, 246, 0.4); background: linear-gradient(135deg, #8b5cf6, #6366f1);">
+            <span style="font-size: 1.2rem;">🎲</span>
+            <span>Rastgele Öğrenci Seç (Kura Çek)</span>
+          </button>
+
+          <div style="display: flex; gap: 8px;">
+            <button type="button" class="m-btn-sm" onclick="window.selectAllQuizStudents(true)" style="flex: 1; padding: 7px; font-weight: 700; border-radius: 8px; background: var(--m-surface); border: 1px solid var(--m-border);">
+              ✓ Tümünü Seç
+            </button>
+            <button type="button" class="m-btn-sm" onclick="window.selectAllQuizStudents(false)" style="flex: 1; padding: 7px; font-weight: 700; border-radius: 8px; background: var(--m-surface); border: 1px solid var(--m-border);">
+              ✗ Temizle
+            </button>
+          </div>
+        </div>
+
+        <!-- Öğrenci Listesi -->
+        <div id="m-quiz-students-roster-list" style="display: flex; flex-direction: column; gap: 6px;">
+          <!-- Dinamik öğrenci checkbox listesi -->
+        </div>
+      </div>
+
+      <!-- ==========================================
+           GÖRÜNÜM 3: SORU HAVUZU (m-quiz-view-pool)
+           ========================================== -->
+      <div id="m-quiz-view-pool" style="display: none;">
+        <!-- Üst İşlem ve Arama Çubuğu -->
+        <div class="m-item-card" style="margin-bottom: 0.85rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.6rem;">
+            <div style="font-weight: 800; font-size: 0.95rem; color: var(--m-text);">Soru Kütüphanesi</div>
+            <span class="m-badge m-badge-active" id="m-quiz-pool-count-badge">0 Soru</span>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 0.6rem;">
+            <button type="button" class="subview-primary-action-btn" onclick="window.openQuizAddQuestionModal()" style="padding: 8px; font-size: 0.78rem;">
+              <span>➕ Soru Ekle</span>
+            </button>
+            <button type="button" class="m-btn-sm" onclick="window.restoreDefaultQuizQuestions()" style="padding: 8px; font-size: 0.78rem; font-weight: 700; border-radius: 10px; background: var(--m-surface); border: 1.5px solid var(--m-border); display: flex; align-items: center; justify-content: center; gap: 4px;">
+              <span>🔄 Örnek Sorular</span>
+            </button>
+          </div>
+
+          <div style="display: flex; gap: 8px;">
+            <select class="m-form-select" id="m-quiz-pool-category-filter" onchange="window.filterQuizPoolByCategory(this.value)" style="flex: 1; padding: 6px 10px; font-size: 0.78rem;">
+              <option value="all">Tüm Konular / Paketler</option>
+            </select>
+            <input type="text" id="m-quiz-pool-search" placeholder="Soru ara..." oninput="window.filterQuizPoolBySearch(this.value)" style="flex: 1; padding: 6px 10px; font-size: 0.78rem; border-radius: 8px; border: 1.5px solid var(--m-border); background: var(--m-surface); color: var(--m-text); outline: none;">
+          </div>
+        </div>
+
+        <!-- Soru Listesi Kapsayıcısı -->
+        <div id="m-quiz-pool-list-container" style="display: flex; flex-direction: column; gap: 8px;">
+          <!-- Dinamik soru kartları -->
+        </div>
+      </div>
+
+      <!-- ==========================================
+           GÖRÜNÜM 4: SKOR TABLOSU (m-quiz-view-leaderboard)
+           ========================================== -->
+      <div id="m-quiz-view-leaderboard" style="display: none;">
+        <div class="m-item-card" style="margin-bottom: 0.85rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+            <div style="font-weight: 800; font-size: 0.95rem; color: var(--m-text);">Yarışma Liderlik Tablosu</div>
+            <span class="m-badge" style="background: rgba(236, 72, 153, 0.12); color: #ec4899; font-weight: 800;">🏆 Canlı Sıralama</span>
+          </div>
+          <div style="font-size: 0.75rem; color: var(--m-text-muted); margin-bottom: 0.85rem;">
+            Yarışma boyunca doğru cevap veren öğrencilerin kazandığı puanlar ve başarı sıralaması.
+          </div>
+
+          <div style="display: flex; gap: 8px;">
+            <button type="button" class="m-btn-sm success" onclick="window.transferQuizScoresToClassPoints()" style="flex: 1.5; padding: 8px 10px; font-weight: 800; border-radius: 10px; display: flex; align-items: center; justify-content: center; gap: 4px;">
+              <span>⭐ Sınıf Puanına Aktar</span>
+            </button>
+            <button type="button" class="m-btn-sm" onclick="window.resetQuizScores()" style="flex: 1; padding: 8px 10px; font-weight: 700; border-radius: 10px; background: var(--m-surface); border: 1.5px solid var(--m-border); display: flex; align-items: center; justify-content: center; gap: 4px; color: var(--m-danger);">
+              <span>🔄 Sıfırla</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Sıralama Listesi -->
+        <div id="m-quiz-leaderboard-list" style="display: flex; flex-direction: column; gap: 6px;">
+          <!-- Dinamik skor satırları -->
+        </div>
+      </div>
+
+      <!-- ==========================================
+           YÜZEN MENÜ (FAB - FLOATING ACTION MENU)
+           ========================================== -->
+      <div class="mobile-fab-container" id="m-quiz-fab-container" style="position: fixed; right: 18px; bottom: calc(var(--nav-height) + var(--safe-bottom) + 16px); z-index: 150;">
+        <div class="mobile-fab-menu" id="m-quiz-fab-menu" style="min-width: 210px;">
+          <button type="button" class="mobile-fab-item" onclick="window.switchQuizView('play')">
+            <span class="fab-item-text">🎮 Yarışma / Oyna</span>
+            <span class="fab-item-icon" style="background: #10b981;">🎮</span>
+          </button>
+          <button type="button" class="mobile-fab-item" onclick="window.switchQuizView('students')">
+            <span class="fab-item-text">🎲 Öğrenci Seç & Kura</span>
+            <span class="fab-item-icon" style="background: #8b5cf6;">🎲</span>
+          </button>
+          <button type="button" class="mobile-fab-item" onclick="window.openQuizAddQuestionModal()">
+            <span class="fab-item-text">➕ Yeni Soru Ekle</span>
+            <span class="fab-item-icon" style="background: #f59e0b;">➕</span>
+          </button>
+          <button type="button" class="mobile-fab-item" onclick="window.switchQuizView('pool')">
+            <span class="fab-item-text">📦 Soru Havuzu</span>
+            <span class="fab-item-icon" style="background: #06b6d4;">📦</span>
+          </button>
+          <button type="button" class="mobile-fab-item" onclick="window.switchQuizView('leaderboard')">
+            <span class="fab-item-text">🏆 Skor Tablosu</span>
+            <span class="fab-item-icon" style="background: #ec4899;">🏆</span>
+          </button>
+          <button type="button" class="mobile-fab-item" onclick="window.openQuizSettingsModal()">
+            <span class="fab-item-text">⏱️ Zaman & Ayarlar</span>
+            <span class="fab-item-icon" style="background: #64748b;">⏱️</span>
+          </button>
+        </div>
+        <button class="mobile-fab-btn" id="m-quiz-fab-btn" onclick="window.toggleQuizFabMenu()" title="Yarışma Menüsü">
+          <i data-lucide="layers" style="width: 24px; height: 24px;"></i>
+        </button>
+      </div>
+
     </div>
 
     <!-- Arena 2: Çarpım Tablosu Oyun Ekranı -->
@@ -719,7 +1001,7 @@
       </div>
 
       <!-- 5. Nöbet Listesi -->
-      <div class="tool-compact-card" onclick="window.openToolModal('roster')">
+      <div class="tool-compact-card" onclick="window.openDutyRosterModal()">
         <div class="tool-icon-circle" style="background: rgba(6, 182, 212, 0.12); color: var(--m-info);">
           📅
         </div>
@@ -728,30 +1010,48 @@
       </div>
 
       <!-- 6. Oturma Planı -->
-      <div class="tool-compact-card" onclick="window.openToolModal('seating')">
+      <div class="tool-compact-card" onclick="window.openSeatingPlanModal()">
         <div class="tool-icon-circle" style="background: rgba(139, 92, 246, 0.12); color: #8b5cf6;">
           🗺️
         </div>
-        <div style="font-weight: 800; font-size: 0.88rem; color: var(--m-text);">Oturma Planı</div>
+        <div style="font-weight: 800; font-size: 0.88rem; color: var(--m-text);">Sınıf Oturma Planı</div>
         <div style="font-size: 0.7rem; color: var(--m-text-muted);">Sıra ve masa düzeni</div>
       </div>
 
-      <!-- 7. Ders Programı -->
-      <div class="tool-compact-card" onclick="window.openToolModal('schedule')">
+      <!-- 7. Ders Akışı -->
+      <div class="tool-compact-card" onclick="window.openScheduleFlowModal()">
         <div class="tool-icon-circle" style="background: rgba(59, 130, 246, 0.12); color: #3b82f6;">
           📖
         </div>
-        <div style="font-weight: 800; font-size: 0.88rem; color: var(--m-text);">Ders Programı</div>
-        <div style="font-size: 0.7rem; color: var(--m-text-muted);">Günlük ders saatleri</div>
+        <div style="font-weight: 800; font-size: 0.88rem; color: var(--m-text);">Ders Akışı</div>
+        <div style="font-size: 0.7rem; color: var(--m-text-muted);">Program, planlar ve saatler</div>
       </div>
 
       <!-- 8. Katkı & Tedarik -->
-      <div class="tool-compact-card" onclick="window.openToolModal('supplies')">
+      <div class="tool-compact-card" onclick="window.openSuppliesModal()">
         <div class="tool-icon-circle" style="background: rgba(234, 88, 12, 0.12); color: #ea580c;">
           📦
         </div>
         <div style="font-weight: 800; font-size: 0.88rem; color: var(--m-text);">Katkı & Tedarik</div>
         <div style="font-size: 0.7rem; color: var(--m-text-muted);">Sınıf ihtiyaç takibi</div>
+      </div>
+
+      <!-- 9. Kişisel Evrak Deposu -->
+      <div class="tool-compact-card" onclick="window.openDocumentsModal()">
+        <div class="tool-icon-circle" style="background: rgba(16, 185, 129, 0.12); color: #10b981;">
+          📁
+        </div>
+        <div style="font-weight: 800; font-size: 0.88rem; color: var(--m-text);">Kişisel Evrak Deposu</div>
+        <div style="font-size: 0.7rem; color: var(--m-text-muted);">Zümre, toplantı ve resmi evraklar</div>
+      </div>
+
+      <!-- 10. Sınavlar & Analiz -->
+      <div class="tool-compact-card" onclick="window.openExamsHubModal()">
+        <div class="tool-icon-circle" style="background: rgba(168, 85, 247, 0.12); color: #a855f7;">
+          📝
+        </div>
+        <div style="font-weight: 800; font-size: 0.88rem; color: var(--m-text);">Sınavlar & Analiz</div>
+        <div style="font-size: 0.7rem; color: var(--m-text-muted);">Yazılı hazırla ve sınav analizi</div>
       </div>
     </div>
   </div>
@@ -1445,6 +1745,30 @@
     </div>
     <div style="padding: 0 1.25rem 1.5rem 1.25rem;">
       <input type="hidden" id="m-edit-st-id">
+
+      <!-- Öğrenci Fotoğrafı / Avatarı -->
+      <div style="display: flex; flex-direction: column; align-items: center; margin-bottom: 1.15rem;">
+        <div style="position: relative; width: 84px; height: 84px; margin-bottom: 0.65rem;">
+          <div id="m-edit-st-avatar-preview" style="width: 84px; height: 84px; border-radius: 50%; overflow: hidden; background: linear-gradient(135deg, var(--m-primary), #7c3aed); display: flex; align-items: center; justify-content: center; color: white; font-size: 2rem; font-weight: 800; border: 3px solid var(--m-surface); box-shadow: 0 4px 14px rgba(0,0,0,0.15);">
+            <!-- Fotoğraf veya Baş Harf -->
+          </div>
+          <button type="button" id="m-edit-st-photo-remove" onclick="window.removeEditStudentPhoto()" title="Fotoğrafı Kaldır" style="display: none; position: absolute; top: -2px; right: -2px; width: 26px; height: 26px; border-radius: 50%; background: var(--m-danger); color: white; border: 2px solid var(--m-surface); cursor: pointer; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 800; box-shadow: 0 2px 6px rgba(0,0,0,0.25);">
+            ✕
+          </button>
+        </div>
+        <div style="display: flex; gap: 8px;">
+          <button type="button" class="m-btn-sm" onclick="document.getElementById('m-edit-st-camera-input').click()" style="padding: 6px 12px; font-size: 0.78rem; font-weight: 700; background: var(--m-surface); border: 1.5px solid var(--m-border); border-radius: 20px; display: flex; align-items: center; gap: 5px; cursor: pointer;">
+            <span>📸</span> <span>Kamera</span>
+          </button>
+          <button type="button" class="m-btn-sm" onclick="document.getElementById('m-edit-st-gallery-input').click()" style="padding: 6px 12px; font-size: 0.78rem; font-weight: 700; background: var(--m-surface); border: 1.5px solid var(--m-border); border-radius: 20px; display: flex; align-items: center; gap: 5px; cursor: pointer;">
+            <span>🖼️</span> <span>Galeri</span>
+          </button>
+        </div>
+        <input type="file" id="m-edit-st-camera-input" accept="image/*" capture="environment" style="display: none;" onchange="window.handleStudentPhotoSelected(this, 'edit')">
+        <input type="file" id="m-edit-st-gallery-input" accept="image/*" style="display: none;" onchange="window.handleStudentPhotoSelected(this, 'edit')">
+        <input type="hidden" id="m-edit-st-photo-data">
+      </div>
+
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
         <div class="m-form-group">
           <label class="m-form-label">Ad</label>
@@ -1480,6 +1804,180 @@
       </div>
       <button class="subview-primary-action-btn" onclick="window.saveEditedStudent()">
         <i data-lucide="check" style="width: 18px; height: 18px;"></i> Güncellemeyi Kaydet
+      </button>
+    </div>
+  </div>
+
+  <!-- Öğrenci Detay Bottom Sheet Modalı -->
+  <div class="bottom-sheet" id="modal-student-detail" style="max-height: 94vh; height: 92vh; display: flex; flex-direction: column; padding: 1.25rem 1rem calc(1.5rem + var(--safe-bottom));">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header" style="margin-bottom: 0.5rem; border-bottom: none; padding-bottom: 0; display: flex; align-items: flex-start; justify-content: space-between;">
+      <div style="display: flex; align-items: center; gap: 0.75rem; flex: 1; min-width: 0;">
+        <div id="m-std-avatar" class="student-avatar" style="width: 48px; height: 48px; font-size: 1.15rem; flex-shrink: 0;"></div>
+        <div style="flex: 1; min-width: 0;">
+          <div id="m-std-name" style="font-size: 1.05rem; font-weight: 800; color: var(--m-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Öğrenci Adı</div>
+          <div id="m-std-subtitle" style="font-size: 0.75rem; color: var(--m-text-muted); font-weight: 600;">No: - • 0 Puan</div>
+        </div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 6px;">
+        <button type="button" id="m-std-give-point-btn" class="m-std-quick-point-btn" title="Hızlı Puan Ver">
+          <i data-lucide="plus-circle" style="width: 15px; height: 15px;"></i>
+          <span>Puan Ver</span>
+        </button>
+        <button type="button" class="sheet-close-btn" onclick="window.closeBottomSheet()">&times;</button>
+      </div>
+    </div>
+
+    <!-- Hızlı Bilgi & İletişim Şeridi -->
+    <div id="m-std-info-strip" class="m-std-info-strip"></div>
+
+    <!-- Sekme Menüsü -->
+    <div class="m-std-tabs">
+      <button type="button" class="m-std-tab-btn active" data-tab="perf" onclick="window.switchStudentDetailTab('perf')">
+        <i data-lucide="award" style="width: 14px; height: 14px;"></i> Puanlar
+      </button>
+      <button type="button" class="m-std-tab-btn" data-tab="books" onclick="window.switchStudentDetailTab('books')">
+        <i data-lucide="book-open" style="width: 14px; height: 14px;"></i> Kitaplar
+      </button>
+      <button type="button" class="m-std-tab-btn" data-tab="hw" onclick="window.switchStudentDetailTab('hw')">
+        <i data-lucide="check-square" style="width: 14px; height: 14px;"></i> Ödevler
+      </button>
+      <button type="button" class="m-std-tab-btn" data-tab="exams" onclick="window.switchStudentDetailTab('exams')">
+        <i data-lucide="bar-chart-2" style="width: 14px; height: 14px;"></i> Sınavlar
+      </button>
+    </div>
+
+    <!-- Sekme İçerikleri -->
+    <div class="m-std-tab-content-area" style="flex: 1; overflow-y: auto; margin-top: 0.65rem; padding-bottom: 1rem;">
+      <div id="m-std-tab-perf" class="m-std-tab-pane"></div>
+      <div id="m-std-tab-books" class="m-std-tab-pane" style="display: none;"></div>
+      <div id="m-std-tab-hw" class="m-std-tab-pane" style="display: none;"></div>
+      <div id="m-std-tab-exams" class="m-std-tab-pane" style="display: none;"></div>
+    </div>
+  </div>
+
+  <!-- HAFTALIK DEĞERLENDİRME: YENİ SINAV EKLEME MODALI -->
+  <div class="bottom-sheet" id="modal-add-weekly-exam" style="max-height: 92vh; height: 90vh; z-index: 1250; display: flex; flex-direction: column;">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header" style="margin-bottom: 0.75rem;">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span style="font-size: 1.3rem;">📋</span>
+        <div class="sheet-title">Yeni Değerlendirme Sınavı</div>
+      </div>
+      <button type="button" class="sheet-close-btn" onclick="window.closeBottomSheet()">&times;</button>
+    </div>
+
+    <form id="m-form-add-weekly-exam" onsubmit="window.handleCreateWeeklyExam(event)" style="display: flex; flex-direction: column; flex: 1; min-height: 0;">
+      <div style="flex: 1; overflow-y: auto; padding: 0 1.25rem 1rem 1.25rem;">
+        
+        <div class="m-form-group">
+          <label class="m-form-label">Değerlendirme Sınavı Adı <span style="color: var(--m-danger);">*</span></label>
+          <input type="text" class="m-form-input" id="m-we-name-input" placeholder="Örn: 4. Hafta Matematik Kazanım Sınavı" required>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+          <div class="m-form-group">
+            <label class="m-form-label">Uygulanacak Hafta <span style="color: var(--m-danger);">*</span></label>
+            <select class="m-form-select" id="m-we-week-select" required></select>
+          </div>
+          <div class="m-form-group" id="m-we-branch-group" style="display: none;">
+            <label class="m-form-label">Şube</label>
+            <select class="m-form-select" id="m-we-branch-select"></select>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+          <div class="m-form-group">
+            <label class="m-form-label">Soru Sayısı <span style="color: var(--m-danger);">*</span></label>
+            <input type="number" class="m-form-input" id="m-we-questions-input" min="1" max="100" value="20" required>
+          </div>
+          <div class="m-form-group">
+            <label class="m-form-label">Sınav Süresi (Dk)</label>
+            <input type="number" class="m-form-input" id="m-we-duration-input" min="5" max="180" value="40" required>
+          </div>
+        </div>
+
+        <!-- Yanlışlar Doğruları Götürsün mü? -->
+        <div class="m-form-group" style="background: var(--m-bg); padding: 0.75rem; border-radius: var(--m-radius-md); border: 1px solid var(--m-border); margin-top: 0.25rem;">
+          <div style="display: flex; align-items: center; justify-content: space-between;">
+            <div>
+              <div style="font-size: 0.85rem; font-weight: 700; color: var(--m-text);">Yanlışlar Doğruları Etkilesin</div>
+              <div style="font-size: 0.72rem; color: var(--m-text-muted);">Yanlış cevaplar net puanını düşürür</div>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" id="m-we-wrong-affects-toggle" onchange="window.toggleWeeklyExamPenalty(this.checked)">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+
+          <div id="m-we-penalty-container" style="display: none; margin-top: 0.65rem; padding-top: 0.65rem; border-top: 1px dashed var(--m-border);">
+            <label class="m-form-label" style="font-size: 0.76rem;">Ceza Oranı (Net Hesabı)</label>
+            <select class="m-form-select" id="m-we-penalty-select">
+              <option value="3" selected>3 Yanlış 1 Doğruyu Götürür (Ortaokul / LGS)</option>
+              <option value="4">4 Yanlış 1 Doğruyu Götürür (Lise / YKS)</option>
+              <option value="2">2 Yanlış 1 Doğruyu Götürür</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Derece Ödül Puanı Bilgi Kutusu -->
+        <div style="background: rgba(79, 70, 229, 0.08); border: 1px solid rgba(79, 70, 229, 0.2); border-radius: var(--m-radius-md); padding: 0.65rem 0.75rem; margin-top: 0.65rem;">
+          <div style="display: flex; align-items: center; gap: 6px; font-size: 0.78rem; font-weight: 700; color: var(--m-primary); margin-bottom: 2px;">
+            <span>🏆</span> <span>Başarı Ödülü Entegrasyonu</span>
+          </div>
+          <div style="font-size: 0.72rem; color: var(--m-text-secondary); line-height: 1.35;">
+            Sınav sonuçları kaydedildiğinde, ayarlarda tanımlanan derece ödül puanları (1., 2., 3.) öğrencilerin o haftaki puanlarına otomatik olarak eklenir.
+          </div>
+        </div>
+
+      </div>
+
+      <div style="padding: 0.75rem 1.25rem calc(1.25rem + var(--safe-bottom)) 1.25rem; border-top: 1px solid var(--m-border); background: var(--m-surface); display: flex; gap: 8px;">
+        <button type="button" class="subview-secondary-btn" onclick="window.closeBottomSheet()" style="flex: 1;">Vazgeç</button>
+        <button type="submit" class="subview-primary-action-btn" style="flex: 2; margin: 0;">
+          <i data-lucide="check" style="width: 18px; height: 18px;"></i> Sınavı Oluştur & Not Gir
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- HAFTALIK DEĞERLENDİRME: NOT GİRİŞ MODALI -->
+  <div class="bottom-sheet" id="modal-weekly-exam-grading" style="max-height: 96vh; height: 94vh; z-index: 1300; display: flex; flex-direction: column;">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header" style="margin-bottom: 0.5rem; border-bottom: none; padding-bottom: 0; display: flex; align-items: flex-start; justify-content: space-between;">
+      <div style="flex: 1; min-width: 0;">
+        <div id="m-weg-exam-title" style="font-size: 1.05rem; font-weight: 800; color: var(--m-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Sınav Adı</div>
+        <div id="m-weg-exam-subtitle" style="font-size: 0.74rem; color: var(--m-text-muted); font-weight: 600; margin-top: 2px;"></div>
+      </div>
+      <button type="button" class="sheet-close-btn" onclick="window.closeWeeklyGradingModal()">&times;</button>
+    </div>
+
+    <!-- Hızlı Bilgi & İstatistik Şeridi -->
+    <div id="m-weg-info-bar" style="background: var(--m-bg); border: 1px solid var(--m-border); border-radius: var(--m-radius-md); padding: 0.45rem 0.75rem; margin: 0.4rem 1rem; display: flex; align-items: center; justify-content: space-between; font-size: 0.76rem;">
+      <div id="m-weg-stats-text" style="color: var(--m-text-secondary); font-weight: 600;">0/0 Öğrenci Puanlandı</div>
+      <div id="m-weg-avg-badge" class="student-card-score" style="font-size: 0.78rem;">Ort: -</div>
+    </div>
+
+    <!-- Tablo Başlıkları (D, B, Y, Net, Puan) -->
+    <div style="display: grid; grid-template-columns: 1.8fr 1fr 1fr 0.8fr 0.9fr 1.1fr; gap: 5px; padding: 0.4rem 1rem; font-size: 0.68rem; font-weight: 800; color: var(--m-text-muted); text-transform: uppercase; border-bottom: 1px solid var(--m-border);">
+      <div>Öğrenci</div>
+      <div style="text-align: center;">Doğru</div>
+      <div style="text-align: center;">Boş</div>
+      <div style="text-align: center;">Yanlış</div>
+      <div style="text-align: center;">Net</div>
+      <div style="text-align: center;">Puan</div>
+    </div>
+
+    <!-- Öğrenci Listesi / Not Giriş Alanı (Scrollable) -->
+    <div id="m-weg-students-list" style="flex: 1; overflow-y: auto; padding: 0.4rem 1rem 1rem 1rem;">
+      <!-- Dinamik JS satırları -->
+    </div>
+
+    <!-- Alt Çubuk: Kapat ve Kaydet Butonu -->
+    <div style="padding: 0.75rem 1rem calc(1.25rem + var(--safe-bottom)) 1rem; border-top: 1px solid var(--m-border); background: var(--m-surface); display: flex; gap: 8px;">
+      <button type="button" class="subview-secondary-btn" onclick="window.closeWeeklyGradingModal()" style="flex: 1;">Kapat</button>
+      <button type="button" class="subview-primary-action-btn" onclick="window.saveWeeklyExamGrades()" style="flex: 2; margin: 0; box-shadow: 0 4px 14px rgba(79, 70, 229, 0.4);">
+        <i data-lucide="check-circle" style="width: 18px; height: 18px;"></i> Sonuçları Kaydet
       </button>
     </div>
   </div>
@@ -1526,45 +2024,124 @@
   </div>
 
   <!-- 2. Rapor Oluştur Modalı -->
-  <div class="bottom-sheet" id="modal-create-report">
+  <div class="bottom-sheet" id="modal-create-report" style="max-height: 92vh; height: 90vh; display: flex; flex-direction: column; padding: 1.25rem 1rem calc(1.5rem + var(--safe-bottom));">
     <div class="sheet-handle"></div>
-    <div class="sheet-header">
-      <div class="sheet-title">Gelişim Raporu Üret</div>
+    <div class="sheet-header" style="margin-bottom: 0.5rem; flex-shrink: 0;">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span style="font-size: 1.3rem;">📊</span>
+        <div class="sheet-title">Gelişim Raporu Üret</div>
+      </div>
       <button class="sheet-close-btn" onclick="window.closeBottomSheet()">&times;</button>
     </div>
-    <div style="padding: 0 1.25rem 1.5rem 1.25rem;">
+    <div style="padding: 0 0.25rem 1rem 0.25rem; overflow-y: auto; flex: 1;">
       <div class="m-form-group">
         <label class="m-form-label">Tarih Aralığı</label>
         <select class="m-form-select" id="m-report-range" onchange="window.handleReportRangeChange(this.value)">
           <option value="today">Bugün</option>
           <option value="this-week" selected>Bu Hafta (Pzt - Cuma)</option>
           <option value="this-month">Bu Ay</option>
+          <option value="last-30">Son 30 Gün</option>
+          <option value="custom">Özel Tarih Aralığı</option>
         </select>
       </div>
-      <div class="m-form-group">
-        <label class="m-form-label">Dahil Edilecek Alanlar</label>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 0.85rem; font-weight: 700;">
-          <label style="display: flex; align-items: center; gap: 6px;"><input type="checkbox" id="m-rep-chk-points" checked> Davranış Puanı</label>
-          <label style="display: flex; align-items: center; gap: 6px;"><input type="checkbox" id="m-rep-chk-hw" checked> Ödev Takibi</label>
-          <label style="display: flex; align-items: center; gap: 6px;"><input type="checkbox" id="m-rep-chk-books" checked> Kitap Okuma</label>
-          <label style="display: flex; align-items: center; gap: 6px;"><input type="checkbox" id="m-rep-chk-att" checked> Yoklama</label>
+
+      <!-- Özel Tarih Seçici -->
+      <div id="m-report-custom-dates" style="display: none; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 0.85rem;">
+        <div>
+          <label class="m-form-label" style="font-size: 0.75rem;">Başlangıç Tarihi</label>
+          <input type="date" class="m-form-input" id="m-report-start-date">
+        </div>
+        <div>
+          <label class="m-form-label" style="font-size: 0.75rem;">Bitiş Tarihi</label>
+          <input type="date" class="m-form-input" id="m-report-end-date">
         </div>
       </div>
-      <button class="subview-primary-action-btn" onclick="window.generateNewReport()">
+
+      <!-- Şube Seçimi (Ortaokul ise) -->
+      <div class="m-form-group" id="m-report-branch-group" style="display: none;">
+        <label class="m-form-label">Şube Filtresi</label>
+        <select class="m-form-select" id="m-report-branch-select">
+          <option value="all">Tüm Şubeler</option>
+        </select>
+      </div>
+
+      <div class="m-form-group">
+        <label class="m-form-label">Dahil Edilecek Kriterler</label>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 0.82rem; font-weight: 700; background: var(--m-surface-alt, rgba(0,0,0,0.02)); padding: 10px; border-radius: 12px; border: 1px solid var(--m-border);">
+          <label style="display: flex; align-items: center; gap: 7px; cursor: pointer;">
+            <input type="checkbox" id="m-rep-chk-points" checked style="width: 17px; height: 17px; accent-color: var(--m-primary);">
+            <span>⭐ Davranış Puanı</span>
+          </label>
+          <label style="display: flex; align-items: center; gap: 7px; cursor: pointer;">
+            <input type="checkbox" id="m-rep-chk-hw" checked style="width: 17px; height: 17px; accent-color: var(--m-primary);">
+            <span>📝 Ödev Takibi</span>
+          </label>
+          <label style="display: flex; align-items: center; gap: 7px; cursor: pointer;">
+            <input type="checkbox" id="m-rep-chk-books" checked style="width: 17px; height: 17px; accent-color: var(--m-primary);">
+            <span>📚 Kitap Okuma</span>
+          </label>
+          <label style="display: flex; align-items: center; gap: 7px; cursor: pointer;">
+            <input type="checkbox" id="m-rep-chk-att" checked style="width: 17px; height: 17px; accent-color: var(--m-primary);">
+            <span>📅 Yoklama & Devam</span>
+          </label>
+          <label style="display: flex; align-items: center; gap: 7px; cursor: pointer;">
+            <input type="checkbox" id="m-rep-chk-exams" checked style="width: 17px; height: 17px; accent-color: var(--m-primary);">
+            <span>🏆 Sınavlar</span>
+          </label>
+          <label style="display: flex; align-items: center; gap: 7px; cursor: pointer;">
+            <input type="checkbox" id="m-rep-chk-tasks" checked style="width: 17px; height: 17px; accent-color: var(--m-primary);">
+            <span>🎯 Görev Takibi</span>
+          </label>
+        </div>
+      </div>
+
+      <button class="subview-primary-action-btn" onclick="window.generateNewReport()" style="margin-top: 0.75rem;">
         <i data-lucide="sparkles" style="width: 18px; height: 18px;"></i> Raporu Oluştur
       </button>
     </div>
   </div>
 
   <!-- 3. Rapor Görüntüle Modalı -->
-  <div class="bottom-sheet" id="modal-view-report" style="max-height: 85vh;">
+  <div class="bottom-sheet" id="modal-view-report" style="max-height: 96vh; height: 94vh; display: flex; flex-direction: column; padding: 1.25rem 1rem calc(1.5rem + var(--safe-bottom));">
     <div class="sheet-handle"></div>
-    <div class="sheet-header">
-      <div class="sheet-title" id="m-view-report-title">Rapor Detayı</div>
-      <button class="sheet-close-btn" onclick="window.closeBottomSheet()">&times;</button>
+    <div class="sheet-header" style="margin-bottom: 0.4rem; flex-shrink: 0;">
+      <div style="display: flex; align-items: center; gap: 8px; flex: 1; overflow: hidden;">
+        <span style="font-size: 1.3rem;">📊</span>
+        <div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+          <div class="sheet-title" id="m-view-report-title" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+            Rapor Detayı
+          </div>
+          <div style="font-size: 0.72rem; color: var(--m-text-muted); font-weight: 600;" id="m-view-report-subtitle">
+            Dönem Bilgisi
+          </div>
+        </div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 6px;">
+        <button class="m-icon-btn" onclick="window.printMobileReport()" title="Yazdır / PDF" style="width: 34px; height: 34px; border-radius: 10px; background: rgba(99, 102, 241, 0.1); color: var(--m-primary); border: none; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+          <i data-lucide="printer" style="width: 16px; height: 16px;"></i>
+        </button>
+        <button class="sheet-close-btn" onclick="window.closeBottomSheet()">&times;</button>
+      </div>
     </div>
-    <div style="padding: 0 1.25rem 1.5rem 1.25rem; overflow-y: auto;" id="m-view-report-content">
-      <!-- Rapor İçeriği -->
+
+    <!-- Rapor Kontrolleri ve Arama -->
+    <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 0.6rem; flex-shrink: 0;">
+      <div style="position: relative; flex: 1;">
+        <i data-lucide="search" style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); width: 14px; height: 14px; color: var(--m-text-muted);"></i>
+        <input type="text" id="m-rep-student-search" placeholder="Öğrenci ara (Ad, Numara)..." oninput="window.filterReportStudents(this.value)" style="width: 100%; padding: 7px 10px 7px 30px; font-size: 0.8rem; border-radius: 10px; border: 1.5px solid var(--m-border); background: var(--m-surface); color: var(--m-text); outline: none;">
+      </div>
+      <button type="button" class="m-btn-sm" id="m-rep-toggle-all-btn" onclick="window.toggleAllReportStudents()" style="white-space: nowrap; padding: 7px 10px; font-size: 0.74rem; font-weight: 700; background: var(--m-surface); border: 1.5px solid var(--m-border); border-radius: 10px; cursor: pointer;">
+        Tümünü Aç
+      </button>
+    </div>
+
+    <!-- Aktif Kriter Rozetleri Çubuğu -->
+    <div id="m-view-report-criteria-bar" style="display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 0.6rem; flex-shrink: 0;">
+      <!-- Dinamik kriter rozetleri -->
+    </div>
+
+    <div style="flex: 1; overflow-y: auto; padding-right: 2px;" id="m-view-report-content">
+      <!-- Rapor İçeriği & Öğrenci Akordeon Listesi -->
     </div>
   </div>
 
@@ -1597,6 +2174,210 @@
     </div>
   </div>
 
+  <!-- BİLGİ YARIŞMASI: SORU HAZIRLA / DÜZENLE MODALI -->
+  <div class="bottom-sheet" id="modal-quiz-add-question" style="max-height: 94vh; height: 92vh; z-index: 1250; display: flex; flex-direction: column; padding: 1.25rem 1rem calc(1.5rem + var(--safe-bottom));">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header" style="flex-shrink: 0; margin-bottom: 0.6rem;">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span style="font-size: 1.3rem;">➕</span>
+        <div class="sheet-title" id="m-quiz-form-title">Yeni Soru Hazırla</div>
+      </div>
+      <button class="sheet-close-btn" onclick="window.closeBottomSheet()">&times;</button>
+    </div>
+    <div style="padding: 0 0.25rem 1rem 0.25rem; overflow-y: auto; flex: 1;">
+      <input type="hidden" id="m-qform-edit-id" value="">
+      
+      <!-- Soru Tipi Seçici -->
+      <div class="m-form-group">
+        <label class="m-form-label">Soru Tipi</label>
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px;">
+          <button type="button" class="m-btn-sm" id="btn-qtype-tf" onclick="window.setQuizFormType('tf')" style="padding: 8px 4px; font-weight: 800; font-size: 0.76rem; border-radius: 8px; border: 1.5px solid var(--m-primary); background: var(--m-primary); color: white;">
+            ✓/✗ D / Y
+          </button>
+          <button type="button" class="m-btn-sm" id="btn-qtype-mc" onclick="window.setQuizFormType('mc')" style="padding: 8px 4px; font-weight: 700; font-size: 0.76rem; border-radius: 8px; border: 1.5px solid var(--m-border); background: var(--m-surface); color: var(--m-text);">
+            🔤 Çoktan Seçmeli
+          </button>
+          <button type="button" class="m-btn-sm" id="btn-qtype-fib" onclick="window.setQuizFormType('fib')" style="padding: 8px 4px; font-weight: 700; font-size: 0.76rem; border-radius: 8px; border: 1.5px solid var(--m-border); background: var(--m-surface); color: var(--m-text);">
+            📝 Boşluk Doldur
+          </button>
+        </div>
+      </div>
+
+      <!-- Kategori / Konu Seçimi -->
+      <div class="m-form-group">
+        <label class="m-form-label">Konu / Kategori</label>
+        <div style="display: flex; gap: 8px;">
+          <select class="m-form-select" id="m-qform-category-select" onchange="window.handleQuizFormCategoryChange(this.value)" style="flex: 1;">
+            <!-- Dinamik kategoriler -->
+          </select>
+          <input type="text" class="m-form-input" id="m-qform-category-custom" placeholder="Veya yeni konu yaz..." style="flex: 1;">
+        </div>
+      </div>
+
+      <!-- Soru Metni -->
+      <div class="m-form-group">
+        <label class="m-form-label">Soru Metni *</label>
+        <textarea class="m-form-input" id="m-qform-text" rows="3" placeholder="Soru metnini buraya yazın..." style="resize: vertical;"></textarea>
+      </div>
+
+      <!-- Doğru / Yanlış Seçenek Alanı -->
+      <div id="m-qform-options-tf" style="margin-bottom: 1rem;">
+        <label class="m-form-label">Doğru Cevap Hangisi?</label>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+          <label style="display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px; border-radius: 10px; border: 2px solid var(--m-success); background: rgba(16, 185, 129, 0.08); font-weight: 800; cursor: pointer; color: #10b981;">
+            <input type="radio" name="m-qform-tf-ans" value="true" checked style="accent-color: #10b981; width: 18px; height: 18px;">
+            <span>✓ DOĞRU</span>
+          </label>
+          <label style="display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px; border-radius: 10px; border: 2px solid var(--m-danger); background: rgba(239, 68, 68, 0.08); font-weight: 800; cursor: pointer; color: #ef4444;">
+            <input type="radio" name="m-qform-tf-ans" value="false" style="accent-color: #ef4444; width: 18px; height: 18px;">
+            <span>✗ YANLIŞ</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Çoktan Seçmeli / Boşluk Doldurma Seçenek Alanı -->
+      <div id="m-qform-options-mc" style="display: none; margin-bottom: 1rem;">
+        <label class="m-form-label">Şıklar ve Doğru Cevap (Doğru şıkkı işaretleyin)</label>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <input type="radio" name="m-qform-mc-correct" value="0" checked style="accent-color: var(--m-primary); width: 20px; height: 20px;">
+            <span style="font-weight: 800; font-size: 0.85rem; width: 20px;">A)</span>
+            <input type="text" class="m-form-input" id="m-qform-opt-0" placeholder="A seçeneği..." style="flex: 1;">
+          </div>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <input type="radio" name="m-qform-mc-correct" value="1" style="accent-color: var(--m-primary); width: 20px; height: 20px;">
+            <span style="font-weight: 800; font-size: 0.85rem; width: 20px;">B)</span>
+            <input type="text" class="m-form-input" id="m-qform-opt-1" placeholder="B seçeneği..." style="flex: 1;">
+          </div>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <input type="radio" name="m-qform-mc-correct" value="2" style="accent-color: var(--m-primary); width: 20px; height: 20px;">
+            <span style="font-weight: 800; font-size: 0.85rem; width: 20px;">C)</span>
+            <input type="text" class="m-form-input" id="m-qform-opt-2" placeholder="C seçeneği..." style="flex: 1;">
+          </div>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <input type="radio" name="m-qform-mc-correct" value="3" style="accent-color: var(--m-primary); width: 20px; height: 20px;">
+            <span style="font-weight: 800; font-size: 0.85rem; width: 20px;">D)</span>
+            <input type="text" class="m-form-input" id="m-qform-opt-3" placeholder="D seçeneği..." style="flex: 1;">
+          </div>
+        </div>
+      </div>
+
+      <!-- Açıklama / İpucu -->
+      <div class="m-form-group">
+        <label class="m-form-label">Açıklama / İpucu (İsteğe Bağlı)</label>
+        <input type="text" class="m-form-input" id="m-qform-explanation" placeholder="Örn: Bu bilgi 1923 yılında kanıtlanmıştır...">
+      </div>
+
+      <!-- Soru Görsel Linki -->
+      <div class="m-form-group">
+        <label class="m-form-label">Görsel URL (İsteğe Bağlı)</label>
+        <input type="text" class="m-form-input" id="m-qform-image" placeholder="https://... veya resim adresi">
+      </div>
+
+      <button type="button" class="subview-primary-action-btn" onclick="window.saveQuizQuestionFromForm()" style="margin-top: 0.5rem;">
+        <i data-lucide="check" style="width: 18px; height: 18px;"></i> Soruyu Kaydet
+      </button>
+    </div>
+  </div>
+
+  <!-- BİLGİ YARIŞMASI: ZAMAN VE OYUN AYARLARI MODALI -->
+  <div class="bottom-sheet" id="modal-quiz-settings" style="max-height: 88vh; z-index: 1250;">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span style="font-size: 1.3rem;">⏱️</span>
+        <div class="sheet-title">Zaman ve Oyun Ayarları</div>
+      </div>
+      <button class="sheet-close-btn" onclick="window.closeBottomSheet()">&times;</button>
+    </div>
+    <div style="padding: 0 1.25rem 1.5rem 1.25rem;">
+      <!-- Soru Süresi Ayarı -->
+      <div class="m-form-group">
+        <label class="m-form-label">Soru Başına Süre</label>
+        <select class="m-form-select" id="m-quiz-setting-timer">
+          <option value="10">10 Saniye (Hızlı Tempolu)</option>
+          <option value="15" selected>15 Saniye (Standart)</option>
+          <option value="20">20 Saniye</option>
+          <option value="30">30 Saniye (Düşünme Paylı)</option>
+          <option value="45">45 Saniye</option>
+          <option value="60">60 Saniye (Geniş Süre)</option>
+          <option value="0">Süresiz (Zaman Sayacı Kapalı)</option>
+        </select>
+      </div>
+
+      <!-- Soru Türü Tercihi -->
+      <div class="m-form-group">
+        <label class="m-form-label">Sorulacak Soru Türleri</label>
+        <select class="m-form-select" id="m-quiz-setting-qtype">
+          <option value="all">Karışık (D/Y, Çoktan Seçmeli, Boşluk Doldurma)</option>
+          <option value="tf">Yalnızca Doğru / Yanlış</option>
+          <option value="mc">Yalnızca Çoktan Seçmeli</option>
+          <option value="fib">Yalnızca Boşluk Doldurma</option>
+        </select>
+      </div>
+
+      <!-- Kategori Tercihi -->
+      <div class="m-form-group">
+        <label class="m-form-label">Yarışma Konusu (Kategori)</label>
+        <select class="m-form-select" id="m-quiz-setting-category">
+          <option value="all">Tüm Konular / Paketler</option>
+        </select>
+      </div>
+
+      <!-- Ses Efektleri -->
+      <div class="m-form-group">
+        <label style="display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; background: var(--m-surface-subtle); border: 1px solid var(--m-border); border-radius: 10px; cursor: pointer;">
+          <div style="font-weight: 700; font-size: 0.88rem; color: var(--m-text);">Ses Efektleri (Doğru, Yanlış, Tik-Tak)</div>
+          <input type="checkbox" id="m-quiz-setting-sound" checked style="width: 18px; height: 18px; accent-color: var(--m-primary);">
+        </label>
+      </div>
+
+      <button type="button" class="subview-primary-action-btn" onclick="window.saveQuizSettingsFromModal()">
+        <i data-lucide="check" style="width: 18px; height: 18px;"></i> Ayarları Kaydet & Uygula
+      </button>
+    </div>
+  </div>
+
+  <!-- BİLGİ YARIŞMASI: ANİMASYONLU KURA MODALI -->
+  <div class="bottom-sheet" id="modal-quiz-raffle" style="max-height: 75vh; z-index: 1300; text-align: center;">
+    <div class="sheet-handle"></div>
+    <div style="padding: 1.5rem 1.25rem 2rem 1.25rem; display: flex; flex-direction: column; align-items: center;">
+      <div style="width: 68px; height: 68px; border-radius: 20px; background: linear-gradient(135deg, #8b5cf6, #6366f1); color: white; display: flex; align-items: center; justify-content: center; font-size: 2rem; margin-bottom: 1rem; box-shadow: 0 4px 16px rgba(139, 92, 246, 0.4);">
+        🎲
+      </div>
+      <div style="font-size: 0.82rem; font-weight: 700; color: var(--m-primary); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px;">
+        Kura Çekiliyor...
+      </div>
+      
+      <div id="m-quiz-raffle-spinner" style="font-size: 1.5rem; font-weight: 900; color: var(--m-text); min-height: 50px; display: flex; align-items: center; justify-content: center; padding: 12px 20px; border-radius: 14px; background: var(--m-surface-subtle); border: 2px dashed var(--m-primary); margin: 0.75rem 0; width: 100%; max-width: 320px;">
+        Öğrenci Aranıyor...
+      </div>
+
+      <div id="m-quiz-raffle-subtext" style="font-size: 0.78rem; color: var(--m-text-muted); margin-bottom: 1.25rem;">
+        Sıradaki soruyu cevaplayacak şanslı öğrenci belirleniyor!
+      </div>
+
+      <button type="button" class="subview-primary-action-btn" id="btn-quiz-raffle-confirm" onclick="window.confirmQuizRaffleWinner()" style="display: none; width: 100%; max-width: 280px; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.4); background: linear-gradient(135deg, #10b981, #059669);">
+        <span>🚀 Yarışmaya Başla</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- CANLI DERS: HAFTALIK KAZANIM MODALI -->
+  <div class="bottom-sheet" id="modal-live-lesson-outcome" style="max-height: 85vh; z-index: 1250;">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header" style="margin-bottom: 0.75rem;">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span style="font-size: 1.3rem;">🎯</span>
+        <div class="sheet-title" id="m-outcome-modal-title">Haftalık Ders Kazanımı</div>
+      </div>
+      <button class="sheet-close-btn" onclick="window.closeBottomSheet()">&times;</button>
+    </div>
+    <div id="m-outcome-modal-content" style="padding: 0 1.25rem calc(1.5rem + var(--safe-bottom)) 1.25rem; overflow-y: auto;">
+      <!-- Dinamik içerik JS ile yüklenecek -->
+    </div>
+  </div>
+
   <!-- 5. Araç Modalı (Genel Araç Gösterim Penceresi) -->
   <div class="bottom-sheet" id="modal-tool-window" style="max-height: 80vh;">
     <div class="sheet-handle"></div>
@@ -1606,6 +2387,704 @@
     </div>
     <div style="padding: 0 1.25rem 1.5rem 1.25rem; overflow-y: auto;" id="m-tool-window-body">
       <!-- Dinamik Araç İçeriği -->
+    </div>
+  </div>
+
+  <!-- 5.1 SINIF NÖBET LİSTESİ MODALI -->
+  <div class="bottom-sheet" id="modal-duty-roster" style="max-height: 94vh; height: 92vh; display: flex; flex-direction: column; padding: 1.25rem 1rem calc(1.5rem + var(--safe-bottom));">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header" style="margin-bottom: 0.5rem; flex-shrink: 0;">
+      <div style="display: flex; align-items: center; gap: 8px; flex: 1; overflow: hidden;">
+        <span style="font-size: 1.3rem;">📅</span>
+        <div class="sheet-title" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+          Sınıf Nöbet Listesi
+        </div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
+        <button type="button" class="m-btn-sm" onclick="window.openCreateDutyRosterModal()" style="background: linear-gradient(135deg, var(--m-primary), #4338ca); color: white; border: none; font-weight: 800; font-size: 0.78rem; padding: 6px 12px; border-radius: 20px; display: flex; align-items: center; gap: 4px; box-shadow: 0 2px 8px rgba(79, 70, 229, 0.35); cursor: pointer;">
+          <span>➕</span> <span>Yeni Liste Ekle</span>
+        </button>
+        <button class="sheet-close-btn" onclick="window.closeBottomSheet()">&times;</button>
+      </div>
+    </div>
+
+    <!-- Alt Bilgi & Filtre Barı (Liste varsa gösterilir) -->
+    <div id="m-roster-header-bar" style="display: none; flex-direction: column; gap: 8px; margin-bottom: 0.75rem; flex-shrink: 0;">
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 10px; background: var(--m-surface-subtle); border-radius: 10px; border: 1px solid var(--m-border); flex-wrap: wrap;">
+        <div style="font-size: 0.75rem; font-weight: 700; color: var(--m-text); min-width: 0; flex: 1;" id="m-roster-date-meta">
+          📅 Tarih Aralığı
+        </div>
+        <div style="display: flex; align-items: center; gap: 5px; flex-shrink: 0;">
+          <button type="button" onclick="window.printMobileDutyRoster()" title="Yazdır veya PDF Olarak Kaydet" style="background: var(--m-surface); border: 1px solid var(--m-border); font-size: 0.74rem; font-weight: 700; color: var(--m-text); cursor: pointer; display: flex; align-items: center; gap: 4px; padding: 4px 8px; border-radius: 6px;">
+            <span>🖨️</span> <span>Yazdır</span>
+          </button>
+          <button type="button" onclick="window.shareMobileDutyRoster()" title="WhatsApp veya Diğer Uygulamalarda Paylaş" style="background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.25); font-size: 0.74rem; font-weight: 700; color: #10b981; cursor: pointer; display: flex; align-items: center; gap: 4px; padding: 4px 8px; border-radius: 6px;">
+            <span>📤</span> <span>Paylaş</span>
+          </button>
+          <button type="button" onclick="window.clearMobileDutyRoster()" title="Listeyi Temizle" style="background: none; border: none; font-size: 0.74rem; font-weight: 700; color: var(--m-danger); cursor: pointer; display: flex; align-items: center; gap: 2px; padding: 4px 6px;">
+            <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i>
+          </button>
+        </div>
+      </div>
+      <div style="display: flex; gap: 6px;" id="m-roster-filter-chips">
+        <button class="m-sched-day-chip active" data-roster-filter="all" onclick="window.setRosterFilter('all')">Tümü (<span id="m-roster-cnt-all">0</span>)</button>
+        <button class="m-sched-day-chip" data-roster-filter="this-week" onclick="window.setRosterFilter('this-week')">Bu Hafta (<span id="m-roster-cnt-week">0</span>)</button>
+        <button class="m-sched-day-chip" data-roster-filter="upcoming" onclick="window.setRosterFilter('upcoming')">Gelecek Günler (<span id="m-roster-cnt-up">0</span>)</button>
+      </div>
+    </div>
+
+    <!-- Nöbetçi Günleri Listesi -->
+    <div id="m-roster-list-body" style="flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding-bottom: 1rem;">
+      <!-- Dinamik gün kartları doldurulur -->
+    </div>
+  </div>
+
+  <!-- 5.2 YENİ NÖBET LİSTESİ OLUŞTURMA MODALI (Masaüstü ile Birebir Aynı Adımlar) -->
+  <div class="bottom-sheet" id="modal-create-duty-roster" style="max-height: 92vh; height: 90vh; z-index: 1200; display: flex; flex-direction: column;">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header" style="flex-shrink: 0; margin-bottom: 0.75rem;">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span style="font-size: 1.3rem;">📝</span>
+        <div class="sheet-title">Yeni Nöbet Listesi Oluştur</div>
+      </div>
+      <button class="sheet-close-btn" onclick="window.openDutyRosterModal()">&times;</button>
+    </div>
+    
+    <div style="flex: 1; overflow-y: auto; padding: 0 1.25rem 1.75rem 1.25rem;">
+      <!-- Tarih Aralığı -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 0.85rem;">
+        <div class="m-form-group" style="margin-bottom: 0;">
+          <label class="m-form-label">Nöbet Başlangıç Tarihi</label>
+          <input type="date" class="m-form-input" id="m-roster-start-date">
+        </div>
+        <div class="m-form-group" style="margin-bottom: 0;">
+          <label class="m-form-label">Nöbet Bitiş Tarihi</label>
+          <input type="date" class="m-form-input" id="m-roster-end-date">
+        </div>
+      </div>
+
+      <!-- Hafta Sonu Ayarı -->
+      <div style="display: flex; align-items: center; gap: 10px; padding: 0.75rem 0.85rem; background: var(--m-surface-subtle); border-radius: var(--m-radius-sm); border: 1px solid var(--m-border); margin-bottom: 0.85rem;">
+        <input type="checkbox" id="m-roster-skip-weekends" checked style="width: 18px; height: 18px; accent-color: var(--m-primary); cursor: pointer;">
+        <label for="m-roster-skip-weekends" style="font-size: 0.82rem; font-weight: 700; color: var(--m-text); cursor: pointer; user-select: none;">
+          Hafta sonlarını (Cumartesi - Pazar) atla
+        </label>
+      </div>
+
+      <!-- Günlük Görevli Öğrenci Sayısı & Dağıtım Sıralaması -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 0.85rem;">
+        <div class="m-form-group" style="margin-bottom: 0;">
+          <label class="m-form-label">Günlük Görevli Sayısı</label>
+          <input type="number" class="m-form-input" id="m-roster-student-count" min="1" max="10" value="2">
+        </div>
+        <div class="m-form-group" style="margin-bottom: 0;">
+          <label class="m-form-label">Dağıtım Sıralaması</label>
+          <select class="m-form-select" id="m-roster-sort-order">
+            <option value="alphabetical">Alfabetik (İsim A-Z)</option>
+            <option value="random">Rastgele Karışık</option>
+            <option value="current">Mevcut Liste Sırası</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Tatil / İdari İzinli Günler -->
+      <div class="m-form-group" style="margin-bottom: 1.25rem;">
+        <label class="m-form-label">Tatil / İdari İzinli Günler</label>
+        <div style="display: flex; gap: 6px;">
+          <input type="date" class="m-form-input" id="m-roster-holiday-input" style="flex: 1;">
+          <button type="button" class="m-btn-sm" onclick="window.addMobileRosterHoliday()" style="padding: 0 12px; font-weight: 700; background: var(--m-surface); border: 1.5px solid var(--m-border); border-radius: 8px; white-space: nowrap; cursor: pointer;">
+            + Tatil Ekle
+          </button>
+        </div>
+        <div id="m-roster-holidays-list" style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; min-height: 24px;">
+          <!-- Eklenen tatiller burada rozet olarak listelenir -->
+        </div>
+      </div>
+
+      <!-- Dağıtımı Başlat Butonu -->
+      <button type="button" class="subview-primary-action-btn" onclick="window.generateMobileDutyRoster()" style="width: 100%; margin: 0; padding: 0.85rem; background: linear-gradient(135deg, var(--m-primary), #4338ca); font-weight: 800; font-size: 0.95rem;">
+        <i data-lucide="play" style="width: 18px; height: 18px;"></i> Dağıtımı Başlat ve Kaydet
+      </button>
+    </div>
+  </div>
+
+  <!-- 5.3 SINIF OTURMA PLANI MODALI -->
+  <div class="bottom-sheet" id="modal-seating-plan" style="max-height: 96vh; height: 94vh; display: flex; flex-direction: column; padding: 1.25rem 1rem calc(1.5rem + var(--safe-bottom));">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header" style="margin-bottom: 0.4rem; flex-shrink: 0;">
+      <div style="display: flex; align-items: center; gap: 8px; flex: 1; overflow: hidden;">
+        <span style="font-size: 1.3rem;">🗺️</span>
+        <div class="sheet-title" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+          Sınıf Oturma Planı
+        </div>
+        <span id="m-seating-branch-badge" class="m-badge" style="font-size: 0.72rem; padding: 2px 8px; font-weight: 800; background: rgba(99, 102, 241, 0.12); color: var(--m-primary);">
+          Tüm Sınıf
+        </span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
+        <button type="button" class="m-btn-sm" onclick="window.startNewSeatingPlan()" style="background: linear-gradient(135deg, var(--m-primary), #4338ca); color: white; border: none; font-weight: 800; font-size: 0.76rem; padding: 5px 10px; border-radius: 20px; display: flex; align-items: center; gap: 4px; box-shadow: 0 2px 8px rgba(79, 70, 229, 0.35); cursor: pointer;">
+          <span>➕</span> <span>Yeni Plan Ekle</span>
+        </button>
+        <button class="sheet-close-btn" onclick="window.closeBottomSheet()">&times;</button>
+      </div>
+    </div>
+
+    <!-- Şube Seçimi & Araç Çubuğu -->
+    <div id="m-seating-toolbar" style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 0.6rem; flex-shrink: 0;">
+      <!-- Ortaokul Şube Seçim Alanı -->
+      <div id="m-seating-branch-selector-row" style="display: none; align-items: center; justify-content: space-between; gap: 8px; background: var(--m-surface-subtle); padding: 4px 10px; border-radius: 8px; border: 1px solid var(--m-border);">
+        <span style="font-size: 0.75rem; font-weight: 700; color: var(--m-text-muted);">Aktif Şube:</span>
+        <select id="m-seating-branch-select" onchange="window.changeMobileSeatingBranch(this.value)" style="background: var(--m-surface); border: 1px solid var(--m-border); color: var(--m-text); font-size: 0.78rem; font-weight: 700; padding: 3px 8px; border-radius: 6px; outline: none;">
+          <!-- JS ile doldurulur -->
+        </select>
+      </div>
+
+      <!-- Aksiyon Çubuğu -->
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 4px; overflow-x: auto; -webkit-overflow-scrolling: touch; padding: 2px 0;">
+        <div style="display: flex; align-items: center; gap: 4px;">
+          <button type="button" class="m-seating-tool-btn" onclick="window.addMobileDesk('single')" title="Tekli Sıra Ekle">
+            <span>🪑</span> <span>+ Tekli</span>
+          </button>
+          <button type="button" class="m-seating-tool-btn" onclick="window.addMobileDesk('double')" title="Çiftli Sıra Ekle">
+            <span>🪑🪑</span> <span>+ Çiftli</span>
+          </button>
+          <button type="button" class="m-seating-tool-btn" id="m-btn-toggle-board" onclick="window.toggleMobileSeatingBoard()" title="Yazı Tahtasını Aç/Kapat">
+            <span>📋 Tahta</span>
+          </button>
+          <button type="button" class="m-seating-tool-btn" id="m-btn-toggle-teacher-desk" onclick="window.toggleMobileSeatingTeacherDesk()" title="Öğretmen Masasını Aç/Kapat">
+            <span>🧑‍🏫 Masa</span>
+          </button>
+        </div>
+        <div style="display: flex; align-items: center; gap: 4px;">
+          <button type="button" class="m-seating-tool-btn" onclick="window.printMobileSeatingPlan()" title="Yazdır veya PDF Al" style="color: var(--m-primary);">
+            <span>🖨️ Yazdır</span>
+          </button>
+          <button type="button" class="m-seating-tool-btn" onclick="window.clearMobileSeatingPlan()" title="Planı Sıfırla" style="color: var(--m-danger); padding: 5px 7px;">
+            <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Boş Görünüm (Henüz Sıra Eklenmemişse) -->
+    <div id="m-seating-empty-view" style="display: none; flex: 1; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 1.5rem 1rem;">
+      <div style="width: 64px; height: 64px; border-radius: 18px; background: rgba(99, 102, 241, 0.12); color: var(--m-primary); display: flex; align-items: center; justify-content: center; font-size: 2rem; margin-bottom: 1rem; box-shadow: 0 4px 15px rgba(99, 102, 241, 0.15);">
+        🗺️
+      </div>
+      <h3 style="font-size: 1.15rem; font-weight: 800; color: var(--m-text); margin-bottom: 0.35rem;">
+        Henüz Oturma Planı Yok
+      </h3>
+      <p style="font-size: 0.82rem; color: var(--m-text-muted); line-height: 1.5; max-width: 310px; margin-bottom: 1.25rem;">
+        Masaüstü sürümünde olduğu gibi sıralar ekleyerek öğrencileri yerleştirebilir ve sıraların yerini parmağınızla serbestçe taşıyabilirsiniz.
+      </p>
+
+      <button type="button" class="subview-primary-action-btn" onclick="window.startNewSeatingPlan()" style="padding: 0.85rem 1.5rem; font-size: 0.92rem; font-weight: 800; display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35);">
+        <span>➕ Yeni Oturma Planı Ekle</span>
+      </button>
+
+      <div style="display: flex; gap: 8px; margin-top: 1rem; width: 100%; max-width: 320px;">
+        <button type="button" class="m-btn-sm" onclick="window.createAutoSeatingLayout(2)" style="flex: 1; padding: 9px 6px; font-weight: 700; background: var(--m-surface); border: 1.5px solid var(--m-border); border-radius: 10px; font-size: 0.76rem; display: flex; align-items: center; justify-content: center; gap: 5px; cursor: pointer;">
+          <span>🪑🪑 İkili Sıra Düzeni</span>
+        </button>
+        <button type="button" class="m-btn-sm" onclick="window.createAutoSeatingLayout(1)" style="flex: 1; padding: 9px 6px; font-weight: 700; background: var(--m-surface); border: 1.5px solid var(--m-border); border-radius: 10px; font-size: 0.76rem; display: flex; align-items: center; justify-content: center; gap: 5px; cursor: pointer;">
+          <span>🪑 Tekli Sıra Düzeni</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Sınıf Tuvali (Canvas) -->
+    <div id="m-seating-canvas-container" style="flex: 1; position: relative; width: 100%; min-height: 380px; overflow: hidden; border-radius: 12px; border: 2px dashed var(--m-border); background: var(--m-surface-subtle); display: flex; flex-direction: column;">
+      <div id="m-seating-canvas" style="position: relative; width: 100%; height: 100%; min-height: 480px; overflow: hidden; user-select: none;">
+        <!-- Dinamik yerleşim öğeleri JS ile render edilir -->
+      </div>
+    </div>
+  </div>
+
+  <!-- 5.4 OTURMA PLANI ÖĞRENCİ SEÇİMİ MODALI (Alt Çekmece) -->
+  <div class="bottom-sheet" id="modal-seating-student-select" style="max-height: 85vh; z-index: 1250; display: flex; flex-direction: column;">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header" style="flex-shrink: 0; margin-bottom: 0.5rem;">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span style="font-size: 1.3rem;">🧑‍🎓</span>
+        <div>
+          <div class="sheet-title">Öğrenci Seç / Yerleştir</div>
+          <div style="font-size: 0.72rem; color: var(--m-text-muted);" id="m-seating-slot-info">Sıra 1 - Koltuk 1</div>
+        </div>
+      </div>
+      <button class="sheet-close-btn" onclick="window.closeMobileSeatPicker()">&times;</button>
+    </div>
+
+    <div style="padding: 0 1.25rem 1.25rem 1.25rem; display: flex; flex-direction: column; flex: 1; overflow: hidden;">
+      <!-- Arama Kutusu -->
+      <div style="margin-bottom: 0.65rem; flex-shrink: 0;">
+        <input type="text" class="m-form-input" id="m-seating-student-search" placeholder="Öğrenci ara (isim veya no)..." oninput="window.filterMobileSeatStudents(this.value)" style="font-size: 0.85rem; padding: 7px 12px;">
+      </div>
+
+      <!-- Seçili Koltuktaki Öğrenci Varsa Kaldır Butonu -->
+      <div id="m-seating-current-student-bar" style="display: none; align-items: center; justify-content: space-between; padding: 6px 10px; background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.25); border-radius: 8px; margin-bottom: 0.65rem; flex-shrink: 0;">
+        <span style="font-size: 0.78rem; font-weight: 700; color: var(--m-danger);" id="m-seating-current-student-name">Öğrenci</span>
+        <button type="button" onclick="window.clearCurrentSeatStudent()" style="background: var(--m-danger); color: white; border: none; border-radius: 6px; padding: 4px 8px; font-size: 0.72rem; font-weight: 700; cursor: pointer;">
+          Koltuğu Boşalt
+        </button>
+      </div>
+
+      <!-- Öğrenci Listesi -->
+      <div id="m-seating-student-list" style="flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; display: flex; flex-direction: column; gap: 6px; padding-bottom: 0.5rem;">
+        <!-- Dinamik öğrenci öğeleri -->
+      </div>
+    </div>
+  </div>
+
+  <!-- DERS AKIŞI MODALI (ANA YÜZEN MENÜ) -->
+  <div class="bottom-sheet" id="modal-schedule-flow" style="max-height: 94vh; height: 92vh; display: flex; flex-direction: column; padding: 1.25rem 1rem 0 1rem; overflow: hidden;">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header" style="margin-bottom: 0.6rem; flex-shrink: 0;">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span style="font-size: 1.3rem;" id="m-sched-header-icon">📅</span>
+        <div class="sheet-title" id="m-sched-header-title">Ders Programı</div>
+      </div>
+      <button class="sheet-close-btn" onclick="window.closeBottomSheet()">&times;</button>
+    </div>
+
+    <!-- DİNAMİK İÇERİK KAPSAYICISI (Gün gün alt alta kaydırılır) -->
+    <div id="m-schedule-flow-body" style="flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 2px 2px calc(80px + var(--safe-bottom, 0px)) 2px;">
+      <!-- Sekmeye göre dinamik olarak doldurulur -->
+    </div>
+
+    <!-- YÜZEN MENÜ (FAB - Floating Action Menu) -->
+    <div class="mobile-fab-container" id="m-sched-fab-container" style="position: absolute; right: 18px; bottom: calc(18px + var(--safe-bottom, 0px)); z-index: 200;">
+      <div class="mobile-fab-menu" id="m-sched-fab-menu" style="min-width: 175px;">
+        <button class="mobile-fab-item active" id="sched-fab-schedule" data-flow-tab="schedule" onclick="window.switchScheduleFlowTab('schedule')">
+          <span style="font-size: 1.15rem;">📅</span>
+          <span>Ders Programı</span>
+        </button>
+        <button class="mobile-fab-item" id="sched-fab-plans" data-flow-tab="plans" onclick="window.switchScheduleFlowTab('plans')">
+          <span style="font-size: 1.15rem;">📑</span>
+          <span>Yıllık Planlar</span>
+        </button>
+        <button class="mobile-fab-item" id="sched-fab-times" data-flow-tab="times" onclick="window.switchScheduleFlowTab('times')">
+          <span style="font-size: 1.15rem;">⏰</span>
+          <span>Ders Saatleri</span>
+        </button>
+      </div>
+      <button class="mobile-fab-btn" id="m-sched-fab-btn" onclick="window.toggleScheduleFabMenu()" title="Ders Akışı Menüsü">
+        <i data-lucide="layers" style="width: 22px; height: 22px;"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- DERSLERİ YÖNETME MODALI (Ders Ekle / Sil / Renk Seç) -->
+  <div class="bottom-sheet" id="modal-schedule-lessons" style="max-height: 88vh; z-index: 1200;">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header">
+      <div class="sheet-title">📚 Tanımlı Dersler</div>
+      <button class="sheet-close-btn" onclick="window.openScheduleFlowModal('schedule')">&times;</button>
+    </div>
+    <div style="padding: 0 0.5rem 1.5rem 0.5rem; overflow-y: auto;">
+      <!-- Yeni Ders Ekle Formu -->
+      <div class="m-item-card" style="padding: 1rem; margin-bottom: 1.25rem;">
+        <div style="font-weight: 800; font-size: 0.95rem; margin-bottom: 0.75rem; color: var(--m-primary);">➕ Yeni Ders Ekle</div>
+        <div class="m-form-group" style="margin-bottom: 0.75rem;">
+          <label class="m-form-label">Ders Adı</label>
+          <input type="text" class="m-form-input" id="m-new-lesson-name" placeholder="Örn: Görsel Sanatlar">
+        </div>
+        <div class="m-form-group" style="margin-bottom: 1rem;">
+          <label class="m-form-label">Ders Rengi</label>
+          <div id="m-lesson-color-picker" style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px;">
+            <!-- Renk yuvarlakları JS ile oluşturulacak -->
+          </div>
+        </div>
+        <button class="subview-primary-action-btn" onclick="window.addNewScheduleLessonFromMobile()">
+          <i data-lucide="plus" style="width: 18px; height: 18px;"></i> Dersi Kaydet
+        </button>
+      </div>
+
+      <!-- Tanımlı Dersler Listesi -->
+      <div style="font-weight: 800; font-size: 0.95rem; margin-bottom: 0.75rem;">Kayıtlı Dersler</div>
+      <div id="m-schedule-lessons-list" style="display: flex; flex-direction: column; gap: 8px;">
+        <!-- JS ile doldurulacak -->
+      </div>
+    </div>
+  </div>
+
+  <!-- HÜCREYE DERS ATAMA MODALI (Hücreye Dokununca Açılır) -->
+  <div class="bottom-sheet" id="modal-schedule-pick-cell" style="max-height: 85vh; z-index: 1200;">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header">
+      <div class="sheet-title" id="m-pick-cell-title">Ders Seç</div>
+      <button class="sheet-close-btn" onclick="window.openScheduleFlowModal('schedule')">&times;</button>
+    </div>
+    <div style="padding: 0 0.5rem 1.5rem 0.5rem; overflow-y: auto;">
+      <div id="m-pick-cell-current-wrap" style="margin-bottom: 1rem;">
+        <!-- Mevcut ders bilgisi ve boşalt butonu -->
+      </div>
+      <div style="font-weight: 800; font-size: 0.9rem; margin-bottom: 0.6rem; color: var(--m-text-muted);">
+        Atamak İstediğiniz Dersi Seçin:
+      </div>
+      <div id="m-pick-cell-lessons-list" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 1rem;">
+        <!-- Ders butonları JS ile doldurulur -->
+      </div>
+      <button class="subview-secondary-btn" style="width: 100%; justify-content: center;" onclick="window.openScheduleLessonsModal()">
+        <i data-lucide="plus" style="width: 16px; height: 16px;"></i> Yeni Ders Tanımla
+      </button>
+    </div>
+  </div>
+
+  <!-- PLAN EKLEME SEÇENEKLERİ MODALI -->
+  <div class="bottom-sheet" id="modal-plan-add-options" style="max-height: 85vh; z-index: 1200;">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header">
+      <div class="sheet-title">➕ Yeni Yıllık Plan Ekle</div>
+      <button class="sheet-close-btn" onclick="window.openScheduleFlowModal('plans')">&times;</button>
+    </div>
+    <div style="padding: 0 0.5rem 1.5rem 0.5rem; overflow-y: auto;">
+      <div style="font-size: 0.85rem; color: var(--m-text-muted); margin-bottom: 1rem;">
+        Planınızı eklemek için aşağıdaki üç yöntemden birini seçebilirsiniz:
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        <!-- 1. Hazır MEB Müfredatı -->
+        <div class="m-item-card" style="padding: 1rem; cursor: pointer; border: 1.5px solid var(--m-border);" onclick="window.openMebCurriculumBrowser()">
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <div style="width: 44px; height: 44px; border-radius: 12px; background: rgba(59, 130, 246, 0.15); color: #3b82f6; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; flex-shrink: 0;">
+              🏛️
+            </div>
+            <div style="flex: 1;">
+              <div style="font-weight: 800; font-size: 0.95rem; color: var(--m-text);">Hazır MEB Müfredatı</div>
+              <div style="font-size: 0.78rem; color: var(--m-text-muted); margin-top: 2px;">
+                Masaüstündeki gibi hazır MEB müfredat havuzundan 1-8. sınıf planını tek dokunuşla ekleyin.
+              </div>
+            </div>
+            <i data-lucide="chevron-right" style="width: 18px; height: 18px; color: var(--m-text-light);"></i>
+          </div>
+        </div>
+
+        <!-- 2. Excel Dosyasından -->
+        <div class="m-item-card" style="padding: 1rem; cursor: pointer; border: 1.5px solid var(--m-border);" onclick="document.getElementById('m-plan-excel-file').click()">
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <div style="width: 44px; height: 44px; border-radius: 12px; background: rgba(16, 185, 129, 0.15); color: #10b981; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; flex-shrink: 0;">
+              📊
+            </div>
+            <div style="flex: 1;">
+              <div style="font-weight: 800; font-size: 0.95rem; color: var(--m-text);">Excel Dosyasından</div>
+              <div style="font-size: 0.78rem; color: var(--m-text-muted); margin-top: 2px;">
+                Cihazınızdaki .xlsx veya .xls formatındaki yıllık plan dosyasını yükleyin ve içe aktarın.
+              </div>
+            </div>
+            <i data-lucide="chevron-right" style="width: 18px; height: 18px; color: var(--m-text-light);"></i>
+          </div>
+        </div>
+
+        <!-- 3. Yapay Zeka ile -->
+        <div class="m-item-card" style="padding: 1rem; cursor: pointer; border: 1.5px solid var(--m-border);" onclick="window.openAiPlanGeneratorModal()">
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <div style="width: 44px; height: 44px; border-radius: 12px; background: rgba(139, 92, 246, 0.15); color: #8b5cf6; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; flex-shrink: 0;">
+              🤖
+            </div>
+            <div style="flex: 1;">
+              <div style="font-weight: 800; font-size: 0.95rem; color: var(--m-text);">Yapay Zeka ile Oluştur</div>
+              <div style="font-size: 0.78rem; color: var(--m-text-muted); margin-top: 2px;">
+                Google Gemini AI ile MEB standartlarında tam uyumlu 36 haftalık yıllık plan üretin.
+              </div>
+            </div>
+            <i data-lucide="chevron-right" style="width: 18px; height: 18px; color: var(--m-text-light);"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- HAZIR MEB MÜFREDAT HAVUZU MODALI -->
+  <div class="bottom-sheet" id="modal-plan-meb-browser" style="max-height: 90vh; z-index: 1300; display: flex; flex-direction: column;">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header" style="margin-bottom: 0.5rem; flex-shrink: 0;">
+      <div class="sheet-title">🏛️ MEB Müfredat Havuzu</div>
+      <button class="sheet-close-btn" onclick="window.openPlanAddOptions()">&times;</button>
+    </div>
+    <div style="flex-shrink: 0; padding: 0 0.5rem 0.5rem 0.5rem;">
+      <!-- Sınıf ve Şube Girişi -->
+      <div style="display: flex; gap: 8px; margin-bottom: 0.6rem;">
+        <input type="text" class="m-form-input" id="m-meb-plan-class" placeholder="Hedef Sınıf / Şube (Örn: 4/A)" style="flex: 1;">
+        <input type="text" class="m-form-input" id="m-meb-plan-search" placeholder="🔍 Ders ara..." style="flex: 1.2;" oninput="window.filterMebCurriculumPlans()">
+      </div>
+      <!-- Sınıf Düzeyi Filtre Butonları -->
+      <div id="m-meb-grade-pills" style="display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; -webkit-overflow-scrolling: touch;">
+        <!-- JS ile doldurulacak -->
+      </div>
+    </div>
+    <div id="m-meb-curriculum-list" style="flex: 1; overflow-y: auto; padding: 0 0.5rem 1.5rem 0.5rem; display: flex; flex-direction: column; gap: 8px;">
+      <!-- MEB Plan kartları JS ile doldurulacak -->
+    </div>
+  </div>
+
+  <!-- YAPAY ZEKA İLE PLAN OLUŞTURMA FORMU MODALI -->
+  <div class="bottom-sheet" id="modal-plan-ai-generator" style="max-height: 90vh; z-index: 1300;">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header">
+      <div class="sheet-title">🤖 Yapay Zeka ile Plan Üret</div>
+      <button class="sheet-close-btn" onclick="window.openPlanAddOptions()">&times;</button>
+    </div>
+    <div style="padding: 0 0.5rem 1.5rem 0.5rem; overflow-y: auto;">
+      <div class="m-form-group" style="margin-bottom: 0.75rem;">
+        <label class="m-form-label">Sınıf / Şube</label>
+        <input type="text" class="m-form-input" id="m-ai-plan-class" placeholder="Örn: 4/A veya 6/B">
+      </div>
+      <div class="m-form-group" style="margin-bottom: 0.75rem;">
+        <label class="m-form-label">Ders Adı</label>
+        <input type="text" class="m-form-input" id="m-ai-plan-course" placeholder="Örn: Bilişim Teknolojileri ve Yazılım">
+      </div>
+      <div class="m-form-group" style="margin-bottom: 0.75rem;">
+        <label class="m-form-label">Haftalık Ders Saati</label>
+        <select class="m-form-select" id="m-ai-plan-hours">
+          <option value="1">1 Saat</option>
+          <option value="2">2 Saat</option>
+          <option value="3">3 Saat</option>
+          <option value="4" selected>4 Saat</option>
+          <option value="5">5 Saat</option>
+          <option value="6">6 Saat</option>
+        </select>
+      </div>
+      <div class="m-form-group" style="margin-bottom: 0.75rem;">
+        <label class="m-form-label">Müfredat Programı</label>
+        <select class="m-form-select" id="m-ai-plan-style">
+          <option value="maarif" selected>Türkiye Yüzyılı Maarif Modeli</option>
+          <option value="standard">Standart MEB Öğretim Programı</option>
+        </select>
+      </div>
+      <div class="m-form-group" style="margin-bottom: 1rem;">
+        <label class="m-form-label">Özel İstekler / Notlar (İsteğe Bağlı)</label>
+        <textarea class="m-form-input" id="m-ai-plan-notes" rows="2" placeholder="Örn: Proje ve performans ödev haftaları eklensin" style="height: auto; padding: 8px;"></textarea>
+      </div>
+
+      <div id="m-ai-plan-status-box" style="display: none; padding: 12px; border-radius: 12px; background: rgba(99, 102, 241, 0.1); margin-bottom: 1rem; text-align: center;">
+        <div class="spinner-sm" style="display: inline-block; width: 20px; height: 20px; border: 2px solid var(--m-primary); border-top-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 6px;"></div>
+        <div id="m-ai-plan-status-text" style="font-size: 0.82rem; font-weight: 700; color: var(--m-primary);">Yapay zeka planı hazırlıyor, lütfen bekleyin...</div>
+      </div>
+
+      <button class="subview-primary-action-btn" id="m-btn-generate-ai-plan" onclick="window.generateAiPlanMobile()">
+        <i data-lucide="sparkles" style="width: 18px; height: 18px;"></i> Planı Yapay Zeka ile Oluştur
+      </button>
+    </div>
+  </div>
+
+  <!-- PLAN HAFTALIK İNCELEME & KAZANIMLAR MODALI -->
+  <div class="bottom-sheet" id="modal-plan-view-weeks" style="max-height: 90vh; z-index: 1300; display: flex; flex-direction: column;">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header" style="flex-shrink: 0; margin-bottom: 0.5rem;">
+      <div>
+        <div class="sheet-title" id="m-plan-weeks-title">Plan Haftaları</div>
+        <div id="m-plan-weeks-subtitle" style="font-size: 0.78rem; color: var(--m-text-muted); font-weight: 600;"></div>
+      </div>
+      <button class="sheet-close-btn" onclick="window.openScheduleFlowModal('plans')">&times;</button>
+    </div>
+    <div id="m-plan-weeks-content" style="flex: 1; overflow-y: auto; padding: 0 0.5rem 1.5rem 0.5rem; display: flex; flex-direction: column; gap: 8px;">
+      <!-- Haftalar JS ile listelenecek -->
+    </div>
+  </div>
+
+  <!-- GİZLİ EXCEL DOSYA YÜKLEME GİRDİSİ -->
+  <input type="file" id="m-plan-excel-file" accept=".xlsx, .xls" style="display: none;" onchange="window.handleMobilePlanExcelUpload(event)">
+
+  <!-- 8. KATKI & TEDARİK TAKİBİ ANA LİSTE MODALI -->
+  <div class="bottom-sheet" id="modal-supplies" style="max-height: 94vh; height: 92vh; display: flex; flex-direction: column; padding: 1.25rem 1rem calc(1.5rem + var(--safe-bottom));">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header" style="margin-bottom: 0.75rem; flex-shrink: 0;">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span style="font-size: 1.3rem;">📦</span>
+        <div class="sheet-title">Katkı & Tedarik Takibi</div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 6px;">
+        <button class="m-btn-sm" style="display: flex; align-items: center; gap: 4px; background: var(--m-primary); color: #ffffff; border: none; font-weight: 700; font-size: 0.78rem; padding: 6px 12px; border-radius: 10px; cursor: pointer; box-shadow: var(--m-shadow-sm);" onclick="window.openAddSupplyModal()">
+          <i data-lucide="plus" style="width: 15px; height: 15px;"></i> Ekle
+        </button>
+        <button class="sheet-close-btn" onclick="window.closeBottomSheet()">&times;</button>
+      </div>
+    </div>
+    
+    <div id="m-supplies-list-container" style="flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 2px 2px 1rem 2px;">
+      <!-- Kampanyalar Listesi JS ile doldurulur -->
+    </div>
+  </div>
+
+  <!-- YENİ KATKI / TEDARİK TAKİBİ EKLEME & DÜZENLEME MODALI (Masaüstü ile Birebir Aynı) -->
+  <div class="bottom-sheet" id="modal-add-supply" style="max-height: 90vh; z-index: 1200;">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header" style="margin-bottom: 0.75rem;">
+      <div class="sheet-title" id="m-add-supply-header-title">➕ Yeni Liste Ekle</div>
+      <button class="sheet-close-btn" onclick="window.openSuppliesModal()">&times;</button>
+    </div>
+    <div style="padding: 0 0.5rem 1.5rem 0.5rem; overflow-y: auto;">
+      <input type="hidden" id="m-supply-edit-id" value="">
+
+      <!-- 1. Takip / Kampanya Başlığı -->
+      <div class="m-form-group" style="margin-bottom: 1rem;">
+        <label class="m-form-label" for="m-supply-input-title">Takip / Kampanya Başlığı</label>
+        <input type="text" class="m-form-input" id="m-supply-input-title" placeholder="Örn: 1. Dönem A4 Kağıdı Tedariği veya Tiyatro Gezisi Ücreti">
+      </div>
+
+      <!-- 2. Takip Türü -->
+      <div class="m-form-group" style="margin-bottom: 1rem;">
+        <label class="m-form-label">Takip Türü</label>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+          <!-- Malzeme Seçeneği -->
+          <div id="m-supply-type-material-card" class="m-item-card" style="padding: 0.85rem; cursor: pointer; border: 2px solid var(--m-primary); background: rgba(99, 102, 241, 0.08);" onclick="window.selectMobileSupplyType('material')">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 1.3rem;">📦</span>
+              <div>
+                <strong style="display: block; font-size: 0.88rem; color: var(--m-text);">Malzeme / Eşya</strong>
+                <span style="font-size: 0.72rem; color: var(--m-text-muted);">A4 kağıdı, boya vb.</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Ücret Seçeneği -->
+          <div id="m-supply-type-money-card" class="m-item-card" style="padding: 0.85rem; cursor: pointer; border: 1px solid var(--m-border); background: var(--m-surface);" onclick="window.selectMobileSupplyType('money')">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 1.3rem;">💵</span>
+              <div>
+                <strong style="display: block; font-size: 0.88rem; color: var(--m-text);">Maddi / Ücret</strong>
+                <span style="font-size: 0.72rem; color: var(--m-text-muted);">Gezi, tiyatro, bilet</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. Malzeme Alanı (Malzeme Seçildiğinde) -->
+      <div class="m-form-group" id="m-supply-group-material" style="margin-bottom: 1rem;">
+        <label class="m-form-label" for="m-supply-input-material">İstenen Malzeme / Adet</label>
+        <input type="text" class="m-form-input" id="m-supply-input-material" placeholder="Örn: 1 Top A4 Fotokopi Kağıdı (80 gr)" value="1 Top A4 Kağıdı">
+      </div>
+
+      <!-- 4. Tutar Alanı (Para Seçildiğinde) -->
+      <div class="m-form-group" id="m-supply-group-money" style="margin-bottom: 1rem; display: none;">
+        <label class="m-form-label" for="m-supply-input-amount">Öğrenci Başı Hedeflenen Tutar (₺)</label>
+        <div style="position: relative;">
+          <input type="number" class="m-form-input" id="m-supply-input-amount" placeholder="0" min="0" step="1" style="padding-right: 2rem;">
+          <span style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); font-weight: 700; color: var(--m-text-muted);">₺</span>
+        </div>
+      </div>
+
+      <!-- 5. Son Teslim / Toplama Tarihi (İsteğe Bağlı) -->
+      <div class="m-form-group" style="margin-bottom: 1rem;">
+        <label class="m-form-label" for="m-supply-input-due-date">Son Teslim / Toplama Tarihi (İsteğe Bağlı)</label>
+        <input type="date" class="m-form-input" id="m-supply-input-due-date">
+      </div>
+
+      <!-- 6. Açıklama / Not (İsteğe Bağlı) -->
+      <div class="m-form-group" style="margin-bottom: 1.25rem;">
+        <label class="m-form-label" for="m-supply-input-desc">Açıklama / Not (İsteğe Bağlı)</label>
+        <textarea class="m-form-input" id="m-supply-input-desc" rows="2" placeholder="Velilere veya sınıfa iletilen detaylar..." style="resize: vertical;"></textarea>
+      </div>
+
+      <div style="display: flex; gap: 8px;">
+        <button class="subview-secondary-btn" style="flex: 1; justify-content: center;" onclick="window.openSuppliesModal()">
+          İptal
+        </button>
+        <button class="subview-primary-action-btn" style="flex: 2; margin: 0;" onclick="window.saveSupplyCampaignFromMobile()">
+          Kaydet ve Başlat
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- KATKI & TEDARİK ÖĞRENCİ TAKİP DETAY MODALI -->
+  <div class="bottom-sheet" id="modal-supply-detail" style="max-height: 94vh; height: 92vh; display: flex; flex-direction: column; padding: 1.25rem 1rem calc(1.5rem + var(--safe-bottom));">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header" style="margin-bottom: 0.5rem; flex-shrink: 0;">
+      <div style="display: flex; align-items: center; gap: 8px; flex: 1; overflow: hidden;">
+        <button class="m-btn-sm" style="background: var(--m-surface-subtle); border: 1px solid var(--m-border); color: var(--m-text); padding: 4px 8px; border-radius: 8px; cursor: pointer; flex-shrink: 0;" onclick="window.openSuppliesModal()">
+          ←
+        </button>
+        <div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+          <div class="sheet-title" id="m-supply-detail-title" style="font-size: 1rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Liste Detayı</div>
+          <div style="font-size: 0.7rem; color: var(--m-text-muted);" id="m-supply-detail-subtitle">0 Öğrenci</div>
+        </div>
+      </div>
+      <button class="sheet-close-btn" onclick="window.closeBottomSheet()">&times;</button>
+    </div>
+
+    <!-- Hızlı Eylemler & İstatistikler -->
+    <div id="m-supply-detail-stats" style="flex-shrink: 0; margin-bottom: 0.75rem;">
+      <!-- JS ile doldurulur (Toplam, Teslim Eden, Bekleyen, Toplanan Tutar) -->
+    </div>
+
+    <!-- Arama ve Filtre Çipleri -->
+    <div style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 0.75rem; flex-shrink: 0;">
+      <div style="display: flex; gap: 6px;">
+        <input type="text" class="m-form-input" id="m-supply-student-search" placeholder="Öğrenci ara..." style="flex: 1; padding: 6px 12px; font-size: 0.8rem;" oninput="window.filterSupplyStudentsList()">
+        <button class="m-btn-sm" style="background: var(--m-surface-subtle); border: 1px solid var(--m-border); color: var(--m-primary); font-weight: 700; font-size: 0.74rem; padding: 6px 10px; border-radius: 8px; cursor: pointer; white-space: nowrap;" onclick="window.markAllSupplyStudentsCompleted()">
+          ✓✓ Tümünü Getirdi Yap
+        </button>
+      </div>
+      <div style="display: flex; gap: 6px;" id="m-supply-filter-chips">
+        <button class="m-sched-day-chip active" data-filter="all" onclick="window.setSupplyFilter('all')">Tümü (<span id="m-supply-cnt-all">0</span>)</button>
+        <button class="m-sched-day-chip" data-filter="completed" onclick="window.setSupplyFilter('completed')">Teslim Edenler (<span id="m-supply-cnt-comp">0</span>)</button>
+        <button class="m-sched-day-chip" data-filter="pending" onclick="window.setSupplyFilter('pending')">Bekleyenler (<span id="m-supply-cnt-pend">0</span>)</button>
+      </div>
+    </div>
+
+    <!-- Öğrenci Listesi -->
+    <div id="m-supply-students-list" style="flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; display: flex; flex-direction: column; gap: 6px; padding-bottom: 1rem;">
+      <!-- JS ile doldurulur -->
+    </div>
+  </div>
+
+  <!-- TESLİMAT NOTU DÜZENLEME DİYALOĞU -->
+  <div id="modal-supply-note-dialog" style="display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); z-index: 2500; align-items: center; justify-content: center; padding: 1.25rem;">
+    <div style="background: var(--m-surface); border: 1px solid var(--m-border); border-radius: var(--m-radius-md); width: 100%; max-width: 380px; box-shadow: var(--m-shadow-lg); overflow: hidden; animation: fabPopIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);">
+      <div style="padding: 1rem 1.25rem 0.5rem; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--m-border-light, rgba(255,255,255,0.06));">
+        <div style="font-weight: 800; font-size: 0.98rem; color: var(--m-text); display: flex; align-items: center; gap: 6px;">
+          <span>💬</span> <span id="m-supply-note-std-name">Öğrenci Notu</span>
+        </div>
+        <button type="button" onclick="window.closeSupplyNoteDialog()" style="background: none; border: none; font-size: 1.4rem; color: var(--m-text-muted); cursor: pointer; padding: 0 4px; line-height: 1;">&times;</button>
+      </div>
+      <div style="padding: 1rem 1.25rem 1.25rem;">
+        <label class="m-form-label" style="font-size: 0.85rem; font-weight: 700; color: var(--m-text); margin-bottom: 8px; display: block;">
+          Eklemek istediğiniz notu yazınız:
+        </label>
+        <textarea id="m-supply-note-input" class="m-form-input" rows="3" placeholder="Örn: Yarın getirecek, veli ile görüşüldü..." style="width: 100%; border-radius: 10px; font-size: 0.88rem; padding: 10px; resize: none; box-sizing: border-box; line-height: 1.4;"></textarea>
+        
+        <input type="hidden" id="m-supply-note-std-id">
+
+        <div style="display: flex; gap: 8px; margin-top: 1rem;">
+          <button type="button" class="subview-secondary-btn" style="flex: 1; margin: 0; padding: 0.7rem; font-weight: 700;" onclick="window.closeSupplyNoteDialog()">
+            Vazgeç
+          </button>
+          <button type="button" class="subview-primary-action-btn" style="flex: 1.5; margin: 0; padding: 0.7rem; background: linear-gradient(135deg, var(--m-primary), #4338ca); font-weight: 800;" onclick="window.saveSupplyNoteDialog()">
+            Kaydet
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TESLİMAT ÖDEME TUTARI DİYALOĞU -->
+  <div id="modal-supply-payment-dialog" style="display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); z-index: 2500; align-items: center; justify-content: center; padding: 1.25rem;">
+    <div style="background: var(--m-surface); border: 1px solid var(--m-border); border-radius: var(--m-radius-md); width: 100%; max-width: 380px; box-shadow: var(--m-shadow-lg); overflow: hidden; animation: fabPopIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);">
+      <div style="padding: 1rem 1.25rem 0.5rem; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--m-border-light, rgba(255,255,255,0.06));">
+        <div style="font-weight: 800; font-size: 0.98rem; color: var(--m-text); display: flex; align-items: center; gap: 6px;">
+          <span>💰</span> <span id="m-supply-payment-std-name">Ödeme Girişi</span>
+        </div>
+        <button type="button" onclick="window.closeSupplyPaymentDialog()" style="background: none; border: none; font-size: 1.4rem; color: var(--m-text-muted); cursor: pointer; padding: 0 4px; line-height: 1;">&times;</button>
+      </div>
+      <div style="padding: 1rem 1.25rem 1.25rem;">
+        <label class="m-form-label" style="font-size: 0.85rem; font-weight: 700; color: var(--m-text); margin-bottom: 8px; display: block;" id="m-supply-payment-label">
+          Ödenen tutarı girin (₺):
+        </label>
+        <input type="number" id="m-supply-payment-input" class="m-form-input" placeholder="0" style="width: 100%; border-radius: 10px; font-size: 1.1rem; font-weight: 800; padding: 10px; box-sizing: border-box;">
+        
+        <input type="hidden" id="m-supply-payment-std-id">
+
+        <div style="display: flex; gap: 8px; margin-top: 1rem;">
+          <button type="button" class="subview-secondary-btn" style="flex: 1; margin: 0; padding: 0.7rem; font-weight: 700;" onclick="window.closeSupplyPaymentDialog()">
+            Vazgeç
+          </button>
+          <button type="button" class="subview-primary-action-btn" style="flex: 1.5; margin: 0; padding: 0.7rem; background: linear-gradient(135deg, var(--m-success), #059669); font-weight: 800;" onclick="window.saveSupplyPaymentDialog()">
+            Kaydet
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -1706,6 +3185,549 @@
     </div>
   </div>
 
+  <!-- 5.5 KİŞİSEL EVRAK DEPOSU MODALI -->
+  <div class="bottom-sheet" id="modal-documents" style="max-height: 96vh; height: 94vh; display: flex; flex-direction: column; padding: 1.25rem 1rem calc(1.5rem + var(--safe-bottom));">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header" style="margin-bottom: 0.5rem; flex-shrink: 0;">
+      <div style="display: flex; align-items: center; gap: 8px; flex: 1; overflow: hidden;">
+        <span style="font-size: 1.3rem;">📁</span>
+        <div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+          <div class="sheet-title" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+            Kişisel Evrak Deposu
+          </div>
+          <div style="font-size: 0.72rem; color: var(--m-text-muted); font-weight: 600;" id="m-docs-active-category-subtitle">
+            Tüm Evraklar
+          </div>
+        </div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
+        <button type="button" class="m-btn-sm" onclick="window.openDocumentUploadModal()" style="background: linear-gradient(135deg, var(--m-primary), #4338ca); color: white; border: none; font-weight: 800; font-size: 0.76rem; padding: 6px 12px; border-radius: 20px; display: flex; align-items: center; gap: 4px; box-shadow: 0 2px 8px rgba(79, 70, 229, 0.35); cursor: pointer;">
+          <span>➕</span> <span>Evrak Yükle</span>
+        </button>
+        <button class="sheet-close-btn" onclick="window.closeBottomSheet()">&times;</button>
+      </div>
+    </div>
+
+    <!-- Aktif Sekme Yönetim Barı (Özel kategori seçiliyse Yeniden Adlandır / Sil gösterilir) -->
+    <div id="m-docs-category-manage-bar" style="display: none; align-items: center; justify-content: space-between; padding: 6px 10px; background: var(--m-surface-subtle); border: 1px solid var(--m-border); border-radius: 8px; margin-bottom: 0.5rem; flex-shrink: 0;">
+      <div style="font-size: 0.78rem; font-weight: 700; color: var(--m-text); display: flex; align-items: center; gap: 6px;">
+        <span>📂</span> <span id="m-docs-custom-category-name">Kategori Adı</span>
+      </div>
+      <div style="display: flex; align-items: center; gap: 6px;">
+        <button type="button" class="m-btn-sm" onclick="window.promptRenameDocumentCategory()" style="background: var(--m-surface); border: 1px solid var(--m-border); font-size: 0.72rem; padding: 3px 8px; border-radius: 6px; cursor: pointer; color: var(--m-text);">
+          ✏️ Adlandır
+        </button>
+        <button type="button" class="m-btn-sm" onclick="window.confirmDeleteDocumentCategory()" style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); font-size: 0.72rem; padding: 3px 8px; border-radius: 6px; cursor: pointer; color: var(--m-danger);">
+          🗑️ Sil
+        </button>
+      </div>
+    </div>
+
+    <!-- Arama Kutusu -->
+    <div style="margin-bottom: 0.65rem; flex-shrink: 0;">
+      <input type="text" class="m-form-input" id="m-docs-search-input" placeholder="Evrak başlığı veya dosya adı ara..." oninput="window.filterMobileDocuments(this.value)" style="padding: 7px 12px; font-size: 0.82rem;">
+    </div>
+
+    <!-- Evraklar Listesi Kapsayıcısı -->
+    <div id="m-docs-list-container" style="flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding-bottom: 5.5rem; display: flex; flex-direction: column; gap: 8px;">
+      <!-- Dinamik kartlar buraya doldurulur -->
+    </div>
+
+    <!-- YÜZEN MENÜ (FAB - Floating Action Menu) -->
+    <div class="mobile-fab-container" id="m-docs-fab-container" style="position: absolute; right: 18px; bottom: calc(18px + var(--safe-bottom, 0px)); z-index: 200;">
+      <div class="mobile-fab-menu" id="m-docs-fab-menu" style="min-width: 210px; max-height: 65vh; overflow-y: auto;">
+        <!-- Dinamik Sekmeler & + Yeni Sekme Ekle butonu JS ile doldurulur -->
+      </div>
+      <button class="mobile-fab-btn" id="m-docs-fab-btn" onclick="window.toggleDocsFabMenu()" title="Evrak Sekmeleri">
+        <i data-lucide="layers" style="width: 22px; height: 22px;"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- 5.6 EVRAK YÜKLEME MODALI -->
+  <div class="bottom-sheet" id="modal-document-upload" style="max-height: 90vh; z-index: 1250; display: flex; flex-direction: column;">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header" style="flex-shrink: 0; margin-bottom: 0.75rem;">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span style="font-size: 1.3rem;">📤</span>
+        <div class="sheet-title">Yeni Evrak Yükle</div>
+      </div>
+      <button class="sheet-close-btn" onclick="window.closeDocumentUploadModal()">&times;</button>
+    </div>
+    <div style="padding: 0 1.25rem 1.75rem 1.25rem; overflow-y: auto;">
+      <!-- Dosya Seçim Alanı -->
+      <div style="border: 2px dashed var(--m-border); border-radius: 12px; padding: 1.25rem 1rem; text-align: center; background: var(--m-surface-subtle); margin-bottom: 1rem; cursor: pointer;" onclick="document.getElementById('m-docs-file-input').click()">
+        <input type="file" id="m-docs-file-input" accept=".pdf,.doc,.docx,.xls,.xlsx,.txt" style="display: none;" onchange="window.handleDocumentFileSelected(event)">
+        <div style="font-size: 2.2rem; margin-bottom: 6px;">📄</div>
+        <div style="font-weight: 800; font-size: 0.92rem; color: var(--m-text); margin-bottom: 4px;">
+          Dosya Seçmek İçin Dokunun
+        </div>
+        <div style="font-size: 0.72rem; color: var(--m-text-muted); margin-bottom: 6px;">
+          Formatlar: <strong>Word (.docx, .doc)</strong>, <strong>Excel (.xlsx, .xls)</strong>, <strong>PDF (.pdf)</strong>
+        </div>
+        <div style="display: inline-block; font-size: 0.68rem; font-weight: 700; color: var(--m-primary); background: rgba(99, 102, 241, 0.12); padding: 2px 8px; border-radius: 10px;">
+          Maksimum Dosya Boyutu: 15 MB
+        </div>
+      </div>
+
+      <!-- Seçilen Dosya Önizleme Kartı -->
+      <div id="m-docs-selected-file-card" style="display: none; align-items: center; justify-content: space-between; padding: 10px 12px; background: rgba(16, 185, 129, 0.08); border: 1.5px solid rgba(16, 185, 129, 0.3); border-radius: 10px; margin-bottom: 1rem;">
+        <div style="display: flex; align-items: center; gap: 10px; min-width: 0; flex: 1;">
+          <span style="font-size: 1.5rem;" id="m-docs-selected-file-icon">📄</span>
+          <div style="min-width: 0;">
+            <div style="font-weight: 800; font-size: 0.85rem; color: var(--m-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" id="m-docs-selected-file-name">dosya.docx</div>
+            <div style="font-size: 0.72rem; color: var(--m-text-muted);" id="m-docs-selected-file-size">1.2 MB</div>
+          </div>
+        </div>
+        <button type="button" onclick="window.clearSelectedDocumentFile()" style="background: none; border: none; color: var(--m-danger); font-size: 1.2rem; cursor: pointer; padding: 4px;">
+          ✕
+        </button>
+      </div>
+
+      <!-- Evrak Başlığı -->
+      <div class="m-form-group" style="margin-bottom: 0.85rem;">
+        <label class="m-form-label" for="m-docs-input-title">Evrak Başlığı *</label>
+        <input type="text" class="m-form-input" id="m-docs-input-title" placeholder="Örn: 2026 Zümre Toplantı Tutanağı">
+      </div>
+
+      <!-- Sekme / Kategori Seçimi -->
+      <div class="m-form-group" style="margin-bottom: 1.25rem;">
+        <label class="m-form-label" for="m-docs-input-category">Kategori / Sekme</label>
+        <select class="m-form-select" id="m-docs-input-category">
+          <option value="">Genel / Kategorisiz Evraklar</option>
+          <!-- Dinamik kategoriler -->
+        </select>
+      </div>
+
+      <!-- Yükle Butonu -->
+      <button type="button" class="subview-primary-action-btn" id="m-btn-save-document" onclick="window.saveUploadedDocumentFromMobile()" style="width: 100%; margin: 0; padding: 0.85rem; background: linear-gradient(135deg, var(--m-primary), #4338ca); font-weight: 800; font-size: 0.95rem;">
+        <i data-lucide="check" style="width: 18px; height: 18px;"></i> Evrağı Depoya Kaydet
+      </button>
+    </div>
+  </div>
+
+  <!-- 5.7 EVRAK GÖRÜNTÜLEYİCİ MODAL -->
+  <div class="bottom-sheet" id="modal-document-viewer" style="max-height: 96vh; height: 94vh; z-index: 1300; display: flex; flex-direction: column;">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header" style="flex-shrink: 0; margin-bottom: 0.4rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--m-border);">
+      <div style="display: flex; align-items: center; gap: 8px; flex: 1; overflow: hidden;">
+        <span style="font-size: 1.2rem;" id="m-docs-viewer-icon">📄</span>
+        <div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+          <div class="sheet-title" id="m-docs-viewer-title" style="font-size: 0.95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Evrak</div>
+          <div style="font-size: 0.68rem; color: var(--m-text-muted);" id="m-docs-viewer-meta">Format & Boyut</div>
+        </div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 5px; flex-shrink: 0;">
+        <button type="button" onclick="window.printCurrentViewerDocument()" title="Yazdır" style="background: var(--m-surface-subtle); border: 1px solid var(--m-border); font-size: 0.74rem; font-weight: 700; color: var(--m-text); cursor: pointer; padding: 4px 8px; border-radius: 6px;">
+          🖨️
+        </button>
+        <button type="button" onclick="window.shareCurrentViewerDocument()" title="Paylaş" style="background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.3); font-size: 0.74rem; font-weight: 700; color: #10b981; cursor: pointer; padding: 4px 8px; border-radius: 6px;">
+          📤
+        </button>
+        <button type="button" onclick="window.downloadCurrentViewerDocument()" title="İndir" style="background: rgba(99, 102, 241, 0.12); border: 1px solid rgba(99, 102, 241, 0.3); font-size: 0.74rem; font-weight: 700; color: var(--m-primary); cursor: pointer; padding: 4px 8px; border-radius: 6px;">
+          📥
+        </button>
+        <button class="sheet-close-btn" onclick="window.closeDocumentViewerModal()">&times;</button>
+      </div>
+    </div>
+    <div id="m-docs-viewer-body" style="flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 0.85rem; background: var(--m-surface);">
+      <!-- İçerik render edilir -->
+    </div>
+  </div>
+
+  <!-- 5.8 YENİ EVRAK SEKMESİ / KATEGORİSİ MODALI -->
+  <div class="bottom-sheet" id="modal-document-new-category" style="max-height: 80vh; z-index: 1350;">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span style="font-size: 1.3rem;">📂</span>
+        <div class="sheet-title">Yeni Evrak Sekmesi Ekle</div>
+      </div>
+      <button class="sheet-close-btn" onclick="window.closeDocumentNewCategoryModal()">&times;</button>
+    </div>
+    <div style="padding: 0 1.25rem 1.75rem 1.25rem;">
+      <div style="font-size: 0.8rem; color: var(--m-text-muted); margin-bottom: 1rem;">
+        Evraklarınızı gruplamak için yeni bir sekme adı girin (Örn: Zümreler, Toplantılar, Kulüp Evrakları, Resmi Yazışmalar).
+      </div>
+      <div class="m-form-group" style="margin-bottom: 1.25rem;">
+        <label class="m-form-label" for="m-docs-new-cat-name">Sekme / Kategori Adı *</label>
+        <input type="text" class="m-form-input" id="m-docs-new-cat-name" placeholder="Örn: Zümreler">
+      </div>
+      <button type="button" class="subview-primary-action-btn" onclick="window.saveNewDocumentCategoryFromMobile()" style="width: 100%; margin: 0; padding: 0.85rem; background: linear-gradient(135deg, #10b981, #059669); font-weight: 800;">
+        <i data-lucide="check" style="width: 18px; height: 18px;"></i> Sekmeyi Oluştur ve Yüzen Menüye Ekle
+      </button>
+    </div>
+  </div>
+
+  <!-- 5.9 EVRAK TAŞIMA MODALI -->
+  <div class="bottom-sheet" id="modal-document-move" style="max-height: 80vh; z-index: 1350; display: flex; flex-direction: column;">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header" style="flex-shrink: 0;">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span style="font-size: 1.3rem;">📂</span>
+        <div>
+          <div class="sheet-title">Evrağı Başka Sekmeye Taşı</div>
+          <div style="font-size: 0.72rem; color: var(--m-text-muted);" id="m-docs-move-doc-title">Evrak Adı</div>
+        </div>
+      </div>
+      <button class="sheet-close-btn" onclick="window.closeDocumentMoveModal()">&times;</button>
+    </div>
+    <div style="padding: 0 1.25rem 1.5rem 1.25rem; flex: 1; overflow-y: auto;">
+      <div style="font-size: 0.78rem; color: var(--m-text-muted); margin-bottom: 0.85rem;">
+        Bu evrağı taşımak istediğiniz sekmeye dokunun:
+      </div>
+      <div id="m-docs-move-category-list" style="display: flex; flex-direction: column; gap: 8px;">
+        <!-- Dinamik sekmeler -->
+      </div>
+    </div>
+  </div>
+  <!-- 5.10 SINAVLAR & ANALİZ HUB MODALI -->
+  <div class="bottom-sheet" id="modal-exams-hub" style="max-height: 96vh; height: 94vh; display: flex; flex-direction: column; padding: 1.25rem 1rem calc(1.5rem + var(--safe-bottom));">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header" style="margin-bottom: 0.5rem; flex-shrink: 0;">
+      <div style="display: flex; align-items: center; gap: 8px; flex: 1; overflow: hidden;">
+        <span style="font-size: 1.3rem;">📝</span>
+        <div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+          <div class="sheet-title" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+            Sınavlar & Analiz
+          </div>
+          <div style="font-size: 0.72rem; color: var(--m-text-muted); font-weight: 600;" id="m-exams-active-tab-subtitle">
+            📊 Sınav Analizi
+          </div>
+        </div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
+        <button type="button" class="m-btn-sm" id="m-exams-main-action-btn" onclick="window.openAddAnalysisExamModal()" style="background: linear-gradient(135deg, var(--m-primary), #4338ca); color: white; border: none; font-weight: 800; font-size: 0.76rem; padding: 6px 12px; border-radius: 20px; display: flex; align-items: center; gap: 4px; box-shadow: 0 2px 8px rgba(79, 70, 229, 0.35); cursor: pointer;">
+          <span>➕</span> <span id="m-exams-main-action-text">Sınav Tanımla</span>
+        </button>
+        <button class="sheet-close-btn" onclick="window.closeBottomSheet()">&times;</button>
+      </div>
+    </div>
+
+    <!-- SEKMELER (VIEWS) -->
+    <!-- 1. GÖRÜNÜM: SINAV ANALİZİ (İLK AÇILIŞ) -->
+    <div id="m-exams-view-analysis" style="flex: 1; display: flex; flex-direction: column; overflow-y: auto; -webkit-overflow-scrolling: touch; padding-bottom: 5rem;">
+      <!-- İstatistik Özeti -->
+      <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 0.75rem; flex-shrink: 0;">
+        <div style="background: var(--m-surface-subtle); border: 1px solid var(--m-border); border-radius: 10px; padding: 8px; text-align: center;">
+          <div style="font-size: 0.68rem; color: var(--m-text-muted); font-weight: 600;">Kayıtlı Sınav</div>
+          <div style="font-size: 1.15rem; font-weight: 800; color: var(--m-primary);" id="m-ea-stat-total-exams">0</div>
+        </div>
+        <div style="background: var(--m-surface-subtle); border: 1px solid var(--m-border); border-radius: 10px; padding: 8px; text-align: center;">
+          <div style="font-size: 0.68rem; color: var(--m-text-muted); font-weight: 600;">Şubeler</div>
+          <div style="font-size: 1.15rem; font-weight: 800; color: #10b981;" id="m-ea-stat-total-branches">0</div>
+        </div>
+        <div style="background: var(--m-surface-subtle); border: 1px solid var(--m-border); border-radius: 10px; padding: 8px; text-align: center;">
+          <div style="font-size: 0.68rem; color: var(--m-text-muted); font-weight: 600;">Öğrenci</div>
+          <div style="font-size: 1.15rem; font-weight: 800; color: #f59e0b;" id="m-ea-stat-total-students">0</div>
+        </div>
+      </div>
+
+      <!-- Analiz Sınavları Listesi -->
+      <div id="m-ea-exams-list" style="display: flex; flex-direction: column; gap: 8px;">
+        <!-- Dinamik analiz sınav kartları -->
+      </div>
+    </div>
+
+    <!-- 2. GÖRÜNÜM: YAZILI HAZIRLA -->
+    <div id="m-exams-view-creator" style="display: none; flex: 1; flex-direction: column; overflow-y: auto; -webkit-overflow-scrolling: touch; padding-bottom: 5rem;">
+      <!-- Yeni Sınav Oluşturma Banner'ı -->
+      <div style="background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(168, 85, 247, 0.1)); border: 1px dashed var(--m-primary); border-radius: 12px; padding: 1rem; text-align: center; margin-bottom: 0.85rem; flex-shrink: 0; cursor: pointer;" onclick="window.openCreateWrittenExamModal()">
+        <div style="font-size: 1.5rem; margin-bottom: 4px;">✍️</div>
+        <div style="font-weight: 800; font-size: 0.92rem; color: var(--m-text); margin-bottom: 2px;">Yeni Yazılı Sınavı Oluştur</div>
+        <div style="font-size: 0.72rem; color: var(--m-text-muted); margin-bottom: 8px;">A4 tek/çift sütun, Maarif kazanımları ve soru görselleri</div>
+        <button type="button" class="m-btn-sm" style="background: var(--m-primary); color: white; border: none; font-weight: 800; font-size: 0.78rem; padding: 6px 14px; border-radius: 20px; display: inline-flex; align-items: center; gap: 5px; box-shadow: 0 2px 6px rgba(99, 102, 241, 0.3);">
+          <span>➕</span> <span>Sınav Oluştur</span>
+        </button>
+      </div>
+
+      <!-- Kayıtlı Yazılılar Listesi -->
+      <div id="m-we-exams-list" style="display: flex; flex-direction: column; gap: 8px;">
+        <!-- Dinamik yazılı kağıdı kartları -->
+      </div>
+    </div>
+
+    <!-- YÜZEN MENÜ (FAB - Floating Action Menu) -->
+    <div class="mobile-fab-container" id="m-exams-fab-container" style="position: absolute; right: 18px; bottom: calc(18px + var(--safe-bottom, 0px)); z-index: 200;">
+      <div class="mobile-fab-menu" id="m-exams-fab-menu" style="min-width: 200px;">
+        <button type="button" class="mobile-fab-item active" id="m-exams-fab-item-analysis" onclick="window.switchExamsHubTab('analysis')">
+          <span style="font-size: 1.1rem;">📊</span>
+          <span style="font-weight: 700; font-size: 0.82rem;">Sınav Analizi</span>
+        </button>
+        <button type="button" class="mobile-fab-item" id="m-exams-fab-item-creator" onclick="window.switchExamsHubTab('creator')">
+          <span style="font-size: 1.1rem;">📝</span>
+          <span style="font-weight: 700; font-size: 0.82rem;">Yazılı Hazırla</span>
+        </button>
+      </div>
+      <button class="mobile-fab-btn" id="m-exams-fab-btn" onclick="window.toggleExamsFabMenu()" title="Sınav Menüsü">
+        <i data-lucide="layers" style="width: 22px; height: 22px;"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- 5.11 YENİ YAZILI SINAVI OLUŞTURMA MODALI -->
+  <div class="bottom-sheet" id="modal-create-written-exam" style="max-height: 94vh; z-index: 1250; display: flex; flex-direction: column;">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header" style="flex-shrink: 0; margin-bottom: 0.75rem;">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span style="font-size: 1.3rem;">📝</span>
+        <div class="sheet-title">Yeni Yazılı Sınavı Hazırla</div>
+      </div>
+      <button class="sheet-close-btn" onclick="window.closeCreateWrittenExamModal()">&times;</button>
+    </div>
+    <div style="padding: 0 1.25rem 1.75rem 1.25rem; overflow-y: auto; -webkit-overflow-scrolling: touch; display: flex; flex-direction: column; gap: 12px;">
+      
+      <!-- 1. Yazılı Başlığı -->
+      <div class="m-form-group">
+        <label class="m-form-label" for="m-we-title">Yazılı Başlığı *</label>
+        <input type="text" class="m-form-input" id="m-we-title" placeholder="Örn: MATEMATİK DERSİ 1. DÖNEM 1. YAZILI SINAVI" value="1. DÖNEM 1. YAZILI SINAVI">
+      </div>
+
+      <!-- Okul Adı & Öğretim Yılı -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+        <div class="m-form-group">
+          <label class="m-form-label" for="m-we-school">Okul Adı</label>
+          <input type="text" class="m-form-input" id="m-we-school" placeholder="Okulunuzun adı" value="................................ ORTAOKULU">
+        </div>
+        <div class="m-form-group">
+          <label class="m-form-label" for="m-we-year">Eğitim Öğretim Yılı</label>
+          <input type="text" class="m-form-input" id="m-we-year" value="2025-2026 EĞİTİM ÖĞRETİM YILI">
+        </div>
+      </div>
+
+      <!-- 2. Soru Sayısı & 3. A4 Sütun Düzeni -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+        <div class="m-form-group">
+          <label class="m-form-label" for="m-we-qcount">Soru Sayısı (1 - 25) *</label>
+          <input type="number" class="m-form-input" id="m-we-qcount" min="1" max="25" value="10" oninput="window.handleWrittenExamQCountChange()">
+        </div>
+        <div class="m-form-group">
+          <label class="m-form-label" for="m-we-columns">A4 Kağıt Düzeni *</label>
+          <select class="m-form-input" id="m-we-columns">
+            <option value="1">Tek Sütun (1 Sütun)</option>
+            <option value="2">Çift Sütun (2 Sütun)</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- 4. Müfredat Modeli Seçimi -->
+      <div class="m-form-group">
+        <label class="m-form-label">Müfredat Modeli *</label>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 4px;">
+          <label id="lbl-we-mode-maarif" style="border: 2px solid var(--m-primary); background: rgba(99, 102, 241, 0.08); border-radius: 10px; padding: 10px 8px; display: flex; align-items: center; gap: 8px; cursor: pointer;">
+            <input type="radio" name="m-we-curriculum-mode" value="maarif" checked onchange="window.toggleMaarifMode(true)" style="accent-color: var(--m-primary);">
+            <div>
+              <div style="font-weight: 800; font-size: 0.8rem; color: var(--m-text);">Maarif Modeli</div>
+              <div style="font-size: 0.65rem; color: var(--m-text-muted);">Kazanım odaklı sınav</div>
+            </div>
+          </label>
+          <label id="lbl-we-mode-klasik" style="border: 1px solid var(--m-border); background: var(--m-surface-subtle); border-radius: 10px; padding: 10px 8px; display: flex; align-items: center; gap: 8px; cursor: pointer;">
+            <input type="radio" name="m-we-curriculum-mode" value="klasik" onchange="window.toggleMaarifMode(false)" style="accent-color: var(--m-primary);">
+            <div>
+              <div style="font-weight: 800; font-size: 0.8rem; color: var(--m-text);">Klasik MEB</div>
+              <div style="font-size: 0.65rem; color: var(--m-text-muted);">Standart yazılı formatı</div>
+            </div>
+          </label>
+        </div>
+      </div>
+
+      <!-- 5. Maarif Modeli Seçildiğinde Soru Başına Kazanım Alanı -->
+      <div id="m-we-maarif-kazanimlar-box" style="background: rgba(99, 102, 241, 0.05); border: 1px solid rgba(99, 102, 241, 0.25); border-radius: 10px; padding: 10px; margin-top: 2px;">
+        <div style="font-weight: 800; font-size: 0.82rem; color: var(--m-primary); margin-bottom: 2px; display: flex; align-items: center; gap: 6px;">
+          <span>🎯</span> <span>Soru Kazanımları (Maarif Modeli)</span>
+        </div>
+        <div style="font-size: 0.7rem; color: var(--m-text-muted); margin-bottom: 8px;">
+          Her bir sorunun yanına ilgili kazanım kodunu veya açıklamasını yazabilirsiniz:
+        </div>
+        <div id="m-we-kazanimlar-inputs-list" style="display: flex; flex-direction: column; gap: 6px; max-height: 220px; overflow-y: auto; padding-right: 4px;">
+          <!-- Dinamik kazanım girdileri -->
+        </div>
+      </div>
+
+      <!-- 6. Sınav Süresi & 7. Soruların Puan Değerleri -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+        <div class="m-form-group">
+          <label class="m-form-label" for="m-we-duration">Sınav Süresi *</label>
+          <input type="text" class="m-form-input" id="m-we-duration" placeholder="Örn: 40 Dakika" value="40 Dakika">
+        </div>
+        <div class="m-form-group">
+          <label class="m-form-label" for="m-we-points-descr">Puanlama Açıklaması</label>
+          <input type="text" class="m-form-input" id="m-we-points-descr" placeholder="Örn: Her soru 10 puandır." value="Her soru 10 puandır.">
+        </div>
+      </div>
+
+      <!-- 8. Öğretmenin Adı Soyadı -->
+      <div class="m-form-group">
+        <label class="m-form-label" for="m-we-teacher">Öğretmenin Adı Soyadı *</label>
+        <input type="text" class="m-form-input" id="m-we-teacher" placeholder="Örn: Ayşe Yılmaz" value="Ders Öğretmeni">
+      </div>
+
+      <!-- Sınavı Oluştur Butonu -->
+      <button type="button" class="subview-primary-action-btn" onclick="window.generateWrittenExamSheet()" style="width: 100%; margin: 8px 0 0 0; padding: 0.9rem; background: linear-gradient(135deg, var(--m-primary), #4338ca); font-weight: 800; font-size: 0.92rem; border-radius: 12px; box-shadow: 0 3px 10px rgba(79, 70, 229, 0.35);">
+        <i data-lucide="file-plus-2" style="width: 20px; height: 20px;"></i>
+        <span>Yazılıyı Oluştur & Önizle</span>
+      </button>
+
+    </div>
+  </div>
+
+  <!-- 5.12 HAZIRLANAN YAZILI SINAVI ÖNİZLEME VE DÜZENLEME MODALI -->
+  <div class="bottom-sheet" id="modal-view-written-exam" style="max-height: 98vh; height: 96vh; z-index: 1300; display: flex; flex-direction: column; padding: 0.75rem 0.5rem calc(1rem + var(--safe-bottom));">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header" style="padding: 0 0.75rem 0.5rem 0.75rem; border-bottom: 1px solid var(--m-border); flex-shrink: 0;">
+      <div style="display: flex; align-items: center; gap: 6px; flex: 1; overflow: hidden;">
+        <span style="font-size: 1.2rem;">📄</span>
+        <div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+          <div class="sheet-title" id="m-we-preview-title" style="font-size: 0.92rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+            Yazılı Sınavı Önizleme
+          </div>
+        </div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 5px; flex-shrink: 0;">
+        <button type="button" class="m-btn-sm" onclick="window.printCurrentWrittenExam()" title="Yazdır / PDF" style="background: var(--m-surface-subtle); border: 1px solid var(--m-border); font-size: 0.74rem; font-weight: 700; padding: 5px 8px; border-radius: 8px; cursor: pointer; color: var(--m-text); display: flex; align-items: center; gap: 4px;">
+          <span>🖨️</span> <span>Yazdır/PDF</span>
+        </button>
+        <button type="button" class="m-btn-sm" onclick="window.transferCurrentWrittenExamToAnalysis()" title="Sınav Analizine Aktar" style="background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.3); font-size: 0.74rem; font-weight: 700; padding: 5px 8px; border-radius: 8px; cursor: pointer; color: #10b981; display: flex; align-items: center; gap: 4px;">
+          <span>🔗</span> <span>Analize Aktar</span>
+        </button>
+        <button type="button" class="m-btn-sm" onclick="window.saveCurrentWrittenExam()" title="Kaydet" style="background: var(--m-primary); border: none; font-size: 0.74rem; font-weight: 700; padding: 5px 10px; border-radius: 8px; cursor: pointer; color: white; display: flex; align-items: center; gap: 4px;">
+          <span>💾</span> <span>Kaydet</span>
+        </button>
+        <button class="sheet-close-btn" onclick="window.closeViewWrittenExamModal()">&times;</button>
+      </div>
+    </div>
+
+    <!-- Soru Görseli Seçici Hidden Input -->
+    <input type="file" id="m-we-question-photo-input" accept="image/*" style="display: none;" onchange="window.handleWrittenExamPhotoSelected(event)">
+
+    <!-- A4 Kağıdı Kaydırma Alanı -->
+    <div id="m-we-sheet-scroll" style="flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 0.75rem 0.25rem 2rem 0.25rem; background: #e5e7eb; display: flex; justify-content: center;">
+      <!-- Dinamik A4 Kağıdı Sayfası -->
+      <div id="m-we-paper-preview" class="m-we-paper">
+        <!-- Render edilecek kağıt içeriği -->
+      </div>
+    </div>
+  </div>
+
+  <!-- 5.13 SINAV ANALİZİ: YENİ SINAV TANIMLAMA MODALI -->
+  <div class="bottom-sheet" id="modal-ea-add-exam" style="max-height: 92vh; z-index: 1250; display: flex; flex-direction: column;">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header" style="flex-shrink: 0; margin-bottom: 0.75rem;">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span style="font-size: 1.3rem;">📊</span>
+        <div class="sheet-title">Yeni Sınav Analizi Tanımla</div>
+      </div>
+      <button class="sheet-close-btn" onclick="window.closeAddAnalysisExamModal()">&times;</button>
+    </div>
+    <div style="padding: 0 1.25rem 1.75rem 1.25rem; overflow-y: auto; -webkit-overflow-scrolling: touch;">
+      <!-- Sınav Adı -->
+      <div class="m-form-group" style="margin-bottom: 0.85rem;">
+        <label class="m-form-label" for="m-ea-name">Sınav Adı *</label>
+        <input type="text" class="m-form-input" id="m-ea-name" placeholder="Örn: 1. Dönem 1. Matematik Yazılısı">
+      </div>
+
+      <!-- Soru Sayısı -->
+      <div class="m-form-group" style="margin-bottom: 0.85rem;">
+        <label class="m-form-label" for="m-ea-qcount">Soru Sayısı (1 - 50) *</label>
+        <input type="number" class="m-form-input" id="m-ea-qcount" min="1" max="50" value="10" oninput="window.renderMobileEAQuestionInputs()">
+      </div>
+
+      <!-- Şubeler -->
+      <div class="m-form-group" style="margin-bottom: 0.85rem;">
+        <label class="m-form-label">Katılacak Şubeler *</label>
+        <div id="m-ea-branches-container" style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px;">
+          <!-- Şube checkboxları -->
+        </div>
+      </div>
+
+      <!-- Soru Puanları ve Kazanımları -->
+      <div style="margin-bottom: 0.85rem;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+          <div style="font-weight: 700; font-size: 0.82rem; color: var(--m-text);">Soru Puan & Kazanımları</div>
+          <div style="font-size: 0.75rem; font-weight: 800; color: var(--m-primary);" id="m-ea-total-points-badge">Toplam: 100 Puan</div>
+        </div>
+        <div id="m-ea-questions-container" style="display: flex; flex-direction: column; gap: 6px; max-height: 220px; overflow-y: auto; padding-right: 4px;">
+          <!-- Soru puanı ve kazanım inputları -->
+        </div>
+      </div>
+
+      <button type="button" class="subview-primary-action-btn" onclick="window.saveNewAnalysisExam()" style="width: 100%; margin: 8px 0 0 0; padding: 0.85rem; background: linear-gradient(135deg, var(--m-primary), #4338ca); font-weight: 800; font-size: 0.9rem; border-radius: 12px;">
+        <i data-lucide="check" style="width: 18px; height: 18px;"></i>
+        <span>Sınavı Kaydet & Not Girişine Başla</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- 5.14 SINAV ANALİZİ: NOT GİRİŞİ MODALI -->
+  <div class="bottom-sheet" id="modal-ea-grades" style="max-height: 96vh; height: 94vh; z-index: 1300; display: flex; flex-direction: column; padding: 1.25rem 0.75rem calc(1.5rem + var(--safe-bottom));">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header" style="margin-bottom: 0.5rem; flex-shrink: 0; padding: 0 0.5rem;">
+      <div style="display: flex; align-items: center; gap: 8px; flex: 1; overflow: hidden;">
+        <span style="font-size: 1.3rem;">📝</span>
+        <div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+          <div class="sheet-title" id="m-ea-grades-exam-title" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+            Not Girişi
+          </div>
+          <div style="font-size: 0.72rem; color: var(--m-text-muted); font-weight: 600;" id="m-ea-grades-exam-subtitle">
+            Şube seçip öğrencilerin puanlarını girin
+          </div>
+        </div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
+        <button type="button" class="m-btn-sm" onclick="window.saveMobileGrades()" style="background: var(--m-primary); color: white; border: none; font-weight: 800; font-size: 0.76rem; padding: 6px 12px; border-radius: 20px; display: flex; align-items: center; gap: 4px; box-shadow: 0 2px 8px rgba(79, 70, 229, 0.35); cursor: pointer;">
+          <span>💾</span> <span>Kaydet</span>
+        </button>
+        <button class="sheet-close-btn" onclick="window.closeGradeEntryModal()">&times;</button>
+      </div>
+    </div>
+
+    <!-- Şube Seçimi & Hızlı Eylemler -->
+    <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 0 0.5rem; margin-bottom: 0.5rem; flex-shrink: 0;">
+      <select class="m-form-input" id="m-ea-grades-branch-select" onchange="window.renderMobileGradeGrid()" style="padding: 6px 10px; font-size: 0.8rem; font-weight: 700; flex: 1;">
+        <!-- Şube seçenekleri -->
+      </select>
+      <button type="button" class="m-btn-sm" onclick="window.autoFillMobileZeros()" style="background: var(--m-surface-subtle); border: 1px solid var(--m-border); font-size: 0.72rem; font-weight: 700; padding: 6px 10px; border-radius: 8px; color: var(--m-text); flex-shrink: 0;">
+        0 ile Doldur
+      </button>
+    </div>
+
+    <!-- Not Giriş Tablosu Kapsayıcısı -->
+    <div id="m-ea-grades-container" style="flex: 1; overflow-y: auto; overflow-x: auto; -webkit-overflow-scrolling: touch; border: 1px solid var(--m-border); border-radius: 10px; background: var(--m-surface);">
+      <table id="m-ea-grades-table" style="width: 100%; border-collapse: collapse; font-size: 0.78rem;">
+        <!-- Başlıklar ve öğrenci satırları -->
+      </table>
+    </div>
+  </div>
+
+  <!-- 5.15 SINAV ANALİZİ: ANALİZ VE RAPOR MODALI -->
+  <div class="bottom-sheet" id="modal-ea-report" style="max-height: 96vh; height: 94vh; z-index: 1300; display: flex; flex-direction: column; padding: 1.25rem 1rem calc(1.5rem + var(--safe-bottom));">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header" style="margin-bottom: 0.5rem; flex-shrink: 0;">
+      <div style="display: flex; align-items: center; gap: 8px; flex: 1; overflow: hidden;">
+        <span style="font-size: 1.3rem;">📊</span>
+        <div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+          <div class="sheet-title" id="m-ea-report-title" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+            Sınav Analiz Raporu
+          </div>
+          <div style="font-size: 0.72rem; color: var(--m-text-muted); font-weight: 600;" id="m-ea-report-subtitle">
+            Kazanım ve başarı analizi
+          </div>
+        </div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
+        <button type="button" class="m-btn-sm" onclick="window.printMobileExamReport()" style="background: var(--m-primary); color: white; border: none; font-weight: 800; font-size: 0.76rem; padding: 6px 12px; border-radius: 20px; display: flex; align-items: center; gap: 4px; box-shadow: 0 2px 8px rgba(79, 70, 229, 0.35); cursor: pointer;">
+          <span>🖨️</span> <span>Yazdır / PDF</span>
+        </button>
+        <button class="sheet-close-btn" onclick="window.closeExamReportModal()">&times;</button>
+      </div>
+    </div>
+
+    <!-- Rapor İçerik Alanı -->
+    <div id="m-ea-report-content" style="flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding-bottom: 2rem;">
+      <!-- Dinamik rapor kartları, soru başarıları ve istatistikler -->
+    </div>
+  </div>
+
   <!-- Gizli AI Kamera / Görsel Dosya Girişi -->
   <input type="file" id="m-ai-student-file-input" accept="image/*" capture="environment" style="display: none;" onchange="window.handleAiStudentImageSelected(event)">
 
@@ -1757,53 +3779,90 @@
   </div>
 
   <!-- 10.1 Manuel Öğrenci Ekleme Modalı -->
-  <div class="bottom-sheet" id="modal-add-student-manual" style="max-height: 85vh;">
+  <!-- 10.1 Manuel Öğrenci Ekleme Modalı -->
+  <div class="bottom-sheet" id="modal-add-student-manual" style="max-height: 85vh; z-index: 1200;">
     <div class="sheet-handle"></div>
-    <div class="sheet-header">
-      <div class="sheet-title">👤 Yeni Öğrenci Ekle</div>
+    <div class="sheet-header" style="margin-bottom: 0.85rem;">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span style="font-size: 1.3rem;">👤</span>
+        <div>
+          <div class="sheet-title">Yeni Öğrenci Ekle</div>
+          <span id="m-manual-st-level-badge" class="m-badge" style="background: rgba(99, 102, 241, 0.12); color: var(--m-primary); font-size: 0.7rem; font-weight: 800; margin-top: 2px;">
+            🏫 İlkokul Kademesi
+          </span>
+        </div>
+      </div>
       <button class="sheet-close-btn" onclick="window.closeBottomSheet()">&times;</button>
     </div>
-    <div style="padding: 0 1.25rem 1.5rem 1.25rem; overflow-y: auto;">
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-        <div class="m-form-group">
-          <label class="m-form-label">Ad</label>
-          <input type="text" class="m-form-input" id="m-cfg-st-name" placeholder="Örn: Ahmet">
+    <div style="padding: 0 1.25rem 1.75rem 1.25rem; overflow-y: auto;">
+      
+      <!-- Öğrenci Fotoğrafı / Avatarı -->
+      <div style="display: flex; flex-direction: column; align-items: center; margin-bottom: 1.15rem;">
+        <div style="position: relative; width: 84px; height: 84px; margin-bottom: 0.65rem;">
+          <div id="m-manual-st-avatar-preview" style="width: 84px; height: 84px; border-radius: 50%; overflow: hidden; background: linear-gradient(135deg, var(--m-primary), #7c3aed); display: flex; align-items: center; justify-content: center; color: white; font-size: 2.2rem; font-weight: 800; border: 3px solid var(--m-surface); box-shadow: 0 4px 14px rgba(0,0,0,0.15);">
+            👤
+          </div>
+          <button type="button" id="m-manual-st-photo-remove" onclick="window.removeManualStudentPhoto()" title="Fotoğrafı Kaldır" style="display: none; position: absolute; top: -2px; right: -2px; width: 26px; height: 26px; border-radius: 50%; background: var(--m-danger); color: white; border: 2px solid var(--m-surface); cursor: pointer; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 800; box-shadow: 0 2px 6px rgba(0,0,0,0.25);">
+            ✕
+          </button>
         </div>
-        <div class="m-form-group">
-          <label class="m-form-label">Soyad</label>
-          <input type="text" class="m-form-input" id="m-cfg-st-surname" placeholder="Örn: Yılmaz">
+        <div style="display: flex; gap: 8px;">
+          <button type="button" class="m-btn-sm" onclick="document.getElementById('m-manual-st-camera-input').click()" style="padding: 6px 12px; font-size: 0.78rem; font-weight: 700; background: var(--m-surface); border: 1.5px solid var(--m-border); border-radius: 20px; display: flex; align-items: center; gap: 5px; cursor: pointer;">
+            <span>📸</span> <span>Kamera</span>
+          </button>
+          <button type="button" class="m-btn-sm" onclick="document.getElementById('m-manual-st-gallery-input').click()" style="padding: 6px 12px; font-size: 0.78rem; font-weight: 700; background: var(--m-surface); border: 1.5px solid var(--m-border); border-radius: 20px; display: flex; align-items: center; gap: 5px; cursor: pointer;">
+            <span>🖼️</span> <span>Galeri</span>
+          </button>
         </div>
+        <input type="file" id="m-manual-st-camera-input" accept="image/*" capture="environment" style="display: none;" onchange="window.handleStudentPhotoSelected(this, 'manual')">
+        <input type="file" id="m-manual-st-gallery-input" accept="image/*" style="display: none;" onchange="window.handleStudentPhotoSelected(this, 'manual')">
+        <input type="hidden" id="m-manual-st-photo-data">
       </div>
 
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;" id="m-cfg-st-no-branch-row">
-        <div class="m-form-group">
-          <label class="m-form-label">Okul Numarası</label>
-          <input type="number" class="m-form-input" id="m-cfg-st-no" placeholder="Örn: 104">
+      <!-- 1. Öğrenci No ve (Ortaokul ise) Şube -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 0.85rem;" id="m-manual-st-no-branch-row">
+        <div class="m-form-group" style="margin-bottom: 0;">
+          <label class="m-form-label" for="m-manual-st-no">Öğrenci No</label>
+          <input type="number" class="m-form-input" id="m-manual-st-no" placeholder="Örn: 104">
         </div>
-        <div class="m-form-group" id="m-cfg-st-branch-group">
-          <label class="m-form-label">Şube</label>
-          <select class="m-form-select" id="m-cfg-st-branch">
-            <!-- Şubeler -->
+        <div class="m-form-group" id="m-manual-st-branch-group" style="margin-bottom: 0;">
+          <label class="m-form-label" for="m-manual-st-branch">Şubesi</label>
+          <select class="m-form-select" id="m-manual-st-branch">
+            <!-- Ortaokul şubeleri JS ile doldurulur -->
           </select>
         </div>
       </div>
 
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-        <div class="m-form-group">
-          <label class="m-form-label">Cinsiyet</label>
-          <select class="m-form-select" id="m-cfg-st-gender">
-            <option value="male">Erkek</option>
-            <option value="female">Kız</option>
-          </select>
+      <!-- 2. Adı ve Soyadı -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 0.85rem;">
+        <div class="m-form-group" style="margin-bottom: 0;">
+          <label class="m-form-label" for="m-manual-st-name">Adı</label>
+          <input type="text" class="m-form-input" id="m-manual-st-name" placeholder="Örn: Ahmet">
         </div>
-        <div class="m-form-group">
-          <label class="m-form-label">Veli Telefonu</label>
-          <input type="tel" class="m-form-input" id="m-cfg-st-phone" placeholder="05XXXXXXXXX">
+        <div class="m-form-group" style="margin-bottom: 0;">
+          <label class="m-form-label" for="m-manual-st-surname">Soyadı</label>
+          <input type="text" class="m-form-input" id="m-manual-st-surname" placeholder="Örn: Yılmaz">
         </div>
       </div>
 
-      <button class="subview-primary-action-btn" onclick="window.addMobileStudent()" style="background: linear-gradient(135deg, var(--m-success), #059669); margin-top: 1rem;">
-        <i data-lucide="plus" style="width: 18px; height: 18px;"></i> Öğrenciyi Kaydet
+      <!-- 3. Cinsiyeti ve İletişim Numarası -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 1.25rem;">
+        <div class="m-form-group" style="margin-bottom: 0;">
+          <label class="m-form-label" for="m-manual-st-gender">Cinsiyeti</label>
+          <select class="m-form-select" id="m-manual-st-gender">
+            <option value="male">👦 Erkek</option>
+            <option value="female">👧 Kız</option>
+          </select>
+        </div>
+        <div class="m-form-group" style="margin-bottom: 0;">
+          <label class="m-form-label" for="m-manual-st-phone">Veli İletişim No</label>
+          <input type="tel" class="m-form-input" id="m-manual-st-phone" placeholder="05XXXXXXXXX">
+        </div>
+      </div>
+
+      <!-- Kaydet Butonu -->
+      <button type="button" class="subview-primary-action-btn" onclick="window.addMobileStudent()" style="background: linear-gradient(135deg, var(--m-success), #059669); width: 100%; margin: 0; padding: 0.85rem; font-size: 0.95rem; font-weight: 800;">
+        <i data-lucide="user-plus" style="width: 18px; height: 18px;"></i> Öğrenciyi Kaydet
       </button>
     </div>
   </div>
@@ -1824,6 +3883,58 @@
       <div style="margin-top: 1.5rem; display: flex; align-items: center; gap: 8px; color: var(--m-primary); font-size: 0.78rem; font-weight: 700;">
         <span class="m-spinner" style="width: 16px; height: 16px; border: 2px solid var(--m-primary); border-top-color: transparent; border-radius: 50%; display: inline-block;"></span>
         <span>Yapay zeka yanıtı bekleniyor...</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 11.5 Ortaokul İçin AI Şube Sorma Modalı -->
+  <div class="bottom-sheet" id="modal-ai-ask-branch" style="max-height: 85vh; z-index: 1250;">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header" style="margin-bottom: 0.75rem;">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span style="font-size: 1.3rem;">🏫</span>
+        <div class="sheet-title">Şube Seçimi</div>
+      </div>
+      <button class="sheet-close-btn" onclick="window.closeBottomSheet()">&times;</button>
+    </div>
+    <div style="padding: 0 1.25rem 1.75rem 1.25rem;">
+      <div style="background: rgba(99, 102, 241, 0.08); border: 1px solid rgba(99, 102, 241, 0.2); border-radius: var(--m-radius-md); padding: 0.9rem; margin-bottom: 1.1rem; display: flex; align-items: center; gap: 10px;">
+        <span style="font-size: 1.5rem;">📸</span>
+        <div>
+          <div style="font-weight: 800; font-size: 0.92rem; color: var(--m-text);">
+            <span id="m-ai-branch-student-count">0</span> Öğrenci Tespit Edildi
+          </div>
+          <div style="font-size: 0.74rem; color: var(--m-text-muted); margin-top: 2px;">
+            Bu öğrenci listesini hangi şube için eklemek istiyorsunuz?
+          </div>
+        </div>
+      </div>
+
+      <!-- Şube Girişi -->
+      <div class="m-form-group" style="margin-bottom: 0.9rem;">
+        <label class="m-form-label" for="m-ai-branch-input-field">Eklenecek Şube Adı</label>
+        <input type="text" class="m-form-input" id="m-ai-branch-input-field" placeholder="Örn: 5/A veya 6/B" style="font-size: 1rem; font-weight: 800; text-transform: uppercase;">
+      </div>
+
+      <!-- Hızlı Şube Seçim Çipleri -->
+      <div style="margin-bottom: 1.25rem;">
+        <label style="font-size: 0.72rem; font-weight: 700; color: var(--m-text-muted); display: block; margin-bottom: 6px;">Hızlı Şube Seç:</label>
+        <div id="m-ai-branch-quick-chips" style="display: flex; flex-wrap: wrap; gap: 6px;">
+          <!-- Dinamik çipler JS ile doldurulur -->
+        </div>
+      </div>
+
+      <!-- Alt Eylemler -->
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <button type="button" class="subview-primary-action-btn" style="width: 100%; margin: 0; padding: 0.85rem; background: linear-gradient(135deg, #10b981, #059669); font-size: 0.92rem; font-weight: 800;" onclick="window.confirmSaveAiStudentsWithBranch()">
+          <i data-lucide="check" style="width: 18px; height: 18px;"></i>
+          <span>Bu Şubeye Kaydet</span>
+        </button>
+
+        <button type="button" class="subview-secondary-btn" style="width: 100%; justify-content: center; margin: 0; font-size: 0.82rem;" onclick="window.openAiPreviewFromBranchModal()">
+          <i data-lucide="eye" style="width: 15px; height: 15px;"></i>
+          <span>Listeyi Önizle / Düzenle</span>
+        </button>
       </div>
     </div>
   </div>
@@ -1879,42 +3990,85 @@
        HIZLI PUAN VERME ALTTAN AÇILAN PENCERE (BOTTOM SHEET)
        ========================================================================== -->
   <div class="bottom-sheet-backdrop" id="sheet-backdrop" onclick="window.closeBottomSheet()"></div>
-  <div class="bottom-sheet" id="sheet-points">
+  <div class="bottom-sheet" id="sheet-points" style="z-index: 1400; max-height: 85vh; display: flex; flex-direction: column;">
     <div class="sheet-handle"></div>
-    <div class="sheet-header">
-      <div>
-        <div class="sheet-title" id="sheet-student-name">Öğrenci Adı</div>
-        <div style="font-size: 0.8rem; color: var(--m-text-muted);" id="sheet-student-current-score">Toplam Puan: 0</div>
+    
+    <!-- Başlık ve Öğrenci Özeti -->
+    <div class="sheet-header" style="margin-bottom: 0.65rem; padding-bottom: 0.65rem; border-bottom: 1px solid var(--m-border); display: flex; align-items: center; justify-content: space-between;">
+      <div style="display: flex; align-items: center; gap: 10px; min-width: 0; flex: 1;">
+        <div id="sheet-student-avatar" class="student-avatar" style="width: 42px; height: 42px; font-size: 1.1rem; flex-shrink: 0;"></div>
+        <div style="min-width: 0; flex: 1;">
+          <div class="sheet-title" id="sheet-student-name" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Öğrenci Adı</div>
+          <div style="font-size: 0.78rem; color: var(--m-text-muted); font-weight: 600;" id="sheet-student-current-score">Toplam: 0 Puan</div>
+        </div>
       </div>
-      <button class="sheet-close-btn" onclick="window.closeBottomSheet()">&times;</button>
+      <button type="button" class="sheet-close-btn" onclick="window.closeBottomSheet()">&times;</button>
     </div>
 
-    <div class="quick-points-grid">
-      <button class="point-action-btn" onclick="window.giveQuickPoint(1, 'Derse Katılım')">
-        <span class="point-badge plus">+1</span>
-        <span>Derse Katılım</span>
+    <!-- Sekmeler / Gruplar: Olumlu ve Olumsuz -->
+    <div class="m-point-tabs">
+      <button type="button" class="m-point-tab active" id="tab-btn-point-pos" onclick="window.switchPointTab('positive')">
+        <span class="m-point-tab-dot plus"></span>
+        <span>Olumlu Davranışlar</span>
+        <span class="m-point-tab-count" id="m-point-pos-count">0</span>
       </button>
-      <button class="point-action-btn" onclick="window.giveQuickPoint(1, 'Parmak Kaldırma')">
-        <span class="point-badge plus">+1</span>
-        <span>Parmak Kaldırma</span>
-      </button>
-      <button class="point-action-btn" onclick="window.giveQuickPoint(1, 'Ödev Başarısı')">
-        <span class="point-badge plus">+1</span>
-        <span>Ödev Başarısı</span>
-      </button>
-      <button class="point-action-btn" onclick="window.giveQuickPoint(1, 'Kitap Okuma')">
-        <span class="point-badge plus">+1</span>
-        <span>Kitap Okuma</span>
-      </button>
-      <button class="point-action-btn" onclick="window.giveQuickPoint(1, 'Yardımlaşma & Düzen')">
-        <span class="point-badge plus">+1</span>
-        <span>Yardımlaşma</span>
-      </button>
-      <button class="point-action-btn" onclick="window.giveQuickPoint(-1, 'Ders Düzenini Bozma')">
-        <span class="point-badge minus">-1</span>
-        <span>Düzen Bozma</span>
+      <button type="button" class="m-point-tab" id="tab-btn-point-neg" onclick="window.switchPointTab('negative')">
+        <span class="m-point-tab-dot minus"></span>
+        <span>Olumsuz Davranışlar</span>
+        <span class="m-point-tab-count" id="m-point-neg-count">0</span>
       </button>
     </div>
+
+    <!-- Sağa/Sola Kaydırılabilir Panel Kapsayıcısı -->
+    <div class="m-point-swipe-viewport" id="m-point-swipe-container" onscroll="window.handlePointSwipeScroll()">
+      
+      <!-- PENCERE 1: OLUMLU PUANLAR -->
+      <div class="m-point-slide" id="m-point-slide-positive">
+        <div class="m-point-slide-cue">
+          <span>🟢 Olumlu Kriterler</span>
+          <span class="m-point-slide-cue-action" onclick="window.switchPointTab('negative')">Olumsuzlar için sola kaydır 👉</span>
+        </div>
+        <div class="m-point-grid" id="m-point-grid-positive">
+          <!-- Dinamik olumlu butonlar yüklenecek -->
+        </div>
+      </div>
+
+      <!-- PENCERE 2: OLUMSUZ PUANLAR -->
+      <div class="m-point-slide" id="m-point-slide-negative">
+        <div class="m-point-slide-cue">
+          <span class="m-point-slide-cue-action" onclick="window.switchPointTab('positive')">👈 Olumlular için sağa kaydır</span>
+          <span>🔴 Geliştirilmesi Gerekenler</span>
+        </div>
+        <div class="m-point-grid" id="m-point-grid-negative">
+          <!-- Dinamik olumsuz butonlar yüklenecek -->
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Kaydırma Göstergesi (Dots) -->
+    <div class="m-point-dots">
+      <span class="m-point-dot active" id="m-point-dot-pos" onclick="window.switchPointTab('positive')"></span>
+      <span class="m-point-dot" id="m-point-dot-neg" onclick="window.switchPointTab('negative')"></span>
+    </div>
+
+    <!-- Özel Puan Ekleme Çubuğu -->
+    <div class="m-point-custom-bar">
+      <button type="button" class="m-point-custom-toggle-btn" onclick="window.toggleCustomPointForm()">
+        <i data-lucide="plus-circle" style="width: 14px; height: 14px;"></i>
+        <span>Farklı Puan / Özel Neden Belirt</span>
+      </button>
+      <div id="m-point-custom-form" style="display: none; margin-top: 0.5rem; padding: 0.65rem; background: var(--m-surface-subtle); border-radius: var(--m-radius-md); border: 1px solid var(--m-border);">
+        <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+          <input type="number" id="m-custom-point-val" class="m-form-input" style="width: 85px; text-align: center; font-weight: 800;" value="1" placeholder="Puan">
+          <input type="text" id="m-custom-point-reason" class="m-form-input" style="flex: 1;" placeholder="Örn: Proje Sunumu, Turnuva Katılımı">
+        </div>
+        <button type="button" class="subview-primary-action-btn" onclick="window.giveCustomPoint()" style="margin: 0; padding: 8px; font-size: 0.82rem;">
+          <span>Puanı Kaydet & Uygula</span>
+        </button>
+      </div>
+    </div>
+
   </div>
 
   <!-- ==========================================================================
@@ -1943,6 +4097,18 @@
     </button>
   </nav>
 
+  <!-- Yazdırma Şablonu (Yalnızca Yazıcı/PDF çıktısında görünür) -->
+  <div class="roster-report-print"></div>
+  <div class="seating-report-print"></div>
+  <div class="exam-report-print"></div>
+  <div class="written-exam-print"></div>
+  <div class="mobile-report-print"></div>
+
+  <!-- Kütüphaneler ve Müfredat Havuzu -->
+  <script src="js/chart.min.js"></script>
+  <script src="js/xlsx.full.min.js"></script>
+  <script src="js/mammoth.browser.min.js"></script>
+  <script src="js/data/meb-curriculum-data.js"></script>
   <!-- Veri Motoru ve Mobil Kontrolcü -->
   <script src="js/license-config.js"></script>
   <script src="js/state.js"></script>
