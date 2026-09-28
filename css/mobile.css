@@ -4570,5 +4570,401 @@ body {
   transform: translateX(20px);
 }
 
+/* ==========================================================================
+   OPTİK FORM VE OMR (OPTICAL MARK RECOGNITION) STILLERI
+   ========================================================================== */
+
+/* Cevap Anahtarı Yönetimi */
+.m-ak-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--m-border);
+}
+
+.m-ak-row:last-child {
+  border-bottom: none;
+}
+
+.m-ak-qnum {
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: var(--m-text-secondary);
+  width: 30px;
+  flex-shrink: 0;
+}
+
+.m-ak-options {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+
+.m-ak-opt-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1.5px solid var(--m-border);
+  background: var(--m-surface);
+  color: var(--m-text);
+  font-size: 0.84rem;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.m-ak-opt-btn:active {
+  transform: scale(0.92);
+}
+
+.m-ak-opt-btn.active {
+  background: var(--m-primary);
+  color: #fff;
+  border-color: var(--m-primary);
+  box-shadow: 0 2px 8px rgba(79, 70, 229, 0.4);
+}
+
+.m-ak-clear-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--m-text-muted);
+  font-size: 1.1rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: auto;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+}
+
+.m-ak-clear-btn.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.m-ak-clear-btn:hover, .m-ak-clear-btn:active {
+  color: var(--m-danger);
+  background: rgba(239, 68, 68, 0.1);
+}
+
+/* Standart Optik Form Kartı ve Referans Çerçevesi */
+.omr-card {
+  position: relative;
+  background: #ffffff;
+  color: #000000;
+  border: 1.5px solid #0f172a;
+  border-radius: 6px;
+  padding: 16px 14px;
+  margin: 0 auto 16px auto;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 520px;
+  user-select: none;
+}
+
+.omr-card-sample {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+}
+
+/* 4 Siyah Referans Köşe İşaretleyicisi (22x22px Tam Dolu Siyah Kare) */
+.omr-anchor {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  background-color: #000000 !important;
+  z-index: 5;
+}
+
+.omr-anchor-tl { top: 8px; left: 8px; }
+.omr-anchor-tr { top: 8px; right: 8px; }
+.omr-anchor-bl { bottom: 8px; left: 8px; }
+.omr-anchor-br { bottom: 8px; right: 8px; }
+
+.omr-card-header {
+  margin: 4px 28px 10px 28px;
+  border-bottom: 2px solid #000000;
+  padding-bottom: 6px;
+}
+
+.omr-header-title {
+  font-size: 0.95rem;
+  font-weight: 900;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #000000;
+}
+
+.omr-student-info {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 5px;
+  font-size: 0.78rem;
+  color: #000000;
+}
+
+.omr-card-body {
+  margin: 8px 16px;
+}
+
+.omr-grid-container {
+  display: flex;
+  justify-content: space-around;
+  gap: 16px;
+}
+
+.omr-grid-col {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.omr-q-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.omr-q-num {
+  width: 22px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-align: right;
+  color: #000000;
+}
+
+.omr-q-bubbles {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.omr-bubble {
+  width: 19px;
+  height: 19px;
+  border-radius: 50%;
+  border: 1.5px solid #000000;
+  background: #ffffff;
+  color: #000000;
+  font-size: 0.68rem;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.omr-card-footer {
+  margin: 8px 28px 2px 28px;
+  border-top: 1px dashed #94a3b8;
+  padding-top: 4px;
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.64rem;
+  color: #64748b;
+  font-weight: 600;
+}
+
+/* OMR Kamera ve Kılavuz Hizalama Katmanı */
+.m-omr-camera-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.m-omr-guide-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 4;
+}
+
+.m-omr-guide-box {
+  width: 86%;
+  height: 78%;
+  border: 2px dashed rgba(255, 255, 255, 0.35);
+  border-radius: 12px;
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 14px;
+}
+
+.m-omr-corner {
+  position: absolute;
+  width: 26px;
+  height: 26px;
+  border-color: #6366f1;
+  border-style: solid;
+}
+
+.corner-tl { top: -2px; left: -2px; border-width: 4px 0 0 4px; border-top-left-radius: 8px; }
+.corner-tr { top: -2px; right: -2px; border-width: 4px 4px 0 0; border-top-right-radius: 8px; }
+.corner-bl { bottom: -2px; left: -2px; border-width: 0 0 4px 4px; border-bottom-left-radius: 8px; }
+.corner-br { bottom: -2px; right: -2px; border-width: 0 4px 4px 0; border-bottom-right-radius: 8px; }
+
+.m-omr-guide-hint {
+  background: rgba(15, 23, 42, 0.8);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  color: #f8fafc;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 5px 12px;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  text-align: center;
+}
+
+/* OMR Doğrulama Listesi ve Öğeleri */
+.m-omr-review-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: var(--m-radius-sm);
+  margin-bottom: 6px;
+  background: var(--m-surface-subtle);
+  border: 1px solid var(--m-border);
+  transition: all 0.15s ease;
+}
+
+.m-omr-review-item.badge-correct {
+  border-color: rgba(16, 185, 129, 0.4);
+  background: rgba(16, 185, 129, 0.08);
+}
+
+.m-omr-review-item.badge-wrong {
+  border-color: rgba(239, 68, 68, 0.4);
+  background: rgba(239, 68, 68, 0.08);
+}
+
+.m-omr-review-item.badge-blank {
+  border-color: var(--m-border);
+  background: var(--m-bg);
+}
+
+.m-omr-review-qnum {
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: var(--m-text);
+  width: 24px;
+}
+
+.m-omr-review-marked {
+  font-size: 0.84rem;
+  min-width: 50px;
+}
+
+.m-omr-review-key {
+  font-size: 0.72rem;
+  color: var(--m-text-muted);
+  min-width: 60px;
+}
+
+.m-omr-review-quick-edit {
+  margin-left: auto;
+  display: flex;
+  gap: 4px;
+}
+
+.m-omr-inline-btn {
+  width: 26px;
+  height: 26px;
+  border-radius: 4px;
+  border: 1px solid var(--m-border);
+  background: var(--m-surface);
+  color: var(--m-text);
+  font-size: 0.74rem;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.m-omr-inline-btn.active {
+  background: var(--m-primary);
+  color: #fff;
+  border-color: var(--m-primary);
+}
+
+/* Baskı Çıktısı (A4 PDF / Printer) */
+@media print {
+  body.print-mobile-omr * {
+    visibility: hidden !important;
+  }
+  body.print-mobile-omr .mobile-report-print,
+  body.print-mobile-omr .mobile-report-print * {
+    visibility: visible !important;
+  }
+  body.print-mobile-omr .mobile-report-print {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+  }
+  .omr-print-page {
+    page-break-after: always !important;
+    page-break-inside: avoid !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    padding: 10mm !important;
+  }
+  .omr-print-page.omr-per-page-1 .omr-card {
+    height: 92vh !important;
+    max-width: 100% !important;
+    border: 2px solid #000 !important;
+    margin: 0 auto !important;
+  }
+  .omr-print-page.omr-per-page-2 {
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+    height: 98vh !important;
+  }
+  .omr-print-page.omr-per-page-2 .omr-card {
+    height: 48% !important;
+    max-width: 100% !important;
+    border: 1.5px solid #000 !important;
+    margin-bottom: 4mm !important;
+  }
+  .omr-print-page.omr-per-page-4 {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    grid-template-rows: 1fr 1fr !important;
+    gap: 8mm !important;
+    height: 98vh !important;
+  }
+  .omr-print-page.omr-per-page-4 .omr-card {
+    height: 100% !important;
+    border: 1.5px solid #000 !important;
+    margin: 0 !important;
+  }
+  .omr-anchor {
+    background-color: #000000 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+}
+
+
 
 

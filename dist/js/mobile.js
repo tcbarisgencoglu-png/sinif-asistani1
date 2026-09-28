@@ -11191,10 +11191,16 @@ SADECE VE SADECE GEÇERLİ BİR JSON DİZİSİ DÖNDÜR. Markdown (örneğin \`\
           </div>
 
           <div class="m-weekly-card-actions" onclick="event.stopPropagation()">
-            <button type="button" class="m-btn-sm primary" onclick="window.openWeeklyGradingModal('${exam.id}')" style="padding: 5px 12px; font-weight: 700; display: flex; align-items: center; gap: 4px;">
-              <i data-lucide="edit-3" style="width: 14px; height: 14px;"></i> Notları Gir
+            <button type="button" class="m-btn-sm primary" onclick="window.openWeeklyGradingModal('${exam.id}')" style="padding: 5px 10px; font-weight: 700; display: flex; align-items: center; gap: 4px;">
+              <i data-lucide="edit-3" style="width: 14px; height: 14px;"></i> Not Gir
             </button>
-            <button type="button" class="m-btn-sm danger" onclick="window.deleteWeeklyExam('${exam.id}')" style="padding: 5px 10px; display: flex; align-items: center; gap: 4px;" title="Sınavı Sil">
+            <button type="button" class="m-btn-sm" onclick="window.openMobileOmrScanner('${exam.id}')" style="padding: 5px 10px; font-weight: 700; display: flex; align-items: center; gap: 4px; background: rgba(79, 70, 229, 0.12); color: var(--m-primary);" title="Optik Okuyucu">
+              <i data-lucide="scan" style="width: 14px; height: 14px;"></i> Optik
+            </button>
+            <button type="button" class="m-btn-sm" onclick="window.openMobileOpticalPrintModal('${exam.id}')" style="padding: 5px 8px; display: flex; align-items: center; gap: 4px; background: var(--m-surface-subtle); border: 1px solid var(--m-border);" title="Optik Form Yazdır">
+              <i data-lucide="printer" style="width: 14px; height: 14px;"></i>
+            </button>
+            <button type="button" class="m-btn-sm danger" onclick="window.deleteWeeklyExam('${exam.id}')" style="padding: 5px 8px; display: flex; align-items: center; gap: 4px;" title="Sınavı Sil">
               <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i>
             </button>
           </div>
