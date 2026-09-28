@@ -472,6 +472,18 @@
         for (let i = 0; i < weeklySchedule.length; i++) {
           if (weeklySchedule[i].isoWeek === selectedIso) return i;
         }
+        if (typeof window.getEducationWeekInfo === 'function') {
+          const eduInfo = window.getEducationWeekInfo(selectedIso);
+          if (eduInfo && eduInfo.academicWeekNo) {
+            const targetNo = eduInfo.academicWeekNo;
+            for (let i = 0; i < weeklySchedule.length; i++) {
+              const w = weeklySchedule[i];
+              if (w.weekNumber === targetNo || w.week === targetNo || w.weekNo === targetNo || (i + 1) === targetNo) {
+                return i;
+              }
+            }
+          }
+        }
       }
     }
 
@@ -801,8 +813,19 @@
 
     let weekText = '';
     if (selectedWeek) {
-      const parts = selectedWeek.split('-W');
-      weekText = parts.length === 2 ? `${parseInt(parts[1], 10)}. Hafta` : selectedWeek;
+      if (typeof window.getEducationWeekInfo === 'function') {
+        const eduInfo = window.getEducationWeekInfo(selectedWeek);
+        if (eduInfo && eduInfo.shortLabel) {
+          weekText = eduInfo.shortLabel;
+        }
+      }
+      if (!weekText && typeof window.formatWeekTR === 'function') {
+        weekText = window.formatWeekTR(selectedWeek, 'short');
+      }
+      if (!weekText) {
+        const parts = selectedWeek.split('-W');
+        weekText = parts.length === 2 ? `${parseInt(parts[1], 10)}. Hafta` : selectedWeek;
+      }
     } else {
       weekText = dayName;
     }
@@ -11359,8 +11382,9 @@ SADECE VE SADECE GEÇERLİ BİR JSON DİZİSİ DÖNDÜR. Markdown (örneğin \`\
     const subtitleEl = document.getElementById('m-weg-exam-subtitle');
     const listEl = document.getElementById('m-weg-students-list');
 
+    const eInfo = typeof window.getEducationWeekInfo === 'function' ? window.getEducationWeekInfo(exam.weekId) : null;
     const eParts = (exam.weekId || '').split('-W');
-    const eWeekLabel = eParts.length === 2 ? `${eParts[0]} Yılı, ${eParts[1]}. Hafta` : exam.weekId;
+    const eWeekLabel = eInfo ? eInfo.label : (typeof window.formatWeekTR === 'function' ? window.formatWeekTR(exam.weekId, 'full') : (eParts.length === 2 ? `${eParts[0]} Yılı, ${eParts[1]}. Hafta` : exam.weekId));
     const penaltyText = exam.wrongAffects ? `${exam.penaltyRate || 3} Yanlış 1 Doğruyu Götürür` : 'Yanlışlar Doğruları Etkilemez';
 
     if (titleEl) titleEl.textContent = exam.examName || 'Değerlendirme Sınavı';

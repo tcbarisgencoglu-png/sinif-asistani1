@@ -2109,11 +2109,12 @@ function openStudentDetailModal(id) {
         const netStr = result ? (typeof result.net === 'number' ? result.net.toFixed(2) : result.net) : '-';
         const statsStr = result ? `${correctStr} D / ${wrongStr} Y / ${blankStr} B` : 'Detay Yok';
         
-        const weekNum = exam.weekId.split('-W')[1] || exam.weekId;
+        const eInfo = typeof window.getEducationWeekInfo === 'function' ? window.getEducationWeekInfo(exam.weekId) : null;
+        const weekLabel = eInfo ? eInfo.shortLabel : ((exam.weekId || '').split('-W')[1] ? `${(exam.weekId || '').split('-W')[1]}. Hafta` : exam.weekId);
         
         row.innerHTML = `
           <td><strong>${exam.examName}</strong></td>
-          <td style="color: var(--text-secondary); font-weight: 500;">${weekNum}. Hafta</td>
+          <td style="color: var(--text-secondary); font-weight: 500;">${weekLabel}</td>
           <td style="text-align: center; font-size: 0.8rem; color: var(--text-secondary);">${statsStr}</td>
           <td style="text-align: center; font-weight: 600;">${netStr}</td>
           <td style="text-align: center; font-weight: 700; color: var(--primary);">${score}</td>
@@ -2294,6 +2295,18 @@ function getActiveWeekIndexLocal(weeklySchedule) {
       for (let i = 0; i < weeklySchedule.length; i++) {
         if (weeklySchedule[i].isoWeek === selectedIso) {
           return i;
+        }
+      }
+      if (typeof window.getEducationWeekInfo === 'function') {
+        const eduInfo = window.getEducationWeekInfo(selectedIso);
+        if (eduInfo && eduInfo.academicWeekNo) {
+          const targetNo = eduInfo.academicWeekNo;
+          for (let i = 0; i < weeklySchedule.length; i++) {
+            const w = weeklySchedule[i];
+            if (w.weekNumber === targetNo || w.week === targetNo || w.weekNo === targetNo || (i + 1) === targetNo) {
+              return i;
+            }
+          }
         }
       }
       const selParts = selectedIso.split('-W');
@@ -3240,11 +3253,22 @@ function updateFlowContent(syncWithRealTime = true) {
     const selectedWeek = stateManager.getSelectedWeek() || (window.getISOWeek ? window.getISOWeek(now) : '');
     let weekText = '';
     if (selectedWeek) {
-      const parts = selectedWeek.split('-W');
-      if (parts.length === 2) {
-        weekText = `${parts[1]}. Hafta`;
-      } else {
-        weekText = selectedWeek;
+      if (typeof window.getEducationWeekInfo === 'function') {
+        const eduInfo = window.getEducationWeekInfo(selectedWeek);
+        if (eduInfo && eduInfo.shortLabel) {
+          weekText = eduInfo.shortLabel;
+        }
+      }
+      if (!weekText && typeof window.formatWeekTR === 'function') {
+        weekText = window.formatWeekTR(selectedWeek, 'short');
+      }
+      if (!weekText) {
+        const parts = selectedWeek.split('-W');
+        if (parts.length === 2) {
+          weekText = `${parts[1]}. Hafta`;
+        } else {
+          weekText = selectedWeek;
+        }
       }
     }
 
