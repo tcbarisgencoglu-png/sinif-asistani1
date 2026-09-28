@@ -103,7 +103,12 @@ jobs:
 
       - name: Tauri derle (Normal Push)
         if: ${{ !startsWith(github.ref, 'refs/tags/') }}
-        run: npx tauri build ${{ matrix.args }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ""
+          CI: true
+        run: npx tauri build ${{ matrix.args }} --no-sign
 
       - name: Tauri derle ve Release oluştur (Etiket Push)
         if: startsWith(github.ref, 'refs/tags/')
@@ -131,7 +136,6 @@ jobs:
 
   build-android:
     name: "Android APK Derle"
-    needs: build-tauri
     runs-on: ubuntu-latest
     steps:
       - name: Kodu indir
