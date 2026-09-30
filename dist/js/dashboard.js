@@ -3431,14 +3431,26 @@ function updateFlowContent(syncWithRealTime = true) {
     modal.classList.add('active');
     if (window.safeCreateIcons) window.safeCreateIcons();
 
-    // Dinamik olarak GitHub API'den en son sürüm bilgilerini al (çoklu release desteği)
+    // 1. Önce hızlı ve rate-limit'siz yerel version.json'dan en güncel sürümü dene
+    try {
+      const vRes = await fetch('version.json?t=' + Date.now()).catch(() => null);
+      if (vRes && vRes.ok) {
+        const vData = await vRes.json();
+        if (vData && vData.version) {
+          const badge = document.getElementById('download-app-version-badge');
+          if (badge) badge.textContent = `v${vData.version} (En Son)`;
+        }
+      }
+    } catch (_) {}
+
+    // 2. Dinamik olarak GitHub API'den en son sürüm bilgilerini al (çoklu release desteği)
     try {
       const response = await fetch('https://api.github.com/repos/tcbarisgencoglu-png/sinif-asistani1/releases?per_page=10');
       if (response.ok) {
         const releases = await response.json();
         if (Array.isArray(releases) && releases.length > 0) {
           const latestRelease = releases[0];
-          const tagName = latestRelease.tag_name || 'v1.0.29';
+          const tagName = latestRelease.tag_name || 'v1.0.35';
           
           const badge = document.getElementById('download-app-version-badge');
           if (badge) badge.textContent = `${tagName} (En Son)`;

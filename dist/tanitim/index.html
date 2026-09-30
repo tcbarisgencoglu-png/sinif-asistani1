@@ -1775,10 +1775,20 @@
     if (e && e.preventDefault) e.preventDefault();
     const modal = document.getElementById('modal-tanitim-download');
     if (!modal) return;
-    modal.style.display = 'flex';
-    
+    // 1. Önce hızlı ve rate-limit'siz yerel version.json'dan en güncel sürümü kontrol et
     try {
-      // Çoklu release tara: Herhangi bir sürümde sadece mobil veya sadece masaüstü olsa bile en güncel çalışan linkleri eşle
+      const vRes = await fetch('../version.json?t=' + Date.now()).catch(() => null);
+      if (vRes && vRes.ok) {
+        const vData = await vRes.json();
+        if (vData && vData.version) {
+          const badge = document.getElementById('tanitim-download-badge');
+          if (badge) badge.textContent = `v${vData.version} (En Son)`;
+        }
+      }
+    } catch (_) {}
+
+    try {
+      // 2. Çoklu release tara: Herhangi bir sürümde sadece mobil veya sadece masaüstü olsa bile en güncel çalışan linkleri eşle
       const response = await fetch('https://api.github.com/repos/tcbarisgencoglu-png/sinif-asistani1/releases?per_page=10');
       if (response.ok) {
         const releases = await response.json();
@@ -2189,7 +2199,7 @@
         <div>
           <h3 style="margin: 0; font-size: 1.15rem; font-weight: 800; display: flex; align-items: center; gap: 0.5rem;">
             Sınıf Asistanı İndir
-            <span id="tanitim-download-badge" style="background: #4f46e5; color: #fff; font-size: 0.7rem; padding: 0.15rem 0.5rem; border-radius: 6px; font-weight: 700;">v1.0.29 (En Son)</span>
+            <span id="tanitim-download-badge" style="background: #4f46e5; color: #fff; font-size: 0.7rem; padding: 0.15rem 0.5rem; border-radius: 6px; font-weight: 700;">v1.0.35 (En Son)</span>
           </h3>
           <p style="margin: 0; font-size: 0.8rem; color: #94a3b8;">Akıllı tahta, kişisel bilgisayar ve cep telefonunuz için resmi kurulum dosyaları.</p>
         </div>

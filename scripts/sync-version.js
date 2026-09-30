@@ -27,7 +27,8 @@ const PATHS = {
   appJs: path.join(ROOT_DIR, 'js', 'app.js'),
   indexHtml: path.join(ROOT_DIR, 'index.html'),
   mobileHtml: path.join(ROOT_DIR, 'mobile.html'),
-  tanitimIndex: path.join(ROOT_DIR, 'tanitim', 'index.html')
+  tanitimIndex: path.join(ROOT_DIR, 'tanitim', 'index.html'),
+  dashboardJs: path.join(ROOT_DIR, 'js', 'dashboard.js')
 };
 
 // 1. Mevcut sürümü oku
@@ -162,14 +163,18 @@ try {
   results.push({ file: 'js/app.js', status: '❌', detail: e.message });
 }
 
-// G. index.html (Sidebar Version Text & Download Links)
+// G. index.html (Sidebar Version Text, Badges & Download Links)
 try {
   if (fs.existsSync(PATHS.indexHtml)) {
     let indexHtml = fs.readFileSync(PATHS.indexHtml, 'utf8');
     indexHtml = indexHtml.replace(/<span id="app-sidebar-version-text">Sınıf Asistanı v[^<]+<\/span>/g, `<span id="app-sidebar-version-text">Sınıf Asistanı v${targetVer}</span>`);
+    indexHtml = indexHtml.replace(/<span id="download-app-version-badge"[^>]*>[^<]+<\/span>/g, `<span id="download-app-version-badge" class="badge" style="font-size: 0.75rem; background: var(--primary); color: white; padding: 0.2rem 0.5rem; border-radius: 6px; font-weight: 600;">v${targetVer} (En Son)</span>`);
+    indexHtml = indexHtml.replace(/<span id="update-current-version"[^>]*>[^<]+<\/span>/g, `<span id="update-current-version" class="badge" style="font-size: 0.8rem; font-weight: 700; background: var(--border-color); color: var(--text-secondary); padding: 0.2rem 0.5rem; border-radius: 6px;">v${targetVer}</span>`);
+    indexHtml = indexHtml.replace(/<span id="update-latest-version"[^>]*>[^<]+<\/span>/g, `<span id="update-latest-version" class="badge" style="font-size: 0.8rem; font-weight: 700; background: #6366f1; color: white; padding: 0.2rem 0.5rem; border-radius: 6px;">v${targetVer}</span>`);
     indexHtml = indexHtml.replace(/releases\/download\/v[0-9.]+\/sinif-asistani_[0-9.]+_([a-zA-Z0-9._-]+)/g, (m, fileSuffix) => `releases/download/v${targetVer}/sinif-asistani_${targetVer}_${fileSuffix}`);
+    indexHtml = indexHtml.replace(/releases\/download\/v[0-9.]+\/sinif-asistani\.apk/g, `releases/download/v${targetVer}/sinif-asistani.apk`);
     fs.writeFileSync(PATHS.indexHtml, indexHtml, 'utf8');
-    results.push({ file: 'index.html', status: '✅', detail: `Sınıf Asistanı v${targetVer}` });
+    results.push({ file: 'index.html', status: '✅', detail: `Sınıf Asistanı v${targetVer} & Rozetler güncellendi` });
   }
 } catch (e) {
   results.push({ file: 'index.html', status: '❌', detail: e.message });
@@ -191,14 +196,27 @@ try {
 try {
   if (fs.existsSync(PATHS.tanitimIndex)) {
     let tanitimHtml = fs.readFileSync(PATHS.tanitimIndex, 'utf8');
+    tanitimHtml = tanitimHtml.replace(/<span id="tanitim-download-badge"[^>]*>[^<]+<\/span>/g, `<span id="tanitim-download-badge" style="background: #4f46e5; color: #fff; font-size: 0.7rem; padding: 0.15rem 0.5rem; border-radius: 6px; font-weight: 700;">v${targetVer} (En Son)</span>`);
     tanitimHtml = tanitimHtml.replace(/releases\/download\/v[0-9.]+\/sinif-asistani_[0-9.]+_([a-zA-Z0-9._-]+)/g, (m, fileSuffix) => `releases/download/v${targetVer}/sinif-asistani_${targetVer}_${fileSuffix}`);
     tanitimHtml = tanitimHtml.replace(/releases\/download\/v[0-9.]+\/sinif-asistani\.apk/g, `releases/download/v${targetVer}/sinif-asistani.apk`);
     tanitimHtml = tanitimHtml.replace(/const tagName = latestRelease\.tag_name \|\| 'v[0-9.]+';/g, `const tagName = latestRelease.tag_name || 'v${targetVer}';`);
     fs.writeFileSync(PATHS.tanitimIndex, tanitimHtml, 'utf8');
-    results.push({ file: 'tanitim/index.html', status: '✅', detail: `İndirme linkleri v${targetVer} olarak eşitlendi` });
+    results.push({ file: 'tanitim/index.html', status: '✅', detail: `İndirme linkleri ve rozet v${targetVer} olarak eşitlendi` });
   }
 } catch (e) {
   results.push({ file: 'tanitim/index.html', status: '❌', detail: e.message });
+}
+
+// J. js/dashboard.js (Masaüstü İndir Modalı Fallback Sürüm)
+try {
+  if (fs.existsSync(PATHS.dashboardJs)) {
+    let dashJs = fs.readFileSync(PATHS.dashboardJs, 'utf8');
+    dashJs = dashJs.replace(/const tagName = latestRelease\.tag_name \|\| 'v[0-9.]+';/g, `const tagName = latestRelease.tag_name || 'v${targetVer}';`);
+    fs.writeFileSync(PATHS.dashboardJs, dashJs, 'utf8');
+    results.push({ file: 'js/dashboard.js', status: '✅', detail: `Fallback sürüm v${targetVer} olarak eşitlendi` });
+  }
+} catch (e) {
+  results.push({ file: 'js/dashboard.js', status: '❌', detail: e.message });
 }
 
 // Sonuçları yazdır
