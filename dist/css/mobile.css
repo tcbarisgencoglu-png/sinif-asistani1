@@ -4808,6 +4808,110 @@ body {
   font-weight: 600;
 }
 
+/* Optik Form Önizleme Sayfa Simülasyonu */
+.omr-preview-sheet {
+  background: #ffffff;
+  border: 1px solid var(--m-border);
+  border-radius: 8px;
+  padding: 10px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.omr-preview-sheet.omr-preview-per-page-1 {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.omr-preview-sheet.omr-preview-per-page-2 {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.omr-preview-sheet.omr-preview-per-page-2 .omr-card {
+  margin: 0 auto;
+}
+
+.omr-preview-sheet.omr-preview-per-page-4 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.omr-preview-sheet.omr-preview-per-page-4 .omr-card {
+  margin: 0;
+  padding: 8px 6px;
+  max-width: 100%;
+}
+
+.omr-preview-sheet.omr-preview-per-page-4 .omr-anchor {
+  width: 12px;
+  height: 12px;
+}
+.omr-preview-sheet.omr-preview-per-page-4 .omr-anchor-tl { top: 4px; left: 4px; }
+.omr-preview-sheet.omr-preview-per-page-4 .omr-anchor-tr { top: 4px; right: 4px; }
+.omr-preview-sheet.omr-preview-per-page-4 .omr-anchor-bl { bottom: 4px; left: 4px; }
+.omr-preview-sheet.omr-preview-per-page-4 .omr-anchor-br { bottom: 4px; right: 4px; }
+
+.omr-preview-sheet.omr-preview-per-page-4 .omr-card-header {
+  margin: 2px 14px 4px 14px;
+  padding-bottom: 2px;
+}
+
+.omr-preview-sheet.omr-preview-per-page-4 .omr-header-title {
+  font-size: 0.68rem;
+}
+
+.omr-preview-sheet.omr-preview-per-page-4 .omr-student-info {
+  font-size: 0.58rem;
+  gap: 6px;
+}
+
+.omr-preview-sheet.omr-preview-per-page-4 .omr-id-badge {
+  transform: scale(0.65);
+  transform-origin: right center;
+}
+
+.omr-preview-sheet.omr-preview-per-page-4 .omr-card-body {
+  margin: 2px 6px;
+}
+
+.omr-preview-sheet.omr-preview-per-page-4 .omr-grid-container {
+  gap: 4px;
+}
+
+.omr-preview-sheet.omr-preview-per-page-4 .omr-grid-col {
+  gap: 2px;
+}
+
+.omr-preview-sheet.omr-preview-per-page-4 .omr-q-row {
+  gap: 2px;
+}
+
+.omr-preview-sheet.omr-preview-per-page-4 .omr-q-num {
+  width: 14px;
+  font-size: 0.58rem;
+}
+
+.omr-preview-sheet.omr-preview-per-page-4 .omr-q-bubbles {
+  gap: 2px;
+}
+
+.omr-preview-sheet.omr-preview-per-page-4 .omr-bubble {
+  width: 13px;
+  height: 13px;
+  font-size: 0.52rem;
+  border-width: 1px;
+}
+
+.omr-preview-sheet.omr-preview-per-page-4 .omr-card-footer {
+  margin: 2px 14px 1px 14px;
+  font-size: 0.52rem;
+}
+
 /* OMR Kamera ve Kılavuz Hizalama Katmanı */
 .m-omr-camera-container {
   position: relative;
@@ -4979,48 +5083,129 @@ body {
     page-break-inside: avoid !important;
     break-inside: avoid !important;
     width: 100% !important;
+    height: 285mm !important;
+    max-height: 285mm !important;
     box-sizing: border-box !important;
-    padding: 4mm !important;
+    padding: 2mm !important;
     margin: 0 !important;
     background: #ffffff !important;
   }
 
+  .omr-print-page:last-child {
+    page-break-after: auto !important;
+    break-after: auto !important;
+  }
+
+  /* 1 Form / A4 (Geniş) */
+  .omr-print-page.omr-per-page-1 {
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: center !important;
+    align-items: center !important;
+  }
+
   .omr-print-page.omr-per-page-1 .omr-card {
-    height: 94vh !important;
+    height: 275mm !important;
     max-width: 100% !important;
     border: 2px solid #000000 !important;
     margin: 0 auto !important;
     box-sizing: border-box !important;
+    padding: 16px 20px !important;
   }
 
+  /* 2 Form / A4 (Önerilen) */
   .omr-print-page.omr-per-page-2 {
     display: flex !important;
     flex-direction: column !important;
     justify-content: space-between !important;
-    height: 96vh !important;
+    height: 285mm !important;
   }
 
   .omr-print-page.omr-per-page-2 .omr-card {
-    height: 48.5% !important;
+    height: 138mm !important;
+    max-height: 139mm !important;
     max-width: 100% !important;
     border: 1.5px solid #000000 !important;
-    margin-bottom: 2mm !important;
+    margin: 0 !important;
+    padding: 10px 14px !important;
     box-sizing: border-box !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
   }
 
+  /* 4 Form / A4 (Tasarruflu) */
   .omr-print-page.omr-per-page-4 {
     display: grid !important;
     grid-template-columns: 1fr 1fr !important;
-    grid-template-rows: 1fr 1fr !important;
-    gap: 6mm !important;
-    height: 96vh !important;
+    grid-template-rows: 139mm 139mm !important;
+    gap: 3mm !important;
+    height: 285mm !important;
   }
 
   .omr-print-page.omr-per-page-4 .omr-card {
-    height: 100% !important;
+    height: 139mm !important;
+    max-height: 139mm !important;
+    max-width: 100% !important;
     border: 1.5px solid #000000 !important;
     margin: 0 !important;
+    padding: 6px 8px !important;
     box-sizing: border-box !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  .omr-print-page.omr-per-page-4 .omr-anchor {
+    width: 13px !important;
+    height: 13px !important;
+  }
+  .omr-print-page.omr-per-page-4 .omr-anchor-tl { top: 4px !important; left: 4px !important; }
+  .omr-print-page.omr-per-page-4 .omr-anchor-tr { top: 4px !important; right: 4px !important; }
+  .omr-print-page.omr-per-page-4 .omr-anchor-bl { bottom: 4px !important; left: 4px !important; }
+  .omr-print-page.omr-per-page-4 .omr-anchor-br { bottom: 4px !important; right: 4px !important; }
+
+  .omr-print-page.omr-per-page-4 .omr-card-header {
+    margin: 2px 14px 3px 14px !important;
+    padding-bottom: 2px !important;
+  }
+  .omr-print-page.omr-per-page-4 .omr-header-title {
+    font-size: 0.72rem !important;
+  }
+  .omr-print-page.omr-per-page-4 .omr-student-info {
+    font-size: 0.64rem !important;
+    gap: 6px !important;
+  }
+  .omr-print-page.omr-per-page-4 .omr-id-badge {
+    transform: scale(0.75) !important;
+    transform-origin: right center !important;
+  }
+  .omr-print-page.omr-per-page-4 .omr-card-body {
+    margin: 2px 8px !important;
+  }
+  .omr-print-page.omr-per-page-4 .omr-grid-container {
+    gap: 4px !important;
+  }
+  .omr-print-page.omr-per-page-4 .omr-grid-col {
+    gap: 2px !important;
+  }
+  .omr-print-page.omr-per-page-4 .omr-q-row {
+    gap: 3px !important;
+  }
+  .omr-print-page.omr-per-page-4 .omr-q-num {
+    width: 15px !important;
+    font-size: 0.62rem !important;
+  }
+  .omr-print-page.omr-per-page-4 .omr-q-bubbles {
+    gap: 3px !important;
+  }
+  .omr-print-page.omr-per-page-4 .omr-bubble {
+    width: 14px !important;
+    height: 14px !important;
+    font-size: 0.54rem !important;
+    border: 1.2px solid #000000 !important;
+  }
+  .omr-print-page.omr-per-page-4 .omr-card-footer {
+    margin: 2px 14px 1px 14px !important;
+    font-size: 0.54rem !important;
   }
 
   .omr-anchor {

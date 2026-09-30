@@ -17,6 +17,10 @@ import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.Toast;
+import android.Manifest;
+import android.content.pm.PackageManager;
+import androidx.core.content.ContextCompat;
+import android.webkit.PermissionRequest;
 import androidx.activity.OnBackPressedCallback;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
@@ -28,6 +32,10 @@ public class MainActivity extends AppCompatActivity {
     private WebView webView;
     private ValueCallback<Uri[]> fileUploadCallback;
     private ActivityResultLauncher<Intent> fileChooserLauncher;
+    private ActivityResultLauncher<String> cameraPermissionLauncher;
+    private PermissionRequest pendingWebPermissionRequest;
+
+    private WebView printWebViewHolder;
 
     public class WebAppInterface {
         Context mContext;
@@ -70,6 +78,88 @@ public class MainActivity extends AppCompatActivity {
         }
 
         @JavascriptInterface
+        public void printHtml(String htmlContent, String documentName) {
+            try {
+                runOnUiThread(() -> {
+                    android.print.PrintManager printManager = (android.print.PrintManager) getSystemService(Context.PRINT_SERVICE);
+                    if (printManager == null) {
+                        Toast.makeText(mContext, "Yazdırma servisi bulunamadı", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+
+                    // Varsa önceki geçici yazdırma WebView'ını temizle
+                    if (printWebViewHolder != null) {
+                        try {
+                            printWebViewHolder.destroy();
+                        } catch (Exception ignored) {}
+                        printWebViewHolder = null;
+                    }
+
+                    // Ana WebView'ı ve arayüzü etkilememesi için izole bir yazdırma WebView'ı oluştur
+                    WebView printWebView = new WebView(MainActivity.this);
+                    printWebViewHolder = printWebView;
+
+                    WebSettings pSettings = printWebView.getSettings();
+                    pSettings.setJavaScriptEnabled(true);
+                    pSettings.setDomStorageEnabled(true);
+
+                    final String jobName = (documentName != null && !documentName.isEmpty()) ? documentName : "Sinif_Asistani_Belge";
+
+                    printWebView.setWebViewClient(new WebViewClient() {
+                        private boolean hasFired = false;
+
+                        @Override
+                        public void onPageFinished(WebView view, String url) {
+                            if (hasFired) return;
+                            hasFired = true;
+
+                            android.print.PrintDocumentAdapter rawAdapter = printWebView.createPrintDocumentAdapter(jobName);
+                            android.print.PrintAttributes.Builder builder = new android.print.PrintAttributes.Builder();
+                            builder.setMediaSize(android.print.PrintAttributes.MediaSize.ISO_A4);
+                            builder.setMinMargins(new android.print.PrintAttributes.Margins(100, 100, 100, 100)); // ~2.5mm marj
+
+                            android.print.PrintDocumentAdapter wrappedAdapter = new android.print.PrintDocumentAdapter() {
+                                @Override
+                                public void onStart() {
+                                    rawAdapter.onStart();
+                                }
+
+                                @Override
+                                public void onLayout(android.print.PrintAttributes oldAttributes, android.print.PrintAttributes newAttributes, android.os.CancellationSignal cancellationSignal, LayoutResultCallback callback, Bundle extras) {
+                                    rawAdapter.onLayout(oldAttributes, newAttributes, cancellationSignal, callback, extras);
+                                }
+
+                                @Override
+                                public void onWrite(android.print.PageRange[] pages, android.os.ParcelFileDescriptor destination, android.os.CancellationSignal cancellationSignal, WriteResultCallback callback) {
+                                    rawAdapter.onWrite(pages, destination, cancellationSignal, callback);
+                                }
+
+                                @Override
+                                public void onFinish() {
+                                    rawAdapter.onFinish();
+                                    runOnUiThread(() -> {
+                                        if (printWebViewHolder != null) {
+                                            try {
+                                                printWebViewHolder.destroy();
+                                            } catch (Exception ignored) {}
+                                            printWebViewHolder = null;
+                                        }
+                                    });
+                                }
+                            };
+
+                            printManager.print(jobName, wrappedAdapter, builder.build());
+                        }
+                    });
+
+                    printWebView.loadDataWithBaseURL("https://appassets.androidplatform.net/assets/", htmlContent, "text/html; charset=utf-8", "UTF-8", null);
+                });
+            } catch (Exception e) {
+                runOnUiThread(() -> Toast.makeText(mContext, "Yazdırma hatası: " + e.getMessage(), Toast.LENGTH_SHORT).show());
+            }
+        }
+
+        @JavascriptInterface
         public void printDocument(String documentName) {
             try {
                 runOnUiThread(() -> {
@@ -77,12 +167,23 @@ public class MainActivity extends AppCompatActivity {
                     if (printManager != null && webView != null) {
                         String jobName = (documentName != null && !documentName.isEmpty()) ? documentName : "Sinif_Asistani_Belge";
                         android.print.PrintDocumentAdapter printAdapter = webView.createPrintDocumentAdapter(jobName);
-                        printManager.print(jobName, printAdapter, new android.print.PrintAttributes.Builder().build());
+                        android.print.PrintAttributes.Builder builder = new android.print.PrintAttributes.Builder();
+                        builder.setMediaSize(android.print.PrintAttributes.MediaSize.ISO_A4);
+                        printManager.print(jobName, printAdapter, builder.build());
                     }
                 });
             } catch (Exception e) {
                 runOnUiThread(() -> Toast.makeText(mContext, "Yazdırma hatası: " + e.getMessage(), Toast.LENGTH_SHORT).show());
             }
+        }
+
+        @JavascriptInterface
+        public void requestCameraPermission() {
+            runOnUiThread(() -> {
+                if (ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+                    cameraPermissionLauncher.launch(Manifest.permission.CAMERA);
+                }
+            });
         }
     }
 
@@ -93,6 +194,21 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         webView = findViewById(R.id.webview);
+
+        cameraPermissionLauncher = registerForActivityResult(
+            new ActivityResultContracts.RequestPermission(),
+            isGranted -> {
+                if (pendingWebPermissionRequest != null) {
+                    if (isGranted) {
+                        pendingWebPermissionRequest.grant(pendingWebPermissionRequest.getResources());
+                    } else {
+                        pendingWebPermissionRequest.deny();
+                        Toast.makeText(this, "Kamera izni verilmedi. Optik form okumak için kamera izni gereklidir.", Toast.LENGTH_LONG).show();
+                    }
+                    pendingWebPermissionRequest = null;
+                }
+            }
+        );
 
         fileChooserLauncher = registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(),
@@ -154,6 +270,30 @@ public class MainActivity extends AppCompatActivity {
         });
 
         webView.setWebChromeClient(new WebChromeClient() {
+            @Override
+            public void onPermissionRequest(final PermissionRequest request) {
+                runOnUiThread(() -> {
+                    boolean requiresCamera = false;
+                    for (String res : request.getResources()) {
+                        if (PermissionRequest.RESOURCE_VIDEO_CAPTURE.equals(res)) {
+                            requiresCamera = true;
+                            break;
+                        }
+                    }
+
+                    if (requiresCamera) {
+                        if (ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+                            request.grant(request.getResources());
+                        } else {
+                            pendingWebPermissionRequest = request;
+                            cameraPermissionLauncher.launch(Manifest.permission.CAMERA);
+                        }
+                    } else {
+                        request.grant(request.getResources());
+                    }
+                });
+            }
+
             @Override
             public boolean onShowFileChooser(WebView webView, ValueCallback<Uri[]> filePathCallback,
                                               FileChooserParams fileChooserParams) {

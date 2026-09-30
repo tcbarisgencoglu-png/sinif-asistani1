@@ -341,24 +341,44 @@
     const qCount = parseInt(document.getElementById('m-opt-qcount').value, 10) || 20;
     const choicesCount = parseInt(document.getElementById('m-opt-choices').value, 10) || 4;
     const formType = document.getElementById('m-opt-type').value;
+    const perPage = parseInt(document.getElementById('m-opt-perpage')?.value, 10) || 2;
 
     const letters = ['A', 'B', 'C', 'D', 'E'].slice(0, choicesCount);
-    const sampleStudent = formType === 'named' ? 'Ahmet YILMAZ' : '................................';
-    const sampleNo = formType === 'named' ? '105' : '......';
+    const sampleStudents = [
+      { name: 'Ahmet YILMAZ', no: '105' },
+      { name: 'Ayşe DEMİR', no: '108' },
+      { name: 'Mehmet ÇELİK', no: '112' },
+      { name: 'Zeynep KAYA', no: '119' }
+    ];
 
-    previewBox.innerHTML = generateSingleOpticalCardHTML({
-      examName: activeExam.examName || 'Haftalık Değerlendirme',
-      studentName: sampleStudent,
-      studentNo: sampleNo,
-      totalQuestions: qCount,
-      letters: letters,
-      studentIndex: formType === 'named' ? 1 : 0,
-      isSample: true
-    });
+    let cardsHtml = '';
+    for (let i = 0; i < perPage; i++) {
+      const isNamed = formType === 'named';
+      const sample = sampleStudents[i] || sampleStudents[0];
+      const studentName = isNamed ? sample.name : '................................';
+      const studentNo = isNamed ? sample.no : '......';
+
+      cardsHtml += generateSingleOpticalCardHTML({
+        examName: activeExam.examName || 'Haftalık Değerlendirme',
+        studentName: studentName,
+        studentNo: studentNo,
+        totalQuestions: qCount,
+        letters: letters,
+        studentIndex: isNamed ? (i + 1) : 0,
+        isSample: true,
+        perPage: perPage
+      });
+    }
+
+    previewBox.innerHTML = `
+      <div class="omr-preview-sheet omr-preview-per-page-${perPage}">
+        ${cardsHtml}
+      </div>
+    `;
   };
 
   function generateSingleOpticalCardHTML(options) {
-    const { examName, studentName, studentNo, totalQuestions, letters, studentIndex, isSample } = options;
+    const { examName, studentName, studentNo, totalQuestions, letters, studentIndex, isSample, perPage = 2 } = options;
 
     const cols = totalQuestions <= 15 ? 1 : (totalQuestions <= 30 ? 2 : 3);
     const questionsPerCol = Math.ceil(totalQuestions / cols);
@@ -388,10 +408,11 @@
     }
 
     const hasIdBadge = (studentIndex && studentIndex > 0) || isSample;
-    const idBadgeHtml = hasIdBadge ? generateOpticalIdSVG(isSample ? 1 : studentIndex, 42) : '';
+    const badgeSize = perPage === 4 ? 26 : (perPage === 1 ? 44 : 38);
+    const idBadgeHtml = hasIdBadge ? generateOpticalIdSVG(isSample ? 1 : studentIndex, badgeSize) : '';
 
     return `
-      <div class="omr-card ${isSample ? 'omr-card-sample' : ''}">
+      <div class="omr-card ${isSample ? 'omr-card-sample' : ''} ${perPage === 4 ? 'omr-card-compact' : ''}">
         <!-- 4 Siyah Referans Köşe İşaretleyicisi (OMR Çevrim Dışı Hizalama) -->
         <div class="omr-anchor omr-anchor-tl"></div>
         <div class="omr-anchor omr-anchor-tr"></div>
@@ -466,46 +487,40 @@
         if (window.showMobileToast) {
           window.showMobileToast('Bu kademede öğrenci bulunamadı, boş formlar hazırlanıyor...', 'warning');
         }
-        for (let i = 1; i <= 30; i++) {
+        const count = perPage === 4 ? 32 : (perPage === 2 ? 30 : 20);
+        for (let i = 1; i <= count; i++) {
           studentsList.push({ name: '................................', surname: '', number: '......' });
         }
       }
     } else {
-      // 30 adet boş form oluştur
-      for (let i = 1; i <= 30; i++) {
+      // Boş formlar: Sayfaları tam dolduracak miktarda oluştur
+      const count = perPage === 4 ? 32 : (perPage === 2 ? 30 : 20);
+      for (let i = 1; i <= count; i++) {
         studentsList.push({ name: '................................', surname: '', number: '......' });
       }
     }
 
-    // Print container hazırla
-    let printContainer = document.querySelector('.mobile-report-print');
-    if (!printContainer) {
-      printContainer = document.createElement('div');
-      printContainer.className = 'mobile-report-print';
-      document.body.appendChild(printContainer);
-    }
-    printContainer.innerHTML = '';
-
-    // Sayfalara böl (Her sayfada 1, 2 veya 4 form)
+    // Sayfalara tam doldurarak böl (Her sayfada 1, 2 veya 4 form)
+    let pagesHtml = '';
     for (let p = 0; p < studentsList.length; p += perPage) {
       const pageStudents = studentsList.slice(p, p + perPage);
-      const pageEl = document.createElement('div');
-      pageEl.className = `omr-print-page omr-per-page-${perPage}`;
+      let pageCardsHtml = '';
 
       pageStudents.forEach((st, idxInPage) => {
         const globalIdx = p + idxInPage;
-        pageEl.innerHTML += generateSingleOpticalCardHTML({
+        pageCardsHtml += generateSingleOpticalCardHTML({
           examName: activeExam.examName || 'Haftalık Değerlendirme',
           studentName: `${st.name} ${st.surname || ''}`.trim(),
           studentNo: st.number || '-',
           totalQuestions: qCount,
           letters: letters,
           studentIndex: formType === 'named' ? (globalIdx + 1) : 0,
-          isSample: false
+          isSample: false,
+          perPage: perPage
         });
       });
 
-      printContainer.appendChild(pageEl);
+      pagesHtml += `<div class="omr-print-page omr-per-page-${perPage}">${pageCardsHtml}</div>`;
     }
 
     if (window.showMobileToast) {
@@ -513,34 +528,316 @@
     }
     if (window.vibrate) window.vibrate(30);
 
-    // Yazdırma modunu aktif et
-    document.body.classList.add('print-mobile-omr');
-
     const cleanTitle = (activeExam.examName || 'Optik_Form').replace(/[^a-zA-Z0-9_\u00C0-\u017F-]/g, '_');
     const docTitle = `${cleanTitle}_${formType === 'named' ? 'Ogrenci_Listeli' : 'Bos'}`;
 
-    // Temizleme fonksiyonu
-    const cleanup = () => {
-      document.body.classList.remove('print-mobile-omr');
-      if (printContainer) printContainer.innerHTML = '';
-      window.removeEventListener('afterprint', cleanup);
-    };
-    window.addEventListener('afterprint', cleanup);
-    setTimeout(cleanup, 5000);
+    const fullPrintHtml = `<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${docTitle}</title>
+  <style>
+    @page {
+      size: A4 portrait;
+      margin: 4mm;
+    }
+    * {
+      box-sizing: border-box;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: #ffffff !important;
+      color: #000000 !important;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    }
+    .omr-print-page {
+      page-break-after: always;
+      break-after: page;
+      page-break-inside: avoid;
+      break-inside: avoid;
+      width: 100%;
+      height: 285mm;
+      max-height: 285mm;
+      box-sizing: border-box;
+      padding: 2mm;
+      margin: 0;
+      background: #ffffff;
+    }
+    .omr-print-page:last-child {
+      page-break-after: auto;
+      break-after: auto;
+    }
+    /* 1 Form / A4 (Geniş) */
+    .omr-print-page.omr-per-page-1 {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
+    .omr-print-page.omr-per-page-1 .omr-card {
+      height: 275mm;
+      max-width: 100%;
+      margin: 0 auto;
+      padding: 16px 20px;
+    }
+    /* 2 Form / A4 (Önerilen) */
+    .omr-print-page.omr-per-page-2 {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .omr-print-page.omr-per-page-2 .omr-card {
+      height: 138mm;
+      max-height: 139mm;
+      max-width: 100%;
+      margin: 0;
+      padding: 10px 14px;
+    }
+    /* 4 Form / A4 (Tasarruflu) */
+    .omr-print-page.omr-per-page-4 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: 139mm 139mm;
+      gap: 3mm;
+    }
+    .omr-print-page.omr-per-page-4 .omr-card {
+      height: 139mm;
+      max-height: 139mm;
+      max-width: 100%;
+      margin: 0;
+      padding: 6px 8px;
+    }
+    /* Kart Genel Yapısı */
+    .omr-card {
+      position: relative;
+      background: #ffffff;
+      color: #000000;
+      border: 1.5px solid #000000;
+      border-radius: 6px;
+      box-sizing: border-box;
+      width: 100%;
+      user-select: none;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      page-break-inside: avoid;
+      break-inside: avoid;
+    }
+    .omr-anchor {
+      position: absolute;
+      width: 18px;
+      height: 18px;
+      background-color: #000000 !important;
+      z-index: 5;
+    }
+    .omr-anchor-tl { top: 6px; left: 6px; }
+    .omr-anchor-tr { top: 6px; right: 6px; }
+    .omr-anchor-bl { bottom: 6px; left: 6px; }
+    .omr-anchor-br { bottom: 6px; right: 6px; }
+    .omr-card-header {
+      margin: 2px 24px 4px 24px;
+      border-bottom: 2px solid #000000;
+      padding-bottom: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .omr-header-main {
+      flex: 1;
+      min-width: 0;
+    }
+    .omr-header-title {
+      font-size: 0.88rem;
+      font-weight: 900;
+      text-align: left;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #000000;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .omr-student-info {
+      display: flex;
+      gap: 12px;
+      margin-top: 3px;
+      font-size: 0.76rem;
+      color: #000000;
+      font-weight: 600;
+    }
+    .omr-id-badge {
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1px;
+    }
+    .omr-id-svg {
+      display: block;
+    }
+    .omr-id-caption {
+      font-size: 0.56rem;
+      font-weight: 800;
+      font-family: monospace;
+      color: #000000;
+      line-height: 1;
+      margin-top: 1px;
+    }
+    .omr-card-body {
+      margin: 4px 12px;
+      flex: 1;
+      display: flex;
+      align-items: center;
+    }
+    .omr-grid-container {
+      width: 100%;
+      display: flex;
+      justify-content: space-around;
+      gap: 10px;
+    }
+    .omr-grid-col {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .omr-q-row {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .omr-q-num {
+      width: 20px;
+      font-size: 0.74rem;
+      font-weight: 800;
+      text-align: right;
+      color: #000000;
+    }
+    .omr-q-bubbles {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .omr-bubble {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      border: 1.5px solid #000000 !important;
+      background: #ffffff !important;
+      color: #000000 !important;
+      font-size: 0.66rem;
+      font-weight: 800;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 1;
+    }
+    .omr-card-footer {
+      margin: 4px 24px 2px 24px;
+      border-top: 1px dashed #64748b;
+      padding-top: 3px;
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.62rem;
+      color: #475569;
+      font-weight: 600;
+    }
 
-    // Android WebView veya Standart Yazdırma
-    setTimeout(() => {
-      if (window.AndroidBridge && typeof window.AndroidBridge.printDocument === 'function') {
-        window.AndroidBridge.printDocument(docTitle);
-      } else if (window.electronAPI && typeof window.electronAPI.printDocument === 'function') {
-        window.electronAPI.printDocument();
-      } else {
-        window.print();
+    /* 4-per-page (Tasarruflu) özel kompakt düzeni */
+    .omr-per-page-4 .omr-anchor {
+      width: 13px !important;
+      height: 13px !important;
+    }
+    .omr-per-page-4 .omr-anchor-tl { top: 4px !important; left: 4px !important; }
+    .omr-per-page-4 .omr-anchor-tr { top: 4px !important; right: 4px !important; }
+    .omr-per-page-4 .omr-anchor-bl { bottom: 4px !important; left: 4px !important; }
+    .omr-per-page-4 .omr-anchor-br { bottom: 4px !important; right: 4px !important; }
+    .omr-per-page-4 .omr-card-header {
+      margin: 2px 14px 3px 14px !important;
+      padding-bottom: 2px !important;
+    }
+    .omr-per-page-4 .omr-header-title {
+      font-size: 0.72rem !important;
+    }
+    .omr-per-page-4 .omr-student-info {
+      font-size: 0.64rem !important;
+      gap: 6px !important;
+    }
+    .omr-per-page-4 .omr-id-badge {
+      transform: scale(0.75) !important;
+      transform-origin: right center !important;
+    }
+    .omr-per-page-4 .omr-card-body {
+      margin: 2px 8px !important;
+    }
+    .omr-per-page-4 .omr-grid-container {
+      gap: 4px !important;
+    }
+    .omr-per-page-4 .omr-grid-col {
+      gap: 2px !important;
+    }
+    .omr-per-page-4 .omr-q-row {
+      gap: 3px !important;
+    }
+    .omr-per-page-4 .omr-q-num {
+      width: 15px !important;
+      font-size: 0.62rem !important;
+    }
+    .omr-per-page-4 .omr-q-bubbles {
+      gap: 3px !important;
+    }
+    .omr-per-page-4 .omr-bubble {
+      width: 14px !important;
+      height: 14px !important;
+      font-size: 0.54rem !important;
+      border: 1.2px solid #000000 !important;
+    }
+    .omr-per-page-4 .omr-card-footer {
+      margin: 2px 14px 1px 14px !important;
+      font-size: 0.54rem !important;
+    }
+  </style>
+</head>
+<body>
+  ${pagesHtml}
+</body>
+</html>`;
+
+    if (window.AndroidBridge && typeof window.AndroidBridge.printHtml === 'function') {
+      window.AndroidBridge.printHtml(fullPrintHtml, docTitle);
+    } else {
+      let printFrame = document.getElementById('omr-print-iframe');
+      if (!printFrame) {
+        printFrame = document.createElement('iframe');
+        printFrame.id = 'omr-print-iframe';
+        printFrame.style.position = 'fixed';
+        printFrame.style.right = '0';
+        printFrame.style.bottom = '0';
+        printFrame.style.width = '0';
+        printFrame.style.height = '0';
+        printFrame.style.border = '0';
+        document.body.appendChild(printFrame);
       }
+      const doc = printFrame.contentDocument || printFrame.contentWindow.document;
+      doc.open();
+      doc.write(fullPrintHtml);
+      doc.close();
+
       setTimeout(() => {
-        closeMobileOpticalPrintModal();
-      }, 500);
-    }, 200);
+        try {
+          if (printFrame.contentWindow) {
+            printFrame.contentWindow.focus();
+            printFrame.contentWindow.print();
+          }
+        } catch (e) {
+          window.print();
+        }
+      }, 350);
+    }
   };
 
   // ==========================================================================
@@ -589,24 +886,46 @@
     const video = document.getElementById('m-omr-video');
     if (!video || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return;
 
-    const constraints = {
-      video: {
-        facingMode: { ideal: 'environment' },
-        width: { ideal: 1920 },
-        height: { ideal: 1080 }
-      },
-      audio: false
+    if (window.AndroidBridge && typeof window.AndroidBridge.requestCameraPermission === 'function') {
+      window.AndroidBridge.requestCameraPermission();
+    }
+
+    const tryGetUserMedia = (constraints) => {
+      return navigator.mediaDevices.getUserMedia(constraints)
+        .then(stream => {
+          activeMediaStream = stream;
+          video.srcObject = stream;
+          video.setAttribute('playsinline', '');
+          video.setAttribute('autoplay', '');
+          video.muted = true;
+          return video.play().catch(e => {
+            console.log('Video play catch:', e);
+          });
+        });
     };
 
-    navigator.mediaDevices.getUserMedia(constraints)
-      .then(stream => {
-        activeMediaStream = stream;
-        video.srcObject = stream;
-        video.play().catch(err => console.log('Video play error:', err));
-      })
-      .catch(err => {
-        console.log('Kamera akışı açılamadı (Native fotoğraf çekme modu aktif):', err);
+    // 1. Öncelik: Arka kamera (environment) ile 1080p
+    tryGetUserMedia({
+      video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 } },
+      audio: false
+    }).catch(() => {
+      // 2. Öncelik: Arka kamera (environment) standart
+      return tryGetUserMedia({
+        video: { facingMode: 'environment' },
+        audio: false
       });
+    }).catch(() => {
+      // 3. Öncelik: Genel video akışı
+      return tryGetUserMedia({
+        video: true,
+        audio: false
+      });
+    }).catch(err => {
+      console.warn('Kamera akışı açılamadı:', err);
+      if (window.showMobileToast) {
+        window.showMobileToast('Kamera başlatılamadı. İzin verin veya "HD Çek" butonunu kullanın.', 'warning', 4000);
+      }
+    });
   }
 
   function stopCameraStream() {
@@ -623,7 +942,7 @@
     const video = document.getElementById('m-omr-video');
     if (window.vibrate) window.vibrate(20);
 
-    if (video && video.videoWidth > 0 && activeMediaStream) {
+    if (video && video.videoWidth > 0 && activeMediaStream && !video.paused) {
       const canvas = document.createElement('canvas');
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
@@ -631,17 +950,26 @@
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
       processCapturedImage(canvas);
     } else {
-      // Eğer video akışı yoksa native kamera uygulamasını aç
+      // Eğer canlı akış henüz hazır değilse
+      if (window.showMobileToast) {
+        window.showMobileToast('Kamera açılıyor... Net çekim için kamera uygulaması başlatılıyor.', 'info', 2000);
+      }
       window.triggerNativeCameraCapture();
     }
   };
 
   // Android yerel kamera uygulamasını aç (Yüksek çözünürlük & net odak)
   window.triggerNativeCameraCapture = function() {
-    const fileInput = document.getElementById('m-omr-file-input');
-    if (fileInput) {
-      fileInput.value = '';
-      fileInput.click();
+    const cameraInput = document.getElementById('m-omr-native-camera-input');
+    if (cameraInput) {
+      cameraInput.value = '';
+      cameraInput.click();
+    } else {
+      const fileInput = document.getElementById('m-omr-file-input');
+      if (fileInput) {
+        fileInput.value = '';
+        fileInput.click();
+      }
     }
   };
 
