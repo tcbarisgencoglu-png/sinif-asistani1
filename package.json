@@ -4,7 +4,7 @@
   "description": "Sınıf Asistanı - Dijital Öğretmen Yardımcısı",
   "scripts": {
     "tauri": "tauri",
-    "sync": "rsync -av --delete --exclude='*.DS_Store' index.html mobile.html css js manifest.json sw.js icons tanitim vercel.json dist/",
+    "sync": "rsync -av --delete --exclude='*.DS_Store' index.html mobile.html css js manifest.json sw.js icons tanitim vercel.json version.json dist/",
     "dev": "npm run sync && tauri dev",
     "build": "node scripts/sync-version.js sync",
     "build:tauri": "node scripts/sync-version.js sync && tauri build",

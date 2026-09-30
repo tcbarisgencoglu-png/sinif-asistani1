@@ -1,15 +1,14 @@
 {
-  "version": "1.0.27",
-  "releaseDate": "2026-09-25",
+  "version": "1.0.35",
+  "releaseDate": "2026-09-30",
   "minRequiredVersion": "1.0.0",
-  "title": "Sınıf Asistanı v1.0.27 Yayında!",
-  "description": "Hazine Sandığı Soru Paketi Oluşturucu (AI / Form / Kopyala-Yapıştır) ve Çoktan Seçmeli & Açık Uçlu Soru Desteği",
+  "title": "Sınıf Asistanı v1.0.35 Yayında!",
+  "description": "Hazine Sandığı Akıllı Tahta Tam Ekran Modu, Optik Form & OMR Tarayıcı ve Mobil Değerlendirme İyileştirmeleri",
   "features": [
-    "Hazine Sandığı Soru Paketleri: Soruları tek tek eklemek yerine 3 pratik yöntemle (Yapay Zeka, Dinamik Paket Formu, Kopyala & Yapıştır) soru paketi hazırlama",
-    "Gelişmiş Kopyala-Yapıştır İçe Aktarma: Word veya metin belgelerinden numaralı soru listelerini, seçenekleri ve cevapları otomatik ayrıştırarak pakete dönüştürme",
-    "Yıllık Plan & Gemini AI Entegrasyonu: Yıllık planlardan ders ve kazanım seçerek Hazine Sandığı formatında soru paketi üretebilme",
-    "Çoktan Seçmeli, Boşluk Doldurma ve Açık Uçlu Soru Tipleri: Hazine Sandığı için şıklı (A,B,C,D) kartlar, boşluk doldurma ve model cevaplı açık uçlu sorular",
-    "Sandık Ödülü Gizleme Özelliği: Oyun kurulumunda ve aktif yarışma esnasında sandık ödülünün metnini gizleme/gösterme butonu"
+    "Hazine Sandığı Tam Ekran Modu: Akıllı tahtalar için devasa soru ekranı, senkronize dairesel geri sayım sayacı ve interaktif kontroller",
+    "Hazine Sandığı Hızlı Kontroller: Tam ekranda süreyi durdurma/başlatma, sıfırlama, doğru cevabı vurgulama ve yeni soru çekme butonları",
+    "Mobil Optik Form & OMR Desteği: Çevrimdışı optik form üretici ve kamera ile anlık haftalık değerlendirme tarayıcısı",
+    "Arayüz ve Performans İyileştirmeleri: Mobil ve masaüstü arayüzlerde kaydırma ve buton etkileşimleri optimize edildi"
   ],
   "release_url": "https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/latest"
 }
