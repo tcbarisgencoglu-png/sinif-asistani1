@@ -1,6 +1,6 @@
 {
   "name": "sinif-asistani",
-  "version": "1.0.34",
+  "version": "1.0.35",
   "description": "Sınıf Asistanı - Dijital Öğretmen Yardımcısı",
   "scripts": {
     "tauri": "tauri",
@@ -13,11 +13,11 @@
     "version:bump": "node scripts/sync-version.js"
   },
   "devDependencies": {
-    "@tauri-apps/cli": "^2.0.0"
+    "@tauri-apps/cli": "~2.11.0"
   },
   "dependencies": {
-    "@tauri-apps/api": "^2.0.0",
-    "@tauri-apps/plugin-process": "^2.0.0",
-    "@tauri-apps/plugin-updater": "^2.0.0"
+    "@tauri-apps/api": "~2.11.0",
+    "@tauri-apps/plugin-process": "~2.3.0",
+    "@tauri-apps/plugin-updater": "~2.12.0"
   }
 }

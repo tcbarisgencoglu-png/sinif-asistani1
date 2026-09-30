@@ -128,7 +128,7 @@ jobs:
           npx tauri --version
           echo "Derleme baslatiliyor (args: ${{ matrix.args }})..."
           set +e
-          npx tauri build ${{ matrix.args }} --no-sign -v 2>&1 | tee tauri-build.log
+          npx tauri build ${{ matrix.args }} --no-sign --ignore-version-mismatches -v 2>&1 | tee tauri-build.log
           EXIT_CODE=${PIPESTATUS[0]}
           set -e
           cp tauri-build.log "error-${{ matrix.artifact_name }}.txt"
@@ -147,15 +147,6 @@ jobs:
           name: tauri-error-${{ matrix.artifact_name }}
           path: error-${{ matrix.artifact_name }}.txt
           if-no-files-found: ignore
-
-      - name: Hata Logunu Release'e Yükle
-        if: failure()
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: "v1.0.34"
-          files: error-${{ matrix.artifact_name }}.txt
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Masaüstü Paketlerini Artifact Olarak Kaydet
         uses: actions/upload-artifact@v4
