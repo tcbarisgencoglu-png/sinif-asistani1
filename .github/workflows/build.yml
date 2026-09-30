@@ -110,10 +110,37 @@ jobs:
           if (Test-Path icons) { Copy-Item -Recurse icons dist/ }
 
       - name: Tauri derle
+        shell: bash
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CI: true
-        run: npx tauri build ${{ matrix.args }} --no-sign
+        run: |
+          echo "=== Ortam Bilgileri ==="
+          echo "Dizin: $(pwd)"
+          echo "Node: $(node -v)"
+          echo "NPM: $(npm -v)"
+          echo "Rust: $(rustc -V)"
+          echo "Cargo: $(cargo -V)"
+          echo "Tauri CLI test ediliyor..."
+          npx tauri --version || echo "npx tauri --version basarisiz"
+          echo "Derleme baslatiliyor (args: ${{ matrix.args }})..."
+          npx tauri build ${{ matrix.args }} --no-sign 2>&1 | tee tauri-build.log
+          EXIT_CODE=${PIPESTATUS[0]}
+          if [ $EXIT_CODE -ne 0 ]; then
+            echo "### ❌ Tauri Derleme Hatası (${{ matrix.artifact_name }})" >> $GITHUB_STEP_SUMMARY
+            echo '```text' >> $GITHUB_STEP_SUMMARY
+            tail -n 60 tauri-build.log >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            exit $EXIT_CODE
+          fi
+
+      - name: Hata Günlüğünü Kaydet
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tauri-error-${{ matrix.artifact_name }}
+          path: tauri-build.log
+          if-no-files-found: ignore
 
       - name: Masaüstü Paketlerini Artifact Olarak Kaydet
         uses: actions/upload-artifact@v4
