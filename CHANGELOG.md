@@ -2,6 +2,15 @@
 
 Bu dosya, Sınıf Asistanı uygulamasının tüm sürüm geçmişini içerir.
 
+## [v1.0.31] — 2026-09-30
+
+### 🚀 Yeni Özellikler & İyileştirmeler
+- **Hazine Sandığı Akıllı Tahta Tam Ekran Modu:** Hazine Sandığı oyunundaki tam ekran butonu aktif hale getirilerek akıllı tahtalara özel ultra okunaklı soru ekranı, devasa dairesel geri sayım sayacı ve interaktif kontroller (durdur/başlat, sıfırla, cevabı göster, yeni soru) eklendi. Süre bitiminde otomatik puanlama ekranına dönüş sağlandı.
+- **Mobil Çevrimdışı Optik Form & OMR Tarayıcı:** Haftalık değerlendirmeler için kamera ile anlık optik form tarama, otomatik okuma ve puanlama entegrasyonu uygulandı.
+- **Tüm Platformlar Sürüm Eşitlemesi:** Masaüstü (macOS, Windows, Linux/Pardus), Android (.apk) ve Web sürümleri v1.0.31 olarak senkronize edildi.
+
+---
+
 ## [v1.0.8] — 2026-09-14
 
 ### 🚀 Yeni Özellikler & İyileştirmeler

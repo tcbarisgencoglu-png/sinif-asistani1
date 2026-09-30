@@ -188,8 +188,11 @@
   window.openMobileOpticalPrintModal = function(examId) {
     if (!window.stateManager) return;
     const state = window.stateManager.loadState ? window.stateManager.loadState() : (window.stateManager.state || {});
-    const exam = (state.weeklyEvaluations || []).find(e => String(e.id) === String(examId));
-    if (!exam) return;
+    const exam = (state.weeklyEvaluations || []).find(e => String(e.id) === String(examId)) || window.activeWeeklyExam;
+    if (!exam) {
+      if (window.showMobileToast) window.showMobileToast('Sınav verisi bulunamadı!', 'error');
+      return;
+    }
 
     activeExam = exam;
     const modal = document.getElementById('modal-mobile-optical-print');
@@ -206,14 +209,130 @@
     if (perPageSelect) perPageSelect.value = '2';
 
     renderOpticalPrintPreview();
+    const backdrop = document.getElementById('sheet-backdrop');
+    if (backdrop) backdrop.classList.add('active');
     modal.classList.add('active');
     if (window.vibrate) window.vibrate(20);
+    if (window.lucide) window.lucide.createIcons();
   };
 
   window.closeMobileOpticalPrintModal = function() {
     const modal = document.getElementById('modal-mobile-optical-print');
     if (modal) modal.classList.remove('active');
+    // Eğer altında sınav detay modalı açıksa backdrop'ı kapatma
+    const gradingModal = document.getElementById('modal-weekly-exam-grading');
+    const isGradingOpen = gradingModal && gradingModal.classList.contains('active');
+    if (!isGradingOpen) {
+      const backdrop = document.getElementById('sheet-backdrop');
+      if (backdrop) backdrop.classList.remove('active');
+    }
   };
+
+  // ==========================================================================
+  // ÖĞRENCİ OPTİK KİMLİK KODU (OPTICAL ID MATRIX) ENKODER & DEKODER
+  // ==========================================================================
+  // 5x5 Yüksek Kontrastlı Optik Matris (Köşe ve Merkez Referanslı, Parite Korumalı)
+  function encodeStudentOpticalId(index) {
+    const grid = Array(5).fill(0).map(() => Array(5).fill(0));
+    
+    // Sabit referans işaretleyicileri
+    grid[0][0] = 1; grid[0][1] = 1;
+    grid[1][0] = 1;
+    grid[0][4] = 1;
+    grid[4][0] = 1;
+    grid[2][2] = 1; // Merkez sabitleyici
+    grid[4][4] = 0; // Beyaz polarite köşesi
+
+    // 7 veri biti (1..127 öğrenci sıra numarası)
+    const bits = [];
+    for (let i = 0; i < 7; i++) {
+      bits.push((index >> i) & 1);
+    }
+    // 7 ters parite biti (gölge ve leke hatalarını %100 eleyen kontrol)
+    const compBits = bits.map(b => 1 - b);
+
+    // Kalan 14 hücre koordinatı
+    const dataCoords = [
+      [0, 2], [0, 3],
+      [1, 1], [1, 2], [1, 3], [1, 4],
+      [2, 0], [2, 1], [2, 3], [2, 4],
+      [3, 0], [3, 1], [3, 2], [3, 3]
+    ];
+
+    for (let i = 0; i < 7; i++) {
+      const [r, c] = dataCoords[i];
+      grid[r][c] = bits[i];
+    }
+    for (let i = 0; i < 7; i++) {
+      const [r, c] = dataCoords[i + 7];
+      grid[r][c] = compBits[i];
+    }
+
+    return grid;
+  }
+
+  function decodeStudentOpticalId(grid) {
+    if (!grid || grid.length !== 5) return null;
+
+    // Sabit referansları doğrula
+    if (grid[0][0] !== 1 || grid[0][1] !== 1 || grid[1][0] !== 1 ||
+        grid[0][4] !== 1 || grid[4][0] !== 1 || grid[2][2] !== 1 || grid[4][4] !== 0) {
+      return null;
+    }
+
+    const dataCoords = [
+      [0, 2], [0, 3],
+      [1, 1], [1, 2], [1, 3], [1, 4],
+      [2, 0], [2, 1], [2, 3], [2, 4],
+      [3, 0], [3, 1], [3, 2], [3, 3]
+    ];
+
+    const bits = [];
+    for (let i = 0; i < 7; i++) {
+      const [r, c] = dataCoords[i];
+      bits.push(grid[r][c]);
+    }
+
+    // Parite kontrolü (Ters bitlerin tutarlılığı)
+    for (let i = 0; i < 7; i++) {
+      const [r, c] = dataCoords[i + 7];
+      if (grid[r][c] !== (1 - bits[i])) {
+        return null; // Parite uyuşmazlığı (Hatalı okuma)
+      }
+    }
+
+    let index = 0;
+    for (let i = 0; i < 7; i++) {
+      if (bits[i]) index |= (1 << i);
+    }
+
+    return index > 0 ? index : null;
+  }
+
+  function generateOpticalIdSVG(studentIndex, size = 42) {
+    if (!studentIndex || studentIndex <= 0) return '';
+    const grid = encodeStudentOpticalId(studentIndex);
+    const cellSize = (size / 5).toFixed(2);
+
+    let rects = '';
+    for (let r = 0; r < 5; r++) {
+      for (let c = 0; c < 5; c++) {
+        if (grid[r][c] === 1) {
+          rects += `<rect x="${(c * (size / 5)).toFixed(1)}" y="${(r * (size / 5)).toFixed(1)}" width="${cellSize}" height="${cellSize}" fill="#000000" />`;
+        }
+      }
+    }
+
+    return `
+      <div class="omr-id-badge" title="Öğrenci Optik Kimlik Kodu #${studentIndex}">
+        <svg class="omr-id-svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" xmlns="http://www.w3.org/2000/svg">
+          <rect width="${size}" height="${size}" fill="#ffffff" stroke="#000000" stroke-width="1.5" />
+          ${rects}
+        </svg>
+        <div class="omr-id-caption">ID:#${studentIndex}</div>
+      </div>
+    `;
+  }
 
   window.renderOpticalPrintPreview = function() {
     const previewBox = document.getElementById('m-opt-preview-box');
@@ -233,12 +352,13 @@
       studentNo: sampleNo,
       totalQuestions: qCount,
       letters: letters,
+      studentIndex: formType === 'named' ? 1 : 0,
       isSample: true
     });
   };
 
   function generateSingleOpticalCardHTML(options) {
-    const { examName, studentName, studentNo, totalQuestions, letters, isSample } = options;
+    const { examName, studentName, studentNo, totalQuestions, letters, studentIndex, isSample } = options;
 
     const cols = totalQuestions <= 15 ? 1 : (totalQuestions <= 30 ? 2 : 3);
     const questionsPerCol = Math.ceil(totalQuestions / cols);
@@ -267,6 +387,9 @@
       `;
     }
 
+    const hasIdBadge = (studentIndex && studentIndex > 0) || isSample;
+    const idBadgeHtml = hasIdBadge ? generateOpticalIdSVG(isSample ? 1 : studentIndex, 42) : '';
+
     return `
       <div class="omr-card ${isSample ? 'omr-card-sample' : ''}">
         <!-- 4 Siyah Referans Köşe İşaretleyicisi (OMR Çevrim Dışı Hizalama) -->
@@ -275,13 +398,16 @@
         <div class="omr-anchor omr-anchor-bl"></div>
         <div class="omr-anchor omr-anchor-br"></div>
 
-        <!-- Üst Başlık Bilgisi -->
+        <!-- Üst Başlık Bilgisi ve Öğrenci Optik Kimlik Bloğu -->
         <div class="omr-card-header">
-          <div class="omr-header-title">${escapeHTML(examName)}</div>
-          <div class="omr-student-info">
-            <div class="omr-info-item"><strong>Öğrenci:</strong> ${escapeHTML(studentName)}</div>
-            <div class="omr-info-item"><strong>No:</strong> ${escapeHTML(studentNo)}</div>
+          <div class="omr-header-main">
+            <div class="omr-header-title">${escapeHTML(examName)}</div>
+            <div class="omr-student-info">
+              <div class="omr-info-item"><strong>Öğrenci:</strong> ${escapeHTML(studentName)}</div>
+              <div class="omr-info-item"><strong>No:</strong> ${escapeHTML(studentNo)}</div>
+            </div>
           </div>
+          ${idBadgeHtml}
         </div>
 
         <!-- Soru ve Şık Baloncukları Alanı -->
@@ -300,13 +426,25 @@
   }
 
   window.printMobileOpticalForms = function() {
-    if (!activeExam || !window.stateManager) return;
+    if (!activeExam) {
+      if (window.activeWeeklyExam) {
+        activeExam = window.activeWeeklyExam;
+      } else if (window.stateManager) {
+        const state = window.stateManager.loadState ? window.stateManager.loadState() : (window.stateManager.state || {});
+        activeExam = (state.weeklyEvaluations || [])[0] || null;
+      }
+    }
+
+    if (!activeExam || !window.stateManager) {
+      if (window.showMobileToast) window.showMobileToast('Yazdırılacak sınav bulunamadı!', 'error');
+      return;
+    }
     const state = window.stateManager.loadState ? window.stateManager.loadState() : (window.stateManager.state || {});
 
-    const qCount = parseInt(document.getElementById('m-opt-qcount').value, 10) || 20;
-    const choicesCount = parseInt(document.getElementById('m-opt-choices').value, 10) || 4;
-    const formType = document.getElementById('m-opt-type').value;
-    const perPage = parseInt(document.getElementById('m-opt-perpage').value, 10) || 2;
+    const qCount = parseInt(document.getElementById('m-opt-qcount')?.value, 10) || activeExam.totalQuestions || 20;
+    const choicesCount = parseInt(document.getElementById('m-opt-choices')?.value, 10) || activeExam.choicesCount || 4;
+    const formType = document.getElementById('m-opt-type')?.value || 'named';
+    const perPage = parseInt(document.getElementById('m-opt-perpage')?.value, 10) || 2;
 
     const letters = ['A', 'B', 'C', 'D', 'E'].slice(0, choicesCount);
 
@@ -317,11 +455,20 @@
         if (window.isStudentInCurrentLevel && !window.isStudentInCurrentLevel(s)) return false;
         if (isMiddle && activeExam.branch && s.branch !== activeExam.branch) return false;
         return true;
-      }).sort((a, b) => a.name.localeCompare(b.name, 'tr'));
+      }).sort((a, b) => {
+        const noA = parseInt(a.number, 10) || 0;
+        const noB = parseInt(b.number, 10) || 0;
+        if (noA && noB && noA !== noB) return noA - noB;
+        return (a.name || '').localeCompare(b.name || '', 'tr');
+      });
 
       if (studentsList.length === 0) {
-        alert('Yazdırılacak öğrenci bulunamadı.');
-        return;
+        if (window.showMobileToast) {
+          window.showMobileToast('Bu kademede öğrenci bulunamadı, boş formlar hazırlanıyor...', 'warning');
+        }
+        for (let i = 1; i <= 30; i++) {
+          studentsList.push({ name: '................................', surname: '', number: '......' });
+        }
       }
     } else {
       // 30 adet boş form oluştur
@@ -339,19 +486,21 @@
     }
     printContainer.innerHTML = '';
 
-    // Sayfalara böl (Her sayfada 2 veya 4 form)
+    // Sayfalara böl (Her sayfada 1, 2 veya 4 form)
     for (let p = 0; p < studentsList.length; p += perPage) {
       const pageStudents = studentsList.slice(p, p + perPage);
       const pageEl = document.createElement('div');
       pageEl.className = `omr-print-page omr-per-page-${perPage}`;
 
-      pageStudents.forEach(st => {
+      pageStudents.forEach((st, idxInPage) => {
+        const globalIdx = p + idxInPage;
         pageEl.innerHTML += generateSingleOpticalCardHTML({
           examName: activeExam.examName || 'Haftalık Değerlendirme',
           studentName: `${st.name} ${st.surname || ''}`.trim(),
           studentNo: st.number || '-',
           totalQuestions: qCount,
           letters: letters,
+          studentIndex: formType === 'named' ? (globalIdx + 1) : 0,
           isSample: false
         });
       });
@@ -359,16 +508,39 @@
       printContainer.appendChild(pageEl);
     }
 
-    closeMobileOpticalPrintModal();
+    if (window.showMobileToast) {
+      window.showMobileToast('Yazdırma ve PDF penceresi açılıyor...', 'info', 2500);
+    }
+    if (window.vibrate) window.vibrate(30);
 
     // Yazdırma modunu aktif et
     document.body.classList.add('print-mobile-omr');
+
+    const cleanTitle = (activeExam.examName || 'Optik_Form').replace(/[^a-zA-Z0-9_\u00C0-\u017F-]/g, '_');
+    const docTitle = `${cleanTitle}_${formType === 'named' ? 'Ogrenci_Listeli' : 'Bos'}`;
+
+    // Temizleme fonksiyonu
+    const cleanup = () => {
+      document.body.classList.remove('print-mobile-omr');
+      if (printContainer) printContainer.innerHTML = '';
+      window.removeEventListener('afterprint', cleanup);
+    };
+    window.addEventListener('afterprint', cleanup);
+    setTimeout(cleanup, 5000);
+
+    // Android WebView veya Standart Yazdırma
     setTimeout(() => {
-      window.print();
+      if (window.AndroidBridge && typeof window.AndroidBridge.printDocument === 'function') {
+        window.AndroidBridge.printDocument(docTitle);
+      } else if (window.electronAPI && typeof window.electronAPI.printDocument === 'function') {
+        window.electronAPI.printDocument();
+      } else {
+        window.print();
+      }
       setTimeout(() => {
-        document.body.classList.remove('print-mobile-omr');
-      }, 1000);
-    }, 250);
+        closeMobileOpticalPrintModal();
+      }, 500);
+    }, 200);
   };
 
   // ==========================================================================
@@ -564,6 +736,24 @@
     // 4 kadranda (Sol-Üst, Sağ-Üst, Sol-Alt, Sağ-Alt) en koyu yoğun kareleri ara
     const corners = detectCornerAnchors(gray, targetW, targetH, threshold);
 
+    // 3.5. Öğrenci Optik Kimlik Kodunu (Optical ID Matrix) Otomatik Çözümle
+    const detectedStudentIndex = scanStudentOpticalId(gray, targetW, targetH, threshold, corners);
+    let identifiedStudent = null;
+
+    if (detectedStudentIndex && detectedStudentIndex > 0) {
+      const state = window.stateManager ? window.stateManager.loadState() : {};
+      const isMiddle = window.isMiddleSchool ? window.isMiddleSchool() : false;
+      const students = (state.students || []).filter(s => {
+        if (window.isStudentInCurrentLevel && !window.isStudentInCurrentLevel(s)) return false;
+        if (isMiddle && exam.branch && s.branch !== exam.branch) return false;
+        return true;
+      }).sort((a, b) => a.name.localeCompare(b.name, 'tr'));
+
+      if (detectedStudentIndex <= students.length) {
+        identifiedStudent = students[detectedStudentIndex - 1];
+      }
+    }
+
     // 4. Baloncuk Grid Koordinatlarını Belirle (Bilinear Quad Mapping)
     const qCount = parseInt(exam.totalQuestions, 10) || 20;
     const choicesCount = parseInt(exam.choicesCount, 10) || 4;
@@ -673,6 +863,8 @@
     return {
       success: true,
       examId: exam.id,
+      detectedStudentIndex,
+      identifiedStudent,
       totalQuestions: qCount,
       answers: detectedAnswers,
       questionDetails,
@@ -683,6 +875,31 @@
       score,
       capturedCanvas: canvas
     };
+  }
+
+  // 5x5 Öğrenci Optik Kimlik Matrisini Form Üzerinden Tara
+  function scanStudentOpticalId(gray, w, h, threshold, corners) {
+    const uMin = 0.77;
+    const uMax = 0.94;
+    const vMin = 0.04;
+    const vMax = 0.19;
+
+    const sampleRadius = Math.max(3, Math.round(w * 0.007));
+    const measuredGrid = [];
+
+    for (let r = 0; r < 5; r++) {
+      const row = [];
+      const cellV = vMin + (r + 0.5) * (vMax - vMin) / 5;
+      for (let c = 0; c < 5; c++) {
+        const cellU = uMin + (c + 0.5) * (uMax - uMin) / 5;
+        const pt = mapUnitToQuad(cellU, cellV, corners);
+        const fillRatio = measureBubbleFill(gray, w, h, pt.x, pt.y, sampleRadius, threshold);
+        row.push(fillRatio >= 0.35 ? 1 : 0);
+      }
+      measuredGrid.push(row);
+    }
+
+    return decodeStudentOpticalId(measuredGrid);
   }
 
   // 4 Köşe İşaretleyicisi Tespiti
@@ -811,11 +1028,27 @@
         <option value="${s.id}">${escapeHTML(s.name)} ${escapeHTML(s.surname || '')} (No: ${s.number || '-'})</option>
       `).join('');
 
-      // Sıradaki not girilmemiş ilk öğrenciyi otomatik seç
-      const examScores = activeExam.examScores || {};
-      const unassignedStudent = students.find(s => examScores[s.id] === undefined || examScores[s.id] === null || examScores[s.id] === '');
-      if (unassignedStudent) {
-        studentSelect.value = unassignedStudent.id;
+      const bannerEl = document.getElementById('m-omr-auto-match-banner');
+      const bannerText = document.getElementById('m-omr-auto-match-text');
+
+      // Eğer optik form üzerindeki Öğrenci Kimlik Kodu otomatik çözülmüşse
+      if (result.identifiedStudent) {
+        studentSelect.value = result.identifiedStudent.id;
+        if (bannerEl && bannerText) {
+          bannerText.textContent = `🎯 Optik Kod ile Otomatik Tanındı: ${escapeHTML(result.identifiedStudent.name)} ${escapeHTML(result.identifiedStudent.surname || '')} (No: ${result.identifiedStudent.number || '-'}, ID: #${result.detectedStudentIndex})`;
+          bannerEl.style.display = 'flex';
+        }
+        if (window.showMobileToast) {
+          window.showMobileToast(`🎯 Öğrenci Tanındı: ${result.identifiedStudent.name} (No: ${result.identifiedStudent.number || '-'})`);
+        }
+      } else {
+        if (bannerEl) bannerEl.style.display = 'none';
+        // Sıradaki not girilmemiş ilk öğrenciyi otomatik seç
+        const examScores = activeExam.examScores || {};
+        const unassignedStudent = students.find(s => examScores[s.id] === undefined || examScores[s.id] === null || examScores[s.id] === '');
+        if (unassignedStudent) {
+          studentSelect.value = unassignedStudent.id;
+        }
       }
     }
 
@@ -947,10 +1180,15 @@
       net: lastScannedResult.net,
       score: lastScannedResult.score,
       answers: { ...lastScannedResult.answers },
+      source: 'optical',
       scannedAt: new Date().toISOString()
     };
 
-    window.stateManager.saveState(state);
+    if (window.stateManager.saveExam) {
+      window.stateManager.saveExam(exam);
+    } else {
+      window.stateManager.saveState(state);
+    }
     activeExam = exam;
 
     const student = (state.students || []).find(s => String(s.id) === String(studentId));
@@ -964,9 +1202,12 @@
     hideVerificationSheet();
     lastScannedResult = null;
 
-    // Eğer sınav not giriş modalı açıksa tabloyu yenile
+    // Sınav sonuç listesini ve haftalık görünümü yenile
     if (window.openWeeklyGradingModal) {
       window.openWeeklyGradingModal(exam.id);
+    }
+    if (window.renderMobileWeekly) {
+      window.renderMobileWeekly();
     }
   };
 

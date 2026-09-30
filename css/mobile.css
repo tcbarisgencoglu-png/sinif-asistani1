@@ -4691,26 +4691,59 @@ body {
 .omr-anchor-br { bottom: 8px; right: 8px; }
 
 .omr-card-header {
-  margin: 4px 28px 10px 28px;
+  margin: 4px 28px 8px 28px;
   border-bottom: 2px solid #000000;
   padding-bottom: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.omr-header-main {
+  flex: 1;
+  min-width: 0;
 }
 
 .omr-header-title {
-  font-size: 0.95rem;
+  font-size: 0.92rem;
   font-weight: 900;
-  text-align: center;
+  text-align: left;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   color: #000000;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .omr-student-info {
   display: flex;
-  justify-content: space-between;
-  margin-top: 5px;
+  gap: 14px;
+  margin-top: 4px;
   font-size: 0.78rem;
   color: #000000;
+}
+
+.omr-id-badge {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+}
+
+.omr-id-svg {
+  display: block;
+}
+
+.omr-id-caption {
+  font-size: 0.58rem;
+  font-weight: 800;
+  font-family: monospace;
+  color: #000000;
+  line-height: 1;
+  margin-top: 1px;
 }
 
 .omr-card-body {
@@ -4905,65 +4938,334 @@ body {
 
 /* Baskı Çıktısı (A4 PDF / Printer) */
 @media print {
-  body.print-mobile-omr * {
-    visibility: hidden !important;
+  @page {
+    size: A4 portrait;
+    margin: 6mm;
   }
-  body.print-mobile-omr .mobile-report-print,
-  body.print-mobile-omr .mobile-report-print * {
-    visibility: visible !important;
+
+  body.print-mobile-omr {
+    background: #ffffff !important;
+    color: #000000 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    height: auto !important;
   }
+
+  body.print-mobile-omr > *:not(.mobile-report-print) {
+    display: none !important;
+  }
+
   body.print-mobile-omr .mobile-report-print {
-    position: absolute !important;
+    display: block !important;
+    position: relative !important;
     left: 0 !important;
     top: 0 !important;
     width: 100% !important;
     margin: 0 !important;
     padding: 0 !important;
     background: #ffffff !important;
+    color: #000000 !important;
+    visibility: visible !important;
   }
+
+  body.print-mobile-omr .mobile-report-print * {
+    visibility: visible !important;
+  }
+
   .omr-print-page {
     page-break-after: always !important;
+    break-after: page !important;
     page-break-inside: avoid !important;
+    break-inside: avoid !important;
     width: 100% !important;
     box-sizing: border-box !important;
-    padding: 10mm !important;
+    padding: 4mm !important;
+    margin: 0 !important;
+    background: #ffffff !important;
   }
+
   .omr-print-page.omr-per-page-1 .omr-card {
-    height: 92vh !important;
+    height: 94vh !important;
     max-width: 100% !important;
-    border: 2px solid #000 !important;
+    border: 2px solid #000000 !important;
     margin: 0 auto !important;
+    box-sizing: border-box !important;
   }
+
   .omr-print-page.omr-per-page-2 {
     display: flex !important;
     flex-direction: column !important;
     justify-content: space-between !important;
-    height: 98vh !important;
+    height: 96vh !important;
   }
+
   .omr-print-page.omr-per-page-2 .omr-card {
-    height: 48% !important;
+    height: 48.5% !important;
     max-width: 100% !important;
-    border: 1.5px solid #000 !important;
-    margin-bottom: 4mm !important;
+    border: 1.5px solid #000000 !important;
+    margin-bottom: 2mm !important;
+    box-sizing: border-box !important;
   }
+
   .omr-print-page.omr-per-page-4 {
     display: grid !important;
     grid-template-columns: 1fr 1fr !important;
     grid-template-rows: 1fr 1fr !important;
-    gap: 8mm !important;
-    height: 98vh !important;
+    gap: 6mm !important;
+    height: 96vh !important;
   }
+
   .omr-print-page.omr-per-page-4 .omr-card {
     height: 100% !important;
-    border: 1.5px solid #000 !important;
+    border: 1.5px solid #000000 !important;
     margin: 0 !important;
+    box-sizing: border-box !important;
   }
+
   .omr-anchor {
     background-color: #000000 !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
+
+  .omr-bubble {
+    border: 1.5px solid #000000 !important;
+    color: #000000 !important;
+    background: #ffffff !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .omr-id-badge svg rect {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
 }
+
+/* ==========================================================================
+   HAFTALIK DEĞERLENDİRME: OPTİK FORM & SONUÇLAR ARAYÜZÜ STİLLERİ
+   ========================================================================== */
+
+/* Optik Form Şık Seçici Haplar (3, 4, 5 Şık) */
+.m-opt-choice-pill {
+  flex: 1;
+  text-align: center;
+  border: 1.5px solid var(--m-border);
+  border-radius: var(--m-radius-md);
+  padding: 8px 4px;
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 700;
+  background: var(--m-surface);
+  color: var(--m-text);
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.m-opt-choice-pill.active {
+  border-color: var(--m-primary);
+  background: var(--m-primary-light);
+  color: var(--m-primary);
+  box-shadow: 0 0 0 1px var(--m-primary);
+}
+
+/* Sınav Detayı 3 Ana Aksiyon Kartı (Optik Form Bas, Optik Oku, Manuel Giriş) */
+.m-exam-actions-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  padding: 0.6rem 1rem;
+}
+
+.m-exam-action-card {
+  background: var(--m-surface);
+  border: 1px solid var(--m-border);
+  border-radius: var(--m-radius-md);
+  padding: 10px 4px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+}
+
+.m-exam-action-card:active {
+  transform: scale(0.96);
+}
+
+.m-exam-action-card.featured {
+  background: linear-gradient(135deg, rgba(79, 70, 229, 0.08), rgba(124, 58, 237, 0.12));
+  border-color: rgba(79, 70, 229, 0.35);
+}
+
+.m-exam-action-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 2px;
+}
+
+.m-exam-action-title {
+  font-size: 0.76rem;
+  font-weight: 800;
+  color: var(--m-text);
+  line-height: 1.2;
+}
+
+.m-exam-action-desc {
+  font-size: 0.64rem;
+  color: var(--m-text-muted);
+  line-height: 1.1;
+}
+
+/* Optik Baloncuk Sırası (Cevap Anahtarı & Manuel Giriş) */
+.m-opt-bubble-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
+  background: var(--m-surface);
+  border: 1px solid var(--m-border);
+  border-radius: var(--m-radius-sm);
+  margin-bottom: 4px;
+  transition: background 0.15s ease;
+}
+
+.m-opt-bubble-row.is-correct {
+  border-left: 3px solid var(--m-success);
+  background: rgba(16, 185, 129, 0.04);
+}
+
+.m-opt-bubble-row.is-wrong {
+  border-left: 3px solid var(--m-danger);
+  background: rgba(239, 68, 68, 0.04);
+}
+
+.m-opt-bubble-qnum {
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: var(--m-text);
+  min-width: 28px;
+}
+
+.m-opt-bubbles-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.m-opt-bubble-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1.5px solid var(--m-border);
+  background: var(--m-bg);
+  color: var(--m-text);
+  font-size: 0.78rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  transition: all 0.15s ease;
+}
+
+.m-opt-bubble-btn:active {
+  transform: scale(0.9);
+}
+
+.m-opt-bubble-btn.active {
+  background: var(--m-primary);
+  color: #ffffff;
+  border-color: var(--m-primary);
+  box-shadow: 0 2px 6px rgba(79, 70, 229, 0.4);
+}
+
+.m-opt-bubble-btn.active-correct {
+  background: var(--m-success) !important;
+  color: #ffffff !important;
+  border-color: var(--m-success) !important;
+}
+
+.m-opt-bubble-btn.active-wrong {
+  background: var(--m-danger) !important;
+  color: #ffffff !important;
+  border-color: var(--m-danger) !important;
+}
+
+.m-opt-clear-btn {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: transparent;
+  border: none;
+  color: var(--m-text-muted);
+  font-size: 1rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+}
+
+.m-opt-clear-btn.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Sınav Okuma Sonuçları Listesi Öğeleri */
+.m-exam-result-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--m-surface);
+  border: 1px solid var(--m-border);
+  border-radius: var(--m-radius-md);
+  margin-bottom: 8px;
+  transition: all 0.15s ease;
+}
+
+.m-exam-result-rank {
+  font-size: 0.85rem;
+  font-weight: 800;
+  min-width: 26px;
+  text-align: center;
+  color: var(--m-text-muted);
+}
+
+.m-exam-result-badge-source {
+  font-size: 0.64rem;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.m-exam-result-badge-optical {
+  background: rgba(79, 70, 229, 0.1);
+  color: var(--m-primary);
+}
+
+.m-exam-result-badge-manual {
+  background: rgba(16, 185, 129, 0.1);
+  color: var(--m-success);
+}
+
 
 
 

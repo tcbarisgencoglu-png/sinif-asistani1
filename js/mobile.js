@@ -3696,7 +3696,25 @@
       if (backdrop) backdrop.classList.remove('active');
       return true;
     }
-    // 1.34 Haftalık Değerlendirme modalları açıksa kapat
+    // 1.34 Haftalık Değerlendirme & Optik alt modalları açıksa kapat
+    const optPrintSheet = document.getElementById('modal-mobile-optical-print');
+    if (optPrintSheet && optPrintSheet.classList.contains('active')) {
+      if (typeof window.closeMobileOpticalPrintModal === 'function') window.closeMobileOpticalPrintModal();
+      else optPrintSheet.classList.remove('active');
+      return true;
+    }
+    const optManualSheet = document.getElementById('modal-manual-optical-entry');
+    if (optManualSheet && optManualSheet.classList.contains('active')) {
+      if (typeof window.closeManualOpticalEntryModal === 'function') window.closeManualOpticalEntryModal();
+      else optManualSheet.classList.remove('active');
+      return true;
+    }
+    const omrScannerSheet = document.getElementById('modal-mobile-omr-scanner');
+    if (omrScannerSheet && omrScannerSheet.classList.contains('active')) {
+      if (typeof window.closeMobileOmrScanner === 'function') window.closeMobileOmrScanner();
+      else omrScannerSheet.classList.remove('active');
+      return true;
+    }
     const wegSheet = document.getElementById('modal-weekly-exam-grading');
     if (wegSheet && wegSheet.classList.contains('active')) {
       window.closeWeeklyGradingModal();
@@ -11191,14 +11209,14 @@ SADECE VE SADECE GEÇERLİ BİR JSON DİZİSİ DÖNDÜR. Markdown (örneğin \`\
           </div>
 
           <div class="m-weekly-card-actions" onclick="event.stopPropagation()">
-            <button type="button" class="m-btn-sm primary" onclick="window.openWeeklyGradingModal('${exam.id}')" style="padding: 5px 10px; font-weight: 700; display: flex; align-items: center; gap: 4px;">
-              <i data-lucide="edit-3" style="width: 14px; height: 14px;"></i> Not Gir
+            <button type="button" class="m-btn-sm primary" onclick="window.openMobileOmrScanner('${exam.id}')" style="padding: 5px 8px; font-weight: 700; display: flex; align-items: center; gap: 4px; background: linear-gradient(135deg, #4f46e5, #7c3aed); color: #fff;" title="Kamera ile Optik Okuyucu">
+              <i data-lucide="scan" style="width: 14px; height: 14px;"></i> Optik Oku
             </button>
-            <button type="button" class="m-btn-sm" onclick="window.openMobileOmrScanner('${exam.id}')" style="padding: 5px 10px; font-weight: 700; display: flex; align-items: center; gap: 4px; background: rgba(79, 70, 229, 0.12); color: var(--m-primary);" title="Optik Okuyucu">
-              <i data-lucide="scan" style="width: 14px; height: 14px;"></i> Optik
+            <button type="button" class="m-btn-sm" onclick="window.openManualOpticalEntryModal('${exam.id}')" style="padding: 5px 8px; font-weight: 700; display: flex; align-items: center; gap: 4px; background: rgba(16, 185, 129, 0.12); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3);" title="Manuel Optik Girişi">
+              <i data-lucide="edit-3" style="width: 14px; height: 14px;"></i> Manuel Gir
             </button>
             <button type="button" class="m-btn-sm" onclick="window.openMobileOpticalPrintModal('${exam.id}')" style="padding: 5px 8px; display: flex; align-items: center; gap: 4px; background: var(--m-surface-subtle); border: 1px solid var(--m-border);" title="Optik Form Yazdır">
-              <i data-lucide="printer" style="width: 14px; height: 14px;"></i>
+              <i data-lucide="printer" style="width: 14px; height: 14px;"></i> Form Bas
             </button>
             <button type="button" class="m-btn-sm danger" onclick="window.deleteWeeklyExam('${exam.id}')" style="padding: 5px 8px; display: flex; align-items: center; gap: 4px;" title="Sınavı Sil">
               <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i>
@@ -11212,8 +11230,10 @@ SADECE VE SADECE GEÇERLİ BİR JSON DİZİSİ DÖNDÜR. Markdown (örneğin \`\
   }
 
   // ==========================================
-  // SINAV EKLEME SİHİRBAZI MODALI
+  // SINAV EKLEME SİHİRBAZI MODALI (OPTİK FORM VE CEVAP ANAHTARI ENTEGRE)
   // ==========================================
+  window._tempCreateExamKey = {};
+
   window.openAddWeeklyExamModal = () => {
     window.vibrate(20);
     const form = document.getElementById('m-form-add-weekly-exam');
@@ -11225,17 +11245,25 @@ SADECE VE SADECE GEÇERLİ BİR JSON DİZİSİ DÖNDÜR. Markdown (örneğin \`\
     const branchSelect = document.getElementById('m-we-branch-select');
     const penaltyCont = document.getElementById('m-we-penalty-container');
     const wrongToggle = document.getElementById('m-we-wrong-affects-toggle');
+    const opticalToggle = document.getElementById('m-we-has-optical-toggle');
+    const opticalCont = document.getElementById('m-we-optical-config-container');
 
     if (nameInput) nameInput.value = '';
     if (penaltyCont) penaltyCont.style.display = 'none';
     if (wrongToggle) wrongToggle.checked = false;
+
+    // Optik form onay kutusunu ve cevap anahtarını hazırla
+    window._tempCreateExamKey = {};
+    if (opticalToggle) opticalToggle.checked = true;
+    if (opticalCont) opticalCont.style.display = 'block';
+    window.selectExamChoicesCount(4);
 
     // Uygulamanın ayarlar menüsünde seçilmiş olan geçerli hafta (Ders yılı / Eğitim Haftası)
     const activeSettingWeek = (window.stateManager && typeof window.stateManager.getSelectedWeek === 'function')
       ? window.stateManager.getSelectedWeek()
       : (window.getISOWeek ? window.getISOWeek() : '2026-W39');
 
-    // Hafta Seçenekleri: Okulların eğitim öğretime başladığı hafta esas alınarak (Ders Yılı Haftaları 1..40)
+    // Hafta Seçenekleri
     if (weekSelect) {
       weekSelect.innerHTML = '';
       const currInfo = typeof window.getEducationWeekInfo === 'function' ? window.getEducationWeekInfo(activeSettingWeek) : null;
@@ -11255,7 +11283,6 @@ SADECE VE SADECE GEÇERLİ BİR JSON DİZİSİ DÖNDÜR. Markdown (örneğin \`\
         weekSelect.appendChild(opt);
       }
 
-      // Eğer ayarlardaki geçerli hafta 1..40 aralığı dışındaysa başa ekle
       if (activeSettingWeek && !Array.from(weekSelect.options).some(o => o.value === activeSettingWeek)) {
         const opt = document.createElement('option');
         opt.value = activeSettingWeek;
@@ -11265,12 +11292,10 @@ SADECE VE SADECE GEÇERLİ BİR JSON DİZİSİ DÖNDÜR. Markdown (örneğin \`\
         weekSelect.insertBefore(opt, weekSelect.firstChild);
       }
 
-      // Varsayılan olarak ayarlardaki geçerli haftayı ata
       weekSelect.value = activeSettingWeek;
 
-      // Örnek başlık önerisi
       if (nameInput && currInfo && currInfo.shortLabel) {
-        nameInput.placeholder = `Örn: ${currInfo.shortLabel} Matematik Kazanım Sınavı`;
+        nameInput.placeholder = `Örn: ${currInfo.shortLabel} Kazanım Değerlendirme Sınavı`;
       }
     }
 
@@ -11303,6 +11328,9 @@ SADECE VE SADECE GEÇERLİ BİR JSON DİZİSİ DÖNDÜR. Markdown (örneğin \`\
       }
     }
 
+    // Soru sayısına göre optik form satırlarını render et
+    window.renderCreateExamAnswerKeyForm();
+
     const modal = document.getElementById('modal-add-weekly-exam');
     const backdrop = document.getElementById('sheet-backdrop');
     if (modal && backdrop) {
@@ -11317,6 +11345,133 @@ SADECE VE SADECE GEÇERLİ BİR JSON DİZİSİ DÖNDÜR. Markdown (örneğin \`\
     if (penaltyCont) {
       penaltyCont.style.display = isChecked ? 'block' : 'none';
     }
+  };
+
+  window.toggleWeeklyExamOpticalSection = (isChecked) => {
+    const cont = document.getElementById('m-we-optical-config-container');
+    if (cont) {
+      cont.style.display = isChecked ? 'block' : 'none';
+    }
+    if (isChecked) {
+      window.renderCreateExamAnswerKeyForm();
+    }
+  };
+
+  window.selectExamChoicesCount = (count) => {
+    const hiddenInput = document.getElementById('m-we-choices-count');
+    if (hiddenInput) hiddenInput.value = count;
+    [3, 4, 5].forEach(c => {
+      const pill = document.getElementById(`m-pill-opt-${c}`);
+      if (pill) {
+        if (c === count) pill.classList.add('active');
+        else pill.classList.remove('active');
+      }
+    });
+    window.renderCreateExamAnswerKeyForm();
+  };
+
+  window.renderCreateExamAnswerKeyForm = () => {
+    const qInput = document.getElementById('m-we-questions-input');
+    const cInput = document.getElementById('m-we-choices-count');
+    const grid = document.getElementById('m-we-optical-form-grid');
+    const counter = document.getElementById('m-we-opt-counter');
+    if (!grid) return;
+
+    const totalQ = Math.max(1, Math.min(100, parseInt(qInput ? qInput.value : 20, 10) || 20));
+    const choicesCount = parseInt(cInput ? cInput.value : 4, 10) || 4;
+    const letters = ['A', 'B', 'C', 'D', 'E'].slice(0, choicesCount);
+
+    let html = '';
+    let markedCount = 0;
+
+    for (let q = 1; q <= totalQ; q++) {
+      const sel = window._tempCreateExamKey ? window._tempCreateExamKey[q] || '' : '';
+      if (sel && letters.includes(sel)) markedCount++;
+      else if (sel && !letters.includes(sel) && window._tempCreateExamKey) delete window._tempCreateExamKey[q];
+
+      html += `
+        <div class="m-opt-bubble-row" data-q="${q}">
+          <span class="m-opt-bubble-qnum">${q}.</span>
+          <div class="m-opt-bubbles-wrap">
+            ${letters.map(l => `
+              <button type="button" class="m-opt-bubble-btn ${sel === l ? 'active' : ''}" onclick="window.selectCreateExamAnswerKeyChoice(${q}, '${l}')">
+                ${l}
+              </button>
+            `).join('')}
+            <button type="button" class="m-opt-clear-btn ${sel ? 'visible' : ''}" id="m-we-clear-${q}" title="Boş Bırak" onclick="window.clearCreateExamKeyChoice(${q})">
+              &times;
+            </button>
+          </div>
+        </div>
+      `;
+    }
+
+    grid.innerHTML = html;
+    if (counter) counter.textContent = `${markedCount} / ${totalQ} Soru İşaretlendi`;
+  };
+
+  window.selectCreateExamAnswerKeyChoice = (q, opt) => {
+    if (window.vibrate) window.vibrate(10);
+    if (!window._tempCreateExamKey) window._tempCreateExamKey = {};
+
+    if (window._tempCreateExamKey[q] === opt) {
+      delete window._tempCreateExamKey[q];
+    } else {
+      window._tempCreateExamKey[q] = opt;
+    }
+
+    const row = document.querySelector(`#m-we-optical-form-grid .m-opt-bubble-row[data-q="${q}"]`);
+    if (row) {
+      const currentSel = window._tempCreateExamKey[q] || '';
+      row.querySelectorAll('.m-opt-bubble-btn').forEach(btn => {
+        if (btn.textContent.trim() === currentSel) btn.classList.add('active');
+        else btn.classList.remove('active');
+      });
+      const clr = document.getElementById(`m-we-clear-${q}`);
+      if (clr) clr.className = `m-opt-clear-btn ${currentSel ? 'visible' : ''}`;
+    }
+
+    const qInput = document.getElementById('m-we-questions-input');
+    const totalQ = parseInt(qInput ? qInput.value : 20, 10) || 20;
+    const marked = Object.keys(window._tempCreateExamKey || {}).length;
+    const counter = document.getElementById('m-we-opt-counter');
+    if (counter) counter.textContent = `${marked} / ${totalQ} Soru İşaretlendi`;
+  };
+
+  window.clearCreateExamKeyChoice = (q) => {
+    if (window.vibrate) window.vibrate(10);
+    if (window._tempCreateExamKey) delete window._tempCreateExamKey[q];
+    const row = document.querySelector(`#m-we-optical-form-grid .m-opt-bubble-row[data-q="${q}"]`);
+    if (row) {
+      row.querySelectorAll('.m-opt-bubble-btn').forEach(b => b.classList.remove('active'));
+      const clr = document.getElementById(`m-we-clear-${q}`);
+      if (clr) clr.className = 'm-opt-clear-btn';
+    }
+    const qInput = document.getElementById('m-we-questions-input');
+    const totalQ = parseInt(qInput ? qInput.value : 20, 10) || 20;
+    const marked = Object.keys(window._tempCreateExamKey || {}).length;
+    const counter = document.getElementById('m-we-opt-counter');
+    if (counter) counter.textContent = `${marked} / ${totalQ} Soru İşaretlendi`;
+  };
+
+  window.fillSampleCreateExamKey = () => {
+    const qInput = document.getElementById('m-we-questions-input');
+    const cInput = document.getElementById('m-we-choices-count');
+    const totalQ = parseInt(qInput ? qInput.value : 20, 10) || 20;
+    const choicesCount = parseInt(cInput ? cInput.value : 4, 10) || 4;
+    const letters = ['A', 'B', 'C', 'D', 'E'].slice(0, choicesCount);
+
+    window._tempCreateExamKey = {};
+    for (let q = 1; q <= totalQ; q++) {
+      window._tempCreateExamKey[q] = letters[(q - 1) % letters.length];
+    }
+    window.renderCreateExamAnswerKeyForm();
+    if (window.showMobileToast) window.showMobileToast('Örnek cevap anahtarı dolduruldu.');
+  };
+
+  window.clearCreateExamKey = () => {
+    window._tempCreateExamKey = {};
+    window.renderCreateExamAnswerKeyForm();
   };
 
   window.handleCreateWeeklyExam = (event) => {
@@ -11334,6 +11489,12 @@ SADECE VE SADECE GEÇERLİ BİR JSON DİZİSİ DÖNDÜR. Markdown (örneğin \`\
     const branchSelect = document.getElementById('m-we-branch-select');
     const branch = (isMiddle && branchSelect) ? branchSelect.value : '';
 
+    // Optik form onay kutusu ve cevap anahtarı
+    const opticalToggle = document.getElementById('m-we-has-optical-toggle');
+    const hasOptical = opticalToggle ? opticalToggle.checked : true;
+    const choicesCount = parseInt(document.getElementById('m-we-choices-count').value, 10) || 4;
+    const answerKey = hasOptical ? { ...(window._tempCreateExamKey || {}) } : {};
+
     const examData = {
       id: 'exam_' + Date.now(),
       weekId: week,
@@ -11343,6 +11504,9 @@ SADECE VE SADECE GEÇERLİ BİR JSON DİZİSİ DÖNDÜR. Markdown (örneğin \`\
       wrongAffects: wrongAffects,
       penaltyRate: penaltyRate,
       branch: branch,
+      hasOpticalForm: hasOptical,
+      choicesCount: choicesCount,
+      answerKey: answerKey,
       examScores: {},
       studentResults: {},
       notes: '',
@@ -11353,7 +11517,7 @@ SADECE VE SADECE GEÇERLİ BİR JSON DİZİSİ DÖNDÜR. Markdown (örneğin \`\
 
     window.stateManager.saveExam(examData);
     window.vibrate(30);
-    showMobileToast(`"${name}" sınavı oluşturuldu!`);
+    showMobileToast(`"${name}" değerlendirme sınavı oluşturuldu!`);
 
     // Sınav ekleme modalını kapat
     const addModal = document.getElementById('modal-add-weekly-exam');
@@ -11363,7 +11527,7 @@ SADECE VE SADECE GEÇERLİ BİR JSON DİZİSİ DÖNDÜR. Markdown (örneğin \`\
     currentWeeklyTargetWeek = week;
     renderMobileWeekly();
 
-    // Hemen not giriş modalını aç
+    // Sınavın detay ve sonuç ekranını aç
     setTimeout(() => {
       window.openWeeklyGradingModal(examData.id);
     }, 200);
@@ -11373,8 +11537,10 @@ SADECE VE SADECE GEÇERLİ BİR JSON DİZİSİ DÖNDÜR. Markdown (örneğin \`\
   };
 
   // ==========================================
-  // SINAV NOT GİRİŞ MODALI
+  // SINAV DETAYI VE OKUMA SONUÇLARI MODALI
   // ==========================================
+  window._currentExamResultFilter = 'all';
+
   window.openWeeklyGradingModal = (examId) => {
     if (!window.stateManager) return;
     const state = (window.stateManager.loadState) ? window.stateManager.loadState() : (window.stateManager.state || {});
@@ -11386,88 +11552,29 @@ SADECE VE SADECE GEÇERLİ BİR JSON DİZİSİ DÖNDÜR. Markdown (örneğin \`\
 
     const titleEl = document.getElementById('m-weg-exam-title');
     const subtitleEl = document.getElementById('m-weg-exam-subtitle');
-    const listEl = document.getElementById('m-weg-students-list');
 
     const eInfo = typeof window.getEducationWeekInfo === 'function' ? window.getEducationWeekInfo(exam.weekId) : null;
     const eParts = (exam.weekId || '').split('-W');
     const eWeekLabel = eInfo ? eInfo.label : (typeof window.formatWeekTR === 'function' ? window.formatWeekTR(exam.weekId, 'full') : (eParts.length === 2 ? `${eParts[0]} Yılı, ${eParts[1]}. Hafta` : exam.weekId));
     const penaltyText = exam.wrongAffects ? `${exam.penaltyRate || 3} Yanlış 1 Doğruyu Götürür` : 'Yanlışlar Doğruları Etkilemez';
+    const optText = `${exam.choicesCount || 4} Şıklı Optik Form`;
 
     if (titleEl) titleEl.textContent = exam.examName || 'Değerlendirme Sınavı';
     if (subtitleEl) {
-      subtitleEl.textContent = `${eWeekLabel} • ${exam.totalQuestions} Soru • ${exam.duration} Dk • ${penaltyText}${exam.branch ? ` • ${exam.branch} Şubesi` : ''}`;
+      subtitleEl.textContent = `${eWeekLabel} • ${exam.totalQuestions} Soru • ${optText} • ${penaltyText}${exam.branch ? ` • ${exam.branch} Şubesi` : ''}`;
     }
 
-    // Öğrencileri listele
-    const isMiddle = isMiddleSchool();
-    const students = (state.students || []).filter(s => {
-      if (!isStudentInCurrentLevel(s)) return false;
-      if (isMiddle && exam.branch && s.branch !== exam.branch) return false;
-      return true;
-    }).sort((a, b) => a.name.localeCompare(b.name, 'tr'));
-
-    if (listEl) {
-      if (students.length === 0) {
-        listEl.innerHTML = `
-          <div style="text-align: center; padding: 2rem 1rem; color: var(--m-text-muted);">
-            <p style="font-weight: 600;">Sınav için öğrenci bulunamadı.</p>
-          </div>
-        `;
-      } else {
-        listEl.innerHTML = students.map(st => {
-          const avatarColor = getAvatarColor(st.id || st.name);
-          const res = (exam.studentResults && exam.studentResults[st.id]) || {};
-          const hasData = res.correct !== undefined && res.correct !== '' && res.blank !== undefined && res.blank !== '';
-
-          return `
-            <div class="m-weg-row" data-student-id="${st.id}">
-              <div style="min-width: 0; display: flex; align-items: center; gap: 6px;">
-                <div class="student-avatar" style="width: 28px; height: 28px; font-size: 0.75rem; background-color: ${avatarColor}; flex-shrink: 0;">
-                  ${st.photo ? `<img src="${st.photo}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">` : escapeHTML(st.name.charAt(0).toUpperCase())}
-                </div>
-                <div style="min-width: 0; overflow: hidden;">
-                  <div style="font-size: 0.8rem; font-weight: 700; color: var(--m-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHTML(st.name)} ${escapeHTML(st.surname || '')}</div>
-                  <div style="font-size: 0.68rem; color: var(--m-text-muted);">No: ${st.number || '-'}</div>
-                </div>
-              </div>
-
-              <div style="text-align: center;">
-                <input type="number" class="m-form-input m-weg-input m-weg-correct" data-student-id="${st.id}" min="0" max="${exam.totalQuestions}" value="${res.correct !== undefined ? res.correct : ''}" placeholder="-">
-              </div>
-
-              <div style="text-align: center;">
-                <input type="number" class="m-form-input m-weg-input m-weg-blank" data-student-id="${st.id}" min="0" max="${exam.totalQuestions}" value="${res.blank !== undefined ? res.blank : ''}" placeholder="-">
-              </div>
-
-              <div style="text-align: center; font-size: 0.8rem; font-weight: 700; color: var(--m-danger);">
-                <span class="m-weg-wrong">${hasData ? (res.wrong !== undefined ? res.wrong : '-') : '-'}</span>
-              </div>
-
-              <div style="text-align: center; font-size: 0.8rem; font-weight: 700; color: var(--m-primary);">
-                <span class="m-weg-net">${hasData ? (res.net !== undefined ? res.net : '-') : '-'}</span>
-              </div>
-
-              <div style="text-align: center;">
-                <span class="m-weg-score student-card-score" style="font-size: 0.76rem; padding: 2px 6px;">${hasData && res.score !== undefined ? `${res.score}` : '-'}</span>
-              </div>
-            </div>
-          `;
-        }).join('');
-
-        // Event listenerları bağla
-        listEl.querySelectorAll('.m-weg-row').forEach(row => {
-          const cInput = row.querySelector('.m-weg-correct');
-          const bInput = row.querySelector('.m-weg-blank');
-          const stId = row.dataset.studentId;
-
-          const updateFn = () => updateWegRowCalc(stId, row, exam.totalQuestions, exam.wrongAffects, exam.penaltyRate);
-          if (cInput) cInput.addEventListener('input', updateFn);
-          if (bInput) bInput.addEventListener('input', updateFn);
-        });
-      }
+    // Filtreyi sıfırla ve sonuç listesini çiz
+    window._currentExamResultFilter = 'all';
+    const tabs = document.getElementById('m-weg-filter-tabs');
+    if (tabs) {
+      tabs.querySelectorAll('.m-std-tab-btn').forEach(btn => {
+        if (btn.dataset.filter === 'all') btn.classList.add('active');
+        else btn.classList.remove('active');
+      });
     }
 
-    updateWegSummary();
+    window.renderExamResultsList(exam, 'all');
 
     const modal = document.getElementById('modal-weekly-exam-grading');
     const backdrop = document.getElementById('sheet-backdrop');
@@ -11478,83 +11585,6 @@ SADECE VE SADECE GEÇERLİ BİR JSON DİZİSİ DÖNDÜR. Markdown (örneğin \`\
     if (window.lucide) window.lucide.createIcons();
   };
 
-  function updateWegRowCalc(studentId, row, totalQuestions, wrongAffects, penaltyRate) {
-    const cInput = row.querySelector('.m-weg-correct');
-    const bInput = row.querySelector('.m-weg-blank');
-    const wrongSpan = row.querySelector('.m-weg-wrong');
-    const netSpan = row.querySelector('.m-weg-net');
-    const scoreSpan = row.querySelector('.m-weg-score');
-
-    const cVal = cInput.value.trim();
-    const bVal = bInput.value.trim();
-
-    if (cVal === '' || bVal === '') {
-      wrongSpan.textContent = '-';
-      netSpan.textContent = '-';
-      scoreSpan.textContent = '-';
-      updateWegSummary();
-      return;
-    }
-
-    let correct = parseInt(cVal) || 0;
-    let blank = parseInt(bVal) || 0;
-
-    if (correct < 0) correct = 0;
-    if (correct > totalQuestions) correct = totalQuestions;
-    cInput.value = correct;
-
-    if (blank < 0) blank = 0;
-    if (blank > totalQuestions - correct) {
-      blank = totalQuestions - correct;
-    }
-    bInput.value = blank;
-
-    const wrong = totalQuestions - (correct + blank);
-    wrongSpan.textContent = wrong;
-
-    let net = correct;
-    if (wrongAffects) {
-      const pRate = penaltyRate || 3;
-      net = correct - (wrong / pRate);
-    }
-    if (net < 0) net = 0;
-    netSpan.textContent = net.toFixed(2).replace('.00', '');
-
-    const score = parseFloat(((net / totalQuestions) * 100).toFixed(1));
-    scoreSpan.textContent = score;
-
-    updateWegSummary();
-  }
-
-  function updateWegSummary() {
-    const listEl = document.getElementById('m-weg-students-list');
-    const statsEl = document.getElementById('m-weg-stats-text');
-    const avgEl = document.getElementById('m-weg-avg-badge');
-    if (!listEl) return;
-
-    const rows = listEl.querySelectorAll('.m-weg-row');
-    let graded = 0;
-    let totalScore = 0;
-
-    rows.forEach(r => {
-      const sc = r.querySelector('.m-weg-score').textContent;
-      if (sc !== '-' && sc !== '') {
-        const num = parseFloat(sc);
-        if (!isNaN(num)) {
-          graded++;
-          totalScore += num;
-        }
-      }
-    });
-
-    if (statsEl) statsEl.textContent = `${graded}/${rows.length} Öğrenci Puanlandı`;
-    if (avgEl) {
-      const avg = graded > 0 ? (totalScore / graded).toFixed(1) : null;
-      avgEl.textContent = avg !== null ? `Ort: ${avg} Puan` : 'Ort: -';
-      avgEl.style.color = avg !== null ? 'var(--m-primary)' : 'var(--m-text-muted)';
-    }
-  }
-
   window.closeWeeklyGradingModal = () => {
     const modal = document.getElementById('modal-weekly-exam-grading');
     if (modal) modal.classList.remove('active');
@@ -11562,49 +11592,506 @@ SADECE VE SADECE GEÇERLİ BİR JSON DİZİSİ DÖNDÜR. Markdown (örneğin \`\
     if (backdrop) backdrop.classList.remove('active');
   };
 
-  window.saveWeeklyExamGrades = () => {
-    if (!window.activeWeeklyExam || !window.stateManager) return;
-    const listEl = document.getElementById('m-weg-students-list');
-    if (!listEl) return;
+  window.setExamResultFilter = (filterMode) => {
+    window._currentExamResultFilter = filterMode;
+    const tabs = document.getElementById('m-weg-filter-tabs');
+    if (tabs) {
+      tabs.querySelectorAll('.m-std-tab-btn').forEach(btn => {
+        if (btn.dataset.filter === filterMode) btn.classList.add('active');
+        else btn.classList.remove('active');
+      });
+    }
+    if (window.activeWeeklyExam) {
+      window.renderExamResultsList(window.activeWeeklyExam, filterMode);
+    }
+  };
 
-    const rows = listEl.querySelectorAll('.m-weg-row');
-    const examScores = {};
-    const studentResults = {};
+  window.renderExamResultsList = (exam, filterMode) => {
+    if (!exam || !window.stateManager) return;
+    const state = window.stateManager.loadState ? window.stateManager.loadState() : (window.stateManager.state || {});
+    const container = document.getElementById('m-weg-results-container');
+    if (!container) return;
 
-    rows.forEach(row => {
-      const stId = row.dataset.studentId;
-      const cVal = row.querySelector('.m-weg-correct').value.trim();
-      const bVal = row.querySelector('.m-weg-blank').value.trim();
-      const wrong = parseInt(row.querySelector('.m-weg-wrong').textContent);
-      const net = parseFloat(row.querySelector('.m-weg-net').textContent);
-      const score = parseFloat(row.querySelector('.m-weg-score').textContent);
+    const isMiddle = isMiddleSchool();
+    const allStudents = (state.students || []).filter(s => {
+      if (!isStudentInCurrentLevel(s)) return false;
+      if (isMiddle && exam.branch && s.branch !== exam.branch) return false;
+      return true;
+    }).sort((a, b) => a.name.localeCompare(b.name, 'tr'));
 
-      if (cVal !== '' && bVal !== '' && !isNaN(score)) {
-        examScores[stId] = score;
-        studentResults[stId] = {
-          correct: parseInt(cVal) || 0,
-          blank: parseInt(bVal) || 0,
-          wrong: isNaN(wrong) ? 0 : wrong,
-          net: isNaN(net) ? 0 : net,
-          score: score
-        };
+    const examScores = exam.examScores || {};
+    const studentResults = exam.studentResults || {};
+
+    const gradedList = [];
+    const pendingList = [];
+
+    allStudents.forEach(st => {
+      const sc = examScores[st.id];
+      const res = studentResults[st.id];
+      if (sc !== undefined && sc !== null && sc !== '') {
+        gradedList.push({
+          student: st,
+          score: parseFloat(sc),
+          result: res || { correct: '-', wrong: '-', blank: '-', net: '-', score: sc }
+        });
+      } else {
+        pendingList.push({ student: st });
       }
     });
 
-    window.activeWeeklyExam.examScores = examScores;
-    window.activeWeeklyExam.studentResults = studentResults;
-    window.activeWeeklyExam.updatedAt = new Date().toISOString();
+    // Puanlara göre büyükten küçüğe sırala
+    gradedList.sort((a, b) => b.score - a.score);
 
-    // Sınavı kaydet (stateManager.saveExam ilk 3 dereceye ödül puanlarını o haftaya otomatik verir!)
-    window.stateManager.saveExam(window.activeWeeklyExam);
-    window.vibrate([40, 60, 40]);
-    showMobileToast('🎉 Sınav kaydedildi! İlk 3 dereceye giren öğrencilere başarı ödülleri verildi.');
+    // İstatistik ve Sayaçları Güncelle
+    const statsEl = document.getElementById('m-weg-stats-text');
+    const avgEl = document.getElementById('m-weg-avg-badge');
+    const countAll = document.getElementById('m-count-res-all');
+    const countGraded = document.getElementById('m-count-res-graded');
+    const countPending = document.getElementById('m-count-res-pending');
 
-    window.closeWeeklyGradingModal();
+    if (countAll) countAll.textContent = allStudents.length;
+    if (countGraded) countGraded.textContent = gradedList.length;
+    if (countPending) countPending.textContent = pendingList.length;
+
+    const totalScore = gradedList.reduce((sum, item) => sum + item.score, 0);
+    const avgScore = gradedList.length > 0 ? (totalScore / gradedList.length).toFixed(1) : null;
+
+    if (statsEl) statsEl.textContent = `${gradedList.length}/${allStudents.length} Öğrenci Puanlandı`;
+    if (avgEl) {
+      avgEl.textContent = avgScore !== null ? `Ort: ${avgScore} Puan` : 'Ort: -';
+      avgEl.style.color = avgScore !== null ? 'var(--m-primary)' : 'var(--m-text-muted)';
+    }
+
+    if (allStudents.length === 0) {
+      container.innerHTML = `
+        <div style="text-align: center; padding: 2.5rem 1rem; color: var(--m-text-muted);">
+          <p style="font-weight: 600;">Bu sınav için uygun öğrenci bulunamadı.</p>
+        </div>
+      `;
+      return;
+    }
+
+    let html = '';
+
+    // Sonuçlar (Puanlanan Öğrenciler Listesi)
+    if (filterMode === 'all' || filterMode === 'graded') {
+      if (gradedList.length === 0 && filterMode === 'graded') {
+        html += `
+          <div style="text-align: center; padding: 2.5rem 1rem; color: var(--m-text-muted);">
+            <div style="font-size: 2.5rem; margin-bottom: 8px;">📷</div>
+            <p style="font-weight: 700; margin-bottom: 4px; color: var(--m-text);">Henüz Okuma Sonucu Yok</p>
+            <p style="font-size: 0.74rem; max-width: 280px; margin: 0 auto;">Yukarıdaki "Optik Form Oku" veya "Manuel Giriş Yap" butonlarıyla öğrencilerin kağıtlarını okutabilirsiniz.</p>
+          </div>
+        `;
+      } else {
+        gradedList.forEach((item, idx) => {
+          const st = item.student;
+          const res = item.result;
+          const medals = ['🥇', '🥈', '🥉'];
+          const rankStr = idx < 3 ? medals[idx] : `${idx + 1}.`;
+          const avatarColor = getAvatarColor(st.id || st.name);
+
+          const isOptical = res.source === 'optical';
+          const sourceBadge = isOptical
+            ? `<span class="m-exam-result-badge-source m-exam-result-badge-optical"><i data-lucide="scan" style="width:10px;height:10px;"></i> Optik Okuma</span>`
+            : `<span class="m-exam-result-badge-source m-exam-result-badge-manual"><i data-lucide="edit-3" style="width:10px;height:10px;"></i> Manuel Giriş</span>`;
+
+          html += `
+            <div class="m-exam-result-item" data-student-id="${st.id}">
+              <div class="m-exam-result-rank">${rankStr}</div>
+
+              <div class="student-avatar" style="width: 32px; height: 32px; font-size: 0.8rem; background-color: ${avatarColor}; flex-shrink: 0;">
+                ${st.photo ? `<img src="${st.photo}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">` : escapeHTML(st.name.charAt(0).toUpperCase())}
+              </div>
+
+              <div style="flex: 1; min-width: 0;">
+                <div style="display: flex; align-items: center; gap: 6px;">
+                  <span style="font-size: 0.82rem; font-weight: 800; color: var(--m-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                    ${escapeHTML(st.name)} ${escapeHTML(st.surname || '')}
+                  </span>
+                  <span style="font-size: 0.68rem; color: var(--m-text-muted);">No: ${st.number || '-'}</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 6px; margin-top: 3px; font-size: 0.7rem; color: var(--m-text-secondary); flex-wrap: wrap;">
+                  <span>${res.correct !== undefined ? res.correct : '-'} D</span> •
+                  <span>${res.wrong !== undefined ? res.wrong : '-'} Y</span> •
+                  <span>${res.blank !== undefined ? res.blank : '-'} B</span>
+                  ${res.net !== undefined ? ` • <strong style="color: var(--m-primary);">${res.net} Net</strong>` : ''}
+                  ${sourceBadge}
+                </div>
+              </div>
+
+              <div style="text-align: right; display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
+                <div class="student-card-score" style="font-size: 0.86rem; padding: 4px 8px; font-weight: 800;">
+                  ${item.score} P
+                </div>
+                <button type="button" class="m-btn-sm" onclick="window.openManualOpticalEntryModal('${exam.id}', '${st.id}')" title="Optiği Düzenle" style="padding: 5px 6px; background: var(--m-surface-subtle); border: 1px solid var(--m-border);">
+                  <i data-lucide="edit-2" style="width: 13px; height: 13px; color: var(--m-text);"></i>
+                </button>
+                <button type="button" class="m-btn-sm danger" onclick="window.deleteStudentExamResult('${exam.id}', '${st.id}')" title="Sonucu Sil" style="padding: 5px 6px;">
+                  <i data-lucide="trash-2" style="width: 13px; height: 13px;"></i>
+                </button>
+              </div>
+            </div>
+          `;
+        });
+      }
+    }
+
+    // Bekleyenler (Henüz Sonucu Girilmemiş Öğrenciler)
+    if (filterMode === 'all' || filterMode === 'pending') {
+      if (pendingList.length > 0) {
+        if (filterMode === 'all' && gradedList.length > 0) {
+          html += `
+            <div style="margin: 12px 0 8px 0; font-size: 0.72rem; font-weight: 800; color: var(--m-text-muted); text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 6px;">
+              <span>Bekleyen Öğrenciler (${pendingList.length})</span>
+              <div style="flex: 1; height: 1px; background: var(--m-border);"></div>
+            </div>
+          `;
+        }
+
+        pendingList.forEach(item => {
+          const st = item.student;
+          const avatarColor = getAvatarColor(st.id || st.name);
+
+          html += `
+            <div class="m-exam-result-item" style="opacity: 0.85; background: var(--m-surface-subtle);" data-student-id="${st.id}">
+              <div class="m-exam-result-rank" style="color: var(--m-text-muted);">-</div>
+
+              <div class="student-avatar" style="width: 32px; height: 32px; font-size: 0.8rem; background-color: ${avatarColor}; flex-shrink: 0;">
+                ${st.photo ? `<img src="${st.photo}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">` : escapeHTML(st.name.charAt(0).toUpperCase())}
+              </div>
+
+              <div style="flex: 1; min-width: 0;">
+                <div style="font-size: 0.82rem; font-weight: 700; color: var(--m-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                  ${escapeHTML(st.name)} ${escapeHTML(st.surname || '')}
+                </div>
+                <div style="font-size: 0.68rem; color: var(--m-text-muted); margin-top: 2px;">
+                  No: ${st.number || '-'} • Henüz sonuç girilmedi
+                </div>
+              </div>
+
+              <button type="button" class="m-btn-sm primary" onclick="window.openManualOpticalEntryModal('${exam.id}', '${st.id}')" style="font-size: 0.72rem; font-weight: 700; padding: 5px 10px; display: flex; align-items: center; gap: 4px; flex-shrink: 0;">
+                <i data-lucide="edit-3" style="width: 13px; height: 13px;"></i>
+                <span>Giriş Yap</span>
+              </button>
+            </div>
+          `;
+        });
+      } else if (filterMode === 'pending') {
+        html += `
+          <div style="text-align: center; padding: 2.5rem 1rem; color: var(--m-success);">
+            <div style="font-size: 2.5rem; margin-bottom: 8px;">🎉</div>
+            <p style="font-weight: 700; margin-bottom: 4px; color: var(--m-text);">Tüm Öğrenciler Puanlandı!</p>
+            <p style="font-size: 0.74rem; color: var(--m-text-muted);">Sınıftaki tüm öğrencilerin sınav sonuçları başarıyla kaydedildi.</p>
+          </div>
+        `;
+      }
+    }
+
+    container.innerHTML = html;
+    if (window.lucide) window.lucide.createIcons();
+  };
+
+  window.deleteStudentExamResult = async (examId, studentId) => {
+    if (!window.stateManager) return;
+    const state = window.stateManager.loadState ? window.stateManager.loadState() : (window.stateManager.state || {});
+    const exam = (state.weeklyEvaluations || []).find(e => String(e.id) === String(examId));
+    if (!exam) return;
+
+    const st = (state.students || []).find(s => String(s.id) === String(studentId));
+    const stName = st ? `${st.name} ${st.surname || ''}` : 'Öğrenci';
+
+    const confirmed = await (window.confirmAsync
+      ? window.confirmAsync(`${stName} öğrencisine ait sınav sonucunu silmek istediğinize emin misiniz?`)
+      : Promise.resolve(confirm(`${stName} öğrencisine ait sınav sonucunu silmek istediğinize emin misiniz?`)));
+
+    if (!confirmed) return;
+
+    if (exam.examScores) delete exam.examScores[studentId];
+    if (exam.studentResults) delete exam.studentResults[studentId];
+
+    window.stateManager.saveExam(exam);
+    window.activeWeeklyExam = exam;
+
+    if (window.showMobileToast) window.showMobileToast('Sonuç silindi.');
+    if (window.vibrate) window.vibrate(20);
+
+    window.renderExamResultsList(exam, window._currentExamResultFilter || 'all');
+    renderMobileWeekly();
+  };
+
+  // ==========================================
+  // MANUEL OPTİK FORM GİRİŞİ MODALI
+  // ==========================================
+  window._tempManualAnswers = {};
+
+  window.openManualOpticalEntryModal = (examId, targetStudentId) => {
+    if (!window.stateManager) return;
+    const state = window.stateManager.loadState ? window.stateManager.loadState() : (window.stateManager.state || {});
+    const exam = (state.weeklyEvaluations || []).find(e => String(e.id) === String(examId));
+    if (!exam) return;
+
+    window.activeWeeklyExam = exam;
+    if (window.vibrate) window.vibrate(20);
+
+    const selectEl = document.getElementById('m-moe-student-select');
+    const subtitleEl = document.getElementById('m-moe-subtitle');
+    if (!selectEl) return;
+
+    const isMiddle = isMiddleSchool();
+    const students = (state.students || []).filter(s => {
+      if (!isStudentInCurrentLevel(s)) return false;
+      if (isMiddle && exam.branch && s.branch !== exam.branch) return false;
+      return true;
+    }).sort((a, b) => a.name.localeCompare(b.name, 'tr'));
+
+    if (students.length === 0) {
+      alert('Sınava ait öğrenci bulunamadı.');
+      return;
+    }
+
+    const examScores = exam.examScores || {};
+
+    selectEl.innerHTML = students.map(s => {
+      const sc = examScores[s.id];
+      const scoreText = (sc !== undefined && sc !== null && sc !== '') ? ` • [${sc} Puan]` : '';
+      return `<option value="${s.id}">${escapeHTML(s.name)} ${escapeHTML(s.surname || '')} (No: ${s.number || '-'})${scoreText}</option>`;
+    }).join('');
+
+    if (targetStudentId) {
+      selectEl.value = targetStudentId;
+    } else {
+      const unassigned = students.find(s => examScores[s.id] === undefined || examScores[s.id] === null || examScores[s.id] === '');
+      if (unassigned) selectEl.value = unassigned.id;
+      else selectEl.value = students[0].id;
+    }
+
+    if (subtitleEl) {
+      subtitleEl.textContent = `${exam.examName || 'Sınav'} • ${exam.totalQuestions || 20} Soru • Optik Form`;
+    }
+
+    window.onManualEntryStudentChanged();
+
+    const modal = document.getElementById('modal-manual-optical-entry');
+    const backdrop = document.getElementById('sheet-backdrop');
+    if (backdrop) backdrop.classList.add('active');
+    if (modal) modal.classList.add('active');
+    if (window.lucide) window.lucide.createIcons();
+  };
+
+  window.closeManualOpticalEntryModal = () => {
+    const modal = document.getElementById('modal-manual-optical-entry');
+    if (modal) modal.classList.remove('active');
+    const gradingModal = document.getElementById('modal-weekly-exam-grading');
+    const isGradingOpen = gradingModal && gradingModal.classList.contains('active');
+    if (!isGradingOpen) {
+      const backdrop = document.getElementById('sheet-backdrop');
+      if (backdrop) backdrop.classList.remove('active');
+    }
+  };
+
+  window.onManualEntryStudentChanged = () => {
+    const selectEl = document.getElementById('m-moe-student-select');
+    const studentId = selectEl ? selectEl.value : '';
+    const exam = window.activeWeeklyExam;
+    if (!exam) return;
+
+    const existingRes = (exam.studentResults && exam.studentResults[studentId]) || {};
+    window._tempManualAnswers = existingRes.answers ? { ...existingRes.answers } : {};
+
+    window.renderManualEntryOpticalSheet();
+  };
+
+  window.renderManualEntryOpticalSheet = () => {
+    const sheet = document.getElementById('m-moe-bubbles-sheet');
+    const exam = window.activeWeeklyExam;
+    if (!sheet || !exam) return;
+
+    const totalQ = parseInt(exam.totalQuestions, 10) || 20;
+    const choicesCount = parseInt(exam.choicesCount, 10) || 4;
+    const letters = ['A', 'B', 'C', 'D', 'E'].slice(0, choicesCount);
+    const answerKey = exam.answerKey || {};
+
+    let html = '';
+    let correctCount = 0;
+    let wrongCount = 0;
+    let blankCount = 0;
+    let markedCount = 0;
+
+    for (let q = 1; q <= totalQ; q++) {
+      const marked = window._tempManualAnswers[q] || '';
+      const key = answerKey[q] || '';
+
+      let rowClass = '';
+      if (!marked) {
+        blankCount++;
+      } else {
+        markedCount++;
+        if (key) {
+          if (marked === key) {
+            correctCount++;
+            rowClass = 'is-correct';
+          } else {
+            wrongCount++;
+            rowClass = 'is-wrong';
+          }
+        } else {
+          correctCount++;
+        }
+      }
+
+      html += `
+        <div class="m-opt-bubble-row ${rowClass}" data-q="${q}">
+          <span class="m-opt-bubble-qnum">${q}.</span>
+          <div class="m-opt-bubbles-wrap">
+            ${letters.map(l => {
+              let btnClass = 'm-opt-bubble-btn';
+              if (marked === l) {
+                btnClass += ' active';
+                if (key) {
+                  btnClass += (l === key) ? ' active-correct' : ' active-wrong';
+                }
+              }
+              return `
+                <button type="button" class="${btnClass}" onclick="window.selectManualEntryChoice(${q}, '${l}')">
+                  ${l}
+                </button>
+              `;
+            }).join('')}
+            <button type="button" class="m-opt-clear-btn ${marked ? 'visible' : ''}" id="m-moe-clear-${q}" title="Boş Bırak" onclick="window.clearManualEntryChoice(${q})">
+              &times;
+            </button>
+          </div>
+        </div>
+      `;
+    }
+
+    sheet.innerHTML = html;
+
+    // Skor ve Net Hesabı
+    const penaltyRate = exam.wrongAffects ? (parseFloat(exam.penaltyRate) || 3) : 0;
+    let net = penaltyRate > 0 ? (correctCount - (wrongCount / penaltyRate)) : correctCount;
+    net = Math.max(0, parseFloat(net.toFixed(2)));
+    const score = totalQ > 0 ? Math.round((net / totalQ) * 100) : 0;
+
+    const dybEl = document.getElementById('m-moe-live-dyb');
+    const netEl = document.getElementById('m-moe-live-net');
+    const scoreEl = document.getElementById('m-moe-live-score');
+    const badgeEl = document.getElementById('m-moe-qcount-badge');
+
+    if (dybEl) dybEl.textContent = `${correctCount} D • ${wrongCount} Y • ${blankCount} B`;
+    if (netEl) netEl.textContent = net.toFixed(2).replace('.00', '');
+    if (scoreEl) scoreEl.textContent = score;
+    if (badgeEl) badgeEl.textContent = `${markedCount} / ${totalQ} Soru İşaretlendi`;
+  };
+
+  window.selectManualEntryChoice = (q, opt) => {
+    if (window.vibrate) window.vibrate(10);
+    if (!window._tempManualAnswers) window._tempManualAnswers = {};
+
+    if (window._tempManualAnswers[q] === opt) {
+      delete window._tempManualAnswers[q];
+    } else {
+      window._tempManualAnswers[q] = opt;
+    }
+    window.renderManualEntryOpticalSheet();
+  };
+
+  window.clearManualEntryChoice = (q) => {
+    if (window.vibrate) window.vibrate(10);
+    if (window._tempManualAnswers) delete window._tempManualAnswers[q];
+    window.renderManualEntryOpticalSheet();
+  };
+
+  window.clearManualEntryForm = () => {
+    if (!confirm('Tüm işaretlemeleri temizlemek istediğinize emin misiniz?')) return;
+    window._tempManualAnswers = {};
+    window.renderManualEntryOpticalSheet();
+  };
+
+  window.saveManualOpticalEntry = (andNext) => {
+    const selectEl = document.getElementById('m-moe-student-select');
+    const studentId = selectEl ? selectEl.value : '';
+    const exam = window.activeWeeklyExam;
+    if (!exam || !studentId || !window.stateManager) return;
+
+    const state = window.stateManager.loadState ? window.stateManager.loadState() : (window.stateManager.state || {});
+    const ex = (state.weeklyEvaluations || []).find(e => String(e.id) === String(exam.id));
+    if (!ex) return;
+
+    const totalQ = parseInt(ex.totalQuestions, 10) || 20;
+    const answerKey = ex.answerKey || {};
+    let correctCount = 0;
+    let wrongCount = 0;
+    let blankCount = 0;
+
+    for (let q = 1; q <= totalQ; q++) {
+      const marked = window._tempManualAnswers[q] || '';
+      const key = answerKey[q] || '';
+      if (!marked) {
+        blankCount++;
+      } else if (key && marked === key) {
+        correctCount++;
+      } else if (key && marked !== key) {
+        wrongCount++;
+      } else {
+        correctCount++;
+      }
+    }
+
+    const penaltyRate = ex.wrongAffects ? (parseFloat(ex.penaltyRate) || 3) : 0;
+    let net = penaltyRate > 0 ? (correctCount - (wrongCount / penaltyRate)) : correctCount;
+    net = Math.max(0, parseFloat(net.toFixed(2)));
+    const score = totalQ > 0 ? Math.round((net / totalQ) * 100) : 0;
+
+    if (!ex.examScores) ex.examScores = {};
+    if (!ex.studentResults) ex.studentResults = {};
+
+    ex.examScores[studentId] = score;
+    ex.studentResults[studentId] = {
+      correct: correctCount,
+      wrong: wrongCount,
+      blank: blankCount,
+      net: net,
+      score: score,
+      answers: { ...window._tempManualAnswers },
+      source: 'manual',
+      scannedAt: new Date().toISOString()
+    };
+
+    window.stateManager.saveExam(ex);
+    window.activeWeeklyExam = ex;
+    if (window.vibrate) window.vibrate(30);
+
+    const st = (state.students || []).find(s => String(s.id) === String(studentId));
+    const stName = st ? `${st.name} ${st.surname || ''}` : 'Öğrenci';
+
+    if (window.showMobileToast) {
+      window.showMobileToast(`✅ ${stName} için ${score} Puan kaydedildi.`);
+    }
+
+    window.renderExamResultsList(ex, window._currentExamResultFilter || 'all');
     renderMobileWeekly();
 
-    const ev = new CustomEvent('stateChanged');
-    document.dispatchEvent(ev);
+    if (andNext) {
+      const isMiddle = isMiddleSchool();
+      const students = (state.students || []).filter(s => {
+        if (!isStudentInCurrentLevel(s)) return false;
+        if (isMiddle && ex.branch && s.branch !== ex.branch) return false;
+        return true;
+      }).sort((a, b) => a.name.localeCompare(b.name, 'tr'));
+
+      const unassigned = students.find(s => ex.examScores[s.id] === undefined || ex.examScores[s.id] === null || ex.examScores[s.id] === '');
+      if (unassigned) {
+        selectEl.value = unassigned.id;
+        window.onManualEntryStudentChanged();
+      } else {
+        if (window.showMobileToast) window.showMobileToast('🎉 Tüm öğrencilerin notları tamamlandı!');
+        window.closeManualOpticalEntryModal();
+      }
+    } else {
+      window.closeManualOpticalEntryModal();
+    }
   };
 
   window.deleteWeeklyExam = async (examId) => {

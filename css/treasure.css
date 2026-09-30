@@ -1089,4 +1089,299 @@
   background: rgba(255,255,255,0.02);
 }
 
+/* ==========================================================================
+   HAZİNE SANDIĞI: TAM EKRAN SORU VE SÜRE KATMANI (SPOTLIGHT FULLSCREEN)
+   ========================================================================== */
+.tq-fullscreen-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 9990;
+  background: radial-gradient(circle at 50% 15%, #1e1b4b 0%, #0f172a 60%, #020617 100%);
+  color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 1.75rem 3rem 1.25rem 3rem;
+  box-sizing: border-box;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  animation: tqFullscreenFadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow-y: auto;
+}
+
+@keyframes tqFullscreenFadeIn {
+  from { opacity: 0; transform: scale(0.98); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.tq-fullscreen-topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  flex-shrink: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: 0.85rem;
+}
+
+.tq-fullscreen-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.tq-fullscreen-badge {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: #ffffff;
+  font-weight: 800;
+  font-size: 1.05rem;
+  padding: 0.4rem 1.15rem;
+  border-radius: 9999px;
+  box-shadow: 0 4px 15px rgba(245, 158, 11, 0.35);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.tq-fullscreen-subbadge {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #e2e8f0;
+  font-weight: 700;
+  font-size: 0.88rem;
+  padding: 0.35rem 0.85rem;
+  border-radius: 9999px;
+}
+
+.tq-fullscreen-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.tq-fullscreen-btn {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1.5px solid rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius-md, 10px);
+  font-weight: 700;
+  font-size: 0.88rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.tq-fullscreen-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateY(-1px);
+}
+
+.tq-fullscreen-btn.exit {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: rgba(239, 68, 68, 0.5);
+  color: #fca5a5;
+}
+
+.tq-fullscreen-btn.exit:hover {
+  background: rgba(239, 68, 68, 0.4);
+  color: #ffffff;
+}
+
+/* Devasa Sayaç Alanı */
+.tq-fullscreen-timer-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin: 0.75rem 0 0.5rem 0;
+  flex-shrink: 0;
+}
+
+.tq-fullscreen-timer-wrapper {
+  position: relative;
+  width: 120px;
+  height: 120px;
+}
+
+.tq-fullscreen-timer-svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.tq-timer-track {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.1);
+  stroke-width: 8;
+}
+
+.tq-timer-bar {
+  fill: none;
+  stroke: #38bdf8;
+  stroke-width: 8;
+  stroke-linecap: round;
+  stroke-dasharray: 339.29;
+  stroke-dashoffset: 0;
+  transition: stroke-dashoffset 0.1s linear, stroke 0.3s;
+}
+
+.tq-fullscreen-timer-inner {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.tq-timer-number {
+  font-size: 2.8rem;
+  font-weight: 900;
+  line-height: 1;
+  color: #ffffff;
+  letter-spacing: -1px;
+}
+
+.tq-timer-caption {
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 2px;
+  color: #94a3b8;
+  margin-top: 2px;
+}
+
+.tq-timer-number.timer-warning {
+  color: #ef4444 !important;
+  animation: tqPulseRed 0.8s infinite alternate;
+}
+
+@keyframes tqPulseRed {
+  0% { transform: scale(1); text-shadow: 0 0 10px rgba(239, 68, 68, 0.5); }
+  100% { transform: scale(1.1); text-shadow: 0 0 25px rgba(239, 68, 68, 0.9); }
+}
+
+/* Soru Kartı ve Ultra Okunaklı Metin */
+.tq-fullscreen-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 0;
+  width: 100%;
+}
+
+.tq-fullscreen-question-card {
+  width: 100%;
+  max-width: 1200px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 2px solid rgba(255, 255, 255, 0.12);
+  border-radius: 24px;
+  padding: 2.2rem 2.75rem;
+  box-sizing: border-box;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.tq-fullscreen-question-text {
+  font-size: clamp(1.8rem, 3vw, 2.7rem);
+  font-weight: 800;
+  line-height: 1.45;
+  color: #ffffff;
+  margin: 0 auto;
+  max-width: 1000px;
+  text-shadow: 0 3px 12px rgba(0, 0, 0, 0.6);
+  word-break: break-word;
+}
+
+/* Çoktan Seçmeli Seçenekler */
+.tq-fullscreen-options-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  gap: 1.25rem;
+  width: 100%;
+  max-width: 1050px;
+  margin-top: 2rem;
+}
+
+.tq-fullscreen-opt-card {
+  background: rgba(255, 255, 255, 0.07);
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  border-radius: 16px;
+  padding: 1.25rem 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1.15rem;
+  font-size: 1.35rem;
+  font-weight: 600;
+  color: #f8fafc;
+  text-align: left;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.tq-fullscreen-opt-letter {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #6366f1, #4f46e5);
+  color: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 900;
+  font-size: 1.25rem;
+  flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.4);
+}
+
+.tq-fullscreen-bottombar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.85rem;
+  color: #94a3b8;
+  font-weight: 600;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding-top: 0.75rem;
+  flex-shrink: 0;
+}
+
+.tq-esc-hint {
+  background: rgba(255, 255, 255, 0.08);
+  padding: 0.2rem 0.6rem;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #cbd5e1;
+}
+
+.tq-fullscreen-answer-box {
+  margin-top: 1.5rem;
+  padding: 0.85rem 1.75rem;
+  background: rgba(16, 185, 129, 0.18);
+  border: 2px solid #10b981;
+  border-radius: 16px;
+  text-align: center;
+  box-shadow: 0 8px 25px rgba(16, 185, 129, 0.3);
+  animation: tqAnswerFadeIn 0.3s ease;
+  width: 100%;
+  max-width: 800px;
+}
+
+@keyframes tqAnswerFadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+
 

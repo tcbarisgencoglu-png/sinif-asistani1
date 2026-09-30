@@ -6,14 +6,14 @@ import groovy.json.JsonSlurper
 
 def packageJsonFile = file("${project.rootDir}/../package.json")
 def pkg = packageJsonFile.exists() ? new JsonSlurper().parse(packageJsonFile) : null
-def appVersion = pkg?.version ?: "1.0.30"
+def appVersion = pkg?.version ?: "1.0.31"
 def verParts = appVersion.tokenize('.')
-def appVersionCode = 30
+def appVersionCode = 31
 if (verParts.size() >= 3) {
     try {
         appVersionCode = (verParts[0].toInteger() * 10000) + (verParts[1].toInteger() * 100) + verParts[2].toInteger()
     } catch (Exception e) {
-        appVersionCode = 30
+        appVersionCode = 31
     }
 }
 

@@ -284,6 +284,29 @@
   const rankingsList = document.getElementById("treasure-rankings-list");
   const btnExitGame = document.getElementById("btn-treasure-exit-game");
   
+  // Fullscreen Elements
+  const btnTreasureManualFullscreen = document.getElementById("btn-treasure-manual-fullscreen");
+  const btnTreasureHeaderFullscreen = document.getElementById("btn-treasure-header-fullscreen");
+  const treasureFullscreenOverlay = document.getElementById("treasure-question-fullscreen-overlay");
+  const tqFullscreenCategory = document.getElementById("tq-fullscreen-category");
+  const tqFullscreenTypeBadge = document.getElementById("tq-fullscreen-type-badge");
+  const btnTqFullscreenPause = document.getElementById("btn-tq-fullscreen-pause");
+  const tqFullscreenPauseIcon = document.getElementById("tq-fullscreen-pause-icon");
+  const tqFullscreenPauseText = document.getElementById("tq-fullscreen-pause-text");
+  const btnTqFullscreenReset = document.getElementById("btn-tq-fullscreen-reset");
+  const btnTqFullscreenAnswer = document.getElementById("btn-tq-fullscreen-answer");
+  const btnTqFullscreenNext = document.getElementById("btn-tq-fullscreen-next");
+  const btnTqFullscreenExit = document.getElementById("btn-tq-fullscreen-exit");
+  const tqFullscreenTimerBar = document.getElementById("tq-fullscreen-timer-bar");
+  const tqFullscreenTimerText = document.getElementById("tq-fullscreen-timer-text");
+  const tqFullscreenImageContainer = document.getElementById("tq-fullscreen-image-container");
+  const tqFullscreenImage = document.getElementById("tq-fullscreen-image");
+  const tqFullscreenText = document.getElementById("tq-fullscreen-text");
+  const tqFullscreenOptions = document.getElementById("tq-fullscreen-options");
+  const tqFullscreenAnswerBox = document.getElementById("tq-fullscreen-answer-box");
+  const tqFullscreenAnswerVal = document.getElementById("tq-fullscreen-answer-val");
+  const tqFullscreenAnswerExplanation = document.getElementById("tq-fullscreen-answer-explanation");
+  
   // Victory Overlay DOM Elements
   const victoryOverlay = document.getElementById("treasure-victory-overlay");
   const winnerTitle = document.getElementById("treasure-winner-title");
@@ -1771,6 +1794,10 @@ Cevap: C`;
       btnShowAnswer.setAttribute("disabled", "disabled");
       btnShowAnswer.disabled = true;
     }
+
+    if (isTreasureFullscreenActive()) {
+      showFullscreenAnswerUI();
+    }
   }
 
   // Toggle reward text visibility in Setup screen
@@ -2250,6 +2277,9 @@ Cevap: C`;
 
   // Start active gameplay
   function startTreasureGame() {
+    if (isTreasureFullscreenActive()) {
+      exitTreasureFullscreen();
+    }
     targetScore = parseInt(targetScoreInput.value) || 50;
     timerSeconds = parseInt(timerLimitInput.value) || 30;
     rewardText = rewardTextInput.value.trim() || "Sürpriz Etkinlik Ödülü";
@@ -2462,6 +2492,7 @@ Cevap: C`;
       timerIcon.setAttribute("data-lucide", "pause");
       window.safeCreateIcons();
     }
+    syncFullscreenPlayPauseUI();
     
     TreasureSound.init();
     
@@ -2473,6 +2504,15 @@ Cevap: C`;
         pauseTimer();
         TreasureSound.playGong();
         if (toastCallback) toastCallback("Süre doldu! Cevapları toplayın.", "danger");
+
+        // Automatically return to scoring screen if fullscreen overlay is open
+        if (isTreasureFullscreenActive()) {
+          setTimeout(() => {
+            if (isTreasureFullscreenActive() && timeLeft <= 0) {
+              exitTreasureFullscreen();
+            }
+          }, 1500);
+        }
       } else {
         TreasureSound.playClockTick();
       }
@@ -2487,6 +2527,7 @@ Cevap: C`;
       timerIcon.setAttribute("data-lucide", "play");
       window.safeCreateIcons();
     }
+    syncFullscreenPlayPauseUI();
     
     if (timerInterval) {
       clearInterval(timerInterval);
@@ -2509,7 +2550,7 @@ Cevap: C`;
     timerText.textContent = formatted;
     
     // Circumference = 163.36
-    const offset = Math.max(0, ((timerSeconds - timeLeft) / timerSeconds) * 163.36);
+    const offset = Math.max(0, ((timerSeconds - timeLeft) / (timerSeconds || 1)) * 163.36);
     timerBar.style.strokeDashoffset = offset;
     
     if (timeLeft <= 5) {
@@ -2518,6 +2559,287 @@ Cevap: C`;
     } else {
       timerText.classList.remove("timer-warning");
       timerBar.style.stroke = "var(--primary)";
+    }
+
+    // Fullscreen Timer Sync
+    const fsTimerText = document.getElementById("tq-fullscreen-timer-text");
+    const fsTimerBar = document.getElementById("tq-fullscreen-timer-bar");
+    if (fsTimerText && fsTimerBar) {
+      fsTimerText.textContent = formatted;
+      const fsCircumference = 339.29;
+      const fsOffset = Math.max(0, ((timerSeconds - timeLeft) / (timerSeconds || 1)) * fsCircumference);
+      fsTimerBar.style.strokeDasharray = fsCircumference;
+      fsTimerBar.style.strokeDashoffset = fsOffset;
+
+      if (timeLeft <= 5) {
+        fsTimerText.classList.add("timer-warning");
+        fsTimerBar.style.stroke = "var(--danger, #ef4444)";
+      } else {
+        fsTimerText.classList.remove("timer-warning");
+        fsTimerBar.style.stroke = "#38bdf8";
+      }
+    }
+  }
+
+  // ==========================================================================
+  // Fullscreen (Spotlight Akıllı Tahta Modu) Yönetimi
+  // ==========================================================================
+  function isTreasureFullscreenActive() {
+    return treasureFullscreenOverlay && treasureFullscreenOverlay.style.display !== "none";
+  }
+
+  function syncFullscreenPlayPauseUI() {
+    const pauseIconEl = document.getElementById("tq-fullscreen-pause-icon");
+    const pauseTextEl = document.getElementById("tq-fullscreen-pause-text");
+    if (pauseTextEl && pauseIconEl) {
+      if (timerRunning) {
+        pauseTextEl.textContent = "Süreyi Durdur";
+        pauseIconEl.setAttribute("data-lucide", "pause");
+      } else {
+        pauseTextEl.textContent = "Süreyi Başlat";
+        pauseIconEl.setAttribute("data-lucide", "play");
+      }
+      window.safeCreateIcons();
+    }
+  }
+
+  function showFullscreenAnswerUI() {
+    if (!currentQuestion) return;
+
+    if (currentQuestion.type === "mc") {
+      const correctIdx = parseInt(currentQuestion.answer) || 0;
+      const optEl = document.getElementById(`tq-mc-opt-${correctIdx}`);
+      if (optEl) {
+        optEl.style.borderColor = "var(--success, #10b981)";
+        optEl.style.background = "rgba(16, 185, 129, 0.25)";
+        optEl.style.boxShadow = "0 0 25px rgba(16, 185, 129, 0.5)";
+        optEl.style.fontWeight = "700";
+      }
+    } else if (currentQuestion.type === "tf") {
+      const isTrue = currentQuestion.answer === true || currentQuestion.answer === "true";
+      const optEl = document.getElementById(isTrue ? "tq-tf-opt-true" : "tq-tf-opt-false");
+      if (optEl) {
+        optEl.style.borderColor = "#10b981";
+        optEl.style.boxShadow = "0 0 25px rgba(16, 185, 129, 0.6)";
+      }
+    }
+
+    const answerBox = document.getElementById("tq-fullscreen-answer-box");
+    const answerVal = document.getElementById("tq-fullscreen-answer-val");
+    const answerExpl = document.getElementById("tq-fullscreen-answer-explanation");
+    if (answerBox && answerVal) {
+      answerVal.textContent = getAnswerDisplay(currentQuestion);
+      if (answerExpl) {
+        if (currentQuestion.explanation && currentQuestion.explanation.trim().length > 0) {
+          answerExpl.textContent = currentQuestion.explanation.trim();
+          answerExpl.style.display = "block";
+        } else {
+          answerExpl.style.display = "none";
+        }
+      }
+      answerBox.style.display = "block";
+    }
+  }
+
+  function renderTreasureFullscreenContent() {
+    if (!treasureFullscreenOverlay) return;
+
+    // Category
+    const categoryEl = document.getElementById("tq-fullscreen-category");
+    if (categoryEl) {
+      if (currentQuestion && currentQuestion.category) {
+        categoryEl.textContent = currentQuestion.category;
+      } else if (activeCategory && activeCategory !== "all") {
+        categoryEl.textContent = activeCategory;
+      } else {
+        categoryEl.textContent = "Genel Bilgi";
+      }
+    }
+
+    // Type Badge
+    const typeBadgeEl = document.getElementById("tq-fullscreen-type-badge");
+    if (typeBadgeEl) {
+      if (currentQuestion) {
+        if (currentQuestion.type === "mc") typeBadgeEl.textContent = "Çoktan Seçmeli";
+        else if (currentQuestion.type === "tf") typeBadgeEl.textContent = "Doğru / Yanlış";
+        else if (currentQuestion.type === "fib") typeBadgeEl.textContent = "Boşluk Doldurma";
+        else if (currentQuestion.type === "open") typeBadgeEl.textContent = "Açık Uçlu";
+        else typeBadgeEl.textContent = "Soru";
+      } else {
+        typeBadgeEl.textContent = "Serbest Soru";
+      }
+    }
+
+    // Question Text
+    const textEl = document.getElementById("tq-fullscreen-text");
+    if (textEl) {
+      if (currentQuestion) {
+        let text = currentQuestion.text || "";
+        if (currentQuestion.type === "fib") {
+          text = text.replace(/\[___\]/g, "_______");
+        }
+        textEl.textContent = text;
+      } else {
+        textEl.textContent = (treasureQuestionText && treasureQuestionText.textContent) || "Soruyu görmek için 'Yeni Soru Çek' butonuna tıklayın veya öğrencilerinize kendi sorunuzu yöneltin.";
+      }
+    }
+
+    // Image
+    const imgContainer = document.getElementById("tq-fullscreen-image-container");
+    const imgEl = document.getElementById("tq-fullscreen-image");
+    if (imgContainer && imgEl) {
+      if (currentQuestion && currentQuestion.image && currentQuestion.image.trim().length > 0) {
+        imgEl.src = currentQuestion.image;
+        imgContainer.style.display = "block";
+      } else {
+        imgEl.src = "";
+        imgContainer.style.display = "none";
+      }
+    }
+
+    // Options
+    const optGrid = document.getElementById("tq-fullscreen-options");
+    if (optGrid) {
+      if (currentQuestion && currentQuestion.type === "mc" && Array.isArray(currentQuestion.options) && currentQuestion.options.length > 0) {
+        const letters = ["A", "B", "C", "D", "E"];
+        optGrid.style.display = "grid";
+        optGrid.innerHTML = currentQuestion.options.map((opt, i) => `
+          <div class="tq-fullscreen-opt-card" id="tq-mc-opt-${i}">
+            <span class="tq-fullscreen-opt-letter">${letters[i] || ''}</span>
+            <span style="line-height: 1.35;">${escapeHTML(opt)}</span>
+          </div>
+        `).join("");
+      } else if (currentQuestion && currentQuestion.type === "tf") {
+        optGrid.style.display = "grid";
+        optGrid.innerHTML = `
+          <div class="tq-fullscreen-opt-card" id="tq-tf-opt-true">
+            <span class="tq-fullscreen-opt-letter" style="background: linear-gradient(135deg, #10b981, #059669);">D</span>
+            <span style="font-weight: 700; color: #a7f3d0;">DOĞRU</span>
+          </div>
+          <div class="tq-fullscreen-opt-card" id="tq-tf-opt-false">
+            <span class="tq-fullscreen-opt-letter" style="background: linear-gradient(135deg, #ef4444, #dc2626);">Y</span>
+            <span style="font-weight: 700; color: #fca5a5;">YANLIŞ</span>
+          </div>
+        `;
+      } else {
+        optGrid.style.display = "none";
+        optGrid.innerHTML = "";
+      }
+    }
+
+    // Answer Box Visibility Sync
+    const answerBox = document.getElementById("tq-fullscreen-answer-box");
+    if (answerBox) {
+      const isAnswerVisible = answerContainer && answerContainer.style.display !== "none";
+      if (isAnswerVisible && currentQuestion) {
+        showFullscreenAnswerUI();
+      } else {
+        answerBox.style.display = "none";
+      }
+    }
+
+    // Timer Sync
+    updateTimerDisplay();
+  }
+
+  function openTreasureFullscreen() {
+    if (!treasureFullscreenOverlay) return;
+
+    renderTreasureFullscreenContent();
+    treasureFullscreenOverlay.style.display = "flex";
+
+    // Update manual button state
+    if (btnTreasureManualFullscreen) {
+      btnTreasureManualFullscreen.classList.add("active");
+      const icon = btnTreasureManualFullscreen.querySelector("i");
+      const span = btnTreasureManualFullscreen.querySelector("span");
+      if (icon) icon.setAttribute("data-lucide", "minimize-2");
+      if (span) span.textContent = "Tam Ekrandan Çık";
+    }
+    const headerFsBtn = document.getElementById("btn-treasure-header-fullscreen");
+    if (headerFsBtn) {
+      const icon = headerFsBtn.querySelector("i");
+      const span = headerFsBtn.querySelector("span");
+      if (icon) icon.setAttribute("data-lucide", "minimize");
+      if (span) span.textContent = "Normal Ekran";
+    }
+
+    syncFullscreenPlayPauseUI();
+
+    // Browser Native Fullscreen
+    if (!document.fullscreenElement) {
+      try {
+        if (document.documentElement.requestFullscreen) {
+          document.documentElement.requestFullscreen().catch(() => {});
+        } else if (document.documentElement.webkitRequestFullscreen) {
+          document.documentElement.webkitRequestFullscreen();
+        }
+      } catch (e) {}
+    }
+
+    // Tauri Desktop Fullscreen
+    if (window.__TAURI__?.window) {
+      try {
+        const appWindow = window.__TAURI__.window.getCurrentWindow();
+        if (appWindow && typeof appWindow.setFullscreen === "function") {
+          appWindow.setFullscreen(true).catch(() => {});
+        }
+      } catch (e) {}
+    }
+
+    window.safeCreateIcons();
+  }
+
+  function exitTreasureFullscreen() {
+    if (!treasureFullscreenOverlay) return;
+
+    treasureFullscreenOverlay.style.display = "none";
+
+    // Reset button states
+    if (btnTreasureManualFullscreen) {
+      btnTreasureManualFullscreen.classList.remove("active");
+      const icon = btnTreasureManualFullscreen.querySelector("i");
+      const span = btnTreasureManualFullscreen.querySelector("span");
+      if (icon) icon.setAttribute("data-lucide", "maximize-2");
+      if (span) span.textContent = "Tam Ekran";
+    }
+    const headerFsBtn = document.getElementById("btn-treasure-header-fullscreen");
+    if (headerFsBtn) {
+      const icon = headerFsBtn.querySelector("i");
+      const span = headerFsBtn.querySelector("span");
+      if (icon) icon.setAttribute("data-lucide", "maximize");
+      if (span) span.textContent = "Tam Ekran";
+    }
+
+    // Exit browser fullscreen
+    if (document.fullscreenElement) {
+      try {
+        if (document.exitFullscreen) {
+          document.exitFullscreen().catch(() => {});
+        } else if (document.webkitExitFullscreen) {
+          document.webkitExitFullscreen();
+        }
+      } catch (e) {}
+    }
+
+    // Exit Tauri desktop fullscreen
+    if (window.__TAURI__?.window) {
+      try {
+        const appWindow = window.__TAURI__.window.getCurrentWindow();
+        if (appWindow && typeof appWindow.setFullscreen === "function") {
+          appWindow.setFullscreen(false).catch(() => {});
+        }
+      } catch (e) {}
+    }
+
+    window.safeCreateIcons();
+  }
+
+  function toggleTreasureFullscreen() {
+    if (isTreasureFullscreenActive()) {
+      exitTreasureFullscreen();
+    } else {
+      openTreasureFullscreen();
     }
   }
 
@@ -2588,10 +2910,17 @@ Cevap: C`;
     // Reset timer for the new question
     resetTimer();
     startTimer();
+
+    if (isTreasureFullscreenActive()) {
+      renderTreasureFullscreenContent();
+    }
   }
 
   // Trigger win / victory screen
   function triggerVictory(group) {
+    if (isTreasureFullscreenActive()) {
+      exitTreasureFullscreen();
+    }
     pauseTimer();
     winningGroup = group;
     
@@ -2791,6 +3120,9 @@ Cevap: C`;
   // Exit game and confirm loss of session scores
   function confirmExitGame() {
     if (confirm("Yarışmadan çıkmak istediğinize emin misiniz? Mevcut puanlar sıfırlanacaktır.")) {
+      if (isTreasureFullscreenActive()) {
+        exitTreasureFullscreen();
+      }
       pauseTimer();
       initTreasureSetup();
     }
@@ -2817,6 +3149,9 @@ Cevap: C`;
           if (!confirm("Oyun devam ediyor. Kuruluma ve oyunlar listesine dönmek istediğinize emin misiniz?")) {
             return;
           }
+        }
+        if (isTreasureFullscreenActive()) {
+          exitTreasureFullscreen();
         }
         pauseTimer();
         if (treasureView) treasureView.style.display = "none";
@@ -2971,6 +3306,48 @@ Cevap: C`;
       btnVictoryToggleReward.addEventListener("click", toggleVictoryRewardVisibility);
     }
     
+    // Fullscreen Controls
+    if (btnTreasureManualFullscreen) {
+      btnTreasureManualFullscreen.addEventListener("click", toggleTreasureFullscreen);
+    }
+    const headerFsBtn = document.getElementById("btn-treasure-header-fullscreen");
+    if (headerFsBtn) {
+      headerFsBtn.addEventListener("click", toggleTreasureFullscreen);
+    }
+    if (btnTqFullscreenExit) {
+      btnTqFullscreenExit.addEventListener("click", exitTreasureFullscreen);
+    }
+    if (btnTqFullscreenPause) {
+      btnTqFullscreenPause.addEventListener("click", toggleTimer);
+    }
+    if (btnTqFullscreenReset) {
+      btnTqFullscreenReset.addEventListener("click", resetTimer);
+    }
+    const answerBtnEl = document.getElementById("btn-tq-fullscreen-answer");
+    if (answerBtnEl) {
+      answerBtnEl.addEventListener("click", showCorrectAnswer);
+    }
+    const nextBtnEl = document.getElementById("btn-tq-fullscreen-next");
+    if (nextBtnEl) {
+      nextBtnEl.addEventListener("click", fetchNextQuestion);
+    }
+
+    // Keyboard ESC to close fullscreen overlay
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") {
+        if (isTreasureFullscreenActive()) {
+          exitTreasureFullscreen();
+        }
+      }
+    });
+
+    // Browser fullscreen change listener to keep UI in sync
+    document.addEventListener("fullscreenchange", () => {
+      if (!document.fullscreenElement && isTreasureFullscreenActive()) {
+        exitTreasureFullscreen();
+      }
+    });
+
     // Initial data load
     loadQuestions();
     populateLibraryCategoryFilter();
@@ -2988,4 +3365,7 @@ Cevap: C`;
   // Expose module globally
   window.setupTreasureGame = setupTreasureGame;
   window.renderTreasureGame = renderTreasureGame;
+  window.openTreasureFullscreen = openTreasureFullscreen;
+  window.exitTreasureFullscreen = exitTreasureFullscreen;
+  window.toggleTreasureFullscreen = toggleTreasureFullscreen;
 })();

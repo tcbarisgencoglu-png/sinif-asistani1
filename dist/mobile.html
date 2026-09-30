@@ -1623,7 +1623,7 @@
             📱 Sınıf Asistanı Kullanım Kılavuzu
           </div>
           <div style="font-size: 0.75rem; color: var(--m-text-muted); margin-bottom: 1rem;">
-            Versiyon: <strong>v1.0.30</strong> — Geliştirici: <strong>Barış Gençoğlu</strong>
+            Versiyon: <strong>v1.0.31</strong> — Geliştirici: <strong>Barış Gençoğlu</strong>
           </div>
 
           <div style="display: flex; flex-direction: column;">
@@ -1889,7 +1889,7 @@
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
           <div class="m-form-group">
             <label class="m-form-label">Soru Sayısı <span style="color: var(--m-danger);">*</span></label>
-            <input type="number" class="m-form-input" id="m-we-questions-input" min="1" max="100" value="20" required>
+            <input type="number" class="m-form-input" id="m-we-questions-input" min="1" max="100" value="20" required oninput="window.renderCreateExamAnswerKeyForm()">
           </div>
           <div class="m-form-group">
             <label class="m-form-label">Sınav Süresi (Dk)</label>
@@ -1920,6 +1920,73 @@
           </div>
         </div>
 
+        <!-- Bu Sınava Optik Form Ekle Onay Kutusu -->
+        <div class="m-form-group" style="background: var(--m-bg); padding: 0.75rem; border-radius: var(--m-radius-md); border: 1.5px solid var(--m-border); margin-top: 0.65rem;">
+          <div style="display: flex; align-items: center; justify-content: space-between;">
+            <div>
+              <div style="font-size: 0.85rem; font-weight: 800; color: var(--m-text); display: flex; align-items: center; gap: 6px;">
+                <span>📝</span>
+                <span>Bu Sınava Optik Form Ekle</span>
+              </div>
+              <div style="font-size: 0.72rem; color: var(--m-text-muted);">Cevap anahtarı oluşturun, A4 optik kağıdı basın ve kamerayla okutun</div>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" id="m-we-has-optical-toggle" checked onchange="window.toggleWeeklyExamOpticalSection(this.checked)">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+
+          <!-- Optik Form Şık Sayısı ve Cevap Anahtarı Bölümü (Onay kutusu aktif olunca açılır) -->
+          <div id="m-we-optical-config-container" style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px dashed var(--m-border);">
+            
+            <div class="m-form-group" style="margin-bottom: 0.75rem;">
+              <label class="m-form-label" style="font-size: 0.76rem; font-weight: 700;">Optik Form Kaç Şıklı Olacak? <span style="color: var(--m-danger);">*</span></label>
+              <div style="display: flex; gap: 8px;">
+                <div class="m-opt-choice-pill" id="m-pill-opt-3" onclick="window.selectExamChoicesCount(3)">
+                  <span>3 Şıklı</span><br>
+                  <small style="font-size: 0.68rem; font-weight: 500; opacity: 0.8;">(A-B-C)</small>
+                </div>
+                <div class="m-opt-choice-pill active" id="m-pill-opt-4" onclick="window.selectExamChoicesCount(4)">
+                  <span>4 Şıklı</span><br>
+                  <small style="font-size: 0.68rem; font-weight: 500; opacity: 0.8;">(A-B-C-D)</small>
+                </div>
+                <div class="m-opt-choice-pill" id="m-pill-opt-5" onclick="window.selectExamChoicesCount(5)">
+                  <span>5 Şıklı</span><br>
+                  <small style="font-size: 0.68rem; font-weight: 500; opacity: 0.8;">(A-B-C-D-E)</small>
+                </div>
+              </div>
+              <input type="hidden" id="m-we-choices-count" value="4">
+            </div>
+
+            <!-- Açılan bu optik form aynı zamanda sınavın cevap anahtarı olacak -->
+            <div style="background: var(--m-surface); border: 1px solid var(--m-border); border-radius: var(--m-radius-md); padding: 0.75rem;">
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.4rem;">
+                <div>
+                  <div style="font-size: 0.82rem; font-weight: 800; color: var(--m-text); display: flex; align-items: center; gap: 4px;">
+                    <span>🔑</span> Sınav Cevap Anahtarı (Optik Form)
+                  </div>
+                  <div style="font-size: 0.68rem; color: var(--m-text-muted);">Doğru şıkları aşağıdaki optik formdan tıklayarak girin</div>
+                </div>
+                <div style="display: flex; gap: 4px;">
+                  <button type="button" class="m-btn-sm" onclick="window.fillSampleCreateExamKey()" style="font-size: 0.68rem; padding: 3px 6px;">Örnek Doldur</button>
+                  <button type="button" class="m-btn-sm danger" onclick="window.clearCreateExamKey()" style="font-size: 0.68rem; padding: 3px 6px;">Temizle</button>
+                </div>
+              </div>
+
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem; padding: 4px 8px; background: var(--m-bg); border-radius: var(--m-radius-sm); font-size: 0.7rem; font-weight: 700; color: var(--m-text-secondary);">
+                <span id="m-we-opt-counter">0 / 20 Soru İşaretlendi</span>
+                <span style="font-size: 0.65rem; color: var(--m-text-muted);">Optik form bu anahtarla değerlendirilir</span>
+              </div>
+
+              <!-- Dinamik Optik Form Satırları Gridi -->
+              <div id="m-we-optical-form-grid" style="max-height: 240px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; padding-right: 2px;">
+                <!-- Dinamik JS satırları -->
+              </div>
+            </div>
+
+          </div>
+        </div>
+
         <!-- Derece Ödül Puanı Bilgi Kutusu -->
         <div style="background: rgba(79, 70, 229, 0.08); border: 1px solid rgba(79, 70, 229, 0.2); border-radius: var(--m-radius-md); padding: 0.65rem 0.75rem; margin-top: 0.65rem;">
           <div style="display: flex; align-items: center; gap: 6px; font-size: 0.78rem; font-weight: 700; color: var(--m-primary); margin-bottom: 2px;">
@@ -1935,16 +2002,16 @@
       <div style="padding: 0.75rem 1.25rem calc(1.25rem + var(--safe-bottom)) 1.25rem; border-top: 1px solid var(--m-border); background: var(--m-surface); display: flex; gap: 8px;">
         <button type="button" class="subview-secondary-btn" onclick="window.closeBottomSheet()" style="flex: 1;">Vazgeç</button>
         <button type="submit" class="subview-primary-action-btn" style="flex: 2; margin: 0;">
-          <i data-lucide="check" style="width: 18px; height: 18px;"></i> Sınavı Oluştur & Not Gir
+          <i data-lucide="check" style="width: 18px; height: 18px;"></i> Sınavı Oluştur
         </button>
       </div>
     </form>
   </div>
 
-  <!-- HAFTALIK DEĞERLENDİRME: NOT GİRİŞ MODALI -->
+  <!-- HAFTALIK DEĞERLENDİRME: SINAV DETAYI & OKUMA SONUÇLARI MODALI -->
   <div class="bottom-sheet" id="modal-weekly-exam-grading" style="max-height: 96vh; height: 94vh; z-index: 1300; display: flex; flex-direction: column;">
     <div class="sheet-handle"></div>
-    <div class="sheet-header" style="margin-bottom: 0.5rem; border-bottom: none; padding-bottom: 0; display: flex; align-items: flex-start; justify-content: space-between;">
+    <div class="sheet-header" style="margin-bottom: 0.25rem; border-bottom: none; padding-bottom: 0; display: flex; align-items: flex-start; justify-content: space-between;">
       <div style="flex: 1; min-width: 0;">
         <div id="m-weg-exam-title" style="font-size: 1.05rem; font-weight: 800; color: var(--m-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Sınav Adı</div>
         <div id="m-weg-exam-subtitle" style="font-size: 0.74rem; color: var(--m-text-muted); font-weight: 600; margin-top: 2px;"></div>
@@ -1952,45 +2019,125 @@
       <button type="button" class="sheet-close-btn" onclick="window.closeWeeklyGradingModal()">&times;</button>
     </div>
 
-    <!-- Hızlı Bilgi & İstatistik Şeridi -->
-    <div id="m-weg-info-bar" style="background: var(--m-bg); border: 1px solid var(--m-border); border-radius: var(--m-radius-md); padding: 0.45rem 0.75rem; margin: 0.4rem 1rem; display: flex; align-items: center; justify-content: space-between; font-size: 0.76rem;">
-      <div id="m-weg-stats-text" style="color: var(--m-text-secondary); font-weight: 600;">0/0 Öğrenci Puanlandı</div>
-      <div id="m-weg-avg-badge" class="student-card-score" style="font-size: 0.78rem;">Ort: -</div>
+    <!-- 3 ANA BUTON (Optik Form Bas, Optik Form Oku, Manuel Giriş Yap) -->
+    <div class="m-exam-actions-grid">
+      <!-- 1. Optik Form Bas Butonu -->
+      <div class="m-exam-action-card" onclick="if(window.activeWeeklyExam) window.openMobileOpticalPrintModal(window.activeWeeklyExam.id)">
+        <div class="m-exam-action-icon" style="background: rgba(2, 132, 199, 0.12); color: #0284c7;">
+          <i data-lucide="printer" style="width: 18px; height: 18px;"></i>
+        </div>
+        <div class="m-exam-action-title">Optik Form Bas</div>
+        <div class="m-exam-action-desc">A4 Kağıdına Yazdır</div>
+      </div>
+
+      <!-- 2. Optik Form Oku Butonu -->
+      <div class="m-exam-action-card featured" onclick="if(window.activeWeeklyExam) window.openMobileOmrScanner(window.activeWeeklyExam.id)">
+        <div class="m-exam-action-icon" style="background: linear-gradient(135deg, #4f46e5, #7c3aed); color: #fff;">
+          <i data-lucide="scan" style="width: 18px; height: 18px;"></i>
+        </div>
+        <div class="m-exam-action-title" style="color: var(--m-primary);">Optik Form Oku</div>
+        <div class="m-exam-action-desc">Kamerayla Tara</div>
+      </div>
+
+      <!-- 3. Manuel Giriş Yap Butonu -->
+      <div class="m-exam-action-card" onclick="if(window.activeWeeklyExam) window.openManualOpticalEntryModal(window.activeWeeklyExam.id)">
+        <div class="m-exam-action-icon" style="background: rgba(16, 185, 129, 0.12); color: #10b981;">
+          <i data-lucide="edit-3" style="width: 18px; height: 18px;"></i>
+        </div>
+        <div class="m-exam-action-title">Manuel Giriş Yap</div>
+        <div class="m-exam-action-desc">Öğrenci Optiği Elle Gir</div>
+      </div>
     </div>
 
-    <!-- Hızlı Eylemler: Cevap Anahtarı, Optik Form, Optik Oku -->
-    <div style="display: flex; gap: 6px; padding: 0 1rem 0.4rem 1rem;">
-      <button type="button" class="m-btn-sm" onclick="if(window.activeWeeklyExam) window.openAnswerKeyModal(window.activeWeeklyExam.id)" style="flex: 1; background: var(--m-surface-subtle); border: 1px solid var(--m-border); font-size: 0.72rem; font-weight: 700; padding: 6px 4px; display: flex; align-items: center; justify-content: center; gap: 4px; border-radius: var(--m-radius-sm);">
+    <!-- İstatistik ve Filtre Sekmeleri -->
+    <div style="padding: 0 1rem; margin-bottom: 0.4rem;">
+      <div style="background: var(--m-bg); border: 1px solid var(--m-border); border-radius: var(--m-radius-md); padding: 0.45rem 0.75rem; display: flex; align-items: center; justify-content: space-between; font-size: 0.74rem;">
+        <div id="m-weg-stats-text" style="color: var(--m-text-secondary); font-weight: 700;">0/0 Öğrenci Puanlandı</div>
+        <div id="m-weg-avg-badge" class="student-card-score" style="font-size: 0.76rem;">Ort: -</div>
+      </div>
+
+      <div class="m-std-tabs" id="m-weg-filter-tabs" style="margin-top: 6px; padding: 2px;">
+        <button type="button" class="m-std-tab-btn active" data-filter="all" onclick="window.setExamResultFilter('all')">
+          Tümü (<span id="m-count-res-all">0</span>)
+        </button>
+        <button type="button" class="m-std-tab-btn" data-filter="graded" onclick="window.setExamResultFilter('graded')">
+          Sonuçlar (<span id="m-count-res-graded">0</span>)
+        </button>
+        <button type="button" class="m-std-tab-btn" data-filter="pending" onclick="window.setExamResultFilter('pending')">
+          Bekleyenler (<span id="m-count-res-pending">0</span>)
+        </button>
+      </div>
+    </div>
+
+    <!-- OKUMA SONUÇLARI LİSTESİ (Scrollable) -->
+    <div id="m-weg-results-container" style="flex: 1; overflow-y: auto; padding: 0.2rem 1rem 1rem 1rem;">
+      <!-- Dinamik Sonuç Kartları Listesi -->
+    </div>
+
+    <!-- Alt Çubuk: Kapat ve Cevap Anahtarı Butonu -->
+    <div style="padding: 0.65rem 1rem calc(1rem + var(--safe-bottom)) 1rem; border-top: 1px solid var(--m-border); background: var(--m-surface); display: flex; gap: 8px;">
+      <button type="button" class="subview-secondary-btn" onclick="window.closeWeeklyGradingModal()" style="flex: 1;">Kapat</button>
+      <button type="button" class="m-btn-sm" onclick="if(window.activeWeeklyExam) window.openAnswerKeyModal(window.activeWeeklyExam.id)" style="flex: 1.2; display: flex; align-items: center; justify-content: center; gap: 4px; background: var(--m-surface-subtle); border: 1px solid var(--m-border); font-size: 0.76rem; font-weight: 700;">
         <i data-lucide="key" style="width: 14px; height: 14px; color: var(--m-primary);"></i> Cevap Anahtarı
       </button>
-      <button type="button" class="m-btn-sm" onclick="if(window.activeWeeklyExam) window.openMobileOpticalPrintModal(window.activeWeeklyExam.id)" style="flex: 1; background: var(--m-surface-subtle); border: 1px solid var(--m-border); font-size: 0.72rem; font-weight: 700; padding: 6px 4px; display: flex; align-items: center; justify-content: center; gap: 4px; border-radius: var(--m-radius-sm);">
-        <i data-lucide="printer" style="width: 14px; height: 14px; color: #0284c7;"></i> Form Bas
-      </button>
-      <button type="button" class="m-btn-sm primary" onclick="if(window.activeWeeklyExam) window.openMobileOmrScanner(window.activeWeeklyExam.id)" style="flex: 1.2; font-size: 0.72rem; font-weight: 700; padding: 6px 6px; display: flex; align-items: center; justify-content: center; gap: 4px; border-radius: var(--m-radius-sm); background: linear-gradient(135deg, #4f46e5, #7c3aed); color: #fff;">
-        <i data-lucide="scan" style="width: 14px; height: 14px;"></i> Optik Oku
-      </button>
+    </div>
+  </div>
+
+  <!-- HAFTALIK DEĞERLENDİRME: MANUEL OPTİK FORM GİRİŞİ MODALI -->
+  <div class="bottom-sheet" id="modal-manual-optical-entry" style="max-height: 96vh; height: 94vh; z-index: 1350; display: flex; flex-direction: column;">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header" style="margin-bottom: 0.25rem; border-bottom: none; padding-bottom: 0; display: flex; align-items: flex-start; justify-content: space-between;">
+      <div style="flex: 1; min-width: 0;">
+        <div style="font-size: 1.05rem; font-weight: 800; color: var(--m-text);">Öğrenci Optik Form Manuel Giriş</div>
+        <div id="m-moe-subtitle" style="font-size: 0.74rem; color: var(--m-text-muted); font-weight: 600; margin-top: 2px;">Öğrencinin kağıdındaki işaretlemeleri baloncuklara dokunarak girin</div>
+      </div>
+      <button type="button" class="sheet-close-btn" onclick="window.closeManualOpticalEntryModal()">&times;</button>
     </div>
 
-    <!-- Tablo Başlıkları (D, B, Y, Net, Puan) -->
-    <div style="display: grid; grid-template-columns: 1.8fr 1fr 1fr 0.8fr 0.9fr 1.1fr; gap: 5px; padding: 0.4rem 1rem; font-size: 0.68rem; font-weight: 800; color: var(--m-text-muted); text-transform: uppercase; border-bottom: 1px solid var(--m-border);">
-      <div>Öğrenci</div>
-      <div style="text-align: center;">Doğru</div>
-      <div style="text-align: center;">Boş</div>
-      <div style="text-align: center;">Yanlış</div>
-      <div style="text-align: center;">Net</div>
-      <div style="text-align: center;">Puan</div>
+    <!-- Öğrenci Seçici -->
+    <div style="padding: 0.4rem 1rem; background: var(--m-surface-subtle); border-bottom: 1px solid var(--m-border); display: flex; align-items: center; gap: 8px;">
+      <label style="font-size: 0.75rem; font-weight: 700; color: var(--m-text-secondary); white-space: nowrap;">Öğrenci:</label>
+      <select id="m-moe-student-select" class="m-form-select" style="flex: 1; padding: 6px 8px; font-size: 0.82rem; font-weight: 700;" onchange="window.onManualEntryStudentChanged()">
+        <!-- Dinamik Öğrenci Seçimi -->
+      </select>
     </div>
 
-    <!-- Öğrenci Listesi / Not Giriş Alanı (Scrollable) -->
-    <div id="m-weg-students-list" style="flex: 1; overflow-y: auto; padding: 0.4rem 1rem 1rem 1rem;">
-      <!-- Dinamik JS satırları -->
+    <!-- Anlık Canlı Hesaplanan Puan Göstergesi (D, Y, B, Net, Puan) -->
+    <div style="margin: 0.4rem 1rem; padding: 0.5rem 0.75rem; border-radius: var(--m-radius-md); background: var(--m-bg); border: 1px solid var(--m-border); display: flex; align-items: center; justify-content: space-around; text-align: center;">
+      <div>
+        <div style="font-size: 0.65rem; color: var(--m-text-muted); font-weight: 600;">D • Y • B</div>
+        <div id="m-moe-live-dyb" style="font-size: 0.84rem; font-weight: 800; color: var(--m-text);">0 D • 0 Y • 0 B</div>
+      </div>
+      <div style="height: 22px; width: 1px; background: var(--m-border);"></div>
+      <div>
+        <div style="font-size: 0.65rem; color: var(--m-text-muted); font-weight: 600;">Net</div>
+        <div id="m-moe-live-net" style="font-size: 0.86rem; font-weight: 800; color: var(--m-primary);">0.00</div>
+      </div>
+      <div style="height: 22px; width: 1px; background: var(--m-border);"></div>
+      <div>
+        <div style="font-size: 0.65rem; color: var(--m-text-muted); font-weight: 600;">Puan</div>
+        <div id="m-moe-live-score" class="student-card-score" style="font-size: 0.86rem;">0</div>
+      </div>
     </div>
 
-    <!-- Alt Çubuk: Kapat ve Kaydet Butonu -->
+    <!-- Hızlı Eylemler (Temizle) -->
+    <div style="display: flex; align-items: center; justify-content: space-between; padding: 0.2rem 1rem 0.4rem 1rem;">
+      <span id="m-moe-qcount-badge" style="font-size: 0.72rem; color: var(--m-text-muted); font-weight: 600;">0/20 Soru İşaretlendi</span>
+      <button type="button" class="m-btn-sm danger" onclick="window.clearManualEntryForm()" style="font-size: 0.68rem; padding: 3px 8px;">Tümünü Temizle</button>
+    </div>
+
+    <!-- Öğrencinin Optik Baloncukları (Scrollable) -->
+    <div id="m-moe-bubbles-sheet" style="flex: 1; overflow-y: auto; padding: 0.2rem 1rem 1rem 1rem;">
+      <!-- Dinamik Optik Form Satırları -->
+    </div>
+
+    <!-- Alt Kaydet Butonları -->
     <div style="padding: 0.75rem 1rem calc(1.25rem + var(--safe-bottom)) 1rem; border-top: 1px solid var(--m-border); background: var(--m-surface); display: flex; gap: 8px;">
-      <button type="button" class="subview-secondary-btn" onclick="window.closeWeeklyGradingModal()" style="flex: 1;">Kapat</button>
-      <button type="button" class="subview-primary-action-btn" onclick="window.saveWeeklyExamGrades()" style="flex: 2; margin: 0; box-shadow: 0 4px 14px rgba(79, 70, 229, 0.4);">
-        <i data-lucide="check-circle" style="width: 18px; height: 18px;"></i> Sonuçları Kaydet
+      <button type="button" class="subview-secondary-btn" onclick="window.saveManualOpticalEntry(false)" style="flex: 1;">
+        <i data-lucide="check" style="width: 16px; height: 16px;"></i> Kaydet & Kapat
+      </button>
+      <button type="button" class="subview-primary-action-btn" onclick="window.saveManualOpticalEntry(true)" style="flex: 1.5; margin: 0; box-shadow: 0 4px 14px rgba(79, 70, 229, 0.4);">
+        <i data-lucide="arrow-right-circle" style="width: 18px; height: 18px;"></i> Kaydet & Sıradakine Geç
       </button>
     </div>
   </div>
@@ -2139,6 +2286,12 @@
         <div style="font-size: 0.74rem; color: var(--m-text-muted); font-weight: 600; margin-top: 2px;">Cevapları kontrol edin ve kaydedin</div>
       </div>
       <button type="button" class="sheet-close-btn" onclick="window.closeVerificationSheet()">&times;</button>
+    </div>
+
+    <!-- Otomatik Öğrenci Eşleme Bildirim Rozeti -->
+    <div id="m-omr-auto-match-banner" style="display: none; margin: 0.4rem 1rem 0 1rem; padding: 6px 10px; border-radius: var(--m-radius-sm); background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.35); font-size: 0.74rem; font-weight: 800; color: var(--m-success); align-items: center; gap: 6px;">
+      <i data-lucide="check-circle" style="width: 16px; height: 16px;"></i>
+      <span id="m-omr-auto-match-text">Optik Kimlik Kodu ile Öğrenci Otomatik Tanındı</span>
     </div>
 
     <!-- Öğrenci Eşleme Seçimi -->

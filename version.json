@@ -1,14 +1,14 @@
 {
-  "version": "1.0.30",
-  "releaseDate": "2026-09-28",
+  "version": "1.0.31",
+  "releaseDate": "2026-09-30",
   "minRequiredVersion": "1.0.0",
-  "title": "Sınıf Asistanı v1.0.30 Yayında!",
-  "description": "Ders Akışı Entegrasyonu, Gölge Düzeltmeleri, Mobil APK Desteği ve Birleşik Sürüm Altyapısı",
+  "title": "Sınıf Asistanı v1.0.31 Yayında!",
+  "description": "Hazine Sandığı Akıllı Tahta Tam Ekran Modu, Optik Form & OMR Tarayıcı ve Mobil Değerlendirme İyileştirmeleri",
   "features": [
-    "Ders Akışı: Haftalık ders programı, MEB/Excel/AI planları ve ders saatleri sihirbazı içeren 3 sekmeli dikey akış aracı",
-    "Arayüz İyileştirmeleri: Mobil alt gezinme çubuğundaki siyah gölge katmanı kaldırıldı ve akıcı menü geçişleri sağlandı",
-    "Doğrudan Android APK Dağıtımı: Web tanıtım ve masaüstü indirme ekranlarına mobil APK seçeneği eklendi",
-    "Birleşik Sürüm Senkronizasyonu: Masaüstü, Android ve Web sürümleri tek merkezden otomatik eşitlenen akıllı versiyonlama altyapısı"
+    "Hazine Sandığı Tam Ekran Modu: Akıllı tahtalar için devasa soru ekranı, senkronize dairesel geri sayım sayacı ve interaktif kontroller",
+    "Hazine Sandığı Hızlı Kontroller: Tam ekranda süreyi durdurma/başlatma, sıfırlama, doğru cevabı vurgulama ve yeni soru çekme butonları",
+    "Mobil Optik Form & OMR Desteği: Çevrimdışı optik form üretici ve kamera ile anlık haftalık değerlendirme tarayıcısı",
+    "Arayüz ve Performans İyileştirmeleri: Mobil ve masaüstü arayüzlerde kaydırma ve buton etkileşimleri optimize edildi"
   ],
   "release_url": "https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/latest"
 }
