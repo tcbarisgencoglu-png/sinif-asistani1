@@ -65,7 +65,7 @@ jobs:
       - name: Rust önbelleği
         uses: swatinem/rust-cache@v2
         with:
-          workspaces: "./src-tauri -> target"
+          workspaces: "src-tauri"
 
       - name: Linux bağımlılıkları
         if: matrix.platform == 'ubuntu-22.04'
@@ -79,7 +79,10 @@ jobs:
             patchelf
 
       - name: npm bağımlılıklarını yükle
-        run: npm install
+        run: |
+          npm install
+          npx tauri --version || npm install --force -D @tauri-apps/cli
+          npx tauri --version
 
       - name: dist klasörünü hazırla (Linux/Mac)
         if: matrix.platform != 'windows-latest'
@@ -122,10 +125,12 @@ jobs:
           echo "Rust: $(rustc -V)"
           echo "Cargo: $(cargo -V)"
           echo "Tauri CLI test ediliyor..."
-          npx tauri --version || echo "npx tauri --version basarisiz"
+          npx tauri --version
           echo "Derleme baslatiliyor (args: ${{ matrix.args }})..."
+          set +e
           npx tauri build ${{ matrix.args }} --no-sign -v 2>&1 | tee tauri-build.log
           EXIT_CODE=${PIPESTATUS[0]}
+          set -e
           cp tauri-build.log "error-${{ matrix.artifact_name }}.txt"
           if [ $EXIT_CODE -ne 0 ]; then
             echo "### ❌ Tauri Derleme Hatası (${{ matrix.artifact_name }})" >> $GITHUB_STEP_SUMMARY
