@@ -87,8 +87,12 @@ jobs:
           mkdir -p dist
           cp index.html dist/
           cp mobile.html dist/
+          cp manifest.json dist/ || true
+          cp sw.js dist/ || true
+          cp version.json dist/ || true
           cp -r css dist/
           cp -r js dist/
+          cp -r icons dist/ || true
 
       - name: dist klasörünü hazırla (Windows)
         if: matrix.platform == 'windows-latest'
@@ -98,30 +102,38 @@ jobs:
           New-Item -ItemType Directory -Path dist
           Copy-Item index.html dist/
           Copy-Item mobile.html dist/
+          if (Test-Path manifest.json) { Copy-Item manifest.json dist/ }
+          if (Test-Path sw.js) { Copy-Item sw.js dist/ }
+          if (Test-Path version.json) { Copy-Item version.json dist/ }
           Copy-Item -Recurse css dist/
           Copy-Item -Recurse js dist/
+          if (Test-Path icons) { Copy-Item -Recurse icons dist/ }
 
-      - name: Tauri derle (Normal Push)
-        if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+      - name: Tauri derle
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ""
           CI: true
         run: npx tauri build ${{ matrix.args }} --no-sign
 
-      - name: Tauri derle ve Release oluştur (Etiket Push)
-        if: startsWith(github.ref, 'refs/tags/')
-        uses: tauri-apps/tauri-action@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ""
-          CI: true
+      - name: Masaüstü Paketlerini Artifact Olarak Kaydet
+        uses: actions/upload-artifact@v4
         with:
-          tagName: ${{ github.ref_name }}
-          releaseName: "Sınıf Asistanı ${{ github.ref_name }}"
-          releaseBody: |
+          name: ${{ matrix.artifact_name }}
+          path: |
+            src-tauri/target/**/bundle/dmg/*.dmg
+            src-tauri/target/**/bundle/macos/*.app.tar.gz
+            src-tauri/target/**/bundle/nsis/*.exe
+            src-tauri/target/**/bundle/deb/*.deb
+            src-tauri/target/**/bundle/appimage/*.AppImage
+            src-tauri/target/**/bundle/rpm/*.rpm
+          if-no-files-found: warn
+
+      - name: Masaüstü Paketlerini Release'e Yükle (Etiket Push)
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "Sınıf Asistanı ${{ github.ref_name }}"
+          body: |
             ### 🚀 Bu Sürümdeki Yenilikler (${{ github.ref_name }}):
             - 📱 **Mobil Modüler Mimari & Optik Okuma:** Çevrim dışı kamera tabanlı OMR optik form okuyucu ve modüler mobil motor.
             - 🚶‍♂️ **Seri Sıra Gezme (Ödev Takibi):** Masaları gezerken tek dokunuşla ödev kontrolü ve otomatik sonraki öğrenciye geçiş.
@@ -131,9 +143,17 @@ jobs:
 
             ---
             🛡️ **Veri Güvenliği:** Güncelleme yaptığınızda mevcut sınıflarınız, öğrencileriniz, ders programınız ve tüm verileriniz **kesinlikle silinmez, korunur**.
-          releaseDraft: false
+          draft: false
           prerelease: false
-          args: ${{ matrix.args }} --no-sign
+          files: |
+            src-tauri/target/**/bundle/dmg/*.dmg
+            src-tauri/target/**/bundle/macos/*.app.tar.gz
+            src-tauri/target/**/bundle/nsis/*.exe
+            src-tauri/target/**/bundle/deb/*.deb
+            src-tauri/target/**/bundle/appimage/*.AppImage
+            src-tauri/target/**/bundle/rpm/*.rpm
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   build-android:
     name: "Android APK Derle"
@@ -184,6 +204,19 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
+          name: "Sınıf Asistanı ${{ github.ref_name }}"
+          body: |
+            ### 🚀 Bu Sürümdeki Yenilikler (${{ github.ref_name }}):
+            - 📱 **Mobil Modüler Mimari & Optik Okuma:** Çevrim dışı kamera tabanlı OMR optik form okuyucu ve modüler mobil motor.
+            - 🚶‍♂️ **Seri Sıra Gezme (Ödev Takibi):** Masaları gezerken tek dokunuşla ödev kontrolü ve otomatik sonraki öğrenciye geçiş.
+            - ⚡ **Hızlı Dojo & Yoklama:** Mobil ekranda titreşimli geri bildirimle tek dokunuşla puan verme ve yoklama tamamlama.
+            - 🤖 **Android Uygulaması (.apk):** Telefonlara doğrudan indirilip kurulabilen Android paket desteği (`sinif-asistani.apk`).
+            - 🎨 **Masaüstü Arayüz İyileştirmeleri:** Hazine sandığı akıllı tahta tam ekran modu ve canlı ders başlığı düzeltmeleri.
+
+            ---
+            🛡️ **Veri Güvenliği:** Güncelleme yaptığınızda mevcut sınıflarınız, öğrencileriniz, ders programınız ve tüm verileriniz **kesinlikle silinmez, korunur**.
+          draft: false
+          prerelease: false
           files: artifacts/sinif-asistani.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

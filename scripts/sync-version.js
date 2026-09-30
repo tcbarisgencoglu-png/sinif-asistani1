@@ -109,6 +109,19 @@ try {
   results.push({ file: 'src-tauri/Cargo.toml', status: '❌', detail: e.message });
 }
 
+// C2. src-tauri/Cargo.lock
+try {
+  const cargoLockPath = path.join(ROOT_DIR, 'src-tauri', 'Cargo.lock');
+  if (fs.existsSync(cargoLockPath)) {
+    let cargoLock = fs.readFileSync(cargoLockPath, 'utf8');
+    cargoLock = cargoLock.replace(/(name = "sinif-asistani"\s*\nversion = ")[^"]+(")/, `$1${targetVer}$2`);
+    fs.writeFileSync(cargoLockPath, cargoLock, 'utf8');
+    results.push({ file: 'src-tauri/Cargo.lock', status: '✅', detail: `version = "${targetVer}"` });
+  }
+} catch (e) {
+  results.push({ file: 'src-tauri/Cargo.lock', status: '❌', detail: e.message });
+}
+
 // D. android/app/build.gradle
 try {
   if (fs.existsSync(PATHS.androidGradle)) {
