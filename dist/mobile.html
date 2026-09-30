@@ -1623,7 +1623,7 @@
             📱 Sınıf Asistanı Kullanım Kılavuzu
           </div>
           <div style="font-size: 0.75rem; color: var(--m-text-muted); margin-bottom: 1rem;">
-            Versiyon: <strong>v1.0.32</strong> — Geliştirici: <strong>Barış Gençoğlu</strong>
+            Versiyon: <strong>v1.0.33</strong> — Geliştirici: <strong>Barış Gençoğlu</strong>
           </div>
 
           <div style="display: flex; flex-direction: column;">
@@ -2236,7 +2236,23 @@
         <div id="m-omr-exam-title" style="font-size: 0.95rem; font-weight: 800; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Optik Okuyucu</div>
         <div id="m-omr-key-status" style="font-size: 0.7rem; color: #a5b4fc; font-weight: 600;">Cevap Anahtarı Kontrol Ediliyor...</div>
       </div>
-      <button type="button" class="sheet-close-btn" onclick="window.closeMobileOmrScanner()" style="color: #fff; background: rgba(255,255,255,0.15);">&times;</button>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <button type="button" id="m-omr-torch-btn" onclick="window.toggleOmrTorch()" style="display: flex; align-items: center; gap: 4px; padding: 5px 9px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.12); color: #fff; font-size: 0.72rem; font-weight: 700; cursor: pointer;" title="Feneri Aç/Kapat">
+          <i data-lucide="zap" style="width: 14px; height: 14px;"></i>
+          <span id="m-omr-torch-text">Fener</span>
+        </button>
+        <button type="button" class="sheet-close-btn" onclick="window.closeMobileOmrScanner()" style="color: #fff; background: rgba(255,255,255,0.15);">&times;</button>
+      </div>
+    </div>
+
+    <!-- OMR Hassasiyet Ayarı Çubuğu -->
+    <div style="padding: 0.3rem 1rem 0.4rem 1rem; background: #0f172a; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+      <span style="font-size: 0.72rem; font-weight: 700; color: #94a3b8;">Hassasiyet:</span>
+      <div style="display: flex; gap: 5px;">
+        <button type="button" class="m-omr-sens-pill" id="m-omr-sens-low" onclick="window.setOmrSensitivity('low')" style="padding: 3px 8px; border-radius: 12px; font-size: 0.68rem; font-weight: 700; border: 1px solid rgba(255,255,255,0.2); background: transparent; color: #cbd5e1; cursor: pointer;">Tükenmez</button>
+        <button type="button" class="m-omr-sens-pill active" id="m-omr-sens-normal" onclick="window.setOmrSensitivity('normal')" style="padding: 3px 8px; border-radius: 12px; font-size: 0.68rem; font-weight: 700; border: 1px solid #4f46e5; background: #4f46e5; color: #fff; cursor: pointer;">Normal (2B)</button>
+        <button type="button" class="m-omr-sens-pill" id="m-omr-sens-high" onclick="window.setOmrSensitivity('high')" style="padding: 3px 8px; border-radius: 12px; font-size: 0.68rem; font-weight: 700; border: 1px solid rgba(255,255,255,0.2); background: transparent; color: #cbd5e1; cursor: pointer;">Açık/Kurşun</button>
+      </div>
     </div>
 
     <!-- Kamera Canlı Görüntü & Hizalama Çerçevesi -->
@@ -2301,6 +2317,17 @@
       <select id="m-omr-student-select" class="m-form-select" style="flex: 1; padding: 6px 8px; font-size: 0.82rem; font-weight: 700;">
         <!-- Dinamik Öğrenci Seçimi -->
       </select>
+    </div>
+
+    <!-- Taranan Kağıt Görsel Önizleme Butonu & Alanı -->
+    <div style="padding: 0.35rem 1rem 0 1rem;">
+      <button type="button" id="m-omr-toggle-preview-btn" onclick="window.toggleOmrScannedPreview()" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 5px 8px; font-size: 0.72rem; font-weight: 700; background: var(--m-surface-subtle); border: 1px solid var(--m-border); border-radius: var(--m-radius-sm); color: var(--m-text-secondary); cursor: pointer;">
+        <i data-lucide="eye" style="width: 14px; height: 14px;"></i>
+        <span id="m-omr-toggle-preview-text">📷 Taranan Kağıt ve Şıklar Önizlemesi</span>
+      </button>
+      <div id="m-omr-preview-box" style="display: none; margin-top: 6px; text-align: center; background: #000; border-radius: var(--m-radius-sm); overflow: hidden; border: 1px solid var(--m-border); max-height: 220px;">
+        <canvas id="m-omr-result-canvas" style="max-width: 100%; max-height: 220px; display: block; margin: 0 auto; object-fit: contain;"></canvas>
+      </div>
     </div>
 
     <!-- Puan Özeti (D / Y / B / Net / Puan) -->
@@ -4468,6 +4495,12 @@
   <script src="js/license-config.js?v=34"></script>
   <script src="js/state.js?v=34"></script>
   <script src="js/mobile.js?v=34"></script>
+  <script src="js/mobile-books.js?v=34"></script>
+  <script src="js/mobile-games.js?v=34"></script>
+  <script src="js/mobile-tools.js?v=34"></script>
+  <script src="js/mobile-reports.js?v=34"></script>
+  <script src="js/mobile-schedule.js?v=34"></script>
+  <script src="js/mobile-exams.js?v=34"></script>
   <script src="js/mobile-omr.js?v=34"></script>
 
 </body>

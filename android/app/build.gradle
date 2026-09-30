@@ -48,11 +48,8 @@ android {
     }
 }
 
-task copyWebAssets(type: Copy) {
-    from "${project.rootDir}/../dist"
-    into "${projectDir}/src/main/assets"
-}
-preBuild.dependsOn(copyWebAssets)
+// Web assetleri derleme oncesi dist dizininden src/main/assets dizinine sync edilir
+
 
 dependencies {
     implementation 'androidx.appcompat:appcompat:1.6.1'

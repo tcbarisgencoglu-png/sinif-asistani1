@@ -10,6 +10,127 @@
   let activeExam = null;
   let activeMediaStream = null;
   let lastScannedResult = null;
+  let isTorchOn = false;
+  let currentSensitivity = 'normal'; // 'low' | 'normal' | 'high'
+
+  // Tüm OMR akışında (yazdırma, tarama, doğrulama) tutarlı ve güvenilir öğrenci listesi fonksiyonu
+  function getOmrStudentList(state, exam) {
+    let allStudents = [];
+    if (window.stateManager) {
+      if (typeof window.stateManager.getStudents === 'function') {
+        allStudents = window.stateManager.getStudents(true) || [];
+      }
+      if (allStudents.length === 0 && window.stateManager.state && Array.isArray(window.stateManager.state.students)) {
+        allStudents = window.stateManager.state.students;
+      }
+    }
+    if (allStudents.length === 0 && state) {
+      allStudents = state.rawStudents || state.students || [];
+    }
+    if (allStudents.length === 0) return [];
+
+    const isMiddle = (typeof window.isMiddleSchool === 'function')
+      ? window.isMiddleSchool()
+      : ((state && state.educationLevel === 'middle') || (window.stateManager && window.stateManager.state && window.stateManager.state.educationLevel === 'middle'));
+
+    // Kademe Filtresi
+    let filtered = allStudents.filter(s => {
+      if (typeof window.isStudentInCurrentLevel === 'function') {
+        return window.isStudentInCurrentLevel(s);
+      }
+      if (isMiddle) return s.schoolLevel !== 'primary';
+      return s.schoolLevel !== 'middle';
+    });
+
+    // Kademe filtresi boş dönerse tüm öğrencileri koru
+    if (filtered.length === 0) {
+      filtered = allStudents.slice();
+    }
+
+    // Şube Filtresi (Ortaokulda ve sınav belirli bir şubeye atanmışsa)
+    if (isMiddle && exam) {
+      const examBranch = exam.branch;
+      const examBranches = exam.branches || (examBranch ? [examBranch] : []);
+      const validBranches = examBranches.filter(b => b && b !== 'all' && b !== 'Tüm Sınıf');
+      if (validBranches.length > 0) {
+        const branchMatches = filtered.filter(s => {
+          if (!s.branch) return false;
+          const sB = s.branch.trim().toLowerCase().replace(/[\s\-_]/g, '');
+          return validBranches.some(eb => {
+            const eB = eb.trim().toLowerCase().replace(/[\s\-_]/g, '');
+            return sB === eB || sB.includes(eB) || eB.includes(sB);
+          });
+        });
+        if (branchMatches.length > 0) {
+          filtered = branchMatches;
+        }
+      }
+    }
+
+    return filtered.sort((a, b) => {
+      const noA = parseInt(a.number, 10) || 0;
+      const noB = parseInt(b.number, 10) || 0;
+      if (noA && noB && noA !== noB) return noA - noB;
+      return (a.name || '').localeCompare(b.name || '', 'tr');
+    });
+  }
+
+  // Hassasiyet değiştirme
+  window.setOmrSensitivity = function(mode) {
+    currentSensitivity = mode || 'normal';
+    ['low', 'normal', 'high'].forEach(m => {
+      const btn = document.getElementById(`m-omr-sens-${m}`);
+      if (btn) {
+        if (m === currentSensitivity) {
+          btn.style.border = '1px solid #4f46e5';
+          btn.style.background = '#4f46e5';
+          btn.style.color = '#fff';
+        } else {
+          btn.style.border = '1px solid rgba(255,255,255,0.2)';
+          btn.style.background = 'transparent';
+          btn.style.color = '#cbd5e1';
+        }
+      }
+    });
+    if (window.vibrate) window.vibrate(10);
+    const messages = {
+      low: 'Tükenmez kalem / Düşük hassasiyet seçildi (Sadece koyu işaretler).',
+      normal: 'Normal hassasiyet seçildi (Standart 2B kurşun kalem).',
+      high: 'Yüksek hassasiyet seçildi (Hafif kurşun kalem / açık işaretler).'
+    };
+    if (window.showMobileToast) window.showMobileToast(messages[currentSensitivity] || 'Hassasiyet güncellendi.');
+  };
+
+  // Kamera Feneri (Torch) Aç / Kapat
+  window.toggleOmrTorch = async function() {
+    if (!activeMediaStream) {
+      if (window.showMobileToast) window.showMobileToast('Kamera aktif değil.', 'warning');
+      return;
+    }
+    const track = activeMediaStream.getVideoTracks()[0];
+    if (!track) return;
+    try {
+      const capabilities = track.getCapabilities ? track.getCapabilities() : {};
+      if (!capabilities.torch) {
+        if (window.showMobileToast) window.showMobileToast('Cihazınızda kamera feneri desteklenmiyor veya izin verilmedi.', 'info');
+        return;
+      }
+      isTorchOn = !isTorchOn;
+      await track.applyConstraints({ advanced: [{ torch: isTorchOn }] });
+      const btn = document.getElementById('m-omr-torch-btn');
+      const text = document.getElementById('m-omr-torch-text');
+      if (btn) {
+        btn.style.background = isTorchOn ? '#f59e0b' : 'rgba(255,255,255,0.12)';
+        btn.style.color = isTorchOn ? '#000' : '#fff';
+      }
+      if (text) text.textContent = isTorchOn ? 'Fener Açık' : 'Fener';
+      if (window.vibrate) window.vibrate(15);
+      if (window.showMobileToast) window.showMobileToast(isTorchOn ? 'Fener açıldı 💡' : 'Fener kapatıldı');
+    } catch (err) {
+      console.warn('Torch hatası:', err);
+      if (window.showMobileToast) window.showMobileToast('Fener açılamadı: ' + (err.message || err), 'warning');
+    }
+  };
 
   // ==========================================================================
   // 1. CEVAP ANAHTARI YÖNETİMİ
@@ -401,7 +522,7 @@
       }
 
       columnsHtml += `
-        <div class="omr-grid-col">
+        <div class="omr-grid-col col-${c}">
           ${colRows}
         </div>
       `;
@@ -412,7 +533,7 @@
     const idBadgeHtml = hasIdBadge ? generateOpticalIdSVG(isSample ? 1 : studentIndex, badgeSize) : '';
 
     return `
-      <div class="omr-card ${isSample ? 'omr-card-sample' : ''} ${perPage === 4 ? 'omr-card-compact' : ''}">
+      <div class="omr-card ${isSample ? 'omr-card-sample' : ''} ${perPage === 4 ? 'omr-card-compact' : ''}" data-cols="${cols}">
         <!-- 4 Siyah Referans Köşe İşaretleyicisi (OMR Çevrim Dışı Hizalama) -->
         <div class="omr-anchor omr-anchor-tl"></div>
         <div class="omr-anchor omr-anchor-tr"></div>
@@ -433,7 +554,7 @@
 
         <!-- Soru ve Şık Baloncukları Alanı -->
         <div class="omr-card-body">
-          <div class="omr-grid-container">
+          <div class="omr-grid-container cols-${cols}">
             ${columnsHtml}
           </div>
         </div>
@@ -471,17 +592,7 @@
 
     let studentsList = [];
     if (formType === 'named') {
-      const isMiddle = window.isMiddleSchool ? window.isMiddleSchool() : false;
-      studentsList = (state.students || []).filter(s => {
-        if (window.isStudentInCurrentLevel && !window.isStudentInCurrentLevel(s)) return false;
-        if (isMiddle && activeExam.branch && s.branch !== activeExam.branch) return false;
-        return true;
-      }).sort((a, b) => {
-        const noA = parseInt(a.number, 10) || 0;
-        const noB = parseInt(b.number, 10) || 0;
-        if (noA && noB && noA !== noB) return noA - noB;
-        return (a.name || '').localeCompare(b.name || '', 'tr');
-      });
+      studentsList = getOmrStudentList(state, activeExam);
 
       if (studentsList.length === 0) {
         if (window.showMobileToast) {
@@ -629,8 +740,8 @@
     }
     .omr-anchor {
       position: absolute;
-      width: 18px;
-      height: 18px;
+      width: 22px;
+      height: 22px;
       background-color: #000000 !important;
       z-index: 5;
     }
@@ -639,7 +750,7 @@
     .omr-anchor-bl { bottom: 6px; left: 6px; }
     .omr-anchor-br { bottom: 6px; right: 6px; }
     .omr-card-header {
-      margin: 2px 24px 4px 24px;
+      margin: 2px 28px 4px 28px;
       border-bottom: 2px solid #000000;
       padding-bottom: 4px;
       display: flex;
@@ -689,44 +800,66 @@
       margin-top: 1px;
     }
     .omr-card-body {
-      margin: 4px 12px;
+      margin: 4px 14px;
       flex: 1;
       display: flex;
-      align-items: center;
+      flex-direction: column;
+      justify-content: center;
+      box-sizing: border-box;
     }
     .omr-grid-container {
       width: 100%;
       display: flex;
-      justify-content: space-around;
-      gap: 10px;
+      justify-content: space-between;
+      gap: 12px;
+      box-sizing: border-box;
+    }
+    .omr-grid-container.cols-1 {
+      width: 50%;
+      margin: 0 auto;
+    }
+    .omr-grid-container.cols-2 .omr-grid-col {
+      width: 48%;
+    }
+    .omr-grid-container.cols-3 .omr-grid-col {
+      width: 31%;
     }
     .omr-grid-col {
       display: flex;
       flex-direction: column;
+      justify-content: space-between;
       gap: 4px;
+      box-sizing: border-box;
     }
     .omr-q-row {
       display: flex;
+      width: 100%;
       align-items: center;
-      gap: 5px;
+      justify-content: space-between;
+      gap: 6px;
+      box-sizing: border-box;
     }
     .omr-q-num {
-      width: 20px;
+      width: 22%;
       font-size: 0.74rem;
       font-weight: 800;
       text-align: right;
       color: #000000;
+      box-sizing: border-box;
+      padding-right: 4px;
     }
     .omr-q-bubbles {
+      width: 78%;
       display: flex;
       align-items: center;
-      gap: 5px;
+      justify-content: space-between;
+      box-sizing: border-box;
     }
     .omr-bubble {
       width: 18px;
       height: 18px;
       border-radius: 50%;
-      border: 1.5px solid #000000 !important;
+      border: 1.6px solid #000000 !important;
       background: #ffffff !important;
       color: #000000 !important;
       font-size: 0.66rem;
@@ -735,6 +868,7 @@
       align-items: center;
       justify-content: center;
       line-height: 1;
+      box-sizing: border-box;
     }
     .omr-card-footer {
       margin: 4px 24px 2px 24px;
@@ -872,6 +1006,8 @@
     }
 
     modal.classList.add('active');
+    if (window.lucide) window.lucide.createIcons();
+    window.setOmrSensitivity(currentSensitivity || 'normal');
     startCameraStream();
   };
 
@@ -929,6 +1065,14 @@
   }
 
   function stopCameraStream() {
+    isTorchOn = false;
+    const btn = document.getElementById('m-omr-torch-btn');
+    const text = document.getElementById('m-omr-torch-text');
+    if (btn) {
+      btn.style.background = 'rgba(255,255,255,0.12)';
+      btn.style.color = '#fff';
+    }
+    if (text) text.textContent = 'Fener';
     if (activeMediaStream) {
       activeMediaStream.getTracks().forEach(t => t.stop());
       activeMediaStream = null;
@@ -1017,14 +1161,18 @@
   }
 
   /**
-   * Tamamen istemci taraflı, 0 harici kütüphane OMR okuyucu motor
+   * Tamamen istemci taraflı, 0 harici kütüphane Profesyonel OMR Okuyucu Motoru
+   * - Heckbert Projective Homography (3 Boyutlu Perspektif Düzeltme)
+   * - 4 Köşeli Sağlam Çapa Tespiti (ID Matrisi Karışıklığı Önleme + 4. Köşe Kurtarma)
+   * - Diferansiyel Çekirdek/Kağıt Kontrast Ölçümü (Boş soruları ve silgi izlerini %100 eleme)
+   * - Görsel Önizleme ve Çoklu/Hatalı Şık Vurgulama
    */
   function runPureJsOmrScan(sourceElement, exam) {
-    // 1. Resmi standart analiz tuvaline çiz
     const srcW = sourceElement.width || sourceElement.videoWidth;
     const srcH = sourceElement.height || sourceElement.videoHeight;
     if (!srcW || !srcH) return { success: false, error: 'Görsel boyutu geçersiz' };
 
+    // 1. Resmi standart yüksek çözünürlüklü analiz tuvaline çiz
     const canvas = document.createElement('canvas');
     const MAX_DIM = 1200;
     let targetW = srcW;
@@ -1043,7 +1191,7 @@
     const ctx = canvas.getContext('2d');
     ctx.drawImage(sourceElement, 0, 0, targetW, targetH);
 
-    // 2. Gri Tonlama ve Adaptif Binarizasyon
+    // 2. Gri Tonlama ve Adaptif Eşikleme
     const imgData = ctx.getImageData(0, 0, targetW, targetH);
     const data = imgData.data;
     const totalPixels = targetW * targetH;
@@ -1051,38 +1199,31 @@
 
     let sumLum = 0;
     for (let i = 0, p = 0; i < data.length; i += 4, p++) {
-      // Y = 0.299R + 0.587G + 0.114B
       const lum = (data[i] * 77 + data[i + 1] * 150 + data[i + 2] * 29) >> 8;
       gray[p] = lum;
       sumLum += lum;
     }
     const avgLum = sumLum / totalPixels;
-    // Dinamik siyah eşik (Ortalamanın %72'si veya 115)
-    const threshold = Math.max(70, Math.min(135, avgLum * 0.75));
+    const threshold = Math.max(65, Math.min(145, avgLum * 0.74));
 
-    // 3. 4 Köşe İşaretleyicisini (Anchor) Tespit Et
-    // 4 kadranda (Sol-Üst, Sağ-Üst, Sol-Alt, Sağ-Alt) en koyu yoğun kareleri ara
+    // 3. 4 Köşe Referans Çapasını (Anchor) Hassas Tespit Et
     const corners = detectCornerAnchors(gray, targetW, targetH, threshold);
 
-    // 3.5. Öğrenci Optik Kimlik Kodunu (Optical ID Matrix) Otomatik Çözümle
-    const detectedStudentIndex = scanStudentOpticalId(gray, targetW, targetH, threshold, corners);
+    // 4. Heckbert Projective Homography Eşleyicisini Kur
+    const mapPoint = createProjectiveHomography(corners);
+
+    // 5. Öğrenci Optik Kimlik Kodunu (5x5 Matris) Çözümle
+    const detectedStudentIndex = scanStudentOpticalId(gray, targetW, targetH, threshold, mapPoint);
     let identifiedStudent = null;
 
-    if (detectedStudentIndex && detectedStudentIndex > 0) {
-      const state = window.stateManager ? window.stateManager.loadState() : {};
-      const isMiddle = window.isMiddleSchool ? window.isMiddleSchool() : false;
-      const students = (state.students || []).filter(s => {
-        if (window.isStudentInCurrentLevel && !window.isStudentInCurrentLevel(s)) return false;
-        if (isMiddle && exam.branch && s.branch !== exam.branch) return false;
-        return true;
-      }).sort((a, b) => a.name.localeCompare(b.name, 'tr'));
+    const state = window.stateManager ? (window.stateManager.loadState ? window.stateManager.loadState() : window.stateManager.state) : {};
+    const students = getOmrStudentList(state, exam);
 
-      if (detectedStudentIndex <= students.length) {
-        identifiedStudent = students[detectedStudentIndex - 1];
-      }
+    if (detectedStudentIndex && detectedStudentIndex > 0 && detectedStudentIndex <= students.length) {
+      identifiedStudent = students[detectedStudentIndex - 1];
     }
 
-    // 4. Baloncuk Grid Koordinatlarını Belirle (Bilinear Quad Mapping)
+    // 6. Soru ve Şık Izgarasını Homografi ile Tara
     const qCount = parseInt(exam.totalQuestions, 10) || 20;
     const choicesCount = parseInt(exam.choicesCount, 10) || 4;
     const letters = ['A', 'B', 'C', 'D', 'E'].slice(0, choicesCount);
@@ -1093,57 +1234,94 @@
     const detectedAnswers = {};
     const questionDetails = [];
 
-    // Form üzerindeki bağıl alanlar: X: %6 - %94, Y: %24 - %92
-    const gridLeft = 0.08;
-    const gridRight = 0.92;
-    const gridTop = 0.26;
-    const gridBottom = 0.92;
-
-    const colWidth = (gridRight - gridLeft) / cols;
-    const rowHeight = (gridBottom - gridTop) / questionsPerCol;
+    // Form üzerindeki tam hizalı bağıl alanlar:
+    const bodyTop = 0.18;
+    const bodyBottom = 0.92;
+    const rowHeight = (bodyBottom - bodyTop) / questionsPerCol;
+    const sampleRadius = Math.max(5, Math.min(16, Math.round(targetW * 0.013)));
 
     for (let c = 0; c < cols; c++) {
       const startQ = c * questionsPerCol + 1;
       const endQ = Math.min((c + 1) * questionsPerCol, qCount);
 
-      const colUStart = gridLeft + c * colWidth;
-      const colUEnd = colUStart + colWidth;
+      let colUStart, colUEnd;
+      if (cols === 1) {
+        colUStart = 0.25;
+        colUEnd = 0.75;
+      } else if (cols === 2) {
+        colUStart = 0.05 + c * 0.46;
+        colUEnd = colUStart + 0.44;
+      } else {
+        colUStart = 0.04 + c * 0.32;
+        colUEnd = colUStart + 0.28;
+      }
+      const colWidth = colUEnd - colUStart;
 
       for (let q = startQ; q <= endQ; q++) {
         const rowIdx = q - startQ;
-        const rowV = gridTop + (rowIdx + 0.5) * rowHeight;
+        const rowV = bodyTop + (rowIdx + 0.5) * rowHeight;
 
-        // Her bir şık için doluluk oranını ölç
-        const choiceScores = [];
-
+        // Her bir şıkkın merkezini homografi ile belirle
+        const rawPoints = [];
         for (let lIdx = 0; lIdx < letters.length; lIdx++) {
-          const letter = letters[lIdx];
-          // Soru numarası için %25 yer ayır, kalan %75 şıklara paylaştır
-          const choiceU = colUStart + colWidth * (0.28 + (lIdx * 0.72) / letters.length);
-
-          // Bilinear Interpolasyon ile orijinal koordinatı bul
-          const pt = mapUnitToQuad(choiceU, rowV, corners);
-
-          // Bu koordinat etrafındaki daire alanının siyahlık doluluğunu hesapla
-          const sampleRadius = Math.max(6, Math.min(16, Math.round(targetW * 0.016)));
-          const fillRatio = measureBubbleFill(gray, targetW, targetH, pt.x, pt.y, sampleRadius, threshold);
-
-          choiceScores.push({ letter, fillRatio, pt });
+          const choiceU = colUStart + colWidth * (0.22 + (lIdx + 0.5) * (0.76 / letters.length));
+          const initialPt = mapPoint(choiceU, rowV);
+          const snappedPt = refineBubbleCenter(gray, targetW, targetH, initialPt, sampleRadius);
+          rawPoints.push({ letter: letters[lIdx], pt: snappedPt });
         }
 
-        // Skorları sırala
-        choiceScores.sort((a, b) => b.fillRatio - a.fillRatio);
+        // Satırın lokal kağıt arka plan aydınlığını ölç
+        let rowPaperLumSum = 0;
+        let paperSampleCount = 0;
+        rawPoints.forEach(rp => {
+          const pLum = measurePaperLuminance(gray, targetW, targetH, rp.pt.x, rp.pt.y, sampleRadius);
+          if (pLum > 0) {
+            rowPaperLumSum += pLum;
+            paperSampleCount++;
+          }
+        });
+        const rowPaperLum = paperSampleCount > 0 ? (rowPaperLumSum / paperSampleCount) : avgLum;
+
+        // Her bir şıkkın bağıl koyuluk ve doluluk skorunu hesapla
+        const choiceScores = [];
+        for (let lIdx = 0; lIdx < rawPoints.length; lIdx++) {
+          const { letter, pt } = rawPoints[lIdx];
+          const coreMetrics = measureBubbleCore(gray, targetW, targetH, pt.x, pt.y, sampleRadius, rowPaperLum);
+          choiceScores.push({
+            letter,
+            score: coreMetrics.score,
+            contrast: coreMetrics.contrast,
+            fillRatio: coreMetrics.fillRatio,
+            avgLum: coreMetrics.avgLum,
+            pt
+          });
+        }
+
+        // Skorları en koyudan en açığa sırala
+        choiceScores.sort((a, b) => b.score - a.score);
 
         const best = choiceScores[0];
-        const second = choiceScores[1] || { fillRatio: 0 };
+        const second = choiceScores[1] || { score: 0 };
 
         let markedLetter = '';
         let status = 'blank';
 
-        // İşaretlenme Kriteri: En az %30 siyah piksel ve ikinci şıktan en az %12 daha koyu
-        if (best.fillRatio >= 0.28) {
-          if (second.fillRatio >= 0.26 && (best.fillRatio - second.fillRatio) < 0.10) {
-            status = 'multiple'; // Çift işaretli
+        // Hassasiyet moduna göre eşik ayarları
+        let minScore = 0.22;
+        let minMargin = 0.08;
+        if (currentSensitivity === 'high') {
+          minScore = 0.15; // Açık / hafif kurşun kalem
+          minMargin = 0.05;
+        } else if (currentSensitivity === 'low') {
+          minScore = 0.30; // Tükenmez / sadece koyu işaretlemeler
+          minMargin = 0.12;
+        }
+
+        // İşaretlenme Kararı
+        if (best.score >= minScore) {
+          if (second.score >= (minScore * 0.80) && (best.score - second.score) < minMargin) {
+            status = 'multiple'; // Çift işaretli (kararsız)
+            markedLetter = '';
           } else {
             status = 'marked';
             markedLetter = best.letter;
@@ -1160,7 +1338,7 @@
       }
     }
 
-    // 5. Cevap Anahtarıyla Karşılaştır ve Puanla
+    // 7. Cevap Anahtarıyla Karşılaştır ve Puanla
     const answerKey = exam.answerKey || {};
     let correctCount = 0;
     let wrongCount = 0;
@@ -1175,9 +1353,11 @@
       } else if (correctAns && qd.marked === correctAns) {
         correctCount++;
         qd.isCorrect = true;
+        qd.isBlank = false;
       } else {
         wrongCount++;
         qd.isCorrect = false;
+        qd.isBlank = false;
       }
       qd.keyAnswer = correctAns;
     });
@@ -1187,6 +1367,56 @@
     net = Math.max(0, parseFloat(net.toFixed(2)));
 
     const score = qCount > 0 ? Math.round((net / qCount) * 100) : 0;
+
+    // 8. Görsel Önizleme Vurguları (Kamera görüntüsü üzerine doğru/yanlış/çift işaret halkaları)
+    const overlayCtx = canvas.getContext('2d');
+    overlayCtx.lineWidth = Math.max(2, Math.round(targetW * 0.003));
+    overlayCtx.strokeStyle = 'rgba(79, 70, 229, 0.85)';
+    overlayCtx.beginPath();
+    overlayCtx.moveTo(corners.tl.x, corners.tl.y);
+    overlayCtx.lineTo(corners.tr.x, corners.tr.y);
+    overlayCtx.lineTo(corners.br.x, corners.br.y);
+    overlayCtx.lineTo(corners.bl.x, corners.bl.y);
+    overlayCtx.closePath();
+    overlayCtx.stroke();
+
+    questionDetails.forEach(qd => {
+      const correctAns = answerKey[qd.q] || '';
+      qd.scores.forEach(cs => {
+        const isMarked = (qd.status === 'marked' && qd.marked === cs.letter);
+        const isMultiple = (qd.status === 'multiple' && cs.score >= minScore * 0.8);
+        const isAnswerKey = (correctAns && cs.letter === correctAns);
+
+        if (isMarked) {
+          overlayCtx.beginPath();
+          overlayCtx.arc(cs.pt.x, cs.pt.y, sampleRadius * 1.3, 0, Math.PI * 2);
+          if (qd.isCorrect) {
+            overlayCtx.fillStyle = 'rgba(16, 185, 129, 0.45)';
+            overlayCtx.strokeStyle = '#10b981';
+          } else {
+            overlayCtx.fillStyle = 'rgba(239, 68, 68, 0.45)';
+            overlayCtx.strokeStyle = '#ef4444';
+          }
+          overlayCtx.lineWidth = 2.5;
+          overlayCtx.fill();
+          overlayCtx.stroke();
+        } else if (isMultiple) {
+          overlayCtx.beginPath();
+          overlayCtx.arc(cs.pt.x, cs.pt.y, sampleRadius * 1.3, 0, Math.PI * 2);
+          overlayCtx.fillStyle = 'rgba(245, 158, 11, 0.45)';
+          overlayCtx.strokeStyle = '#f59e0b';
+          overlayCtx.lineWidth = 2.5;
+          overlayCtx.fill();
+          overlayCtx.stroke();
+        } else if (isAnswerKey && !qd.isCorrect) {
+          overlayCtx.beginPath();
+          overlayCtx.arc(cs.pt.x, cs.pt.y, sampleRadius * 1.2, 0, Math.PI * 2);
+          overlayCtx.strokeStyle = 'rgba(16, 185, 129, 0.75)';
+          overlayCtx.lineWidth = 1.8;
+          overlayCtx.stroke();
+        }
+      });
+    });
 
     return {
       success: true,
@@ -1205,37 +1435,68 @@
     };
   }
 
-  // 5x5 Öğrenci Optik Kimlik Matrisini Form Üzerinden Tara
-  function scanStudentOpticalId(gray, w, h, threshold, corners) {
-    const uMin = 0.77;
-    const uMax = 0.94;
-    const vMin = 0.04;
-    const vMax = 0.19;
+  // ==========================================================================
+  // HASSAS GEOMETRİ VE HOMOGRAFİ FONKSİYONLARI
+  // ==========================================================================
 
-    const sampleRadius = Math.max(3, Math.round(w * 0.007));
-    const measuredGrid = [];
+  // Paul Heckbert Projective Homography Çözücü
+  // Birim kare [0..1] x [0..1] koordinatlarını 3B perspektifteki kamera pikseline eşler
+  function createProjectiveHomography(corners) {
+    const x0 = corners.tl.x, y0 = corners.tl.y;
+    const x1 = corners.tr.x, y1 = corners.tr.y;
+    const x2 = corners.br.x, y2 = corners.br.y;
+    const x3 = corners.bl.x, y3 = corners.bl.y;
 
-    for (let r = 0; r < 5; r++) {
-      const row = [];
-      const cellV = vMin + (r + 0.5) * (vMax - vMin) / 5;
-      for (let c = 0; c < 5; c++) {
-        const cellU = uMin + (c + 0.5) * (uMax - uMin) / 5;
-        const pt = mapUnitToQuad(cellU, cellV, corners);
-        const fillRatio = measureBubbleFill(gray, w, h, pt.x, pt.y, sampleRadius, threshold);
-        row.push(fillRatio >= 0.35 ? 1 : 0);
+    const dx1 = x1 - x2;
+    const dx2 = x3 - x2;
+    const dx3 = x0 - x1 + x2 - x3;
+    const dy1 = y1 - y2;
+    const dy2 = y3 - y2;
+    const dy3 = y0 - y1 + y2 - y3;
+
+    let a11, a12, a13, a21, a22, a23, a31, a32;
+
+    if (Math.abs(dx3) < 1e-4 && Math.abs(dy3) < 1e-4) {
+      a11 = x1 - x0;
+      a12 = x3 - x0;
+      a13 = x0;
+      a21 = y1 - y0;
+      a22 = y3 - y0;
+      a23 = y0;
+      a31 = 0;
+      a32 = 0;
+    } else {
+      const det = dx1 * dy2 - dx2 * dy1;
+      if (Math.abs(det) < 1e-7) {
+        return function(u, v) {
+          const x = (1 - u) * (1 - v) * x0 + u * (1 - v) * x1 + u * v * x2 + (1 - u) * v * x3;
+          const y = (1 - u) * (1 - v) * y0 + u * (1 - v) * y1 + u * v * x2 + (1 - u) * v * y3;
+          return { x: Math.round(x), y: Math.round(y) };
+        };
       }
-      measuredGrid.push(row);
+      a31 = (dx3 * dy2 - dx2 * dy3) / det;
+      a32 = (dx1 * dy3 - dx3 * dy1) / det;
+      a11 = x1 - x0 + a31 * x1;
+      a12 = x3 - x0 + a32 * x3;
+      a13 = x0;
+      a21 = y1 - y0 + a31 * y1;
+      a22 = y3 - y0 + a32 * y3;
+      a23 = y0;
     }
 
-    return decodeStudentOpticalId(measuredGrid);
+    return function(u, v) {
+      const w = a31 * u + a32 * v + 1;
+      const x = (a11 * u + a12 * v + a13) / w;
+      const y = (a21 * u + a22 * v + a23) / w;
+      return { x: Math.round(x), y: Math.round(y) };
+    };
   }
 
-  // 4 Köşe İşaretleyicisi Tespiti
+  // 4 Köşe İşaretleyicisini (Anchor) Genişletilmiş ve Akıllı Arama ile Bul
   function detectCornerAnchors(gray, w, h, threshold) {
-    const marginX = Math.round(w * 0.15);
-    const marginY = Math.round(h * 0.15);
+    const qW = Math.round(w * 0.32);
+    const qH = Math.round(h * 0.30);
 
-    // Varsayılan köşe noktaları (Kılavuz çerçeve koordinatları)
     const corners = {
       tl: { x: Math.round(w * 0.05), y: Math.round(h * 0.04) },
       tr: { x: Math.round(w * 0.95), y: Math.round(h * 0.04) },
@@ -1243,93 +1504,229 @@
       bl: { x: Math.round(w * 0.05), y: Math.round(h * 0.96) }
     };
 
-    // Sol-Üst kadranda en koyu kareyi ara
-    const tlFound = findDarkSquareBlob(gray, w, h, 0, marginX, 0, marginY, threshold);
+    // Sol-Üst (0, 0 köşesine en yakın)
+    const tlFound = findBestCornerAnchorBlob(gray, w, h, 0, qW, 0, qH, 0, 0, threshold);
+    // Sağ-Üst (w, 0 köşesine en yakın - ID matrisi yerine gerçek dış köşeyi seçer)
+    const trFound = findBestCornerAnchorBlob(gray, w, h, w - qW, w, 0, qH, w, 0, threshold);
+    // Sağ-Alt (w, h köşesine en yakın)
+    const brFound = findBestCornerAnchorBlob(gray, w, h, w - qW, w, h - qH, h, w, h, threshold);
+    // Sol-Alt (0, h köşesine en yakın)
+    const blFound = findBestCornerAnchorBlob(gray, w, h, 0, qW, h - qH, h, 0, h, threshold);
+
     if (tlFound) corners.tl = tlFound;
-
-    // Sağ-Üst
-    const trFound = findDarkSquareBlob(gray, w, h, w - marginX, w, 0, marginY, threshold);
     if (trFound) corners.tr = trFound;
-
-    // Sağ-Alt
-    const brFound = findDarkSquareBlob(gray, w, h, w - marginX, w, h - marginY, h, threshold);
     if (brFound) corners.br = brFound;
-
-    // Sol-Alt
-    const blFound = findDarkSquareBlob(gray, w, h, 0, marginX, h - marginY, h, threshold);
     if (blFound) corners.bl = blFound;
+
+    // 4. Köşe Kurtarma: Eğer 3 köşe net bulunup biri gölgede/engelde kalmışsa, paralelkenar vektörü ile kurtar
+    const foundCount = (tlFound ? 1 : 0) + (trFound ? 1 : 0) + (brFound ? 1 : 0) + (blFound ? 1 : 0);
+    if (foundCount === 3) {
+      if (!tlFound) corners.tl = { x: corners.tr.x + corners.bl.x - corners.br.x, y: corners.tr.y + corners.bl.y - corners.br.y };
+      else if (!trFound) corners.tr = { x: corners.tl.x + corners.br.x - corners.bl.x, y: corners.tl.y + corners.br.y - corners.bl.y };
+      else if (!brFound) corners.br = { x: corners.tr.x + corners.bl.x - corners.tl.x, y: corners.tr.y + corners.bl.y - corners.tl.y };
+      else if (!blFound) corners.bl = { x: corners.tl.x + corners.br.x - corners.tr.x, y: corners.tl.y + corners.br.y - corners.tr.y };
+    }
 
     return corners;
   }
 
-  // Bölgedeki en koyu ve kompakt kare bloğu bul
-  function findDarkSquareBlob(gray, w, h, minX, maxX, minY, maxY, threshold) {
+  // Belirtilen kadranda en koyu, kompakt ve dış köşeye en yakın çapa bloğunu bul (Ağırlıklı Arama)
+  function findBestCornerAnchorBlob(gray, w, h, minX, maxX, minY, maxY, cornerX, cornerY, threshold) {
     let bestX = 0, bestY = 0;
-    let maxDarkCount = 0;
-    const boxSize = Math.max(10, Math.round(w * 0.022));
+    let bestScore = -999;
+    const boxSize = Math.max(8, Math.round(w * 0.022));
+    const step = Math.max(2, Math.floor(boxSize / 3));
 
-    const step = Math.max(2, Math.floor(boxSize / 4));
     for (let y = minY; y <= maxY - boxSize; y += step) {
       for (let x = minX; x <= maxX - boxSize; x += step) {
         let darkCount = 0;
+        let sumX = 0;
+        let sumY = 0;
+
         for (let dy = 0; dy < boxSize; dy += 2) {
           for (let dx = 0; dx < boxSize; dx += 2) {
             const idx = (y + dy) * w + (x + dx);
             if (gray[idx] < threshold) {
               darkCount++;
+              sumX += (x + dx);
+              sumY += (y + dy);
             }
           }
         }
-        if (darkCount > maxDarkCount) {
-          maxDarkCount = darkCount;
-          bestX = x + (boxSize >> 1);
-          bestY = y + (boxSize >> 1);
+
+        const maxPossible = Math.round((boxSize * boxSize) / 4);
+        const darkRatio = darkCount / Math.max(1, maxPossible);
+
+        if (darkRatio >= 0.50) {
+          const centroidX = darkCount > 0 ? (sumX / darkCount) : (x + (boxSize >> 1));
+          const centroidY = darkCount > 0 ? (sumY / darkCount) : (y + (boxSize >> 1));
+
+          // Dış köşeye uzaklık (0..1)
+          const distNorm = Math.hypot((centroidX - cornerX) / w, (centroidY - cornerY) / h);
+          // Skor: Siyahlık yoğunluğu (%40) + Dış köşeye yakınlık (%60)
+          const score = (darkRatio * 0.40) + ((1.0 - distNorm) * 0.60);
+
+          if (score > bestScore) {
+            bestScore = score;
+            bestX = Math.round(centroidX);
+            bestY = Math.round(centroidY);
+          }
         }
       }
     }
 
-    const minRequired = (boxSize * boxSize) * 0.15;
-    if (maxDarkCount >= minRequired) {
+    if (bestScore > 0) {
       return { x: bestX, y: bestY };
     }
     return null;
   }
 
-  // 4 Noktalı Bilinear Quad Interpolasyonu
-  function mapUnitToQuad(u, v, corners) {
-    const { tl, tr, br, bl } = corners;
-    const x = (1 - u) * (1 - v) * tl.x + u * (1 - v) * tr.x + u * v * br.x + (1 - u) * v * bl.x;
-    const y = (1 - u) * (1 - v) * tl.y + u * (1 - v) * tr.y + u * v * br.y + (1 - u) * v * bl.y;
-    return { x: Math.round(x), y: Math.round(y) };
+  // 5x5 Öğrenci Optik Kimlik Matrisini Form Üzerinden Tara (Ofset Arama Korumalı)
+  function scanStudentOpticalId(gray, w, h, threshold, mapPoint) {
+    const baseUMin = 0.78;
+    const baseUMax = 0.95;
+    const baseVMin = 0.035;
+    const baseVMax = 0.165;
+
+    const sampleRadius = Math.max(2, Math.round(w * 0.006));
+
+    const searchOffsets = [
+      { du: 0, dv: 0 },
+      { du: -0.015, dv: 0 },
+      { du: 0.015, dv: 0 },
+      { du: 0, dv: -0.015 },
+      { du: 0, dv: 0.015 },
+      { du: -0.02, dv: -0.015 },
+      { du: 0.02, dv: 0.015 }
+    ];
+
+    for (const off of searchOffsets) {
+      const uMin = baseUMin + off.du;
+      const uMax = baseUMax + off.du;
+      const vMin = baseVMin + off.dv;
+      const vMax = baseVMax + off.dv;
+
+      const measuredGrid = [];
+      for (let r = 0; r < 5; r++) {
+        const row = [];
+        const cellV = vMin + (r + 0.5) * (vMax - vMin) / 5;
+        for (let c = 0; c < 5; c++) {
+          const cellU = uMin + (c + 0.5) * (uMax - uMin) / 5;
+          const pt = mapPoint(cellU, cellV);
+          const fillRatio = measureBubbleFill(gray, w, h, pt.x, pt.y, sampleRadius, threshold);
+          row.push(fillRatio >= 0.32 ? 1 : 0);
+        }
+        measuredGrid.push(row);
+      }
+
+      const decoded = decodeStudentOpticalId(measuredGrid);
+      if (decoded !== null && decoded > 0) {
+        return decoded;
+      }
+    }
+
+    return null;
   }
 
-  // Baloncuğun doluluk oranını ölç
-  function measureBubbleFill(gray, w, h, cx, cy, radius, threshold) {
-    let totalSampled = 0;
-    let darkSampled = 0;
-
-    const r2 = radius * radius;
-    const innerR2 = Math.round(r2 * 0.65); // Çerçeve kenarını değil, baloncuğun iç göbeğini ölç
+  // Baloncuğun iç göbeğini diferansiyel ölç
+  function measureBubbleCore(gray, w, h, cx, cy, radius, paperLum) {
+    let count = 0;
+    let sumLum = 0;
+    let darkCount = 0;
+    const r2 = Math.round(radius * radius * 0.45); // Sadece iç göbek (%45 alan)
+    const darkThresh = Math.max(40, paperLum * 0.74);
 
     for (let dy = -radius; dy <= radius; dy++) {
       const y = cy + dy;
       if (y < 0 || y >= h) continue;
-
+      const dy2 = dy * dy;
       for (let dx = -radius; dx <= radius; dx++) {
         const x = cx + dx;
         if (x < 0 || x >= w) continue;
-
-        const dist2 = dx * dx + dy * dy;
-        if (dist2 <= innerR2) {
-          totalSampled++;
+        if (dx * dx + dy2 <= r2) {
+          count++;
           const lum = gray[y * w + x];
-          if (lum < threshold) {
+          sumLum += lum;
+          if (lum < darkThresh) {
+            darkCount++;
+          }
+        }
+      }
+    }
+    const avgLum = count > 0 ? (sumLum / count) : 255;
+    const fillRatio = count > 0 ? (darkCount / count) : 0;
+    const contrast = Math.max(0, (paperLum - avgLum) / Math.max(1, paperLum));
+    const score = (contrast * 0.60) + (fillRatio * 0.40);
+    return { avgLum, fillRatio, contrast, score };
+  }
+
+  // Baloncuğun çevresindeki kağıt aydınlığını örnekle
+  function measurePaperLuminance(gray, w, h, cx, cy, radius) {
+    let total = 0;
+    let sum = 0;
+    const rInner2 = Math.round(radius * radius * 1.5);
+    const rOuter2 = Math.round(radius * radius * 2.8);
+
+    for (let dy = -radius * 2; dy <= radius * 2; dy += 2) {
+      const y = cy + dy;
+      if (y < 0 || y >= h) continue;
+      const dy2 = dy * dy;
+      for (let dx = -radius * 2; dx <= radius * 2; dx += 2) {
+        const x = cx + dx;
+        if (x < 0 || x >= w) continue;
+        const d2 = dx * dx + dy2;
+        if (d2 >= rInner2 && d2 <= rOuter2) {
+          total++;
+          sum += gray[y * w + x];
+        }
+      }
+    }
+    return total > 0 ? (sum / total) : 220;
+  }
+
+  // Baloncuk merkezini hassas ince ayarla
+  function refineBubbleCenter(gray, w, h, initialPt, radius) {
+    let minLum = 999;
+    let bestX = initialPt.x;
+    let bestY = initialPt.y;
+    const step = Math.max(1, Math.round(radius * 0.25));
+
+    for (let dy = -step; dy <= step; dy += step) {
+      for (let dx = -step; dx <= step; dx += step) {
+        const tx = initialPt.x + dx;
+        const ty = initialPt.y + dy;
+        if (tx < 0 || tx >= w || ty < 0 || ty >= h) continue;
+        const lum = gray[ty * w + tx];
+        if (lum < minLum) {
+          minLum = lum;
+          bestX = tx;
+          bestY = ty;
+        }
+      }
+    }
+    return { x: bestX, y: bestY };
+  }
+
+  // 5x5 matris için doluluk oranı ölçümü
+  function measureBubbleFill(gray, w, h, cx, cy, radius, threshold) {
+    let totalSampled = 0;
+    let darkSampled = 0;
+    const r2 = radius * radius;
+
+    for (let dy = -radius; dy <= radius; dy++) {
+      const y = cy + dy;
+      if (y < 0 || y >= h) continue;
+      for (let dx = -radius; dx <= radius; dx++) {
+        const x = cx + dx;
+        if (x < 0 || x >= w) continue;
+        if (dx * dx + dy * dy <= r2) {
+          totalSampled++;
+          if (gray[y * w + x] < threshold) {
             darkSampled++;
           }
         }
       }
     }
-
     return totalSampled > 0 ? (darkSampled / totalSampled) : 0;
   }
 
@@ -1341,33 +1738,44 @@
     const sheet = document.getElementById('m-omr-verification-sheet');
     if (!sheet || !activeExam) return;
 
-    // Öğrenci Listesini Doldur
-    const state = window.stateManager ? window.stateManager.loadState() : {};
-    const isMiddle = window.isMiddleSchool ? window.isMiddleSchool() : false;
-    const students = (state.students || []).filter(s => {
-      if (window.isStudentInCurrentLevel && !window.isStudentInCurrentLevel(s)) return false;
-      if (isMiddle && activeExam.branch && s.branch !== activeExam.branch) return false;
-      return true;
-    }).sort((a, b) => a.name.localeCompare(b.name, 'tr'));
+    // Öğrenci Listesini Doldur (Güvenli ve Katmanlı Yedekli)
+    const state = window.stateManager ? (window.stateManager.loadState ? window.stateManager.loadState() : window.stateManager.state) : {};
+    let students = getOmrStudentList(state, activeExam);
+    if (!students || students.length === 0) {
+      if (window.stateManager && typeof window.stateManager.getStudents === 'function') {
+        students = window.stateManager.getStudents(true) || [];
+      }
+    }
 
     const studentSelect = document.getElementById('m-omr-student-select');
     if (studentSelect) {
-      studentSelect.innerHTML = students.map(s => `
-        <option value="${s.id}">${escapeHTML(s.name)} ${escapeHTML(s.surname || '')} (No: ${s.number || '-'})</option>
-      `).join('');
+      if (students.length === 0) {
+        studentSelect.innerHTML = '<option value="">⚠️ Kayıtlı Öğrenci Bulunamadı</option>';
+      } else {
+        studentSelect.innerHTML = students.map(s => {
+          const sc = activeExam.examScores ? activeExam.examScores[s.id] : undefined;
+          const scoreBadge = (sc !== undefined && sc !== null && sc !== '') ? ` • [${sc} Puan]` : '';
+          return `<option value="${s.id}">${s.number ? s.number + ' - ' : ''}${escapeHTML(s.name)} ${escapeHTML(s.surname || '')}${s.branch ? ' (' + escapeHTML(s.branch) + ')' : ''}${scoreBadge}</option>`;
+        }).join('');
+      }
 
       const bannerEl = document.getElementById('m-omr-auto-match-banner');
       const bannerText = document.getElementById('m-omr-auto-match-text');
 
       // Eğer optik form üzerindeki Öğrenci Kimlik Kodu otomatik çözülmüşse
-      if (result.identifiedStudent) {
-        studentSelect.value = result.identifiedStudent.id;
+      let matchedStudent = result.identifiedStudent;
+      if (!matchedStudent && result.detectedStudentIndex && result.detectedStudentIndex > 0 && result.detectedStudentIndex <= students.length) {
+        matchedStudent = students[result.detectedStudentIndex - 1];
+      }
+
+      if (matchedStudent) {
+        studentSelect.value = matchedStudent.id;
         if (bannerEl && bannerText) {
-          bannerText.textContent = `🎯 Optik Kod ile Otomatik Tanındı: ${escapeHTML(result.identifiedStudent.name)} ${escapeHTML(result.identifiedStudent.surname || '')} (No: ${result.identifiedStudent.number || '-'}, ID: #${result.detectedStudentIndex})`;
+          bannerText.textContent = `🎯 Optik Kod ile Otomatik Tanındı: ${escapeHTML(matchedStudent.name)} ${escapeHTML(matchedStudent.surname || '')} (No: ${matchedStudent.number || '-'}, ID: #${result.detectedStudentIndex})`;
           bannerEl.style.display = 'flex';
         }
         if (window.showMobileToast) {
-          window.showMobileToast(`🎯 Öğrenci Tanındı: ${result.identifiedStudent.name} (No: ${result.identifiedStudent.number || '-'})`);
+          window.showMobileToast(`🎯 Öğrenci Tanındı: ${matchedStudent.name} (No: ${matchedStudent.number || '-'})`);
         }
       } else {
         if (bannerEl) bannerEl.style.display = 'none';
@@ -1376,6 +1784,8 @@
         const unassignedStudent = students.find(s => examScores[s.id] === undefined || examScores[s.id] === null || examScores[s.id] === '');
         if (unassignedStudent) {
           studentSelect.value = unassignedStudent.id;
+        } else if (students.length > 0) {
+          studentSelect.value = students[0].id;
         }
       }
     }
@@ -1389,13 +1799,19 @@
     if (netValEl) netValEl.textContent = result.net;
     if (dybValEl) dybValEl.textContent = `${result.correctCount} D • ${result.wrongCount} Y • ${result.blankCount} B`;
 
-    // Soru Soru Cevapları Listele (Öğretmen düzenleyebilir)
+    // Soru Soru Cevapları Listele (Öğretmen anında tek dokunuşla düzeltebilir)
     const reviewList = document.getElementById('m-omr-review-list');
+    const choicesCount = parseInt(activeExam.choicesCount, 10) || 4;
+    const letters = ['A', 'B', 'C', 'D', 'E'].slice(0, choicesCount);
+
     if (reviewList) {
       reviewList.innerHTML = result.questionDetails.map(qd => {
         let badgeClass = 'badge-blank';
         let badgeIcon = '⚪';
-        if (qd.isCorrect) {
+        if (qd.status === 'multiple') {
+          badgeClass = 'badge-wrong';
+          badgeIcon = '⚠️ Çift';
+        } else if (qd.isCorrect) {
           badgeClass = 'badge-correct';
           badgeIcon = '✓';
         } else if (qd.marked) {
@@ -1407,18 +1823,18 @@
           <div class="m-omr-review-item ${badgeClass}" id="m-omr-qitem-${qd.q}">
             <div class="m-omr-review-qnum">${qd.q}.</div>
             <div class="m-omr-review-marked">
-              <strong>${qd.marked || 'Boş'}</strong> ${badgeIcon}
+              <strong>${qd.marked || (qd.status === 'multiple' ? 'Çift' : 'Boş')}</strong> ${badgeIcon}
             </div>
             <div class="m-omr-review-key">
               ${qd.keyAnswer ? `(Cvp: ${qd.keyAnswer})` : ''}
             </div>
             <div class="m-omr-review-quick-edit">
-              ${['A', 'B', 'C', 'D'].map(l => `
+              ${letters.map(l => `
                 <button type="button" class="m-omr-inline-btn ${qd.marked === l ? 'active' : ''}" onclick="window.overrideOmrQuestionAnswer(${qd.q}, '${l}')">
                   ${l}
                 </button>
               `).join('')}
-              <button type="button" class="m-omr-inline-btn ${!qd.marked ? 'active' : ''}" onclick="window.overrideOmrQuestionAnswer(${qd.q}, '')">
+              <button type="button" class="m-omr-inline-btn ${!qd.marked ? 'active' : ''}" onclick="window.overrideOmrQuestionAnswer(${qd.q}, '')" title="Boş Bırak">
                 -
               </button>
             </div>
@@ -1427,8 +1843,43 @@
       }).join('');
     }
 
+    // Görsel önizleme tuvali açıksa güncelle
+    const previewBox = document.getElementById('m-omr-preview-box');
+    if (previewBox && previewBox.style.display !== 'none' && result.capturedCanvas) {
+      const resCanvas = document.getElementById('m-omr-result-canvas');
+      if (resCanvas) {
+        resCanvas.width = result.capturedCanvas.width;
+        resCanvas.height = result.capturedCanvas.height;
+        const oCtx = resCanvas.getContext('2d');
+        oCtx.drawImage(result.capturedCanvas, 0, 0);
+      }
+    }
+
     sheet.classList.add('active');
   }
+
+  // Taranan Form Görsel Önizleme Aç/Kapat
+  window.toggleOmrScannedPreview = function() {
+    const box = document.getElementById('m-omr-preview-box');
+    const btnText = document.getElementById('m-omr-toggle-preview-text');
+    if (!box) return;
+
+    const isHidden = (box.style.display === 'none' || !box.style.display);
+    box.style.display = isHidden ? 'block' : 'none';
+    if (btnText) {
+      btnText.textContent = isHidden ? '▲ Önizlemeyi Gizle' : '📷 Taranan Kağıt ve Şıklar Önizlemesi';
+    }
+
+    if (isHidden && lastScannedResult && lastScannedResult.capturedCanvas) {
+      const resCanvas = document.getElementById('m-omr-result-canvas');
+      if (resCanvas) {
+        resCanvas.width = lastScannedResult.capturedCanvas.width;
+        resCanvas.height = lastScannedResult.capturedCanvas.height;
+        const oCtx = resCanvas.getContext('2d');
+        oCtx.drawImage(lastScannedResult.capturedCanvas, 0, 0);
+      }
+    }
+  };
 
   function hideVerificationSheet() {
     const sheet = document.getElementById('m-omr-verification-sheet');
@@ -1489,7 +1940,7 @@
     const studentSelect = document.getElementById('m-omr-student-select');
     const studentId = studentSelect ? studentSelect.value : '';
     if (!studentId) {
-      alert('Lütfen bir öğrenci seçin.');
+      alert('Lütfen notu kaydedilecek öğrenciyi seçin. Liste boş ise lütfen önce Öğrenciler menüsünden öğrenci ekleyin.');
       return;
     }
 

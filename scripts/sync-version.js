@@ -149,11 +149,12 @@ try {
   results.push({ file: 'js/app.js', status: '❌', detail: e.message });
 }
 
-// G. index.html (Sidebar Version Text)
+// G. index.html (Sidebar Version Text & Download Links)
 try {
   if (fs.existsSync(PATHS.indexHtml)) {
     let indexHtml = fs.readFileSync(PATHS.indexHtml, 'utf8');
     indexHtml = indexHtml.replace(/<span id="app-sidebar-version-text">Sınıf Asistanı v[^<]+<\/span>/g, `<span id="app-sidebar-version-text">Sınıf Asistanı v${targetVer}</span>`);
+    indexHtml = indexHtml.replace(/releases\/download\/v[0-9.]+\/sinif-asistani_[0-9.]+_([a-zA-Z0-9._-]+)/g, (m, fileSuffix) => `releases/download/v${targetVer}/sinif-asistani_${targetVer}_${fileSuffix}`);
     fs.writeFileSync(PATHS.indexHtml, indexHtml, 'utf8');
     results.push({ file: 'index.html', status: '✅', detail: `Sınıf Asistanı v${targetVer}` });
   }
@@ -171,6 +172,20 @@ try {
   }
 } catch (e) {
   results.push({ file: 'mobile.html', status: '❌', detail: e.message });
+}
+
+// I. tanitim/index.html (İndirme Linkleri & Sürüm Rozeti)
+try {
+  if (fs.existsSync(PATHS.tanitimIndex)) {
+    let tanitimHtml = fs.readFileSync(PATHS.tanitimIndex, 'utf8');
+    tanitimHtml = tanitimHtml.replace(/releases\/download\/v[0-9.]+\/sinif-asistani_[0-9.]+_([a-zA-Z0-9._-]+)/g, (m, fileSuffix) => `releases/download/v${targetVer}/sinif-asistani_${targetVer}_${fileSuffix}`);
+    tanitimHtml = tanitimHtml.replace(/releases\/download\/v[0-9.]+\/sinif-asistani\.apk/g, `releases/download/v${targetVer}/sinif-asistani.apk`);
+    tanitimHtml = tanitimHtml.replace(/const tagName = latestRelease\.tag_name \|\| 'v[0-9.]+';/g, `const tagName = latestRelease.tag_name || 'v${targetVer}';`);
+    fs.writeFileSync(PATHS.tanitimIndex, tanitimHtml, 'utf8');
+    results.push({ file: 'tanitim/index.html', status: '✅', detail: `İndirme linkleri v${targetVer} olarak eşitlendi` });
+  }
+} catch (e) {
+  results.push({ file: 'tanitim/index.html', status: '❌', detail: e.message });
 }
 
 // Sonuçları yazdır

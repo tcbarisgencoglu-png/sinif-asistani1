@@ -117,22 +117,23 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ""
+          CI: true
         with:
           tagName: ${{ github.ref_name }}
           releaseName: "Sınıf Asistanı ${{ github.ref_name }}"
           releaseBody: |
             ### 🚀 Bu Sürümdeki Yenilikler (${{ github.ref_name }}):
-            - 📱 **Mobil Cep Asistanı:** Derste ayakta ve tek elle kullanıma uygun, masaüstünden bağımsız yeni mobil sürüm (`mobile.html`).
+            - 📱 **Mobil Modüler Mimari & Optik Okuma:** Çevrim dışı kamera tabanlı OMR optik form okuyucu ve modüler mobil motor.
             - 🚶‍♂️ **Seri Sıra Gezme (Ödev Takibi):** Masaları gezerken tek dokunuşla ödev kontrolü ve otomatik sonraki öğrenciye geçiş.
             - ⚡ **Hızlı Dojo & Yoklama:** Mobil ekranda titreşimli geri bildirimle tek dokunuşla puan verme ve yoklama tamamlama.
             - 🤖 **Android Uygulaması (.apk):** Telefonlara doğrudan indirilip kurulabilen Android paket desteği (`sinif-asistani.apk`).
-            - 🎨 **Masaüstü Arayüz İyileştirmeleri:** Ders materyalleri yerleşimi ve açılır seçim menülerindeki metin kesilme sorunları giderildi.
+            - 🎨 **Masaüstü Arayüz İyileştirmeleri:** Hazine sandığı akıllı tahta tam ekran modu ve canlı ders başlığı düzeltmeleri.
 
             ---
             🛡️ **Veri Güvenliği:** Güncelleme yaptığınızda mevcut sınıflarınız, öğrencileriniz, ders programınız ve tüm verileriniz **kesinlikle silinmez, korunur**.
           releaseDraft: false
           prerelease: false
-          args: ${{ matrix.args }}
+          args: ${{ matrix.args }} --no-sign
 
   build-android:
     name: "Android APK Derle"

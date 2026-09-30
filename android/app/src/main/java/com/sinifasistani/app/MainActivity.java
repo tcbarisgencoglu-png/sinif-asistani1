@@ -20,6 +20,13 @@ import android.widget.Toast;
 import android.Manifest;
 import android.content.pm.PackageManager;
 import androidx.core.content.ContextCompat;
+import androidx.core.content.FileProvider;
+import android.provider.MediaStore;
+import java.io.File;
+import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Locale;
 import android.webkit.PermissionRequest;
 import androidx.activity.OnBackPressedCallback;
 import androidx.activity.result.ActivityResultLauncher;
@@ -34,8 +41,19 @@ public class MainActivity extends AppCompatActivity {
     private ActivityResultLauncher<Intent> fileChooserLauncher;
     private ActivityResultLauncher<String> cameraPermissionLauncher;
     private PermissionRequest pendingWebPermissionRequest;
+    private Uri cameraPhotoUri;
 
     private WebView printWebViewHolder;
+
+    private File createCameraFile() throws IOException {
+        String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(new Date());
+        String imageFileName = "OMR_" + timeStamp + "_";
+        File storageDir = getExternalCacheDir();
+        if (storageDir == null) {
+            storageDir = getCacheDir();
+        }
+        return File.createTempFile(imageFileName, ".jpg", storageDir);
+    }
 
     public class WebAppInterface {
         Context mContext;
@@ -215,19 +233,26 @@ public class MainActivity extends AppCompatActivity {
             result -> {
                 if (fileUploadCallback != null) {
                     Uri[] results = null;
-                    if (result.getResultCode() == RESULT_OK && result.getData() != null) {
-                        if (result.getData().getClipData() != null) {
-                            int count = result.getData().getClipData().getItemCount();
-                            results = new Uri[count];
-                            for (int i = 0; i < count; i++) {
-                                results[i] = result.getData().getClipData().getItemAt(i).getUri();
+                    if (result.getResultCode() == RESULT_OK) {
+                        if (result.getData() == null || result.getData().getData() == null) {
+                            if (cameraPhotoUri != null) {
+                                results = new Uri[]{cameraPhotoUri};
                             }
-                        } else if (result.getData().getData() != null) {
-                            results = new Uri[]{result.getData().getData()};
+                        } else {
+                            if (result.getData().getClipData() != null) {
+                                int count = result.getData().getClipData().getItemCount();
+                                results = new Uri[count];
+                                for (int i = 0; i < count; i++) {
+                                    results[i] = result.getData().getClipData().getItemAt(i).getUri();
+                                }
+                            } else if (result.getData().getData() != null) {
+                                results = new Uri[]{result.getData().getData()};
+                            }
                         }
                     }
                     fileUploadCallback.onReceiveValue(results);
                     fileUploadCallback = null;
+                    cameraPhotoUri = null;
                 }
             }
         );
@@ -302,9 +327,38 @@ public class MainActivity extends AppCompatActivity {
                 }
                 fileUploadCallback = filePathCallback;
 
-                Intent intent = fileChooserParams.createIntent();
+                Intent takePictureIntent = null;
+                cameraPhotoUri = null;
+
                 try {
-                    fileChooserLauncher.launch(intent);
+                    File photoFile = createCameraFile();
+                    cameraPhotoUri = FileProvider.getUriForFile(MainActivity.this, getPackageName() + ".fileprovider", photoFile);
+                    takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+                    takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, cameraPhotoUri);
+                    takePictureIntent.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION | Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                } catch (Exception e) {
+                    cameraPhotoUri = null;
+                }
+
+                // Eğer HTML input'unda capture="environment" belirtilmişse doğrudan kamerayı başlat
+                if (fileChooserParams.isCaptureEnabled() && takePictureIntent != null) {
+                    try {
+                        fileChooserLauncher.launch(takePictureIntent);
+                        return true;
+                    } catch (Exception ignored) {}
+                }
+
+                // Aksi takdirde (örneğin Galeri butonuna basıldığında) hem Galeri hem Kamera içeren seçici sun
+                Intent contentSelectionIntent = fileChooserParams.createIntent();
+                Intent chooserIntent = new Intent(Intent.ACTION_CHOOSER);
+                chooserIntent.putExtra(Intent.EXTRA_INTENT, contentSelectionIntent);
+                chooserIntent.putExtra(Intent.EXTRA_TITLE, "Fotoğraf veya Belge Seç");
+                if (takePictureIntent != null) {
+                    chooserIntent.putExtra(Intent.EXTRA_INITIAL_INTENTS, new Intent[]{takePictureIntent});
+                }
+
+                try {
+                    fileChooserLauncher.launch(chooserIntent);
                 } catch (Exception e) {
                     fileUploadCallback = null;
                     return false;
