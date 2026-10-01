@@ -41,8 +41,224 @@ const btnOpticalClearAll = document.getElementById('btn-optical-clear-all');
 const opticalStudentsList = document.getElementById('optical-students-list');
 const opticalSelectedCount = document.getElementById('optical-selected-count');
 
+// Optik Form Yükleme & Yapay Zeka Değerlendirme Elemanları
+const btnUploadOpticalForms = document.getElementById('btn-upload-optical-forms');
+const modalUploadOpticalEval = document.getElementById('modal-upload-optical-eval');
+const btnCloseOpticalUploadModal = document.getElementById('btn-close-optical-upload-modal');
+const btnCancelOpticalUpload = document.getElementById('btn-cancel-optical-upload');
+const opticalDropzone = document.getElementById('optical-dropzone');
+const opticalFileInput = document.getElementById('optical-file-input');
+const opticalSelectedFilesContainer = document.getElementById('optical-selected-files-container');
+const opticalSelectedFilesGrid = document.getElementById('optical-selected-files-grid');
+const opticalSelectedFilesTitle = document.getElementById('optical-selected-files-title');
+const btnOpticalClearFiles = document.getElementById('btn-optical-clear-files');
+const opticalApiKeyBanner = document.getElementById('optical-api-key-banner');
+const btnStartOpticalAiEval = document.getElementById('btn-start-optical-ai-eval');
+const opticalEvalSubtitle = document.getElementById('optical-eval-subtitle');
+const opticalEvalKeyStatus = document.getElementById('optical-eval-key-status');
+const btnToggleOpticalKeyEditor = document.getElementById('btn-toggle-optical-key-editor');
+const opticalEvalKeyEditorBox = document.getElementById('optical-eval-key-editor-box');
+const opticalEvalKeyGrid = document.getElementById('optical-eval-key-grid');
+const btnOpticalFillSampleKey = document.getElementById('btn-optical-fill-sample-key');
+const btnOpticalClearKey = document.getElementById('btn-optical-clear-key');
+
+const opticalEvalStepUpload = document.getElementById('optical-eval-step-upload');
+const opticalEvalStepProcessing = document.getElementById('optical-eval-step-processing');
+const opticalEvalStepResults = document.getElementById('optical-eval-step-results');
+
+const opticalProcessingStepDesc = document.getElementById('optical-processing-step-desc');
+const opticalProcessingCounter = document.getElementById('optical-processing-counter');
+const opticalProcessingPercentage = document.getElementById('optical-processing-percentage');
+const opticalProcessingProgressBar = document.getElementById('optical-processing-progress-bar');
+const opticalProcessingLogBox = document.getElementById('optical-processing-log-box');
+
+const opticalResStatTotal = document.getElementById('optical-res-stat-total');
+const opticalResStatMatched = document.getElementById('optical-res-stat-matched');
+const opticalResStatAvg = document.getElementById('optical-res-stat-avg');
+const opticalEvalResultsContainer = document.getElementById('optical-eval-results-container');
+const btnToggleAllOpticalAnswers = document.getElementById('btn-toggle-all-optical-answers');
+const btnOpticalBackToUpload = document.getElementById('btn-optical-back-to-upload');
+const btnCommitOpticalResults = document.getElementById('btn-commit-optical-results');
+
+const modalOpticalImagePreview = document.getElementById('modal-optical-image-preview');
+const opticalPreviewImg = document.getElementById('optical-preview-img');
+const btnCloseOpticalPreview = document.getElementById('btn-close-optical-preview');
+
+// Kayıtlı Sınav Cevap Anahtarı Düzenleme Elemanları
+const btnEditActiveExamKey = document.getElementById('btn-edit-active-exam-key');
+const modalEditExamAnswerKey = document.getElementById('modal-edit-exam-answer-key');
+const btnCloseEditAnswerKeyModal = document.getElementById('btn-close-edit-answer-key-modal');
+const btnCancelEditAnswerKey = document.getElementById('btn-cancel-edit-answer-key');
+const btnSaveEditAnswerKey = document.getElementById('btn-save-edit-answer-key');
+const desktopAkSubtitle = document.getElementById('desktop-ak-subtitle');
+const desktopAkCounterBadge = document.getElementById('desktop-ak-counter-badge');
+const desktopAkQuestionsGrid = document.getElementById('desktop-ak-questions-grid');
+const btnDesktopAkFillSample = document.getElementById('btn-desktop-ak-fill-sample');
+const btnDesktopAkClearAll = document.getElementById('btn-desktop-ak-clear-all');
+const desktopAkRescoreContainer = document.getElementById('desktop-ak-rescore-container');
+const desktopAkRescoreCheckbox = document.getElementById('desktop-ak-rescore-checkbox');
+
+let opticalSelectedFiles = [];
+let opticalScannedResults = [];
+let opticalTempExamKey = {};
+let allOpticalDetailsVisible = false;
+
+let editAnswerKeyTemp = {};
+let editAnswerKeyChoices = 4;
+
 let activeExam = null;
 let toastCallback = null;
+let tempCreateExamKey = {};
+
+// MEB Eğitim Haftası Seçeneklerini Dinamik Doldur
+function populateDesktopExamWeekSelect(selectedWeekId) {
+  const weekSelect = document.getElementById('exam-week-input');
+  if (!weekSelect) return;
+  weekSelect.innerHTML = '';
+
+  const activeSettingWeek = selectedWeekId || (stateManager && typeof stateManager.getSelectedWeek === 'function' ? stateManager.getSelectedWeek() : (window.getISOWeek ? window.getISOWeek() : ''));
+  const currInfo = typeof window.getEducationWeekInfo === 'function' ? window.getEducationWeekInfo(activeSettingWeek) : null;
+  const startYear = currInfo ? parseInt(currInfo.academicYear.split('-')[0], 10) : (new Date().getMonth() >= 8 ? new Date().getFullYear() : new Date().getFullYear() - 1);
+  const opening = typeof window.getSchoolOpeningMonday === 'function' ? window.getSchoolOpeningMonday(startYear) : new Date(startYear, 8, 15);
+
+  for (let k = 1; k <= 40; k++) {
+    const d = new Date(opening.getTime() + (k - 1) * 7 * 24 * 60 * 60 * 1000);
+    const iso = typeof window.getISOWeek === 'function' ? window.getISOWeek(d) : `W${k}`;
+    const inf = typeof window.getEducationWeekInfo === 'function' ? window.getEducationWeekInfo(iso) : null;
+
+    const opt = document.createElement('option');
+    opt.value = iso;
+    const isCurrent = (iso === activeSettingWeek);
+    opt.textContent = inf ? `${inf.label}${isCurrent ? ' ★ (Geçerli Hafta)' : ''}` : `${k}. Hafta${isCurrent ? ' ★ (Geçerli Hafta)' : ''}`;
+    if (isCurrent) opt.selected = true;
+    weekSelect.appendChild(opt);
+  }
+
+  if (activeSettingWeek && !Array.from(weekSelect.options).some(o => o.value === activeSettingWeek)) {
+    const opt = document.createElement('option');
+    opt.value = activeSettingWeek;
+    const fallbackText = typeof window.formatWeekTR === 'function' ? window.formatWeekTR(activeSettingWeek, 'full') : activeSettingWeek;
+    opt.textContent = `${fallbackText} ★ (Geçerli Hafta)`;
+    opt.selected = true;
+    weekSelect.insertBefore(opt, weekSelect.firstChild);
+  }
+
+  weekSelect.value = activeSettingWeek;
+}
+
+// Masaüstü Sınav Oluşturma - Şık Sayısı Seçimi
+window.selectDesktopExamChoicesCount = (count) => {
+  const hiddenInput = document.getElementById('exam-choices-count');
+  if (hiddenInput) hiddenInput.value = count;
+  [3, 4, 5].forEach(c => {
+    const pill = document.getElementById(`desk-pill-opt-${c}`);
+    if (pill) {
+      if (c === count) pill.classList.add('active');
+      else pill.classList.remove('active');
+    }
+  });
+  renderDesktopAnswerKeyGrid();
+};
+
+// Masaüstü Sınav Oluşturma - Cevap Anahtarı Gridi Çizimi
+function renderDesktopAnswerKeyGrid() {
+  const qInput = document.getElementById('exam-questions-input');
+  const cInput = document.getElementById('exam-choices-count');
+  const grid = document.getElementById('exam-optical-key-grid');
+  const counter = document.getElementById('exam-opt-counter');
+  if (!grid) return;
+
+  const totalQ = Math.max(1, Math.min(100, parseInt(qInput ? qInput.value : 20, 10) || 20));
+  const choicesCount = parseInt(cInput ? cInput.value : 4, 10) || 4;
+  const letters = ['A', 'B', 'C', 'D', 'E'].slice(0, choicesCount);
+
+  let html = '';
+  let markedCount = 0;
+
+  for (let q = 1; q <= totalQ; q++) {
+    const sel = tempCreateExamKey ? tempCreateExamKey[q] || '' : '';
+    if (sel && letters.includes(sel)) markedCount++;
+    else if (sel && !letters.includes(sel)) delete tempCreateExamKey[q];
+
+    html += `
+      <div class="desktop-opt-bubble-row" data-q="${q}">
+        <span class="desktop-opt-bubble-qnum">${q}.</span>
+        <div class="desktop-opt-bubbles-wrap">
+          ${letters.map(l => `
+            <button type="button" class="desktop-opt-bubble-btn ${sel === l ? 'active' : ''}" onclick="window.selectDesktopCreateExamKeyChoice(${q}, '${l}')">
+              ${l}
+            </button>
+          `).join('')}
+          <button type="button" class="desktop-opt-clear-btn ${sel ? 'visible' : ''}" id="desk-opt-clear-${q}" title="Boş Bırak" onclick="window.clearDesktopCreateExamKeyChoice(${q})">
+            &times;
+          </button>
+        </div>
+      </div>
+    `;
+  }
+
+  grid.innerHTML = html;
+  if (counter) counter.textContent = `${markedCount} / ${totalQ} Soru İşaretlendi`;
+}
+
+window.selectDesktopCreateExamKeyChoice = (q, opt) => {
+  if (tempCreateExamKey[q] === opt) {
+    delete tempCreateExamKey[q];
+  } else {
+    tempCreateExamKey[q] = opt;
+  }
+
+  const row = document.querySelector(`#exam-optical-key-grid .desktop-opt-bubble-row[data-q="${q}"]`);
+  if (row) {
+    const currentSel = tempCreateExamKey[q] || '';
+    row.querySelectorAll('.desktop-opt-bubble-btn').forEach(btn => {
+      if (btn.textContent.trim() === currentSel) btn.classList.add('active');
+      else btn.classList.remove('active');
+    });
+    const clr = document.getElementById(`desk-opt-clear-${q}`);
+    if (clr) clr.className = `desktop-opt-clear-btn ${currentSel ? 'visible' : ''}`;
+  }
+
+  const qInput = document.getElementById('exam-questions-input');
+  const totalQ = Math.max(1, Math.min(100, parseInt(qInput ? qInput.value : 20, 10) || 20));
+  const counter = document.getElementById('exam-opt-counter');
+  const marked = Object.keys(tempCreateExamKey).filter(k => parseInt(k, 10) <= totalQ && tempCreateExamKey[k]).length;
+  if (counter) counter.textContent = `${marked} / ${totalQ} Soru İşaretlendi`;
+};
+
+window.clearDesktopCreateExamKeyChoice = (q) => {
+  delete tempCreateExamKey[q];
+  const row = document.querySelector(`#exam-optical-key-grid .desktop-opt-bubble-row[data-q="${q}"]`);
+  if (row) {
+    row.querySelectorAll('.desktop-opt-bubble-btn').forEach(btn => btn.classList.remove('active'));
+    const clr = document.getElementById(`desk-opt-clear-${q}`);
+    if (clr) clr.className = 'desktop-opt-clear-btn';
+  }
+  const qInput = document.getElementById('exam-questions-input');
+  const totalQ = Math.max(1, Math.min(100, parseInt(qInput ? qInput.value : 20, 10) || 20));
+  const counter = document.getElementById('exam-opt-counter');
+  const marked = Object.keys(tempCreateExamKey).filter(k => parseInt(k, 10) <= totalQ && tempCreateExamKey[k]).length;
+  if (counter) counter.textContent = `${marked} / ${totalQ} Soru İşaretlendi`;
+};
+
+window.fillSampleDesktopExamKey = () => {
+  const qInput = document.getElementById('exam-questions-input');
+  const cInput = document.getElementById('exam-choices-count');
+  const totalQ = Math.max(1, Math.min(100, parseInt(qInput ? qInput.value : 20, 10) || 20));
+  const choicesCount = parseInt(cInput ? cInput.value : 4, 10) || 4;
+  const letters = ['A', 'B', 'C', 'D', 'E'].slice(0, choicesCount);
+
+  tempCreateExamKey = {};
+  for (let q = 1; q <= totalQ; q++) {
+    tempCreateExamKey[q] = letters[(q - 1) % letters.length];
+  }
+  renderDesktopAnswerKeyGrid();
+};
+
+window.clearDesktopExamKey = () => {
+  tempCreateExamKey = {};
+  renderDesktopAnswerKeyGrid();
+};
 
 function setupWeeklyTab(showToast) {
   toastCallback = showToast;
@@ -53,23 +269,44 @@ function setupWeeklyTab(showToast) {
       if (formAddExam) formAddExam.reset();
       if (examPenaltyContainer) examPenaltyContainer.style.display = 'none';
       
-      const weekInput = document.getElementById('exam-week-input');
-      if (weekInput) weekInput.value = stateManager.getSelectedWeek();
+      // Eğitim haftası seçeneklerini MEB takvimine göre dinamik doldur
+      populateDesktopExamWeekSelect();
 
       // Şube seçeneklerini doldur
       const state = stateManager.loadState();
       const examBranchInput = document.getElementById('exam-branch-input');
+      const examBranchGroup = document.getElementById('exam-branch-group');
+      const isMiddle = state.educationLevel === 'middle';
+      if (examBranchGroup) {
+        examBranchGroup.style.display = isMiddle ? 'block' : 'none';
+      }
       if (examBranchInput) {
         examBranchInput.innerHTML = '';
         const branches = [...new Set(state.students.map(s => s.branch).filter(Boolean))];
         branches.sort();
-        branches.forEach(b => {
+        if (branches.length === 0) {
           const opt = document.createElement('option');
-          opt.value = b;
-          opt.textContent = b;
+          opt.value = '';
+          opt.textContent = 'Tüm Sınıf';
           examBranchInput.appendChild(opt);
-        });
+        } else {
+          branches.forEach(b => {
+            const opt = document.createElement('option');
+            opt.value = b;
+            opt.textContent = `${b} Şubesi`;
+            examBranchInput.appendChild(opt);
+          });
+        }
       }
+
+      // Optik form onay kutusunu ve cevap anahtarını hazırla
+      tempCreateExamKey = {};
+      const opticalToggle = document.getElementById('exam-has-optical-input');
+      const opticalCont = document.getElementById('exam-optical-config-container');
+      if (opticalToggle) opticalToggle.checked = true;
+      if (opticalCont) opticalCont.style.display = 'block';
+      window.selectDesktopExamChoicesCount(4);
+      renderDesktopAnswerKeyGrid();
 
       if (modalAddExam) modalAddExam.classList.add('active');
     });
@@ -79,6 +316,41 @@ function setupWeeklyTab(showToast) {
   if (examWrongAffectsInput && examPenaltyContainer) {
     examWrongAffectsInput.addEventListener('change', () => {
       examPenaltyContainer.style.display = examWrongAffectsInput.checked ? 'block' : 'none';
+    });
+  }
+
+  // Optik form onay kutusu ve soru sayısı değişiklik dinleyicileri
+  const examHasOpticalInput = document.getElementById('exam-has-optical-input');
+  const examQuestionsInput = document.getElementById('exam-questions-input');
+  if (examHasOpticalInput) {
+    examHasOpticalInput.addEventListener('change', () => {
+      const opticalCont = document.getElementById('exam-optical-config-container');
+      if (opticalCont) {
+        opticalCont.style.display = examHasOpticalInput.checked ? 'block' : 'none';
+      }
+      if (examHasOpticalInput.checked) {
+        renderDesktopAnswerKeyGrid();
+      }
+    });
+  }
+
+  if (examQuestionsInput) {
+    examQuestionsInput.addEventListener('input', () => {
+      renderDesktopAnswerKeyGrid();
+    });
+  }
+
+  const btnExamFillSampleKey = document.getElementById('btn-exam-fill-sample-key');
+  if (btnExamFillSampleKey) {
+    btnExamFillSampleKey.addEventListener('click', () => {
+      window.fillSampleDesktopExamKey();
+    });
+  }
+
+  const btnExamClearKey = document.getElementById('btn-exam-clear-key');
+  if (btnExamClearKey) {
+    btnExamClearKey.addEventListener('click', () => {
+      window.clearDesktopExamKey();
     });
   }
 
@@ -105,6 +377,12 @@ function setupWeeklyTab(showToast) {
       const examBranchInput = document.getElementById('exam-branch-input');
       const examBranch = examBranchInput && state.educationLevel === 'middle' ? examBranchInput.value : '';
 
+      // Optik form onay kutusu ve cevap anahtarı
+      const opticalToggle = document.getElementById('exam-has-optical-input');
+      const hasOptical = opticalToggle ? opticalToggle.checked : true;
+      const choicesCount = parseInt(document.getElementById('exam-choices-count')?.value, 10) || 4;
+      const answerKey = hasOptical ? { ...tempCreateExamKey } : {};
+
       const examData = {
         id: 'exam_' + Date.now(),
         weekId: week,
@@ -114,6 +392,9 @@ function setupWeeklyTab(showToast) {
         wrongAffects: wrongAffects,
         penaltyRate: penaltyRate,
         branch: examBranch,
+        hasOpticalForm: hasOptical,
+        choicesCount: choicesCount,
+        answerKey: answerKey,
         examScores: {},
         studentResults: {},
         notes: '',
@@ -322,8 +603,7 @@ function setupWeeklyTab(showToast) {
       if (selectedValue === 'week_avg') {
         isAverageReport = true;
         examsToPrint = (state.weeklyEvaluations || []).filter(e => e.weekId === selectedWeek);
-        const parts = selectedWeek.split('-W');
-        const formattedWeek = parts.length === 2 ? `${parts[0]} Yılı, ${parts[1]}. Hafta` : selectedWeek;
+        const formattedWeek = window.formatWeekTR ? window.formatWeekTR(selectedWeek, 'full') : selectedWeek;
         reportTitle = 'SINAV ORTALAMA RAPORU (SEÇİLİ HAFTA)';
         reportSubtitle = `Uygulama Dönemi: ${formattedWeek} | Rapor Tarihi: ${new Date().toLocaleDateString('tr-TR')}`;
         examDetailText = `Toplam ${examsToPrint.length} Sınavın Ortalaması`;
@@ -341,8 +621,7 @@ function setupWeeklyTab(showToast) {
         examsToPrint = [targetExam];
         isAverageReport = false;
         
-        const parts = targetExam.weekId.split('-W');
-        const formattedWeek = parts.length === 2 ? `${parts[0]} Yılı, ${parts[1]}. Hafta` : targetExam.weekId;
+        const formattedWeek = window.formatWeekTR ? window.formatWeekTR(targetExam.weekId, 'full') : targetExam.weekId;
         reportTitle = 'SINAV SONUÇ RAPORU';
         reportSubtitle = `Uygulama Dönemi: ${formattedWeek} | Rapor Tarihi: ${new Date().toLocaleDateString('tr-TR')}`;
         const penaltyText = targetExam.wrongAffects ? `${targetExam.penaltyRate} Yanlış 1 Doğruyu Götürür` : 'Yanlışlar Doğruları Etkilemez';
@@ -372,7 +651,9 @@ function setupWeeklyTab(showToast) {
     });
   }
 
-  // Optik Form Butonu Tıklanması (Modal Açılış)
+  // ==========================================================================
+  // TOPLU OPTİK FORM BASMA (QR KODSUZ, CAMSCANNER & AI UYUMLU)
+  // ==========================================================================
   if (btnPrintOpticalForms) {
     btnPrintOpticalForms.addEventListener('click', () => {
       if (!activeExam) {
@@ -382,8 +663,13 @@ function setupWeeklyTab(showToast) {
       
       const questionCountInput = document.getElementById('optical-questions-input');
       if (questionCountInput) {
-        questionCountInput.value = activeExam.totalQuestions;
+        questionCountInput.value = activeExam.totalQuestions || 20;
         questionCountInput.disabled = true; // Sınavın soru sayısı değiştirilemez
+      }
+
+      const choicesInput = document.getElementById('optical-choices-input');
+      if (choicesInput) {
+        choicesInput.value = activeExam.choicesCount || 4;
       }
       
       populateOpticalStudentsList();
@@ -394,12 +680,13 @@ function setupWeeklyTab(showToast) {
 
   const opticalQInput = document.getElementById('optical-questions-input');
   const opticalCInput = document.getElementById('optical-choices-input');
-  if (opticalQInput) {
-    opticalQInput.addEventListener('input', updateOpticalLivePreview);
-  }
-  if (opticalCInput) {
-    opticalCInput.addEventListener('change', updateOpticalLivePreview);
-  }
+  const opticalTypeInput = document.getElementById('optical-type-input');
+  const opticalPerPageInput = document.getElementById('optical-per-page-input');
+
+  if (opticalQInput) opticalQInput.addEventListener('input', updateOpticalLivePreview);
+  if (opticalCInput) opticalCInput.addEventListener('change', updateOpticalLivePreview);
+  if (opticalTypeInput) opticalTypeInput.addEventListener('change', updateOpticalLivePreview);
+  if (opticalPerPageInput) opticalPerPageInput.addEventListener('change', updateOpticalLivePreview);
 
   // Optik Form Kapatma
   document.querySelectorAll('#modal-print-optical .close-btn, #modal-print-optical .close-btn-action').forEach(btn => {
@@ -436,42 +723,1382 @@ function setupWeeklyTab(showToast) {
       
       const questionCount = parseInt(document.getElementById('optical-questions-input').value) || 20;
       const choicesCount = parseInt(document.getElementById('optical-choices-input').value) || 4;
+      const formType = document.getElementById('optical-type-input')?.value || 'named';
+      const perPage = parseInt(document.getElementById('optical-per-page-input')?.value, 10) || 2;
       
       // Seçili öğrencileri al
       const selectedStudentIds = [];
-      opticalStudentsList.querySelectorAll('input[type="checkbox"]:checked').forEach(cb => {
-        selectedStudentIds.push(cb.value);
-      });
-      
-      if (selectedStudentIds.length === 0) {
-        if (toastCallback) toastCallback('Lütfen en az bir öğrenci seçin!', 'warning');
-        return;
+      if (formType === 'named') {
+        opticalStudentsList.querySelectorAll('input[type="checkbox"]:checked').forEach(cb => {
+          selectedStudentIds.push(cb.value);
+        });
+        
+        if (selectedStudentIds.length === 0) {
+          if (toastCallback) toastCallback('Lütfen en az bir öğrenci seçin!', 'warning');
+          return;
+        }
       }
       
       // Formları oluştur
-      generateOpticalFormsHTML(selectedStudentIds, questionCount, choicesCount);
+      generateOpticalFormsHTML(selectedStudentIds, questionCount, choicesCount, formType, perPage);
       
       // Kapat modalı
       if (modalPrintOptical) modalPrintOptical.classList.remove('active');
       
       // Yazdır
+      const printStyle = document.createElement('style');
+      printStyle.id = 'optical-print-page-style';
+      printStyle.textContent = `@page { size: A4 portrait; margin: 4mm 5mm; }`;
+      document.head.appendChild(printStyle);
+
       document.body.classList.add('print-optical');
       window.print();
       
-      window.addEventListener('afterprint', () => {
+      const cleanupPrint = () => {
         document.body.classList.remove('print-optical');
-      }, { once: true });
+        const s = document.getElementById('optical-print-page-style');
+        if (s) s.remove();
+      };
 
-      setTimeout(() => {
-        document.body.classList.remove('print-optical');
-      }, 500);
+      window.addEventListener('afterprint', cleanupPrint, { once: true });
+      setTimeout(cleanupPrint, 1000);
     });
   }
 
+  // ==========================================================================
+  // TARANAN OPTİK FORMLARI YÜKLEME VE YAPAY ZEKA (GEMINI) İLE DEĞERLENDİRME
+  // ==========================================================================
 
+  // Modalı Aç
+  if (btnUploadOpticalForms) {
+    btnUploadOpticalForms.addEventListener('click', () => {
+      openOpticalUploadModal();
+    });
+  }
 
+  function openOpticalUploadModal() {
+    if (!activeExam) {
+      if (toastCallback) toastCallback('Lütfen önce bir sınav seçin!', 'warning');
+      return;
+    }
 
+    if (!modalUploadOpticalEval) return;
 
+    // Sınav Bilgilerini Başlığa Yaz
+    if (opticalEvalSubtitle) {
+      const qCount = activeExam.totalQuestions || 20;
+      const cCount = activeExam.choicesCount || 4;
+      const bText = activeExam.branch ? ` • Şube: <strong>${activeExam.branch}</strong>` : '';
+      opticalEvalSubtitle.innerHTML = `Sınav: <strong>${activeExam.examName}</strong> • Soru Sayısı: <strong>${qCount}</strong> • Seçenekler: <strong>${cCount} Şıklı</strong>${bText}`;
+    }
+
+    // Ekranları Sıfırla
+    if (opticalEvalStepUpload) opticalEvalStepUpload.style.display = 'block';
+    if (opticalEvalStepProcessing) opticalEvalStepProcessing.style.display = 'none';
+    if (opticalEvalStepResults) opticalEvalStepResults.style.display = 'none';
+
+    // Seçilen Dosyaları Sıfırla
+    opticalSelectedFiles = [];
+    opticalScannedResults = [];
+    renderOpticalFilesPreview();
+
+    // Cevap Anahtarını Yükle & Durumu Güncelle
+    opticalTempExamKey = { ...(activeExam.answerKey || {}) };
+    updateOpticalKeyStatusDisplay();
+    renderOpticalKeyEditor();
+
+    // API Anahtarı Durumunu Güncelle
+    updateOpticalApiKeyBanner();
+
+    // Modalı Göster
+    modalUploadOpticalEval.classList.add('active');
+    if (window.safeCreateIcons) window.safeCreateIcons();
+  }
+
+  // Modalı Kapatma Butonları
+  if (btnCloseOpticalUploadModal) {
+    btnCloseOpticalUploadModal.addEventListener('click', () => {
+      if (modalUploadOpticalEval) modalUploadOpticalEval.classList.remove('active');
+    });
+  }
+  if (btnCancelOpticalUpload) {
+    btnCancelOpticalUpload.addEventListener('click', () => {
+      if (modalUploadOpticalEval) modalUploadOpticalEval.classList.remove('active');
+    });
+  }
+
+  // API Anahtarı Durum Göstergesi
+  function updateOpticalApiKeyBanner() {
+    if (!opticalApiKeyBanner) return;
+    const apiKey = (window.getGeminiApiKey ? window.getGeminiApiKey() : (localStorage.getItem('sinif_asistani_gemini_api_key') || '')).trim();
+
+    if (apiKey) {
+      opticalApiKeyBanner.innerHTML = `
+        <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: var(--radius-md); padding: 0.65rem 0.85rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem;">
+          <div style="display: flex; align-items: center; gap: 0.4rem; font-size: 0.82rem; color: #059669; font-weight: 600;">
+            <i data-lucide="check-circle" style="width: 16px; height: 16px;"></i>
+            <span>Gemini Vision Yapay Zeka Motoru Hazır</span>
+          </div>
+          <button type="button" class="btn btn-secondary btn-sm" id="btn-change-optical-gemini-key" style="font-size: 0.72rem; padding: 0.2rem 0.5rem; height: auto;">
+            Anahtarı Değiştir
+          </button>
+        </div>
+      `;
+      const btnChange = document.getElementById('btn-change-optical-gemini-key');
+      if (btnChange) {
+        btnChange.addEventListener('click', () => {
+          const modalSetup = document.getElementById('modal-gemini-key-setup');
+          if (modalSetup) modalSetup.classList.add('active');
+        });
+      }
+    } else {
+      opticalApiKeyBanner.innerHTML = `
+        <div style="background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.35); border-radius: var(--radius-md); padding: 0.75rem 1rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem;">
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <span style="font-size: 1.25rem;">✨</span>
+            <div>
+              <strong style="font-size: 0.84rem; color: #b45309;">Gemini API Anahtarı Tanımlayın</strong>
+              <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 1px;">
+                Taranan optik formların yapay zeka ile otomatik okunabilmesi için ücretsiz Google API anahtarı gereklidir.
+              </div>
+            </div>
+          </div>
+          <button type="button" class="btn btn-primary btn-sm" id="btn-setup-optical-gemini-key" style="font-size: 0.78rem; padding: 0.35rem 0.75rem; height: auto; background: linear-gradient(135deg, #f59e0b, #d97706); border: none; color: #fff; font-weight: 700;">
+            API Anahtarı Girin
+          </button>
+        </div>
+      `;
+      const btnSetup = document.getElementById('btn-setup-optical-gemini-key');
+      if (btnSetup) {
+        btnSetup.addEventListener('click', () => {
+          const modalSetup = document.getElementById('modal-gemini-key-setup');
+          if (modalSetup) {
+            modalSetup.classList.add('active');
+          } else {
+            const entered = prompt('Lütfen Google Gemini API anahtarınızı giriniz:');
+            if (entered && entered.trim()) {
+              if (window.setGeminiApiKey) window.setGeminiApiKey(entered.trim());
+              else localStorage.setItem('sinif_asistani_gemini_api_key', entered.trim());
+              updateOpticalApiKeyBanner();
+            }
+          }
+        });
+      }
+    }
+    if (window.safeCreateIcons) window.safeCreateIcons();
+  }
+
+  // Cevap Anahtarı Durum Metni
+  function updateOpticalKeyStatusDisplay() {
+    if (!opticalEvalKeyStatus || !activeExam) return;
+    const qCount = parseInt(activeExam.totalQuestions, 10) || 20;
+    const answeredCount = Object.keys(opticalTempExamKey || {}).filter(k => parseInt(k, 10) <= qCount && opticalTempExamKey[k]).length;
+
+    if (answeredCount === qCount) {
+      opticalEvalKeyStatus.innerHTML = `<span style="color: #10b981; font-weight: 700;">${answeredCount} / ${qCount} Soru Tamamlandı ✓</span>`;
+    } else if (answeredCount > 0) {
+      opticalEvalKeyStatus.innerHTML = `<span style="color: #f59e0b; font-weight: 700;">${answeredCount} / ${qCount} Soru Belirlendi (Eksik var!)</span>`;
+    } else {
+      opticalEvalKeyStatus.innerHTML = `<span style="color: #ef4444; font-weight: 700;">Cevap Anahtarı Tanımlanmamış</span>`;
+    }
+  }
+
+  // Cevap Anahtarı Editörü Aç/Kapat
+  if (btnToggleOpticalKeyEditor) {
+    btnToggleOpticalKeyEditor.addEventListener('click', () => {
+      if (!opticalEvalKeyEditorBox) return;
+      const isHidden = opticalEvalKeyEditorBox.style.display === 'none';
+      opticalEvalKeyEditorBox.style.display = isHidden ? 'block' : 'none';
+      btnToggleOpticalKeyEditor.querySelector('span').textContent = isHidden ? 'Editörü Kapat' : 'Cevap Anahtarını Düzenle';
+    });
+  }
+
+  // Cevap Anahtarı Editörü Grid Çizimi
+  function renderOpticalKeyEditor() {
+    if (!opticalEvalKeyGrid || !activeExam) return;
+    opticalEvalKeyGrid.innerHTML = '';
+
+    const qCount = parseInt(activeExam.totalQuestions, 10) || 20;
+    const cCount = parseInt(activeExam.choicesCount, 10) || 4;
+    const letters = ['A', 'B', 'C', 'D', 'E'].slice(0, cCount);
+
+    for (let q = 1; q <= qCount; q++) {
+      const row = document.createElement('div');
+      row.style.cssText = 'display: inline-flex; align-items: center; gap: 4px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 6px; padding: 2px 6px;';
+
+      const label = document.createElement('span');
+      label.textContent = `${q}:`;
+      label.style.cssText = 'font-size: 0.75rem; font-weight: 700; color: var(--text-muted); min-width: 22px; text-align: right;';
+      row.appendChild(label);
+
+      letters.forEach(letter => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.textContent = letter;
+        btn.className = `optical-key-pill-btn ${opticalTempExamKey[q] === letter ? 'active' : ''}`;
+        btn.addEventListener('click', () => {
+          if (opticalTempExamKey[q] === letter) {
+            delete opticalTempExamKey[q];
+          } else {
+            opticalTempExamKey[q] = letter;
+          }
+          activeExam.answerKey = { ...opticalTempExamKey };
+          stateManager.saveExam(activeExam);
+          updateOpticalKeyStatusDisplay();
+          renderOpticalKeyEditor();
+        });
+        row.appendChild(btn);
+      });
+
+      opticalEvalKeyGrid.appendChild(row);
+    }
+  }
+
+  // Cevap Anahtarı Örnek Doldur
+  if (btnOpticalFillSampleKey) {
+    btnOpticalFillSampleKey.addEventListener('click', () => {
+      if (!activeExam) return;
+      const qCount = parseInt(activeExam.totalQuestions, 10) || 20;
+      const cCount = parseInt(activeExam.choicesCount, 10) || 4;
+      const letters = ['A', 'B', 'C', 'D', 'E'].slice(0, cCount);
+      for (let q = 1; q <= qCount; q++) {
+        opticalTempExamKey[q] = letters[(q - 1) % letters.length];
+      }
+      activeExam.answerKey = { ...opticalTempExamKey };
+      stateManager.saveExam(activeExam);
+      updateOpticalKeyStatusDisplay();
+      renderOpticalKeyEditor();
+    });
+  }
+
+  // Cevap Anahtarı Temizle
+  if (btnOpticalClearKey) {
+    btnOpticalClearKey.addEventListener('click', () => {
+      opticalTempExamKey = {};
+      if (activeExam) {
+        activeExam.answerKey = {};
+        stateManager.saveExam(activeExam);
+      }
+      updateOpticalKeyStatusDisplay();
+      renderOpticalKeyEditor();
+    });
+  }
+
+  // Sürükle Bırak ve Dosya Seçimi
+  if (opticalDropzone) {
+    opticalDropzone.addEventListener('click', () => {
+      if (opticalFileInput) opticalFileInput.click();
+    });
+
+    ['dragenter', 'dragover'].forEach(eventName => {
+      opticalDropzone.addEventListener(eventName, (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        opticalDropzone.classList.add('dragover');
+      });
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+      opticalDropzone.addEventListener(eventName, (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        opticalDropzone.classList.remove('dragover');
+      });
+    });
+
+    opticalDropzone.addEventListener('drop', (e) => {
+      const dt = e.dataTransfer;
+      if (dt && dt.files && dt.files.length > 0) {
+        handleOpticalFilesSelection(dt.files);
+      }
+    });
+  }
+
+  if (opticalFileInput) {
+    opticalFileInput.addEventListener('change', () => {
+      if (opticalFileInput.files && opticalFileInput.files.length > 0) {
+        handleOpticalFilesSelection(opticalFileInput.files);
+        opticalFileInput.value = '';
+      }
+    });
+  }
+
+  // JPEG Akışı Çıkarıcı (CamScanner ve taranmış PDF'ler için saf JS, bağımsız ve çevrimdışı)
+  function extractJpegsFromUint8Array(bytes) {
+    const jpegs = [];
+    const len = bytes.length;
+    let i = 0;
+    while (i < len - 3) {
+      if (bytes[i] === 0xFF && bytes[i + 1] === 0xD8 && bytes[i + 2] === 0xFF) {
+        const start = i;
+        let j = start + 2;
+        let foundEnd = -1;
+        let inSos = false;
+        while (j < len - 1) {
+          if (bytes[j] === 0xFF) {
+            const marker = bytes[j + 1];
+            if (marker === 0xD9) { // EOI marker
+              foundEnd = j + 2;
+              break;
+            }
+            if (marker === 0xDA) { // SOS (Start of Scan)
+              inSos = true;
+              if (j + 3 < len) {
+                const segLen = (bytes[j + 2] << 8) | bytes[j + 3];
+                j += 2 + segLen;
+                continue;
+              }
+            }
+            if (inSos) {
+              if (marker === 0x00 || (marker >= 0xD0 && marker <= 0xD7)) {
+                j += 2;
+                continue;
+              }
+            } else {
+              if (j + 3 < len && marker !== 0x00 && !(marker >= 0xD0 && marker <= 0xD7)) {
+                const segLen = (bytes[j + 2] << 8) | bytes[j + 3];
+                if (segLen >= 2) {
+                  j += 2 + segLen;
+                  continue;
+                }
+              }
+            }
+          }
+          j++;
+        }
+        if (foundEnd !== -1) {
+          const jpegBytes = bytes.subarray(start, foundEnd);
+          // 8KB'den büyükse geçerli bir sayfa taramasıdır (küçük simgeleri filtreler)
+          if (jpegBytes.length > 8192) {
+            jpegs.push(jpegBytes);
+          }
+          i = foundEnd;
+          continue;
+        }
+      }
+      i++;
+    }
+    return jpegs;
+  }
+
+  // Tekil Dosya veya Çok Sayfalı PDF İşleme Motoru
+  async function processOpticalFile(file) {
+    const isPdf = file.type === 'application/pdf' || /\.pdf$/i.test(file.name);
+
+    if (!isPdf) {
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          resolve([{
+            id: 'file_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6),
+            file: file,
+            name: file.name,
+            sizeText: (file.size / 1024).toFixed(0) + ' KB',
+            dataUrl: e.target.result,
+            isPdf: false
+          }]);
+        };
+        reader.onerror = () => resolve([]);
+        reader.readAsDataURL(file);
+      });
+    }
+
+    // PDF Dosyası (CamScanner veya taranmış PDF belgesi)
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+
+      // 1. PDF.js ile Sayfaları Render Etme (Kullanılabilirse)
+      if (window.pdfjsLib) {
+        try {
+          const loadingTask = window.pdfjsLib.getDocument({ data: arrayBuffer });
+          const pdfDoc = await loadingTask.promise;
+          const pages = [];
+          for (let p = 1; p <= pdfDoc.numPages; p++) {
+            const page = await pdfDoc.getPage(p);
+            const initialVp = page.getViewport({ scale: 1.0 });
+            const maxDim = Math.max(initialVp.width, initialVp.height);
+            const scale = Math.max(1.0, Math.min(2.5, 1400 / maxDim));
+            const viewport = page.getViewport({ scale });
+
+            const canvas = document.createElement('canvas');
+            canvas.width = viewport.width;
+            canvas.height = viewport.height;
+            const ctx = canvas.getContext('2d');
+            await page.render({ canvasContext: ctx, viewport }).promise;
+
+            const pageDataUrl = canvas.toDataURL('image/jpeg', 0.90);
+            pages.push({
+              id: 'file_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6) + '_p' + p,
+              file: file,
+              name: `${file.name} (Sayfa ${p}/${pdfDoc.numPages})`,
+              sizeText: `Sayfa ${p} / ${pdfDoc.numPages}`,
+              dataUrl: pageDataUrl,
+              isPdf: false,
+              isPdfPage: true
+            });
+          }
+          if (pages.length > 0) return pages;
+        } catch (pdfErr) {
+          console.warn('PDF.js render hatası, alternatif deneniyor:', pdfErr);
+        }
+      }
+
+      // 2. CamScanner Gömülü JPEG Ayrıştırıcı (Saf JS, Harici Kütüphanesiz)
+      const extractedJpegs = extractJpegsFromUint8Array(new Uint8Array(arrayBuffer));
+      if (extractedJpegs.length > 0) {
+        const pages = [];
+        for (let i = 0; i < extractedJpegs.length; i++) {
+          const jpegBytes = extractedJpegs[i];
+          const blob = new Blob([jpegBytes], { type: 'image/jpeg' });
+          const pageDataUrl = await new Promise(res => {
+            const fr = new FileReader();
+            fr.onload = () => res(fr.result);
+            fr.readAsDataURL(blob);
+          });
+          pages.push({
+            id: 'file_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6) + '_p' + (i + 1),
+            file: file,
+            name: `${file.name} (Sayfa ${i + 1}/${extractedJpegs.length})`,
+            sizeText: (jpegBytes.length / 1024).toFixed(0) + ' KB',
+            dataUrl: pageDataUrl,
+            isPdf: false,
+            isPdfPage: true
+          });
+        }
+        return pages;
+      }
+
+      // 3. Doğrudan PDF Dosyası (Gemini Vision API çok sayfalı PDF'leri yerel olarak inceler)
+      const pdfDataUrl = await new Promise(res => {
+        const fr = new FileReader();
+        fr.onload = () => res(fr.result);
+        fr.readAsDataURL(file);
+      });
+      return [{
+        id: 'file_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6),
+        file: file,
+        name: file.name,
+        sizeText: (file.size / 1024).toFixed(0) + ' KB (PDF)',
+        dataUrl: pdfDataUrl,
+        isPdf: true
+      }];
+
+    } catch (err) {
+      console.error('PDF işleme hatası:', err);
+      const pdfDataUrl = await new Promise(res => {
+        const fr = new FileReader();
+        fr.onload = () => res(fr.result);
+        fr.readAsDataURL(file);
+      });
+      return [{
+        id: 'file_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6),
+        file: file,
+        name: file.name,
+        sizeText: (file.size / 1024).toFixed(0) + ' KB (PDF)',
+        dataUrl: pdfDataUrl,
+        isPdf: true
+      }];
+    }
+  }
+
+  // Dosyaları İşle ve Listeye Ekle
+  async function handleOpticalFilesSelection(fileList) {
+    const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg', 'application/pdf'];
+    const filesArray = Array.from(fileList).filter(f => validTypes.includes(f.type) || /\.(jpe?g|png|webp|pdf)$/i.test(f.name));
+
+    if (filesArray.length === 0) {
+      if (toastCallback) toastCallback('Lütfen geçerli görsel (JPG, PNG) veya CamScanner PDF dosyası seçin!', 'warning');
+      return;
+    }
+
+    const hasPdf = filesArray.some(f => f.type === 'application/pdf' || /\.pdf$/i.test(f.name));
+    if (hasPdf && toastCallback) {
+      toastCallback('PDF belgeleri ve sayfalar taranıyor, lütfen bekleyin...', 'info');
+    }
+
+    let newlyAdded = 0;
+    for (const file of filesArray) {
+      const items = await processOpticalFile(file);
+      items.forEach(item => {
+        opticalSelectedFiles.push(item);
+        newlyAdded++;
+      });
+    }
+
+    renderOpticalFilesPreview();
+    if (hasPdf && toastCallback) {
+      toastCallback(`${newlyAdded} form sayfası başarıyla listeye eklendi.`, 'success');
+    }
+  }
+
+  // Seçilen Dosyaların Önizleme Listesini Çiz
+  function renderOpticalFilesPreview() {
+    if (!opticalSelectedFilesGrid || !opticalSelectedFilesContainer) return;
+
+    if (opticalSelectedFiles.length === 0) {
+      opticalSelectedFilesContainer.style.display = 'none';
+      opticalSelectedFilesGrid.innerHTML = '';
+      if (btnStartOpticalAiEval) btnStartOpticalAiEval.disabled = true;
+      return;
+    }
+
+    opticalSelectedFilesContainer.style.display = 'block';
+    if (opticalSelectedFilesTitle) {
+      opticalSelectedFilesTitle.textContent = `Seçilen Formlar (${opticalSelectedFiles.length})`;
+    }
+    if (btnStartOpticalAiEval) btnStartOpticalAiEval.disabled = false;
+
+    opticalSelectedFilesGrid.innerHTML = '';
+    opticalSelectedFiles.forEach((item, index) => {
+      const card = document.createElement('div');
+      card.className = 'optical-file-item';
+
+      let thumbHtml = '';
+      if (item.isPdf) {
+        thumbHtml = `
+          <div class="optical-file-pdf-thumb">
+            <i data-lucide="file-text" style="width: 28px; height: 28px;"></i>
+            <span style="font-size: 0.68rem; font-weight: 700;">PDF BELGESİ</span>
+          </div>
+        `;
+      } else {
+        thumbHtml = `<img class="optical-file-thumb" src="${item.dataUrl}" alt="${item.name}">`;
+      }
+
+      card.innerHTML = `
+        <button type="button" class="optical-file-remove-btn" title="Kaldır">&times;</button>
+        ${thumbHtml}
+        <div style="font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; width: 100%; color: var(--text-primary);" title="${item.name}">${item.name}</div>
+        <div style="color: var(--text-muted); font-size: 0.68rem;">${item.sizeText}</div>
+      `;
+
+      card.querySelector('.optical-file-remove-btn').addEventListener('click', (e) => {
+        e.stopPropagation();
+        opticalSelectedFiles.splice(index, 1);
+        renderOpticalFilesPreview();
+      });
+
+      card.addEventListener('click', () => {
+        openOpticalImagePreview(item.dataUrl, item.isPdf, item.name);
+      });
+
+      opticalSelectedFilesGrid.appendChild(card);
+    });
+
+    if (window.lucide) {
+      window.lucide.createIcons({ root: opticalSelectedFilesGrid });
+    }
+  }
+
+  // Tüm Dosyaları Temizle
+  if (btnOpticalClearFiles) {
+    btnOpticalClearFiles.addEventListener('click', () => {
+      opticalSelectedFiles = [];
+      renderOpticalFilesPreview();
+    });
+  }
+
+  // Görsel / Belge Büyütme (Lightbox)
+  function openOpticalImagePreview(dataUrl, isPdf = false, title = '') {
+    if (!modalOpticalImagePreview) return;
+    const img = document.getElementById('optical-preview-img');
+    const iframe = document.getElementById('optical-preview-iframe');
+    const titleEl = document.getElementById('optical-preview-title');
+
+    if (titleEl) {
+      titleEl.textContent = title || (isPdf ? 'Taranan PDF Belgesi' : 'Taranan Optik Form Görseli');
+    }
+
+    if (isPdf) {
+      if (img) img.style.display = 'none';
+      if (iframe) {
+        iframe.style.display = 'block';
+        iframe.src = dataUrl;
+      }
+    } else {
+      if (iframe) {
+        iframe.style.display = 'none';
+        iframe.src = '';
+      }
+      if (img) {
+        img.style.display = 'inline-block';
+        img.src = dataUrl;
+      }
+    }
+    modalOpticalImagePreview.classList.add('active');
+  }
+
+  if (btnCloseOpticalPreview) {
+    btnCloseOpticalPreview.addEventListener('click', () => {
+      if (modalOpticalImagePreview) modalOpticalImagePreview.classList.remove('active');
+      const iframe = document.getElementById('optical-preview-iframe');
+      if (iframe) iframe.src = '';
+    });
+  }
+
+  // Log ekleme
+  function appendOpticalLog(text) {
+    if (!opticalProcessingLogBox) return;
+    const line = document.createElement('div');
+    line.textContent = `▶ ${text}`;
+    opticalProcessingLogBox.appendChild(line);
+    opticalProcessingLogBox.scrollTop = opticalProcessingLogBox.scrollHeight;
+  }
+
+  // ==========================================================================
+  // YAPAY ZEKA DEĞERLENDİRME ÇALIŞTIRMA MOTORU
+  // ==========================================================================
+  if (btnStartOpticalAiEval) {
+    btnStartOpticalAiEval.addEventListener('click', () => {
+      startOpticalAiEvaluation();
+    });
+  }
+
+  async function startOpticalAiEvaluation() {
+    if (!activeExam || opticalSelectedFiles.length === 0) return;
+
+    let apiKey = (window.getGeminiApiKey ? window.getGeminiApiKey() : (localStorage.getItem('sinif_asistani_gemini_api_key') || '')).trim();
+    if (!apiKey) {
+      const entered = prompt('✨ Yapay zeka ile optik okuma yapabilmek için Google Gemini API anahtarı gereklidir.\n\nLütfen Gemini API anahtarınızı giriniz:');
+      if (entered && entered.trim()) {
+        apiKey = entered.trim();
+        if (window.setGeminiApiKey) window.setGeminiApiKey(apiKey);
+        else localStorage.setItem('sinif_asistani_gemini_api_key', apiKey);
+        updateOpticalApiKeyBanner();
+      } else {
+        return;
+      }
+    }
+
+    const qCount = parseInt(activeExam.totalQuestions, 10) || 20;
+    const choicesCount = parseInt(activeExam.choicesCount, 10) || 4;
+    const letters = ['A', 'B', 'C', 'D', 'E'].slice(0, choicesCount);
+    const examTitle = activeExam.examName || 'Optik Sınav';
+
+    // Ekranı İşlem Moduna Al
+    opticalEvalStepUpload.style.display = 'none';
+    opticalEvalStepProcessing.style.display = 'block';
+    opticalEvalStepResults.style.display = 'none';
+
+    if (opticalProcessingLogBox) opticalProcessingLogBox.innerHTML = '';
+    appendOpticalLog('Yapay zeka analizi başlatılıyor...');
+
+    const totalFiles = opticalSelectedFiles.length;
+    opticalScannedResults = [];
+
+    // Aktif sınıftaki öğrencileri al
+    const state = stateManager.loadState();
+    const isMiddle = state.educationLevel === 'middle';
+    const examBranch = activeExam.branch || '';
+    const classStudents = (state.students || []).filter(s => !isMiddle || !examBranch || s.branch === examBranch);
+
+    for (let i = 0; i < totalFiles; i++) {
+      const fileItem = opticalSelectedFiles[i];
+      const stepPct = Math.round(((i) / totalFiles) * 100);
+
+      if (opticalProcessingCounter) opticalProcessingCounter.textContent = `${i + 1} / ${totalFiles} Dosya İnceleniyor`;
+      if (opticalProcessingPercentage) opticalProcessingPercentage.textContent = `${stepPct}%`;
+      if (opticalProcessingProgressBar) opticalProcessingProgressBar.style.width = `${stepPct}%`;
+      if (opticalProcessingStepDesc) opticalProcessingStepDesc.textContent = `"${fileItem.name}" inceleniyor... Gemini Vision işaretlemeleri okuyor...`;
+
+      appendOpticalLog(`Dosya ${i + 1}/${totalFiles}: ${fileItem.name} görseli taranıyor...`);
+
+      try {
+        let sendingData = fileItem.dataUrl;
+        let sendingMime = 'image/jpeg';
+
+        if (fileItem.isPdf) {
+          sendingMime = 'application/pdf';
+        } else {
+          // Görseli canvas üzerinden optimize et (maks 1400px)
+          sendingData = await resizeImageForOmr(fileItem.dataUrl, 1400);
+        }
+
+        const prompt = `Görseldeki veya PDF belgesindeki sınav optik formunu dikkatlice incele.
+Sınav Bilgileri:
+- Sınav Adı: ${examTitle}
+- Toplam Soru Sayısı: ${qCount}
+- Olası Seçenekler: ${letters.join(', ')}
+
+ÖNEMLİ TALİMATLAR:
+1. Belgede veya görselde 1 veya birden fazla öğrencinin optik formu bulunabilir (örneğin CamScanner ile taranmış çok sayfalı bir PDF veya tek bir A4 sayfasında altlı üstlü 2 öğrencinin formu basılmış olabilir). Algılanan BÜTÜN optik formları ayrı bir nesne olarak "cards" dizisi içine ekle. Tek form varsa 1 elemanlı dizi döndür.
+2. Her bir form için:
+   - "Öğrenci:" yanındaki tam isim ve soyismi ("studentName").
+   - "No:" yanındaki öğrenci okul numarasını ("studentNo").
+3. 1'den ${qCount}'e kadar olan sorular için öğrencinin kurşun veya tükenmez kalemle DOLDURDUĞU / KARALADIĞI şıkkı tespit et:
+   - Doldurulan seçeneğin harfini ('A', 'B', 'C', 'D' vb.) yaz.
+   - Soru hiç işaretlenmemişse veya boş bırakılmışsa "" (boş dize) yaz.
+   - Bir soruda birden fazla şık karalanmışsa "MULTIPLE" yaz.
+   - Eğer bir şık karalanıp sonra üzeri çizilmiş ve başka bir şık doldurulmuşsa geçerli olanı al.
+
+Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi veya ek metin ekleme):
+{
+  "cards": [
+    {
+      "studentName": "Öğrenci Adı",
+      "studentNo": "123",
+      "answers": {
+        "1": "A",
+        "2": "B"
+      }
+    }
+  ]
+}`;
+
+        const rawRes = await window.callGeminiAPI(prompt, {
+          imageBase64: sendingData,
+          imageMimeType: sendingMime,
+          json: true,
+          temperature: 0.1
+        });
+
+        let parsed = null;
+        if (typeof rawRes === 'object' && rawRes !== null) {
+          parsed = rawRes;
+        } else if (typeof rawRes === 'string') {
+          const cleaned = rawRes.replace(/```json/gi, '').replace(/```/g, '').trim();
+          parsed = JSON.parse(cleaned);
+        }
+
+        if (!parsed) throw new Error('Yapay zeka geçerli bir yanıt veremedi.');
+
+        // Kartları normalize et
+        let detectedCards = [];
+        if (Array.isArray(parsed.cards) && parsed.cards.length > 0) {
+          detectedCards = parsed.cards;
+        } else if (parsed.answers) {
+          detectedCards = [parsed];
+        }
+
+        appendOpticalLog(`✓ ${fileItem.name}: ${detectedCards.length} adet optik form algılandı.`);
+
+        // Her bir kartı değerlendir
+        detectedCards.forEach((card, cardIndex) => {
+          const cardStudentNo = String(card.studentNo || '').trim();
+          const cardStudentName = String(card.studentName || '').trim();
+
+          // Öğrenciyi Eşle
+          let matched = null;
+          if (cardStudentNo) {
+            matched = classStudents.find(s => String(s.number).trim() === cardStudentNo);
+          }
+          if (!matched && cardStudentName) {
+            const cleanAiName = cardStudentName.toLocaleLowerCase('tr').replace(/[^a-zçğıöşü]/g, '');
+            if (cleanAiName.length > 2) {
+              matched = classStudents.find(s => {
+                const sName = `${s.name} ${s.surname || ''}`.toLocaleLowerCase('tr').replace(/[^a-zçğıöşü]/g, '');
+                return sName.includes(cleanAiName) || cleanAiName.includes(sName);
+              });
+            }
+          }
+
+          // Cevapları Puanla
+          const answerKey = activeExam.answerKey || {};
+          const detectedAnswers = {};
+          const questionDetails = [];
+          let correctCount = 0;
+          let wrongCount = 0;
+          let blankCount = 0;
+
+          const cardAnswers = card.answers || {};
+
+          for (let q = 1; q <= qCount; q++) {
+            let val = cardAnswers[q] || cardAnswers[String(q)] || '';
+            val = String(val).trim().toUpperCase();
+            if (!letters.includes(val) && val !== 'MULTIPLE') {
+              val = '';
+            }
+
+            const correctAns = answerKey[q] || answerKey[String(q)] || '';
+            const qd = {
+              q,
+              marked: val === 'MULTIPLE' ? '' : val,
+              status: val === 'MULTIPLE' ? 'multiple' : (val ? 'marked' : 'blank'),
+              keyAnswer: correctAns
+            };
+
+            if (!qd.marked) {
+              blankCount++;
+              qd.isCorrect = false;
+              qd.isBlank = true;
+            } else if (correctAns && qd.marked === correctAns) {
+              correctCount++;
+              qd.isCorrect = true;
+              qd.isBlank = false;
+            } else {
+              wrongCount++;
+              qd.isCorrect = false;
+              qd.isBlank = false;
+            }
+
+            detectedAnswers[q] = qd.marked;
+            questionDetails.push(qd);
+          }
+
+          const penaltyRate = activeExam.wrongAffects ? (parseFloat(activeExam.penaltyRate) || 4) : 0;
+          let net = penaltyRate > 0 ? (correctCount - (wrongCount / penaltyRate)) : correctCount;
+          net = Math.max(0, parseFloat(net.toFixed(2)));
+          const score = qCount > 0 ? parseFloat(((net / qCount) * 100).toFixed(1)) : 0;
+
+          opticalScannedResults.push({
+            resultId: 'omr_res_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6),
+            fileName: fileItem.name,
+            thumbUrl: fileItem.isPdf ? '' : fileItem.dataUrl,
+            isPdf: !!fileItem.isPdf,
+            pdfDataUrl: fileItem.isPdf ? fileItem.dataUrl : '',
+            rawStudentName: cardStudentName,
+            rawStudentNo: cardStudentNo,
+            matchedStudentId: matched ? matched.id : '',
+            correctCount,
+            wrongCount,
+            blankCount,
+            net,
+            score,
+            answers: detectedAnswers,
+            questionDetails
+          });
+
+          const matchedLabel = matched ? `${matched.name} ${matched.surname}` : '(Eşleşmedi)';
+          appendOpticalLog(`  → Form ${cardIndex + 1}: ${cardStudentName || 'İsimsiz'} (No: ${cardStudentNo || '-'}) ➔ ${matchedLabel} | Doğru: ${correctCount}, Yanlış: ${wrongCount}, Puan: ${score}`);
+        });
+
+      } catch (err) {
+        console.error('Optik Form Analiz Hatası:', err);
+        appendOpticalLog(`❌ ${fileItem.name} analiz edilemedi: ${err.message || err}`);
+      }
+    }
+
+    // Tamamlandı
+    if (opticalProcessingProgressBar) opticalProcessingProgressBar.style.width = '100%';
+    if (opticalProcessingPercentage) opticalProcessingPercentage.textContent = '100%';
+    if (opticalProcessingCounter) opticalProcessingCounter.textContent = `${totalFiles} / ${totalFiles} Tamamlandı`;
+    appendOpticalLog('Tüm formların incelemesi tamamlandı. Sonuçlar hazırlanıyor...');
+
+    setTimeout(() => {
+      renderOpticalEvaluationResults();
+    }, 600);
+  }
+
+  // Canvas ile Görsel Boyutlandırma
+  function resizeImageForOmr(dataUrl, maxDim = 1400) {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        let w = img.width;
+        let h = img.height;
+        if (w > maxDim || h > maxDim) {
+          if (w > h) {
+            h = Math.round((h * maxDim) / w);
+            w = maxDim;
+          } else {
+            w = Math.round((w * maxDim) / h);
+            h = maxDim;
+          }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', 0.88));
+      };
+      img.onerror = () => resolve(dataUrl);
+      img.src = dataUrl;
+    });
+  }
+
+  // ==========================================================================
+  // DEĞERLENDİRME SONUÇLARINI GÖSTERME VE NOTLARI AKTARMA
+  // ==========================================================================
+  function renderOpticalEvaluationResults() {
+    opticalEvalStepUpload.style.display = 'none';
+    opticalEvalStepProcessing.style.display = 'none';
+    opticalEvalStepResults.style.display = 'block';
+
+    const state = stateManager.loadState();
+    const isMiddle = state.educationLevel === 'middle';
+    const examBranch = activeExam.branch || '';
+    const classStudents = (state.students || []).filter(s => !isMiddle || !examBranch || s.branch === examBranch);
+    const sortedStudents = [...classStudents].sort((a, b) => a.name.localeCompare(b.name, 'tr'));
+
+    // İstatistikler
+    const totalCount = opticalScannedResults.length;
+    const matchedCount = opticalScannedResults.filter(r => r.matchedStudentId).length;
+    const avgScore = totalCount > 0 ? (opticalScannedResults.reduce((sum, r) => sum + r.score, 0) / totalCount).toFixed(1) : 0;
+
+    if (opticalResStatTotal) opticalResStatTotal.textContent = totalCount;
+    if (opticalResStatMatched) opticalResStatMatched.textContent = `${matchedCount} / ${totalCount}`;
+    if (opticalResStatAvg) opticalResStatAvg.textContent = `${avgScore} Puan`;
+
+    if (!opticalEvalResultsContainer) return;
+    opticalEvalResultsContainer.innerHTML = '';
+
+    if (totalCount === 0) {
+      opticalEvalResultsContainer.innerHTML = `
+        <div style="text-align: center; padding: 2rem; color: var(--text-muted);">
+          Hiçbir optik form okunamadı. Lütfen fotoğrafların net ve aydınlık olduğundan emin olup tekrar deneyin.
+        </div>
+      `;
+      return;
+    }
+
+    opticalScannedResults.forEach((res, index) => {
+      const card = document.createElement('div');
+      card.className = `optical-eval-card ${!res.matchedStudentId ? 'unmatched' : ''}`;
+
+      // Öğrenci Seçenekleri
+      let optionsHtml = `<option value="">-- Öğrenci Seçilmedi --</option>`;
+      sortedStudents.forEach(st => {
+        const isSelected = String(st.id) === String(res.matchedStudentId);
+        optionsHtml += `<option value="${st.id}" ${isSelected ? 'selected' : ''}>${st.number} - ${st.name} ${st.surname}</option>`;
+      });
+
+      const matchBadge = res.matchedStudentId
+        ? `<span class="badge" style="background: rgba(16, 185, 129, 0.15); color: #059669; font-size: 0.75rem;">✓ Eşleşti</span>`
+        : `<span class="badge" style="background: rgba(245, 158, 11, 0.2); color: #b45309; font-size: 0.75rem;">⚠️ Eşleşmedi (Lütfen Seçin)</span>`;
+
+      // Şıklar HTML'i
+      let answersHtml = '';
+      res.questionDetails.forEach(qd => {
+        let chipClass = 'blank';
+        let icon = '⚪';
+        let detailText = qd.keyAnswer ? `(D:${qd.keyAnswer})` : '';
+
+        if (qd.isCorrect) {
+          chipClass = 'correct';
+          icon = '✓';
+          detailText = '';
+        } else if (!qd.isBlank) {
+          chipClass = 'wrong';
+          icon = '✗';
+        }
+
+        answersHtml += `
+          <div class="optical-answer-chip ${chipClass}" title="Soru ${qd.q}: İşaretlenen '${qd.marked || 'Boş'}' - Doğru '${qd.keyAnswer || '-'}'">
+            <span>S${qd.q}:</span>
+            <strong>${qd.marked || '-'}</strong>
+            <small>${icon}</small>
+            ${detailText ? `<span style="font-size: 0.65rem; opacity: 0.85;">${detailText}</span>` : ''}
+          </div>
+        `;
+      });
+
+      const thumbHtml = res.thumbUrl
+        ? `<img src="${res.thumbUrl}" alt="Kağıt" style="width: 48px; height: 48px; object-fit: cover; border-radius: 6px; border: 1px solid var(--border-color); cursor: pointer;" class="res-thumb-img" title="Büyütmek için tıklayın">`
+        : `<div class="res-thumb-pdf" title="PDF Belgesini Aç"><i data-lucide="file-text" style="width: 18px; height: 18px;"></i><span>PDF</span></div>`;
+
+      card.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 0.75rem; flex-wrap: wrap;">
+          <div style="display: flex; align-items: center; gap: 0.75rem; flex: 1; min-width: 260px;">
+            ${thumbHtml}
+            <div style="flex: 1;">
+              <div style="display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.35rem;">
+                <label style="font-weight: 700; font-size: 0.82rem; margin: 0; color: var(--text-primary);">Öğrenci:</label>
+                <select class="form-control form-control-sm res-student-select" style="font-size: 0.82rem; height: 30px; padding: 2px 8px; flex: 1;">
+                  ${optionsHtml}
+                </select>
+                ${matchBadge}
+              </div>
+              <div style="font-size: 0.73rem; color: var(--text-muted);">
+                📄 Dosya: <code>${res.fileName}</code> • AI Okudu: "<strong>${res.rawStudentName || 'Belirsiz'}</strong>" (No: ${res.rawStudentNo || '-'})
+              </div>
+            </div>
+          </div>
+          <button type="button" class="btn btn-secondary btn-sm res-delete-btn" style="color: var(--danger); font-size: 0.75rem; padding: 0.25rem 0.5rem; height: auto;" title="Bu formu değerlendirmeden çıkar">&times; Çıkar</button>
+        </div>
+
+        <!-- Puan ve Net Rozetleri -->
+        <div style="display: flex; gap: 0.6rem; align-items: center; flex-wrap: wrap; background: var(--bg-secondary); padding: 0.4rem 0.75rem; border-radius: 6px;">
+          <span style="font-size: 0.8rem; font-weight: 700; color: #10b981;">✓ ${res.correctCount} Doğru</span>
+          <span style="font-size: 0.8rem; font-weight: 700; color: #ef4444;">✗ ${res.wrongCount} Yanlış</span>
+          <span style="font-size: 0.8rem; font-weight: 600; color: #64748b;">⚪ ${res.blankCount} Boş</span>
+          <span style="font-size: 0.8rem; font-weight: 700; color: #4f46e5;">📊 ${res.net} Net</span>
+          <div style="margin-left: auto; font-size: 0.95rem; font-weight: 800; color: #7c3aed; background: rgba(124, 58, 237, 0.1); padding: 0.2rem 0.6rem; border-radius: 4px;">
+            🎯 ${res.score} Puan
+          </div>
+        </div>
+
+        <!-- Şık Detayları Butonu & Konteyneri -->
+        <div>
+          <button type="button" class="btn btn-secondary btn-sm res-toggle-answers-btn" style="font-size: 0.72rem; padding: 0.2rem 0.5rem; height: auto;">
+            <span>Şıkları İncele</span>
+          </button>
+          <div class="res-answers-box" style="display: ${allOpticalDetailsVisible ? 'flex' : 'none'}; flex-wrap: wrap; gap: 4px; margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px dashed var(--border-color);">
+            ${answersHtml}
+          </div>
+        </div>
+      `;
+
+      // Öğrenci değiştirme dinleyicisi
+      const sel = card.querySelector('.res-student-select');
+      sel.addEventListener('change', (e) => {
+        res.matchedStudentId = e.target.value;
+        renderOpticalEvaluationResults();
+      });
+
+      // Görsel / PDF büyütme
+      const thumbEl = card.querySelector('.res-thumb-img, .res-thumb-pdf');
+      if (thumbEl) {
+        thumbEl.addEventListener('click', () => {
+          openOpticalImagePreview(res.thumbUrl || res.pdfDataUrl, res.isPdf, res.rawStudentName || res.fileName);
+        });
+      }
+
+      // Çıkar butonu
+      card.querySelector('.res-delete-btn').addEventListener('click', () => {
+        opticalScannedResults.splice(index, 1);
+        renderOpticalEvaluationResults();
+      });
+
+      // Şıkları aç/kapat
+      const toggleBtn = card.querySelector('.res-toggle-answers-btn');
+      const box = card.querySelector('.res-answers-box');
+      toggleBtn.addEventListener('click', () => {
+        const isHidden = box.style.display === 'none';
+        box.style.display = isHidden ? 'flex' : 'none';
+        toggleBtn.querySelector('span').textContent = isHidden ? 'Şıkları Gizle' : 'Şıkları İncele';
+      });
+
+      opticalEvalResultsContainer.appendChild(card);
+    });
+
+    if (window.safeCreateIcons) window.safeCreateIcons();
+    else if (window.lucide) window.lucide.createIcons();
+  }
+
+  // Tüm Şıkları Göster / Gizle Butonu
+  if (btnToggleAllOpticalAnswers) {
+    btnToggleAllOpticalAnswers.addEventListener('click', () => {
+      allOpticalDetailsVisible = !allOpticalDetailsVisible;
+      document.querySelectorAll('.res-answers-box').forEach(b => {
+        b.style.display = allOpticalDetailsVisible ? 'flex' : 'none';
+      });
+      document.querySelectorAll('.res-toggle-answers-btn span').forEach(s => {
+        s.textContent = allOpticalDetailsVisible ? 'Şıkları Gizle' : 'Şıkları İncele';
+      });
+    });
+  }
+
+  // Geri Dön / Yeni Dosya Ekle
+  if (btnOpticalBackToUpload) {
+    btnOpticalBackToUpload.addEventListener('click', () => {
+      opticalEvalStepUpload.style.display = 'block';
+      opticalEvalStepProcessing.style.display = 'none';
+      opticalEvalStepResults.style.display = 'none';
+    });
+  }
+
+  // ==========================================================================
+  // NOTLARI SINAV TABLOSUNA AKTAR VE KAYDET
+  // ==========================================================================
+  if (btnCommitOpticalResults) {
+    btnCommitOpticalResults.addEventListener('click', () => {
+      commitOpticalResultsToExam();
+    });
+  }
+
+  function commitOpticalResultsToExam() {
+    try {
+      if (!activeExam || opticalScannedResults.length === 0) return;
+
+      // Eşleşmeyen öğrenci kontrolü
+      const unmatched = opticalScannedResults.filter(r => !r.matchedStudentId);
+      if (unmatched.length > 0) {
+        if (!confirm(`⚠️ ${unmatched.length} adet optik form için öğrenci eşleştirmesi yapılmamış.\n\nEşleşmeyen formlar atlanacak, diğer öğrencilerin notları aktarılacaktır. Devam etmek istiyor musunuz?`)) {
+          return;
+        }
+      }
+
+      if (!activeExam.examScores) activeExam.examScores = {};
+      if (!activeExam.studentResults) activeExam.studentResults = {};
+
+      let savedCount = 0;
+      opticalScannedResults.forEach(res => {
+        if (!res.matchedStudentId) return;
+
+        activeExam.examScores[res.matchedStudentId] = res.score;
+        activeExam.studentResults[res.matchedStudentId] = {
+          correct: res.correctCount,
+          wrong: res.wrongCount,
+          blank: res.blankCount,
+          net: res.net,
+          score: res.score,
+          answers: { ...res.answers },
+          source: 'ai_optical_upload',
+          scannedAt: new Date().toISOString()
+        };
+        savedCount++;
+      });
+
+      activeExam.updatedAt = new Date().toISOString();
+      stateManager.saveExam(activeExam);
+
+      // Modalı kapat
+      if (modalUploadOpticalEval) modalUploadOpticalEval.classList.remove('active');
+
+      // Tabloyu ve listeyi güncelle
+      renderExamsList();
+      openActiveExam(activeExam);
+
+      if (toastCallback) {
+        toastCallback(`🎉 ${savedCount} öğrencinin sınav notları başarıyla aktarıldı ve kaydedildi!`, 'success');
+      }
+
+      const event = new CustomEvent('stateChanged');
+      document.dispatchEvent(event);
+    } catch (err) {
+      console.error('commitOpticalResultsToExam hatası:', err);
+      if (toastCallback) {
+        toastCallback(`Notlar aktarılırken bir hata oluştu: ${err.message || err}`, 'error');
+      }
+    }
+  }
+
+  // ==========================================================================
+  // KAYITLI SINAV CEVAP ANAHTARINI DÜZENLEME VE YENİDEN HESAPLAMA
+  // ==========================================================================
+
+  if (btnEditActiveExamKey) {
+    btnEditActiveExamKey.addEventListener('click', () => {
+      openDesktopAnswerKeyModal();
+    });
+  }
+
+  function openDesktopAnswerKeyModal() {
+    if (!activeExam) {
+      if (toastCallback) toastCallback('Lütfen önce bir sınav seçin!', 'warning');
+      return;
+    }
+
+    if (!modalEditExamAnswerKey) return;
+
+    editAnswerKeyTemp = { ...(activeExam.answerKey || {}) };
+    editAnswerKeyChoices = parseInt(activeExam.choicesCount, 10) || 4;
+
+    if (desktopAkSubtitle) {
+      const qCount = activeExam.totalQuestions || 20;
+      const bText = activeExam.branch ? ` • Şube: <strong>${activeExam.branch}</strong>` : '';
+      desktopAkSubtitle.innerHTML = `Sınav: <strong>${activeExam.examName}</strong> • Soru Sayısı: <strong>${qCount}</strong>${bText}`;
+    }
+
+    // Şık butonlarını güncelle
+    document.querySelectorAll('.desktop-ak-choice-pill').forEach(pill => {
+      const c = parseInt(pill.getAttribute('data-choices'), 10);
+      if (c === editAnswerKeyChoices) pill.classList.add('active');
+      else pill.classList.remove('active');
+    });
+
+    // Yeniden puanlama kutusunu göster/gizle
+    const hasResults = activeExam.studentResults && Object.keys(activeExam.studentResults).length > 0;
+    if (desktopAkRescoreContainer) {
+      desktopAkRescoreContainer.style.display = hasResults ? 'block' : 'none';
+      if (desktopAkRescoreCheckbox) desktopAkRescoreCheckbox.checked = true;
+    }
+
+    renderDesktopAnswerKeyModalGrid();
+    modalEditExamAnswerKey.classList.add('active');
+    if (window.safeCreateIcons) window.safeCreateIcons();
+  }
+  window.openDesktopAnswerKeyModal = openDesktopAnswerKeyModal;
+
+  // Modalı Kapatma
+  if (btnCloseEditAnswerKeyModal) {
+    btnCloseEditAnswerKeyModal.addEventListener('click', () => {
+      if (modalEditExamAnswerKey) modalEditExamAnswerKey.classList.remove('active');
+    });
+  }
+  if (btnCancelEditAnswerKey) {
+    btnCancelEditAnswerKey.addEventListener('click', () => {
+      if (modalEditExamAnswerKey) modalEditExamAnswerKey.classList.remove('active');
+    });
+  }
+
+  // Şık Sayısı Seçimi (3, 4, 5 Şık)
+  document.querySelectorAll('.desktop-ak-choice-pill').forEach(pill => {
+    pill.addEventListener('click', () => {
+      const count = parseInt(pill.getAttribute('data-choices'), 10) || 4;
+      editAnswerKeyChoices = count;
+      document.querySelectorAll('.desktop-ak-choice-pill').forEach(p => p.classList.remove('active'));
+      pill.classList.add('active');
+
+      // Geçersiz şıkları temizle (örn. 5'ten 4'e geçildiğinde 'E' şıkkını kaldır)
+      const letters = ['A', 'B', 'C', 'D', 'E'].slice(0, editAnswerKeyChoices);
+      Object.keys(editAnswerKeyTemp).forEach(q => {
+        if (!letters.includes(editAnswerKeyTemp[q])) {
+          delete editAnswerKeyTemp[q];
+        }
+      });
+
+      renderDesktopAnswerKeyModalGrid();
+    });
+  });
+
+  // Soru Izgarasını Çiz
+  function renderDesktopAnswerKeyModalGrid() {
+    if (!desktopAkQuestionsGrid || !activeExam) return;
+    desktopAkQuestionsGrid.innerHTML = '';
+
+    const qCount = parseInt(activeExam.totalQuestions, 10) || 20;
+    const letters = ['A', 'B', 'C', 'D', 'E'].slice(0, editAnswerKeyChoices);
+
+    for (let q = 1; q <= qCount; q++) {
+      const selected = editAnswerKeyTemp[q] || '';
+      const row = document.createElement('div');
+      row.style.cssText = 'background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 6px; padding: 4px 6px; display: flex; align-items: center; justify-content: space-between; gap: 4px;';
+
+      const qNum = document.createElement('span');
+      qNum.textContent = `${q}.`;
+      qNum.style.cssText = 'font-weight: 700; font-size: 0.76rem; min-width: 20px; color: var(--text-muted); text-align: right;';
+      row.appendChild(qNum);
+
+      const optsContainer = document.createElement('div');
+      optsContainer.style.cssText = 'display: flex; gap: 3px; align-items: center; flex: 1; justify-content: center;';
+
+      letters.forEach(letter => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.textContent = letter;
+        btn.className = `optical-key-pill-btn ${selected === letter ? 'active' : ''}`;
+        btn.style.cssText = 'width: 24px; height: 24px; font-size: 0.72rem; border-radius: 4px;';
+        btn.addEventListener('click', () => {
+          if (editAnswerKeyTemp[q] === letter) {
+            delete editAnswerKeyTemp[q];
+          } else {
+            editAnswerKeyTemp[q] = letter;
+          }
+          renderDesktopAnswerKeyModalGrid();
+        });
+        optsContainer.appendChild(btn);
+      });
+      row.appendChild(optsContainer);
+
+      const clearBtn = document.createElement('button');
+      clearBtn.type = 'button';
+      clearBtn.innerHTML = '&times;';
+      clearBtn.title = 'Boş Bırak';
+      clearBtn.style.cssText = `border: none; background: none; font-size: 14px; line-height: 1; color: var(--text-muted); cursor: pointer; padding: 0 2px; visibility: ${selected ? 'visible' : 'hidden'};`;
+      clearBtn.addEventListener('click', () => {
+        delete editAnswerKeyTemp[q];
+        renderDesktopAnswerKeyModalGrid();
+      });
+      row.appendChild(clearBtn);
+
+      desktopAkQuestionsGrid.appendChild(row);
+    }
+
+    updateDesktopAkCounter();
+  }
+
+  function updateDesktopAkCounter() {
+    if (!desktopAkCounterBadge || !activeExam) return;
+    const qCount = parseInt(activeExam.totalQuestions, 10) || 20;
+    const filled = Object.keys(editAnswerKeyTemp).filter(k => parseInt(k, 10) <= qCount && editAnswerKeyTemp[k]).length;
+
+    desktopAkCounterBadge.textContent = `${filled} / ${qCount} Soru Tanımlandı`;
+    if (filled === qCount) {
+      desktopAkCounterBadge.style.background = 'rgba(16, 185, 129, 0.12)';
+      desktopAkCounterBadge.style.color = '#059669';
+    } else {
+      desktopAkCounterBadge.style.background = 'rgba(79, 70, 229, 0.1)';
+      desktopAkCounterBadge.style.color = '#4f46e5';
+    }
+  }
+
+  // Örnek Doldur
+  if (btnDesktopAkFillSample) {
+    btnDesktopAkFillSample.addEventListener('click', () => {
+      if (!activeExam) return;
+      const qCount = parseInt(activeExam.totalQuestions, 10) || 20;
+      const letters = ['A', 'B', 'C', 'D', 'E'].slice(0, editAnswerKeyChoices);
+      for (let q = 1; q <= qCount; q++) {
+        editAnswerKeyTemp[q] = letters[(q - 1) % letters.length];
+      }
+      renderDesktopAnswerKeyModalGrid();
+    });
+  }
+
+  // Tümünü Temizle
+  if (btnDesktopAkClearAll) {
+    btnDesktopAkClearAll.addEventListener('click', () => {
+      if (!confirm('Tüm cevap anahtarını temizlemek istediğinize emin misiniz?')) return;
+      editAnswerKeyTemp = {};
+      renderDesktopAnswerKeyModalGrid();
+    });
+  }
+
+  // Cevap Anahtarını Kaydet ve Gerekiyorsa Öğrenci Notlarını Yeniden Hesapla
+  if (btnSaveEditAnswerKey) {
+    btnSaveEditAnswerKey.addEventListener('click', () => {
+      if (!activeExam) return;
+
+      activeExam.answerKey = { ...editAnswerKeyTemp };
+      activeExam.choicesCount = editAnswerKeyChoices;
+      activeExam.hasOpticalForm = true;
+      activeExam.updatedAt = new Date().toISOString();
+
+      // Otomatik yeniden puanlama
+      let rescoredCount = 0;
+      const shouldRescore = desktopAkRescoreCheckbox && desktopAkRescoreCheckbox.checked && activeExam.studentResults;
+      if (shouldRescore) {
+        const qCount = parseInt(activeExam.totalQuestions, 10) || 20;
+        const penaltyRate = activeExam.wrongAffects ? (parseFloat(activeExam.penaltyRate) || 4) : 0;
+
+        Object.keys(activeExam.studentResults).forEach(studentId => {
+          const res = activeExam.studentResults[studentId];
+          if (res && res.answers) {
+            let correctCount = 0;
+            let wrongCount = 0;
+            let blankCount = 0;
+
+            for (let q = 1; q <= qCount; q++) {
+              const ans = String(res.answers[q] || res.answers[String(q)] || '').trim().toUpperCase();
+              const correctAns = String(activeExam.answerKey[q] || activeExam.answerKey[String(q)] || '').trim().toUpperCase();
+
+              if (!ans) {
+                blankCount++;
+              } else if (correctAns && ans === correctAns) {
+                correctCount++;
+              } else {
+                wrongCount++;
+              }
+            }
+
+            let net = penaltyRate > 0 ? (correctCount - (wrongCount / penaltyRate)) : correctCount;
+            net = Math.max(0, parseFloat(net.toFixed(2)));
+            const score = qCount > 0 ? parseFloat(((net / qCount) * 100).toFixed(1)) : 0;
+
+            res.correct = correctCount;
+            res.wrong = wrongCount;
+            res.blank = blankCount;
+            res.net = net;
+            res.score = score;
+
+            if (!activeExam.examScores) activeExam.examScores = {};
+            activeExam.examScores[studentId] = score;
+            rescoredCount++;
+          }
+        });
+      }
+
+      stateManager.saveExam(activeExam);
+
+      if (modalEditExamAnswerKey) modalEditExamAnswerKey.classList.remove('active');
+
+      renderExamsList();
+      openActiveExam(activeExam);
+
+      if (toastCallback) {
+        if (rescoredCount > 0) {
+          toastCallback(`✅ Cevap anahtarı güncellendi ve ${rescoredCount} öğrencinin notları otomatik olarak yeniden hesaplandı!`, 'success');
+        } else {
+          toastCallback('✅ Cevap anahtarı başarıyla güncellendi.', 'success');
+        }
+      }
+
+      const event = new CustomEvent('stateChanged');
+      document.dispatchEvent(event);
+    });
+  }
 
   function populateOpticalStudentsList() {
     if (!opticalStudentsList) return;
@@ -521,20 +2148,78 @@ function setupWeeklyTab(showToast) {
     }
   }
 
-  function getCardsPerPage(questionCount) {
-    const qCols = questionCount <= 10 ? 1 : (questionCount <= 30 ? 2 : 3);
-    const qRows = Math.ceil(questionCount / qCols);
-    
-    const headerHeight = 22; 
-    const rowHeight = 3.8; 
-    const paddingHeight = 10;
-    const cardHeight = headerHeight + (qRows * rowHeight) + paddingHeight;
-    
-    const pageHeight = 280; 
-    const cardRows = Math.floor(pageHeight / cardHeight);
-    
-    const rows = Math.max(1, Math.min(4, cardRows));
-    return rows * 2; 
+  // Tekil Optik Kart HTML Şablonu (QR Kodsuz, Yapay Zeka & CamScanner İçin Optimize)
+  function generateSingleDesktopOpticalCardHTML(options) {
+    const {
+      examName = 'Haftalık Değerlendirme',
+      studentName = '................................',
+      studentNo = '......',
+      totalQuestions = 20,
+      letters = ['A', 'B', 'C', 'D'],
+      perPage = 2
+    } = options;
+
+    const cols = totalQuestions <= 15 ? 1 : (totalQuestions <= 30 ? 2 : 3);
+    const questionsPerCol = Math.ceil(totalQuestions / cols);
+
+    let columnsHtml = '';
+    for (let c = 0; c < cols; c++) {
+      const startQ = c * questionsPerCol + 1;
+      const endQ = Math.min((c + 1) * questionsPerCol, totalQuestions);
+
+      let colRows = '';
+      for (let q = startQ; q <= endQ; q++) {
+        colRows += `
+          <div class="omr-q-row" data-q="${q}">
+            <span class="omr-row-tick"></span>
+            <span class="omr-q-num">${q}</span>
+            <div class="omr-q-bubbles">
+              ${letters.map(l => `<span class="omr-bubble" data-opt="${l}">${l}</span>`).join('')}
+            </div>
+          </div>
+        `;
+      }
+
+      columnsHtml += `
+        <div class="omr-grid-col col-${c}">
+          ${colRows}
+        </div>
+      `;
+    }
+
+    return `
+      <div class="omr-card">
+        <!-- 4 Köşe Referans Çapası (CamScanner & Tarayıcı Uyumlu) -->
+        <div class="omr-anchor omr-anchor-tl"></div>
+        <div class="omr-anchor omr-anchor-tr"></div>
+        <div class="omr-anchor omr-anchor-bl"></div>
+        <div class="omr-anchor omr-anchor-br"></div>
+
+        <!-- Üst Başlık & Öğrenci Bilgileri (Yapay Zeka Okuması İçin Açık Metin - QR KODSUZ) -->
+        <div class="omr-card-header">
+          <div class="omr-header-main">
+            <div class="omr-header-title">${examName}</div>
+            <div class="omr-student-info">
+              <div><strong>Öğrenci:</strong> ${studentName}</div>
+              <div><strong>No:</strong> ${studentNo}</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Optik Form Şıkları -->
+        <div class="omr-card-body">
+          <div class="omr-grid-container cols-${cols}">
+            ${columnsHtml}
+          </div>
+        </div>
+
+        <!-- Alt Bilgi / Uyarı -->
+        <div class="omr-card-footer">
+          <span>* Doğru seçeneği taşırmadan, koyu kurşun kalemle doldurunuz.</span>
+          <span>SINIF ASİSTANI</span>
+        </div>
+      </div>
+    `;
   }
 
   function updateOpticalLivePreview() {
@@ -544,197 +2229,114 @@ function setupWeeklyTab(showToast) {
 
     const questionCountInput = document.getElementById('optical-questions-input');
     const choicesCountInput = document.getElementById('optical-choices-input');
+    const typeInput = document.getElementById('optical-type-input');
+    const perPageInput = document.getElementById('optical-per-page-input');
     if (!questionCountInput || !choicesCountInput) return;
 
     const questionCount = parseInt(questionCountInput.value) || 20;
     const choicesCount = parseInt(choicesCountInput.value) || 4;
+    const formType = typeInput ? typeInput.value : 'named';
+    const perPage = parseInt(perPageInput ? perPageInput.value : '2', 10) || 2;
 
+    const letters = ['A', 'B', 'C', 'D', 'E'].slice(0, choicesCount);
     const state = stateManager.loadState();
-    
-    let checkedStudentIds = [];
-    if (opticalStudentsList) {
-      opticalStudentsList.querySelectorAll('input[type="checkbox"]:checked').forEach(cb => {
-        checkedStudentIds.push(cb.value);
-      });
-    }
+    const examName = activeExam ? (activeExam.examName || 'Haftalık Değerlendirme') : 'Haftalık Değerlendirme';
 
-    if (checkedStudentIds.length === 0) {
-      checkedStudentIds = ['sample_preview_student'];
-    }
-
-    const cardsPerPage = getCardsPerPage(questionCount);
-    const pageCount = Math.ceil(checkedStudentIds.length / cardsPerPage);
-
-    const letters = ['A', 'B', 'C', 'D', 'E'];
-    const activeLetters = letters.slice(0, choicesCount);
-    
-    const cols = questionCount <= 10 ? 1 : (questionCount <= 30 ? 2 : 3);
-    const questionsPerCol = Math.ceil(questionCount / cols);
-    
-    const sortedStudents = [...state.students].sort((a, b) => a.name.localeCompare(b.name, 'tr'));
-
-    for (let p = 0; p < pageCount; p++) {
-      const pageDiv = document.createElement('div');
-      pageDiv.className = 'optical-page';
-      
-      const startIdx = p * cardsPerPage;
-      const endIdx = Math.min((p + 1) * cardsPerPage, checkedStudentIds.length);
-      
-      for (let i = startIdx; i < endIdx; i++) {
-        const studentId = checkedStudentIds[i];
-        let studentName = 'Örnek Öğrenci';
-        let studentNo = '123';
-        
-        if (studentId !== 'sample_preview_student') {
-          const student = state.students.find(s => s.id === studentId);
-          if (student) {
-            studentName = `${student.name} ${student.surname}`;
-            studentNo = student.number;
-          }
-        }
-
-        const card = document.createElement('div');
-        card.className = 'optical-form-card';
-
-        let headerHTML = `
-          <div class="optical-form-header">
-            <h4>Haftalık Değerlendirme Cevap Formu</h4>
-            <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-top: 2px;">
-              <div class="optical-student-info">
-                <div><strong>Adı Soyadı:</strong> ${studentName}</div>
-                <div><strong>Sınıf / No:</strong> ${studentNo}</div>
-              </div>
-            </div>
-          </div>
-        `;
-
-        let bodyHTML = '<div class="optical-form-body">';
-        
-        for (let c = 0; c < cols; c++) {
-          let colHTML = '<div class="optical-form-column">';
-          const startQ = c * questionsPerCol + 1;
-          const endQ = Math.min((c + 1) * questionsPerCol, questionCount);
-          
-          for (let q = startQ; q <= endQ; q++) {
-            let rowHTML = `
-              <div class="optical-form-row">
-                <span class="optical-form-qnum">${q}</span>
-                <div class="optical-form-bubbles">
-            `;
-            
-            activeLetters.forEach(l => {
-              rowHTML += `<span class="optical-form-bubble">${l}</span>`;
-            });
-            
-            rowHTML += `
-                </div>
-              </div>
-            `;
-            colHTML += rowHTML;
-          }
-          colHTML += '</div>';
-          bodyHTML += colHTML;
-        }
-        
-        bodyHTML += '</div>';
-        
-        card.innerHTML = headerHTML + bodyHTML;
-        pageDiv.appendChild(card);
+    let previewStudents = [];
+    if (formType === 'named') {
+      let checkedStudentIds = [];
+      if (opticalStudentsList) {
+        opticalStudentsList.querySelectorAll('input[type="checkbox"]:checked').forEach(cb => {
+          checkedStudentIds.push(cb.value);
+        });
       }
-      
-      const pageIndicator = document.createElement('span');
-      pageIndicator.style.position = 'absolute';
-      pageIndicator.style.bottom = '8px';
-      pageIndicator.style.right = '12px';
-      pageIndicator.style.fontSize = '8px';
-      pageIndicator.style.color = '#777';
-      pageIndicator.style.fontWeight = 'bold';
-      pageIndicator.textContent = `Sayfa ${p + 1} / ${pageCount}`;
-      pageDiv.appendChild(pageIndicator);
-      
-      previewContainer.appendChild(pageDiv);
+      if (checkedStudentIds.length === 0) {
+        checkedStudentIds = (state.students || []).slice(0, perPage).map(s => s.id);
+      }
+      previewStudents = checkedStudentIds.map(id => {
+        const s = (state.students || []).find(st => st.id === id);
+        return s ? { name: `${s.name} ${s.surname || ''}`.trim(), number: s.number || '' } : { name: 'Örnek Öğrenci', number: '123' };
+      });
+      if (previewStudents.length === 0) {
+        previewStudents = [{ name: 'Ahmet YILMAZ', number: '105' }, { name: 'Ayşe DEMİR', number: '108' }];
+      }
+    } else {
+      for (let i = 0; i < perPage; i++) {
+        previewStudents.push({ name: '................................', number: '......' });
+      }
     }
+
+    const cardsToShow = previewStudents.slice(0, perPage);
+    let cardsHtml = '';
+    cardsToShow.forEach(st => {
+      cardsHtml += generateSingleDesktopOpticalCardHTML({
+        examName,
+        studentName: st.name,
+        studentNo: st.number,
+        totalQuestions: questionCount,
+        letters,
+        perPage
+      });
+    });
+
+    previewContainer.innerHTML = `
+      <div class="omr-preview-sheet omr-per-page-${perPage}">
+        ${cardsHtml}
+      </div>
+    `;
   }
 
-  function generateOpticalFormsHTML(studentIds, questionCount, choicesCount) {
+  function generateOpticalFormsHTML(studentIds, questionCount, choicesCount, formType = 'named', perPage = 2) {
     const printContainer = document.getElementById('optical-forms-print-container');
     if (!printContainer) return;
     printContainer.innerHTML = '';
     
     const state = stateManager.loadState();
-    const cardsPerPage = getCardsPerPage(questionCount);
-    const pageCount = Math.ceil(studentIds.length / cardsPerPage);
-    
-    const letters = ['A', 'B', 'C', 'D', 'E'];
-    const activeLetters = letters.slice(0, choicesCount);
-    
-    const cols = questionCount <= 10 ? 1 : (questionCount <= 30 ? 2 : 3);
-    const questionsPerCol = Math.ceil(questionCount / cols);
-    
-    const sortedStudents = [...state.students].sort((a, b) => a.name.localeCompare(b.name, 'tr'));
-    
-    for (let p = 0; p < pageCount; p++) {
-      const pageDiv = document.createElement('div');
-      pageDiv.className = 'optical-page';
-      
-      const startIdx = p * cardsPerPage;
-      const endIdx = Math.min((p + 1) * cardsPerPage, studentIds.length);
-      
-      for (let i = startIdx; i < endIdx; i++) {
-        const studentId = studentIds[i];
-        const student = state.students.find(s => s.id === studentId);
-        if (!student) continue;
-        
-        const card = document.createElement('div');
-        card.className = 'optical-form-card';
-        
-        let headerHTML = `
-          <div class="optical-form-header">
-            <h4>Haftalık Değerlendirme Cevap Formu</h4>
-            <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-top: 2px;">
-              <div class="optical-student-info">
-                <div><strong>Adı Soyadı:</strong> ${student.name} ${student.surname}</div>
-                <div><strong>Sınıf / No:</strong> ${student.number}</div>
-              </div>
-            </div>
-          </div>
-        `;
-        
-        let bodyHTML = '<div class="optical-form-body">';
-        
-        for (let c = 0; c < cols; c++) {
-          let colHTML = '<div class="optical-form-column">';
-          const startQ = c * questionsPerCol + 1;
-          const endQ = Math.min((c + 1) * questionsPerCol, questionCount);
-          
-          for (let q = startQ; q <= endQ; q++) {
-            let rowHTML = `
-              <div class="optical-form-row">
-                <span class="optical-form-qnum">${q}</span>
-                <div class="optical-form-bubbles">
-            `;
-            
-            activeLetters.forEach(l => {
-              rowHTML += `<span class="optical-form-bubble">${l}</span>`;
-            });
-            
-            rowHTML += `
-                </div>
-              </div>
-            `;
-            colHTML += rowHTML;
-          }
-          colHTML += '</div>';
-          bodyHTML += colHTML;
+    const letters = ['A', 'B', 'C', 'D', 'E'].slice(0, choicesCount);
+    const examName = activeExam ? (activeExam.examName || 'Haftalık Değerlendirme') : 'Haftalık Değerlendirme';
+
+    let studentsList = [];
+    if (formType === 'named') {
+      studentIds.forEach(id => {
+        const s = (state.students || []).find(st => st.id === id);
+        if (s) {
+          studentsList.push({ name: `${s.name} ${s.surname || ''}`.trim(), number: s.number || '' });
         }
-        
-        bodyHTML += '</div>';
-        
-        card.innerHTML = headerHTML + bodyHTML;
-        pageDiv.appendChild(card);
+      });
+      if (studentsList.length === 0) {
+        const count = perPage === 4 ? 32 : (perPage === 2 ? 30 : 20);
+        for (let i = 1; i <= count; i++) {
+          studentsList.push({ name: '................................', number: '......' });
+        }
       }
-      printContainer.appendChild(pageDiv);
+    } else {
+      // Boş formlar: Sayfaları tam dolduracak miktarda oluştur
+      const count = perPage === 4 ? 32 : (perPage === 2 ? 30 : 20);
+      for (let i = 1; i <= count; i++) {
+        studentsList.push({ name: '................................', number: '......' });
+      }
     }
+
+    let pagesHtml = '';
+    for (let p = 0; p < studentsList.length; p += perPage) {
+      const pageStudents = studentsList.slice(p, p + perPage);
+      let pageCardsHtml = '';
+
+      pageStudents.forEach(st => {
+        pageCardsHtml += generateSingleDesktopOpticalCardHTML({
+          examName,
+          studentName: st.name,
+          studentNo: st.number,
+          totalQuestions: questionCount,
+          letters,
+          perPage
+        });
+      });
+
+      pagesHtml += `<div class="omr-print-page omr-per-page-${perPage}">${pageCardsHtml}</div>`;
+    }
+
+    printContainer.innerHTML = pagesHtml;
   }
 
   // Başlangıç listesini yükle
@@ -819,9 +2421,9 @@ function renderExamsList() {
     }
     topStudentsHTML += '</div>';
 
-    const parts = exam.weekId.split('-W');
-    const formattedWeek = parts.length === 2 ? `${parts[0]} Yılı, ${parts[1]}. Hafta` : exam.weekId;
+    const formattedWeek = window.formatWeekTR ? window.formatWeekTR(exam.weekId, 'full') : exam.weekId;
     const penaltyText = exam.wrongAffects ? `${exam.penaltyRate} Yanlış 1 Doğruyu Götürür` : 'Yanlışlar Doğruları Etkilemez';
+    const opticalBadge = exam.hasOpticalForm ? `<span class="badge" style="background: rgba(99, 102, 241, 0.15); color: var(--primary); font-size: 0.72rem; padding: 0.1rem 0.35rem; font-weight: 700;">📝 ${exam.choicesCount || 4} Şıklı Optik</span>` : '';
 
     const card = document.createElement('div');
     card.className = `exam-card ${activeExam && activeExam.id === exam.id ? 'active-card' : ''}`;
@@ -838,6 +2440,7 @@ function renderExamsList() {
         <span>${exam.totalQuestions} Soru</span>
         <span>•</span>
         <span>${exam.duration} Dk</span>
+        ${opticalBadge ? `<span>•</span>${opticalBadge}` : ''}
         <span>•</span>
         <span style="font-size: 0.7rem; opacity: 0.85;">${penaltyText}</span>
       </div>
@@ -862,8 +2465,9 @@ function openActiveExam(exam) {
 
   if (activeExamTitle) activeExamTitle.textContent = exam.examName;
 
-  const parts = exam.weekId.split('-W');
-  const formattedWeek = parts.length === 2 ? `${parts[0]} Yılı, ${parts[1]}. Hafta` : exam.weekId;
+  const formattedWeek = window.formatWeekTR ? window.formatWeekTR(exam.weekId, 'full') : exam.weekId;
+  const keyCount = Object.keys(exam.answerKey || {}).filter(k => exam.answerKey[k]).length;
+  const opticalBadge = exam.hasOpticalForm ? `<span class="badge" style="background: rgba(99, 102, 241, 0.15); color: var(--primary); font-weight: 700; cursor: pointer;" title="Cevap anahtarını düzenlemek için tıklayın" onclick="window.openDesktopAnswerKeyModal ? window.openDesktopAnswerKeyModal() : null">📝 ${exam.choicesCount || 4} Şıklı Optik Form (${keyCount}/${exam.totalQuestions} Cevap 🔑)</span>` : '';
   const penaltyText = exam.wrongAffects ? `${exam.penaltyRate} Yanlış 1 Doğruyu Götürür` : 'Yanlışlar Doğruları Etkilemez';
 
   if (activeExamInfoBar) {
@@ -873,6 +2477,7 @@ function openActiveExam(exam) {
       <span><strong>Soru Sayısı:</strong> ${exam.totalQuestions}</span>
       <span>•</span>
       <span><strong>Süre:</strong> ${exam.duration} Dk</span>
+      ${opticalBadge ? `<span>•</span>${opticalBadge}` : ''}
       <span>•</span>
       <span><strong>Değerlendirme:</strong> ${penaltyText}</span>
       ${exam.branch ? `<span>•</span><span><strong>Şube:</strong> <span class="badge" style="background: rgba(255, 255, 255, 0.1); color: var(--text-primary);">${exam.branch}</span></span>` : ''}
@@ -1167,8 +2772,7 @@ function prepareAdvancedPrintLayout(reportTitle, reportSubtitle, examDetailText,
 
     // Meta box contents for average reports
     const selectedWeek = stateManager.getSelectedWeek();
-    const parts = selectedWeek.split('-W');
-    const formattedWeek = parts.length === 2 ? `${parts[0]} Yılı, ${parts[1]}. Hafta` : selectedWeek;
+    const formattedWeek = window.formatWeekTR ? window.formatWeekTR(selectedWeek, 'full') : selectedWeek;
 
     const examDateText = selectedValue === 'week_avg' ? formattedWeek : 'Tüm Dönem';
     

@@ -240,11 +240,17 @@
 
     window.switchQuizView('play');
     if (window.lucide) window.lucide.createIcons();
+
+    // Yarışma alanına girildiğinde yüzen menü için dikkat çekme titremesini tetikle
+    if (typeof window.triggerFabArrivalAttention === 'function') {
+      window.triggerFabArrivalAttention('m-quiz-fab-btn', 500);
+    }
   };
 
   window.toggleQuizFabMenu = () => {
     const menu = document.getElementById('m-quiz-fab-menu');
     const btn = document.getElementById('m-quiz-fab-btn');
+    if (btn && typeof window.cancelFabAttention === 'function') window.cancelFabAttention(btn);
     if (!menu) return;
     const isShowing = menu.classList.toggle('show');
     if (btn) btn.classList.toggle('active', isShowing);

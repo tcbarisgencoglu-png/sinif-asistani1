@@ -13,8 +13,24 @@
     }[tag] || tag));
   });
   const showMobileToast = window.showMobileToast || (msg => alert(msg));
-  const openBottomSheet = (id) => (window.openBottomSheet ? window.openBottomSheet(id) : null);
-  const closeBottomSheet = () => (window.closeBottomSheet ? window.closeBottomSheet() : null);
+  const openBottomSheet = (id) => {
+    if (typeof window.openBottomSheet === 'function') {
+      return window.openBottomSheet(id);
+    }
+    const sheet = document.getElementById(id);
+    const backdrop = document.getElementById('sheet-backdrop');
+    if (sheet) sheet.classList.add('active');
+    if (backdrop) backdrop.classList.add('active');
+    if (window.lucide) window.lucide.createIcons();
+  };
+  const closeBottomSheet = () => {
+    if (typeof window.closeBottomSheet === 'function') {
+      return window.closeBottomSheet();
+    }
+    document.querySelectorAll('.bottom-sheet').forEach(s => s.classList.remove('active'));
+    const backdrop = document.getElementById('sheet-backdrop');
+    if (backdrop) backdrop.classList.remove('active');
+  };
   const isMiddleSchool = () => (window.isMiddleSchool ? window.isMiddleSchool() : false);
   const isStudentInCurrentLevel = (s) => (window.isStudentInCurrentLevel ? window.isStudentInCurrentLevel(s) : true);
 

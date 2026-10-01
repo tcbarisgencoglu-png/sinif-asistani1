@@ -298,14 +298,150 @@
           if (btn) btn.classList.remove('active');
         }
       }
+
+      // Yüzen menü butonuna tıklandığında titremeyi derhal durdur
+      const clickedFab = e.target.closest('.mobile-fab-btn');
+      if (clickedFab) {
+        cancelFabAttention(clickedFab);
+      }
     });
   }
+
+  // ==========================================================================
+  // YÜZEN MENÜ DİKKAT ÇEKME & TİTREME MOTORU (FAB ATTENTION ON ARRIVAL)
+  // Sayfaya ilk gelindiğinde yüzen menü birkaç kez titreyerek kendini fark ettirir.
+  // ==========================================================================
+  const fabLastTriggered = new Map();
+  const fabActiveTimeouts = new Map();
+
+  function triggerFabArrivalAttention(target, delay = 450) {
+    if (!target) return;
+    const btn = (typeof target === 'string')
+      ? document.getElementById(target)
+      : (target.classList && target.classList.contains('mobile-fab-btn'))
+        ? target
+        : (target.querySelector ? target.querySelector('.mobile-fab-btn') : null);
+
+    if (!btn) return;
+    const btnId = btn.id || ('fab-btn-' + Math.random().toString(36).substr(2, 6));
+
+    // Menü açıksa veya buton ekranda görünür değilse titreme yapma
+    if (btn.classList.contains('active')) return;
+
+    // Cooldown kontrolü: aynı buton için 12 saniye içinde tekrar tetikleme
+    const now = Date.now();
+    const lastTime = fabLastTriggered.get(btnId) || 0;
+    if (now - lastTime < 12000) return;
+    fabLastTriggered.set(btnId, now);
+
+    // Varsa önceki zamanlayıcıları temizle
+    if (fabActiveTimeouts.has(btnId)) {
+      const timers = fabActiveTimeouts.get(btnId);
+      if (Array.isArray(timers)) timers.forEach(id => clearTimeout(id));
+      fabActiveTimeouts.delete(btnId);
+    }
+
+    const timerList = [];
+
+    const startTimer = setTimeout(() => {
+      if (!btn || btn.classList.contains('active') || btn.offsetParent === null) {
+        fabActiveTimeouts.delete(btnId);
+        return;
+      }
+
+      // Animasyon sınıfını ekle (önce kaldırıp reflow ile yeniden tetikle)
+      btn.classList.remove('fab-attention');
+      void btn.offsetWidth; // Reflow
+      btn.classList.add('fab-attention');
+
+      // Android ve mobil cihazlar için 3 dalgalı titreşim (Haptic Feedback)
+      // 1. Titreme Dalgası: hemen
+      window.vibrate(30);
+
+      // 2. Titreme Dalgası: ~540ms sonra
+      const tVib2 = setTimeout(() => {
+        if (btn.classList.contains('fab-attention') && !btn.classList.contains('active') && btn.offsetParent !== null) {
+          window.vibrate(30);
+        }
+      }, 540);
+      timerList.push(tVib2);
+
+      // 3. Titreme Dalgası: ~1080ms sonra
+      const tVib3 = setTimeout(() => {
+        if (btn.classList.contains('fab-attention') && !btn.classList.contains('active') && btn.offsetParent !== null) {
+          window.vibrate(30);
+        }
+      }, 1080);
+      timerList.push(tVib3);
+
+      // Animasyon bittiğinde temizle
+      const onEnd = () => {
+        btn.classList.remove('fab-attention');
+        btn.removeEventListener('animationend', onEnd);
+      };
+      btn.addEventListener('animationend', onEnd, { once: true });
+
+      const tClean = setTimeout(() => {
+        btn.classList.remove('fab-attention');
+        fabActiveTimeouts.delete(btnId);
+      }, 1800);
+      timerList.push(tClean);
+    }, delay);
+
+    timerList.push(startTimer);
+    fabActiveTimeouts.set(btnId, timerList);
+  }
+
+  function cancelFabAttention(btn) {
+    if (!btn) return;
+    const btnId = btn.id;
+    if (btnId && fabActiveTimeouts.has(btnId)) {
+      const timers = fabActiveTimeouts.get(btnId);
+      if (Array.isArray(timers)) timers.forEach(id => clearTimeout(id));
+      fabActiveTimeouts.delete(btnId);
+    }
+    btn.classList.remove('fab-attention');
+  }
+
+  function cancelAllFabAttention() {
+    fabActiveTimeouts.forEach(timers => {
+      if (Array.isArray(timers)) timers.forEach(id => clearTimeout(id));
+    });
+    fabActiveTimeouts.clear();
+    document.querySelectorAll('.mobile-fab-btn.fab-attention').forEach(btn => {
+      btn.classList.remove('fab-attention');
+    });
+  }
+
+  window.triggerFabArrivalAttention = triggerFabArrivalAttention;
+  window.cancelFabAttention = cancelFabAttention;
+  window.cancelAllFabAttention = cancelAllFabAttention;
 
   // ==========================================================================
   // SEKME YÖNETİMİ
   // ==========================================================================
   function switchTab(tabId) {
+    if (tabId === 'attendance') {
+      switchTab('tools');
+      if (typeof window.openAttendanceModal === 'function') {
+        window.openAttendanceModal();
+      }
+      return;
+    }
+    cancelAllFabAttention();
     currentTab = tabId;
+
+    // Canlı Ders Kartı: Puan menüsü dışında hiçbir menüde üst tarafta canlı ders penceresi olmasın
+    const liveCard = document.getElementById('m-live-lesson-card');
+    if (liveCard) {
+      liveCard.style.display = (tabId === 'performance') ? 'flex' : 'none';
+    }
+
+    // Filtre & Arama Çubuğu: Sadece Puan ve Ödev sekmelerinde göster
+    const filterBar = document.getElementById('mobile-filter-bar');
+    if (filterBar) {
+      filterBar.style.display = (tabId === 'performance' || tabId === 'homework') ? 'flex' : 'none';
+    }
 
     // Aktif olan tüm alt ekranları (subviews), modalları ve çekmeceleri kapat
     if (typeof activeMobileSubview !== 'undefined') {
@@ -354,6 +490,12 @@
 
     window.vibrate(25);
     renderActiveTab();
+
+    // Sayfaya ilk gelindiğinde yüzen menü varsa dikkat çekme titremesini tetikle
+    const targetPane = document.getElementById(`tab-${tabId}`);
+    if (targetPane) {
+      triggerFabArrivalAttention(targetPane, 450);
+    }
   }
   window.switchTab = switchTab;
 
@@ -367,6 +509,9 @@
         break;
       case 'books':
         if (typeof window.renderBooksTab === 'function') window.renderBooksTab();
+        break;
+      case 'tools':
+        if (typeof window.renderMobileTools === 'function') window.renderMobileTools();
         break;
       case 'attendance':
         renderAttendanceTab();
@@ -2292,6 +2437,17 @@
     showMobileToast('Yoklama başarıyla kaydedildi!');
   };
 
+  window.renderAttendanceTab = renderAttendanceTab;
+
+  window.openAttendanceModal = () => {
+    if (window.vibrate) window.vibrate(20);
+    renderAttendanceTab();
+    if (typeof window.openBottomSheet === 'function') {
+      window.openBottomSheet('modal-attendance');
+    }
+    if (window.lucide) window.lucide.createIcons();
+  };
+
   // ==========================================================================
   // 5. MODÜL: DAHA FAZLA / ARAÇLAR
   // ==========================================================================
@@ -2434,6 +2590,7 @@
   window.showMobileToast = showMobileToast;
 
   window.closeBottomSheet = () => {
+    cancelAllFabAttention();
     window.currentDetailedStudentId = null;
     document.querySelectorAll('.bottom-sheet').forEach(s => s.classList.remove('active'));
     const backdrop = document.getElementById('sheet-backdrop');
@@ -2449,13 +2606,20 @@
   };
 
   function openBottomSheet(sheetId) {
+    cancelAllFabAttention();
     window.closeBottomSheet();
     const sheet = document.getElementById(sheetId);
     const backdrop = document.getElementById('sheet-backdrop');
     if (sheet) sheet.classList.add('active');
     if (backdrop) backdrop.classList.add('active');
     if (window.lucide) window.lucide.createIcons();
+
+    // Açılan alt sayfada (bottom sheet) yüzen menü varsa dikkat çekme titremesini tetikle
+    if (sheet && typeof triggerFabArrivalAttention === 'function') {
+      triggerFabArrivalAttention(sheet, 500);
+    }
   }
+  window.openBottomSheet = openBottomSheet;
 
   // ==========================================================================
   // 1. SUBVIEW (ALT EKRAN) YÖNETİMİ & ANDROID GERİ TUŞU
@@ -2463,16 +2627,30 @@
   let activeMobileSubview = null;
 
   window.openMobileSubview = (subviewId) => {
+    if (subviewId === 'tools') {
+      window.switchTab('tools');
+      return;
+    }
+    cancelAllFabAttention();
     window.closeBottomSheet();
     window.closeConfigDrawer();
     activeMobileSubview = subviewId;
     window.vibrate(20);
+
+    const liveCard = document.getElementById('m-live-lesson-card');
+    if (liveCard) liveCard.style.display = 'none';
+    const filterBar = document.getElementById('mobile-filter-bar');
+    if (filterBar) filterBar.style.display = 'none';
 
     document.querySelectorAll('.mobile-subview').forEach(v => v.classList.remove('active'));
     const targetView = document.getElementById(`subview-${subviewId}`);
     if (targetView) {
       targetView.classList.add('active');
       targetView.scrollTop = 0;
+      // Sayfaya ilk gelindiğinde yüzen menü varsa dikkat çekme titremesini tetikle
+      if (typeof triggerFabArrivalAttention === 'function') {
+        triggerFabArrivalAttention(targetView, 450);
+      }
     }
 
     // İlgili modülün render fonksiyonunu çalıştır
@@ -2501,6 +2679,7 @@
   };
 
   window.closeMobileSubview = () => {
+    cancelAllFabAttention();
     activeMobileSubview = null;
     window.vibrate(15);
     document.querySelectorAll('.mobile-subview').forEach(v => v.classList.remove('active'));
@@ -2732,6 +2911,7 @@
   window.toggleMaterialsFab = () => {
     const menu = document.getElementById('m-materials-fab-menu');
     const btn = document.getElementById('m-materials-fab-btn');
+    if (btn && typeof cancelFabAttention === 'function') cancelFabAttention(btn);
     if (menu) menu.classList.toggle('show');
     if (btn) btn.classList.toggle('active');
   };
@@ -2920,6 +3100,7 @@
     window.vibrate(15);
     const menu = document.getElementById('m-config-fab-menu');
     const btn = document.getElementById('m-config-fab-btn');
+    if (btn && typeof cancelFabAttention === 'function') cancelFabAttention(btn);
     if (!menu) return;
     const isShowing = menu.classList.toggle('show');
     if (btn) btn.classList.toggle('active', isShowing);

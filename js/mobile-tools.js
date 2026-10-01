@@ -16,8 +16,24 @@
   const showToast = showMobileToast;
   const getFilteredStudents = () => (window.getFilteredStudents ? window.getFilteredStudents() : []);
   const getAvatarColor = (id) => (window.getAvatarColor ? window.getAvatarColor(id) : '#4f46e5');
-  const openBottomSheet = (id) => (window.openBottomSheet ? window.openBottomSheet(id) : null);
-  const closeBottomSheet = () => (window.closeBottomSheet ? window.closeBottomSheet() : null);
+  const openBottomSheet = (id) => {
+    if (typeof window.openBottomSheet === 'function') {
+      return window.openBottomSheet(id);
+    }
+    const sheet = document.getElementById(id);
+    const backdrop = document.getElementById('sheet-backdrop');
+    if (sheet) sheet.classList.add('active');
+    if (backdrop) backdrop.classList.add('active');
+    if (window.lucide) window.lucide.createIcons();
+  };
+  const closeBottomSheet = () => {
+    if (typeof window.closeBottomSheet === 'function') {
+      return window.closeBottomSheet();
+    }
+    document.querySelectorAll('.bottom-sheet').forEach(s => s.classList.remove('active'));
+    const backdrop = document.getElementById('sheet-backdrop');
+    if (backdrop) backdrop.classList.remove('active');
+  };
 
   // ==========================================================================
   // 3. GÖREVLER MODÜLÜ (GÖREV TAKİP ASİSTANI)
@@ -27,6 +43,7 @@
   window.toggleTasksFab = () => {
     const menu = document.getElementById('m-tasks-fab-menu');
     const btn = document.getElementById('m-tasks-fab-btn');
+    if (btn && typeof window.cancelFabAttention === 'function') window.cancelFabAttention(btn);
     if (menu) menu.classList.toggle('show');
     if (btn) btn.classList.toggle('active');
   };
@@ -224,6 +241,15 @@
   }
 
   window.openToolModal = (toolType) => {
+    if (window.vibrate) window.vibrate(20);
+    if (toolType === 'attendance') {
+      if (typeof window.openAttendanceModal === 'function') {
+        window.openAttendanceModal();
+      } else {
+        openBottomSheet('modal-attendance');
+      }
+      return;
+    }
     const titleEl = document.getElementById('m-tool-window-title');
     const bodyEl = document.getElementById('m-tool-window-body');
     if (!titleEl || !bodyEl) return;
@@ -532,7 +558,7 @@
   }
 
   window.openDutyRosterModal = () => {
-    window.vibrate(15);
+    if (window.vibrate) window.vibrate(20);
     activeRosterFilter = 'all';
     openBottomSheet('modal-duty-roster');
     window.renderDutyRosterContent();
@@ -1049,6 +1075,7 @@
   }
 
   window.openSeatingPlanModal = function() {
+    if (window.vibrate) window.vibrate(20);
     loadMobileSeatingData();
 
     const state = (window.stateManager && window.stateManager.state) || {};
@@ -1778,6 +1805,7 @@
 
   // Ana Evrak Deposu Modalını Aç
   window.openDocumentsModal = function() {
+    if (window.vibrate) window.vibrate(20);
     try {
       const searchInput = document.getElementById('m-docs-search-input');
       if (searchInput) searchInput.value = '';
@@ -1796,6 +1824,7 @@
     const fabMenu = document.getElementById('m-docs-fab-menu');
     const fabBtn = document.getElementById('m-docs-fab-btn');
     if (!fabMenu || !fabBtn) return;
+    if (typeof window.cancelFabAttention === 'function') window.cancelFabAttention(fabBtn);
 
     const isOpen = fabMenu.classList.contains('show');
     if (isOpen) {

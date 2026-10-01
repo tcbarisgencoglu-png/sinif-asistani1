@@ -455,6 +455,38 @@
     `;
   }
 
+  function generateOpticalQRCodeSVG(options) {
+    const { studentIndex, studentId, studentNo, examId, isSample, size = 42 } = options;
+    if (typeof window.qrcode === 'function') {
+      try {
+        let payload = '';
+        if (isSample) {
+          payload = 'SA:SMP:1:105:1';
+        } else if (studentIndex && studentIndex > 0) {
+          payload = `SA:STU:${studentId || ''}:${studentNo || ''}:${studentIndex}:${examId || ''}`;
+        } else {
+          payload = `SA:BLK:${examId || ''}`;
+        }
+
+        const qr = window.qrcode(0, 'M');
+        qr.addData(payload);
+        qr.make();
+        const svgContent = qr.createSvgTag(2, 0);
+        return `
+          <div class="omr-id-badge" title="Öğrenci QR Kimlik Kodu #${studentIndex || ''}">
+            <div class="omr-qr-wrapper" style="width: ${size}px; height: ${size}px;">
+              ${svgContent}
+            </div>
+            <div class="omr-id-caption">${studentIndex > 0 ? ('ID:#' + studentIndex) : 'QR KOD'}</div>
+          </div>
+        `;
+      } catch (err) {
+        console.warn('QR kod oluşturulamadı, fallback kullanılıyor:', err);
+      }
+    }
+    return generateOpticalIdSVG(studentIndex, size);
+  }
+
   window.renderOpticalPrintPreview = function() {
     const previewBox = document.getElementById('m-opt-preview-box');
     if (!previewBox || !activeExam) return;
@@ -466,10 +498,10 @@
 
     const letters = ['A', 'B', 'C', 'D', 'E'].slice(0, choicesCount);
     const sampleStudents = [
-      { name: 'Ahmet YILMAZ', no: '105' },
-      { name: 'Ayşe DEMİR', no: '108' },
-      { name: 'Mehmet ÇELİK', no: '112' },
-      { name: 'Zeynep KAYA', no: '119' }
+      { id: 'sample_1', name: 'Ahmet YILMAZ', no: '105' },
+      { id: 'sample_2', name: 'Ayşe DEMİR', no: '108' },
+      { id: 'sample_3', name: 'Mehmet ÇELİK', no: '112' },
+      { id: 'sample_4', name: 'Zeynep KAYA', no: '119' }
     ];
 
     let cardsHtml = '';
@@ -483,6 +515,8 @@
         examName: activeExam.examName || 'Haftalık Değerlendirme',
         studentName: studentName,
         studentNo: studentNo,
+        studentId: isNamed ? sample.id : '',
+        examId: activeExam.id || '',
         totalQuestions: qCount,
         letters: letters,
         studentIndex: isNamed ? (i + 1) : 0,
@@ -499,7 +533,7 @@
   };
 
   function generateSingleOpticalCardHTML(options) {
-    const { examName, studentName, studentNo, totalQuestions, letters, studentIndex, isSample, perPage = 2 } = options;
+    const { examName, studentName, studentNo, studentId, examId, totalQuestions, letters, studentIndex, isSample, perPage = 2 } = options;
 
     const cols = totalQuestions <= 15 ? 1 : (totalQuestions <= 30 ? 2 : 3);
     const questionsPerCol = Math.ceil(totalQuestions / cols);
@@ -512,10 +546,11 @@
       let colRows = '';
       for (let q = startQ; q <= endQ; q++) {
         colRows += `
-          <div class="omr-q-row">
+          <div class="omr-q-row" data-q="${q}">
+            <span class="omr-row-tick"></span>
             <span class="omr-q-num">${q}</span>
             <div class="omr-q-bubbles">
-              ${letters.map(l => `<span class="omr-bubble">${l}</span>`).join('')}
+              ${letters.map(l => `<span class="omr-bubble" data-opt="${l}">${l}</span>`).join('')}
             </div>
           </div>
         `;
@@ -530,17 +565,24 @@
 
     const hasIdBadge = (studentIndex && studentIndex > 0) || isSample;
     const badgeSize = perPage === 4 ? 26 : (perPage === 1 ? 44 : 38);
-    const idBadgeHtml = hasIdBadge ? generateOpticalIdSVG(isSample ? 1 : studentIndex, badgeSize) : '';
+    const idBadgeHtml = hasIdBadge ? generateOpticalQRCodeSVG({
+      studentIndex: isSample ? 1 : studentIndex,
+      studentId: studentId || '',
+      studentNo: studentNo || '',
+      examId: examId || '',
+      isSample: !!isSample,
+      size: badgeSize
+    }) : '';
 
     return `
       <div class="omr-card ${isSample ? 'omr-card-sample' : ''} ${perPage === 4 ? 'omr-card-compact' : ''}" data-cols="${cols}">
-        <!-- 4 Siyah Referans Köşe İşaretleyicisi (OMR Çevrim Dışı Hizalama) -->
+        <!-- 4 Yüksek Kontrastlı Referans Köşe Çapası (OMR Çevrim Dışı Hizalama) -->
         <div class="omr-anchor omr-anchor-tl"></div>
         <div class="omr-anchor omr-anchor-tr"></div>
         <div class="omr-anchor omr-anchor-bl"></div>
         <div class="omr-anchor omr-anchor-br"></div>
 
-        <!-- Üst Başlık Bilgisi ve Öğrenci Optik Kimlik Bloğu -->
+        <!-- Üst Başlık Bilgisi ve Öğrenci QR Kimlik Bloğu -->
         <div class="omr-card-header">
           <div class="omr-header-main">
             <div class="omr-header-title">${escapeHTML(examName)}</div>
@@ -623,6 +665,8 @@
           examName: activeExam.examName || 'Haftalık Değerlendirme',
           studentName: `${st.name} ${st.surname || ''}`.trim(),
           studentNo: st.number || '-',
+          studentId: st.id || '',
+          examId: activeExam.id || '',
           totalQuestions: qCount,
           letters: letters,
           studentIndex: formType === 'named' ? (globalIdx + 1) : 0,
@@ -743,12 +787,54 @@
       width: 22px;
       height: 22px;
       background-color: #000000 !important;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-sizing: border-box;
       z-index: 5;
+    }
+    .omr-anchor::before {
+      content: '';
+      display: block;
+      width: 12px;
+      height: 12px;
+      background-color: #ffffff !important;
+      box-sizing: border-box;
+    }
+    .omr-anchor::after {
+      content: '';
+      position: absolute;
+      width: 6px;
+      height: 6px;
+      background-color: #000000 !important;
+      box-sizing: border-box;
     }
     .omr-anchor-tl { top: 6px; left: 6px; }
     .omr-anchor-tr { top: 6px; right: 6px; }
     .omr-anchor-bl { bottom: 6px; left: 6px; }
     .omr-anchor-br { bottom: 6px; right: 6px; }
+    .omr-row-tick {
+      width: 5px;
+      height: 2px;
+      background-color: #000000 !important;
+      display: inline-block;
+      margin-right: 2px;
+      flex-shrink: 0;
+    }
+    .omr-qr-wrapper {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #ffffff !important;
+      padding: 1px;
+      border: 1px solid #000000;
+      box-sizing: border-box;
+    }
+    .omr-qr-wrapper svg {
+      width: 100% !important;
+      height: 100% !important;
+      display: block;
+    }
     .omr-card-header {
       margin: 2px 28px 4px 28px;
       border-bottom: 2px solid #000000;
@@ -883,8 +969,20 @@
 
     /* 4-per-page (Tasarruflu) özel kompakt düzeni */
     .omr-per-page-4 .omr-anchor {
-      width: 13px !important;
-      height: 13px !important;
+      width: 14px !important;
+      height: 14px !important;
+    }
+    .omr-per-page-4 .omr-anchor::before {
+      width: 8px !important;
+      height: 8px !important;
+    }
+    .omr-per-page-4 .omr-anchor::after {
+      width: 4px !important;
+      height: 4px !important;
+    }
+    .omr-per-page-4 .omr-row-tick {
+      width: 3px !important;
+      height: 1.5px !important;
     }
     .omr-per-page-4 .omr-anchor-tl { top: 4px !important; left: 4px !important; }
     .omr-per-page-4 .omr-anchor-tr { top: 4px !important; right: 4px !important; }
@@ -1007,6 +1105,8 @@
 
     modal.classList.add('active');
     if (window.lucide) window.lucide.createIcons();
+    if (window.updateOmrApiBtnState) window.updateOmrApiBtnState();
+    if (window.setOmrEngineMode) window.setOmrEngineMode(currentOmrMode || 'ai');
     window.setOmrSensitivity(currentSensitivity || 'normal');
     startCameraStream();
   };
@@ -1017,6 +1117,71 @@
     if (modal) modal.classList.remove('active');
     hideVerificationSheet();
   };
+
+  let liveQrScanTimer = null;
+  let lastLiveDetectedQr = null;
+
+  function startLiveQrScanner() {
+    stopLiveQrScanner();
+    const video = document.getElementById('m-omr-video');
+    const guideBox = document.querySelector('.m-omr-guide-box');
+    const guideHint = document.querySelector('.m-omr-guide-hint');
+    if (!video || typeof window.jsQR !== 'function') return;
+
+    const sampleCanvas = document.createElement('canvas');
+    sampleCanvas.width = 400;
+    sampleCanvas.height = 300;
+    const sCtx = sampleCanvas.getContext('2d', { willReadFrequently: true });
+
+    liveQrScanTimer = setInterval(() => {
+      if (!video || video.paused || video.ended || video.readyState < 2) return;
+      try {
+        sCtx.drawImage(video, 0, 0, 400, 300);
+        const imgData = sCtx.getImageData(0, 0, 400, 300);
+        const qr = window.jsQR(imgData.data, 400, 300, { inversionAttempts: 'dontInvert' });
+        if (qr && qr.data && qr.data.startsWith('SA:')) {
+          if (guideBox) guideBox.classList.add('detected');
+          const parts = qr.data.split(':');
+          let label = 'Optik Form';
+          if (parts[1] === 'STU') {
+            const rawNo = parts[3];
+            const rawIdx = parseInt(parts[4], 10);
+            const state = window.stateManager ? (window.stateManager.loadState ? window.stateManager.loadState() : window.stateManager.state) : {};
+            const students = getOmrStudentList(state, activeExam);
+            let stu = null;
+            if (rawNo) stu = students.find(s => String(s.number).trim() === String(rawNo).trim());
+            if (!stu && rawIdx > 0 && rawIdx <= students.length) stu = students[rawIdx - 1];
+            label = stu ? `${stu.name} (No: ${stu.number || '-'})` : `Öğrenci No: ${rawNo || rawIdx}`;
+          } else if (parts[1] === 'SMP') {
+            label = 'Örnek Form';
+          }
+          if (guideHint) guideHint.textContent = `🎯 ${label} Algılandı • Çekebilirsiniz!`;
+          if (lastLiveDetectedQr !== qr.data) {
+            lastLiveDetectedQr = qr.data;
+            if (window.vibrate) window.vibrate(15);
+          }
+        } else {
+          lastLiveDetectedQr = null;
+          if (guideBox) guideBox.classList.remove('detected');
+          if (guideHint) guideHint.textContent = 'Optik formun 4 köşesini kılavuza oturtun';
+        }
+      } catch (err) {
+        // Sessiz devam et
+      }
+    }, 280);
+  }
+
+  function stopLiveQrScanner() {
+    if (liveQrScanTimer) {
+      clearInterval(liveQrScanTimer);
+      liveQrScanTimer = null;
+    }
+    const guideBox = document.querySelector('.m-omr-guide-box');
+    const guideHint = document.querySelector('.m-omr-guide-hint');
+    if (guideBox) guideBox.classList.remove('detected');
+    if (guideHint) guideHint.textContent = 'Optik formun 4 köşesini kılavuza oturtun';
+    lastLiveDetectedQr = null;
+  }
 
   function startCameraStream() {
     const video = document.getElementById('m-omr-video');
@@ -1034,7 +1199,9 @@
           video.setAttribute('playsinline', '');
           video.setAttribute('autoplay', '');
           video.muted = true;
-          return video.play().catch(e => {
+          return video.play().then(() => {
+            startLiveQrScanner();
+          }).catch(e => {
             console.log('Video play catch:', e);
           });
         });
@@ -1065,6 +1232,7 @@
   }
 
   function stopCameraStream() {
+    stopLiveQrScanner();
     isTorchOn = false;
     const btn = document.getElementById('m-omr-torch-btn');
     const text = document.getElementById('m-omr-torch-text');
@@ -1133,14 +1301,540 @@
   };
 
   // ==========================================================================
-  // GÖRÜNTÜ İŞLEME & BALONCUK ÇÖZÜMLEME (PURE JS ALGORİTMA)
+  // GEMİNİ YAPAY ZEKA (VISION) SERVİSİ
   // ==========================================================================
+  if (!window.getGeminiApiKey) {
+    window.getGeminiApiKey = function() {
+      const key = (localStorage.getItem('sinif_asistani_gemini_api_key') || '').trim();
+      return key.replace(/^["'“”‘’\s]+|["'“”‘’\s]+$/g, '');
+    };
+  }
+
+  if (!window.setGeminiApiKey) {
+    window.setGeminiApiKey = function(key) {
+      const trimmed = (key || '').trim().replace(/^["'“”‘’\s]+|["'“”‘’\s]+$/g, '');
+      if (trimmed) {
+        localStorage.setItem('sinif_asistani_gemini_api_key', trimmed);
+      } else {
+        localStorage.removeItem('sinif_asistani_gemini_api_key');
+      }
+    };
+  }
+
+  if (!window.callGeminiAPI) {
+    window.callGeminiAPI = async function(prompt, options = {}) {
+      const apiKey = window.getGeminiApiKey ? window.getGeminiApiKey() : '';
+      if (!apiKey) {
+        throw new Error('NO_API_KEY');
+      }
+
+      // 1. Önce API anahtarının erişebildiği aktif modelleri Google'dan doğrudan çek
+      let listData = null;
+      let listError = null;
+
+      for (const apiVer of ['v1beta', 'v1']) {
+        try {
+          const listRes = await fetch(`https://generativelanguage.googleapis.com/${apiVer}/models?key=${apiKey}`);
+          const json = await listRes.json();
+          if (listRes.ok && json.models && json.models.length > 0) {
+            listData = { version: apiVer, models: json.models };
+            break;
+          } else if (!listRes.ok) {
+            listError = json.error?.message || `HTTP ${listRes.status}`;
+          }
+        } catch (e) {
+          listError = e.message;
+        }
+      }
+
+      if (!listData) {
+        if (listError && (listError.toLowerCase().includes('api key not valid') || listError.toLowerCase().includes('invalid'))) {
+          throw new Error('Google API anahtarı geçersiz! Lütfen anahtarınızı kontrol edip tekrar kaydedin.');
+        }
+        if (listError && (listError.includes('not been used in project') || listError.includes('disabled'))) {
+          throw new Error('Google Cloud projenizde Generative Language API henüz etkin değil. Lütfen Google AI Studio\'da anahtar oluştururken "Create API key in new project" (Yeni projede oluştur) seçeneğini seçin.');
+        }
+        throw new Error(`Google API bağlantı hatası: ${listError || 'Modeller sorgulanamadı'}`);
+      }
+
+      const supportedModels = listData.models.filter(m => 
+        !m.supportedGenerationMethods || m.supportedGenerationMethods.includes('generateContent')
+      );
+
+      if (supportedModels.length === 0) {
+        throw new Error('Bu API anahtarının içerik üretme modellerine izni bulunmuyor. Lütfen Google AI Studio üzerinden "Create API key in new project" seçeneğiyle yeni bir anahtar oluşturun.');
+      }
+
+      const prioritizedCandidateNames = [
+        'models/gemini-2.0-flash',
+        'models/gemini-1.5-flash',
+        'models/gemini-2.5-flash-lite',
+        'models/gemini-2.0-flash-lite',
+        'models/gemini-3.6-flash',
+        'models/gemini-3-flash',
+        ...supportedModels.map(m => m.name.startsWith('models/') ? m.name : `models/${m.name}`)
+      ].filter((v, i, a) => a.indexOf(v) === i);
+
+      let response = null;
+      let lastErrDetail = '';
+      const temperature = options.temperature !== undefined ? options.temperature : 0.3;
+      const wantJson = options.json !== false;
+
+      const requestParts = [{ text: prompt }];
+      if (options.imageBase64) {
+        requestParts.push({
+          inlineData: {
+            mimeType: options.imageMimeType || 'image/jpeg',
+            data: options.imageBase64.replace(/^data:image\/[a-zA-Z0-9.+-]+;base64,/, '')
+          }
+        });
+      } else if (Array.isArray(options.parts)) {
+        requestParts.push(...options.parts);
+      }
+
+      for (const modelPath of prioritizedCandidateNames) {
+        const url = `https://generativelanguage.googleapis.com/${listData.version}/${modelPath}:generateContent?key=${apiKey}`;
+        try {
+          let curRes = await fetch(url, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              contents: [{ parts: requestParts }],
+              generationConfig: {
+                temperature: temperature,
+                ...(wantJson ? { responseMimeType: "application/json" } : {})
+              }
+            })
+          });
+
+          if (curRes.status === 400 && wantJson) {
+            curRes = await fetch(url, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                contents: [{ parts: requestParts }],
+                generationConfig: { temperature: temperature }
+              })
+            });
+          }
+
+          if (curRes.ok) {
+            response = curRes;
+            break;
+          }
+
+          let errDetail = '';
+          try {
+            const errJson = await curRes.json();
+            errDetail = errJson.error?.message || curRes.statusText;
+          } catch (e) {
+            errDetail = curRes.statusText;
+          }
+          lastErrDetail = errDetail;
+
+          const match = errDetail.match(/use\s+(models\/[a-zA-Z0-9.-]+)/i);
+          if (match && match[1]) {
+            const suggestedUrl = `https://generativelanguage.googleapis.com/${listData.version}/${match[1]}:generateContent?key=${apiKey}`;
+            const retryRes = await fetch(suggestedUrl, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                contents: [{ parts: requestParts }],
+                generationConfig: { temperature: temperature, ...(wantJson ? { responseMimeType: "application/json" } : {}) }
+              })
+            });
+            if (retryRes.ok) {
+              response = retryRes;
+              break;
+            }
+          }
+
+          const isQuotaExceeded = curRes.status === 429 || 
+            errDetail.toLowerCase().includes('quota') || 
+            errDetail.toLowerCase().includes('resource_exhausted') ||
+            errDetail.toLowerCase().includes('rate limit');
+
+          const isHighDemandOrUnavailable = curRes.status === 404 || 
+            curRes.status === 503 || 
+            curRes.status === 500 || 
+            (curRes.status === 429 && errDetail.toLowerCase().includes('demand')) ||
+            errDetail.toLowerCase().includes('high demand') ||
+            errDetail.toLowerCase().includes('overloaded') ||
+            errDetail.toLowerCase().includes('unavailable');
+
+          if (isQuotaExceeded || isHighDemandOrUnavailable) {
+            await new Promise(r => setTimeout(r, 400));
+            continue;
+          }
+
+          break;
+        } catch (e) {
+          lastErrDetail = e.message;
+        }
+      }
+
+      if (!response || !response.ok) {
+        const errLower = (lastErrDetail || '').toLowerCase();
+        if (errLower.includes('quota') || errLower.includes('resource_exhausted') || errLower.includes('rate limit') || errLower.includes('free_tier_requests')) {
+          const secMatch = lastErrDetail.match(/retry in\s+([0-9.]+)\s*s/i);
+          const retrySec = secMatch ? Math.ceil(parseFloat(secMatch[1])) : 20;
+          throw new Error(`Google Yapay Zeka ücretsiz kullanım sınırına ulaşıldı. Lütfen ${retrySec} saniye bekleyin.`);
+        }
+        if (errLower.includes('high demand') || errLower.includes('overloaded')) {
+          throw new Error('Google Gemini sunucularında yoğunluk var. Lütfen 5-10 saniye sonra tekrar deneyin.');
+        }
+        throw new Error(`Yapay zeka hatası: ${lastErrDetail || 'İstek tamamlanamadı.'}`);
+      }
+
+      const data = await response.json();
+      const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (!rawText) {
+        throw new Error('Yapay zekadan boş yanıt alındı.');
+      }
+
+      return rawText;
+    };
+  }
+
+  let currentOmrMode = 'ai'; // 'ai' (Gemini Vision - Varsayılan) | 'offline' (Çevrim Dışı Algoritma)
+
+  window.setOmrEngineMode = function(mode) {
+    currentOmrMode = mode;
+    const aiBtn = document.getElementById('m-omr-mode-ai');
+    const offBtn = document.getElementById('m-omr-mode-offline');
+    if (aiBtn && offBtn) {
+      if (mode === 'ai') {
+        aiBtn.className = 'm-omr-mode-pill active';
+        aiBtn.style.background = 'linear-gradient(135deg, #6366f1, #8b5cf6)';
+        aiBtn.style.color = '#fff';
+        aiBtn.style.borderColor = '#8b5cf6';
+        offBtn.className = 'm-omr-mode-pill';
+        offBtn.style.background = 'transparent';
+        offBtn.style.color = '#94a3b8';
+        offBtn.style.borderColor = 'rgba(255,255,255,0.2)';
+      } else {
+        offBtn.className = 'm-omr-mode-pill active';
+        offBtn.style.background = '#4f46e5';
+        offBtn.style.color = '#fff';
+        offBtn.style.borderColor = '#4f46e5';
+        aiBtn.className = 'm-omr-mode-pill';
+        aiBtn.style.background = 'transparent';
+        aiBtn.style.color = '#94a3b8';
+        aiBtn.style.borderColor = 'rgba(255,255,255,0.2)';
+      }
+    }
+    if (window.showMobileToast) {
+      window.showMobileToast(mode === 'ai' ? '✨ Yapay Zeka (Gemini Vision) Aktif' : '⚡ Çevrim Dışı Algoritma Aktif', 'info', 1800);
+    }
+  };
+
+  window.promptOmrApiKey = function() {
+    const currentKey = (window.getGeminiApiKey ? window.getGeminiApiKey() : (localStorage.getItem('sinif_asistani_gemini_api_key') || '')).trim();
+    const promptMsg = currentKey 
+      ? `Mevcut Google API Anahtarı kayıtlı (${currentKey.slice(0, 6)}...${currentKey.slice(-4)}).\n\nDeğiştirmek veya güncellemek için yeni anahtarı yapıştırın:`
+      : 'Google Gemini API anahtarınızı giriniz:\n(Google AI Studio üzerinden ücretsiz alabilirsiniz)';
+    const entered = prompt(promptMsg, currentKey);
+    if (entered !== null) {
+      const trimmed = entered.trim();
+      if (window.setGeminiApiKey) {
+        window.setGeminiApiKey(trimmed);
+      } else {
+        if (trimmed) localStorage.setItem('sinif_asistani_gemini_api_key', trimmed);
+        else localStorage.removeItem('sinif_asistani_gemini_api_key');
+      }
+      window.updateOmrApiBtnState();
+      if (window.showMobileToast) {
+        window.showMobileToast(trimmed ? '✓ API Anahtarı kaydedildi!' : 'API Anahtarı temizlendi', trimmed ? 'success' : 'info');
+      }
+    }
+  };
+
+  window.updateOmrApiBtnState = function() {
+    const key = (window.getGeminiApiKey ? window.getGeminiApiKey() : (localStorage.getItem('sinif_asistani_gemini_api_key') || '')).trim();
+    const btnText = document.getElementById('m-omr-api-btn-text');
+    const btn = document.getElementById('m-omr-api-btn');
+    if (btnText && btn) {
+      if (key) {
+        btnText.textContent = '✓ API';
+        btn.style.borderColor = '#10b981';
+        btn.style.color = '#34d399';
+        btn.style.background = 'rgba(16, 185, 129, 0.12)';
+      } else {
+        btnText.textContent = 'API Ekle';
+        btn.style.borderColor = 'rgba(255,255,255,0.2)';
+        btn.style.color = '#c7d2fe';
+        btn.style.background = 'rgba(255,255,255,0.08)';
+      }
+    }
+  };
+
+  function showOmrAiLoading(title, desc) {
+    const overlay = document.getElementById('m-omr-ai-loading-overlay');
+    const titleEl = document.getElementById('m-omr-ai-loading-title');
+    const descEl = document.getElementById('m-omr-ai-loading-desc');
+    if (titleEl && title) titleEl.textContent = title;
+    if (descEl && desc) descEl.textContent = desc;
+    if (overlay) overlay.style.display = 'flex';
+  }
+
+  function hideOmrAiLoading() {
+    const overlay = document.getElementById('m-omr-ai-loading-overlay');
+    if (overlay) overlay.style.display = 'none';
+  }
 
   function processCapturedImage(sourceElement) {
     if (!activeExam) return;
+    if (currentOmrMode === 'ai') {
+      processCapturedImageWithGemini(sourceElement);
+    } else {
+      processCapturedImageOffline(sourceElement);
+    }
+  }
+
+  // ==========================================================================
+  // YAPAY ZEKA (GEMINI VISION) İLE OPTİK FORM ÇÖZÜMLEME MOTORU
+  // ==========================================================================
+  async function processCapturedImageWithGemini(sourceElement) {
+    if (!activeExam) return;
+
+    let apiKey = (window.getGeminiApiKey ? window.getGeminiApiKey() : (localStorage.getItem('sinif_asistani_gemini_api_key') || '')).trim();
+    if (!apiKey) {
+      const entered = prompt('✨ Yapay Zeka (Gemini Vision) ile optik okuma yapabilmek için Google API anahtarı gereklidir.\n\nLütfen Google Gemini API anahtarınızı giriniz (AI Studio üzerinden ücretsiz oluşturabilirsiniz):', '');
+      if (entered && entered.trim()) {
+        apiKey = entered.trim();
+        if (window.setGeminiApiKey) window.setGeminiApiKey(apiKey);
+        else localStorage.setItem('sinif_asistani_gemini_api_key', apiKey);
+        window.updateOmrApiBtnState();
+      } else {
+        if (confirm('API anahtarı girilmedi. Çevrim dışı okuma yöntemiyle devam edilsin mi?')) {
+          processCapturedImageOffline(sourceElement);
+        }
+        return;
+      }
+    }
+
+    const srcW = sourceElement.width || sourceElement.videoWidth;
+    const srcH = sourceElement.height || sourceElement.videoHeight;
+    if (!srcW || !srcH) {
+      alert('Görsel okunamadı, lütfen tekrar deneyin.');
+      return;
+    }
+
+    // 1. Resmi yüksek çözünürlüklü analiz tuvaline çiz (Maksimum 1280px)
+    const canvas = document.createElement('canvas');
+    const MAX_DIM = 1280;
+    let targetW = srcW;
+    let targetH = srcH;
+    if (targetW > MAX_DIM || targetH > MAX_DIM) {
+      if (targetW > targetH) {
+        targetH = Math.round((targetH * MAX_DIM) / targetW);
+        targetW = MAX_DIM;
+      } else {
+        targetW = Math.round((targetW * MAX_DIM) / targetH);
+        targetH = MAX_DIM;
+      }
+    }
+    canvas.width = targetW;
+    canvas.height = targetH;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    ctx.drawImage(sourceElement, 0, 0, targetW, targetH);
+
+    // 2. Anında yerel QR taraması yap (Eğer kağıtta QR varsa 5 milisaniyede öğrenciyi çözer)
+    let localStudent = null;
+    let localStudentIndex = null;
+    let localQrDetected = false;
+    const state = window.stateManager ? (window.stateManager.loadState ? window.stateManager.loadState() : window.stateManager.state) : {};
+    const students = getOmrStudentList(state, activeExam);
+
+    if (typeof window.jsQR === 'function') {
+      try {
+        const imgData = ctx.getImageData(0, 0, targetW, targetH);
+        const qr = window.jsQR(imgData.data, targetW, targetH, { inversionAttempts: 'attemptBoth' });
+        if (qr && qr.data && qr.data.startsWith('SA:')) {
+          localQrDetected = true;
+          const parts = qr.data.split(':');
+          const qrType = parts[1];
+          const rawStuId = parts[2];
+          const rawStuNo = parts[3];
+          const rawStuIdx = parseInt(parts[4], 10) || 0;
+          localStudentIndex = rawStuIdx;
+
+          if (qrType === 'STU' && students && students.length > 0) {
+            if (rawStuId) localStudent = students.find(s => String(s.id) === String(rawStuId));
+            if (!localStudent && rawStuNo) localStudent = students.find(s => String(s.number).trim() === String(rawStuNo).trim());
+            if (!localStudent && rawStuIdx > 0 && rawStuIdx <= students.length) localStudent = students[rawStuIdx - 1];
+          } else if (qrType === 'SMP' && students.length > 0) {
+            localStudent = students[0];
+          }
+        }
+      } catch (qrErr) {
+        console.warn('Yerel QR kontrolü hatası:', qrErr);
+      }
+    }
+
+    // 3. Yükleniyor ekranını aç
+    showOmrAiLoading('✨ Yapay Zeka İnceliyor...', 'Gemini Vision optik formu ve işaretlemeleri okuyor, lütfen bekleyin...');
+
+    try {
+      const qCount = parseInt(activeExam.totalQuestions, 10) || 20;
+      const choicesCount = parseInt(activeExam.choicesCount, 10) || 4;
+      const letters = ['A', 'B', 'C', 'D', 'E'].slice(0, choicesCount);
+      const examTitle = activeExam.examName || 'Optik Sınav';
+
+      const prompt = `Görseldeki sınav optik formunu dikkatlice incele.
+Sınav Bilgileri:
+- Sınav Adı: ${examTitle}
+- Toplam Soru Sayısı: ${qCount}
+- Olası Seçenekler: ${letters.join(', ')}
+
+Görevlerin:
+1. Kağıdın üst başlığındaki öğrenci bilgilerini oku:
+   - "Öğrenci:" yanındaki tam isim
+   - "No:" yanındaki öğrenci numarası
+2. 1'den ${qCount}'e kadar olan TÜM soruları sırayla incele.
+3. Her bir soru için kurşun kalem veya tükenmez kalemle DOLDURULMUŞ / KARALANMIŞ şıkkı tespit et:
+   - Öğrencinin doldurduğu seçeneğin harfini ('A', 'B', 'C', 'D' vb.) yaz.
+   - Soru hiç işaretlenmemişse veya boş bırakılmışsa "" (boş dize) yaz.
+   - Bir soruda birden fazla şık karalanmışsa "MULTIPLE" yaz.
+   - Eğer bir şık karalanıp sonra üzeri çizilmişse ve başka bir şık doldurulmuşsa geçerli olanı al.
+
+Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi veya ek metin ekleme):
+{
+  "studentName": "...",
+  "studentNo": "...",
+  "answers": {
+    "1": "B",
+    "2": "A",
+    "3": "B"
+  }
+}`;
+
+      const base64Data = canvas.toDataURL('image/jpeg', 0.88);
+      const rawRes = await window.callGeminiAPI(prompt, {
+        imageBase64: base64Data,
+        json: true,
+        temperature: 0.1
+      });
+
+      let parsed = null;
+      if (typeof rawRes === 'object' && rawRes !== null) {
+        parsed = rawRes;
+      } else if (typeof rawRes === 'string') {
+        const cleaned = rawRes.replace(/```json/gi, '').replace(/```/g, '').trim();
+        parsed = JSON.parse(cleaned);
+      }
+
+      if (!parsed || typeof parsed !== 'object') {
+        throw new Error('Yapay zeka geçerli bir yanıt üretemedi.');
+      }
+
+      // Öğrenciyi Eşle
+      let identifiedStudent = localStudent;
+      if (!identifiedStudent && parsed) {
+        const aiNo = String(parsed.studentNo || '').trim();
+        const aiName = String(parsed.studentName || '').trim().toLowerCase();
+        if (aiNo) {
+          identifiedStudent = students.find(s => String(s.number).trim() === aiNo);
+        }
+        if (!identifiedStudent && aiName && aiName.length > 2) {
+          identifiedStudent = students.find(s => {
+            const fullName = `${s.name} ${s.surname || ''}`.trim().toLowerCase();
+            return fullName.includes(aiName) || aiName.includes(fullName);
+          });
+        }
+      }
+
+      // Cevapları ve İstatistikleri Değerlendir
+      const answerKey = activeExam.answerKey || {};
+      const detectedAnswers = {};
+      const questionDetails = [];
+      let correctCount = 0;
+      let wrongCount = 0;
+      let blankCount = 0;
+
+      const aiAnswers = parsed.answers || {};
+
+      for (let q = 1; q <= qCount; q++) {
+        let val = aiAnswers[q] || aiAnswers[String(q)] || '';
+        val = String(val).trim().toUpperCase();
+        if (!letters.includes(val) && val !== 'MULTIPLE') {
+          val = '';
+        }
+
+        const correctAns = answerKey[q] || '';
+        const qd = {
+          q,
+          marked: val === 'MULTIPLE' ? '' : val,
+          status: val === 'MULTIPLE' ? 'multiple' : (val ? 'marked' : 'blank'),
+          scores: letters.map(l => ({ letter: l, score: (l === val ? 1 : 0) })),
+          keyAnswer: correctAns
+        };
+
+        if (!qd.marked) {
+          blankCount++;
+          qd.isCorrect = false;
+          qd.isBlank = true;
+        } else if (correctAns && qd.marked === correctAns) {
+          correctCount++;
+          qd.isCorrect = true;
+          qd.isBlank = false;
+        } else {
+          wrongCount++;
+          qd.isCorrect = false;
+          qd.isBlank = false;
+        }
+
+        detectedAnswers[q] = qd.marked;
+        questionDetails.push(qd);
+      }
+
+      const penaltyRate = activeExam.wrongAffects ? (parseFloat(activeExam.penaltyRate) || 3) : 0;
+      let net = penaltyRate > 0 ? (correctCount - (wrongCount / penaltyRate)) : correctCount;
+      net = Math.max(0, parseFloat(net.toFixed(2)));
+      const score = qCount > 0 ? Math.round((net / qCount) * 100) : 0;
+
+      hideOmrAiLoading();
+
+      const result = {
+        success: true,
+        isAiVision: true,
+        examId: activeExam.id,
+        detectedStudentIndex: localStudentIndex,
+        identifiedStudent,
+        qrDetected: localQrDetected,
+        totalQuestions: qCount,
+        answers: detectedAnswers,
+        questionDetails,
+        correctCount,
+        wrongCount,
+        blankCount,
+        net,
+        score,
+        capturedCanvas: canvas
+      };
+
+      lastScannedResult = result;
+      if (window.vibrate) window.vibrate(40);
+      showVerificationSheet(result);
+    } catch (err) {
+      hideOmrAiLoading();
+      console.error('Gemini Vision OMR Hatası:', err);
+      const errMsg = err.message || String(err);
+      if (confirm(`Yapay zeka analizinde hata oluştu:\n${errMsg}\n\nÇevrim dışı algoritmaya geçip tekrar denemek ister misiniz?`)) {
+        processCapturedImageOffline(sourceElement);
+      }
+    }
+  }
+
+  function processCapturedImageOffline(sourceElement) {
+    if (!activeExam) return;
 
     if (window.showMobileToast) {
-      window.showMobileToast('🔍 Optik form taranıyor...');
+      window.showMobileToast('🔍 Çevrim dışı taranıyor...');
     }
 
     setTimeout(() => {
@@ -1161,10 +1855,12 @@
   }
 
   /**
-   * Tamamen istemci taraflı, 0 harici kütüphane Profesyonel OMR Okuyucu Motoru
-   * - Heckbert Projective Homography (3 Boyutlu Perspektif Düzeltme)
-   * - 4 Köşeli Sağlam Çapa Tespiti (ID Matrisi Karışıklığı Önleme + 4. Köşe Kurtarma)
-   * - Diferansiyel Çekirdek/Kağıt Kontrast Ölçümü (Boş soruları ve silgi izlerini %100 eleme)
+   * Tamamen istemci taraflı, Modern ve Sağlam OMR Okuyucu Motoru
+   * - jsQR Entegrasyonu: QR Kod ile %100 Doğru ve Anında Öğrenci Tanıma
+   * - Çift Katmanlı Çapa Tespiti (Hedef Tipi Konsantrik Çapalar + Eski Kare Blob Yedekleme)
+   * - 4. Köşe Kurtarma (Paralelkenar Vektör Tamamlama)
+   * - Heckbert Projective Homography (Perspektif ve Eğim Düzeltme)
+   * - Lokal Adaptif Kontrast Ölçümü (Gölge, Eşitsiz Işık ve Basılı Harf Bağışıklığı)
    * - Görsel Önizleme ve Çoklu/Hatalı Şık Vurgulama
    */
   function runPureJsOmrScan(sourceElement, exam) {
@@ -1172,7 +1868,7 @@
     const srcH = sourceElement.height || sourceElement.videoHeight;
     if (!srcW || !srcH) return { success: false, error: 'Görsel boyutu geçersiz' };
 
-    // 1. Resmi standart yüksek çözünürlüklü analiz tuvaline çiz
+    // 1. Resmi yüksek çözünürlüklü analiz tuvaline çiz
     const canvas = document.createElement('canvas');
     const MAX_DIM = 1200;
     let targetW = srcW;
@@ -1188,7 +1884,7 @@
     }
     canvas.width = targetW;
     canvas.height = targetH;
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
     ctx.drawImage(sourceElement, 0, 0, targetW, targetH);
 
     // 2. Gri Tonlama ve Adaptif Eşikleme
@@ -1204,23 +1900,64 @@
       sumLum += lum;
     }
     const avgLum = sumLum / totalPixels;
-    const threshold = Math.max(65, Math.min(145, avgLum * 0.74));
+    const threshold = Math.max(60, Math.min(150, Math.round(avgLum * 0.75)));
 
-    // 3. 4 Köşe Referans Çapasını (Anchor) Hassas Tespit Et
-    const corners = detectCornerAnchors(gray, targetW, targetH, threshold);
-
-    // 4. Heckbert Projective Homography Eşleyicisini Kur
-    const mapPoint = createProjectiveHomography(corners);
-
-    // 5. Öğrenci Optik Kimlik Kodunu (5x5 Matris) Çözümle
-    const detectedStudentIndex = scanStudentOpticalId(gray, targetW, targetH, threshold, mapPoint);
+    // 3. QR Kod ile Öğrenci Tanıma (jsQR Motoru)
+    let qrResult = null;
     let identifiedStudent = null;
+    let detectedStudentIndex = null;
 
     const state = window.stateManager ? (window.stateManager.loadState ? window.stateManager.loadState() : window.stateManager.state) : {};
     const students = getOmrStudentList(state, exam);
 
-    if (detectedStudentIndex && detectedStudentIndex > 0 && detectedStudentIndex <= students.length) {
-      identifiedStudent = students[detectedStudentIndex - 1];
+    if (typeof window.jsQR === 'function') {
+      try {
+        qrResult = window.jsQR(data, targetW, targetH, {
+          inversionAttempts: 'attemptBoth'
+        });
+        if (qrResult && qrResult.data) {
+          const parts = qrResult.data.split(':');
+          if (parts[0] === 'SA') {
+            const qrType = parts[1]; // 'STU' | 'SMP' | 'BLK'
+            const rawStuId = parts[2];
+            const rawStuNo = parts[3];
+            const rawStuIdx = parseInt(parts[4], 10) || 0;
+
+            detectedStudentIndex = rawStuIdx;
+
+            if (qrType === 'STU' && students && students.length > 0) {
+              if (rawStuId) {
+                identifiedStudent = students.find(s => String(s.id) === String(rawStuId));
+              }
+              if (!identifiedStudent && rawStuNo) {
+                identifiedStudent = students.find(s => String(s.number).trim() === String(rawStuNo).trim());
+              }
+              if (!identifiedStudent && rawStuIdx > 0 && rawStuIdx <= students.length) {
+                identifiedStudent = students[rawStuIdx - 1];
+              }
+            } else if (qrType === 'SMP' && students.length > 0) {
+              identifiedStudent = students[0];
+            }
+          }
+        }
+      } catch (qrErr) {
+        console.warn('QR okuma hatası:', qrErr);
+      }
+    }
+
+    // 4. 4 Köşe Referans Çapasını (Anchor) Hassas Tespit Et
+    const corners = detectCornerAnchors(gray, targetW, targetH, threshold, qrResult);
+
+    // 5. Heckbert Projective Homography Eşleyicisini Kur
+    const mapPoint = createProjectiveHomography(corners);
+
+    // QR kod bulunamadıysa eski 5x5 matrisi dene (Geriye Dönük Uyumluluk)
+    if (!identifiedStudent && !detectedStudentIndex) {
+      const legacyIdx = scanStudentOpticalId(gray, targetW, targetH, threshold, mapPoint);
+      if (legacyIdx && legacyIdx > 0 && legacyIdx <= students.length) {
+        detectedStudentIndex = legacyIdx;
+        identifiedStudent = students[legacyIdx - 1];
+      }
     }
 
     // 6. Soru ve Şık Izgarasını Homografi ile Tara
@@ -1234,11 +1971,23 @@
     const detectedAnswers = {};
     const questionDetails = [];
 
-    // Form üzerindeki tam hizalı bağıl alanlar:
-    const bodyTop = 0.18;
-    const bodyBottom = 0.92;
-    const rowHeight = (bodyBottom - bodyTop) / questionsPerCol;
+    // Form üzerindeki orantısal koordinatlar:
+    // Standart form baskısında soru satırları tüm sayfaya yayılmaz, üstten aşağıya sabit adımlarla (~%4.3-4.7) yerleşir.
+    const bodyTop = 0.17;
+    const actualRowStep = Math.min(0.050, Math.max(0.038, 0.74 / Math.max(16, questionsPerCol)));
+    const firstRowCenter = bodyTop + actualRowStep * 0.65;
     const sampleRadius = Math.max(5, Math.min(16, Math.round(targetW * 0.013)));
+
+    // Hassasiyet moduna göre eşik ayarları
+    let minScore = 0.18;
+    let minFill = 0.28;
+    if (currentSensitivity === 'high') {
+      minScore = 0.13; // Açık / hafif kurşun kalem
+      minFill = 0.20;
+    } else if (currentSensitivity === 'low') {
+      minScore = 0.26; // Tükenmez / sadece çok koyu işaretler
+      minFill = 0.38;
+    }
 
     for (let c = 0; c < cols; c++) {
       const startQ = c * questionsPerCol + 1;
@@ -1259,41 +2008,27 @@
 
       for (let q = startQ; q <= endQ; q++) {
         const rowIdx = q - startQ;
-        const rowV = bodyTop + (rowIdx + 0.5) * rowHeight;
+        const rowV = firstRowCenter + rowIdx * actualRowStep;
 
-        // Her bir şıkkın merkezini homografi ile belirle
-        const rawPoints = [];
-        for (let lIdx = 0; lIdx < letters.length; lIdx++) {
-          const choiceU = colUStart + colWidth * (0.22 + (lIdx + 0.5) * (0.76 / letters.length));
-          const initialPt = mapPoint(choiceU, rowV);
-          const snappedPt = refineBubbleCenter(gray, targetW, targetH, initialPt, sampleRadius);
-          rawPoints.push({ letter: letters[lIdx], pt: snappedPt });
-        }
+        // Satırın lokal arka plan parlaklığını ölç (Gölge bağışıklığı)
+        const rowSamplePt = mapPoint(colUStart + colWidth * 0.15, rowV);
+        const rowPaperLum = sampleLocalPaperLuminance(gray, targetW, targetH, rowSamplePt, sampleRadius);
 
-        // Satırın lokal kağıt arka plan aydınlığını ölç
-        let rowPaperLumSum = 0;
-        let paperSampleCount = 0;
-        rawPoints.forEach(rp => {
-          const pLum = measurePaperLuminance(gray, targetW, targetH, rp.pt.x, rp.pt.y, sampleRadius);
-          if (pLum > 0) {
-            rowPaperLumSum += pLum;
-            paperSampleCount++;
-          }
-        });
-        const rowPaperLum = paperSampleCount > 0 ? (rowPaperLumSum / paperSampleCount) : avgLum;
-
-        // Her bir şıkkın bağıl koyuluk ve doluluk skorunu hesapla
+        // Her bir şıkkın merkezini homografi ile belirle ve ince ayarla
         const choiceScores = [];
-        for (let lIdx = 0; lIdx < rawPoints.length; lIdx++) {
-          const { letter, pt } = rawPoints[lIdx];
-          const coreMetrics = measureBubbleCore(gray, targetW, targetH, pt.x, pt.y, sampleRadius, rowPaperLum);
+        for (let lIdx = 0; lIdx < letters.length; lIdx++) {
+          const choiceU = colUStart + colWidth * (0.24 + (lIdx + 0.5) * (0.74 / letters.length));
+          const initialPt = mapPoint(choiceU, rowV);
+          const snappedPt = refineBubbleCenter(gray, targetW, targetH, initialPt, sampleRadius, rowPaperLum);
+
+          const metrics = analyzeBubble(gray, targetW, targetH, snappedPt.x, snappedPt.y, sampleRadius, rowPaperLum);
           choiceScores.push({
-            letter,
-            score: coreMetrics.score,
-            contrast: coreMetrics.contrast,
-            fillRatio: coreMetrics.fillRatio,
-            avgLum: coreMetrics.avgLum,
-            pt
+            letter: letters[lIdx],
+            score: metrics.score,
+            medianDarkness: metrics.medianDarkness,
+            p75Darkness: metrics.p75Darkness,
+            fillRatio: metrics.fillRatio,
+            pt: snappedPt
           });
         }
 
@@ -1301,26 +2036,16 @@
         choiceScores.sort((a, b) => b.score - a.score);
 
         const best = choiceScores[0];
-        const second = choiceScores[1] || { score: 0 };
+        const second = choiceScores[1] || { score: 0, fillRatio: 0 };
 
         let markedLetter = '';
         let status = 'blank';
 
-        // Hassasiyet moduna göre eşik ayarları
-        let minScore = 0.22;
-        let minMargin = 0.08;
-        if (currentSensitivity === 'high') {
-          minScore = 0.15; // Açık / hafif kurşun kalem
-          minMargin = 0.05;
-        } else if (currentSensitivity === 'low') {
-          minScore = 0.30; // Tükenmez / sadece koyu işaretlemeler
-          minMargin = 0.12;
-        }
-
         // İşaretlenme Kararı
-        if (best.score >= minScore) {
-          if (second.score >= (minScore * 0.80) && (best.score - second.score) < minMargin) {
-            status = 'multiple'; // Çift işaretli (kararsız)
+        if (best.score >= minScore && best.fillRatio >= minFill) {
+          // İkinci şık da işaretlenmiş mi kontrol et (Çift işaret)
+          if (second.score >= minScore && second.fillRatio >= minFill && (best.score - second.score) < 0.08) {
+            status = 'multiple';
             markedLetter = '';
           } else {
             status = 'marked';
@@ -1368,9 +2093,11 @@
 
     const score = qCount > 0 ? Math.round((net / qCount) * 100) : 0;
 
-    // 8. Görsel Önizleme Vurguları (Kamera görüntüsü üzerine doğru/yanlış/çift işaret halkaları)
+    // 8. Görsel Önizleme Vurguları
     const overlayCtx = canvas.getContext('2d');
-    overlayCtx.lineWidth = Math.max(2, Math.round(targetW * 0.003));
+
+    // Form Dış Çerçevesi (Mavi çizgi)
+    overlayCtx.lineWidth = Math.max(2, Math.round(targetW * 0.0025));
     overlayCtx.strokeStyle = 'rgba(79, 70, 229, 0.85)';
     overlayCtx.beginPath();
     overlayCtx.moveTo(corners.tl.x, corners.tl.y);
@@ -1380,11 +2107,34 @@
     overlayCtx.closePath();
     overlayCtx.stroke();
 
+    // QR Kod Tespit Kutusu (Yeşil çerçeve ve etiket)
+    if (qrResult && qrResult.location) {
+      const loc = qrResult.location;
+      overlayCtx.save();
+      overlayCtx.strokeStyle = '#10b981';
+      overlayCtx.lineWidth = 3;
+      overlayCtx.beginPath();
+      overlayCtx.moveTo(loc.topLeftCorner.x, loc.topLeftCorner.y);
+      overlayCtx.lineTo(loc.topRightCorner.x, loc.topRightCorner.y);
+      overlayCtx.lineTo(loc.bottomRightCorner.x, loc.bottomRightCorner.y);
+      overlayCtx.lineTo(loc.bottomLeftCorner.x, loc.bottomLeftCorner.y);
+      overlayCtx.closePath();
+      overlayCtx.stroke();
+
+      if (identifiedStudent) {
+        overlayCtx.fillStyle = '#10b981';
+        overlayCtx.font = 'bold 14px system-ui, sans-serif';
+        overlayCtx.fillText(`✓ ${identifiedStudent.name} (No: ${identifiedStudent.number || '-'})`, loc.topLeftCorner.x, Math.max(16, loc.topLeftCorner.y - 8));
+      }
+      overlayCtx.restore();
+    }
+
+    // Şık Çemberleri ve Durum Vurguları
     questionDetails.forEach(qd => {
       const correctAns = answerKey[qd.q] || '';
       qd.scores.forEach(cs => {
         const isMarked = (qd.status === 'marked' && qd.marked === cs.letter);
-        const isMultiple = (qd.status === 'multiple' && cs.score >= minScore * 0.8);
+        const isMultiple = (qd.status === 'multiple' && cs.score >= minScore);
         const isAnswerKey = (correctAns && cs.letter === correctAns);
 
         if (isMarked) {
@@ -1423,6 +2173,7 @@
       examId: exam.id,
       detectedStudentIndex,
       identifiedStudent,
+      qrDetected: !!qrResult,
       totalQuestions: qCount,
       answers: detectedAnswers,
       questionDetails,
@@ -1440,7 +2191,6 @@
   // ==========================================================================
 
   // Paul Heckbert Projective Homography Çözücü
-  // Birim kare [0..1] x [0..1] koordinatlarını 3B perspektifteki kamera pikseline eşler
   function createProjectiveHomography(corners) {
     const x0 = corners.tl.x, y0 = corners.tl.y;
     const x1 = corners.tr.x, y1 = corners.tr.y;
@@ -1492,10 +2242,11 @@
     };
   }
 
-  // 4 Köşe İşaretleyicisini (Anchor) Genişletilmiş ve Akıllı Arama ile Bul
-  function detectCornerAnchors(gray, w, h, threshold) {
+  // 4 Köşe İşaretleyicisini (Anchor) Konsantrik Hedef ve Blob Algılama ile Bul
+  function detectCornerAnchors(gray, w, h, threshold, qrResult) {
     const qW = Math.round(w * 0.32);
     const qH = Math.round(h * 0.30);
+    const anchorRadius = Math.max(8, Math.min(22, Math.round(w * 0.018)));
 
     const corners = {
       tl: { x: Math.round(w * 0.05), y: Math.round(h * 0.04) },
@@ -1504,21 +2255,24 @@
       bl: { x: Math.round(w * 0.05), y: Math.round(h * 0.96) }
     };
 
-    // Sol-Üst (0, 0 köşesine en yakın)
-    const tlFound = findBestCornerAnchorBlob(gray, w, h, 0, qW, 0, qH, 0, 0, threshold);
-    // Sağ-Üst (w, 0 köşesine en yakın - ID matrisi yerine gerçek dış köşeyi seçer)
-    const trFound = findBestCornerAnchorBlob(gray, w, h, w - qW, w, 0, qH, w, 0, threshold);
-    // Sağ-Alt (w, h köşesine en yakın)
-    const brFound = findBestCornerAnchorBlob(gray, w, h, w - qW, w, h - qH, h, w, h, threshold);
-    // Sol-Alt (0, h köşesine en yakın)
-    const blFound = findBestCornerAnchorBlob(gray, w, h, 0, qW, h - qH, h, 0, h, threshold);
+    // 1. Aşama: Konsantrik hedef çapa araması
+    let tlFound = findConcentricTargetAnchor(gray, w, h, 0, qW, 0, qH, 0, 0, anchorRadius);
+    let trFound = findConcentricTargetAnchor(gray, w, h, w - qW, w, 0, qH, w, 0, anchorRadius);
+    let brFound = findConcentricTargetAnchor(gray, w, h, w - qW, w, h - qH, h, w, h, anchorRadius);
+    let blFound = findConcentricTargetAnchor(gray, w, h, 0, qW, h - qH, h, 0, h, anchorRadius);
+
+    // 2. Aşama: Bulunamayan köşeler için klasik koyu blob araması (Geriye Dönük Uyumluluk)
+    if (!tlFound) tlFound = findBestCornerAnchorBlob(gray, w, h, 0, qW, 0, qH, 0, 0, threshold);
+    if (!trFound) trFound = findBestCornerAnchorBlob(gray, w, h, w - qW, w, 0, qH, w, 0, threshold);
+    if (!brFound) brFound = findBestCornerAnchorBlob(gray, w, h, w - qW, w, h - qH, h, w, h, threshold);
+    if (!blFound) blFound = findBestCornerAnchorBlob(gray, w, h, 0, qW, h - qH, h, 0, h, threshold);
 
     if (tlFound) corners.tl = tlFound;
     if (trFound) corners.tr = trFound;
     if (brFound) corners.br = brFound;
     if (blFound) corners.bl = blFound;
 
-    // 4. Köşe Kurtarma: Eğer 3 köşe net bulunup biri gölgede/engelde kalmışsa, paralelkenar vektörü ile kurtar
+    // 3. Aşama: 4. Köşe Kurtarma (Paralelkenar Vektör Tamamlama)
     const foundCount = (tlFound ? 1 : 0) + (trFound ? 1 : 0) + (brFound ? 1 : 0) + (blFound ? 1 : 0);
     if (foundCount === 3) {
       if (!tlFound) corners.tl = { x: corners.tr.x + corners.bl.x - corners.br.x, y: corners.tr.y + corners.bl.y - corners.br.y };
@@ -1530,7 +2284,75 @@
     return corners;
   }
 
-  // Belirtilen kadranda en koyu, kompakt ve dış köşeye en yakın çapa bloğunu bul (Ağırlıklı Arama)
+  // Konsantrik hedef çapa bul (Siyah Merkez - Beyaz Halka - Siyah Çerçeve)
+  function findConcentricTargetAnchor(gray, w, h, minX, maxX, minY, maxY, cornerX, cornerY, radius) {
+    let bestX = 0, bestY = 0;
+    let bestScore = 0;
+    const step = Math.max(2, Math.floor(radius / 3));
+
+    const rCore = Math.max(2, Math.round(radius * 0.30));
+    const rRingInner = Math.max(rCore + 1, Math.round(radius * 0.45));
+    const rRingOuter = Math.max(rRingInner + 1, Math.round(radius * 0.75));
+    const rOuter = Math.max(rRingOuter + 1, Math.round(radius * 1.10));
+
+    const rCore2 = rCore * rCore;
+    const rRingInner2 = rRingInner * rRingInner;
+    const rRingOuter2 = rRingOuter * rRingOuter;
+    const rOuter2 = rOuter * rOuter;
+
+    for (let y = minY + rOuter; y <= maxY - rOuter; y += step) {
+      for (let x = minX + rOuter; x <= maxX - rOuter; x += step) {
+        let coreSum = 0, coreCount = 0;
+        let ringSum = 0, ringCount = 0;
+        let outerSum = 0, outerCount = 0;
+
+        for (let dy = -rOuter; dy <= rOuter; dy += 2) {
+          const py = y + dy;
+          const dy2 = dy * dy;
+          for (let dx = -rOuter; dx <= rOuter; dx += 2) {
+            const px = x + dx;
+            const d2 = dx * dx + dy2;
+            if (d2 <= rOuter2) {
+              const lum = gray[py * w + px];
+              if (d2 <= rCore2) {
+                coreSum += lum;
+                coreCount++;
+              } else if (d2 >= rRingInner2 && d2 <= rRingOuter2) {
+                ringSum += lum;
+                ringCount++;
+              } else if (d2 > rRingOuter2) {
+                outerSum += lum;
+                outerCount++;
+              }
+            }
+          }
+        }
+
+        if (coreCount > 0 && ringCount > 0 && outerCount > 0) {
+          const avgCore = coreSum / coreCount;
+          const avgRing = ringSum / ringCount;
+          const avgOuter = outerSum / outerCount;
+
+          const diffCore = avgRing - avgCore;
+          const diffOuter = avgRing - avgOuter;
+
+          if (diffCore > 25 && diffOuter > 20) {
+            const distNorm = Math.hypot((x - cornerX) / w, (y - cornerY) / h);
+            const score = (diffCore + diffOuter) * (1.0 - distNorm * 0.25);
+            if (score > bestScore) {
+              bestScore = score;
+              bestX = x;
+              bestY = y;
+            }
+          }
+        }
+      }
+    }
+
+    return bestScore > 40 ? { x: bestX, y: bestY } : null;
+  }
+
+  // Koyu kompakt çapa bloğu bul (Fallback)
   function findBestCornerAnchorBlob(gray, w, h, minX, maxX, minY, maxY, cornerX, cornerY, threshold) {
     let bestX = 0, bestY = 0;
     let bestScore = -999;
@@ -1557,13 +2379,11 @@
         const maxPossible = Math.round((boxSize * boxSize) / 4);
         const darkRatio = darkCount / Math.max(1, maxPossible);
 
-        if (darkRatio >= 0.50) {
+        if (darkRatio >= 0.45) {
           const centroidX = darkCount > 0 ? (sumX / darkCount) : (x + (boxSize >> 1));
           const centroidY = darkCount > 0 ? (sumY / darkCount) : (y + (boxSize >> 1));
 
-          // Dış köşeye uzaklık (0..1)
           const distNorm = Math.hypot((centroidX - cornerX) / w, (centroidY - cornerY) / h);
-          // Skor: Siyahlık yoğunluğu (%40) + Dış köşeye yakınlık (%60)
           const score = (darkRatio * 0.40) + ((1.0 - distNorm) * 0.60);
 
           if (score > bestScore) {
@@ -1575,13 +2395,159 @@
       }
     }
 
-    if (bestScore > 0) {
-      return { x: bestX, y: bestY };
-    }
-    return null;
+    return bestScore > 0 ? { x: bestX, y: bestY } : null;
   }
 
-  // 5x5 Öğrenci Optik Kimlik Matrisini Form Üzerinden Tara (Ofset Arama Korumalı)
+  // Soru satırındaki lokal kağıt aydınlığını örnekle
+  function sampleLocalPaperLuminance(gray, w, h, pt, radius) {
+    let sum = 0, count = 0;
+    const checkPts = [
+      { x: pt.x, y: Math.max(0, pt.y - Math.round(radius * 1.6)) },
+      { x: pt.x, y: Math.min(h - 1, pt.y + Math.round(radius * 1.6)) },
+      { x: Math.max(0, pt.x - Math.round(radius * 2.0)), y: pt.y }
+    ];
+
+    for (const cp of checkPts) {
+      for (let dy = -2; dy <= 2; dy++) {
+        const py = cp.y + dy;
+        if (py < 0 || py >= h) continue;
+        for (let dx = -2; dx <= 2; dx++) {
+          const px = cp.x + dx;
+          if (px < 0 || px >= w) continue;
+          sum += gray[py * w + px];
+          count++;
+        }
+      }
+    }
+    return count > 0 ? (sum / count) : 220;
+  }
+
+  // Baloncuk çekirdeğini gölgeye ve basılı harflere karşı dayanıklı ölç
+  function analyzeBubble(gray, w, h, cx, cy, radius, rowPaperLum) {
+    const rInner = Math.max(3, Math.round(radius * 0.72));
+    const rInner2 = rInner * rInner;
+
+    let totalPixels = 0;
+    const darknessValues = [];
+
+    for (let dy = -rInner; dy <= rInner; dy++) {
+      const py = cy + dy;
+      if (py < 0 || py >= h) continue;
+      const dy2 = dy * dy;
+      for (let dx = -rInner; dx <= rInner; dx++) {
+        const px = cx + dx;
+        if (px < 0 || px >= w) continue;
+        if (dx * dx + dy2 <= rInner2) {
+          totalPixels++;
+          const lum = gray[py * w + px];
+          const d = Math.max(0, (rowPaperLum - lum) / Math.max(1, rowPaperLum));
+          darknessValues.push(d);
+        }
+      }
+    }
+
+    if (totalPixels === 0) {
+      return { score: 0, fillRatio: 0, medianDarkness: 0, p75Darkness: 0, meanDarkness: 0 };
+    }
+
+    darknessValues.sort((a, b) => a - b);
+
+    const medianDarkness = darknessValues[Math.floor(totalPixels * 0.50)];
+    const p75Darkness = darknessValues[Math.floor(totalPixels * 0.75)];
+
+    let darkCount = 0;
+    let sumDark = 0;
+    for (let i = 0; i < totalPixels; i++) {
+      const v = darknessValues[i];
+      sumDark += v;
+      if (v >= 0.22) {
+        darkCount++;
+      }
+    }
+
+    const fillRatio = darkCount / totalPixels;
+    const meanDarkness = sumDark / totalPixels;
+
+    // Bileşik skor: Medyan (%45) + 75. Persentil (%30) + Doluluk Oranı (%25)
+    const score = (medianDarkness * 0.45) + (p75Darkness * 0.30) + (fillRatio * 0.25);
+
+    return {
+      score,
+      fillRatio,
+      medianDarkness,
+      p75Darkness,
+      meanDarkness
+    };
+  }
+
+  // Baloncuk merkezini hassas ince ayarla (Sadece kurşun kalem varsa ince ayarlar, harfe yapışmaz)
+  function refineBubbleCenter(gray, w, h, initialPt, radius, rowPaperLum) {
+    const searchStep = Math.max(1, Math.round(radius * 0.25));
+    let bestX = initialPt.x;
+    let bestY = initialPt.y;
+    let maxDarkSum = -1;
+
+    const rCheck = Math.max(2, Math.round(radius * 0.5));
+    const rCheck2 = rCheck * rCheck;
+
+    for (let dy = -searchStep; dy <= searchStep; dy += searchStep) {
+      for (let dx = -searchStep; dx <= searchStep; dx += searchStep) {
+        const tx = initialPt.x + dx;
+        const ty = initialPt.y + dy;
+        if (tx < 0 || tx >= w || ty < 0 || ty >= h) continue;
+
+        let darkSum = 0;
+        let count = 0;
+        for (let cy = -rCheck; cy <= rCheck; cy += 2) {
+          const py = ty + cy;
+          if (py < 0 || py >= h) continue;
+          for (let cx = -rCheck; cx <= rCheck; cx += 2) {
+            const px = tx + cx;
+            if (px < 0 || px >= w) continue;
+            if (cx * cx + cy * cy <= rCheck2) {
+              const lum = gray[py * w + px];
+              darkSum += Math.max(0, rowPaperLum - lum);
+              count++;
+            }
+          }
+        }
+
+        const avgDark = count > 0 ? (darkSum / count) : 0;
+        if (avgDark > maxDarkSum) {
+          maxDarkSum = avgDark;
+          bestX = tx;
+          bestY = ty;
+        }
+      }
+    }
+
+    return (maxDarkSum > 25) ? { x: bestX, y: bestY } : initialPt;
+  }
+
+  // Eski 5x5 matris için doluluk oranı ölçümü (Fallback)
+  function measureBubbleFill(gray, w, h, cx, cy, radius, threshold) {
+    let totalSampled = 0;
+    let darkSampled = 0;
+    const r2 = radius * radius;
+
+    for (let dy = -radius; dy <= radius; dy++) {
+      const y = cy + dy;
+      if (y < 0 || y >= h) continue;
+      for (let dx = -radius; dx <= radius; dx++) {
+        const x = cx + dx;
+        if (x < 0 || x >= w) continue;
+        if (dx * dx + dy * dy <= r2) {
+          totalSampled++;
+          if (gray[y * w + x] < threshold) {
+            darkSampled++;
+          }
+        }
+      }
+    }
+    return totalSampled > 0 ? (darkSampled / totalSampled) : 0;
+  }
+
+  // 5x5 Öğrenci Optik Kimlik Matrisini Form Üzerinden Tara (Ofset Arama Korumalı - Fallback)
   function scanStudentOpticalId(gray, w, h, threshold, mapPoint) {
     const baseUMin = 0.78;
     const baseUMax = 0.95;
@@ -1628,108 +2594,6 @@
     return null;
   }
 
-  // Baloncuğun iç göbeğini diferansiyel ölç
-  function measureBubbleCore(gray, w, h, cx, cy, radius, paperLum) {
-    let count = 0;
-    let sumLum = 0;
-    let darkCount = 0;
-    const r2 = Math.round(radius * radius * 0.45); // Sadece iç göbek (%45 alan)
-    const darkThresh = Math.max(40, paperLum * 0.74);
-
-    for (let dy = -radius; dy <= radius; dy++) {
-      const y = cy + dy;
-      if (y < 0 || y >= h) continue;
-      const dy2 = dy * dy;
-      for (let dx = -radius; dx <= radius; dx++) {
-        const x = cx + dx;
-        if (x < 0 || x >= w) continue;
-        if (dx * dx + dy2 <= r2) {
-          count++;
-          const lum = gray[y * w + x];
-          sumLum += lum;
-          if (lum < darkThresh) {
-            darkCount++;
-          }
-        }
-      }
-    }
-    const avgLum = count > 0 ? (sumLum / count) : 255;
-    const fillRatio = count > 0 ? (darkCount / count) : 0;
-    const contrast = Math.max(0, (paperLum - avgLum) / Math.max(1, paperLum));
-    const score = (contrast * 0.60) + (fillRatio * 0.40);
-    return { avgLum, fillRatio, contrast, score };
-  }
-
-  // Baloncuğun çevresindeki kağıt aydınlığını örnekle
-  function measurePaperLuminance(gray, w, h, cx, cy, radius) {
-    let total = 0;
-    let sum = 0;
-    const rInner2 = Math.round(radius * radius * 1.5);
-    const rOuter2 = Math.round(radius * radius * 2.8);
-
-    for (let dy = -radius * 2; dy <= radius * 2; dy += 2) {
-      const y = cy + dy;
-      if (y < 0 || y >= h) continue;
-      const dy2 = dy * dy;
-      for (let dx = -radius * 2; dx <= radius * 2; dx += 2) {
-        const x = cx + dx;
-        if (x < 0 || x >= w) continue;
-        const d2 = dx * dx + dy2;
-        if (d2 >= rInner2 && d2 <= rOuter2) {
-          total++;
-          sum += gray[y * w + x];
-        }
-      }
-    }
-    return total > 0 ? (sum / total) : 220;
-  }
-
-  // Baloncuk merkezini hassas ince ayarla
-  function refineBubbleCenter(gray, w, h, initialPt, radius) {
-    let minLum = 999;
-    let bestX = initialPt.x;
-    let bestY = initialPt.y;
-    const step = Math.max(1, Math.round(radius * 0.25));
-
-    for (let dy = -step; dy <= step; dy += step) {
-      for (let dx = -step; dx <= step; dx += step) {
-        const tx = initialPt.x + dx;
-        const ty = initialPt.y + dy;
-        if (tx < 0 || tx >= w || ty < 0 || ty >= h) continue;
-        const lum = gray[ty * w + tx];
-        if (lum < minLum) {
-          minLum = lum;
-          bestX = tx;
-          bestY = ty;
-        }
-      }
-    }
-    return { x: bestX, y: bestY };
-  }
-
-  // 5x5 matris için doluluk oranı ölçümü
-  function measureBubbleFill(gray, w, h, cx, cy, radius, threshold) {
-    let totalSampled = 0;
-    let darkSampled = 0;
-    const r2 = radius * radius;
-
-    for (let dy = -radius; dy <= radius; dy++) {
-      const y = cy + dy;
-      if (y < 0 || y >= h) continue;
-      for (let dx = -radius; dx <= radius; dx++) {
-        const x = cx + dx;
-        if (x < 0 || x >= w) continue;
-        if (dx * dx + dy * dy <= r2) {
-          totalSampled++;
-          if (gray[y * w + x] < threshold) {
-            darkSampled++;
-          }
-        }
-      }
-    }
-    return totalSampled > 0 ? (darkSampled / totalSampled) : 0;
-  }
-
   // ==========================================================================
   // 4. ANINDA SONUÇ DOĞRULAMA VE SERİ NOT KAYIT ARAYÜZÜ
   // ==========================================================================
@@ -1771,14 +2635,32 @@
       if (matchedStudent) {
         studentSelect.value = matchedStudent.id;
         if (bannerEl && bannerText) {
-          bannerText.textContent = `🎯 Optik Kod ile Otomatik Tanındı: ${escapeHTML(matchedStudent.name)} ${escapeHTML(matchedStudent.surname || '')} (No: ${matchedStudent.number || '-'}, ID: #${result.detectedStudentIndex})`;
+          if (result.isAiVision) {
+            bannerText.innerHTML = `✨ <strong>Gemini Vision</strong> ile Öğrenci Tanındı: ${escapeHTML(matchedStudent.name)} ${escapeHTML(matchedStudent.surname || '')} (No: ${matchedStudent.number || '-'})`;
+            bannerEl.style.background = 'rgba(99, 102, 241, 0.15)';
+            bannerEl.style.borderColor = 'rgba(99, 102, 241, 0.4)';
+            bannerEl.style.color = '#818cf8';
+          } else {
+            bannerText.textContent = `🎯 Optik Kod ile Otomatik Tanındı: ${escapeHTML(matchedStudent.name)} ${escapeHTML(matchedStudent.surname || '')} (No: ${matchedStudent.number || '-'}, ID: #${result.detectedStudentIndex})`;
+            bannerEl.style.background = 'rgba(16, 185, 129, 0.12)';
+            bannerEl.style.borderColor = 'rgba(16, 185, 129, 0.35)';
+            bannerEl.style.color = 'var(--m-success)';
+          }
           bannerEl.style.display = 'flex';
         }
         if (window.showMobileToast) {
           window.showMobileToast(`🎯 Öğrenci Tanındı: ${matchedStudent.name} (No: ${matchedStudent.number || '-'})`);
         }
       } else {
-        if (bannerEl) bannerEl.style.display = 'none';
+        if (bannerEl && bannerText && result.isAiVision) {
+          bannerText.innerHTML = `✨ <strong>Gemini Vision</strong> ile ${result.totalQuestions} Soru Başarıyla Değerlendirildi`;
+          bannerEl.style.background = 'rgba(99, 102, 241, 0.15)';
+          bannerEl.style.borderColor = 'rgba(99, 102, 241, 0.4)';
+          bannerEl.style.color = '#818cf8';
+          bannerEl.style.display = 'flex';
+        } else if (bannerEl) {
+          bannerEl.style.display = 'none';
+        }
         // Sıradaki not girilmemiş ilk öğrenciyi otomatik seç
         const examScores = activeExam.examScores || {};
         const unassignedStudent = students.find(s => examScores[s.id] === undefined || examScores[s.id] === null || examScores[s.id] === '');

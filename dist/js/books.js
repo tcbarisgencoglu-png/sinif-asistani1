@@ -164,11 +164,12 @@ window.callGeminiAPI = async function(prompt, options = {}) {
 
   // Flash modellerine ve alternatif sürümlere öncelik ver
   const prioritizedCandidateNames = [
-    'models/gemini-3.6-flash',
-    'models/gemini-3-flash',
+    'models/gemini-2.0-flash',
+    'models/gemini-1.5-flash',
     'models/gemini-2.5-flash-lite',
     'models/gemini-2.0-flash-lite',
-    'models/gemini-2.0-flash',
+    'models/gemini-3.6-flash',
+    'models/gemini-3-flash',
     ...supportedModels.map(m => m.name.startsWith('models/') ? m.name : `models/${m.name}`)
   ].filter((v, i, a) => a.indexOf(v) === i);
 
@@ -176,6 +177,18 @@ window.callGeminiAPI = async function(prompt, options = {}) {
   let lastErrDetail = '';
   const temperature = options.temperature !== undefined ? options.temperature : 0.3;
   const wantJson = options.json !== false;
+
+  const requestParts = [{ text: prompt }];
+  if (options.imageBase64) {
+    requestParts.push({
+      inlineData: {
+        mimeType: options.imageMimeType || 'image/jpeg',
+        data: options.imageBase64.replace(/^data:[a-zA-Z0-9.\/+-]+;base64,/, '')
+      }
+    });
+  } else if (Array.isArray(options.parts)) {
+    requestParts.push(...options.parts);
+  }
 
   for (const modelPath of prioritizedCandidateNames) {
     const url = `https://generativelanguage.googleapis.com/${listData.version}/${modelPath}:generateContent?key=${apiKey}`;
@@ -188,7 +201,7 @@ window.callGeminiAPI = async function(prompt, options = {}) {
         body: JSON.stringify({
           contents: [
             {
-              parts: [{ text: prompt }]
+              parts: requestParts
             }
           ],
           generationConfig: {
@@ -206,7 +219,7 @@ window.callGeminiAPI = async function(prompt, options = {}) {
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
-            contents: [{ parts: [{ text: prompt }] }],
+            contents: [{ parts: requestParts }],
             generationConfig: { temperature: temperature }
           })
         });
@@ -234,7 +247,7 @@ window.callGeminiAPI = async function(prompt, options = {}) {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            contents: [{ parts: [{ text: prompt }] }],
+            contents: [{ parts: requestParts }],
             generationConfig: { temperature: temperature, ...(wantJson ? { responseMimeType: "application/json" } : {}) }
           })
         });

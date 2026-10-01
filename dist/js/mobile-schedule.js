@@ -13,8 +13,24 @@
     }[tag] || tag));
   });
   const showMobileToast = window.showMobileToast || (msg => alert(msg));
-  const openBottomSheet = (id) => (window.openBottomSheet ? window.openBottomSheet(id) : null);
-  const closeBottomSheet = () => (window.closeBottomSheet ? window.closeBottomSheet() : null);
+  const openBottomSheet = (id) => {
+    if (typeof window.openBottomSheet === 'function') {
+      return window.openBottomSheet(id);
+    }
+    const sheet = document.getElementById(id);
+    const backdrop = document.getElementById('sheet-backdrop');
+    if (sheet) sheet.classList.add('active');
+    if (backdrop) backdrop.classList.add('active');
+    if (window.lucide) window.lucide.createIcons();
+  };
+  const closeBottomSheet = () => {
+    if (typeof window.closeBottomSheet === 'function') {
+      return window.closeBottomSheet();
+    }
+    document.querySelectorAll('.bottom-sheet').forEach(s => s.classList.remove('active'));
+    const backdrop = document.getElementById('sheet-backdrop');
+    if (backdrop) backdrop.classList.remove('active');
+  };
 
   // ==========================================================================
   // DERS AKIŞI MODÜLÜ (DERS PROGRAMI, PLANLAR, DERS SAATLERİ)
@@ -39,6 +55,7 @@
 
   // Ana Modalı Açma
   window.openScheduleFlowModal = (tab = 'schedule') => {
+    if (window.vibrate) window.vibrate(20);
     try {
       activeScheduleFlowTab = tab || 'schedule';
       const menu = document.getElementById('m-sched-fab-menu');
@@ -60,6 +77,7 @@
     window.vibrate(15);
     const menu = document.getElementById('m-sched-fab-menu');
     const btn = document.getElementById('m-sched-fab-btn');
+    if (btn && typeof window.cancelFabAttention === 'function') window.cancelFabAttention(btn);
     if (!menu) return;
     const isShowing = menu.classList.toggle('show');
     if (btn) btn.classList.toggle('active', isShowing);
@@ -1391,6 +1409,7 @@ Yanıtını YALNIZCA geçerli bir JSON objesi olarak ver. Markdown kod bloğu vb
 
   // 1. Ana Modalı Açma (Kampanyalar Listesi)
   window.openSuppliesModal = () => {
+    if (window.vibrate) window.vibrate(20);
     const container = document.getElementById('m-supplies-list-container');
     if (!container) return;
 

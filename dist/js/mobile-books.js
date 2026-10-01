@@ -13,8 +13,24 @@
     }[tag] || tag));
   });
   const showMobileToast = window.showMobileToast || (msg => alert(msg));
-  const openBottomSheet = (id) => (window.openBottomSheet ? window.openBottomSheet(id) : null);
-  const closeBottomSheet = () => (window.closeBottomSheet ? window.closeBottomSheet() : null);
+  const openBottomSheet = (id) => {
+    if (typeof window.openBottomSheet === 'function') {
+      return window.openBottomSheet(id);
+    }
+    const sheet = document.getElementById(id);
+    const backdrop = document.getElementById('sheet-backdrop');
+    if (sheet) sheet.classList.add('active');
+    if (backdrop) backdrop.classList.add('active');
+    if (window.lucide) window.lucide.createIcons();
+  };
+  const closeBottomSheet = () => {
+    if (typeof window.closeBottomSheet === 'function') {
+      return window.closeBottomSheet();
+    }
+    document.querySelectorAll('.bottom-sheet').forEach(s => s.classList.remove('active'));
+    const backdrop = document.getElementById('sheet-backdrop');
+    if (backdrop) backdrop.classList.remove('active');
+  };
   const getStudentByIdSafe = (id) => (window.getStudentByIdSafe ? window.getStudentByIdSafe(id) : null);
   const getAvatarColor = (id) => (window.getAvatarColor ? window.getAvatarColor(id) : '#4f46e5');
   const getFilteredStudents = () => (window.getFilteredStudents ? window.getFilteredStudents() : []);
@@ -33,6 +49,7 @@
     window.vibrate(15);
     const menu = document.getElementById('m-books-fab-menu');
     const btn = document.getElementById('m-books-fab-btn');
+    if (btn && typeof window.cancelFabAttention === 'function') window.cancelFabAttention(btn);
     if (!menu) return;
     const isShowing = menu.classList.toggle('show');
     if (btn) {

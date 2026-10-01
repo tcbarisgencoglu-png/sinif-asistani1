@@ -181,7 +181,7 @@
       <div id="sidebar-demo-container"></div>
       
       <div class="sidebar-footer" style="padding: 1rem; text-align: center; font-size: 0.8rem; color: var(--text-muted); border-top: 1px solid var(--border-color);">
-        <span id="app-sidebar-version-text">Sınıf Asistanı v1.0.35</span>
+        <span id="app-sidebar-version-text">Sınıf Asistanı v1.0.36</span>
       </div>
     </aside>
 
@@ -737,9 +737,15 @@
                 <div id="active-exam-info-bar" style="font-size: 0.8rem; color: var(--text-muted); display: flex; gap: 1rem; flex-wrap: wrap;">
                   <!-- JS ile dynamic doldurulacak -->
                 </div>
-                <div style="display: flex; gap: 0.75rem; margin-top: 0.75rem; flex-wrap: wrap;">
+                <div style="display: flex; gap: 0.75rem; margin-top: 0.75rem; flex-wrap: wrap; align-items: center;">
                   <button class="btn btn-secondary btn-sm" id="btn-print-optical-forms" style="display: flex; align-items: center; gap: 0.25rem; font-size: 0.8rem; padding: 0.4rem 0.8rem; height: auto;">
                     <i data-lucide="printer" style="width: 14px; height: 14px;"></i> Optik Form Bas
+                  </button>
+                  <button class="btn btn-primary btn-sm" id="btn-upload-optical-forms" style="display: flex; align-items: center; gap: 0.35rem; font-size: 0.8rem; padding: 0.4rem 0.9rem; height: auto; background: linear-gradient(135deg, #4f46e5, #7c3aed); border: none; color: #fff; font-weight: 600; box-shadow: 0 2px 8px rgba(79, 70, 229, 0.25); cursor: pointer;">
+                    <i data-lucide="scan-line" style="width: 14px; height: 14px;"></i> 📤 Taranan Formları Yükle & Değerlendir (AI)
+                  </button>
+                  <button class="btn btn-secondary btn-sm" id="btn-edit-active-exam-key" style="display: flex; align-items: center; gap: 0.35rem; font-size: 0.8rem; padding: 0.4rem 0.85rem; height: auto; cursor: pointer;">
+                    <i data-lucide="key" style="width: 14px; height: 14px; color: #f59e0b;"></i> 🔑 Cevap Anahtarını Düzenle
                   </button>
                 </div>
               </div>
@@ -6105,8 +6111,8 @@
 
 
   <!-- MODAL: SINAV EKLE -->
-  <div class="modal" id="modal-add-exam">
-    <div class="modal-content">
+  <div class="modal" id="modal-add-exam" style="--max-width: 660px;">
+    <div class="modal-content" style="max-width: 660px;">
       <div class="modal-header">
         <h3>Yeni Sınav Oluştur</h3>
         <button class="close-btn">&times;</button>
@@ -6125,8 +6131,10 @@
           </div>
           <div class="form-row">
             <div class="form-group">
-              <label for="exam-week-input">Uygulama Haftası</label>
-              <input type="week" class="form-control" id="exam-week-input" required>
+              <label for="exam-week-input">Uygulama Haftası (Eğitim Haftası)</label>
+              <select class="form-control" id="exam-week-input" required>
+                <!-- Dinamik MEB eğitim haftalarıyla doldurulacak -->
+              </select>
             </div>
             <div class="form-group">
               <label for="exam-duration-input">Sınav Süresi (Dakika)</label>
@@ -6135,7 +6143,7 @@
           </div>
           <div class="form-group">
             <label for="exam-questions-input">Soru Sayısı</label>
-            <input type="number" class="form-control" id="exam-questions-input" min="1" required placeholder="Örn: 20">
+            <input type="number" class="form-control" id="exam-questions-input" min="1" max="100" value="20" required placeholder="Örn: 20">
           </div>
           <div class="form-group" style="display: flex; align-items: center; gap: 0.5rem; margin-top: 1.25rem; margin-bottom: 0.75rem;">
             <input type="checkbox" id="exam-wrong-affects-input" style="width: 18px; height: 18px; cursor: pointer;">
@@ -6144,9 +6152,71 @@
           <div class="form-group" id="exam-penalty-container" style="display: none;">
             <label for="exam-penalty-input">Kaç Yanlış Bir Doğruyu Götürsün?</label>
             <select class="form-control" id="exam-penalty-input">
-              <option value="3">3 Yanlış 1 Doğruyu Götürür</option>
-              <option value="4" selected>4 Yanlış 1 Doğruyu Götürür</option>
+              <option value="3">3 Yanlış 1 Doğruyu Götürür (Ortaokul / LGS)</option>
+              <option value="4" selected>4 Yanlış 1 Doğruyu Götürür (Lise / YKS)</option>
+              <option value="2">2 Yanlış 1 Doğruyu Götürür</option>
             </select>
+          </div>
+
+          <!-- Optik Form Eklensin mi? Onay Kutusu -->
+          <div style="background: var(--bg-primary); padding: 0.85rem 1rem; border-radius: var(--radius-md); border: 1.5px solid var(--border-color); margin-top: 1rem; margin-bottom: 0.75rem;">
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+              <div>
+                <div style="font-size: 0.9rem; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 6px;">
+                  <span>📝</span>
+                  <span>Bu Sınava Optik Form Ekle</span>
+                </div>
+                <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 2px;">Cevap anahtarı oluşturun ve optik form basın</div>
+              </div>
+              <label style="margin: 0; cursor: pointer; display: flex; align-items: center;">
+                <input type="checkbox" id="exam-has-optical-input" checked style="width: 20px; height: 20px; cursor: pointer;">
+              </label>
+            </div>
+
+            <!-- Optik Form Şık Sayısı ve Cevap Anahtarı Bölümü -->
+            <div id="exam-optical-config-container" style="margin-top: 0.85rem; padding-top: 0.85rem; border-top: 1px dashed var(--border-color);">
+              <div class="form-group" style="margin-bottom: 0.75rem;">
+                <label style="font-size: 0.8rem; font-weight: 700; display: block; margin-bottom: 0.4rem;">Optik Form Kaç Şıklı Olacak?</label>
+                <div style="display: flex; gap: 8px;">
+                  <div class="desktop-opt-choice-pill" id="desk-pill-opt-3" onclick="window.selectDesktopExamChoicesCount(3)">
+                    <span>3 Şıklı</span> <small style="font-size: 0.7rem; font-weight: 500; opacity: 0.8;">(A-B-C)</small>
+                  </div>
+                  <div class="desktop-opt-choice-pill active" id="desk-pill-opt-4" onclick="window.selectDesktopExamChoicesCount(4)">
+                    <span>4 Şıklı</span> <small style="font-size: 0.7rem; font-weight: 500; opacity: 0.8;">(A-B-C-D)</small>
+                  </div>
+                  <div class="desktop-opt-choice-pill" id="desk-pill-opt-5" onclick="window.selectDesktopExamChoicesCount(5)">
+                    <span>5 Şıklı</span> <small style="font-size: 0.7rem; font-weight: 500; opacity: 0.8;">(A-B-C-D-E)</small>
+                  </div>
+                </div>
+                <input type="hidden" id="exam-choices-count" value="4">
+              </div>
+
+              <!-- Sınav Cevap Anahtarı Bölümü -->
+              <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 0.75rem;">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.4rem; flex-wrap: wrap; gap: 6px;">
+                  <div>
+                    <div style="font-size: 0.85rem; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 4px;">
+                      <span>🔑</span> Sınav Cevap Anahtarı
+                    </div>
+                    <div style="font-size: 0.72rem; color: var(--text-muted);">Doğru şıkları tıklayarak belirleyin</div>
+                  </div>
+                  <div style="display: flex; gap: 4px;">
+                    <button type="button" class="btn btn-secondary btn-sm" id="btn-exam-fill-sample-key" style="font-size: 0.72rem; padding: 0.25rem 0.5rem; height: auto;">Örnek Doldur</button>
+                    <button type="button" class="btn btn-secondary btn-sm" id="btn-exam-clear-key" style="font-size: 0.72rem; padding: 0.25rem 0.5rem; height: auto; color: var(--danger);">Temizle</button>
+                  </div>
+                </div>
+
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem; padding: 4px 8px; background: var(--bg-primary); border-radius: var(--radius-sm); font-size: 0.75rem; font-weight: 700; color: var(--text-secondary);">
+                  <span id="exam-opt-counter">0 / 20 Soru İşaretlendi</span>
+                  <span style="font-size: 0.7rem; color: var(--text-muted);">Boş bırakılan sorular puanlanmaz</span>
+                </div>
+
+                <!-- Dinamik Optik Form Satırları Gridi -->
+                <div id="exam-optical-key-grid" style="max-height: 220px; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 6px; padding-right: 4px;">
+                  <!-- Dinamik JS satırları -->
+                </div>
+              </div>
+            </div>
           </div>
         </div>
         <div class="modal-footer">
@@ -6158,8 +6228,8 @@
   </div>
 
   <!-- MODAL: OPTİK FORM BASMA -->
-  <div class="modal" id="modal-print-optical" style="--max-width: 900px;">
-    <div class="modal-content" style="max-width: 900px;">
+  <div class="modal" id="modal-print-optical" style="--max-width: 960px;">
+    <div class="modal-content" style="max-width: 960px;">
       <div class="modal-header">
         <h3>Toplu Optik Form Bas</h3>
         <button class="close-btn">&times;</button>
@@ -6178,6 +6248,23 @@
                   <option value="4" selected>4 Seçenekli (A, B, C, D)</option>
                   <option value="5">5 Seçenekli (A, B, C, D, E)</option>
                   <option value="3">3 Seçenekli (A, B, C)</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="optical-type-input">Form Türü</label>
+                <select class="form-control" id="optical-type-input">
+                  <option value="named" selected>Öğrenci Adına Çıkarılmış (İsimli)</option>
+                  <option value="blank">Boş / İsimsiz Formlar</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="optical-per-page-input">Sayfa Başına Düzen</label>
+                <select class="form-control" id="optical-per-page-input">
+                  <option value="2" selected>Sayfa Başına 2 Form (Önerilen - A5)</option>
+                  <option value="1">Sayfa Başına 1 Form (Geniş A4)</option>
+                  <option value="4">Sayfa Başına 4 Form (Tasarruflu - Çeyrek Sayfa)</option>
                 </select>
               </div>
             </div>
@@ -6207,6 +6294,258 @@
           <button type="submit" class="btn btn-primary">Optik Form Oluştur ve Yazdır</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- MODAL: TARANAN OPTİK FORMLARI YÜKLE VE YAPAY ZEKA İLE DEĞERLENDİR -->
+  <div class="modal" id="modal-upload-optical-eval" style="--max-width: 900px;">
+    <div class="modal-content" style="max-width: 900px;">
+      <div class="modal-header">
+        <div>
+          <h3 style="display: flex; align-items: center; gap: 0.5rem; color: #4f46e5; margin: 0; font-size: 1.25rem;">
+            <i data-lucide="sparkles" style="width: 20px; height: 20px;"></i>
+            <span>Yapay Zeka ile Optik Form Değerlendirme</span>
+          </h3>
+          <div id="optical-eval-subtitle" style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem;">
+            <!-- Dinamik doldurulacak -->
+          </div>
+        </div>
+        <button type="button" class="close-btn" id="btn-close-optical-upload-modal">&times;</button>
+      </div>
+
+      <div class="modal-body" style="padding: 1.5rem;">
+        <!-- EKRAN 1: DOSYA YÜKLEME & CEVAP ANAHTARI KONTROLÜ -->
+        <div id="optical-eval-step-upload">
+          <!-- Cevap Anahtarı Uyarı & Hızlı Düzenleme Çubuğu -->
+          <div id="optical-eval-key-card" style="background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 0.85rem 1rem; margin-bottom: 1.25rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+              <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <span style="font-size: 1.1rem;">🔑</span>
+                <div>
+                  <strong style="font-size: 0.88rem; color: var(--text-primary);">Sınav Cevap Anahtarı:</strong>
+                  <span id="optical-eval-key-status" style="font-size: 0.82rem; margin-left: 0.25rem;">Kontrol ediliyor...</span>
+                </div>
+              </div>
+              <button type="button" class="btn btn-secondary btn-sm" id="btn-toggle-optical-key-editor" style="font-size: 0.78rem; padding: 0.25rem 0.6rem; height: auto;">
+                <span>Cevap Anahtarını Düzenle</span>
+              </button>
+            </div>
+            <!-- Akordeon Şeklinde Açılır Cevap Anahtarı Editörü -->
+            <div id="optical-eval-key-editor-box" style="display: none; margin-top: 0.85rem; padding-top: 0.85rem; border-top: 1px dashed var(--border-color);">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; flex-wrap: wrap; gap: 0.5rem;">
+                <span style="font-size: 0.78rem; color: var(--text-muted);">Doğru şıkları tıklayarak belirleyin:</span>
+                <div style="display: flex; gap: 0.4rem;">
+                  <button type="button" class="btn btn-secondary btn-sm" id="btn-optical-fill-sample-key" style="font-size: 0.72rem; padding: 0.2rem 0.5rem; height: auto;">Örnek Doldur</button>
+                  <button type="button" class="btn btn-secondary btn-sm" id="btn-optical-clear-key" style="font-size: 0.72rem; padding: 0.2rem 0.5rem; height: auto; color: var(--danger);">Temizle</button>
+                </div>
+              </div>
+              <div id="optical-eval-key-grid" style="display: flex; flex-wrap: wrap; gap: 6px; max-height: 180px; overflow-y: auto; padding: 4px;"></div>
+            </div>
+          </div>
+
+          <!-- Sürükle Bırak / Dosya Yükleme Alanı -->
+          <div class="optical-dropzone" id="optical-dropzone">
+            <input type="file" id="optical-file-input" multiple accept="image/jpeg,image/png,image/webp,image/jpg,application/pdf,.pdf" style="display: none;">
+            <div style="display: flex; flex-direction: column; align-items: center; gap: 0.5rem; pointer-events: none;">
+              <div style="width: 56px; height: 56px; border-radius: 50%; background: rgba(79, 70, 229, 0.1); color: #4f46e5; display: flex; align-items: center; justify-content: center;">
+                <i data-lucide="upload-cloud" style="width: 28px; height: 28px;"></i>
+              </div>
+              <h4 style="margin: 0; font-size: 1rem; color: var(--text-primary); font-weight: 600;">
+                Taranan Optik Formları veya CamScanner PDF'ini Buraya Sürükleyin
+              </h4>
+              <p style="margin: 0; font-size: 0.82rem; color: var(--text-muted); text-align: center; max-width: 450px;">
+                veya bilgisayarınızdan seçmek için <span style="color: #4f46e5; font-weight: 600; text-decoration: underline;">tıklayınız</span>.
+              </p>
+              <span style="font-size: 0.75rem; color: var(--text-muted); background: var(--bg-primary); padding: 0.2rem 0.6rem; border-radius: 4px; border: 1px solid var(--border-color); margin-top: 0.25rem;">
+                📄 CamScanner PDF • JPG, PNG, WebP • Çok sayfalı PDF ve sayfa başına 1-2 form otomatik algılanır
+              </span>
+            </div>
+          </div>
+
+          <!-- Seçilen Dosyaların Önizleme Listesi -->
+          <div id="optical-selected-files-container" style="display: none; margin-top: 1.25rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+              <div style="font-weight: 600; font-size: 0.9rem; color: var(--text-primary); display: flex; align-items: center; gap: 0.4rem;">
+                <i data-lucide="files" style="width: 16px; height: 16px; color: #4f46e5;"></i>
+                <span id="optical-selected-files-title">Seçilen Formlar (0)</span>
+              </div>
+              <button type="button" class="btn btn-secondary btn-sm" id="btn-optical-clear-files" style="font-size: 0.75rem; padding: 0.2rem 0.5rem; height: auto; color: var(--danger);">
+                Tümünü Temizle
+              </button>
+            </div>
+            <div id="optical-selected-files-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 0.75rem; max-height: 200px; overflow-y: auto; padding: 4px;">
+              <!-- Dosya kartları JS ile dinamik eklenecek -->
+            </div>
+          </div>
+
+          <!-- API Anahtarı Durumu & Uyarısı -->
+          <div id="optical-api-key-banner" style="margin-top: 1.25rem;">
+            <!-- JS ile doldurulacak -->
+          </div>
+
+          <!-- Yükleme Ekranı Aksiyon Butonları -->
+          <div style="display: flex; justify-content: flex-end; align-items: center; gap: 0.75rem; margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border-color);">
+            <button type="button" class="btn btn-secondary" id="btn-cancel-optical-upload">İptal</button>
+            <button type="button" class="btn btn-primary" id="btn-start-optical-ai-eval" disabled style="display: flex; align-items: center; gap: 0.4rem; background: linear-gradient(135deg, #4f46e5, #7c3aed); border: none;">
+              <i data-lucide="sparkles" style="width: 16px; height: 16px;"></i>
+              <span>Yapay Zeka ile Değerlendirmeyi Başlat</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- EKRAN 2: İŞLEM & ANALİZ SÜRECİ (PROGRESS) -->
+        <div id="optical-eval-step-processing" style="display: none; padding: 2rem 1rem; text-align: center;">
+          <div style="width: 72px; height: 72px; border-radius: 50%; background: linear-gradient(135deg, rgba(79, 70, 229, 0.15), rgba(124, 58, 237, 0.2)); color: #4f46e5; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 1.25rem; animation: pulse 1.8s infinite ease-in-out;">
+            <i data-lucide="cpu" style="width: 36px; height: 36px;"></i>
+          </div>
+          <h4 style="font-size: 1.15rem; color: var(--text-primary); margin-bottom: 0.35rem; font-weight: 700;">
+            Optik Formlar Yapay Zeka ile Analiz Ediliyor
+          </h4>
+          <p id="optical-processing-step-desc" style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.5rem; max-width: 500px; margin-left: auto; margin-right: auto;">
+            Gemini Vision modelleri öğrencileri, soru kutucuklarını ve doldurulan şıkları okuyor...
+          </p>
+
+          <div style="max-width: 500px; margin: 0 auto;">
+            <div style="display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 0.4rem; color: var(--text-secondary); font-weight: 600;">
+              <span id="optical-processing-counter">0 / 0 Dosya Tamamlandı</span>
+              <span id="optical-processing-percentage">0%</span>
+            </div>
+            <div class="optical-progress-track">
+              <div class="optical-progress-bar" id="optical-processing-progress-bar" style="width: 0%;"></div>
+            </div>
+          </div>
+
+          <div id="optical-processing-log-box" style="margin-top: 1.5rem; max-width: 550px; margin-left: auto; margin-right: auto; background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 0.75rem; max-height: 120px; overflow-y: auto; text-align: left; font-size: 0.78rem; font-family: monospace; color: var(--text-secondary);">
+            <div style="color: var(--text-muted);">▶ İşlem başlatıldı...</div>
+          </div>
+        </div>
+
+        <!-- EKRAN 3: DEĞERLENDİRME SONUÇLARI & NOT AKTARIMI -->
+        <div id="optical-eval-step-results" style="display: none;">
+          <!-- Özet Kartı -->
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.75rem; margin-bottom: 1.25rem;">
+            <div style="background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 0.75rem 1rem; text-align: center;">
+              <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600;">Taranan Form</div>
+              <div id="optical-res-stat-total" style="font-size: 1.35rem; font-weight: 700; color: #4f46e5; margin-top: 0.2rem;">0</div>
+            </div>
+            <div style="background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 0.75rem 1rem; text-align: center;">
+              <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600;">Eşleşen Öğrenci</div>
+              <div id="optical-res-stat-matched" style="font-size: 1.35rem; font-weight: 700; color: #10b981; margin-top: 0.2rem;">0</div>
+            </div>
+            <div style="background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 0.75rem 1rem; text-align: center;">
+              <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600;">Ortalama Puan</div>
+              <div id="optical-res-stat-avg" style="font-size: 1.35rem; font-weight: 700; color: #f59e0b; margin-top: 0.2rem;">0</div>
+            </div>
+          </div>
+
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; flex-wrap: wrap; gap: 0.5rem;">
+            <div style="font-size: 0.85rem; color: var(--text-secondary);">
+              🔍 Sonuçları kontrol edin. Öğrenci eşleşmelerini gerekirse açılır listeden değiştirebilirsiniz:
+            </div>
+            <button type="button" class="btn btn-secondary btn-sm" id="btn-toggle-all-optical-answers" style="font-size: 0.75rem; padding: 0.25rem 0.5rem; height: auto;">
+              Tüm Şıkları Göster/Gizle
+            </button>
+          </div>
+
+          <!-- Öğrenci Sonuç Kartları Listesi -->
+          <div id="optical-eval-results-container" style="display: flex; flex-direction: column; gap: 0.75rem; max-height: 400px; overflow-y: auto; padding-right: 4px;">
+            <!-- Sonuç kartları dinamik eklenecek -->
+          </div>
+
+          <!-- Alt Aksiyon Butonları -->
+          <div style="display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border-color); flex-wrap: wrap;">
+            <button type="button" class="btn btn-secondary" id="btn-optical-back-to-upload" style="display: flex; align-items: center; gap: 0.3rem;">
+              <i data-lucide="arrow-left" style="width: 14px; height: 14px;"></i> Yeni Dosya Ekle / Geri Dön
+            </button>
+            <button type="button" class="btn btn-success" id="btn-commit-optical-results" style="display: flex; align-items: center; gap: 0.4rem; font-weight: 700; padding: 0.6rem 1.25rem; font-size: 0.95rem;">
+              <i data-lucide="check-circle-2" style="width: 18px; height: 18px;"></i>
+              <span>Notları Sınav Tablosuna Aktar ve Kaydet</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: OPTİK FORM GÖRSEL ÖNİZLEME (LIGHTBOX) -->
+  <div class="modal" id="modal-optical-image-preview" style="--max-width: 800px; z-index: 1050;">
+    <div class="modal-content" style="max-width: 800px; background: rgba(15, 23, 42, 0.95);">
+      <div class="modal-header" style="border-bottom-color: rgba(255,255,255,0.1);">
+        <h4 style="color: #fff; margin: 0; font-size: 1rem; display: flex; align-items: center; gap: 0.4rem;">
+          <i data-lucide="image" style="width: 16px; height: 16px;"></i> <span id="optical-preview-title">Taranan Optik Form Görseli</span>
+        </h4>
+        <button type="button" class="close-btn" id="btn-close-optical-preview" style="color: #fff;">&times;</button>
+      </div>
+      <div class="modal-body" style="padding: 1rem; text-align: center;">
+        <img id="optical-preview-img" src="" alt="Optik Form" style="max-width: 100%; max-height: 75vh; border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.5);">
+        <iframe id="optical-preview-iframe" src="" style="display: none; width: 100%; height: 75vh; border: none; border-radius: 8px; background: #fff;"></iframe>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: KAYITLI SINAV CEVAP ANAHTARINI DÜZENLEME -->
+  <div class="modal" id="modal-edit-exam-answer-key" style="--max-width: 720px;">
+    <div class="modal-content" style="max-width: 720px;">
+      <div class="modal-header">
+        <div>
+          <h3 style="display: flex; align-items: center; gap: 0.5rem; color: #4f46e5; margin: 0; font-size: 1.2rem;">
+            <span>🔑</span> Sınav Cevap Anahtarını Düzenle
+          </h3>
+          <div id="desktop-ak-subtitle" style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem;">
+            <!-- Sınav Adı ve Soru Sayısı -->
+          </div>
+        </div>
+        <button type="button" class="close-btn" id="btn-close-edit-answer-key-modal">&times;</button>
+      </div>
+
+      <div class="modal-body" style="padding: 1.25rem;">
+        <!-- Araç Çubuğu: Şık Sayısı ve Hızlı Doldurma -->
+        <div style="background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 0.75rem 1rem; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+          <div>
+            <label style="font-size: 0.78rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">Şık Sayısı:</label>
+            <div style="display: flex; gap: 6px;">
+              <button type="button" class="btn btn-secondary btn-sm desktop-ak-choice-pill" data-choices="3" style="font-size: 0.75rem; padding: 0.2rem 0.5rem; height: auto;">3 Şık (A-C)</button>
+              <button type="button" class="btn btn-secondary btn-sm desktop-ak-choice-pill active" data-choices="4" style="font-size: 0.75rem; padding: 0.2rem 0.5rem; height: auto;">4 Şık (A-D)</button>
+              <button type="button" class="btn btn-secondary btn-sm desktop-ak-choice-pill" data-choices="5" style="font-size: 0.75rem; padding: 0.2rem 0.5rem; height: auto;">5 Şık (A-E)</button>
+            </div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+            <span id="desktop-ak-counter-badge" class="badge" style="background: rgba(79, 70, 229, 0.1); color: #4f46e5; font-weight: 700; font-size: 0.8rem; padding: 0.35rem 0.65rem;">
+              0 / 0 Soru Tanımlandı
+            </span>
+            <button type="button" class="btn btn-secondary btn-sm" id="btn-desktop-ak-fill-sample" style="font-size: 0.75rem; padding: 0.25rem 0.5rem; height: auto;">Örnek Doldur</button>
+            <button type="button" class="btn btn-secondary btn-sm" id="btn-desktop-ak-clear-all" style="font-size: 0.75rem; padding: 0.25rem 0.5rem; height: auto; color: var(--danger);">Temizle</button>
+          </div>
+        </div>
+
+        <!-- Soru Satırları Gridi -->
+        <div style="max-height: 380px; overflow-y: auto; padding-right: 4px; border: 1px solid var(--border-color); border-radius: var(--radius-md); background: var(--bg-secondary); padding: 0.75rem;">
+          <div id="desktop-ak-questions-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(135px, 1fr)); gap: 0.5rem;">
+            <!-- Soru kutucukları dinamik olarak üretilecek -->
+          </div>
+        </div>
+
+        <!-- Otomatik Yeniden Puanlama Onay Kutusu (Eğer öğrenci notları varsa görünür) -->
+        <div id="desktop-ak-rescore-container" style="display: none; background: rgba(99, 102, 241, 0.06); border: 1px solid rgba(99, 102, 241, 0.25); border-radius: var(--radius-md); padding: 0.75rem 1rem; margin-top: 1rem;">
+          <label style="display: flex; align-items: flex-start; gap: 0.6rem; cursor: pointer; margin: 0;">
+            <input type="checkbox" id="desktop-ak-rescore-checkbox" checked style="width: 18px; height: 18px; margin-top: 2px; cursor: pointer;">
+            <div>
+              <strong style="font-size: 0.85rem; color: #4f46e5;">Mevcut Öğrenci Notlarını Otomatik Yeniden Hesapla</strong>
+              <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 2px;">
+                Cevap anahtarındaki değişikliklere göre, daha önce girilmiş veya taranmış öğrenci sınav sonuçlarını (Doğru, Yanlış, Net, Puan) yeni anahtara göre otomatik olarak tekrar hesaplar.
+              </div>
+            </div>
+          </label>
+        </div>
+      </div>
+
+      <div class="modal-footer" style="padding: 1rem 1.25rem; display: flex; justify-content: flex-end; gap: 0.75rem; border-top: 1px solid var(--border-color);">
+        <button type="button" class="btn btn-secondary" id="btn-cancel-edit-answer-key">İptal</button>
+        <button type="button" class="btn btn-primary" id="btn-save-edit-answer-key" style="display: flex; align-items: center; gap: 0.4rem; background: linear-gradient(135deg, #4f46e5, #7c3aed); border: none; font-weight: 700;">
+          <i data-lucide="save" style="width: 16px; height: 16px;"></i>
+          <span>Cevap Anahtarını Kaydet</span>
+        </button>
+      </div>
     </div>
   </div>
 
@@ -7688,12 +8027,12 @@
         <div style="display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 1rem; background: var(--bg-secondary); border-radius: 10px; border: 1px solid var(--border-color);">
           <div style="display: flex; align-items: center; gap: 0.4rem;">
             <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600;">Mevcut:</span>
-            <span id="update-current-version" class="badge" style="font-size: 0.8rem; font-weight: 700; background: var(--border-color); color: var(--text-secondary); padding: 0.2rem 0.5rem; border-radius: 6px;">v1.0.35</span>
+            <span id="update-current-version" class="badge" style="font-size: 0.8rem; font-weight: 700; background: var(--border-color); color: var(--text-secondary); padding: 0.2rem 0.5rem; border-radius: 6px;">v1.0.36</span>
           </div>
           <i data-lucide="arrow-right" style="width: 16px; height: 16px; color: #6366f1;"></i>
           <div style="display: flex; align-items: center; gap: 0.4rem;">
             <span style="font-size: 0.75rem; color: #6366f1; font-weight: 600;">Yeni Sürüm:</span>
-            <span id="update-latest-version" class="badge" style="font-size: 0.8rem; font-weight: 700; background: #6366f1; color: white; padding: 0.2rem 0.5rem; border-radius: 6px;">v1.0.35</span>
+            <span id="update-latest-version" class="badge" style="font-size: 0.8rem; font-weight: 700; background: #6366f1; color: white; padding: 0.2rem 0.5rem; border-radius: 6px;">v1.0.36</span>
           </div>
         </div>
 
@@ -7913,7 +8252,7 @@
           <div>
             <h3 style="margin: 0; font-size: 1.2rem; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
               Sınıf Asistanı Masaüstü Uygulaması
-              <span id="download-app-version-badge" class="badge" style="font-size: 0.75rem; background: var(--primary); color: white; padding: 0.2rem 0.5rem; border-radius: 6px; font-weight: 600;">v1.0.35 (En Son)</span>
+              <span id="download-app-version-badge" class="badge" style="font-size: 0.75rem; background: var(--primary); color: white; padding: 0.2rem 0.5rem; border-radius: 6px; font-weight: 600;">v1.0.36 (En Son)</span>
             </h3>
             <p style="margin: 0; font-size: 0.85rem; color: var(--text-secondary);">Akıllı tahta ve bilgisayarınızda internet olmadan da tam performans çalışın.</p>
           </div>
@@ -7941,7 +8280,7 @@
               </p>
             </div>
             <div>
-              <a id="btn-download-deb" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/download/v1.0.35/sinif-asistani_1.0.35_amd64.deb" target="_blank" class="btn btn-primary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem; background: #ef4444; border-color: #ef4444; font-weight: 600;">
+              <a id="btn-download-deb" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/download/v1.0.36/sinif-asistani_1.0.36_amd64.deb" target="_blank" class="btn btn-primary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem; background: #ef4444; border-color: #ef4444; font-weight: 600;">
                 <i data-lucide="download" style="width: 16px; height: 16px;"></i> Pardus (.deb) İndir
               </a>
               <button type="button" onclick="window.openPardusInstallHelpModal()" style="width: 100%; margin-top: 0.5rem; background: rgba(239, 68, 68, 0.12); border: 1px dashed rgba(239, 68, 68, 0.5); color: #f87171; border-radius: var(--radius-sm, 8px); padding: 0.45rem 0.5rem; font-size: 0.78rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.35rem; transition: all 0.2s ease;">
@@ -7968,7 +8307,7 @@
               </p>
             </div>
             <div>
-              <a id="btn-download-exe" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/download/v1.0.35/sinif-asistani_1.0.35_x64-setup.exe" target="_blank" class="btn btn-primary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem; background: #0284c7; border-color: #0284c7; font-weight: 600;">
+              <a id="btn-download-exe" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/download/v1.0.36/sinif-asistani_1.0.36_x64-setup.exe" target="_blank" class="btn btn-primary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem; background: #0284c7; border-color: #0284c7; font-weight: 600;">
                 <i data-lucide="download" style="width: 16px; height: 16px;"></i> Windows (.exe) İndir
               </a>
               <button type="button" onclick="window.openWinInstallHelpModal()" style="width: 100%; margin-top: 0.5rem; background: rgba(2, 132, 199, 0.12); border: 1px dashed rgba(2, 132, 199, 0.5); color: #38bdf8; border-radius: var(--radius-sm, 8px); padding: 0.45rem 0.5rem; font-size: 0.78rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.35rem; transition: all 0.2s ease;">
@@ -7996,13 +8335,13 @@
             </div>
             <div>
               <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem;">
-                <a id="btn-download-dmg" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/download/v1.0.35/sinif-asistani_1.0.35_aarch64.dmg" target="_blank" class="btn btn-primary" style="flex: 1.1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.15rem; background: #8b5cf6; border-color: #8b5cf6; font-weight: 600; padding: 0.5rem 0.35rem; font-size: 0.78rem; text-align: center; text-decoration: none;">
+                <a id="btn-download-dmg" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/download/v1.0.36/sinif-asistani_1.0.36_aarch64.dmg" target="_blank" class="btn btn-primary" style="flex: 1.1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.15rem; background: #8b5cf6; border-color: #8b5cf6; font-weight: 600; padding: 0.5rem 0.35rem; font-size: 0.78rem; text-align: center; text-decoration: none;">
                   <span style="display: flex; align-items: center; gap: 0.25rem; font-weight: 700;">
                     <i data-lucide="download" style="width: 14px; height: 14px;"></i> Apple Silicon
                   </span>
                   <span style="font-size: 0.67rem; opacity: 0.92; font-weight: 500;">(M1 / M2 / M3 / M4)</span>
                 </a>
-                <a id="btn-download-dmg-intel" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/download/v1.0.35/sinif-asistani_1.0.35_x64.dmg" target="_blank" class="btn btn-secondary" style="flex: 0.9; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.15rem; font-weight: 600; padding: 0.5rem 0.35rem; font-size: 0.78rem; text-align: center; text-decoration: none; border: 1px solid rgba(139, 92, 246, 0.45); color: var(--text-primary);">
+                <a id="btn-download-dmg-intel" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/download/v1.0.36/sinif-asistani_1.0.36_x64.dmg" target="_blank" class="btn btn-secondary" style="flex: 0.9; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.15rem; font-weight: 600; padding: 0.5rem 0.35rem; font-size: 0.78rem; text-align: center; text-decoration: none; border: 1px solid rgba(139, 92, 246, 0.45); color: var(--text-primary);">
                   <span style="display: flex; align-items: center; gap: 0.25rem; font-weight: 700;">
                     <i data-lucide="download" style="width: 14px; height: 14px;"></i> Intel Mac
                   </span>
@@ -8032,7 +8371,7 @@
                 Derste masaları gezerken tek dokunuşla ödev kontrolü, ders akışı ve hızlı yoklama için mobil uygulama paketi.
               </p>
             </div>
-            <a id="btn-download-apk" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/download/v1.0.35/sinif-asistani.apk" target="_blank" class="btn btn-primary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem; background: #16a34a; border-color: #16a34a; font-weight: 600;">
+            <a id="btn-download-apk" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/download/v1.0.36/sinif-asistani.apk" target="_blank" class="btn btn-primary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem; background: #16a34a; border-color: #16a34a; font-weight: 600;">
               <i data-lucide="download" style="width: 16px; height: 16px;"></i> Android (.apk) İndir
             </a>
           </div>
@@ -8054,7 +8393,7 @@
                 <strong>Kurulum gerektirmez!</strong> Özellikle ortaokul modunda sınıf sınıf gezen branş öğretmenleri, uygulamayı Flash diskine (USB) yükleyerek tüm sınıflardaki akıllı tahtalarda doğrudan flash bellek üzerinden tak-çalıştır şeklinde kullanabilir.
               </p>
             </div>
-            <a id="btn-download-appimage" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/download/v1.0.35/sinif-asistani_1.0.35_amd64.AppImage" target="_blank" class="btn btn-primary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem; background: #10b981; border-color: #10b981; font-weight: 600;">
+            <a id="btn-download-appimage" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/download/v1.0.36/sinif-asistani_1.0.36_amd64.AppImage" target="_blank" class="btn btn-primary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem; background: #10b981; border-color: #10b981; font-weight: 600;">
               <i data-lucide="download" style="width: 16px; height: 16px;"></i> AppImage (USB Uyumlu) İndir
             </a>
           </div>
@@ -8298,6 +8637,13 @@
   <!-- Excel ve CSV işlemleri için SheetJS Kitaplığı -->
   <script src="js/xlsx.full.min.js"></script>
   <script src="js/chart.min.js"></script>
+  <!-- PDF İşlemleri için PDF.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script>
+    if (window.pdfjsLib) {
+      window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    }
+  </script>
 
   <!-- Uygulama Javascript Dosyaları -->
   <script src="js/supabase-config.js?v=32"></script>

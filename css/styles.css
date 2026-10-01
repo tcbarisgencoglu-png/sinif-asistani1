@@ -3158,12 +3158,24 @@ th:hover .hw-col-actions {
 }
 
 .exam-table-input {
-  width: 75px;
+  width: 66px;
+  max-width: 100%;
   text-align: center;
   margin: 0 auto;
-  padding: 0.25rem 0.5rem;
-  font-size: 0.85rem;
-  height: 30px;
+  padding: 0.2rem 0.35rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  height: 32px;
+  border-radius: var(--radius-sm);
+  box-sizing: border-box;
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+.exam-table-input::-webkit-outer-spin-button,
+.exam-table-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
 }
 
 .score-change-badge {
@@ -3279,6 +3291,11 @@ th:hover .hw-col-actions {
 
 /* Print Optical Form Styles */
 @media print {
+  @page {
+    size: A4 portrait;
+    margin: 5mm;
+  }
+
   body.print-optical {
     margin: 0 !important;
     padding: 0 !important;
@@ -3299,23 +3316,65 @@ th:hover .hw-col-actions {
   
   body.print-optical .optical-forms-print {
     display: block !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
   }
   
-  .optical-page {
-    width: 210mm !important;
-    height: 297mm !important;
-    padding: 10mm !important;
-    margin: 0 !important;
-    border: none !important;
-    box-shadow: none !important;
+  body.print-optical .omr-print-page {
+    display: block !important;
     page-break-after: always !important;
+    break-after: page !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    height: 265mm !important;
+    max-height: 268mm !important;
+    overflow: hidden !important;
     box-sizing: border-box !important;
+    padding: 1.5mm 2mm !important;
+    margin: 0 auto !important;
+  }
+
+  body.print-optical .omr-print-page:last-child {
+    page-break-after: auto !important;
+    break-after: auto !important;
+  }
+
+  body.print-optical .omr-print-page.omr-per-page-1 {
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: center !important;
+    align-items: center !important;
+    height: 265mm !important;
+  }
+  body.print-optical .omr-print-page.omr-per-page-1 .omr-card {
+    height: 260mm !important;
+    max-height: 262mm !important;
+  }
+
+  body.print-optical .omr-print-page.omr-per-page-2 {
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+    gap: 3.5mm !important;
+    height: 265mm !important;
+  }
+  body.print-optical .omr-print-page.omr-per-page-2 .omr-card {
+    height: 129mm !important;
+    max-height: 130mm !important;
+  }
+
+  body.print-optical .omr-print-page.omr-per-page-4 {
     display: grid !important;
-    grid-template-columns: repeat(2, 1fr) !important;
-    grid-auto-rows: max-content !important;
-    gap: 12px !important;
-    aspect-ratio: auto !important;
-    background: white !important;
+    grid-template-columns: 1fr 1fr !important;
+    grid-template-rows: 129mm 129mm !important;
+    gap: 3mm !important;
+    height: 265mm !important;
+  }
+  body.print-optical .omr-print-page.omr-per-page-4 .omr-card {
+    height: 129mm !important;
+    max-height: 129mm !important;
+    padding: 5px 7px !important;
   }
 }
 
@@ -3678,6 +3737,458 @@ th:hover .hw-col-actions {
   width: 8px !important;
   height: 8px !important;
   font-size: 5px !important;
+}
+
+/* Desktop Optik Form Şık Seçici Haplar (3, 4, 5 Şık) */
+.desktop-opt-choice-pill {
+  flex: 1;
+  text-align: center;
+  border: 1.5px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 8px 6px;
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 700;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  transition: all var(--transition-fast);
+  user-select: none;
+}
+.desktop-opt-choice-pill:hover {
+  border-color: var(--primary);
+}
+.desktop-opt-choice-pill.active {
+  border-color: var(--primary);
+  background: var(--primary-light);
+  color: var(--primary);
+  box-shadow: 0 0 0 1px var(--primary);
+}
+
+/* Desktop Optik Cevap Anahtarı Satırları */
+.desktop-opt-bubble-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 5px 8px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  transition: border-color var(--transition-fast);
+}
+.desktop-opt-bubble-row:hover {
+  border-color: var(--primary);
+}
+.desktop-opt-bubble-qnum {
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  min-width: 24px;
+}
+.desktop-opt-bubbles-wrap {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.desktop-opt-bubble-btn {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 1.5px solid var(--border-color);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  transition: all var(--transition-fast);
+}
+.desktop-opt-bubble-btn:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+.desktop-opt-bubble-btn.active {
+  background: var(--primary) !important;
+  color: #ffffff !important;
+  border-color: var(--primary) !important;
+  box-shadow: 0 2px 5px rgba(99, 102, 241, 0.4);
+}
+.desktop-opt-clear-btn {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  visibility: hidden;
+  opacity: 0;
+  transition: all var(--transition-fast);
+}
+.desktop-opt-clear-btn.visible {
+  visibility: visible;
+  opacity: 1;
+}
+.desktop-opt-clear-btn:hover {
+  color: var(--danger);
+  background: rgba(239, 68, 68, 0.1);
+}
+
+/* Modern OMR Yazdırma ve Önizleme Şablonu (QR Kodsuz, Yüksek Hassasiyetli) */
+.omr-print-page {
+  page-break-after: always !important;
+  break-after: page !important;
+  page-break-inside: avoid !important;
+  break-inside: avoid !important;
+  width: 100%;
+  max-width: 210mm;
+  box-sizing: border-box;
+  padding: 1.5mm 2mm;
+  margin: 0 auto;
+  background: #ffffff;
+  overflow: hidden;
+}
+.omr-print-page:last-child {
+  page-break-after: auto !important;
+  break-after: auto !important;
+}
+.omr-print-page.omr-per-page-1 {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 265mm;
+  max-height: 268mm;
+}
+.omr-print-page.omr-per-page-1 .omr-card {
+  height: 260mm;
+  max-height: 262mm;
+  max-width: 100%;
+  margin: 0 auto;
+  padding: 14px 18px;
+}
+.omr-print-page.omr-per-page-2 {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 3.5mm;
+  height: 265mm;
+  max-height: 268mm;
+}
+.omr-print-page.omr-per-page-2 .omr-card {
+  height: 129mm;
+  max-height: 130mm;
+  max-width: 100%;
+  margin: 0;
+  padding: 8px 12px;
+}
+.omr-print-page.omr-per-page-4 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 129mm 129mm;
+  gap: 3mm;
+  height: 265mm;
+  max-height: 268mm;
+}
+.omr-print-page.omr-per-page-4 .omr-card {
+  height: 129mm;
+  max-height: 129mm;
+  max-width: 100%;
+  margin: 0;
+  padding: 5px 7px;
+}
+
+.omr-card {
+  position: relative;
+  background: #ffffff;
+  color: #000000;
+  border: 1.5px solid #000000;
+  border-radius: 6px;
+  box-sizing: border-box;
+  width: 100%;
+  user-select: none;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  page-break-inside: avoid !important;
+  break-inside: avoid !important;
+  overflow: hidden !important;
+}
+
+.omr-anchor {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  background-color: #000000 !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  z-index: 5;
+}
+.omr-anchor::before {
+  content: '';
+  display: block;
+  width: 10px;
+  height: 10px;
+  background-color: #ffffff !important;
+  box-sizing: border-box;
+}
+.omr-anchor::after {
+  content: '';
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  background-color: #000000 !important;
+  box-sizing: border-box;
+}
+.omr-anchor-tl { top: 6px; left: 6px; }
+.omr-anchor-tr { top: 6px; right: 6px; }
+.omr-anchor-bl { bottom: 6px; left: 6px; }
+.omr-anchor-br { bottom: 6px; right: 6px; }
+
+.omr-row-tick {
+  width: 5px;
+  height: 2px;
+  background-color: #000000 !important;
+  display: inline-block;
+  margin-right: 2px;
+  flex-shrink: 0;
+}
+
+.omr-card-header {
+  margin: 2px 26px 4px 26px;
+  border-bottom: 2px solid #000000;
+  padding-bottom: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.omr-header-main {
+  flex: 1;
+  min-width: 0;
+}
+.omr-header-title {
+  font-size: 0.88rem;
+  font-weight: 900;
+  text-align: left;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #000000;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.omr-student-info {
+  display: flex;
+  gap: 16px;
+  margin-top: 3px;
+  font-size: 0.8rem;
+  color: #000000;
+  font-weight: 700;
+}
+
+.omr-card-body {
+  margin: 4px 14px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  box-sizing: border-box;
+}
+.omr-grid-container {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  box-sizing: border-box;
+}
+.omr-grid-container.cols-1 {
+  width: 50%;
+  margin: 0 auto;
+}
+.omr-grid-container.cols-2 .omr-grid-col {
+  width: 48%;
+}
+.omr-grid-container.cols-3 .omr-grid-col {
+  width: 31%;
+}
+.omr-grid-col {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 4px;
+  box-sizing: border-box;
+}
+.omr-q-row {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  box-sizing: border-box;
+}
+.omr-q-num {
+  width: 22%;
+  font-size: 0.74rem;
+  font-weight: 800;
+  text-align: right;
+  color: #000000;
+  box-sizing: border-box;
+  padding-right: 4px;
+}
+.omr-q-bubbles {
+  width: 78%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-sizing: border-box;
+}
+.omr-bubble {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1.6px solid #000000 !important;
+  background: #ffffff !important;
+  color: #000000 !important;
+  font-size: 0.66rem;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  box-sizing: border-box;
+}
+.omr-card-footer {
+  margin: 4px 24px 2px 24px;
+  border-top: 1px dashed #64748b;
+  padding-top: 3px;
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.62rem;
+  color: #475569;
+  font-weight: 600;
+}
+
+/* 4-per-page (Tasarruflu) özel kompakt düzeni */
+.omr-per-page-4 .omr-anchor {
+  width: 14px !important;
+  height: 14px !important;
+}
+.omr-per-page-4 .omr-anchor::before {
+  width: 8px !important;
+  height: 8px !important;
+}
+.omr-per-page-4 .omr-anchor::after {
+  width: 4px !important;
+  height: 4px !important;
+}
+.omr-per-page-4 .omr-row-tick {
+  width: 3px !important;
+  height: 1.5px !important;
+}
+.omr-per-page-4 .omr-anchor-tl { top: 4px !important; left: 4px !important; }
+.omr-per-page-4 .omr-anchor-tr { top: 4px !important; right: 4px !important; }
+.omr-per-page-4 .omr-anchor-bl { bottom: 4px !important; left: 4px !important; }
+.omr-per-page-4 .omr-anchor-br { bottom: 4px !important; right: 4px !important; }
+.omr-per-page-4 .omr-card-header {
+  margin: 2px 14px 3px 14px !important;
+  padding-bottom: 2px !important;
+}
+.omr-per-page-4 .omr-header-title {
+  font-size: 0.72rem !important;
+}
+.omr-per-page-4 .omr-student-info {
+  font-size: 0.64rem !important;
+  gap: 8px !important;
+}
+.omr-per-page-4 .omr-card-body {
+  margin: 2px 8px !important;
+}
+.omr-per-page-4 .omr-grid-container {
+  gap: 4px !important;
+}
+.omr-per-page-4 .omr-grid-col {
+  gap: 2px !important;
+}
+.omr-per-page-4 .omr-q-row {
+  gap: 3px !important;
+}
+.omr-per-page-4 .omr-q-num {
+  width: 15px !important;
+  font-size: 0.62rem !important;
+}
+.omr-per-page-4 .omr-q-bubbles {
+  gap: 3px !important;
+}
+.omr-per-page-4 .omr-bubble {
+  width: 14px !important;
+  height: 14px !important;
+  font-size: 0.54rem !important;
+  border: 1.2px solid #000000 !important;
+}
+.omr-per-page-4 .omr-card-footer {
+  margin: 2px 14px 1px 14px !important;
+  font-size: 0.54rem !important;
+}
+
+/* Önizleme Alanı İçin Ölçekleme */
+.optical-preview-container .omr-preview-sheet {
+  background: white;
+  border: 1px solid #cbd5e1;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  padding: 8px;
+  box-sizing: border-box;
+}
+.optical-preview-container .omr-card {
+  border-width: 1px !important;
+  margin-bottom: 8px;
+  padding: 6px 8px !important;
+  height: auto !important;
+  max-height: none !important;
+}
+.optical-preview-container .omr-anchor {
+  width: 10px !important;
+  height: 10px !important;
+}
+.optical-preview-container .omr-anchor::before {
+  width: 5px !important;
+  height: 5px !important;
+}
+.optical-preview-container .omr-anchor::after {
+  width: 2.5px !important;
+  height: 2.5px !important;
+}
+.optical-preview-container .omr-card-header {
+  margin: 1px 12px 2px 12px !important;
+  padding-bottom: 2px !important;
+}
+.optical-preview-container .omr-header-title {
+  font-size: 0.72rem !important;
+}
+.optical-preview-container .omr-student-info {
+  font-size: 0.62rem !important;
+  gap: 8px !important;
+}
+.optical-preview-container .omr-bubble {
+  width: 12px !important;
+  height: 12px !important;
+  font-size: 0.52rem !important;
+  border-width: 1px !important;
+}
+.optical-preview-container .omr-q-num {
+  font-size: 0.62rem !important;
+}
+.optical-preview-container .omr-card-footer {
+  font-size: 0.52rem !important;
+  margin: 2px 12px 1px 12px !important;
 }
 
 /* File uploader hover and dragover styles */
@@ -6276,12 +6787,13 @@ input:checked + .slider:before {
 
 /* Print View Styles */
 @media print {
-  @page {
+  @page seatingPlanPage {
     size: landscape;
     margin: 10mm;
   }
 
   body.print-seating {
+    page: seatingPlanPage;
     background: white !important;
     color: black !important;
   }
@@ -7115,3 +7627,206 @@ input:checked + .slider:before {
   color: var(--primary);
   transform: scale(1.08);
 }
+
+/* ==========================================================================
+   OPTİK FORM YÜKLEME VE YAPAY ZEKA DEĞERLENDİRME STILLERI
+   ========================================================================== */
+.optical-dropzone {
+  border: 2px dashed rgba(99, 102, 241, 0.4);
+  background: rgba(99, 102, 241, 0.03);
+  border-radius: var(--radius-lg);
+  padding: 2.25rem 1.5rem;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  position: relative;
+}
+
+.optical-dropzone:hover,
+.optical-dropzone.dragover {
+  border-color: #4f46e5;
+  background: rgba(99, 102, 241, 0.08);
+  transform: scale(1.01);
+}
+
+.optical-file-item {
+  position: relative;
+  border: 1px solid var(--border-color);
+  background: var(--bg-primary);
+  border-radius: var(--radius-md);
+  padding: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  font-size: 0.72rem;
+  transition: all 0.2s ease;
+}
+
+.optical-file-item:hover {
+  border-color: #4f46e5;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+}
+
+.optical-file-thumb {
+  width: 100%;
+  height: 75px;
+  object-fit: cover;
+  border-radius: 4px;
+  margin-bottom: 0.35rem;
+  background: var(--bg-secondary);
+}
+
+.optical-file-pdf-thumb {
+  width: 100%;
+  height: 75px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  border-radius: 4px;
+  margin-bottom: 0.35rem;
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px dashed rgba(239, 68, 68, 0.3);
+  color: #ef4444;
+}
+
+.res-thumb-pdf {
+  width: 48px;
+  height: 48px;
+  border-radius: 6px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #ef4444;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.65rem;
+  font-weight: 700;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: transform 0.15s ease;
+}
+
+.res-thumb-pdf:hover {
+  transform: scale(1.05);
+}
+
+.optical-file-remove-btn {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: rgba(239, 68, 68, 0.9);
+  color: #fff;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  cursor: pointer;
+  opacity: 0.85;
+  transition: opacity 0.2s;
+}
+
+.optical-file-remove-btn:hover {
+  opacity: 1;
+  transform: scale(1.1);
+}
+
+.optical-progress-track {
+  width: 100%;
+  height: 10px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.optical-progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #4f46e5, #7c3aed, #06b6d4);
+  border-radius: 999px;
+  transition: width 0.35s ease;
+}
+
+.optical-eval-card {
+  background: var(--bg-primary);
+  border: 1.5px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  transition: all 0.2s ease;
+}
+
+.optical-eval-card.unmatched {
+  border-color: #f59e0b;
+  background: rgba(245, 158, 11, 0.03);
+}
+
+.optical-eval-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+}
+
+.optical-answer-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.2rem 0.45rem;
+  border-radius: 4px;
+}
+
+.optical-answer-chip.correct {
+  background: rgba(16, 185, 129, 0.12);
+  color: #059669;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.optical-answer-chip.wrong {
+  background: rgba(239, 68, 68, 0.12);
+  color: #dc2626;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.optical-answer-chip.blank {
+  background: rgba(148, 163, 184, 0.15);
+  color: #64748b;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+}
+
+.optical-key-pill-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.optical-key-pill-btn:hover {
+  border-color: #4f46e5;
+  color: #4f46e5;
+}
+
+.optical-key-pill-btn.active {
+  background: #4f46e5;
+  border-color: #4f46e5;
+  color: #fff;
+  box-shadow: 0 2px 6px rgba(79, 70, 229, 0.3);
+}
+

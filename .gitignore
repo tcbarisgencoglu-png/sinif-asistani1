@@ -53,4 +53,6 @@ android/app/src/main/assets/
 *.aab
 local.properties
 android/local.properties
+*.nosync
+*.nosync/
 

@@ -248,31 +248,113 @@
       </div>
     </div>
 
-    <!-- 4. SEKME: HIZLI YOKLAMA -->
-    <div class="tab-pane" id="tab-attendance">
-      <div class="attendance-summary-card">
-        <div>
-          <div class="att-stat-num" id="att-stat-present" style="color: var(--m-success);">0</div>
-          <div class="att-stat-lbl">Sınıfta (Var)</div>
-        </div>
-        <div style="width: 1px; background: var(--m-border);"></div>
-        <div>
-          <div class="att-stat-num" id="att-stat-absent" style="color: var(--m-danger);">0</div>
-          <div class="att-stat-lbl">Gelmeyen (Yok)</div>
-        </div>
+    <!-- 4. SEKME: ARAÇLAR (SINIF YARDIMCI ARAÇLARI) -->
+    <div class="tab-pane" id="tab-tools">
+      <div class="bento-header" style="margin-bottom: 1rem;">
+        <div class="bento-header-title">Sınıf Yardımcı Araçları</div>
+        <div class="bento-header-subtitle">Ders içi aktiviteler ve sınıf yönetimi için pratik araçlar.</div>
       </div>
 
-      <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
-        <button class="hw-nav-btn" style="flex: 1; justify-content: center; background: var(--m-success-light); color: var(--m-success); border-color: var(--m-success);" onclick="window.markAllAttendance('present')">
-          <i data-lucide="check-check" style="width: 16px; height: 16px;"></i> Tümünü Var Yap
-        </button>
-        <button class="hw-nav-btn" style="flex: 1; justify-content: center; background: var(--m-primary); color: #fff; border-color: var(--m-primary);" onclick="window.saveAttendance()">
-          <i data-lucide="save" style="width: 16px; height: 16px;"></i> Kaydet
-        </button>
-      </div>
+      <!-- Araçlar Küçük Kartlar Izgarası -->
+      <div class="tools-grid-compact">
+        <!-- 1. Yoklama (Sınıf Yoklaması) -->
+        <div class="tool-compact-card" role="button" tabindex="0" onclick="window.openAttendanceModal()">
+          <div class="tool-icon-circle" style="background: rgba(16, 185, 129, 0.12); color: var(--m-success);">
+            📋
+          </div>
+          <div style="font-weight: 800; font-size: 0.88rem; color: var(--m-text);">Sınıf Yoklaması</div>
+          <div style="font-size: 0.7rem; color: var(--m-text-muted);">Günlük yoklama & devam</div>
+        </div>
 
-      <div class="attendance-list" id="m-attendance-list">
-        <!-- Dinamik yoklama listesi -->
+        <!-- 2. Kura (Şanslı Öğrenci) -->
+        <div class="tool-compact-card" role="button" tabindex="0" onclick="window.openToolModal('lucky')">
+          <div class="tool-icon-circle" style="background: rgba(245, 158, 11, 0.12); color: var(--m-warning);">
+            🎲
+          </div>
+          <div style="font-weight: 800; font-size: 0.88rem; color: var(--m-text);">Şanslı Öğrenci</div>
+          <div style="font-size: 0.7rem; color: var(--m-text-muted);">Sözlü & etkinlik kurası</div>
+        </div>
+
+        <!-- 3. Sayaç -->
+        <div class="tool-compact-card" role="button" tabindex="0" onclick="window.openToolModal('timer')">
+          <div class="tool-icon-circle" style="background: rgba(79, 70, 229, 0.12); color: var(--m-primary);">
+            ⏱️
+          </div>
+          <div style="font-weight: 800; font-size: 0.88rem; color: var(--m-text);">Akıllı Sayaç</div>
+          <div style="font-size: 0.7rem; color: var(--m-text-muted);">Geri sayım ve alarm</div>
+        </div>
+
+        <!-- 4. Sesler -->
+        <div class="tool-compact-card" role="button" tabindex="0" onclick="window.openToolModal('sounds')">
+          <div class="tool-icon-circle" style="background: rgba(244, 63, 94, 0.12); color: var(--m-danger);">
+            🔔
+          </div>
+          <div style="font-weight: 800; font-size: 0.88rem; color: var(--m-text);">Zil & Sesler</div>
+          <div style="font-size: 0.7rem; color: var(--m-text-muted);">Zil, alkış ve efektler</div>
+        </div>
+
+        <!-- 5. Grup Oluşturucu -->
+        <div class="tool-compact-card" role="button" tabindex="0" onclick="window.openToolModal('groups')">
+          <div class="tool-icon-circle" style="background: rgba(16, 185, 129, 0.12); color: var(--m-success);">
+            👥
+          </div>
+          <div style="font-weight: 800; font-size: 0.88rem; color: var(--m-text);">Grup Kurucu</div>
+          <div style="font-size: 0.7rem; color: var(--m-text-muted);">Rastgele takım oluştur</div>
+        </div>
+
+        <!-- 6. Nöbet Listesi -->
+        <div class="tool-compact-card" role="button" tabindex="0" onclick="window.openDutyRosterModal()">
+          <div class="tool-icon-circle" style="background: rgba(6, 182, 212, 0.12); color: var(--m-info);">
+            📅
+          </div>
+          <div style="font-weight: 800; font-size: 0.88rem; color: var(--m-text);">Nöbetçi Listesi</div>
+          <div style="font-size: 0.7rem; color: var(--m-text-muted);">Haftalık sınıf nöbeti</div>
+        </div>
+
+        <!-- 7. Oturma Planı -->
+        <div class="tool-compact-card" role="button" tabindex="0" onclick="window.openSeatingPlanModal()">
+          <div class="tool-icon-circle" style="background: rgba(139, 92, 246, 0.12); color: #8b5cf6;">
+            🗺️
+          </div>
+          <div style="font-weight: 800; font-size: 0.88rem; color: var(--m-text);">Sınıf Oturma Planı</div>
+          <div style="font-size: 0.7rem; color: var(--m-text-muted);">Sıra ve masa düzeni</div>
+        </div>
+
+        <!-- 8. Ders Akışı -->
+        <div class="tool-compact-card" role="button" tabindex="0" onclick="window.openScheduleFlowModal()">
+          <div class="tool-icon-circle" style="background: rgba(59, 130, 246, 0.12); color: #3b82f6;">
+            📖
+          </div>
+          <div style="font-weight: 800; font-size: 0.88rem; color: var(--m-text);">Ders Akışı</div>
+          <div style="font-size: 0.7rem; color: var(--m-text-muted);">Program, planlar ve saatler</div>
+        </div>
+
+        <!-- 9. Katkı & Tedarik -->
+        <div class="tool-compact-card" role="button" tabindex="0" onclick="window.openSuppliesModal()">
+          <div class="tool-icon-circle" style="background: rgba(234, 88, 12, 0.12); color: #ea580c;">
+            📦
+          </div>
+          <div style="font-weight: 800; font-size: 0.88rem; color: var(--m-text);">Katkı & Tedarik</div>
+          <div style="font-size: 0.7rem; color: var(--m-text-muted);">Sınıf ihtiyaç takibi</div>
+        </div>
+
+        <!-- 10. Kişisel Evrak Deposu -->
+        <div class="tool-compact-card" role="button" tabindex="0" onclick="window.openDocumentsModal()">
+          <div class="tool-icon-circle" style="background: rgba(16, 185, 129, 0.12); color: #10b981;">
+            📁
+          </div>
+          <div style="font-weight: 800; font-size: 0.88rem; color: var(--m-text);">Kişisel Evrak Deposu</div>
+          <div style="font-size: 0.7rem; color: var(--m-text-muted);">Zümre, toplantı ve resmi evraklar</div>
+        </div>
+
+        <!-- 11. Sınavlar & Analiz -->
+        <div class="tool-compact-card" role="button" tabindex="0" onclick="window.openExamsHubModal()">
+          <div class="tool-icon-circle" style="background: rgba(168, 85, 247, 0.12); color: #a855f7;">
+            📝
+          </div>
+          <div style="font-weight: 800; font-size: 0.88rem; color: var(--m-text);">Sınavlar & Analiz</div>
+          <div style="font-size: 0.7rem; color: var(--m-text-muted);">Yazılı hazırla ve sınav analizi</div>
+        </div>
       </div>
     </div>
 
@@ -331,7 +413,7 @@
         </div>
 
         <!-- 4. Araçlar -->
-        <div class="bento-card bento-tools" onclick="window.openMobileSubview('tools')">
+        <div class="bento-card bento-tools" onclick="window.switchTab('tools')">
           <div style="display: flex; justify-content: space-between; align-items: flex-start;">
             <div class="bento-icon-box">
               <i data-lucide="wrench"></i>
@@ -395,72 +477,9 @@
         </div>
       </div>
 
-      <!-- Hızlı Araçlar ve Veri Yönetimi -->
-      <div style="font-weight: 800; font-size: 0.95rem; margin-bottom: 0.75rem; color: var(--m-text); display: flex; align-items: center; gap: 6px;">
-        <i data-lucide="zap" style="width: 18px; height: 18px; color: var(--m-warning);"></i> Hızlı Masaüstü & Sistem Araçları
-      </div>
-
-      <!-- Şanslı Öğrenci Çağırıcı -->
-      <div class="attendance-row" style="flex-direction: column; align-items: stretch; margin-bottom: 0.75rem; padding: 1.15rem;">
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-          <div>
-            <div style="font-weight: 800; font-size: 0.95rem; display: flex; align-items: center; gap: 6px;">
-              <i data-lucide="sparkles" style="width: 16px; height: 16px; color: var(--m-warning);"></i> Şanslı Öğrenci (Kura)
-            </div>
-            <div style="font-size: 0.72rem; color: var(--m-text-muted); margin-top: 2px;">Sözlü veya etkinlik için rastgele öğrenci seçin.</div>
-          </div>
-          <button class="btn-book-action" onclick="window.drawLuckyStudent()" style="background: linear-gradient(135deg, #f59e0b, #d97706);">
-            <i data-lucide="shuffle" style="width: 14px; height: 14px;"></i> Kura Çek
-          </button>
-        </div>
-        <div id="lucky-student-result" style="display: none;"></div>
-      </div>
-
-      <!-- Hızlı Sayaç / Zil -->
-      <div class="attendance-row" style="flex-direction: column; align-items: stretch; margin-bottom: 0.75rem; padding: 1.15rem;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
-          <div>
-            <div style="font-weight: 800; font-size: 0.95rem; display: flex; align-items: center; gap: 6px;">
-              <i data-lucide="clock" style="width: 16px; height: 16px; color: var(--m-primary);"></i> Hızlı Sayaç
-            </div>
-            <div style="font-size: 0.72rem; color: var(--m-text-muted); margin-top: 2px;">Etkinlik veya sınav süresini başlatın.</div>
-          </div>
-          <div id="m-timer-display" style="font-size: 1.3rem; font-weight: 800; color: var(--m-primary);">00:00</div>
-        </div>
-        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px;">
-          <button class="hw-nav-btn" style="justify-content: center; padding: 6px;" onclick="window.startMobileTimer(1)">1 dk</button>
-          <button class="hw-nav-btn" style="justify-content: center; padding: 6px;" onclick="window.startMobileTimer(3)">3 dk</button>
-          <button class="hw-nav-btn" style="justify-content: center; padding: 6px;" onclick="window.startMobileTimer(5)">5 dk</button>
-          <button class="hw-nav-btn" style="justify-content: center; padding: 6px;" onclick="window.startMobileTimer(10)">10 dk</button>
-        </div>
-      </div>
-
-      <!-- Veri ve Masaüstü Bağlantısı -->
-      <div class="attendance-row" style="flex-direction: column; align-items: stretch; padding: 1.15rem;">
-        <div style="font-weight: 800; font-size: 0.95rem; margin-bottom: 0.75rem;">💾 Veri & Yönetim</div>
-        <div style="display: flex; gap: 0.5rem; margin-bottom: 0.75rem;">
-          <button class="hw-nav-btn" style="flex: 1; justify-content: center;" onclick="window.exportMobileData ? window.exportMobileData() : (window.stateManager && window.stateManager.exportData())">
-            <i data-lucide="download" style="width: 14px; height: 14px;"></i> Yedek İndir / Paylaş
-          </button>
-          <button class="hw-nav-btn" style="flex: 1; justify-content: center;" onclick="document.getElementById('m-file-import').click()">
-            <i data-lucide="upload" style="width: 14px; height: 14px;"></i> Yedeği Yükle
-          </button>
-          <input type="file" id="m-file-import" accept=".json" style="display: none;" onchange="
-            const file = this.files[0];
-            if (file) {
-              const reader = new FileReader();
-              reader.onload = (e) => {
-                if (window.stateManager && window.stateManager.importData(e.target.result)) {
-                  alert('Verileriniz başarıyla yüklendi!');
-                  location.reload();
-                }
-              };
-              reader.readAsText(file);
-            }
-          ">
-        </div>
-
-        <a href="index.html" class="hw-nav-btn" style="justify-content: center; text-decoration: none; background: var(--m-surface-subtle); color: var(--m-text); font-weight: 700;">
+      <!-- Masaüstü Görünümüne Geçiş Butonu -->
+      <div style="text-align: center; margin-top: 1.5rem; padding-bottom: 1.5rem;">
+        <a href="index.html" class="hw-nav-btn" style="display: inline-flex; justify-content: center; text-decoration: none; background: var(--m-surface-subtle); color: var(--m-text); font-weight: 700; padding: 10px 20px;">
           <i data-lucide="monitor" style="width: 16px; height: 16px;"></i> Masaüstü Görünümüne Geç
         </a>
       </div>
@@ -922,7 +941,7 @@
     </div>
 
     <!-- Görevler Yüzen Menü (FAB) -->
-    <div class="mobile-fab-container">
+    <div class="mobile-fab-container" id="m-tasks-fab-container">
       <div class="mobile-fab-menu" id="m-tasks-fab-menu">
         <button class="mobile-fab-item active" onclick="window.setTasksFilter('active')">
           <span class="mobile-fab-dot" style="background: var(--m-primary);"></span>
@@ -964,8 +983,17 @@
 
     <!-- Araçlar Küçük Kartlar Izgarası -->
     <div class="tools-grid-compact">
-      <!-- 1. Kura -->
-      <div class="tool-compact-card" onclick="window.openToolModal('lucky')">
+      <!-- 1. Yoklama (Sınıf Yoklaması) -->
+      <div class="tool-compact-card" role="button" tabindex="0" onclick="window.openAttendanceModal()">
+        <div class="tool-icon-circle" style="background: rgba(16, 185, 129, 0.12); color: var(--m-success);">
+          📋
+        </div>
+        <div style="font-weight: 800; font-size: 0.88rem; color: var(--m-text);">Sınıf Yoklaması</div>
+        <div style="font-size: 0.7rem; color: var(--m-text-muted);">Günlük yoklama & devam</div>
+      </div>
+
+      <!-- 2. Kura -->
+      <div class="tool-compact-card" role="button" tabindex="0" onclick="window.openToolModal('lucky')">
         <div class="tool-icon-circle" style="background: rgba(245, 158, 11, 0.12); color: var(--m-warning);">
           🎲
         </div>
@@ -974,7 +1002,7 @@
       </div>
 
       <!-- 2. Sayaç -->
-      <div class="tool-compact-card" onclick="window.openToolModal('timer')">
+      <div class="tool-compact-card" role="button" tabindex="0" onclick="window.openToolModal('timer')">
         <div class="tool-icon-circle" style="background: rgba(79, 70, 229, 0.12); color: var(--m-primary);">
           ⏱️
         </div>
@@ -983,7 +1011,7 @@
       </div>
 
       <!-- 3. Sesler -->
-      <div class="tool-compact-card" onclick="window.openToolModal('sounds')">
+      <div class="tool-compact-card" role="button" tabindex="0" onclick="window.openToolModal('sounds')">
         <div class="tool-icon-circle" style="background: rgba(244, 63, 94, 0.12); color: var(--m-danger);">
           🔔
         </div>
@@ -992,7 +1020,7 @@
       </div>
 
       <!-- 4. Grup Oluşturucu -->
-      <div class="tool-compact-card" onclick="window.openToolModal('groups')">
+      <div class="tool-compact-card" role="button" tabindex="0" onclick="window.openToolModal('groups')">
         <div class="tool-icon-circle" style="background: rgba(16, 185, 129, 0.12); color: var(--m-success);">
           👥
         </div>
@@ -1001,7 +1029,7 @@
       </div>
 
       <!-- 5. Nöbet Listesi -->
-      <div class="tool-compact-card" onclick="window.openDutyRosterModal()">
+      <div class="tool-compact-card" role="button" tabindex="0" onclick="window.openDutyRosterModal()">
         <div class="tool-icon-circle" style="background: rgba(6, 182, 212, 0.12); color: var(--m-info);">
           📅
         </div>
@@ -1010,7 +1038,7 @@
       </div>
 
       <!-- 6. Oturma Planı -->
-      <div class="tool-compact-card" onclick="window.openSeatingPlanModal()">
+      <div class="tool-compact-card" role="button" tabindex="0" onclick="window.openSeatingPlanModal()">
         <div class="tool-icon-circle" style="background: rgba(139, 92, 246, 0.12); color: #8b5cf6;">
           🗺️
         </div>
@@ -1019,7 +1047,7 @@
       </div>
 
       <!-- 7. Ders Akışı -->
-      <div class="tool-compact-card" onclick="window.openScheduleFlowModal()">
+      <div class="tool-compact-card" role="button" tabindex="0" onclick="window.openScheduleFlowModal()">
         <div class="tool-icon-circle" style="background: rgba(59, 130, 246, 0.12); color: #3b82f6;">
           📖
         </div>
@@ -1028,7 +1056,7 @@
       </div>
 
       <!-- 8. Katkı & Tedarik -->
-      <div class="tool-compact-card" onclick="window.openSuppliesModal()">
+      <div class="tool-compact-card" role="button" tabindex="0" onclick="window.openSuppliesModal()">
         <div class="tool-icon-circle" style="background: rgba(234, 88, 12, 0.12); color: #ea580c;">
           📦
         </div>
@@ -1037,7 +1065,7 @@
       </div>
 
       <!-- 9. Kişisel Evrak Deposu -->
-      <div class="tool-compact-card" onclick="window.openDocumentsModal()">
+      <div class="tool-compact-card" role="button" tabindex="0" onclick="window.openDocumentsModal()">
         <div class="tool-icon-circle" style="background: rgba(16, 185, 129, 0.12); color: #10b981;">
           📁
         </div>
@@ -1046,7 +1074,7 @@
       </div>
 
       <!-- 10. Sınavlar & Analiz -->
-      <div class="tool-compact-card" onclick="window.openExamsHubModal()">
+      <div class="tool-compact-card" role="button" tabindex="0" onclick="window.openExamsHubModal()">
         <div class="tool-icon-circle" style="background: rgba(168, 85, 247, 0.12); color: #a855f7;">
           📝
         </div>
@@ -1126,7 +1154,7 @@
     </div>
 
     <!-- Materyaller Yüzen Menü (FAB) -->
-    <div class="mobile-fab-container">
+    <div class="mobile-fab-container" id="m-materials-fab-container">
       <div class="mobile-fab-menu" id="m-materials-fab-menu">
         <button class="mobile-fab-item active" onclick="window.setMaterialsFilter('notebooks')">
           <i data-lucide="notebook" style="width: 16px; height: 16px; color: var(--m-primary);"></i>
@@ -1623,7 +1651,7 @@
             📱 Sınıf Asistanı Kullanım Kılavuzu
           </div>
           <div style="font-size: 0.75rem; color: var(--m-text-muted); margin-bottom: 1rem;">
-            Versiyon: <strong>v1.0.35</strong> — Geliştirici: <strong>Barış Gençoğlu</strong>
+            Versiyon: <strong>v1.0.36</strong> — Geliştirici: <strong>Barış Gençoğlu</strong>
           </div>
 
           <div style="display: flex; flex-direction: column;">
@@ -2245,13 +2273,22 @@
       </div>
     </div>
 
-    <!-- OMR Hassasiyet Ayarı Çubuğu -->
-    <div style="padding: 0.3rem 1rem 0.4rem 1rem; background: #0f172a; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: space-between; gap: 8px;">
-      <span style="font-size: 0.72rem; font-weight: 700; color: #94a3b8;">Hassasiyet:</span>
-      <div style="display: flex; gap: 5px;">
-        <button type="button" class="m-omr-sens-pill" id="m-omr-sens-low" onclick="window.setOmrSensitivity('low')" style="padding: 3px 8px; border-radius: 12px; font-size: 0.68rem; font-weight: 700; border: 1px solid rgba(255,255,255,0.2); background: transparent; color: #cbd5e1; cursor: pointer;">Tükenmez</button>
-        <button type="button" class="m-omr-sens-pill active" id="m-omr-sens-normal" onclick="window.setOmrSensitivity('normal')" style="padding: 3px 8px; border-radius: 12px; font-size: 0.68rem; font-weight: 700; border: 1px solid #4f46e5; background: #4f46e5; color: #fff; cursor: pointer;">Normal (2B)</button>
-        <button type="button" class="m-omr-sens-pill" id="m-omr-sens-high" onclick="window.setOmrSensitivity('high')" style="padding: 3px 8px; border-radius: 12px; font-size: 0.68rem; font-weight: 700; border: 1px solid rgba(255,255,255,0.2); background: transparent; color: #cbd5e1; cursor: pointer;">Açık/Kurşun</button>
+    <!-- OMR Mod ve Yapay Zeka / Çevrim Dışı Seçimi -->
+    <div style="padding: 0.35rem 1rem 0.45rem 1rem; background: #0f172a; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+      <div style="display: flex; gap: 6px;">
+        <button type="button" class="m-omr-mode-pill active" id="m-omr-mode-ai" onclick="window.setOmrEngineMode('ai')" style="padding: 3px 10px; border-radius: 12px; font-size: 0.7rem; font-weight: 800; border: 1px solid #8b5cf6; background: linear-gradient(135deg, #6366f1, #8b5cf6); color: #fff; cursor: pointer; display: flex; align-items: center; gap: 4px;">
+          <span>✨ Yapay Zeka (AI)</span>
+        </button>
+        <button type="button" class="m-omr-mode-pill" id="m-omr-mode-offline" onclick="window.setOmrEngineMode('offline')" style="padding: 3px 10px; border-radius: 12px; font-size: 0.7rem; font-weight: 700; border: 1px solid rgba(255,255,255,0.2); background: transparent; color: #94a3b8; cursor: pointer;">
+          <span>⚡ Çevrim Dışı</span>
+        </button>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 6px;">
+        <button type="button" id="m-omr-api-btn" onclick="window.promptOmrApiKey()" style="padding: 3px 8px; border-radius: 6px; font-size: 0.68rem; font-weight: 700; border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.08); color: #c7d2fe; cursor: pointer; display: flex; align-items: center; gap: 4px;" title="Google Gemini API Anahtarı">
+          <i data-lucide="key" style="width: 12px; height: 12px;"></i>
+          <span id="m-omr-api-btn-text">API</span>
+        </button>
       </div>
     </div>
 
@@ -2266,7 +2303,16 @@
           <div class="m-omr-corner corner-tr"></div>
           <div class="m-omr-corner corner-bl"></div>
           <div class="m-omr-corner corner-br"></div>
-          <div class="m-omr-guide-hint">Optik formun 4 siyah köşesini kılavuza oturtun</div>
+          <div class="m-omr-guide-hint">Optik formun tamamını kameraya gösterin</div>
+        </div>
+      </div>
+
+      <!-- Yapay Zeka Analiz Yükleniyor Katmanı -->
+      <div id="m-omr-ai-loading-overlay" style="display: none; position: absolute; inset: 0; background: rgba(15, 23, 42, 0.88); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); z-index: 10; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 20px; text-align: center;">
+        <div style="width: 52px; height: 52px; border-radius: 50%; border: 4px solid rgba(99, 102, 241, 0.2); border-top-color: #8b5cf6; animation: omr-spin 0.9s linear infinite;"></div>
+        <div>
+          <div id="m-omr-ai-loading-title" style="font-size: 1.05rem; font-weight: 800; color: #ffffff; margin-bottom: 4px;">✨ Yapay Zeka İnceliyor...</div>
+          <div id="m-omr-ai-loading-desc" style="font-size: 0.76rem; color: #cbd5e1; max-width: 260px; line-height: 1.4;">Gemini Vision optik formu ve işaretlemeleri çözümlüyor...</div>
         </div>
       </div>
     </div>
@@ -2757,6 +2803,44 @@
     </div>
     <div id="m-outcome-modal-content" style="padding: 0 1.25rem calc(1.5rem + var(--safe-bottom)) 1.25rem; overflow-y: auto;">
       <!-- Dinamik içerik JS ile yüklenecek -->
+    </div>
+  </div>
+
+  <!-- 4.1 GÜNLÜK SINIF YOKLAMASI MODALI -->
+  <div class="bottom-sheet" id="modal-attendance" style="max-height: 94vh; height: 92vh; display: flex; flex-direction: column; padding: 1.25rem 1rem calc(1.5rem + var(--safe-bottom));">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header" style="margin-bottom: 1rem; flex-shrink: 0;">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span style="font-size: 1.3rem;">📋</span>
+        <div class="sheet-title">Sınıf Yoklaması</div>
+      </div>
+      <button class="sheet-close-btn" onclick="window.closeBottomSheet()">&times;</button>
+    </div>
+
+    <!-- Özet Kartı -->
+    <div class="attendance-summary-card">
+      <div>
+        <div class="att-stat-num" id="att-stat-present" style="color: var(--m-success);">0</div>
+        <div class="att-stat-lbl">Sınıfta (Var)</div>
+      </div>
+      <div style="width: 1px; background: var(--m-border);"></div>
+      <div>
+        <div class="att-stat-num" id="att-stat-absent" style="color: var(--m-danger);">0</div>
+        <div class="att-stat-lbl">Gelmeyen (Yok)</div>
+      </div>
+    </div>
+
+    <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-shrink: 0;">
+      <button class="hw-nav-btn" style="flex: 1; justify-content: center; background: var(--m-success-light); color: var(--m-success); border-color: var(--m-success);" onclick="window.markAllAttendance('present')">
+        <i data-lucide="check-check" style="width: 16px; height: 16px;"></i> Tümünü Var Yap
+      </button>
+      <button class="hw-nav-btn" style="flex: 1; justify-content: center; background: var(--m-primary); color: #fff; border-color: var(--m-primary);" onclick="window.saveAttendance()">
+        <i data-lucide="save" style="width: 16px; height: 16px;"></i> Kaydet
+      </button>
+    </div>
+
+    <div class="attendance-list" id="m-attendance-list" style="overflow-y: auto; flex: 1; padding-bottom: 1.5rem;">
+      <!-- Dinamik yoklama listesi -->
     </div>
   </div>
 
@@ -4469,9 +4553,9 @@
       <i data-lucide="book-open"></i>
       <span>Kitap</span>
     </button>
-    <button class="nav-item-btn" data-tab="attendance" onclick="window.switchTab('attendance')">
-      <i data-lucide="user-check"></i>
-      <span>Yoklama</span>
+    <button class="nav-item-btn" data-tab="tools" onclick="window.switchTab('tools')">
+      <i data-lucide="wrench"></i>
+      <span>Araçlar</span>
     </button>
     <button class="nav-item-btn" data-tab="more" onclick="window.switchTab('more')">
       <i data-lucide="layout-grid"></i>
@@ -4501,6 +4585,8 @@
   <script src="js/mobile-reports.js?v=34"></script>
   <script src="js/mobile-schedule.js?v=34"></script>
   <script src="js/mobile-exams.js?v=34"></script>
+  <script src="js/qrcode.min.js"></script>
+  <script src="js/jsqr.js"></script>
   <script src="js/mobile-omr.js?v=34"></script>
 
 </body>
