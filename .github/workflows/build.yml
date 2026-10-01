@@ -225,7 +225,19 @@ jobs:
       - name: APK Dosyasını Hazırla
         run: |
           mkdir -p artifacts
-          cp android/app/build/outputs/apk/release/app-release.apk artifacts/sinif-asistani.apk
+          echo "Üretilen APK dosyaları listeleniyor:"
+          find android -name "*.apk"
+          APK_FILE=$(find android -type f -name "*release*.apk" | head -n 1)
+          if [ -z "$APK_FILE" ]; then
+            APK_FILE=$(find android -type f -name "*.apk" | head -n 1)
+          fi
+          if [ -z "$APK_FILE" ]; then
+            echo "❌ APK dosyası bulunamadı!"
+            exit 1
+          fi
+          echo "✅ Kopyalanacak APK: $APK_FILE"
+          cp "$APK_FILE" artifacts/sinif-asistani.apk
+          ls -lh artifacts/sinif-asistani.apk
 
       - name: APK'yı Artifact Olarak Kaydet (Push)
         uses: actions/upload-artifact@v4
