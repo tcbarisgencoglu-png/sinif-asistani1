@@ -4616,11 +4616,27 @@ SADECE VE SADECE GEÇERLİ BİR JSON DİZİSİ DÖNDÜR. Markdown (örneğin \`\
     const branchSelect = document.getElementById('m-ai-preview-branch');
     const targetBranch = isMiddle ? (branchSelect ? branchSelect.value : (activeBranch !== 'all' ? activeBranch : '5/A')) : '';
 
+    if (typeof removeDemoStudentsIfOnlyDemoExist === 'function') {
+      removeDemoStudentsIfOnlyDemoExist();
+    }
+
     if (!window.stateManager.state.students) window.stateManager.state.students = [];
 
+    const isDemo = window.LicenseConfig && window.LicenseConfig.isDemo;
+    const studentLimit = isDemo ? (window.LicenseConfig.studentLimit || 5) : Infinity;
+
     let addedCount = 0;
-    list.forEach((st, idx) => {
-      if (!st.name) return;
+    let hitLimit = false;
+
+    for (let idx = 0; idx < list.length; idx++) {
+      const st = list[idx];
+      if (!st.name) continue;
+
+      if (isDemo && window.stateManager.state.students.length >= studentLimit) {
+        hitLimit = true;
+        break;
+      }
+
       const newStudent = {
         id: 'st_' + Date.now() + '_' + idx + '_' + Math.random().toString(36).substr(2, 5),
         name: st.name,
@@ -4635,12 +4651,17 @@ SADECE VE SADECE GEÇERLİ BİR JSON DİZİSİ DÖNDÜR. Markdown (örneğin \`\
       };
       window.stateManager.state.students.push(newStudent);
       addedCount++;
-    });
+    }
 
     window.stateManager.saveState();
     window.closeBottomSheet();
     window.vibrate(40);
-    showMobileToast(`🎉 ${addedCount} öğrenci başarıyla ${targetBranch ? targetBranch + ' şubesine ' : ''}eklendi!`);
+    
+    let toastMsg = `🎉 ${addedCount} öğrenci başarıyla ${targetBranch ? targetBranch + ' şubesine ' : ''}eklendi!`;
+    if (hitLimit) {
+      toastMsg += ` (Demo sürüm sınırı nedeniyle ilk ${addedCount} öğrenci eklendi)`;
+    }
+    showMobileToast(toastMsg);
 
     if (activeMobileSubview !== 'config') {
       window.openMobileSubview('config');

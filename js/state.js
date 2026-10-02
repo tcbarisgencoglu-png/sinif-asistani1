@@ -2214,6 +2214,70 @@ function wrapState(parsed, unfiltered = false) {
   return stateObj;
 }
 
+function isMiddleSchool() {
+  const sm = window.stateManager;
+  if (!sm) {
+    try {
+      const saved = localStorage.getItem('sinif_asistani_state_v3');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return parsed.educationLevel === 'middle';
+      }
+    } catch (e) {}
+    return false;
+  }
+  const state = sm.state || (sm.loadState ? sm.loadState(true) : null);
+  return (state && state.educationLevel) ? state.educationLevel === 'middle' : false;
+}
+window.isMiddleSchool = isMiddleSchool;
+
+const DEMO_TEST_IDS = new Set([
+  'std_1', '101', '102', '103',
+  'std_m1', 'std_m2', 'std_m3', 'std_m4', 'std_m5', 
+  'std_m6', 'std_m7', 'std_m8', 'std_m9', 'std_m10'
+]);
+const DEMO_TEST_NORMALIZED = new Set([
+  'ahmetyilmaz', 'ahmetyılmaz', 
+  'candemir', 
+  'zeynepkaya', 
+  'ayseyilmaz', 'ayşeyılmaz',
+  'hakanyildiz', 'hakanyıldız', 
+  'zeynepdemir', 
+  'omeraslan', 'ömeraslan', 
+  'cerenyilmaz', 'cerenyılmaz', 
+  'keremkaya', 
+  'melissahin', 'melisşahin', 
+  'burakcelik', 'burakçelik', 
+  'edaozturk', 'edaöztürk'
+]);
+
+function isDemoStudent(s) {
+  if (!s) return false;
+  if (s.id && DEMO_TEST_IDS.has(String(s.id))) return true;
+  const norm = `${s.name || ''}${s.surname || ''}`.toLowerCase().replace(/[\s\.\-_]/g, '');
+  if (DEMO_TEST_NORMALIZED.has(norm)) return true;
+  if ((s.number === '101' && (s.name || '').toLowerCase().includes('ahmet')) ||
+      (s.number === '103' && (s.name || '').toLowerCase().includes('can'))) {
+    return true;
+  }
+  return false;
+}
+window.isDemoStudent = isDemoStudent;
+
+function removeDemoStudentsIfOnlyDemoExist() {
+  if (!window.stateManager || !window.stateManager.state) return false;
+  const students = window.stateManager.state.students;
+  if (!Array.isArray(students) || students.length === 0) return false;
+  
+  const hasRealStudents = students.some(s => !isDemoStudent(s));
+  if (!hasRealStudents) {
+    window.stateManager.state.students = [];
+    return true;
+  }
+  return false;
+}
+window.removeDemoStudentsIfOnlyDemoExist = removeDemoStudentsIfOnlyDemoExist;
+
 class StateManager {
   constructor() {
     const data = localStorage.getItem(STORAGE_KEY);
@@ -2847,6 +2911,9 @@ class StateManager {
   addStudent(studentData) {
     // Demo limit kontrolü
     if (window.LicenseConfig && window.LicenseConfig.isDemo) {
+      if (typeof removeDemoStudentsIfOnlyDemoExist === 'function') {
+        removeDemoStudentsIfOnlyDemoExist();
+      }
       if (this.state.students.length >= window.LicenseConfig.studentLimit) {
         if (window.showToast) {
           window.showToast(`Demo sürümünde en fazla ${window.LicenseConfig.studentLimit} öğrenci ekleyebilirsiniz!`, 'danger');
@@ -2865,7 +2932,7 @@ class StateManager {
       parentPhone: studentData.parentPhone || '',
       notes: studentData.notes || '',
       branch: studentData.branch || '',
-      schoolLevel: this.state.educationLevel,
+      schoolLevel: studentData.schoolLevel || this.state.educationLevel,
       createdAt: new Date().toISOString()
     };
     this.state.students.push(student);

@@ -1025,13 +1025,18 @@ SADECE VE SADECE GEÇERLİ BİR JSON DİZİSİ DÖNDÜR. Markdown (örneğin \`\
       const branchWrapper = document.getElementById('desktop-ai-branch-wrapper');
       const branchInput = document.getElementById('desktop-ai-branch-input');
 
-      const isMiddle = (typeof window.isMiddleSchool === 'function') ? window.isMiddleSchool() : false;
+      const isMiddle = (typeof window.isMiddleSchool === 'function') 
+        ? window.isMiddleSchool() 
+        : ((stateManager.loadState(true)?.educationLevel || stateManager.state?.educationLevel) === 'middle');
       if (branchWrapper) {
         branchWrapper.style.display = isMiddle ? 'flex' : 'none';
       }
       if (branchInput && !branchInput.value) {
-        const currentBranch = localStorage.getItem('sinif_asistani_active_branch') || '5-A';
-        branchInput.value = currentBranch !== 'all' ? currentBranch : '5-A';
+        const dashSelect = document.getElementById('dash-select-branch');
+        const currentBranch = (dashSelect && dashSelect.value && dashSelect.value !== 'all') 
+          ? dashSelect.value 
+          : (localStorage.getItem('sinif_asistani_active_branch') || '5/A');
+        branchInput.value = currentBranch;
       }
 
       if (countBadge) countBadge.textContent = list.length;
@@ -1145,35 +1150,80 @@ SADECE VE SADECE GEÇERLİ BİR JSON DİZİSİ DÖNDÜR. Markdown (örneğin \`\
           return;
         }
 
-        const isMiddle = (typeof window.isMiddleSchool === 'function') ? window.isMiddleSchool() : false;
+        const isMiddle = (typeof window.isMiddleSchool === 'function') 
+          ? window.isMiddleSchool() 
+          : ((stateManager.loadState(true)?.educationLevel || stateManager.state?.educationLevel) === 'middle');
+        
         const branchInput = document.getElementById('desktop-ai-branch-input');
-        const targetBranch = isMiddle ? (branchInput ? branchInput.value.trim().toUpperCase() : '5-A') : '';
+        let targetBranch = isMiddle ? (branchInput ? branchInput.value.trim().toUpperCase() : '') : '';
+        if (isMiddle && !targetBranch) {
+          const dashBranch = document.getElementById('dash-select-branch')?.value;
+          targetBranch = (dashBranch && dashBranch !== 'all') ? dashBranch : '5/A';
+        }
+
+        // 1. Eğer sistemde yalnızca demo/test dummy öğrencileri varsa, kullanıcının gerçek sınıfı için onları temizle
+        if (typeof removeDemoStudentsIfOnlyDemoExist === 'function') {
+          removeDemoStudentsIfOnlyDemoExist();
+        } else if (typeof window.isDemoStudent === 'function') {
+          const curr = stateManager.state.students || [];
+          if (curr.length > 0 && curr.every(s => window.isDemoStudent(s))) {
+            stateManager.state.students = [];
+          }
+        }
+
+        if (!stateManager.state.students) stateManager.state.students = [];
+
+        // 2. Demo lisans kontrolü
+        const isDemo = window.LicenseConfig && window.LicenseConfig.isDemo;
+        const studentLimit = isDemo ? (window.LicenseConfig.studentLimit || 5) : Infinity;
+        const currentCount = stateManager.state.students.length;
+
+        if (isDemo && currentCount >= studentLimit) {
+          if (toastCallback) {
+            toastCallback(`Demo sürümünde en fazla ${studentLimit} öğrenci ekleyebilirsiniz. Lütfen lisansınızı aktifleştirin.`, 'danger');
+          }
+          if (window.LicenseConfig && typeof window.LicenseConfig.showPrompt === 'function') {
+            window.LicenseConfig.showPrompt('Öğrenci Yönetimi', studentLimit);
+          }
+          return;
+        }
 
         let added = 0;
         let skipped = 0;
-        const state = stateManager.loadState();
+        let hitLimit = false;
 
-        list.forEach(st => {
-          if (!st.name) return;
+        for (let i = 0; i < list.length; i++) {
+          const st = list[i];
+          if (!st.name) continue;
+
+          if (isDemo && stateManager.state.students.length >= studentLimit) {
+            hitLimit = true;
+            break;
+          }
+
           const num = (st.number || '').trim();
-          if (num && state.students.some(s => s.number === num && (!isMiddle || s.branch === targetBranch))) {
+          // Aynı şubede aynı numara varsa mükerrerlikten atla
+          if (num && stateManager.state.students.some(s => s.number === num && (!isMiddle || s.branch === targetBranch))) {
             skipped++;
-            return;
+            continue;
           }
 
           const newStudent = {
+            id: 'std_' + Date.now() + '_' + i + '_' + Math.random().toString(36).substr(2, 6),
             name: st.name.trim(),
             surname: (st.surname || '').trim(),
             number: num,
-            gender: st.gender || 'male',
+            gender: (st.gender === 'female' || st.gender === 'kız' || st.gender === 'K') ? 'female' : 'male',
             parentPhone: '',
             notes: 'Yapay zeka ile eklendi',
             branch: isMiddle ? targetBranch : '',
-            schoolLevel: isMiddle ? 'middle' : 'primary'
+            schoolLevel: isMiddle ? 'middle' : 'primary',
+            createdAt: new Date().toISOString()
           };
-          stateManager.addStudent(newStudent);
+
+          stateManager.state.students.push(newStudent);
           added++;
-        });
+        }
 
         if (added > 0) {
           stateManager.saveState('Yapay zeka ile öğrenciler eklendi');
@@ -1181,17 +1231,40 @@ SADECE VE SADECE GEÇERLİ BİR JSON DİZİSİ DÖNDÜR. Markdown (örneğin \`\
 
         if (modalDesktopAiPreview) modalDesktopAiPreview.classList.remove('active');
 
+        // Şube dropdownlarını güncelle ve seçili şubeyi ayarla
+        if (isMiddle && targetBranch) {
+          localStorage.setItem('sinif_asistani_active_branch', targetBranch);
+          if (typeof updateBranchDropdowns === 'function') {
+            updateBranchDropdowns(stateManager.state);
+          }
+          const dashSelectBranch = document.getElementById('dash-select-branch');
+          if (dashSelectBranch) {
+            dashSelectBranch.value = targetBranch;
+          }
+        }
+
         if (toastCallback) {
-          if (added > 0 && skipped > 0) {
-            toastCallback(`🎉 ${added} öğrenci eklendi, ${skipped} öğrenci mükerrer numara nedeniyle atlandı.`, 'warning');
-          } else if (added > 0) {
-            toastCallback(`🎉 ${added} öğrenci başarıyla sınıfa eklendi!`, 'success');
+          if (added > 0) {
+            let msg = `🎉 ${added} öğrenci ${isMiddle ? targetBranch + ' şubesine ' : ''}başarıyla sınıfa eklendi!`;
+            if (hitLimit) {
+              msg += ` (Demo sürümü sınırı nedeniyle ilk ${added} öğrenci eklendi)`;
+            } else if (skipped > 0) {
+              msg += ` (${skipped} mükerrer numara atlandı)`;
+            }
+            toastCallback(msg, hitLimit ? 'warning' : 'success');
+          } else if (skipped > 0) {
+            toastCallback('Tüm öğrencilerin numaraları zaten bu şubede kayıtlı!', 'danger');
+          } else if (hitLimit) {
+            toastCallback(`Demo sürümü sınırına ulaşıldı (Maks: ${studentLimit} öğrenci).`, 'danger');
           } else {
-            toastCallback('Tüm öğrencilerin numaraları zaten kayıtlı!', 'danger');
+            toastCallback('Öğrenci eklenemedi.', 'danger');
           }
         }
 
         renderConfigStudentsList();
+        if (typeof renderDashboard === 'function') {
+          renderDashboard();
+        }
         const evt = new CustomEvent('stateChanged');
         document.dispatchEvent(evt);
       });
@@ -1229,31 +1302,66 @@ SADECE VE SADECE GEÇERLİ BİR JSON DİZİSİ DÖNDÜR. Markdown (örneğin \`\
             return;
           }
 
-          const state = stateManager.loadState();
+          if (typeof removeDemoStudentsIfOnlyDemoExist === 'function') {
+            removeDemoStudentsIfOnlyDemoExist();
+          }
+
+          const isMiddle = (typeof window.isMiddleSchool === 'function') 
+            ? window.isMiddleSchool() 
+            : ((stateManager.loadState(true)?.educationLevel || stateManager.state?.educationLevel) === 'middle');
+          const dashBranch = document.getElementById('dash-select-branch')?.value;
+          const defaultBranch = (dashBranch && dashBranch !== 'all') 
+            ? dashBranch 
+            : (localStorage.getItem('sinif_asistani_active_branch') || '5/A');
+
           let added = 0;
           let skipped = 0;
+          let hitLimit = false;
+
+          const isDemo = window.LicenseConfig && window.LicenseConfig.isDemo;
+          const studentLimit = isDemo ? (window.LicenseConfig.studentLimit || 5) : Infinity;
 
           parsed.forEach(std => {
-            const conflict = state.students.some(s => s.number === std.number);
+            if (isMiddle && !std.branch) {
+              std.branch = defaultBranch;
+            }
+            if (isDemo && stateManager.state.students.length >= studentLimit) {
+              hitLimit = true;
+              return;
+            }
+
+            const conflict = stateManager.state.students.some(s => s.number === std.number && (!isMiddle || s.branch === std.branch));
             if (conflict) {
               skipped++;
             } else {
-              stateManager.addStudent(std);
-              added++;
+              const res = stateManager.addStudent(std);
+              if (res) added++;
             }
           });
 
+          if (isMiddle && typeof updateBranchDropdowns === 'function') {
+            updateBranchDropdowns(stateManager.state);
+          }
+
           if (toastCallback) {
-            if (added > 0 && skipped > 0) {
-              toastCallback(`${added} adet yeni öğrenci eklendi, ${skipped} öğrenci mükerrer numara nedeniyle atlandı.`, 'warning');
-            } else if (added > 0) {
-              toastCallback(`${added} öğrenci başarıyla listeye eklendi.`, 'success');
+            if (added > 0) {
+              let msg = `${added} öğrenci başarıyla listeye eklendi.`;
+              if (hitLimit) msg += ` (Demo sürüm sınırı nedeniyle ilk ${added} öğrenci eklendi)`;
+              else if (skipped > 0) msg += ` (${skipped} mükerrer numara atlandı)`;
+              toastCallback(msg, hitLimit ? 'warning' : 'success');
+            } else if (skipped > 0) {
+              toastCallback('Hiç yeni öğrenci eklenmedi. Tüm numaralar bu şubede kayıtlı!', 'danger');
+            } else if (hitLimit) {
+              toastCallback(`Demo sürümü sınırına ulaşıldı (Maks: ${studentLimit} öğrenci).`, 'danger');
             } else {
-              toastCallback('Hiç yeni öğrenci eklenmedi. Tüm numaralar kayıtlı!', 'danger');
+              toastCallback('Öğrenci eklenemedi.', 'danger');
             }
           }
 
           renderConfigStudentsList();
+          if (typeof renderDashboard === 'function') {
+            renderDashboard();
+          }
           const evt = new CustomEvent('stateChanged');
           document.dispatchEvent(evt);
         };
