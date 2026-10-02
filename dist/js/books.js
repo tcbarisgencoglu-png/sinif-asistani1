@@ -715,16 +715,16 @@ function setupBooksTab(showToast) {
     const btnUploadTrigger = document.getElementById('btn-upload-books-trigger');
     const btnBatchAIQuestions = document.getElementById('btn-batch-ai-questions');
     
-    if (btnAddBook && btnDownloadTemplate && btnUploadTrigger) {
+    if (btnAddBook) {
       if (activeTab === 'leaderboard') {
         btnAddBook.style.display = 'inline-flex';
-        btnDownloadTemplate.style.display = 'inline-flex';
-        btnUploadTrigger.style.display = 'inline-flex';
+        if (btnDownloadTemplate) btnDownloadTemplate.style.display = 'inline-flex';
+        if (btnUploadTrigger) btnUploadTrigger.style.display = 'inline-flex';
         if (btnBatchAIQuestions) btnBatchAIQuestions.style.display = 'inline-flex';
       } else {
         btnAddBook.style.display = 'none';
-        btnDownloadTemplate.style.display = 'none';
-        btnUploadTrigger.style.display = 'none';
+        if (btnDownloadTemplate) btnDownloadTemplate.style.display = 'none';
+        if (btnUploadTrigger) btnUploadTrigger.style.display = 'none';
         if (btnBatchAIQuestions) btnBatchAIQuestions.style.display = 'none';
       }
     }
@@ -733,47 +733,54 @@ function setupBooksTab(showToast) {
   // Set initial state (default tab is library)
   updateBooksHeaderActions('library');
 
-  // Excel Kitap Şablonu İndirme ve Yükleme Olayları
+  // Excel Kitap Şablonu İndirme Fonksiyonu
+  function downloadBookExcelTemplate() {
+    if (window.XLSX) {
+      const data = [
+        ["Kitap No", "Kitap Adı", "Yazar", "Sayfa Sayısı", "Seviye (1 veya 2)"],
+        ["101", "Küçük Prens", "Antoine de Saint-Exupéry", 96, 1],
+        ["102", "Şeker Portakalı", "José Mauro de Vasconcelos", 182, 1],
+        ["103", "Sol Ayağım", "Christy Brown", 192, 2],
+        ["104", "Define Adası", "Robert Louis Stevenson", 224, 2]
+      ];
+      const ws = XLSX.utils.aoa_to_sheet(data);
+      ws['!cols'] = [{ wch: 12 }, { wch: 30 }, { wch: 30 }, { wch: 15 }, { wch: 18 }];
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Kitaplık Şablonu");
+      
+      const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+      const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      downloadBlob(blob, "kitap_ekleme_sablonu.xlsx");
+      
+      if (toastCallback) {
+        toastCallback('Excel (.xlsx) kitap ekleme şablonu indirildi.', 'success');
+      }
+    } else {
+      const headers = "Kitap No;Kitap Adı;Yazar;Sayfa Sayısı;Seviye (1 veya 2)";
+      const rows = [
+        "101;Küçük Prens;Antoine de Saint-Exupéry;96;1",
+        "102;Şeker Portakalı;José Mauro de Vasconcelos;182;1",
+        "103;Sol Ayağım;Christy Brown;192;2",
+        "104;Define Adası;Robert Louis Stevenson;224;2"
+      ];
+      const csvContent = "\uFEFFsep=;\r\n" + [headers, ...rows].join("\r\n");
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      downloadBlob(blob, "kitap_ekleme_sablonu.csv");
+      
+      if (toastCallback) {
+        toastCallback('CSV kitap ekleme şablonu indirildi.', 'info');
+      }
+    }
+  }
+
+  // Excel Kitap Şablonu İndirme Butonları (Header eski buton & Yeni Yöntem Seçim Modalı butonu)
   const btnDownloadBookTemplate = document.getElementById('btn-download-book-template');
   if (btnDownloadBookTemplate) {
-    btnDownloadBookTemplate.addEventListener('click', () => {
-      if (window.XLSX) {
-        const data = [
-          ["Kitap No", "Kitap Adı", "Yazar", "Sayfa Sayısı", "Seviye (1 veya 2)"],
-          ["101", "Küçük Prens", "Antoine de Saint-Exupéry", 96, 1],
-          ["102", "Şeker Portakalı", "José Mauro de Vasconcelos", 182, 1],
-          ["103", "Sol Ayağım", "Christy Brown", 192, 2],
-          ["104", "Define Adası", "Robert Louis Stevenson", 224, 2]
-        ];
-        const ws = XLSX.utils.aoa_to_sheet(data);
-        ws['!cols'] = [{ wch: 12 }, { wch: 30 }, { wch: 30 }, { wch: 15 }, { wch: 18 }];
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Kitaplık Şablonu");
-        
-        const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-        const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-        downloadBlob(blob, "kitap_ekleme_sablonu.xlsx");
-        
-        if (toastCallback) {
-          toastCallback('Excel (.xlsx) kitap ekleme şablonu indirildi.', 'success');
-        }
-      } else {
-        const headers = "Kitap No;Kitap Adı;Yazar;Sayfa Sayısı;Seviye (1 veya 2)";
-        const rows = [
-          "101;Küçük Prens;Antoine de Saint-Exupéry;96;1",
-          "102;Şeker Portakalı;José Mauro de Vasconcelos;182;1",
-          "103;Sol Ayağım;Christy Brown;192;2",
-          "104;Define Adası;Robert Louis Stevenson;224;2"
-        ];
-        const csvContent = "\uFEFFsep=;\r\n" + [headers, ...rows].join("\r\n");
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        downloadBlob(blob, "kitap_ekleme_sablonu.csv");
-        
-        if (toastCallback) {
-          toastCallback('CSV kitap ekleme şablonu indirildi.', 'info');
-        }
-      }
-    });
+    btnDownloadBookTemplate.addEventListener('click', downloadBookExcelTemplate);
+  }
+  const btnMethodDownloadBookTemplateBtn = document.getElementById('btn-method-download-book-template-btn');
+  if (btnMethodDownloadBookTemplateBtn) {
+    btnMethodDownloadBookTemplateBtn.addEventListener('click', downloadBookExcelTemplate);
   }
 
   const btnUploadBooksTrigger = document.getElementById('btn-upload-books-trigger');
@@ -1019,11 +1026,552 @@ function setupBooksTab(showToast) {
     });
   }
 
-  // Kitap Ekleme Modalı Açılış
-  btnAddBook.addEventListener('click', () => {
-    formBook.reset();
+  // ==========================================================================
+  // MERKEZİ KİTAP EKLEME YÖNTEMİ & YAPAY ZEKA İLE KİTAP YÜKLEME (GÖRSEL / PDF)
+  // ==========================================================================
+  const modalAddBookMethod = document.getElementById('modal-add-book-method');
+  const btnMethodAiAddBook = document.getElementById('btn-method-ai-add-book');
+  const btnMethodManualAddBook = document.getElementById('btn-method-manual-add-book');
+  const btnMethodExcelUploadBook = document.getElementById('btn-method-excel-upload-book');
+  const desktopAiBookFileInput = document.getElementById('desktop-ai-book-file-input');
+  const modalDesktopAiBookLoading = document.getElementById('modal-desktop-ai-book-loading');
+  const modalDesktopAiBookPreview = document.getElementById('modal-desktop-ai-book-preview');
+
+  function safeEscapeHTML(str) {
+    if (!str) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function openManualBookForm() {
+    if (formBook) formBook.reset();
     if (bookLevelInput) bookLevelInput.value = 'seviye_1';
-    modalBook.classList.add('active');
+    if (modalBook) modalBook.classList.add('active');
+    if (window.safeCreateIcons) window.safeCreateIcons();
+  }
+
+  // 1. Ana "Kitap Ekle" Butonu -> Yöntem Seçim Modalı Açar
+  if (btnAddBook) {
+    btnAddBook.addEventListener('click', () => {
+      if (modalAddBookMethod) {
+        modalAddBookMethod.classList.add('active');
+        if (window.safeCreateIcons) window.safeCreateIcons();
+      } else {
+        openManualBookForm();
+      }
+    });
+  }
+
+  // 2. Yöntem: Tek Tek Elle Ekle
+  if (btnMethodManualAddBook) {
+    btnMethodManualAddBook.addEventListener('click', () => {
+      if (modalAddBookMethod) modalAddBookMethod.classList.remove('active');
+      openManualBookForm();
+    });
+  }
+
+  // 3. Yöntem: Excel / CSV ile Toplu Yükle
+  if (btnMethodExcelUploadBook) {
+    btnMethodExcelUploadBook.addEventListener('click', () => {
+      if (modalAddBookMethod) modalAddBookMethod.classList.remove('active');
+      if (inputUploadBooksFile) inputUploadBooksFile.click();
+    });
+  }
+
+  // 4. Yöntem: Yapay Zeka ile Otomatik Ekle (Görsel veya PDF)
+  if (btnMethodAiAddBook) {
+    btnMethodAiAddBook.addEventListener('click', () => {
+      const apiKey = getGeminiApiKey();
+      if (!apiKey) {
+        if (modalAddBookMethod) modalAddBookMethod.classList.remove('active');
+        if (toastCallback) {
+          toastCallback('⚠️ Yapay zeka ile kitap listesi taramak için lütfen önce Gemini API anahtarınızı kaydedin.', 'warning');
+        }
+        if (typeof openGeminiKeyModal === 'function') {
+          openGeminiKeyModal();
+        } else if (window.navigateToConfigAI) {
+          window.navigateToConfigAI();
+        }
+        return;
+      }
+
+      if (modalAddBookMethod) modalAddBookMethod.classList.remove('active');
+      if (desktopAiBookFileInput) {
+        desktopAiBookFileInput.value = '';
+        desktopAiBookFileInput.click();
+      }
+    });
+  }
+
+  // Dosyayı (Görsel / PDF) Gemini İçin İşleme
+  async function processBookFileForDesktopGemini(file) {
+    const fileName = file.name.toLowerCase();
+    const isPdf = fileName.endsWith('.pdf') || file.type === 'application/pdf';
+
+    if (isPdf) {
+      const arrayBuffer = await file.arrayBuffer();
+      // PDF.js ile Sayfa 1'i JPEG Olarak Render Et
+      if (window.pdfjsLib) {
+        try {
+          const loadingTask = window.pdfjsLib.getDocument({ data: arrayBuffer });
+          const pdfDoc = await loadingTask.promise;
+          const page = await pdfDoc.getPage(1);
+          const initialVp = page.getViewport({ scale: 1.0 });
+          const maxDim = Math.max(initialVp.width, initialVp.height);
+          const scale = Math.max(1.2, Math.min(2.5, 1800 / maxDim));
+          const viewport = page.getViewport({ scale });
+
+          const canvas = document.createElement('canvas');
+          canvas.width = viewport.width;
+          canvas.height = viewport.height;
+          const ctx = canvas.getContext('2d');
+          await page.render({ canvasContext: ctx, viewport }).promise;
+
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.88);
+          return {
+            base64: dataUrl.split(',')[1],
+            mimeType: 'image/jpeg'
+          };
+        } catch (pdfErr) {
+          console.warn('PDF.js render hatası, doğrudan PDF verisi deneniyor:', pdfErr);
+        }
+      }
+
+      // Fallback: PDF'i doğrudan base64 olarak gönder
+      let binary = '';
+      const bytes = new Uint8Array(arrayBuffer);
+      const len = bytes.byteLength;
+      for (let i = 0; i < len; i++) {
+        binary += String.fromCharCode(bytes[i]);
+      }
+      return {
+        base64: btoa(binary),
+        mimeType: 'application/pdf'
+      };
+    }
+
+    // Görsel dosyası (JPEG, PNG, WebP)
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const maxDim = 1800;
+          let w = img.width;
+          let h = img.height;
+          if (w > maxDim || h > maxDim) {
+            if (w > h) {
+              h = Math.round((h * maxDim) / w);
+              w = maxDim;
+            } else {
+              w = Math.round((w * maxDim) / h);
+              h = maxDim;
+            }
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, w, h);
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.88);
+          resolve({
+            base64: dataUrl.split(',')[1],
+            mimeType: 'image/jpeg'
+          });
+        };
+        img.onerror = () => reject(new Error('Görsel dosyası açılamadı.'));
+        img.src = e.target.result;
+      };
+      reader.onerror = () => reject(new Error('Dosya okunamadı.'));
+      reader.readAsDataURL(file);
+    });
+  }
+
+  // Gemini İle Kitap Listesini Ayrıştırma
+  async function analyzeBookListWithDesktopGemini(base64Data, mimeType) {
+    const apiKey = getGeminiApiKey();
+    if (!apiKey) throw new Error('API anahtarı bulunamadı.');
+
+    let listData = null;
+    let listError = null;
+
+    for (const apiVer of ['v1beta', 'v1']) {
+      try {
+        const listRes = await fetch(`https://generativelanguage.googleapis.com/${apiVer}/models?key=${apiKey}`);
+        const json = await listRes.json();
+        if (listRes.ok && json.models && json.models.length > 0) {
+          listData = { version: apiVer, models: json.models };
+          break;
+        } else if (!listRes.ok) {
+          listError = json.error?.message || `HTTP ${listRes.status}`;
+        }
+      } catch (e) {
+        listError = e.message;
+      }
+    }
+
+    if (!listData) {
+      if (listError && (listError.toLowerCase().includes('api key not valid') || listError.toLowerCase().includes('invalid'))) {
+        throw new Error('Google API anahtarı geçersiz! Lütfen anahtarınızı kontrol edip tekrar kaydedin.');
+      }
+      throw new Error(`Google API bağlantı hatası: ${listError || 'Modeller sorgulanamadı'}`);
+    }
+
+    const supportedModels = listData.models.filter(m =>
+      !m.supportedGenerationMethods || m.supportedGenerationMethods.includes('generateContent')
+    );
+
+    if (supportedModels.length === 0) {
+      throw new Error('Bu API anahtarının içerik üretme modellerine izni bulunmuyor.');
+    }
+
+    let savedModel = (localStorage.getItem('sinif_asistani_gemini_model') || 'gemini-1.5-flash').trim();
+    if (savedModel === 'gemini-1.5-pro') savedModel = 'gemini-1.5-flash';
+
+    const candidatePreferences = [
+      savedModel,
+      'gemini-2.0-flash',
+      'gemini-1.5-flash',
+      'gemini-2.5-flash',
+      'gemini-2.0-flash-lite',
+      'gemini-1.5-flash-latest',
+      ...supportedModels.map(m => m.name.replace(/^models\//, ''))
+    ];
+
+    const validCandidatePaths = [];
+    for (const pref of candidatePreferences) {
+      const match = supportedModels.find(sm => sm.name === pref || sm.name === `models/${pref}` || sm.name.endsWith(`/${pref}`));
+      if (match && !validCandidatePaths.includes(match.name)) {
+        validCandidatePaths.push(match.name);
+      }
+    }
+
+    if (validCandidatePaths.length === 0) {
+      validCandidatePaths.push(supportedModels[0].name);
+    }
+
+    const promptText = `Bu görsel veya PDF bir kütüphane / sınıf kitaplık listesidir. Belgedeki tüm kitapları satır satır tespit et.
+Her kitap için varsa kitap numarasını (bookNo), kitap adını (title), yazarını (author), sayfa sayısını (pages) ve okuma seviyesini (level: 'seviye_1' veya 'seviye_2') çıkar.
+- Sayfa sayısı belirtilmemişse 0 olarak bırak veya tahmin edilebiliyorsa tam sayı olarak yaz.
+- Seviye belirtilmemişse veya ilkokul/kolay düzeydeyse 'seviye_1', ortaokul/ileri düzeydeyse 'seviye_2' olarak belirle.
+- Kitap numarası yoksa boş bırak ("").
+- Yazar yoksa veya bilinmiyorsa boş bırak ("") veya "Bilinmiyor".
+
+SADECE VE SADECE GEÇERLİ BİR JSON DİZİSİ DÖNDÜR. Markdown (örneğin \`\`\`json) veya başka hiçbir metin/açıklama ekleme:
+[
+  {"bookNo": "1", "title": "Küçük Prens", "author": "Antoine de Saint-Exupéry", "pages": 96, "level": "seviye_1"},
+  {"bookNo": "2", "title": "Şeker Portakalı", "author": "José Mauro de Vasconcelos", "pages": 182, "level": "seviye_2"}
+]`;
+
+    let lastError = null;
+
+    for (const modelPath of validCandidatePaths) {
+      const cleanPath = modelPath.startsWith('models/') ? modelPath : `models/${modelPath}`;
+      const url = `https://generativelanguage.googleapis.com/${listData.version}/${cleanPath}:generateContent?key=${apiKey}`;
+
+      try {
+        let res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [
+              {
+                parts: [
+                  { text: promptText },
+                  {
+                    inline_data: {
+                      mime_type: mimeType || 'image/jpeg',
+                      data: base64Data
+                    }
+                  }
+                ]
+              }
+            ],
+            generationConfig: {
+              temperature: 0.1,
+              responseMimeType: 'application/json'
+            }
+          })
+        });
+
+        if (res.status === 400) {
+          res = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [
+                {
+                  parts: [
+                    { text: promptText },
+                    {
+                      inline_data: {
+                        mime_type: mimeType || 'image/jpeg',
+                        data: base64Data
+                      }
+                    }
+                  ]
+                }
+              ],
+              generationConfig: { temperature: 0.1 }
+            })
+          });
+        }
+
+        if (res.ok) {
+          const data = await res.json();
+          let rawText = '';
+          const parts = data.candidates?.[0]?.content?.parts || [];
+          for (const p of parts) {
+            if (p.text) rawText += p.text;
+          }
+          if (!rawText && data.candidates?.[0]?.content?.parts?.[0]?.text) {
+            rawText = data.candidates[0].content.parts[0].text;
+          }
+
+          const jsonMatch = rawText.match(/\[\s*\{[\s\S]*\}\s*\]/);
+          if (jsonMatch) {
+            rawText = jsonMatch[0];
+          } else {
+            rawText = rawText.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
+          }
+
+          const parsed = JSON.parse(rawText);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            return parsed;
+          }
+        } else {
+          const errData = await res.json().catch(() => ({}));
+          lastError = new Error((errData.error && errData.error.message) || `HTTP ${res.status}`);
+        }
+      } catch (err) {
+        lastError = err;
+      }
+    }
+
+    throw lastError || new Error('Yapay zeka kitap listesini okuyamadı');
+  }
+
+  // Dosya Seçildiğinde Tetiklenir
+  if (desktopAiBookFileInput) {
+    desktopAiBookFileInput.addEventListener('change', async (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+
+      if (modalDesktopAiBookLoading) modalDesktopAiBookLoading.classList.add('active');
+
+      try {
+        const processed = await processBookFileForDesktopGemini(file);
+        const books = await analyzeBookListWithDesktopGemini(processed.base64, processed.mimeType);
+
+        if (!books || books.length === 0) {
+          if (modalDesktopAiBookLoading) modalDesktopAiBookLoading.classList.remove('active');
+          if (toastCallback) toastCallback('❌ Listede kitap tespit edilemedi. Lütfen daha net bir liste görseli veya PDF yükleyin.', 'danger');
+          return;
+        }
+
+        const scanned = books.map((b, idx) => ({
+          index: idx,
+          bookNo: String(b.bookNo || b.no || '').trim(),
+          title: String(b.title || b.ad || b.kitapAdi || '').trim(),
+          author: String(b.author || b.yazar || '').trim() || 'Bilinmiyor',
+          pages: parseInt(b.pages || b.sayfa || b.sayfaSayisi) || 0,
+          level: (b.level === 'seviye_2' || b.level === '2' || b.level === 2) ? 'seviye_2' : 'seviye_1',
+          selected: true
+        })).filter(b => !!b.title);
+
+        if (scanned.length === 0) {
+          if (modalDesktopAiBookLoading) modalDesktopAiBookLoading.classList.remove('active');
+          if (toastCallback) toastCallback('❌ Kitap isimleri okunamadı.', 'danger');
+          return;
+        }
+
+        window.tempDesktopAiBooks = scanned;
+        if (modalDesktopAiBookLoading) modalDesktopAiBookLoading.classList.remove('active');
+
+        if (modalDesktopAiBookPreview) {
+          renderDesktopAiBookPreview();
+          modalDesktopAiBookPreview.classList.add('active');
+        }
+      } catch (err) {
+        if (modalDesktopAiBookLoading) modalDesktopAiBookLoading.classList.remove('active');
+        console.error('Desktop AI book scan error:', err);
+        if (toastCallback) toastCallback(`❌ Hata: ${err.message || 'Belge işlenirken bir sorun oluştu.'}`, 'danger');
+      }
+    });
+  }
+
+  // Önizleme Tablosunu Render Et
+  function renderDesktopAiBookPreview() {
+    const list = window.tempDesktopAiBooks || [];
+    const tbody = document.getElementById('desktop-ai-book-preview-tbody');
+    const countBadge = document.getElementById('desktop-ai-book-preview-count-badge');
+    const summaryText = document.getElementById('desktop-ai-book-summary-text');
+    const footerSummary = document.getElementById('desktop-ai-book-footer-summary');
+    const toggleBtn = document.getElementById('desktop-ai-book-btn-toggle-select');
+    const saveBtnText = document.getElementById('desktop-ai-book-save-btn-text');
+
+    if (countBadge) countBadge.textContent = list.length;
+
+    const selectedCount = list.filter(b => b.selected).length;
+    if (summaryText) summaryText.textContent = `${list.length} kitaptan ${selectedCount} tanesi seçildi`;
+    if (footerSummary) footerSummary.textContent = `${selectedCount} kitap kaydedilecek`;
+    if (saveBtnText) saveBtnText.textContent = `${selectedCount} Kitabı Kitaplığa Kaydet`;
+    if (toggleBtn) toggleBtn.textContent = (selectedCount === list.length && list.length > 0) ? 'Tümünü Kaldır' : 'Tümünü Seç';
+
+    if (!tbody) return;
+
+    if (list.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; padding: 2.5rem; color: var(--text-muted); font-size: 0.9rem;">Listelenecek kitap kalmadı.</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = list.map((b) => `
+      <tr style="border-bottom: 1px solid var(--border-color); opacity: ${b.selected ? '1' : '0.45'}; transition: opacity 0.2s ease;" id="desktop-ai-book-tr-${b.index}">
+        <td style="text-align: center; vertical-align: middle;">
+          <input type="checkbox" data-idx="${b.index}" class="desktop-ai-book-chk" ${b.selected ? 'checked' : ''} style="cursor: pointer; width: 16px; height: 16px; accent-color: var(--primary);">
+        </td>
+        <td style="vertical-align: middle;">
+          <input type="text" data-idx="${b.index}" data-field="bookNo" class="form-control desktop-ai-book-inp" value="${safeEscapeHTML(b.bookNo || '')}" placeholder="No" style="height: 32px; padding: 2px 6px; font-size: 0.82rem; font-weight: 700; text-align: center;">
+        </td>
+        <td style="vertical-align: middle;">
+          <input type="text" data-idx="${b.index}" data-field="title" class="form-control desktop-ai-book-inp" value="${safeEscapeHTML(b.title || '')}" placeholder="Kitap Adı" style="height: 32px; padding: 2px 8px; font-size: 0.82rem; font-weight: 700;">
+        </td>
+        <td style="vertical-align: middle;">
+          <input type="text" data-idx="${b.index}" data-field="author" class="form-control desktop-ai-book-inp" value="${safeEscapeHTML(b.author || '')}" placeholder="Yazar" style="height: 32px; padding: 2px 8px; font-size: 0.82rem;">
+        </td>
+        <td style="vertical-align: middle;">
+          <input type="number" data-idx="${b.index}" data-field="pages" class="form-control desktop-ai-book-inp" value="${b.pages || 0}" min="0" placeholder="Sayfa" style="height: 32px; padding: 2px 6px; font-size: 0.82rem; text-align: center;">
+        </td>
+        <td style="vertical-align: middle;">
+          <select data-idx="${b.index}" data-field="level" class="form-control desktop-ai-book-inp" style="height: 32px; padding: 2px 6px; font-size: 0.8rem; font-weight: 600;">
+            <option value="seviye_1" ${b.level === 'seviye_1' ? 'selected' : ''}>1. Seviye (Kolay)</option>
+            <option value="seviye_2" ${b.level === 'seviye_2' ? 'selected' : ''}>2. Seviye (İleri)</option>
+          </select>
+        </td>
+        <td style="text-align: center; vertical-align: middle;">
+          <button type="button" data-idx="${b.index}" class="btn btn-sm btn-outline-danger desktop-ai-book-btn-del" style="padding: 4px 6px; border: none; border-radius: 6px;" title="Listeden Çıkar">
+            <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i>
+          </button>
+        </td>
+      </tr>
+    `).join('');
+
+    if (window.safeCreateIcons) window.safeCreateIcons();
+  }
+
+  // Önizleme Tablosu Etkileşimleri (Delegation)
+  const desktopAiBookPreviewTbody = document.getElementById('desktop-ai-book-preview-tbody');
+  if (desktopAiBookPreviewTbody) {
+    desktopAiBookPreviewTbody.addEventListener('change', (e) => {
+      const list = window.tempDesktopAiBooks || [];
+      const chk = e.target.closest('.desktop-ai-book-chk');
+      if (chk) {
+        const idx = parseInt(chk.dataset.idx, 10);
+        const item = list.find(b => b.index === idx);
+        if (item) {
+          item.selected = chk.checked;
+          const tr = document.getElementById(`desktop-ai-book-tr-${idx}`);
+          if (tr) tr.style.opacity = chk.checked ? '1' : '0.45';
+          const selectedCount = list.filter(b => b.selected).length;
+          const summaryText = document.getElementById('desktop-ai-book-summary-text');
+          const footerSummary = document.getElementById('desktop-ai-book-footer-summary');
+          const saveBtnText = document.getElementById('desktop-ai-book-save-btn-text');
+          const toggleBtn = document.getElementById('desktop-ai-book-btn-toggle-select');
+          if (summaryText) summaryText.textContent = `${list.length} kitaptan ${selectedCount} tanesi seçildi`;
+          if (footerSummary) footerSummary.textContent = `${selectedCount} kitap kaydedilecek`;
+          if (saveBtnText) saveBtnText.textContent = `${selectedCount} Kitabı Kitaplığa Kaydet`;
+          if (toggleBtn) toggleBtn.textContent = (selectedCount === list.length && list.length > 0) ? 'Tümünü Kaldır' : 'Tümünü Seç';
+        }
+        return;
+      }
+
+      const inp = e.target.closest('.desktop-ai-book-inp');
+      if (inp) {
+        const idx = parseInt(inp.dataset.idx, 10);
+        const field = inp.dataset.field;
+        const item = list.find(b => b.index === idx);
+        if (item && field) {
+          if (field === 'pages') {
+            item[field] = parseInt(inp.value) || 0;
+          } else {
+            item[field] = inp.value.trim();
+          }
+        }
+      }
+    });
+
+    desktopAiBookPreviewTbody.addEventListener('click', (e) => {
+      const btnDel = e.target.closest('.desktop-ai-book-btn-del');
+      if (btnDel) {
+        const idx = parseInt(btnDel.dataset.idx, 10);
+        window.tempDesktopAiBooks = (window.tempDesktopAiBooks || []).filter(b => b.index !== idx);
+        renderDesktopAiBookPreview();
+      }
+    });
+  }
+
+  // Tümünü Seç / Kaldır Butonu
+  const desktopAiBookBtnToggleSelect = document.getElementById('desktop-ai-book-btn-toggle-select');
+  if (desktopAiBookBtnToggleSelect) {
+    desktopAiBookBtnToggleSelect.addEventListener('click', () => {
+      const list = window.tempDesktopAiBooks || [];
+      const allSelected = list.every(b => b.selected);
+      list.forEach(b => { b.selected = !allSelected; });
+      renderDesktopAiBookPreview();
+    });
+  }
+
+  // Seçilen Kitapları Kitaplığa Kaydet Butonu
+  const desktopAiBookBtnConfirmSave = document.getElementById('desktop-ai-book-btn-confirm-save');
+  if (desktopAiBookBtnConfirmSave) {
+    desktopAiBookBtnConfirmSave.addEventListener('click', () => {
+      const list = (window.tempDesktopAiBooks || []).filter(b => b.selected);
+      if (list.length === 0) {
+        if (toastCallback) toastCallback('Lütfen eklenecek en az bir kitap seçin!', 'warning');
+        return;
+      }
+
+      let addedCount = 0;
+      for (const b of list) {
+        if (!b.title) continue;
+        const res = stateManager.addBook({
+          title: b.title.trim(),
+          author: b.author.trim() || 'Bilinmiyor',
+          pages: parseInt(b.pages) || 0,
+          bookNo: (b.bookNo || '').trim(),
+          level: b.level || 'seviye_1'
+        });
+        if (res) addedCount++;
+      }
+
+      if (modalDesktopAiBookPreview) modalDesktopAiBookPreview.classList.remove('active');
+
+      if (addedCount > 0) {
+        if (toastCallback) toastCallback(`🎉 ${addedCount} adet kitap başarıyla kitaplığa eklendi!`, 'success');
+      } else {
+        if (toastCallback) toastCallback('Kitap eklenemedi veya demo sınırına ulaşıldı.', 'danger');
+      }
+
+      renderBooksList();
+      renderLeaderboard();
+      const event = new CustomEvent('stateChanged');
+      document.dispatchEvent(event);
+    });
+  }
+
+  // Modal Kapatma Butonları (Yöntem, Loading, Preview)
+  [modalAddBookMethod, modalDesktopAiBookLoading, modalDesktopAiBookPreview].forEach(mod => {
+    if (mod) {
+      mod.querySelectorAll('.close-btn, .close-btn-action').forEach(btn => {
+        btn.addEventListener('click', () => {
+          mod.classList.remove('active');
+        });
+      });
+    }
   });
 
   // Ödünç Verme Modalı Açılış
