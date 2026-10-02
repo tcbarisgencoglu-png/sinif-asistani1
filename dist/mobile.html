@@ -1241,7 +1241,7 @@
           <div style="font-size: 0.78rem; color: var(--m-text-muted); line-height: 1.4; margin-bottom: 1rem;">
             Tüm sınıflarınızı, öğrencilerinizi, ödevlerinizi ve puan kayıtlarınızı tek dosya olarak yedekleyebilir veya başka bir cihaza aktarabilirsiniz.
           </div>
-          <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 1.25rem;">
+          <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 0.65rem;">
             <button class="m-btn-sm primary" onclick="window.exportMobileData()" style="flex: 1; justify-content: center;">
               <i data-lucide="download" style="width: 14px; height: 14px;"></i> Yedek Al (JSON)
             </button>
@@ -1249,6 +1249,13 @@
               <i data-lucide="upload" style="width: 14px; height: 14px;"></i> Yedeği Yükle
             </button>
             <input type="file" id="m-cfg-file-import" accept=".json" style="display: none;" onchange="window.importMobileData(event)">
+          </div>
+
+          <!-- Akıllı Günlük Yedekler Butonu (Mobil) -->
+          <div style="margin-bottom: 1.25rem;">
+            <button class="m-btn-sm" onclick="window.openMobileDailyBackupsModal()" style="width: 100%; justify-content: center; background: rgba(16, 185, 129, 0.1); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3); font-weight: 700;">
+              <i data-lucide="shield-check" style="width: 15px; height: 15px;"></i> Akıllı Günlük Yedekler (Kurtarma)
+            </button>
           </div>
 
           <!-- Sistemi Sıfırla (Fabrika Ayarları) -->
@@ -1651,7 +1658,7 @@
             📱 Sınıf Asistanı Kullanım Kılavuzu
           </div>
           <div style="font-size: 0.75rem; color: var(--m-text-muted); margin-bottom: 1rem;">
-            Versiyon: <strong>v1.0.39</strong> — Geliştirici: <strong>Barış Gençoğlu</strong>
+            Versiyon: <strong>v1.0.40</strong> — Geliştirici: <strong>Barış Gençoğlu</strong>
           </div>
 
           <div style="display: flex; flex-direction: column;">
@@ -4535,6 +4542,26 @@
       </div>
     </div>
 
+  </div>
+
+  <!-- BOTTOM SHEET: AKILLI GÜNLÜK YEDEK PAKETLERİ (MOBİL) -->
+  <div class="bottom-sheet" id="modal-mobile-daily-backups" style="max-height: 85vh; display: flex; flex-direction: column;">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header" style="flex-shrink: 0;">
+      <div>
+        <div class="sheet-title" style="display: flex; align-items: center; gap: 6px; color: #10b981;">
+          <i data-lucide="shield-check" style="width: 18px; height: 18px;"></i>
+          <span>Akıllı Günlük Yedekler</span>
+        </div>
+        <div style="font-size: 0.72rem; color: var(--m-text-muted); margin-top: 2px;">
+          Son 7 günün gün başı ve gün sonu yedek paketleri
+        </div>
+      </div>
+      <button class="sheet-close-btn" onclick="window.closeBottomSheet()">&times;</button>
+    </div>
+    <div id="m-daily-backups-container" style="flex: 1; overflow-y: auto; padding: 1rem; display: flex; flex-direction: column; gap: 8px;">
+      <!-- Dinamik liste doldurulacak -->
+    </div>
   </div>
 
   <!-- ==========================================================================

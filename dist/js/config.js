@@ -281,7 +281,7 @@
       });
     }
 
-    // --- Otomatik Kurtarma Noktaları (Rolling Backups) ---
+    // --- Akıllı Günlük Yedek Paketleri (Daily Backups) ---
     const configBackupRollingTrigger = document.getElementById('config-backup-rolling-trigger');
     const modalRollingBackups = document.getElementById('modal-rolling-backups');
     const rollingBackupsContainer = document.getElementById('rolling-backups-container');
@@ -289,21 +289,23 @@
     if (configBackupRollingTrigger && modalRollingBackups) {
       configBackupRollingTrigger.addEventListener('click', async () => {
         if (!rollingBackupsContainer) return;
-        rollingBackupsContainer.innerHTML = '<div style="text-align: center; padding: 1.5rem; color: var(--text-muted);"><i data-lucide="loader" class="spin"></i> Kurtarma noktaları taranıyor...</div>';
+        rollingBackupsContainer.innerHTML = '<div style="text-align: center; padding: 1.5rem; color: var(--text-muted);"><i data-lucide="loader" class="spin"></i> Günlük yedek paketleri taranıyor...</div>';
         modalRollingBackups.classList.add('active');
         if (window.safeCreateIcons) window.safeCreateIcons();
 
         let backups = [];
-        if (typeof window.getRollingBackupsFromIndexedDB === 'function') {
+        if (typeof window.getDailyBackupsFromIndexedDB === 'function') {
+          backups = await window.getDailyBackupsFromIndexedDB();
+        } else if (typeof window.getRollingBackupsFromIndexedDB === 'function') {
           backups = await window.getRollingBackupsFromIndexedDB();
         }
 
         if (!backups || backups.length === 0) {
           rollingBackupsContainer.innerHTML = `
             <div style="text-align: center; padding: 2rem 1rem; color: var(--text-muted);">
-              <i data-lucide="info" style="width: 32px; height: 32px; margin-bottom: 0.5rem; opacity: 0.5;"></i>
-              <div>Henüz kayıtlı bir otomatik kurtarma noktası bulunmuyor.</div>
-              <div style="font-size: 0.75rem; margin-top: 4px;">Sistemde puan veya sınav işlemi yapıldığında otomatik yedekler burada listelenir.</div>
+              <i data-lucide="calendar" style="width: 32px; height: 32px; margin-bottom: 0.5rem; opacity: 0.5;"></i>
+              <div>Henüz kayıtlı bir günlük yedek paketi bulunmuyor.</div>
+              <div style="font-size: 0.75rem; margin-top: 4px;">Uygulama kullanıldıkça her günün gün başı koruması ve gün sonu kapanış yedekleri burada listelenir.</div>
             </div>
           `;
           if (window.safeCreateIcons) window.safeCreateIcons();
@@ -311,7 +313,7 @@
         }
 
         rollingBackupsContainer.innerHTML = '';
-        backups.forEach((b, idx) => {
+        backups.forEach((b) => {
           const item = document.createElement('div');
           item.className = 'glass-card';
           item.style.padding = '0.75rem 1rem';
@@ -323,27 +325,35 @@
           item.style.background = 'var(--bg-secondary)';
 
           const stdCountText = b.studentCount !== undefined ? `(${b.studentCount} Öğrenci)` : '';
+          const badgeBg = b.badgeColor || '#10b981';
 
           item.innerHTML = `
             <div>
-              <div style="font-weight: 700; font-size: 0.88rem; color: var(--text-primary); display: flex; align-items: center; gap: 6px;">
-                <span>🕒 ${b.dateStr || 'Bilinmeyen Tarih'}</span>
-                <span class="badge" style="background: rgba(16, 185, 129, 0.15); color: #10b981; font-size: 0.7rem;">${idx === 0 ? 'En Son Yedek' : `#${idx + 1}`}</span>
+              <div style="font-weight: 700; font-size: 0.88rem; color: var(--text-primary); display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                <span style="display: flex; align-items: center; gap: 4px;">
+                  <i data-lucide="calendar" style="width: 14px; height: 14px; color: var(--text-muted);"></i>
+                  ${b.dayLabel || 'Yedek'}
+                </span>
+                <span style="font-size: 0.78rem; font-weight: 600; color: var(--text-muted);">(${b.dateStr || ''})</span>
+                <span class="badge" style="background: ${badgeBg}20; color: ${badgeBg}; border: 1px solid ${badgeBg}50; font-size: 0.72rem; padding: 0.15rem 0.5rem; border-radius: 6px; font-weight: 700;">
+                  ${b.typeLabel || 'Sistem Yedeği'}
+                </span>
               </div>
-              <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 3px;">
+              <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 4px;">
                 ${b.reason || 'Kayıt noktası'} <strong style="color: var(--text-secondary);">${stdCountText}</strong>
               </div>
             </div>
-            <button type="button" class="btn btn-primary btn-sm restore-rolling-btn" style="padding: 0.35rem 0.75rem; font-size: 0.8rem; font-weight: 700; background: #10b981; border: none; gap: 4px;">
+            <button type="button" class="btn btn-primary btn-sm restore-rolling-btn" style="padding: 0.4rem 0.85rem; font-size: 0.8rem; font-weight: 700; background: #10b981; border: none; gap: 5px; flex-shrink: 0;">
               <i data-lucide="rotate-ccw" style="width: 14px; height: 14px;"></i> Geri Yükle
             </button>
           `;
 
           const btnRestore = item.querySelector('.restore-rolling-btn');
           btnRestore.addEventListener('click', async () => {
+            const labelText = `${b.dayLabel || ''} - ${b.typeLabel || ''} (${b.dateStr || ''})`;
             const confirmed = window.confirmAsync 
-              ? await window.confirmAsync(`"${b.dateStr}" tarihli otomatik yedeğe dönmek istediğinize emin misiniz? Mevcut durum bu yedekle güncellenecektir.`)
-              : confirm(`"${b.dateStr}" tarihli otomatik yedeğe dönmek istediğinize emin misiniz?`);
+              ? await window.confirmAsync(`"${labelText}" tarihli yedek paketine dönmek istediğinize emin misiniz?\n${stdCountText}\n\nMevcut sınıf verileriniz bu paketteki duruma geri yüklenecektir.`)
+              : confirm(`"${labelText}" tarihli yedeğe dönmek istediğinize emin misiniz?`);
             
             if (confirmed && b.data) {
               try {
@@ -351,11 +361,11 @@
                 localStorage.setItem('sinif_asistani_has_real_data', 'true');
                 if (window.stateManager) {
                   window.stateManager.state = window.stateManager.loadState(true);
-                  window.stateManager.saveState('Kurtarma noktasından geri yüklendi');
+                  window.stateManager.saveState('Günlük yedek paketinden geri yüklendi');
                   window.stateManager.notify();
                 }
                 modalRollingBackups.classList.remove('active');
-                if (toastCallback) toastCallback(`"${b.dateStr}" tarihli yedek başarıyla geri yüklendi!`, 'success');
+                if (toastCallback) toastCallback(`"${b.dayLabel || 'Yedek'}" paketi başarıyla geri yüklendi!`, 'success');
                 const event = new CustomEvent('stateChanged');
                 document.dispatchEvent(event);
               } catch (err) {

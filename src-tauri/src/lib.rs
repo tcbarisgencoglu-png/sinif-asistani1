@@ -151,7 +151,7 @@ fn save_portable_data(data_json: String, api_key: String) -> Result<bool, String
 }
 
 #[tauri::command]
-fn save_desktop_data(app: tauri::AppHandle, data_json: String, api_key: String) -> Result<bool, String> {
+fn save_desktop_data(app: tauri::AppHandle, data_json: String, api_key: String, date_key: Option<String>) -> Result<bool, String> {
     if let Ok(app_dir) = app.path().app_data_dir() {
         if !app_dir.exists() {
             let _ = std::fs::create_dir_all(&app_dir);
@@ -165,7 +165,7 @@ fn save_desktop_data(app: tauri::AppHandle, data_json: String, api_key: String) 
             .unwrap_or(0);
 
         let json_obj = serde_json::json!({
-            "version": "1.0.37",
+            "version": "1.0.39",
             "updated_at": now_sec,
             "sinif_asistani_data": data_json,
             "sinif_asistani_gemini_api_key": api_key,
@@ -176,7 +176,54 @@ fn save_desktop_data(app: tauri::AppHandle, data_json: String, api_key: String) 
             if file_path.exists() {
                 let _ = std::fs::copy(&file_path, &backup_path);
             }
-            if std::fs::write(&file_path, serialized).is_ok() {
+            if std::fs::write(&file_path, &serialized).is_ok() {
+                // Günlük Akıllı Paketleme Klasörü (gunluk_yedekler)
+                if let Some(ref d_key) = date_key {
+                    let backups_dir = app_dir.join("gunluk_yedekler");
+                    if !backups_dir.exists() {
+                        let _ = std::fs::create_dir_all(&backups_dir);
+                    }
+
+                    // 1. Gün Başı Yedeği (Base) - Günün ilk kaydı, yoksa oluştur
+                    let base_file = backups_dir.join(format!("yedek_{}_gun_basi.json", d_key));
+                    if !base_file.exists() {
+                        let _ = std::fs::write(&base_file, &serialized);
+                    }
+
+                    // 2. Gün Sonu / Güncel Kapanış Yedeği (Latest) - Gün boyunca güncellenir
+                    let latest_file = backups_dir.join(format!("yedek_{}_kapanis.json", d_key));
+                    let _ = std::fs::write(&latest_file, &serialized);
+
+                    // 3. Son 7 Günlük Rotasyon (Eski günleri temizle)
+                    if let Ok(entries) = std::fs::read_dir(&backups_dir) {
+                        let mut dates: std::collections::BTreeSet<String> = std::collections::BTreeSet::new();
+                        let mut files: Vec<(String, std::path::PathBuf)> = Vec::new();
+
+                        for entry in entries.flatten() {
+                            let name = entry.file_name().to_string_lossy().to_string();
+                            if name.starts_with("yedek_") && name.ends_with(".json") {
+                                let parts: Vec<&str> = name.split('_').collect();
+                                if parts.len() >= 2 {
+                                    let dt = parts[1].to_string();
+                                    dates.insert(dt.clone());
+                                    files.push((dt, entry.path()));
+                                }
+                            }
+                        }
+
+                        if dates.len() > 7 {
+                            let dates_vec: Vec<String> = dates.into_iter().collect();
+                            let to_remove_count = dates_vec.len() - 7;
+                            let remove_dates: std::collections::HashSet<String> = dates_vec.into_iter().take(to_remove_count).collect();
+                            for (dt, path) in files {
+                                if remove_dates.contains(&dt) {
+                                    let _ = std::fs::remove_file(path);
+                                }
+                            }
+                        }
+                    }
+                }
+
                 return Ok(true);
             }
         }
@@ -190,7 +237,7 @@ fn load_desktop_data(app: tauri::AppHandle) -> Result<Option<String>, String> {
         let file_path = app_dir.join("sinif_asistani_veriler.json");
         let backup_path = app_dir.join("sinif_asistani_veriler.bak");
 
-        // Önce ana dosyayı kontrol et
+        // 1. Önce ana dosyayı kontrol et
         if file_path.exists() {
             if let Ok(content) = std::fs::read_to_string(&file_path) {
                 if let Ok(json) = serde_json::from_str::<serde_json::Value>(&content) {
@@ -203,13 +250,42 @@ fn load_desktop_data(app: tauri::AppHandle) -> Result<Option<String>, String> {
             }
         }
 
-        // Ana dosya boş veya bozulmuşsa yedek dosyadan kurtar
+        // 2. Ana dosya boş veya bozulmuşsa yedek dosyadan kurtar
         if backup_path.exists() {
             if let Ok(content) = std::fs::read_to_string(&backup_path) {
                 if let Ok(json) = serde_json::from_str::<serde_json::Value>(&content) {
                     if let Some(data) = json.get("sinif_asistani_data").and_then(|v| v.as_str()) {
                         if !data.trim().is_empty() {
                             return Ok(Some(content));
+                        }
+                    }
+                }
+            }
+        }
+
+        // 3. Günlük yedekler klasöründen en son geçerli yedeği kurtar
+        let backups_dir = app_dir.join("gunluk_yedekler");
+        if backups_dir.exists() {
+            if let Ok(entries) = std::fs::read_dir(&backups_dir) {
+                let mut backup_files: Vec<std::path::PathBuf> = entries
+                    .flatten()
+                    .map(|e| e.path())
+                    .filter(|p| {
+                        let name = p.file_name().unwrap_or_default().to_string_lossy();
+                        name.starts_with("yedek_") && name.ends_with(".json")
+                    })
+                    .collect();
+                // Ada göre ters sırala (en yeni tarih en başta)
+                backup_files.sort_by(|a, b| b.file_name().cmp(&a.file_name()));
+
+                for b_file in backup_files {
+                    if let Ok(content) = std::fs::read_to_string(&b_file) {
+                        if let Ok(json) = serde_json::from_str::<serde_json::Value>(&content) {
+                            if let Some(data) = json.get("sinif_asistani_data").and_then(|v| v.as_str()) {
+                                if !data.trim().is_empty() {
+                                    return Ok(Some(content));
+                                }
+                            }
                         }
                     }
                 }

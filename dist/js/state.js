@@ -201,7 +201,7 @@ async function saveDocFileToIndexedDBHelper(id, content, htmlContent) {
   }
 }
 
-// 1. IndexedDB Tam Durum ve Döngüsel Yedek (Son 5 Nokta) Kaydı
+// 1. IndexedDB Tam Durum ve Akıllı Günlük Paketleme (Son 7 Gün + Gün Başı Koruması) Kaydı
 async function saveStateToIndexedDB(stateObj, reason = 'Kayıt güncellendi') {
   try {
     const db = await openAppStorageDBHelper();
@@ -211,34 +211,70 @@ async function saveStateToIndexedDB(stateObj, reason = 'Kayıt güncellendi') {
       const backupStore = tx.objectStore(APP_BACKUP_STORE);
 
       const now = Date.now();
-      const dateStr = new Date().toLocaleString('tr-TR');
+      const nowObj = new Date();
+      const dateKey = nowObj.toISOString().split('T')[0]; // "YYYY-MM-DD"
+      const dateStr = nowObj.toLocaleString('tr-TR');
 
       // Ana durumu kaydet
       stateStore.put({ id: 'current_state', data: stateObj, updatedAt: now });
 
-      // Rolling Backup kaydet
       const studentCount = Array.isArray(stateObj.students) ? stateObj.students.length : 0;
-      backupStore.put({
-        id: now,
-        timestamp: now,
-        dateStr: dateStr,
-        reason: reason,
-        studentCount: studentCount,
-        data: stateObj
-      });
+      const classCount = Array.isArray(stateObj.classes) ? stateObj.classes.length : 0;
+      const hasRealData = studentCount > 0 || (stateObj.books && stateObj.books.library && stateObj.books.library.length > 0);
 
-      // 5'ten fazla yedek varsa eskileri temizle
-      const req = backupStore.getAllKeys();
-      req.onsuccess = () => {
-        const keys = req.result || [];
-        if (keys.length > 5) {
-          keys.sort((a, b) => a - b);
-          while (keys.length > 5) {
-            const oldKey = keys.shift();
-            backupStore.delete(oldKey);
+      // Sadece gerçek veri olduğunda günlük paketleri güncelle (boş/demo durumunun üzerine yazılmasını engeller)
+      if (hasRealData) {
+        // 1. Gün Başı Koruması (Base Snapshot) - O gün için henüz taban yedek yoksa oluştur ve dondur
+        const baseKey = `daily_base_${dateKey}`;
+        const baseReq = backupStore.get(baseKey);
+        baseReq.onsuccess = () => {
+          if (!baseReq.result) {
+            backupStore.put({
+              id: baseKey,
+              dateKey: dateKey,
+              type: 'base',
+              timestamp: now,
+              dateStr: dateStr,
+              reason: 'Günün İlk Açılış Koruması (Gün Başı)',
+              studentCount: studentCount,
+              classCount: classCount,
+              data: stateObj
+            });
           }
-        }
-      };
+        };
+
+        // 2. Günün En Son Hali (Daily Latest Snapshot) - Gün boyunca her işlemde güncellenir
+        const latestKey = `daily_latest_${dateKey}`;
+        backupStore.put({
+          id: latestKey,
+          dateKey: dateKey,
+          type: 'latest',
+          timestamp: now,
+          dateStr: dateStr,
+          reason: reason,
+          studentCount: studentCount,
+          classCount: classCount,
+          data: stateObj
+        });
+
+        // 3. Son 7 Günlük Rotasyon (7 günden eski gün paketlerini temizle)
+        const allReq = backupStore.getAll();
+        allReq.onsuccess = () => {
+          const allItems = allReq.result || [];
+          const uniqueDates = [...new Set(allItems.map(it => it.dateKey).filter(Boolean))].sort();
+          if (uniqueDates.length > 7) {
+            const datesToRemove = uniqueDates.slice(0, uniqueDates.length - 7);
+            allItems.forEach(it => {
+              if (it.dateKey && datesToRemove.includes(it.dateKey)) {
+                backupStore.delete(it.id);
+              } else if (typeof it.id === 'number') {
+                // Eski numaralı yedek kalıntılarını da temizle
+                backupStore.delete(it.id);
+              }
+            });
+          }
+        };
+      }
 
       tx.oncomplete = () => resolve(true);
       tx.onerror = () => reject(tx.error);
@@ -270,8 +306,8 @@ async function loadStateFromIndexedDB() {
   }
 }
 
-// 3. IndexedDB'deki Son 5 Otomatik Yedeği Listele
-async function getRollingBackupsFromIndexedDB() {
+// 3. IndexedDB'deki Akıllı Günlük Yedek Paketlerini Listele (Son 7 Gün)
+async function getDailyBackupsFromIndexedDB() {
   try {
     const db = await openAppStorageDBHelper();
     return new Promise((resolve) => {
@@ -280,8 +316,62 @@ async function getRollingBackupsFromIndexedDB() {
       const req = store.getAll();
       req.onsuccess = () => {
         const items = req.result || [];
-        items.sort((a, b) => b.timestamp - a.timestamp);
-        resolve(items);
+        const todayKey = new Date().toISOString().split('T')[0];
+        const yesterdayObj = new Date();
+        yesterdayObj.setDate(yesterdayObj.getDate() - 1);
+        const yesterdayKey = yesterdayObj.toISOString().split('T')[0];
+
+        // Format ve zenginleştirme
+        const enriched = items.map(it => {
+          let dayLabel = '';
+          if (it.dateKey === todayKey) {
+            dayLabel = 'Bugün';
+          } else if (it.dateKey === yesterdayKey) {
+            dayLabel = 'Dün';
+          } else if (it.dateKey) {
+            const parts = it.dateKey.split('-');
+            if (parts.length === 3) {
+              dayLabel = `${parts[2]}.${parts[1]}.${parts[0]}`;
+            } else {
+              dayLabel = it.dateKey;
+            }
+          } else {
+            dayLabel = 'Geçmiş Yedek';
+          }
+
+          let typeLabel = '';
+          let badgeColor = '';
+          if (it.type === 'base') {
+            typeLabel = '🛡️ Gün Başı Koruması';
+            badgeColor = '#3b82f6';
+          } else if (it.type === 'latest') {
+            typeLabel = '✅ Güncel / Kapanış';
+            badgeColor = '#10b981';
+          } else {
+            typeLabel = '💾 Sistem Yedeği';
+            badgeColor = '#8b5cf6';
+          }
+
+          return {
+            ...it,
+            dayLabel,
+            typeLabel,
+            badgeColor
+          };
+        });
+
+        // En son güncellenen en üstte, gün içi sıralamada 'latest' önce, 'base' sonra
+        enriched.sort((a, b) => {
+          if (a.dateKey && b.dateKey && a.dateKey !== b.dateKey) {
+            return b.dateKey.localeCompare(a.dateKey);
+          }
+          if (a.type !== b.type) {
+            return a.type === 'latest' ? -1 : 1;
+          }
+          return (b.timestamp || 0) - (a.timestamp || 0);
+        });
+
+        resolve(enriched);
       };
       req.onerror = () => resolve([]);
     });
@@ -289,6 +379,7 @@ async function getRollingBackupsFromIndexedDB() {
     return [];
   }
 }
+const getRollingBackupsFromIndexedDB = getDailyBackupsFromIndexedDB;
 
 // 4. Masaüstü Tauri Yerel Dosya Senkronizasyonu (Kotası Yoktur)
 let _desktopNativeSyncTimeout = null;
@@ -301,10 +392,11 @@ function syncDesktopNativeData(stateJson) {
   _desktopNativeSyncTimeout = setTimeout(() => {
     try {
       const apiKey = localStorage.getItem('sinif_asistani_gemini_api_key') || '';
-      invoke('save_desktop_data', { dataJson: stateJson, apiKey })
+      const dateKey = new Date().toISOString().split('T')[0];
+      invoke('save_desktop_data', { dataJson: stateJson, apiKey, dateKey })
         .then(success => {
           if (success) {
-            console.debug('[Masaüstü Yerel Depolama] Veriler yerel disk JSON dosyasına başarıyla yazıldı.');
+            console.debug('[Masaüstü Yerel Depolama] Veriler yerel disk JSON dosyasına ve günlük pakete başarıyla yazıldı.');
           }
         })
         .catch(err => {
@@ -352,7 +444,8 @@ if (typeof window !== 'undefined') {
   window.openAppStorageDBHelper = openAppStorageDBHelper;
   window.saveStateToIndexedDB = saveStateToIndexedDB;
   window.loadStateFromIndexedDB = loadStateFromIndexedDB;
-  window.getRollingBackupsFromIndexedDB = getRollingBackupsFromIndexedDB;
+  window.getDailyBackupsFromIndexedDB = getDailyBackupsFromIndexedDB;
+  window.getRollingBackupsFromIndexedDB = getDailyBackupsFromIndexedDB;
   window.syncDesktopNativeData = syncDesktopNativeData;
   window.loadDesktopNativeData = loadDesktopNativeData;
   window.openDesktopDataDir = openDesktopDataDir;

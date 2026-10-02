@@ -1183,6 +1183,98 @@
     reader.readAsText(file);
   };
 
+  // Mobil Akıllı Günlük Yedekler Modal Açıcı
+  window.openMobileDailyBackupsModal = async () => {
+    const container = document.getElementById('m-daily-backups-container');
+    if (!container) return;
+    container.innerHTML = '<div style="text-align: center; padding: 2rem; color: var(--m-text-muted);"><i data-lucide="loader" class="spin"></i> Günlük yedek paketleri taranıyor...</div>';
+    if (typeof window.openBottomSheet === 'function') {
+      window.openBottomSheet('modal-mobile-daily-backups');
+    }
+    if (window.safeCreateIcons) window.safeCreateIcons();
+
+    let backups = [];
+    if (typeof window.getDailyBackupsFromIndexedDB === 'function') {
+      backups = await window.getDailyBackupsFromIndexedDB();
+    } else if (typeof window.getRollingBackupsFromIndexedDB === 'function') {
+      backups = await window.getRollingBackupsFromIndexedDB();
+    }
+
+    if (!backups || backups.length === 0) {
+      container.innerHTML = `
+        <div style="text-align: center; padding: 2.5rem 1rem; color: var(--m-text-muted);">
+          <i data-lucide="calendar" style="width: 36px; height: 36px; margin-bottom: 0.5rem; opacity: 0.5;"></i>
+          <div style="font-weight: 700;">Henüz günlük yedek paketi yok</div>
+          <div style="font-size: 0.75rem; margin-top: 4px;">Uygulamada veri kaydedildikçe her günün ilk açılış ve son durum paketleri burada listelenir.</div>
+        </div>
+      `;
+      if (window.safeCreateIcons) window.safeCreateIcons();
+      return;
+    }
+
+    container.innerHTML = '';
+    backups.forEach(b => {
+      const card = document.createElement('div');
+      card.style.background = 'var(--m-surface)';
+      card.style.border = '1px solid var(--m-border)';
+      card.style.borderRadius = 'var(--m-radius-sm)';
+      card.style.padding = '0.75rem';
+      card.style.display = 'flex';
+      card.style.justifyContent = 'space-between';
+      card.style.alignItems = 'center';
+      card.style.gap = '8px';
+
+      const stdCountText = b.studentCount !== undefined ? `(${b.studentCount} Öğrenci)` : '';
+      const badgeBg = b.badgeColor || '#10b981';
+
+      card.innerHTML = `
+        <div style="flex: 1; min-width: 0;">
+          <div style="font-weight: 800; font-size: 0.85rem; color: var(--m-text); display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+            <span>${b.dayLabel || 'Yedek'}</span>
+            <span style="font-size: 0.72rem; color: var(--m-text-muted); font-weight: 600;">(${b.dateStr ? b.dateStr.split(' ')[1] || b.dateStr : ''})</span>
+            <span style="background: ${badgeBg}20; color: ${badgeBg}; border: 1px solid ${badgeBg}50; font-size: 0.68rem; padding: 0.1rem 0.4rem; border-radius: 4px; font-weight: 700;">
+              ${b.typeLabel || 'Yedek'}
+            </span>
+          </div>
+          <div style="font-size: 0.74rem; color: var(--m-text-muted); margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+            ${b.reason || 'Kayıt noktası'} <strong style="color: var(--m-text);">${stdCountText}</strong>
+          </div>
+        </div>
+        <button class="m-btn-sm primary restore-daily-btn" style="padding: 0.35rem 0.65rem; font-size: 0.75rem; font-weight: 700; flex-shrink: 0; background: #10b981; border: none; gap: 4px;">
+          <i data-lucide="rotate-ccw" style="width: 13px; height: 13px;"></i> Yükle
+        </button>
+      `;
+
+      const btn = card.querySelector('.restore-daily-btn');
+      btn.addEventListener('click', async () => {
+        const labelText = `${b.dayLabel || ''} - ${b.typeLabel || ''} (${b.dateStr || ''})`;
+        const ok = confirm(`"${labelText}" tarihli yedek paketine dönmek istediğinize emin misiniz?\n${stdCountText}\n\nMevcut verileriniz bu durumla güncellenecektir.`);
+        if (ok && b.data) {
+          try {
+            localStorage.setItem('sinif_asistani_data', JSON.stringify(b.data));
+            localStorage.setItem('sinif_asistani_has_real_data', 'true');
+            if (window.stateManager) {
+              window.stateManager.state = window.stateManager.loadState(true);
+              window.stateManager.saveState('Günlük yedek paketinden geri yüklendi');
+              window.stateManager.notify();
+            }
+            if (typeof window.closeBottomSheet === 'function') {
+              window.closeBottomSheet('modal-mobile-daily-backups');
+            }
+            showMobileToast(`"${b.dayLabel || 'Yedek'}" paketi yüklendi!`);
+            setTimeout(() => location.reload(), 600);
+          } catch (e) {
+            showMobileToast('❌ Yükleme hatası oluştu');
+          }
+        }
+      });
+
+      container.appendChild(card);
+    });
+
+    if (window.safeCreateIcons) window.safeCreateIcons();
+  };
+
   // ==========================================================================
   // 13. MODÜL: SINAVLAR & ANALİZ (YAZILI HAZIRLAMA + SINAV ANALİZİ)
   // ==========================================================================
