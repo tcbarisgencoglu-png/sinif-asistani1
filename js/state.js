@@ -334,6 +334,18 @@ async function loadDesktopNativeData() {
   return null;
 }
 
+// 6. Masaüstü Veri Klasörünü Aç (Windows Explorer / macOS Finder)
+async function openDesktopDataDir() {
+  if (typeof window === 'undefined') return;
+  const invoke = (window.__TAURI__?.core?.invoke) || window.__TAURI__?.invoke;
+  if (!invoke) return;
+  try {
+    return await invoke('open_app_data_dir');
+  } catch (err) {
+    console.debug('[Masaüstü Yerel Depolama] Klasör açma hatası:', err);
+  }
+}
+
 if (typeof window !== 'undefined') {
   window.saveDocFileToIndexedDBHelper = saveDocFileToIndexedDBHelper;
   window.openDocsDBHelper = openDocsDBHelper;
@@ -343,6 +355,7 @@ if (typeof window !== 'undefined') {
   window.getRollingBackupsFromIndexedDB = getRollingBackupsFromIndexedDB;
   window.syncDesktopNativeData = syncDesktopNativeData;
   window.loadDesktopNativeData = loadDesktopNativeData;
+  window.openDesktopDataDir = openDesktopDataDir;
 }
 
 

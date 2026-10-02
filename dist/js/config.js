@@ -379,6 +379,24 @@
       });
     }
 
+    // --- Masaüstü Sabit Disk Klasörünü Aç Butonu ---
+    const configDesktopFolderRow = document.getElementById('config-desktop-folder-row');
+    const configOpenDesktopFolder = document.getElementById('config-open-desktop-folder');
+
+    if (window.__TAURI__ && configDesktopFolderRow) {
+      configDesktopFolderRow.style.display = 'flex';
+      if (configOpenDesktopFolder) {
+        configOpenDesktopFolder.addEventListener('click', async () => {
+          if (typeof window.openDesktopDataDir === 'function') {
+            const folderPath = await window.openDesktopDataDir();
+            if (toastCallback) {
+              toastCallback(`Sabit disk veri klasörü açıldı: ${folderPath || ''}`, 'info');
+            }
+          }
+        });
+      }
+    }
+
     if (configSystemReset) {
       configSystemReset.addEventListener('click', () => {
         const modalSystemReset = document.getElementById('modal-system-reset');

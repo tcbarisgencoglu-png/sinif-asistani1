@@ -219,6 +219,32 @@ fn load_desktop_data(app: tauri::AppHandle) -> Result<Option<String>, String> {
     Ok(None)
 }
 
+#[tauri::command]
+fn open_app_data_dir(app: tauri::AppHandle) -> Result<String, String> {
+    if let Ok(app_dir) = app.path().app_data_dir() {
+        if !app_dir.exists() {
+            let _ = std::fs::create_dir_all(&app_dir);
+        }
+        let path_str = app_dir.to_string_lossy().to_string();
+
+        #[cfg(target_os = "windows")]
+        {
+            let _ = Command::new("explorer").arg(&path_str).spawn();
+        }
+        #[cfg(target_os = "macos")]
+        {
+            let _ = Command::new("open").arg(&path_str).spawn();
+        }
+        #[cfg(target_os = "linux")]
+        {
+            let _ = Command::new("xdg-open").arg(&path_str).spawn();
+        }
+
+        return Ok(path_str);
+    }
+    Err("Uygulama klasörü bulunamadı".to_string())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -231,7 +257,8 @@ pub fn run() {
             load_portable_data,
             save_portable_data,
             save_desktop_data,
-            load_desktop_data
+            load_desktop_data,
+            open_app_data_dir
         ])
         .setup(|app| {
             let _window = app.get_webview_window("main").unwrap();
