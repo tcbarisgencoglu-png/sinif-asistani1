@@ -1794,7 +1794,7 @@
         const releases = await response.json();
         if (Array.isArray(releases) && releases.length > 0) {
           const latestRelease = releases[0];
-          const tagName = latestRelease.tag_name || 'v1.0.36';
+          const tagName = latestRelease.tag_name || 'v1.0.37';
           const badge = document.getElementById('tanitim-download-badge');
           if (badge) badge.textContent = `${tagName} (En Son)`;
 
@@ -2199,7 +2199,7 @@
         <div>
           <h3 style="margin: 0; font-size: 1.15rem; font-weight: 800; display: flex; align-items: center; gap: 0.5rem;">
             Sınıf Asistanı İndir
-            <span id="tanitim-download-badge" style="background: #4f46e5; color: #fff; font-size: 0.7rem; padding: 0.15rem 0.5rem; border-radius: 6px; font-weight: 700;">v1.0.36 (En Son)</span>
+            <span id="tanitim-download-badge" style="background: #4f46e5; color: #fff; font-size: 0.7rem; padding: 0.15rem 0.5rem; border-radius: 6px; font-weight: 700;">v1.0.37 (En Son)</span>
           </h3>
           <p style="margin: 0; font-size: 0.8rem; color: #94a3b8;">Akıllı tahta, kişisel bilgisayar ve cep telefonunuz için resmi kurulum dosyaları.</p>
         </div>
@@ -2223,7 +2223,7 @@
             <p style="font-size: 0.78rem; color: #cbd5e1; margin-bottom: 0.85rem; line-height: 1.4;">Fatih Projesi akıllı tahtaları ve Debian/Pardus için doğrudan `.deb` paketi.</p>
           </div>
           <div>
-            <a id="tanitim-btn-deb" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/download/v1.0.36/sinif-asistani_1.0.36_amd64.deb" target="_blank" style="background: #ef4444; color: #fff; text-decoration: none; text-align: center; padding: 0.55rem; border-radius: 8px; font-weight: 700; font-size: 0.82rem; display: block;">Pardus (.deb) İndir</a>
+            <a id="tanitim-btn-deb" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/download/v1.0.37/sinif-asistani_1.0.37_amd64.deb" target="_blank" style="background: #ef4444; color: #fff; text-decoration: none; text-align: center; padding: 0.55rem; border-radius: 8px; font-weight: 700; font-size: 0.82rem; display: block;">Pardus (.deb) İndir</a>
             <button type="button" onclick="window.openPardusInstallHelpModal()" style="width: 100%; margin-top: 0.5rem; background: rgba(239, 68, 68, 0.15); border: 1px dashed rgba(239, 68, 68, 0.5); color: #fca5a5; font-size: 0.76rem; font-weight: 600; padding: 0.4rem 0.5rem; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.35rem; transition: all 0.2s ease; font-family: inherit;">
               🐧 Pardus Kurulum & Güncelleme Rehberi
             </button>
@@ -2243,7 +2243,7 @@
             <p style="font-size: 0.78rem; color: #cbd5e1; margin-bottom: 0.85rem; line-height: 1.4;">Windows bilgisayarlar için tek tıkla otomatik kurulum sihirbazı.</p>
           </div>
           <div>
-            <a id="tanitim-btn-exe" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/download/v1.0.36/sinif-asistani_1.0.36_x64-setup.exe" target="_blank" style="background: #0284c7; color: #fff; text-decoration: none; text-align: center; padding: 0.55rem; border-radius: 8px; font-weight: 700; font-size: 0.82rem; display: block;">Windows (.exe) İndir</a>
+            <a id="tanitim-btn-exe" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/download/v1.0.37/sinif-asistani_1.0.37_x64-setup.exe" target="_blank" style="background: #0284c7; color: #fff; text-decoration: none; text-align: center; padding: 0.55rem; border-radius: 8px; font-weight: 700; font-size: 0.82rem; display: block;">Windows (.exe) İndir</a>
             <button type="button" onclick="window.openWinInstallHelpModal()" style="width: 100%; margin-top: 0.5rem; background: rgba(2, 132, 199, 0.15); border: 1px dashed rgba(2, 132, 199, 0.5); color: #7dd3fc; font-size: 0.76rem; font-weight: 600; padding: 0.4rem 0.5rem; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.35rem; transition: all 0.2s ease; font-family: inherit;">
               ⚠️ Windows Mavi Ekran Uyarısı Çözümü
             </button>
@@ -2264,11 +2264,11 @@
           </div>
           <div>
             <div style="display: flex; gap: 0.4rem; margin-bottom: 0.4rem;">
-              <a id="tanitim-btn-dmg" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/download/v1.0.36/sinif-asistani_1.0.36_aarch64.dmg" target="_blank" style="flex: 1.1; background: #8b5cf6; color: #fff; text-decoration: none; text-align: center; padding: 0.5rem 0.3rem; border-radius: 8px; font-weight: 700; font-size: 0.78rem; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.1rem;">
+              <a id="tanitim-btn-dmg" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/download/v1.0.37/sinif-asistani_1.0.37_aarch64.dmg" target="_blank" style="flex: 1.1; background: #8b5cf6; color: #fff; text-decoration: none; text-align: center; padding: 0.5rem 0.3rem; border-radius: 8px; font-weight: 700; font-size: 0.78rem; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.1rem;">
                 <span>🍏 Apple Silicon</span>
                 <small style="font-size: 0.65rem; opacity: 0.9; font-weight: normal;">(M1 / M2 / M3 / M4)</small>
               </a>
-              <a id="tanitim-btn-dmg-intel" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/download/v1.0.36/sinif-asistani_1.0.36_x64.dmg" target="_blank" style="flex: 0.9; background: rgba(255,255,255,0.08); border: 1px solid rgba(139,92,246,0.5); color: #fff; text-decoration: none; text-align: center; padding: 0.5rem 0.3rem; border-radius: 8px; font-weight: 700; font-size: 0.78rem; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.1rem;">
+              <a id="tanitim-btn-dmg-intel" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/download/v1.0.37/sinif-asistani_1.0.37_x64.dmg" target="_blank" style="flex: 0.9; background: rgba(255,255,255,0.08); border: 1px solid rgba(139,92,246,0.5); color: #fff; text-decoration: none; text-align: center; padding: 0.5rem 0.3rem; border-radius: 8px; font-weight: 700; font-size: 0.78rem; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.1rem;">
                 <span>💻 Intel Mac</span>
                 <small style="font-size: 0.65rem; color: #cbd5e1; font-weight: normal;">(Eski Modeller)</small>
               </a>
@@ -2294,7 +2294,7 @@
             </p>
           </div>
           <div>
-            <a id="tanitim-btn-apk" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/download/v1.0.36/sinif-asistani.apk" target="_blank" style="background: #16a34a; color: #fff; text-decoration: none; text-align: center; padding: 0.55rem; border-radius: 8px; font-weight: 700; font-size: 0.82rem; display: block;">Android (.apk) İndir</a>
+            <a id="tanitim-btn-apk" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/download/v1.0.37/sinif-asistani.apk" target="_blank" style="background: #16a34a; color: #fff; text-decoration: none; text-align: center; padding: 0.55rem; border-radius: 8px; font-weight: 700; font-size: 0.82rem; display: block;">Android (.apk) İndir</a>
           </div>
         </div>
 
@@ -2312,7 +2312,7 @@
               <strong>Kurulum gerektirmez!</strong> Özellikle ortaokul modunda sınıf sınıf gezen branş öğretmenleri, uygulamayı Flash diskine (USB) yükleyerek tüm sınıflardaki akıllı tahtalarda doğrudan flash bellek üzerinden tak-çalıştır şeklinde kullanabilir.
             </p>
           </div>
-          <a id="tanitim-btn-appimage" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/download/v1.0.36/sinif-asistani_1.0.36_amd64.AppImage" target="_blank" style="background: #10b981; color: #fff; text-decoration: none; text-align: center; padding: 0.55rem; border-radius: 8px; font-weight: 700; font-size: 0.82rem; display: block;">AppImage (USB Uyumlu) İndir</a>
+          <a id="tanitim-btn-appimage" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/download/v1.0.37/sinif-asistani_1.0.37_amd64.AppImage" target="_blank" style="background: #10b981; color: #fff; text-decoration: none; text-align: center; padding: 0.55rem; border-radius: 8px; font-weight: 700; font-size: 0.82rem; display: block;">AppImage (USB Uyumlu) İndir</a>
         </div>
 
       </div>

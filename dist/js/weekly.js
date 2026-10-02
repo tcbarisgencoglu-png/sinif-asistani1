@@ -146,6 +146,158 @@ function populateDesktopExamWeekSelect(selectedWeekId) {
   weekSelect.value = activeSettingWeek;
 }
 
+// Çoklu Ders ve Tek Ders Durumu
+let tempCreateExamType = 'single'; // 'single' | 'multi'
+let tempCreateExamSubjects = [
+  { id: 'sub_0', name: 'Türkçe', questionCount: 15 },
+  { id: 'sub_1', name: 'Matematik', questionCount: 15 },
+  { id: 'sub_2', name: 'Fen Bilimleri', questionCount: 10 }
+];
+let activeCreateExamSubjId = 'sub_0';
+
+// Sınav Türü Seçimi (Tek Ders vs Çoklu Ders)
+window.selectExamType = (type) => {
+  tempCreateExamType = type;
+  const singlePill = document.getElementById('exam-type-pill-single');
+  const multiPill = document.getElementById('exam-type-pill-multi');
+  const typeInput = document.getElementById('exam-type-input');
+  const singleGroup = document.getElementById('exam-single-questions-group');
+  const multiContainer = document.getElementById('exam-multi-subject-container');
+
+  if (typeInput) typeInput.value = type;
+
+  if (type === 'multi') {
+    if (singlePill) singlePill.classList.remove('active');
+    if (multiPill) multiPill.classList.add('active');
+    if (singleGroup) singleGroup.style.display = 'none';
+    if (multiContainer) multiContainer.style.display = 'block';
+    window.renderExamSubjectsUI();
+  } else {
+    if (singlePill) singlePill.classList.add('active');
+    if (multiPill) multiPill.classList.remove('active');
+    if (singleGroup) singleGroup.style.display = 'block';
+    if (multiContainer) multiContainer.style.display = 'none';
+  }
+
+  renderDesktopAnswerKeyGrid();
+};
+
+// Hızlı Ders Şablonları
+window.applyExamSubjectPreset = (presetKey) => {
+  if (presetKey === 'ilkokul_4') {
+    tempCreateExamSubjects = [
+      { id: 'sub_0', name: 'Türkçe', questionCount: 10 },
+      { id: 'sub_1', name: 'Matematik', questionCount: 10 },
+      { id: 'sub_2', name: 'Fen Bilimleri', questionCount: 10 },
+      { id: 'sub_3', name: 'Sosyal Bilgiler', questionCount: 10 }
+    ];
+  } else if (presetKey === 'lgs_sozel') {
+    tempCreateExamSubjects = [
+      { id: 'sub_0', name: 'Türkçe', questionCount: 20 },
+      { id: 'sub_1', name: 'T.C. İnkılap Tarihi', questionCount: 10 },
+      { id: 'sub_2', name: 'Din Kültürü', questionCount: 10 },
+      { id: 'sub_3', name: 'İngilizce', questionCount: 10 }
+    ];
+  } else if (presetKey === 'lgs_sayisal') {
+    tempCreateExamSubjects = [
+      { id: 'sub_0', name: 'Matematik', questionCount: 20 },
+      { id: 'sub_1', name: 'Fen Bilimleri', questionCount: 20 }
+    ];
+  } else if (presetKey === 'lgs_tam') {
+    tempCreateExamSubjects = [
+      { id: 'sub_0', name: 'Türkçe', questionCount: 20 },
+      { id: 'sub_1', name: 'Matematik', questionCount: 20 },
+      { id: 'sub_2', name: 'Fen Bilimleri', questionCount: 20 },
+      { id: 'sub_3', name: 'T.C. İnkılap Tarihi', questionCount: 10 },
+      { id: 'sub_4', name: 'Din Kültürü', questionCount: 10 },
+      { id: 'sub_5', name: 'İngilizce', questionCount: 10 }
+    ];
+  }
+  activeCreateExamSubjId = tempCreateExamSubjects[0]?.id || 'sub_0';
+  tempCreateExamKey = {};
+  window.renderExamSubjectsUI();
+  renderDesktopAnswerKeyGrid();
+};
+
+window.addExamSubject = () => {
+  const newId = 'sub_' + Date.now();
+  tempCreateExamSubjects.push({
+    id: newId,
+    name: `Ders ${tempCreateExamSubjects.length + 1}`,
+    questionCount: 10
+  });
+  activeCreateExamSubjId = newId;
+  window.renderExamSubjectsUI();
+  renderDesktopAnswerKeyGrid();
+};
+
+window.removeExamSubject = (id) => {
+  if (tempCreateExamSubjects.length <= 1) {
+    if (toastCallback) toastCallback('En az bir ders bulunmalıdır!', 'warning');
+    return;
+  }
+  tempCreateExamSubjects = tempCreateExamSubjects.filter(s => s.id !== id);
+  Object.keys(tempCreateExamKey).forEach(k => {
+    if (k.startsWith(id + '_')) delete tempCreateExamKey[k];
+  });
+  if (activeCreateExamSubjId === id) {
+    activeCreateExamSubjId = tempCreateExamSubjects[0]?.id || '';
+  }
+  window.renderExamSubjectsUI();
+  renderDesktopAnswerKeyGrid();
+};
+
+window.updateExamSubject = (id, field, value) => {
+  const subj = tempCreateExamSubjects.find(s => s.id === id);
+  if (!subj) return;
+  if (field === 'name') {
+    subj.name = String(value).trim() || 'Ders';
+  } else if (field === 'questionCount') {
+    subj.questionCount = Math.max(1, Math.min(50, parseInt(value, 10) || 10));
+    Object.keys(tempCreateExamKey).forEach(k => {
+      if (k.startsWith(id + '_')) {
+        const qNum = parseInt(k.split('_')[1], 10);
+        if (qNum > subj.questionCount) delete tempCreateExamKey[k];
+      }
+    });
+  }
+  window.renderExamSubjectsUI(false);
+  renderDesktopAnswerKeyGrid();
+};
+
+window.renderExamSubjectsUI = (rebuildInputs = true) => {
+  const container = document.getElementById('exam-subjects-list');
+  const badge = document.getElementById('exam-multi-total-badge');
+  const qInput = document.getElementById('exam-questions-input');
+
+  const total = tempCreateExamSubjects.reduce((sum, s) => sum + (parseInt(s.questionCount, 10) || 0), 0);
+  if (badge) badge.textContent = `Toplam: ${total} Soru`;
+  if (qInput) qInput.value = total;
+
+  if (!container || !rebuildInputs) return;
+  container.innerHTML = '';
+
+  tempCreateExamSubjects.forEach((subj, idx) => {
+    const row = document.createElement('div');
+    row.className = 'exam-subject-row';
+    row.innerHTML = `
+      <span style="font-size: 0.78rem; font-weight: 800; color: var(--text-muted); min-width: 18px;">${idx + 1}.</span>
+      <input type="text" class="form-control" value="${subj.name}" placeholder="Ders Adı" onchange="window.updateExamSubject('${subj.id}', 'name', this.value)" style="height: 30px; font-size: 0.82rem; padding: 2px 8px;">
+      <input type="number" class="form-control" min="1" max="50" value="${subj.questionCount}" placeholder="Soru" onchange="window.updateExamSubject('${subj.id}', 'questionCount', this.value)" style="width: 70px; height: 30px; font-size: 0.82rem; padding: 2px 6px; text-align: center;">
+      <span style="font-size: 0.72rem; color: var(--text-muted);">Soru</span>
+      <button type="button" class="btn btn-secondary btn-sm" onclick="window.removeExamSubject('${subj.id}')" title="Dersi Sil" style="color: var(--danger); font-size: 0.85rem; padding: 2px 6px; height: 30px;">
+        &times;
+      </button>
+    `;
+    container.appendChild(row);
+  });
+};
+
+window.selectCreateExamSubjTab = (subjId) => {
+  activeCreateExamSubjId = subjId;
+  renderDesktopAnswerKeyGrid();
+};
+
 // Masaüstü Sınav Oluşturma - Şık Sayısı Seçimi
 window.selectDesktopExamChoicesCount = (count) => {
   const hiddenInput = document.getElementById('exam-choices-count');
@@ -166,91 +318,166 @@ function renderDesktopAnswerKeyGrid() {
   const cInput = document.getElementById('exam-choices-count');
   const grid = document.getElementById('exam-optical-key-grid');
   const counter = document.getElementById('exam-opt-counter');
+  const multiTabs = document.getElementById('exam-optical-multi-tabs');
   if (!grid) return;
 
-  const totalQ = Math.max(1, Math.min(100, parseInt(qInput ? qInput.value : 20, 10) || 20));
   const choicesCount = parseInt(cInput ? cInput.value : 4, 10) || 4;
   const letters = ['A', 'B', 'C', 'D', 'E'].slice(0, choicesCount);
 
-  let html = '';
-  let markedCount = 0;
-
-  for (let q = 1; q <= totalQ; q++) {
-    const sel = tempCreateExamKey ? tempCreateExamKey[q] || '' : '';
-    if (sel && letters.includes(sel)) markedCount++;
-    else if (sel && !letters.includes(sel)) delete tempCreateExamKey[q];
-
-    html += `
-      <div class="desktop-opt-bubble-row" data-q="${q}">
-        <span class="desktop-opt-bubble-qnum">${q}.</span>
-        <div class="desktop-opt-bubbles-wrap">
-          ${letters.map(l => `
-            <button type="button" class="desktop-opt-bubble-btn ${sel === l ? 'active' : ''}" onclick="window.selectDesktopCreateExamKeyChoice(${q}, '${l}')">
-              ${l}
-            </button>
-          `).join('')}
-          <button type="button" class="desktop-opt-clear-btn ${sel ? 'visible' : ''}" id="desk-opt-clear-${q}" title="Boş Bırak" onclick="window.clearDesktopCreateExamKeyChoice(${q})">
-            &times;
+  if (tempCreateExamType === 'multi') {
+    // Çoklu Ders Durumu
+    if (multiTabs) {
+      multiTabs.style.display = 'flex';
+      multiTabs.innerHTML = tempCreateExamSubjects.map(s => {
+        const marked = Object.keys(tempCreateExamKey).filter(k => k.startsWith(s.id + '_') && tempCreateExamKey[k]).length;
+        const isActive = s.id === activeCreateExamSubjId;
+        return `
+          <button type="button" class="desktop-ak-subj-tab ${isActive ? 'active' : ''}" onclick="window.selectCreateExamSubjTab('${s.id}')">
+            <span>${s.name}</span>
+            <span class="badge">${marked}/${s.questionCount}</span>
           </button>
-        </div>
-      </div>
-    `;
-  }
+        `;
+      }).join('');
+    }
 
-  grid.innerHTML = html;
-  if (counter) counter.textContent = `${markedCount} / ${totalQ} Soru İşaretlendi`;
+    const currentSubj = tempCreateExamSubjects.find(s => s.id === activeCreateExamSubjId) || tempCreateExamSubjects[0];
+    if (!currentSubj) return;
+
+    const subjQCount = currentSubj.questionCount || 10;
+    let html = '';
+    let subjMarked = 0;
+
+    for (let q = 1; q <= subjQCount; q++) {
+      const key = `${currentSubj.id}_${q}`;
+      const sel = tempCreateExamKey[key] || '';
+      if (sel && letters.includes(sel)) subjMarked++;
+      else if (sel && !letters.includes(sel)) delete tempCreateExamKey[key];
+
+      html += `
+        <div class="desktop-opt-bubble-row" data-subj="${currentSubj.id}" data-q="${q}">
+          <span class="desktop-opt-bubble-qnum">${q}.</span>
+          <div class="desktop-opt-bubbles-wrap">
+            ${letters.map(l => `
+              <button type="button" class="desktop-opt-bubble-btn ${sel === l ? 'active' : ''}" onclick="window.selectDesktopCreateExamKeyChoice('${key}', '${l}')">
+                ${l}
+              </button>
+            `).join('')}
+            <button type="button" class="desktop-opt-clear-btn ${sel ? 'visible' : ''}" id="desk-opt-clear-${key}" title="Boş Bırak" onclick="window.clearDesktopCreateExamKeyChoice('${key}')">
+              &times;
+            </button>
+          </div>
+        </div>
+      `;
+    }
+
+    grid.innerHTML = html;
+
+    const totalQ = tempCreateExamSubjects.reduce((sum, s) => sum + s.questionCount, 0);
+    const totalMarked = Object.keys(tempCreateExamKey).filter(k => tempCreateExamKey[k]).length;
+    if (counter) counter.textContent = `Toplam ${totalMarked} / ${totalQ} Soru İşaretlendi (${currentSubj.name}: ${subjMarked}/${subjQCount})`;
+
+  } else {
+    // Tek Ders Durumu
+    if (multiTabs) multiTabs.style.display = 'none';
+
+    const totalQ = Math.max(1, Math.min(100, parseInt(qInput ? qInput.value : 20, 10) || 20));
+    let html = '';
+    let markedCount = 0;
+
+    for (let q = 1; q <= totalQ; q++) {
+      const sel = tempCreateExamKey[q] || '';
+      if (sel && letters.includes(sel)) markedCount++;
+      else if (sel && !letters.includes(sel)) delete tempCreateExamKey[q];
+
+      html += `
+        <div class="desktop-opt-bubble-row" data-q="${q}">
+          <span class="desktop-opt-bubble-qnum">${q}.</span>
+          <div class="desktop-opt-bubbles-wrap">
+            ${letters.map(l => `
+              <button type="button" class="desktop-opt-bubble-btn ${sel === l ? 'active' : ''}" onclick="window.selectDesktopCreateExamKeyChoice(${q}, '${l}')">
+                ${l}
+              </button>
+            `).join('')}
+            <button type="button" class="desktop-opt-clear-btn ${sel ? 'visible' : ''}" id="desk-opt-clear-${q}" title="Boş Bırak" onclick="window.clearDesktopCreateExamKeyChoice(${q})">
+              &times;
+            </button>
+          </div>
+        </div>
+      `;
+    }
+
+    grid.innerHTML = html;
+    if (counter) counter.textContent = `${markedCount} / ${totalQ} Soru İşaretlendi`;
+  }
 }
 
-window.selectDesktopCreateExamKeyChoice = (q, opt) => {
-  if (tempCreateExamKey[q] === opt) {
-    delete tempCreateExamKey[q];
+window.selectDesktopCreateExamKeyChoice = (keyOrQ, opt) => {
+  const key = String(keyOrQ);
+  if (tempCreateExamKey[key] === opt) {
+    delete tempCreateExamKey[key];
   } else {
-    tempCreateExamKey[q] = opt;
+    tempCreateExamKey[key] = opt;
   }
 
-  const row = document.querySelector(`#exam-optical-key-grid .desktop-opt-bubble-row[data-q="${q}"]`);
+  const row = document.querySelector(`#exam-optical-key-grid .desktop-opt-bubble-row[data-q="${key.includes('_') ? key.split('_')[1] : key}"]`);
   if (row) {
-    const currentSel = tempCreateExamKey[q] || '';
+    const currentSel = tempCreateExamKey[key] || '';
     row.querySelectorAll('.desktop-opt-bubble-btn').forEach(btn => {
       if (btn.textContent.trim() === currentSel) btn.classList.add('active');
       else btn.classList.remove('active');
     });
-    const clr = document.getElementById(`desk-opt-clear-${q}`);
+    const clr = document.getElementById(`desk-opt-clear-${key}`);
     if (clr) clr.className = `desktop-opt-clear-btn ${currentSel ? 'visible' : ''}`;
   }
 
-  const qInput = document.getElementById('exam-questions-input');
-  const totalQ = Math.max(1, Math.min(100, parseInt(qInput ? qInput.value : 20, 10) || 20));
-  const counter = document.getElementById('exam-opt-counter');
-  const marked = Object.keys(tempCreateExamKey).filter(k => parseInt(k, 10) <= totalQ && tempCreateExamKey[k]).length;
-  if (counter) counter.textContent = `${marked} / ${totalQ} Soru İşaretlendi`;
+  if (tempCreateExamType === 'multi') {
+    const multiTabs = document.getElementById('exam-optical-multi-tabs');
+    if (multiTabs) {
+      tempCreateExamSubjects.forEach(s => {
+        const marked = Object.keys(tempCreateExamKey).filter(k => k.startsWith(s.id + '_') && tempCreateExamKey[k]).length;
+        const tab = multiTabs.querySelector(`button[onclick*="'${s.id}'"] .badge`);
+        if (tab) tab.textContent = `${marked}/${s.questionCount}`;
+      });
+    }
+    const currentSubj = tempCreateExamSubjects.find(s => s.id === activeCreateExamSubjId) || tempCreateExamSubjects[0];
+    const totalQ = tempCreateExamSubjects.reduce((sum, s) => sum + s.questionCount, 0);
+    const totalMarked = Object.keys(tempCreateExamKey).filter(k => tempCreateExamKey[k]).length;
+    const subjMarked = Object.keys(tempCreateExamKey).filter(k => k.startsWith(currentSubj.id + '_') && tempCreateExamKey[k]).length;
+    const counter = document.getElementById('exam-opt-counter');
+    if (counter) counter.textContent = `Toplam ${totalMarked} / ${totalQ} Soru İşaretlendi (${currentSubj.name}: ${subjMarked}/${currentSubj.questionCount})`;
+  } else {
+    const qInput = document.getElementById('exam-questions-input');
+    const totalQ = Math.max(1, Math.min(100, parseInt(qInput ? qInput.value : 20, 10) || 20));
+    const counter = document.getElementById('exam-opt-counter');
+    const marked = Object.keys(tempCreateExamKey).filter(k => parseInt(k, 10) <= totalQ && tempCreateExamKey[k]).length;
+    if (counter) counter.textContent = `${marked} / ${totalQ} Soru İşaretlendi`;
+  }
 };
 
-window.clearDesktopCreateExamKeyChoice = (q) => {
-  delete tempCreateExamKey[q];
-  const row = document.querySelector(`#exam-optical-key-grid .desktop-opt-bubble-row[data-q="${q}"]`);
-  if (row) {
-    row.querySelectorAll('.desktop-opt-bubble-btn').forEach(btn => btn.classList.remove('active'));
-    const clr = document.getElementById(`desk-opt-clear-${q}`);
-    if (clr) clr.className = 'desktop-opt-clear-btn';
-  }
-  const qInput = document.getElementById('exam-questions-input');
-  const totalQ = Math.max(1, Math.min(100, parseInt(qInput ? qInput.value : 20, 10) || 20));
-  const counter = document.getElementById('exam-opt-counter');
-  const marked = Object.keys(tempCreateExamKey).filter(k => parseInt(k, 10) <= totalQ && tempCreateExamKey[k]).length;
-  if (counter) counter.textContent = `${marked} / ${totalQ} Soru İşaretlendi`;
+window.clearDesktopCreateExamKeyChoice = (keyOrQ) => {
+  const key = String(keyOrQ);
+  delete tempCreateExamKey[key];
+  window.selectDesktopCreateExamKeyChoice(key, '');
 };
 
 window.fillSampleDesktopExamKey = () => {
-  const qInput = document.getElementById('exam-questions-input');
   const cInput = document.getElementById('exam-choices-count');
-  const totalQ = Math.max(1, Math.min(100, parseInt(qInput ? qInput.value : 20, 10) || 20));
   const choicesCount = parseInt(cInput ? cInput.value : 4, 10) || 4;
   const letters = ['A', 'B', 'C', 'D', 'E'].slice(0, choicesCount);
 
   tempCreateExamKey = {};
-  for (let q = 1; q <= totalQ; q++) {
-    tempCreateExamKey[q] = letters[(q - 1) % letters.length];
+  if (tempCreateExamType === 'multi') {
+    tempCreateExamSubjects.forEach(s => {
+      for (let q = 1; q <= s.questionCount; q++) {
+        tempCreateExamKey[`${s.id}_${q}`] = letters[(q - 1) % letters.length];
+      }
+    });
+  } else {
+    const qInput = document.getElementById('exam-questions-input');
+    const totalQ = Math.max(1, Math.min(100, parseInt(qInput ? qInput.value : 20, 10) || 20));
+    for (let q = 1; q <= totalQ; q++) {
+      tempCreateExamKey[q] = letters[(q - 1) % letters.length];
+    }
   }
   renderDesktopAnswerKeyGrid();
 };
@@ -299,7 +526,14 @@ function setupWeeklyTab(showToast) {
         }
       }
 
-      // Optik form onay kutusunu ve cevap anahtarını hazırla
+      // Sınav türü, optik form ve ders hazırlığı
+      window.selectExamType('single');
+      tempCreateExamSubjects = [
+        { id: 'sub_0', name: 'Türkçe', questionCount: 15 },
+        { id: 'sub_1', name: 'Matematik', questionCount: 15 },
+        { id: 'sub_2', name: 'Fen Bilimleri', questionCount: 10 }
+      ];
+      activeCreateExamSubjId = 'sub_0';
       tempCreateExamKey = {};
       const opticalToggle = document.getElementById('exam-has-optical-input');
       const opticalCont = document.getElementById('exam-optical-config-container');
@@ -383,11 +617,26 @@ function setupWeeklyTab(showToast) {
       const choicesCount = parseInt(document.getElementById('exam-choices-count')?.value, 10) || 4;
       const answerKey = hasOptical ? { ...tempCreateExamKey } : {};
 
+      // Sınav türü ve dersler
+      const isMulti = tempCreateExamType === 'multi';
+      let totalQ = questions;
+      let subjects = [];
+      if (isMulti) {
+        subjects = tempCreateExamSubjects.map(s => ({
+          id: s.id,
+          name: String(s.name || '').trim() || 'Ders',
+          questionCount: Math.max(1, parseInt(s.questionCount, 10) || 10)
+        }));
+        totalQ = subjects.reduce((sum, s) => sum + s.questionCount, 0);
+      }
+
       const examData = {
         id: 'exam_' + Date.now(),
         weekId: week,
         examName: name,
-        totalQuestions: questions,
+        isMultiSubject: isMulti,
+        subjects: isMulti ? subjects : [],
+        totalQuestions: totalQ,
         duration: duration,
         wrongAffects: wrongAffects,
         penaltyRate: penaltyRate,
@@ -661,15 +910,31 @@ function setupWeeklyTab(showToast) {
         return;
       }
       
+      const isMulti = !!activeExam.isMultiSubject;
+      const qCount = activeExam.totalQuestions || 20;
+
       const questionCountInput = document.getElementById('optical-questions-input');
       if (questionCountInput) {
-        questionCountInput.value = activeExam.totalQuestions || 20;
+        questionCountInput.value = qCount;
         questionCountInput.disabled = true; // Sınavın soru sayısı değiştirilemez
       }
 
       const choicesInput = document.getElementById('optical-choices-input');
       if (choicesInput) {
         choicesInput.value = activeExam.choicesCount || 4;
+      }
+
+      const perPageInput = document.getElementById('optical-per-page-input');
+      const tipEl = document.getElementById('optical-multi-page-tip');
+      if (isMulti || qCount > 35) {
+        if (perPageInput) perPageInput.value = '1';
+        if (tipEl) {
+          tipEl.style.display = 'block';
+          tipEl.innerHTML = `ℹ️ Çoklu ders optik formunun A4 sayfaya tam sığması ve net okunabilmesi için <strong>Sayfa Başına 1 Form (A4)</strong> seçildi.`;
+        }
+      } else {
+        if (perPageInput) perPageInput.value = '2';
+        if (tipEl) tipEl.style.display = 'none';
       }
       
       populateOpticalStudentsList();
@@ -686,7 +951,31 @@ function setupWeeklyTab(showToast) {
   if (opticalQInput) opticalQInput.addEventListener('input', updateOpticalLivePreview);
   if (opticalCInput) opticalCInput.addEventListener('change', updateOpticalLivePreview);
   if (opticalTypeInput) opticalTypeInput.addEventListener('change', updateOpticalLivePreview);
-  if (opticalPerPageInput) opticalPerPageInput.addEventListener('change', updateOpticalLivePreview);
+  if (opticalPerPageInput) {
+    opticalPerPageInput.addEventListener('change', () => {
+      const tipEl = document.getElementById('optical-multi-page-tip');
+      const isMulti = activeExam && !!activeExam.isMultiSubject;
+      const qCount = activeExam ? (activeExam.totalQuestions || 20) : 20;
+      if (tipEl) {
+        if ((isMulti || qCount > 35) && opticalPerPageInput.value !== '1') {
+          tipEl.style.display = 'block';
+          tipEl.innerHTML = `⚠️ Bu sınav ${qCount} soru / çoklu ders içeriyor. Sayfa taşmasını önlemek ve şıkların tam sığması için <strong>Sayfa Başına 1 Form (A4)</strong> şiddetle önerilir.`;
+          tipEl.style.background = 'rgba(239, 68, 68, 0.08)';
+          tipEl.style.borderColor = 'rgba(239, 68, 68, 0.25)';
+          tipEl.style.color = 'var(--danger)';
+        } else if (isMulti || qCount > 35) {
+          tipEl.style.display = 'block';
+          tipEl.innerHTML = `ℹ️ Çoklu ders optik formunun A4 sayfaya tam sığması ve net okunabilmesi için <strong>Sayfa Başına 1 Form (A4)</strong> seçildi.`;
+          tipEl.style.background = 'rgba(99, 102, 241, 0.08)';
+          tipEl.style.borderColor = 'rgba(99, 102, 241, 0.2)';
+          tipEl.style.color = '#4338ca';
+        } else {
+          tipEl.style.display = 'none';
+        }
+      }
+      updateOpticalLivePreview();
+    });
+  }
 
   // Optik Form Kapatma
   document.querySelectorAll('#modal-print-optical .close-btn, #modal-print-optical .close-btn-action').forEach(btn => {
@@ -1414,7 +1703,48 @@ function setupWeeklyTab(showToast) {
           sendingData = await resizeImageForOmr(fileItem.dataUrl, 1400);
         }
 
-        const prompt = `Görseldeki veya PDF belgesindeki sınav optik formunu dikkatlice incele.
+        const isMulti = activeExam && !!activeExam.isMultiSubject;
+        const examSubjects = activeExam && activeExam.subjects ? activeExam.subjects : [];
+
+        let prompt = '';
+        if (isMulti && examSubjects.length > 0) {
+          const subjectsDesc = examSubjects.map(s => `- ${s.name}: ${s.questionCount} soru (1'den ${s.questionCount}'e kadar)`).join('\n');
+          prompt = `Görseldeki veya PDF belgesindeki ÇOKLU DERS (deneme/branşlı) sınav optik formunu dikkatlice incele.
+Sınav Bilgileri:
+- Sınav Adı: ${examTitle}
+- Sınav Türü: Çoklu Ders / Branşlı Deneme Sınavı
+- Dersler ve Soru Sayıları:
+${subjectsDesc}
+- Toplam Soru Sayısı: ${qCount}
+- Olası Seçenekler: ${letters.join(', ')}
+
+ÖNEMLİ TALİMATLAR:
+1. Bu form ÇOKLU DERS optik formudur. Her derste soru numaraları 1'den başlar (Örn: ${examSubjects[0]?.name} 1..${examSubjects[0]?.questionCount}, ${examSubjects[1]?.name || 'Diğer'} 1..${examSubjects[1]?.questionCount || 10} gibi).
+2. Belgede veya görselde 1 veya birden fazla öğrencinin optik formu bulunabilir (örneğin CamScanner ile taranmış çok sayfalı bir PDF veya sayfada altlı üstlü 2 form). Algılanan BÜTÜN optik formları ayrı bir nesne olarak "cards" dizisi içine ekle.
+3. Her bir form için:
+   - "Öğrenci:" yanındaki tam isim ve soyismi ("studentName").
+   - "No:" yanındaki öğrenci okul numarasını ("studentNo").
+4. Her dersin altındaki sorular için öğrencinin doldurduğu/karaladığı şıkları tespit et:
+   - "answers" nesnesinde her dersin soru cevaplarını "${examSubjects[0]?.id || 'sub_0'}_1" formatında (örneğin: "${examSubjects[0]?.id || 'sub_0'}_1": "A", "${examSubjects[0]?.id || 'sub_0'}_2": "B") ya da "${examSubjects[0]?.name}_1" şeklinde belirt.
+   - Doldurulan seçeneğin harfini ('A', 'B', 'C', 'D' vb.) yaz.
+   - Soru boş bırakılmışsa "" (boş dize) yaz.
+   - Birden fazla şık karalanmışsa "MULTIPLE" yaz.
+   - Eğer bir şık karalanıp sonra üzeri çizilmiş ve başka bir şık doldurulmuşsa geçerli olanı al.
+
+Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi veya ek metin ekleme):
+{
+  "cards": [
+    {
+      "studentName": "Öğrenci Adı",
+      "studentNo": "123",
+      "answers": {
+        "${examSubjects[0]?.id || 'sub_0'}_1": "A"
+      }
+    }
+  ]
+}`;
+        } else {
+          prompt = `Görseldeki veya PDF belgesindeki sınav optik formunu dikkatlice incele.
 Sınav Bilgileri:
 - Sınav Adı: ${examTitle}
 - Toplam Soru Sayısı: ${qCount}
@@ -1444,6 +1774,7 @@ Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi ve
     }
   ]
 }`;
+        }
 
         const rawRes = await window.callGeminiAPI(prompt, {
           imageBase64: sendingData,
@@ -1499,67 +1830,178 @@ Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi ve
           let correctCount = 0;
           let wrongCount = 0;
           let blankCount = 0;
+          let subjectBreakdown = null;
 
           const cardAnswers = card.answers || {};
 
-          for (let q = 1; q <= qCount; q++) {
-            let val = cardAnswers[q] || cardAnswers[String(q)] || '';
-            val = String(val).trim().toUpperCase();
-            if (!letters.includes(val) && val !== 'MULTIPLE') {
-              val = '';
+          if (isMulti && examSubjects.length > 0) {
+            subjectBreakdown = {};
+            const penaltyRate = activeExam.wrongAffects ? (parseFloat(activeExam.penaltyRate) || 4) : 0;
+
+            examSubjects.forEach(subj => {
+              let subjCorrect = 0;
+              let subjWrong = 0;
+              let subjBlank = 0;
+
+              for (let q = 1; q <= subj.questionCount; q++) {
+                const key = `${subj.id}_${q}`;
+                let val = '';
+                if (cardAnswers[key] !== undefined) {
+                  val = cardAnswers[key];
+                } else if (cardAnswers[`${subj.name}_${q}`] !== undefined) {
+                  val = cardAnswers[`${subj.name}_${q}`];
+                } else if (card.subjectAnswers && card.subjectAnswers[subj.id] && card.subjectAnswers[subj.id][q] !== undefined) {
+                  val = card.subjectAnswers[subj.id][q];
+                } else if (card.subjectAnswers && card.subjectAnswers[subj.name] && card.subjectAnswers[subj.name][q] !== undefined) {
+                  val = card.subjectAnswers[subj.name][q];
+                } else {
+                  const normSubj = subj.name.toLocaleLowerCase('tr').replace(/[^a-zçğıöşü0-9]/g, '');
+                  const matchedKey = Object.keys(cardAnswers).find(k => {
+                    const kNorm = k.toLocaleLowerCase('tr').replace(/[^a-zçğıöşü0-9]/g, '');
+                    return kNorm.startsWith(normSubj) && k.endsWith(`_${q}`);
+                  });
+                  if (matchedKey) val = cardAnswers[matchedKey];
+                }
+
+                val = String(val || '').trim().toUpperCase();
+                if (!letters.includes(val) && val !== 'MULTIPLE') {
+                  val = '';
+                }
+
+                const correctAns = answerKey[key] || '';
+                const qd = {
+                  subjId: subj.id,
+                  subjName: subj.name,
+                  q,
+                  key,
+                  marked: val === 'MULTIPLE' ? '' : val,
+                  status: val === 'MULTIPLE' ? 'multiple' : (val ? 'marked' : 'blank'),
+                  keyAnswer: correctAns
+                };
+
+                if (!qd.marked) {
+                  blankCount++;
+                  subjBlank++;
+                  qd.isCorrect = false;
+                  qd.isBlank = true;
+                } else if (correctAns && qd.marked === correctAns) {
+                  correctCount++;
+                  subjCorrect++;
+                  qd.isCorrect = true;
+                  qd.isBlank = false;
+                } else {
+                  wrongCount++;
+                  subjWrong++;
+                  qd.isCorrect = false;
+                  qd.isBlank = false;
+                }
+
+                detectedAnswers[key] = qd.marked;
+                questionDetails.push(qd);
+              }
+
+              let subjNet = penaltyRate > 0 ? (subjCorrect - (subjWrong / penaltyRate)) : subjCorrect;
+              subjNet = Math.max(0, parseFloat(subjNet.toFixed(2)));
+              const subjScore = subj.questionCount > 0 ? parseFloat(((subjNet / subj.questionCount) * 100).toFixed(1)) : 0;
+
+              subjectBreakdown[subj.id] = {
+                name: subj.name,
+                correct: subjCorrect,
+                wrong: subjWrong,
+                blank: subjBlank,
+                net: subjNet,
+                score: subjScore,
+                total: subj.questionCount
+              };
+            });
+
+            let net = penaltyRate > 0 ? (correctCount - (wrongCount / penaltyRate)) : correctCount;
+            net = Math.max(0, parseFloat(net.toFixed(2)));
+            const score = qCount > 0 ? parseFloat(((net / qCount) * 100).toFixed(1)) : 0;
+
+            opticalScannedResults.push({
+              resultId: 'omr_res_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6),
+              fileName: fileItem.name,
+              thumbUrl: fileItem.isPdf ? '' : fileItem.dataUrl,
+              isPdf: !!fileItem.isPdf,
+              pdfDataUrl: fileItem.isPdf ? fileItem.dataUrl : '',
+              rawStudentName: cardStudentName,
+              rawStudentNo: cardStudentNo,
+              matchedStudentId: matched ? matched.id : '',
+              correctCount,
+              wrongCount,
+              blankCount,
+              net,
+              score,
+              answers: detectedAnswers,
+              subjectBreakdown,
+              questionDetails
+            });
+
+            const matchedLabel = matched ? `${matched.name} ${matched.surname}` : '(Eşleşmedi)';
+            appendOpticalLog(`  → Form ${cardIndex + 1}: ${cardStudentName || 'İsimsiz'} (No: ${cardStudentNo || '-'}) ➔ ${matchedLabel} | Doğru: ${correctCount}, Yanlış: ${wrongCount}, Puan: ${score}`);
+
+          } else {
+            // Tek Ders Puanlama (Mevcut Mantık)
+            for (let q = 1; q <= qCount; q++) {
+              let val = cardAnswers[q] || cardAnswers[String(q)] || '';
+              val = String(val).trim().toUpperCase();
+              if (!letters.includes(val) && val !== 'MULTIPLE') {
+                val = '';
+              }
+
+              const correctAns = answerKey[q] || answerKey[String(q)] || '';
+              const qd = {
+                q,
+                marked: val === 'MULTIPLE' ? '' : val,
+                status: val === 'MULTIPLE' ? 'multiple' : (val ? 'marked' : 'blank'),
+                keyAnswer: correctAns
+              };
+
+              if (!qd.marked) {
+                blankCount++;
+                qd.isCorrect = false;
+                qd.isBlank = true;
+              } else if (correctAns && qd.marked === correctAns) {
+                correctCount++;
+                qd.isCorrect = true;
+                qd.isBlank = false;
+              } else {
+                wrongCount++;
+                qd.isCorrect = false;
+                qd.isBlank = false;
+              }
+
+              detectedAnswers[q] = qd.marked;
+              questionDetails.push(qd);
             }
 
-            const correctAns = answerKey[q] || answerKey[String(q)] || '';
-            const qd = {
-              q,
-              marked: val === 'MULTIPLE' ? '' : val,
-              status: val === 'MULTIPLE' ? 'multiple' : (val ? 'marked' : 'blank'),
-              keyAnswer: correctAns
-            };
+            const penaltyRate = activeExam.wrongAffects ? (parseFloat(activeExam.penaltyRate) || 4) : 0;
+            let net = penaltyRate > 0 ? (correctCount - (wrongCount / penaltyRate)) : correctCount;
+            net = Math.max(0, parseFloat(net.toFixed(2)));
+            const score = qCount > 0 ? parseFloat(((net / qCount) * 100).toFixed(1)) : 0;
 
-            if (!qd.marked) {
-              blankCount++;
-              qd.isCorrect = false;
-              qd.isBlank = true;
-            } else if (correctAns && qd.marked === correctAns) {
-              correctCount++;
-              qd.isCorrect = true;
-              qd.isBlank = false;
-            } else {
-              wrongCount++;
-              qd.isCorrect = false;
-              qd.isBlank = false;
-            }
+            opticalScannedResults.push({
+              resultId: 'omr_res_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6),
+              fileName: fileItem.name,
+              thumbUrl: fileItem.isPdf ? '' : fileItem.dataUrl,
+              isPdf: !!fileItem.isPdf,
+              pdfDataUrl: fileItem.isPdf ? fileItem.dataUrl : '',
+              rawStudentName: cardStudentName,
+              rawStudentNo: cardStudentNo,
+              matchedStudentId: matched ? matched.id : '',
+              correctCount,
+              wrongCount,
+              blankCount,
+              net,
+              score,
+              answers: detectedAnswers,
+              questionDetails
+            });
 
-            detectedAnswers[q] = qd.marked;
-            questionDetails.push(qd);
+            const matchedLabel = matched ? `${matched.name} ${matched.surname}` : '(Eşleşmedi)';
+            appendOpticalLog(`  → Form ${cardIndex + 1}: ${cardStudentName || 'İsimsiz'} (No: ${cardStudentNo || '-'}) ➔ ${matchedLabel} | Doğru: ${correctCount}, Yanlış: ${wrongCount}, Puan: ${score}`);
           }
-
-          const penaltyRate = activeExam.wrongAffects ? (parseFloat(activeExam.penaltyRate) || 4) : 0;
-          let net = penaltyRate > 0 ? (correctCount - (wrongCount / penaltyRate)) : correctCount;
-          net = Math.max(0, parseFloat(net.toFixed(2)));
-          const score = qCount > 0 ? parseFloat(((net / qCount) * 100).toFixed(1)) : 0;
-
-          opticalScannedResults.push({
-            resultId: 'omr_res_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6),
-            fileName: fileItem.name,
-            thumbUrl: fileItem.isPdf ? '' : fileItem.dataUrl,
-            isPdf: !!fileItem.isPdf,
-            pdfDataUrl: fileItem.isPdf ? fileItem.dataUrl : '',
-            rawStudentName: cardStudentName,
-            rawStudentNo: cardStudentNo,
-            matchedStudentId: matched ? matched.id : '',
-            correctCount,
-            wrongCount,
-            blankCount,
-            net,
-            score,
-            answers: detectedAnswers,
-            questionDetails
-          });
-
-          const matchedLabel = matched ? `${matched.name} ${matched.surname}` : '(Eşleşmedi)';
-          appendOpticalLog(`  → Form ${cardIndex + 1}: ${cardStudentName || 'İsimsiz'} (No: ${cardStudentNo || '-'}) ➔ ${matchedLabel} | Doğru: ${correctCount}, Yanlış: ${wrongCount}, Puan: ${score}`);
         });
 
       } catch (err) {
@@ -1659,29 +2101,75 @@ Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi ve
 
       // Şıklar HTML'i
       let answersHtml = '';
-      res.questionDetails.forEach(qd => {
-        let chipClass = 'blank';
-        let icon = '⚪';
-        let detailText = qd.keyAnswer ? `(D:${qd.keyAnswer})` : '';
+      if (res.subjectBreakdown) {
+        const subjectsMap = {};
+        res.questionDetails.forEach(qd => {
+          const sName = qd.subjName || 'Ders';
+          if (!subjectsMap[sName]) subjectsMap[sName] = [];
+          subjectsMap[sName].push(qd);
+        });
 
-        if (qd.isCorrect) {
-          chipClass = 'correct';
-          icon = '✓';
-          detailText = '';
-        } else if (!qd.isBlank) {
-          chipClass = 'wrong';
-          icon = '✗';
+        for (const sName in subjectsMap) {
+          answersHtml += `<div style="width: 100%; font-size: 0.74rem; font-weight: 800; color: #4f46e5; margin-top: 6px; border-bottom: 1px dashed var(--border-color); padding-bottom: 2px;">📚 ${sName}</div>`;
+          subjectsMap[sName].forEach(qd => {
+            let chipClass = 'blank';
+            let icon = '⚪';
+            let detailText = qd.keyAnswer ? `(D:${qd.keyAnswer})` : '';
+
+            if (qd.isCorrect) {
+              chipClass = 'correct';
+              icon = '✓';
+              detailText = '';
+            } else if (!qd.isBlank) {
+              chipClass = 'wrong';
+              icon = '✗';
+            }
+
+            answersHtml += `
+              <div class="optical-answer-chip ${chipClass}" title="${sName} Soru ${qd.q}: İşaretlenen '${qd.marked || 'Boş'}' - Doğru '${qd.keyAnswer || '-'}'">
+                <span>S${qd.q}:</span>
+                <strong>${qd.marked || '-'}</strong>
+                <small>${icon}</small>
+                ${detailText ? `<span style="font-size: 0.65rem; opacity: 0.85;">${detailText}</span>` : ''}
+              </div>
+            `;
+          });
         }
+      } else {
+        res.questionDetails.forEach(qd => {
+          let chipClass = 'blank';
+          let icon = '⚪';
+          let detailText = qd.keyAnswer ? `(D:${qd.keyAnswer})` : '';
 
-        answersHtml += `
-          <div class="optical-answer-chip ${chipClass}" title="Soru ${qd.q}: İşaretlenen '${qd.marked || 'Boş'}' - Doğru '${qd.keyAnswer || '-'}'">
-            <span>S${qd.q}:</span>
-            <strong>${qd.marked || '-'}</strong>
-            <small>${icon}</small>
-            ${detailText ? `<span style="font-size: 0.65rem; opacity: 0.85;">${detailText}</span>` : ''}
-          </div>
-        `;
-      });
+          if (qd.isCorrect) {
+            chipClass = 'correct';
+            icon = '✓';
+            detailText = '';
+          } else if (!qd.isBlank) {
+            chipClass = 'wrong';
+            icon = '✗';
+          }
+
+          answersHtml += `
+            <div class="optical-answer-chip ${chipClass}" title="Soru ${qd.q}: İşaretlenen '${qd.marked || 'Boş'}' - Doğru '${qd.keyAnswer || '-'}'">
+              <span>S${qd.q}:</span>
+              <strong>${qd.marked || '-'}</strong>
+              <small>${icon}</small>
+              ${detailText ? `<span style="font-size: 0.65rem; opacity: 0.85;">${detailText}</span>` : ''}
+            </div>
+          `;
+        });
+      }
+
+      let breakdownHtml = '';
+      if (res.subjectBreakdown) {
+        const items = Object.values(res.subjectBreakdown).map(sb => `
+          <span style="font-size: 0.72rem; background: var(--bg-primary); padding: 2px 7px; border-radius: 4px; border: 1px solid var(--border-color); color: var(--text-primary);">
+            <strong>${sb.name}:</strong> ${sb.correct}D ${sb.wrong}Y <span style="color: #4f46e5; font-weight: 700;">(${sb.net} Net)</span>
+          </span>
+        `).join('');
+        breakdownHtml = `<div style="display: flex; gap: 6px; flex-wrap: wrap; margin-top: 5px;">${items}</div>`;
+      }
 
       const thumbHtml = res.thumbUrl
         ? `<img src="${res.thumbUrl}" alt="Kağıt" style="width: 48px; height: 48px; object-fit: cover; border-radius: 6px; border: 1px solid var(--border-color); cursor: pointer;" class="res-thumb-img" title="Büyütmek için tıklayın">`
@@ -1708,14 +2196,17 @@ Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi ve
         </div>
 
         <!-- Puan ve Net Rozetleri -->
-        <div style="display: flex; gap: 0.6rem; align-items: center; flex-wrap: wrap; background: var(--bg-secondary); padding: 0.4rem 0.75rem; border-radius: 6px;">
-          <span style="font-size: 0.8rem; font-weight: 700; color: #10b981;">✓ ${res.correctCount} Doğru</span>
-          <span style="font-size: 0.8rem; font-weight: 700; color: #ef4444;">✗ ${res.wrongCount} Yanlış</span>
-          <span style="font-size: 0.8rem; font-weight: 600; color: #64748b;">⚪ ${res.blankCount} Boş</span>
-          <span style="font-size: 0.8rem; font-weight: 700; color: #4f46e5;">📊 ${res.net} Net</span>
-          <div style="margin-left: auto; font-size: 0.95rem; font-weight: 800; color: #7c3aed; background: rgba(124, 58, 237, 0.1); padding: 0.2rem 0.6rem; border-radius: 4px;">
-            🎯 ${res.score} Puan
+        <div style="display: flex; flex-direction: column; gap: 4px; background: var(--bg-secondary); padding: 0.5rem 0.75rem; border-radius: 6px;">
+          <div style="display: flex; gap: 0.6rem; align-items: center; flex-wrap: wrap;">
+            <span style="font-size: 0.8rem; font-weight: 700; color: #10b981;">✓ ${res.correctCount} Doğru</span>
+            <span style="font-size: 0.8rem; font-weight: 700; color: #ef4444;">✗ ${res.wrongCount} Yanlış</span>
+            <span style="font-size: 0.8rem; font-weight: 600; color: #64748b;">⚪ ${res.blankCount} Boş</span>
+            <span style="font-size: 0.8rem; font-weight: 700; color: #4f46e5;">📊 Toplam ${res.net} Net</span>
+            <div style="margin-left: auto; font-size: 0.95rem; font-weight: 800; color: #7c3aed; background: rgba(124, 58, 237, 0.1); padding: 0.2rem 0.6rem; border-radius: 4px;">
+              🎯 ${res.score} Puan
+            </div>
           </div>
+          ${breakdownHtml}
         </div>
 
         <!-- Şık Detayları Butonu & Konteyneri -->
@@ -1824,6 +2315,7 @@ Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi ve
           net: res.net,
           score: res.score,
           answers: { ...res.answers },
+          subjectBreakdown: res.subjectBreakdown || null,
           source: 'ai_optical_upload',
           scannedAt: new Date().toISOString()
         };
@@ -1888,6 +2380,9 @@ Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi ve
       else pill.classList.remove('active');
     });
 
+    // Çoklu ders sekmesi aktif dersini ayarla
+    activeEditKeySubjId = (activeExam.isMultiSubject && Array.isArray(activeExam.subjects) && activeExam.subjects[0]) ? activeExam.subjects[0].id : '';
+
     // Yeniden puanlama kutusunu göster/gizle
     const hasResults = activeExam.studentResults && Object.keys(activeExam.studentResults).length > 0;
     if (desktopAkRescoreContainer) {
@@ -1900,6 +2395,11 @@ Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi ve
     if (window.safeCreateIcons) window.safeCreateIcons();
   }
   window.openDesktopAnswerKeyModal = openDesktopAnswerKeyModal;
+
+  window.selectEditExamSubjTab = (subjId) => {
+    activeEditKeySubjId = subjId;
+    renderDesktopAnswerKeyModalGrid();
+  };
 
   // Modalı Kapatma
   if (btnCloseEditAnswerKeyModal) {
@@ -1938,52 +2438,127 @@ Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi ve
     if (!desktopAkQuestionsGrid || !activeExam) return;
     desktopAkQuestionsGrid.innerHTML = '';
 
-    const qCount = parseInt(activeExam.totalQuestions, 10) || 20;
-    const letters = ['A', 'B', 'C', 'D', 'E'].slice(0, editAnswerKeyChoices);
+    const isMulti = activeExam && !!activeExam.isMultiSubject;
+    const subjects = activeExam && Array.isArray(activeExam.subjects) ? activeExam.subjects : [];
+    const subjectsTabsEl = document.getElementById('desktop-ak-subjects-tabs');
 
-    for (let q = 1; q <= qCount; q++) {
-      const selected = editAnswerKeyTemp[q] || '';
-      const row = document.createElement('div');
-      row.style.cssText = 'background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 6px; padding: 4px 6px; display: flex; align-items: center; justify-content: space-between; gap: 4px;';
+    if (isMulti && subjects.length > 0) {
+      if (subjectsTabsEl) {
+        subjectsTabsEl.style.display = 'flex';
+        activeEditKeySubjId = activeEditKeySubjId || subjects[0].id;
 
-      const qNum = document.createElement('span');
-      qNum.textContent = `${q}.`;
-      qNum.style.cssText = 'font-weight: 700; font-size: 0.76rem; min-width: 20px; color: var(--text-muted); text-align: right;';
-      row.appendChild(qNum);
+        subjectsTabsEl.innerHTML = subjects.map(s => {
+          const marked = Object.keys(editAnswerKeyTemp).filter(k => k.startsWith(s.id + '_') && editAnswerKeyTemp[k]).length;
+          const isActive = s.id === activeEditKeySubjId;
+          return `
+            <button type="button" class="desktop-ak-subj-tab ${isActive ? 'active' : ''}" onclick="window.selectEditExamSubjTab('${s.id}')">
+              <span>${s.name}</span>
+              <span class="badge">${marked}/${s.questionCount}</span>
+            </button>
+          `;
+        }).join('');
+      }
 
-      const optsContainer = document.createElement('div');
-      optsContainer.style.cssText = 'display: flex; gap: 3px; align-items: center; flex: 1; justify-content: center;';
+      const currentSubj = subjects.find(s => s.id === activeEditKeySubjId) || subjects[0];
+      const subjQCount = currentSubj.questionCount || 10;
+      const letters = ['A', 'B', 'C', 'D', 'E'].slice(0, editAnswerKeyChoices);
 
-      letters.forEach(letter => {
-        const btn = document.createElement('button');
-        btn.type = 'button';
-        btn.textContent = letter;
-        btn.className = `optical-key-pill-btn ${selected === letter ? 'active' : ''}`;
-        btn.style.cssText = 'width: 24px; height: 24px; font-size: 0.72rem; border-radius: 4px;';
-        btn.addEventListener('click', () => {
-          if (editAnswerKeyTemp[q] === letter) {
-            delete editAnswerKeyTemp[q];
-          } else {
-            editAnswerKeyTemp[q] = letter;
-          }
+      for (let q = 1; q <= subjQCount; q++) {
+        const key = `${currentSubj.id}_${q}`;
+        const selected = editAnswerKeyTemp[key] || '';
+        const row = document.createElement('div');
+        row.style.cssText = 'background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 6px; padding: 4px 6px; display: flex; align-items: center; justify-content: space-between; gap: 4px;';
+
+        const qNum = document.createElement('span');
+        qNum.textContent = `${q}.`;
+        qNum.style.cssText = 'font-weight: 700; font-size: 0.76rem; min-width: 20px; color: var(--text-muted); text-align: right;';
+        row.appendChild(qNum);
+
+        const optsContainer = document.createElement('div');
+        optsContainer.style.cssText = 'display: flex; gap: 3px; align-items: center; flex: 1; justify-content: center;';
+
+        letters.forEach(letter => {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.textContent = letter;
+          btn.className = `optical-key-pill-btn ${selected === letter ? 'active' : ''}`;
+          btn.style.cssText = 'width: 24px; height: 24px; font-size: 0.72rem; border-radius: 4px;';
+          btn.addEventListener('click', () => {
+            if (editAnswerKeyTemp[key] === letter) {
+              delete editAnswerKeyTemp[key];
+            } else {
+              editAnswerKeyTemp[key] = letter;
+            }
+            renderDesktopAnswerKeyModalGrid();
+          });
+          optsContainer.appendChild(btn);
+        });
+        row.appendChild(optsContainer);
+
+        const clearBtn = document.createElement('button');
+        clearBtn.type = 'button';
+        clearBtn.innerHTML = '&times;';
+        clearBtn.title = 'Boş Bırak';
+        clearBtn.style.cssText = `border: none; background: none; font-size: 14px; line-height: 1; color: var(--text-muted); cursor: pointer; padding: 0 2px; visibility: ${selected ? 'visible' : 'hidden'};`;
+        clearBtn.addEventListener('click', () => {
+          delete editAnswerKeyTemp[key];
           renderDesktopAnswerKeyModalGrid();
         });
-        optsContainer.appendChild(btn);
-      });
-      row.appendChild(optsContainer);
+        row.appendChild(clearBtn);
 
-      const clearBtn = document.createElement('button');
-      clearBtn.type = 'button';
-      clearBtn.innerHTML = '&times;';
-      clearBtn.title = 'Boş Bırak';
-      clearBtn.style.cssText = `border: none; background: none; font-size: 14px; line-height: 1; color: var(--text-muted); cursor: pointer; padding: 0 2px; visibility: ${selected ? 'visible' : 'hidden'};`;
-      clearBtn.addEventListener('click', () => {
-        delete editAnswerKeyTemp[q];
-        renderDesktopAnswerKeyModalGrid();
-      });
-      row.appendChild(clearBtn);
+        desktopAkQuestionsGrid.appendChild(row);
+      }
 
-      desktopAkQuestionsGrid.appendChild(row);
+    } else {
+      if (subjectsTabsEl) subjectsTabsEl.style.display = 'none';
+
+      const qCount = parseInt(activeExam.totalQuestions, 10) || 20;
+      const letters = ['A', 'B', 'C', 'D', 'E'].slice(0, editAnswerKeyChoices);
+
+      for (let q = 1; q <= qCount; q++) {
+        const selected = editAnswerKeyTemp[q] || '';
+        const row = document.createElement('div');
+        row.style.cssText = 'background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: 6px; padding: 4px 6px; display: flex; align-items: center; justify-content: space-between; gap: 4px;';
+
+        const qNum = document.createElement('span');
+        qNum.textContent = `${q}.`;
+        qNum.style.cssText = 'font-weight: 700; font-size: 0.76rem; min-width: 20px; color: var(--text-muted); text-align: right;';
+        row.appendChild(qNum);
+
+        const optsContainer = document.createElement('div');
+        optsContainer.style.cssText = 'display: flex; gap: 3px; align-items: center; flex: 1; justify-content: center;';
+
+        letters.forEach(letter => {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.textContent = letter;
+          btn.className = `optical-key-pill-btn ${selected === letter ? 'active' : ''}`;
+          btn.style.cssText = 'width: 24px; height: 24px; font-size: 0.72rem; border-radius: 4px;';
+          btn.addEventListener('click', () => {
+            if (editAnswerKeyTemp[q] === letter) {
+              delete editAnswerKeyTemp[q];
+            } else {
+              editAnswerKeyTemp[q] = letter;
+            }
+            renderDesktopAnswerKeyModalGrid();
+          });
+          optsContainer.appendChild(btn);
+        });
+        row.appendChild(optsContainer);
+
+        const clearBtn = document.createElement('button');
+        clearBtn.type = 'button';
+        clearBtn.innerHTML = '&times;';
+        clearBtn.title = 'Boş Bırak';
+        clearBtn.style.cssText = `border: none; background: none; font-size: 14px; line-height: 1; color: var(--text-muted); cursor: pointer; padding: 0 2px; visibility: ${selected ? 'visible' : 'hidden'};`;
+        clearBtn.addEventListener('click', () => {
+          delete editAnswerKeyTemp[q];
+          renderDesktopAnswerKeyModalGrid();
+        });
+        row.appendChild(clearBtn);
+
+        desktopAkQuestionsGrid.appendChild(row);
+      }
     }
 
     updateDesktopAkCounter();
@@ -1992,7 +2567,7 @@ Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi ve
   function updateDesktopAkCounter() {
     if (!desktopAkCounterBadge || !activeExam) return;
     const qCount = parseInt(activeExam.totalQuestions, 10) || 20;
-    const filled = Object.keys(editAnswerKeyTemp).filter(k => parseInt(k, 10) <= qCount && editAnswerKeyTemp[k]).length;
+    const filled = Object.keys(editAnswerKeyTemp).filter(k => editAnswerKeyTemp[k]).length;
 
     desktopAkCounterBadge.textContent = `${filled} / ${qCount} Soru Tanımlandı`;
     if (filled === qCount) {
@@ -2008,10 +2583,18 @@ Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi ve
   if (btnDesktopAkFillSample) {
     btnDesktopAkFillSample.addEventListener('click', () => {
       if (!activeExam) return;
-      const qCount = parseInt(activeExam.totalQuestions, 10) || 20;
       const letters = ['A', 'B', 'C', 'D', 'E'].slice(0, editAnswerKeyChoices);
-      for (let q = 1; q <= qCount; q++) {
-        editAnswerKeyTemp[q] = letters[(q - 1) % letters.length];
+      if (activeExam.isMultiSubject && Array.isArray(activeExam.subjects)) {
+        activeExam.subjects.forEach(s => {
+          for (let q = 1; q <= s.questionCount; q++) {
+            editAnswerKeyTemp[`${s.id}_${q}`] = letters[(q - 1) % letters.length];
+          }
+        });
+      } else {
+        const qCount = parseInt(activeExam.totalQuestions, 10) || 20;
+        for (let q = 1; q <= qCount; q++) {
+          editAnswerKeyTemp[q] = letters[(q - 1) % letters.length];
+        }
       }
       renderDesktopAnswerKeyModalGrid();
     });
@@ -2042,6 +2625,7 @@ Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi ve
       if (shouldRescore) {
         const qCount = parseInt(activeExam.totalQuestions, 10) || 20;
         const penaltyRate = activeExam.wrongAffects ? (parseFloat(activeExam.penaltyRate) || 4) : 0;
+        const isMulti = activeExam.isMultiSubject && Array.isArray(activeExam.subjects);
 
         Object.keys(activeExam.studentResults).forEach(studentId => {
           const res = activeExam.studentResults[studentId];
@@ -2050,31 +2634,83 @@ Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi ve
             let wrongCount = 0;
             let blankCount = 0;
 
-            for (let q = 1; q <= qCount; q++) {
-              const ans = String(res.answers[q] || res.answers[String(q)] || '').trim().toUpperCase();
-              const correctAns = String(activeExam.answerKey[q] || activeExam.answerKey[String(q)] || '').trim().toUpperCase();
+            if (isMulti) {
+              const subjectBreakdown = {};
+              activeExam.subjects.forEach(subj => {
+                let subjCorrect = 0;
+                let subjWrong = 0;
+                let subjBlank = 0;
 
-              if (!ans) {
-                blankCount++;
-              } else if (correctAns && ans === correctAns) {
-                correctCount++;
-              } else {
-                wrongCount++;
+                for (let q = 1; q <= subj.questionCount; q++) {
+                  const key = `${subj.id}_${q}`;
+                  const ans = String(res.answers[key] || res.answers[`${subj.name}_${q}`] || '').trim().toUpperCase();
+                  const correctAns = String(activeExam.answerKey[key] || '').trim().toUpperCase();
+
+                  if (!ans) {
+                    blankCount++;
+                    subjBlank++;
+                  } else if (correctAns && ans === correctAns) {
+                    correctCount++;
+                    subjCorrect++;
+                  } else {
+                    wrongCount++;
+                    subjWrong++;
+                  }
+                }
+
+                let subjNet = penaltyRate > 0 ? (subjCorrect - (subjWrong / penaltyRate)) : subjCorrect;
+                subjNet = Math.max(0, parseFloat(subjNet.toFixed(2)));
+                const subjScore = subj.questionCount > 0 ? parseFloat(((subjNet / subj.questionCount) * 100).toFixed(1)) : 0;
+
+                subjectBreakdown[subj.id] = {
+                  name: subj.name,
+                  correct: subjCorrect,
+                  wrong: subjWrong,
+                  blank: subjBlank,
+                  net: subjNet,
+                  score: subjScore,
+                  total: subj.questionCount
+                };
+              });
+
+              let net = penaltyRate > 0 ? (correctCount - (wrongCount / penaltyRate)) : correctCount;
+              net = Math.max(0, parseFloat(net.toFixed(2)));
+              const score = qCount > 0 ? parseFloat(((net / qCount) * 100).toFixed(1)) : 0;
+
+              res.correct = correctCount;
+              res.wrong = wrongCount;
+              res.blank = blankCount;
+              res.net = net;
+              res.score = score;
+              res.subjectBreakdown = subjectBreakdown;
+
+            } else {
+              for (let q = 1; q <= qCount; q++) {
+                const ans = String(res.answers[q] || res.answers[String(q)] || '').trim().toUpperCase();
+                const correctAns = String(activeExam.answerKey[q] || activeExam.answerKey[String(q)] || '').trim().toUpperCase();
+
+                if (!ans) {
+                  blankCount++;
+                } else if (correctAns && ans === correctAns) {
+                  correctCount++;
+                } else {
+                  wrongCount++;
+                }
               }
+
+              let net = penaltyRate > 0 ? (correctCount - (wrongCount / penaltyRate)) : correctCount;
+              net = Math.max(0, parseFloat(net.toFixed(2)));
+              const score = qCount > 0 ? parseFloat(((net / qCount) * 100).toFixed(1)) : 0;
+
+              res.correct = correctCount;
+              res.wrong = wrongCount;
+              res.blank = blankCount;
+              res.net = net;
+              res.score = score;
             }
 
-            let net = penaltyRate > 0 ? (correctCount - (wrongCount / penaltyRate)) : correctCount;
-            net = Math.max(0, parseFloat(net.toFixed(2)));
-            const score = qCount > 0 ? parseFloat(((net / qCount) * 100).toFixed(1)) : 0;
-
-            res.correct = correctCount;
-            res.wrong = wrongCount;
-            res.blank = blankCount;
-            res.net = net;
-            res.score = score;
-
             if (!activeExam.examScores) activeExam.examScores = {};
-            activeExam.examScores[studentId] = score;
+            activeExam.examScores[studentId] = res.score;
             rescoredCount++;
           }
         });
@@ -2156,9 +2792,85 @@ Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi ve
       studentNo = '......',
       totalQuestions = 20,
       letters = ['A', 'B', 'C', 'D'],
-      perPage = 2
+      perPage = 2,
+      isMultiSubject = false,
+      subjects = []
     } = options;
 
+    if (isMultiSubject && Array.isArray(subjects) && subjects.length > 0) {
+      // ÇOKLU DERS OPTİK KARTI (A4 Sığdırma Garantili & Her Derste 1'den Başlayan Numaralandırma)
+      const cols = Math.min(6, Math.max(2, subjects.length));
+      const maxSubjQ = Math.max(...subjects.map(s => s.questionCount || 0));
+      const isCompact = maxSubjQ > 20 || totalQuestions > 40;
+
+      let subjectsHtml = '';
+      subjects.forEach(subj => {
+        let rowsHtml = '';
+        const count = subj.questionCount || 10;
+        for (let q = 1; q <= count; q++) {
+          rowsHtml += `
+            <div class="omr-q-row" data-subj="${subj.id}" data-q="${q}">
+              <span class="omr-row-tick"></span>
+              <span class="omr-q-num">${q}</span>
+              <div class="omr-q-bubbles">
+                ${letters.map(l => `<span class="omr-bubble" data-opt="${l}">${l}</span>`).join('')}
+              </div>
+            </div>
+          `;
+        }
+
+        subjectsHtml += `
+          <div class="omr-subject-block">
+            <div class="omr-subject-header">
+              <span class="omr-subject-name" title="${subj.name}">${subj.name}</span>
+              <span class="omr-subject-badge">${count} Soru</span>
+            </div>
+            <div class="omr-subject-rows">
+              ${rowsHtml}
+            </div>
+          </div>
+        `;
+      });
+
+      return `
+        <div class="omr-card omr-multi ${isCompact ? 'compact-rows' : ''}">
+          <!-- 4 Köşe Referans Çapası (CamScanner & Tarayıcı Uyumlu) -->
+          <div class="omr-anchor omr-anchor-tl"></div>
+          <div class="omr-anchor omr-anchor-tr"></div>
+          <div class="omr-anchor omr-anchor-bl"></div>
+          <div class="omr-anchor omr-anchor-br"></div>
+
+          <!-- Üst Başlık & Öğrenci Bilgileri -->
+          <div class="omr-card-header">
+            <div class="omr-header-main">
+              <div class="omr-header-title">
+                ${examName}
+                <small style="font-size: 0.68rem; font-weight: 700; opacity: 0.85; margin-left: 6px;">(${subjects.map(s => s.name).join(' • ')})</small>
+              </div>
+              <div class="omr-student-info">
+                <div><strong>Öğrenci:</strong> ${studentName}</div>
+                <div><strong>No:</strong> ${studentNo}</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Çoklu Ders Şıkları Gövdesi -->
+          <div class="omr-card-body" style="padding: 2px 0;">
+            <div class="omr-multi-subjects-grid cols-${cols}">
+              ${subjectsHtml}
+            </div>
+          </div>
+
+          <!-- Alt Bilgi / Uyarı -->
+          <div class="omr-card-footer">
+            <span>* Her ders için 1'den başlayan soruları kurşun kalemle doldurunuz.</span>
+            <span>SINIF ASİSTANI</span>
+          </div>
+        </div>
+      `;
+    }
+
+    // TEK DERS OPTİK KARTI (Mevcut Mantık)
     const cols = totalQuestions <= 15 ? 1 : (totalQuestions <= 30 ? 2 : 3);
     const questionsPerCol = Math.ceil(totalQuestions / cols);
 
@@ -2241,6 +2953,8 @@ Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi ve
     const letters = ['A', 'B', 'C', 'D', 'E'].slice(0, choicesCount);
     const state = stateManager.loadState();
     const examName = activeExam ? (activeExam.examName || 'Haftalık Değerlendirme') : 'Haftalık Değerlendirme';
+    const isMultiSubject = activeExam ? !!activeExam.isMultiSubject : false;
+    const subjects = activeExam && activeExam.subjects ? activeExam.subjects : [];
 
     let previewStudents = [];
     if (formType === 'named') {
@@ -2275,7 +2989,9 @@ Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi ve
         studentNo: st.number,
         totalQuestions: questionCount,
         letters,
-        perPage
+        perPage,
+        isMultiSubject,
+        subjects
       });
     });
 
@@ -2294,6 +3010,8 @@ Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi ve
     const state = stateManager.loadState();
     const letters = ['A', 'B', 'C', 'D', 'E'].slice(0, choicesCount);
     const examName = activeExam ? (activeExam.examName || 'Haftalık Değerlendirme') : 'Haftalık Değerlendirme';
+    const isMultiSubject = activeExam ? !!activeExam.isMultiSubject : false;
+    const subjects = activeExam && activeExam.subjects ? activeExam.subjects : [];
 
     let studentsList = [];
     if (formType === 'named') {
@@ -2329,7 +3047,9 @@ Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi ve
           studentNo: st.number,
           totalQuestions: questionCount,
           letters,
-          perPage
+          perPage,
+          isMultiSubject,
+          subjects
         });
       });
 
@@ -2424,6 +3144,7 @@ function renderExamsList() {
     const formattedWeek = window.formatWeekTR ? window.formatWeekTR(exam.weekId, 'full') : exam.weekId;
     const penaltyText = exam.wrongAffects ? `${exam.penaltyRate} Yanlış 1 Doğruyu Götürür` : 'Yanlışlar Doğruları Etkilemez';
     const opticalBadge = exam.hasOpticalForm ? `<span class="badge" style="background: rgba(99, 102, 241, 0.15); color: var(--primary); font-size: 0.72rem; padding: 0.1rem 0.35rem; font-weight: 700;">📝 ${exam.choicesCount || 4} Şıklı Optik</span>` : '';
+    const multiBadge = exam.isMultiSubject && exam.subjects ? `<span class="badge" style="background: rgba(16, 185, 129, 0.15); color: #059669; font-size: 0.72rem; padding: 0.1rem 0.35rem; font-weight: 700;">📚 ${exam.subjects.length} Ders</span>` : '';
 
     const card = document.createElement('div');
     card.className = `exam-card ${activeExam && activeExam.id === exam.id ? 'active-card' : ''}`;
@@ -2440,6 +3161,7 @@ function renderExamsList() {
         <span>${exam.totalQuestions} Soru</span>
         <span>•</span>
         <span>${exam.duration} Dk</span>
+        ${multiBadge ? `<span>•</span>${multiBadge}` : ''}
         ${opticalBadge ? `<span>•</span>${opticalBadge}` : ''}
         <span>•</span>
         <span style="font-size: 0.7rem; opacity: 0.85;">${penaltyText}</span>
@@ -2468,6 +3190,7 @@ function openActiveExam(exam) {
   const formattedWeek = window.formatWeekTR ? window.formatWeekTR(exam.weekId, 'full') : exam.weekId;
   const keyCount = Object.keys(exam.answerKey || {}).filter(k => exam.answerKey[k]).length;
   const opticalBadge = exam.hasOpticalForm ? `<span class="badge" style="background: rgba(99, 102, 241, 0.15); color: var(--primary); font-weight: 700; cursor: pointer;" title="Cevap anahtarını düzenlemek için tıklayın" onclick="window.openDesktopAnswerKeyModal ? window.openDesktopAnswerKeyModal() : null">📝 ${exam.choicesCount || 4} Şıklı Optik Form (${keyCount}/${exam.totalQuestions} Cevap 🔑)</span>` : '';
+  const multiSubjBadge = exam.isMultiSubject && exam.subjects ? `<span class="badge" style="background: rgba(16, 185, 129, 0.15); color: #059669; font-weight: 700;" title="${exam.subjects.map(s => `${s.name}: ${s.questionCount} Soru`).join(' • ')}">📚 Çoklu Ders (${exam.subjects.length} Branş - ${exam.totalQuestions} Soru)</span>` : '';
   const penaltyText = exam.wrongAffects ? `${exam.penaltyRate} Yanlış 1 Doğruyu Götürür` : 'Yanlışlar Doğruları Etkilemez';
 
   if (activeExamInfoBar) {
@@ -2477,6 +3200,7 @@ function openActiveExam(exam) {
       <span><strong>Soru Sayısı:</strong> ${exam.totalQuestions}</span>
       <span>•</span>
       <span><strong>Süre:</strong> ${exam.duration} Dk</span>
+      ${multiSubjBadge ? `<span>•</span>${multiSubjBadge}` : ''}
       ${opticalBadge ? `<span>•</span>${opticalBadge}` : ''}
       <span>•</span>
       <span><strong>Değerlendirme:</strong> ${penaltyText}</span>
@@ -2568,6 +3292,15 @@ function renderActiveExamTable() {
       </td>
       <td style="text-align: center; vertical-align: middle; font-weight: 700; color: var(--primary);">
         <span class="exam-net-span">${result.net !== undefined && result.net !== '' ? result.net : '-'}</span>
+        ${(() => {
+          if (result.subjectBreakdown && typeof result.subjectBreakdown === 'object') {
+            const parts = Object.values(result.subjectBreakdown).map(b => `${b.subjectName || 'Ders'}: ${b.net !== undefined ? b.net : b.correct}N`);
+            if (parts.length > 0) {
+              return `<div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 2px; font-weight: normal; white-space: nowrap;" title="${Object.values(result.subjectBreakdown).map(b => `${b.subjectName}: ${b.correct}D ${b.wrong}Y ${b.blank}B (${b.net} Net)`).join(' | ')}">${parts.join(' • ')}</div>`;
+            }
+          }
+          return '';
+        })()}
       </td>
       <td style="text-align: center; vertical-align: middle; font-weight: 700;">
         <span class="exam-score-span">${result.score !== undefined && result.score !== '' ? result.score : '-'}</span>
@@ -2890,7 +3623,8 @@ function prepareAdvancedPrintLayout(reportTitle, reportSubtitle, examDetailText,
           blank: res.blank || 0,
           net: res.net || 0,
           score: res.score || 0,
-          directionHtml: directionHtml
+          directionHtml: directionHtml,
+          subjectBreakdown: res.subjectBreakdown
         });
       } else {
         nonParticipants.push(std);
@@ -2941,6 +3675,14 @@ function prepareAdvancedPrintLayout(reportTitle, reportSubtitle, examDetailText,
   // 3. Tablo Satırlarını Render Et
   let ranking = 1;
   participants.forEach(p => {
+    let breakdownPrintHtml = '';
+    if (p.subjectBreakdown && typeof p.subjectBreakdown === 'object') {
+      const parts = Object.values(p.subjectBreakdown).map(b => `${b.subjectName || 'Ders'}: ${b.net !== undefined ? b.net : b.correct}N`);
+      if (parts.length > 0) {
+        breakdownPrintHtml = `<div style="font-size: 0.68rem; color: #64748b; font-weight: normal; margin-top: 2px;">${parts.join(' • ')}</div>`;
+      }
+    }
+
     const row = document.createElement('tr');
     row.innerHTML = `
       <td style="text-align: center; padding: 0.5rem 0.25rem; border-bottom: 1px solid #ddd; font-weight: bold; background: rgba(0,0,0,0.01);">${ranking}</td>
@@ -2949,7 +3691,10 @@ function prepareAdvancedPrintLayout(reportTitle, reportSubtitle, examDetailText,
       <td style="text-align: center; padding: 0.5rem 0.25rem; border-bottom: 1px solid #ddd; color: #10b981; font-weight: 500;">${p.correct}</td>
       <td style="text-align: center; padding: 0.5rem 0.25rem; border-bottom: 1px solid #ddd; color: #ef4444; font-weight: 500;">${p.wrong}</td>
       <td style="text-align: center; padding: 0.5rem 0.25rem; border-bottom: 1px solid #ddd; color: #f59e0b; font-weight: 500;">${p.blank}</td>
-      <td style="text-align: center; padding: 0.5rem 0.25rem; border-bottom: 1px solid #ddd; font-weight: bold;">${p.net}</td>
+      <td style="text-align: center; padding: 0.5rem 0.25rem; border-bottom: 1px solid #ddd; font-weight: bold;">
+        ${p.net}
+        ${breakdownPrintHtml}
+      </td>
       <td style="text-align: center; padding: 0.5rem 0.25rem; border-bottom: 1px solid #ddd; font-weight: bold; color: var(--primary);">${p.score}</td>
       <td style="text-align: center; padding: 0.5rem 0.25rem; border-bottom: 1px solid #ddd;">${p.directionHtml}</td>
     `;

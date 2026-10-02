@@ -3350,6 +3350,15 @@ th:hover .hw-col-actions {
   body.print-optical .omr-print-page.omr-per-page-1 .omr-card {
     height: 260mm !important;
     max-height: 262mm !important;
+    overflow: hidden !important;
+    box-sizing: border-box !important;
+  }
+  body.print-optical .omr-print-page.omr-per-page-1 .omr-card.omr-multi {
+    height: 260mm !important;
+    max-height: 260mm !important;
+    padding: 8px 12px !important;
+    overflow: hidden !important;
+    box-sizing: border-box !important;
   }
 
   body.print-optical .omr-print-page.omr-per-page-2 {
@@ -3362,6 +3371,15 @@ th:hover .hw-col-actions {
   body.print-optical .omr-print-page.omr-per-page-2 .omr-card {
     height: 129mm !important;
     max-height: 130mm !important;
+    overflow: hidden !important;
+    box-sizing: border-box !important;
+  }
+  body.print-optical .omr-print-page.omr-per-page-2 .omr-card.omr-multi {
+    height: 129mm !important;
+    max-height: 129mm !important;
+    padding: 5px 8px !important;
+    overflow: hidden !important;
+    box-sizing: border-box !important;
   }
 
   body.print-optical .omr-print-page.omr-per-page-4 {
@@ -4190,6 +4208,193 @@ th:hover .hw-col-actions {
   font-size: 0.52rem !important;
   margin: 2px 12px 1px 12px !important;
 }
+
+/* ==========================================================================
+   ÇOKLU DERS (DENEME / BRANŞLI) VE OPTİK FORM STİLLERİ
+   ========================================================================== */
+.exam-type-pill {
+  transition: all 0.2s ease;
+  user-select: none;
+}
+.exam-type-pill.active {
+  background: #4f46e5 !important;
+  color: #ffffff !important;
+  border-color: #4338ca !important;
+  box-shadow: 0 2px 8px rgba(79, 70, 229, 0.25) !important;
+}
+
+.exam-subject-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 6px 8px;
+  animation: fadeIn 0.15s ease;
+}
+.exam-subject-row input[type="text"] {
+  flex: 1;
+  font-size: 0.82rem;
+  padding: 4px 8px;
+  height: 32px;
+}
+.exam-subject-row input[type="number"] {
+  width: 75px;
+  font-size: 0.82rem;
+  padding: 4px 6px;
+  height: 32px;
+  text-align: center;
+}
+
+/* Çoklu Ders Cevap Anahtarı Sekmeleri */
+.desktop-ak-subj-tab {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  font-size: 0.76rem;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 20px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  user-select: none;
+}
+.desktop-ak-subj-tab:hover {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+}
+.desktop-ak-subj-tab.active {
+  background: #4f46e5 !important;
+  color: #ffffff !important;
+  border-color: #4338ca !important;
+  box-shadow: 0 2px 6px rgba(79, 70, 229, 0.25);
+}
+.desktop-ak-subj-tab .badge {
+  font-size: 0.68rem;
+  padding: 0.1rem 0.35rem;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+}
+.desktop-ak-subj-tab:not(.active) .badge {
+  background: var(--bg-secondary);
+  color: var(--text-muted);
+}
+
+/* Çoklu Ders Optik Kartı (A4 Sığdırma Garantili) */
+.omr-card.omr-multi {
+  padding: 8px 12px;
+}
+.omr-multi-subjects-grid {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  justify-content: space-between;
+  gap: 6px;
+  box-sizing: border-box;
+}
+.omr-multi-subjects-grid.cols-2 .omr-subject-block {
+  width: 48.5%;
+}
+.omr-multi-subjects-grid.cols-3 .omr-subject-block {
+  width: 32%;
+}
+.omr-multi-subjects-grid.cols-4 .omr-subject-block {
+  width: 23.5%;
+}
+.omr-multi-subjects-grid.cols-5 .omr-subject-block {
+  width: 18.8%;
+}
+.omr-multi-subjects-grid.cols-6 .omr-subject-block {
+  width: 15.5%;
+}
+
+.omr-subject-block {
+  display: flex;
+  flex-direction: column;
+  border: 1.2px solid #000000;
+  border-radius: 4px;
+  padding: 3px 4px;
+  box-sizing: border-box;
+  background: #ffffff;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+.omr-subject-header {
+  border-bottom: 1.5px solid #000000;
+  padding-bottom: 2px;
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+}
+.omr-subject-name {
+  font-size: 0.72rem;
+  font-weight: 900;
+  color: #000000;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.omr-subject-badge {
+  font-size: 0.58rem;
+  font-weight: 800;
+  color: #000000;
+  background: #e2e8f0;
+  padding: 1px 4px;
+  border-radius: 3px;
+  white-space: nowrap;
+}
+.omr-subject-rows {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  flex: 1;
+  gap: 2px;
+  box-sizing: border-box;
+}
+
+/* Sıkışık ders satırları (20+ soru durumunda A4 sığdırma) */
+.omr-card.omr-multi.compact-rows .omr-q-row {
+  gap: 2px;
+}
+.omr-card.omr-multi.compact-rows .omr-q-num {
+  font-size: 0.65rem;
+  width: 16px;
+  padding-right: 2px;
+}
+.omr-card.omr-multi.compact-rows .omr-bubble {
+  width: 15px;
+  height: 15px;
+  font-size: 0.58rem;
+}
+.omr-card.omr-multi.compact-rows .omr-row-tick {
+  width: 3px;
+  height: 1.5px;
+}
+
+/* Önizlemedeki çoklu ders kartı küçültmesi */
+.optical-preview-container .omr-card.omr-multi .omr-subject-name {
+  font-size: 0.55rem !important;
+}
+.optical-preview-container .omr-card.omr-multi .omr-subject-badge {
+  font-size: 0.48rem !important;
+  padding: 0 2px !important;
+}
+.optical-preview-container .omr-card.omr-multi .omr-subject-block {
+  padding: 2px !important;
+  gap: 1px !important;
+}
+
 
 /* File uploader hover and dragover styles */
 .file-uploader-zone:hover, .file-uploader-zone.dragover {
