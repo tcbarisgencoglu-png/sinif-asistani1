@@ -594,55 +594,619 @@
       configFilterGender.addEventListener('change', () => renderConfigStudentsList());
     }
 
-    // Add Student trigger
+    // ==========================================================================
+    // MERKEZİ ÖĞRENCİ EKLEME YÖNTEMİ & YAPAY ZEKA İLE ÖĞRENCİ YÜKLEME (GÖRSEL / PDF)
+    // ==========================================================================
     const configBtnAddStudent = document.getElementById('config-btn-add-student');
-    if (configBtnAddStudent) {
-      configBtnAddStudent.addEventListener('click', () => {
-        const formStudent = document.getElementById('form-student');
-        const studentIdInput = document.getElementById('student-id');
-        const studentPhotoPreview = document.getElementById('student-photo-preview');
-        const studentPhotoInput = document.getElementById('student-photo-input');
-        const modalStudentTitle = document.getElementById('modal-student-title');
-        const modalStudent = document.getElementById('modal-student');
+    const modalAddStudentMethod = document.getElementById('modal-add-student-method');
+    const btnMethodAiAdd = document.getElementById('btn-method-ai-add');
+    const btnMethodManualAdd = document.getElementById('btn-method-manual-add');
+    const btnMethodExcelUpload = document.getElementById('btn-method-excel-upload');
+    const btnMethodDownloadTemplate = document.getElementById('btn-method-download-template');
+    const desktopAiStudentFileInput = document.getElementById('desktop-ai-student-file-input');
+    const modalDesktopAiLoading = document.getElementById('modal-desktop-ai-student-loading');
+    const modalDesktopAiPreview = document.getElementById('modal-desktop-ai-student-preview');
 
-        if (formStudent) formStudent.reset();
-        if (studentIdInput) studentIdInput.value = '';
-        window.currentPhotoBase64 = '';
-        if (studentPhotoPreview) studentPhotoPreview.style.display = 'none';
-        if (studentPhotoInput) studentPhotoInput.value = '';
-        if (modalStudentTitle) modalStudentTitle.textContent = 'Öğrenci Ekle';
-        if (modalStudent) modalStudent.classList.add('active');
-      });
+    function safeEscapeHTML(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
     }
 
-    // Excel Şablonu trigger
-    const configBtnDownloadTemplate = document.getElementById('config-btn-download-template');
-    if (configBtnDownloadTemplate) {
-      configBtnDownloadTemplate.addEventListener('click', () => {
-        const btnReal = document.getElementById('btn-download-student-template');
-        if (btnReal) {
-          btnReal.click();
+    function downloadStudentExcelTemplate() {
+      const btnReal = document.getElementById('btn-download-student-template');
+      if (btnReal) {
+        btnReal.click();
+      } else if (window.XLSX) {
+        const data = [
+          ["Okul Numarası", "Adı", "Soyadı", "Cinsiyet (Kız/Erkek)", "Veli Telefon", "Notlar", "Şube (Ortaokul için)"],
+          ["101", "Ahmet", "Yılmaz", "Erkek", "05551234567", "Matematik dersinde çok ilgili ve başarılı.", "5-A"],
+          ["102", "Zeynep", "Kaya", "Kız", "05559876543", "Kitap okumayı ve resim yapmayı çok seviyor.", "5-A"],
+          ["103", "Can", "Demir", "Erkek", "05555555555", "Sınıf içi yardımlaşmada çok duyarlı.", "6-B"]
+        ];
+        const ws = XLSX.utils.aoa_to_sheet(data);
+        ws['!cols'] = [{ wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 20 }, { wch: 18 }, { wch: 35 }, { wch: 20 }];
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Öğrenci Yükleme Şablonu");
+        const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+        const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        if (window.downloadBlob) window.downloadBlob(blob, "ogrenci_yukleme_sablonu.xlsx");
+        if (toastCallback) toastCallback('Excel (.xlsx) öğrenci yükleme şablonu indirildi.', 'success');
+      }
+    }
+
+    // 1. Ana "Öğrenci Ekle" Butonu -> Yöntem Seçim Modalı Açar
+    if (configBtnAddStudent) {
+      configBtnAddStudent.addEventListener('click', () => {
+        if (modalAddStudentMethod) {
+          modalAddStudentMethod.classList.add('active');
+          if (window.safeCreateIcons) window.safeCreateIcons();
         } else {
-          // Fallback if not loaded
-          if (window.XLSX) {
-            const data = [
-              ["Okul Numarası", "Adı", "Soyadı", "Cinsiyet (Kız/Erkek)", "Veli Telefon", "Notlar", "Şube (Ortaokul için)"],
-              ["101", "Ahmet", "Yılmaz", "Erkek", "05551234567", "Matematik dersinde çok ilgili ve başarılı.", "5-A"],
-              ["102", "Zeynep", "Kaya", "Kız", "05559876543", "Kitap okumayı ve resim yapmayı çok seviyor.", "5-A"],
-              ["103", "Can", "Demir", "Erkek", "05555555555", "Sınıf içi yardımlaşmada çok duyarlı.", "6-B"]
-            ];
-            const ws = XLSX.utils.aoa_to_sheet(data);
-            ws['!cols'] = [{ wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 20 }, { wch: 18 }, { wch: 35 }, { wch: 20 }];
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "Öğrenci Yükleme Şablonu");
-            const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-            const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-            if (window.downloadBlob) window.downloadBlob(blob, "ogrenci_yukleme_sablonu.xlsx");
-            if (toastCallback) toastCallback('Excel (.xlsx) öğrenci yükleme şablonu indirildi.', 'success');
-          }
+          // Fallback: Doğrudan manuel ekleme aç
+          openManualStudentForm();
         }
       });
     }
+
+    function openManualStudentForm() {
+      const formStudent = document.getElementById('form-student');
+      const studentIdInput = document.getElementById('student-id');
+      const studentPhotoPreview = document.getElementById('student-photo-preview');
+      const studentPhotoInput = document.getElementById('student-photo-input');
+      const modalStudentTitle = document.getElementById('modal-student-title');
+      const modalStudent = document.getElementById('modal-student');
+
+      if (formStudent) formStudent.reset();
+      if (studentIdInput) studentIdInput.value = '';
+      window.currentPhotoBase64 = '';
+      if (studentPhotoPreview) studentPhotoPreview.style.display = 'none';
+      if (studentPhotoInput) studentPhotoInput.value = '';
+      if (modalStudentTitle) modalStudentTitle.textContent = 'Öğrenci Ekle';
+      if (modalStudent) modalStudent.classList.add('active');
+    }
+
+    // 2. Yöntem 1: Tek Tek Manuel Ekle
+    if (btnMethodManualAdd) {
+      btnMethodManualAdd.addEventListener('click', () => {
+        if (modalAddStudentMethod) modalAddStudentMethod.classList.remove('active');
+        openManualStudentForm();
+      });
+    }
+
+    // 3. Yöntem 2: Excel Şablonu ile Yükle
+    if (btnMethodExcelUpload) {
+      btnMethodExcelUpload.addEventListener('click', () => {
+        if (modalAddStudentMethod) modalAddStudentMethod.classList.remove('active');
+        const configInputUploadFile = document.getElementById('config-input-upload-file');
+        if (configInputUploadFile) configInputUploadFile.click();
+      });
+    }
+
+    // 4. Şablon İndirme Butonları
+    if (btnMethodDownloadTemplate) {
+      btnMethodDownloadTemplate.addEventListener('click', () => {
+        downloadStudentExcelTemplate();
+      });
+    }
+    const configBtnDownloadTemplate = document.getElementById('config-btn-download-template');
+    if (configBtnDownloadTemplate) {
+      configBtnDownloadTemplate.addEventListener('click', () => {
+        downloadStudentExcelTemplate();
+      });
+    }
+
+    // 5. Yöntem 3: Yapay Zeka ile Otomatik Ekle (Görsel veya PDF)
+    if (btnMethodAiAdd) {
+      btnMethodAiAdd.addEventListener('click', () => {
+        const apiKey = (localStorage.getItem('sinif_asistani_gemini_api_key') || '').trim();
+        if (!apiKey) {
+          if (modalAddStudentMethod) modalAddStudentMethod.classList.remove('active');
+          if (toastCallback) toastCallback('⚠️ Yapay zeka ile liste taramak için lütfen önce Gemini API anahtarınızı kaydedin.', 'warning');
+          const aiTabBtn = document.querySelector('[data-config-tab="config-ai"]');
+          if (aiTabBtn) aiTabBtn.click();
+          return;
+        }
+
+        if (modalAddStudentMethod) modalAddStudentMethod.classList.remove('active');
+        if (desktopAiStudentFileInput) {
+          desktopAiStudentFileInput.value = '';
+          desktopAiStudentFileInput.click();
+        }
+      });
+    }
+
+    // Dosyayı (Görsel / PDF) Gemini İçin İşleme
+    async function processFileForDesktopGemini(file) {
+      const fileName = file.name.toLowerCase();
+      const isPdf = fileName.endsWith('.pdf') || file.type === 'application/pdf';
+
+      if (isPdf) {
+        const arrayBuffer = await file.arrayBuffer();
+        // PDF.js ile Sayfa 1'i JPEG Olarak Render Et
+        if (window.pdfjsLib) {
+          try {
+            const loadingTask = window.pdfjsLib.getDocument({ data: arrayBuffer });
+            const pdfDoc = await loadingTask.promise;
+            const page = await pdfDoc.getPage(1);
+            const initialVp = page.getViewport({ scale: 1.0 });
+            const maxDim = Math.max(initialVp.width, initialVp.height);
+            const scale = Math.max(1.2, Math.min(2.5, 1800 / maxDim));
+            const viewport = page.getViewport({ scale });
+
+            const canvas = document.createElement('canvas');
+            canvas.width = viewport.width;
+            canvas.height = viewport.height;
+            const ctx = canvas.getContext('2d');
+            await page.render({ canvasContext: ctx, viewport }).promise;
+
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.88);
+            return {
+              base64: dataUrl.split(',')[1],
+              mimeType: 'image/jpeg'
+            };
+          } catch (pdfErr) {
+            console.warn('PDF.js render hatası, doğrudan PDF verisi deneniyor:', pdfErr);
+          }
+        }
+
+        // Fallback: PDF'i doğrudan base64 olarak gönder
+        let binary = '';
+        const bytes = new Uint8Array(arrayBuffer);
+        const len = bytes.byteLength;
+        for (let i = 0; i < len; i++) {
+          binary += String.fromCharCode(bytes[i]);
+        }
+        return {
+          base64: btoa(binary),
+          mimeType: 'application/pdf'
+        };
+      }
+
+      // Görsel dosyası (JPEG, PNG, WebP)
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const img = new Image();
+          img.onload = () => {
+            const maxDim = 1800;
+            let w = img.width;
+            let h = img.height;
+            if (w > maxDim || h > maxDim) {
+              if (w > h) {
+                h = Math.round((h * maxDim) / w);
+                w = maxDim;
+              } else {
+                w = Math.round((w * maxDim) / h);
+                h = maxDim;
+              }
+            }
+            const canvas = document.createElement('canvas');
+            canvas.width = w;
+            canvas.height = h;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, w, h);
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.88);
+            resolve({
+              base64: dataUrl.split(',')[1],
+              mimeType: 'image/jpeg'
+            });
+          };
+          img.onerror = () => reject(new Error('Görsel dosyası açılamadı.'));
+          img.src = e.target.result;
+        };
+        reader.onerror = () => reject(new Error('Dosya okunamadı.'));
+        reader.readAsDataURL(file);
+      });
+    }
+
+    // Gemini İle Öğrenci Listesini Ayrıştırma
+    async function analyzeStudentListWithDesktopGemini(base64Data, mimeType) {
+      const apiKey = (localStorage.getItem('sinif_asistani_gemini_api_key') || '').trim();
+      if (!apiKey) throw new Error('API anahtarı bulunamadı.');
+
+      let listData = null;
+      let listError = null;
+
+      for (const apiVer of ['v1beta', 'v1']) {
+        try {
+          const listRes = await fetch(`https://generativelanguage.googleapis.com/${apiVer}/models?key=${apiKey}`);
+          const json = await listRes.json();
+          if (listRes.ok && json.models && json.models.length > 0) {
+            listData = { version: apiVer, models: json.models };
+            break;
+          } else if (!listRes.ok) {
+            listError = json.error?.message || `HTTP ${listRes.status}`;
+          }
+        } catch (e) {
+          listError = e.message;
+        }
+      }
+
+      if (!listData) {
+        if (listError && (listError.toLowerCase().includes('api key not valid') || listError.toLowerCase().includes('invalid'))) {
+          throw new Error('Google API anahtarı geçersiz! Lütfen anahtarınızı kontrol edip tekrar kaydedin.');
+        }
+        throw new Error(`Google API bağlantı hatası: ${listError || 'Modeller sorgulanamadı'}`);
+      }
+
+      const supportedModels = listData.models.filter(m =>
+        !m.supportedGenerationMethods || m.supportedGenerationMethods.includes('generateContent')
+      );
+
+      if (supportedModels.length === 0) {
+        throw new Error('Bu API anahtarının içerik üretme modellerine izni bulunmuyor.');
+      }
+
+      let savedModel = (localStorage.getItem('sinif_asistani_gemini_model') || 'gemini-1.5-flash').trim();
+      if (savedModel === 'gemini-1.5-pro') savedModel = 'gemini-1.5-flash';
+
+      const candidatePreferences = [
+        savedModel,
+        'gemini-2.0-flash',
+        'gemini-1.5-flash',
+        'gemini-2.5-flash',
+        'gemini-2.0-flash-lite',
+        'gemini-1.5-flash-latest',
+        ...supportedModels.map(m => m.name.replace(/^models\//, ''))
+      ];
+
+      const validCandidatePaths = [];
+      for (const pref of candidatePreferences) {
+        const match = supportedModels.find(sm => sm.name === pref || sm.name === `models/${pref}` || sm.name.endsWith(`/${pref}`));
+        if (match && !validCandidatePaths.includes(match.name)) {
+          validCandidatePaths.push(match.name);
+        }
+      }
+
+      if (validCandidatePaths.length === 0) {
+        validCandidatePaths.push(supportedModels[0].name);
+      }
+
+      const promptText = `Bu görsel veya PDF bir okul sınıf listesidir. Belgedeki tüm öğrencileri satır satır tespit et.
+Her öğrenci için okul numarasını, adını, soyadını ve cinsiyetini ('male' veya 'female') çıkar.
+Ad ve soyad ayrılmış olmalıdır.
+Eğer cinsiyet listede açıkça belirtilmemişse Türk isim yapısına göre tahmin et ('male' ya da 'female').
+Numara yoksa boş bırak ("").
+
+SADECE VE SADECE GEÇERLİ BİR JSON DİZİSİ DÖNDÜR. Markdown (örneğin \`\`\`json) veya başka hiçbir metin/açıklama ekleme:
+[
+  {"number": "101", "name": "Ahmet", "surname": "Yılmaz", "gender": "male"},
+  {"number": "105", "name": "Zeynep", "surname": "Kaya", "gender": "female"}
+]`;
+
+      let lastError = null;
+
+      for (const modelPath of validCandidatePaths) {
+        const cleanPath = modelPath.startsWith('models/') ? modelPath : `models/${modelPath}`;
+        const url = `https://generativelanguage.googleapis.com/${listData.version}/${cleanPath}:generateContent?key=${apiKey}`;
+
+        try {
+          let res = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [
+                {
+                  parts: [
+                    { text: promptText },
+                    {
+                      inline_data: {
+                        mime_type: mimeType || 'image/jpeg',
+                        data: base64Data
+                      }
+                    }
+                  ]
+                }
+              ],
+              generationConfig: {
+                temperature: 0.1,
+                responseMimeType: 'application/json'
+              }
+            })
+          });
+
+          if (res.status === 400) {
+            res = await fetch(url, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                contents: [
+                  {
+                    parts: [
+                      { text: promptText },
+                      {
+                        inline_data: {
+                          mime_type: mimeType || 'image/jpeg',
+                          data: base64Data
+                        }
+                      }
+                    ]
+                  }
+                ],
+                generationConfig: { temperature: 0.1 }
+              })
+            });
+          }
+
+          if (res.ok) {
+            const data = await res.json();
+            let rawText = '';
+            const parts = data.candidates?.[0]?.content?.parts || [];
+            for (const p of parts) {
+              if (p.text) rawText += p.text;
+            }
+            if (!rawText && data.candidates?.[0]?.content?.parts?.[0]?.text) {
+              rawText = data.candidates[0].content.parts[0].text;
+            }
+
+            const jsonMatch = rawText.match(/\[\s*\{[\s\S]*\}\s*\]/);
+            if (jsonMatch) {
+              rawText = jsonMatch[0];
+            } else {
+              rawText = rawText.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
+            }
+
+            const parsed = JSON.parse(rawText);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              return parsed;
+            }
+          } else {
+            const errData = await res.json().catch(() => ({}));
+            lastError = new Error((errData.error && errData.error.message) || `HTTP ${res.status}`);
+          }
+        } catch (err) {
+          lastError = err;
+        }
+      }
+
+      throw lastError || new Error('Yapay zeka belgeyi okuyamadı');
+    }
+
+    // Dosya Seçildiğinde Tetiklenir
+    if (desktopAiStudentFileInput) {
+      desktopAiStudentFileInput.addEventListener('change', async (e) => {
+        const file = e.target.files && e.target.files[0];
+        if (!file) return;
+
+        if (modalDesktopAiLoading) modalDesktopAiLoading.classList.add('active');
+
+        try {
+          const processed = await processFileForDesktopGemini(file);
+          const students = await analyzeStudentListWithDesktopGemini(processed.base64, processed.mimeType);
+
+          if (!students || students.length === 0) {
+            if (modalDesktopAiLoading) modalDesktopAiLoading.classList.remove('active');
+            if (toastCallback) toastCallback('❌ Listede öğrenci tespit edilemedi. Lütfen daha net bir liste görseli veya PDF yükleyin.', 'danger');
+            return;
+          }
+
+          const scanned = students.map((s, idx) => ({
+            index: idx,
+            number: String(s.number || s.no || '').trim(),
+            name: String(s.name || s.ad || '').trim(),
+            surname: String(s.surname || s.soyad || '').trim(),
+            gender: (s.gender === 'female' || s.gender === 'kız' || s.gender === 'K') ? 'female' : 'male',
+            selected: true
+          })).filter(s => !!s.name);
+
+          if (scanned.length === 0) {
+            if (modalDesktopAiLoading) modalDesktopAiLoading.classList.remove('active');
+            if (toastCallback) toastCallback('❌ Öğrenci isimleri okunamadı.', 'danger');
+            return;
+          }
+
+          window.tempDesktopAiStudents = scanned;
+          if (modalDesktopAiLoading) modalDesktopAiLoading.classList.remove('active');
+
+          if (modalDesktopAiPreview) {
+            renderDesktopAiStudentPreview();
+            modalDesktopAiPreview.classList.add('active');
+          }
+        } catch (err) {
+          if (modalDesktopAiLoading) modalDesktopAiLoading.classList.remove('active');
+          console.error('Desktop AI student scan error:', err);
+          if (toastCallback) toastCallback(`❌ Hata: ${err.message || 'Belge işlenirken bir sorun oluştu.'}`, 'danger');
+        }
+      });
+    }
+
+    // Önizleme Tablosunu Render Et
+    function renderDesktopAiStudentPreview() {
+      const list = window.tempDesktopAiStudents || [];
+      const tbody = document.getElementById('desktop-ai-preview-tbody');
+      const countBadge = document.getElementById('desktop-ai-preview-count-badge');
+      const summaryText = document.getElementById('desktop-ai-preview-summary-text');
+      const toggleBtn = document.getElementById('desktop-ai-btn-toggle-select');
+      const saveBtnText = document.getElementById('desktop-ai-save-btn-text');
+      const branchWrapper = document.getElementById('desktop-ai-branch-wrapper');
+      const branchInput = document.getElementById('desktop-ai-branch-input');
+
+      const isMiddle = (typeof window.isMiddleSchool === 'function') ? window.isMiddleSchool() : false;
+      if (branchWrapper) {
+        branchWrapper.style.display = isMiddle ? 'flex' : 'none';
+      }
+      if (branchInput && !branchInput.value) {
+        const currentBranch = localStorage.getItem('sinif_asistani_active_branch') || '5-A';
+        branchInput.value = currentBranch !== 'all' ? currentBranch : '5-A';
+      }
+
+      if (countBadge) countBadge.textContent = list.length;
+
+      const selectedCount = list.filter(s => s.selected).length;
+      if (summaryText) summaryText.textContent = `${list.length} öğrenciden ${selectedCount} tanesi seçildi`;
+      if (saveBtnText) saveBtnText.textContent = `${selectedCount} Öğrenciyi Sınıfa Kaydet`;
+      if (toggleBtn) toggleBtn.textContent = (selectedCount === list.length && list.length > 0) ? 'Tümünü Kaldır' : 'Tümünü Seç';
+
+      if (!tbody) return;
+
+      if (list.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 2.5rem; color: var(--text-muted); font-size: 0.9rem;">Listelenecek öğrenci kalmadı.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = list.map((st) => `
+        <tr style="border-bottom: 1px solid var(--border-color); opacity: ${st.selected ? '1' : '0.45'}; transition: opacity 0.2s ease;" id="desktop-ai-tr-${st.index}">
+          <td style="text-align: center; vertical-align: middle;">
+            <input type="checkbox" data-idx="${st.index}" class="desktop-ai-chk" ${st.selected ? 'checked' : ''} style="cursor: pointer; width: 16px; height: 16px; accent-color: var(--primary);">
+          </td>
+          <td style="vertical-align: middle;">
+            <input type="text" data-idx="${st.index}" data-field="number" class="form-control desktop-ai-inp" value="${safeEscapeHTML(st.number || '')}" placeholder="No" style="height: 32px; padding: 2px 6px; font-size: 0.82rem; font-weight: 700; text-align: center;">
+          </td>
+          <td style="vertical-align: middle;">
+            <input type="text" data-idx="${st.index}" data-field="name" class="form-control desktop-ai-inp" value="${safeEscapeHTML(st.name || '')}" placeholder="Ad" style="height: 32px; padding: 2px 8px; font-size: 0.82rem; font-weight: 700;">
+          </td>
+          <td style="vertical-align: middle;">
+            <input type="text" data-idx="${st.index}" data-field="surname" class="form-control desktop-ai-inp" value="${safeEscapeHTML(st.surname || '')}" placeholder="Soyad" style="height: 32px; padding: 2px 8px; font-size: 0.82rem; font-weight: 700;">
+          </td>
+          <td style="vertical-align: middle;">
+            <select data-idx="${st.index}" data-field="gender" class="form-control desktop-ai-inp" style="height: 32px; padding: 2px 6px; font-size: 0.8rem; font-weight: 600;">
+              <option value="male" ${st.gender === 'male' ? 'selected' : ''}>👦 Erkek</option>
+              <option value="female" ${st.gender === 'female' ? 'selected' : ''}>👧 Kız</option>
+            </select>
+          </td>
+          <td style="text-align: center; vertical-align: middle;">
+            <button type="button" data-idx="${st.index}" class="btn btn-sm btn-outline-danger desktop-ai-btn-del" style="padding: 4px 6px; border: none; border-radius: 6px;" title="Listeden Çıkar">
+              <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i>
+            </button>
+          </td>
+        </tr>
+      `).join('');
+
+      if (window.safeCreateIcons) window.safeCreateIcons();
+    }
+
+    // Önizleme Tablosu Etkileşimleri (Delegation)
+    const desktopAiPreviewTbody = document.getElementById('desktop-ai-preview-tbody');
+    if (desktopAiPreviewTbody) {
+      desktopAiPreviewTbody.addEventListener('change', (e) => {
+        const list = window.tempDesktopAiStudents || [];
+        const chk = e.target.closest('.desktop-ai-chk');
+        if (chk) {
+          const idx = parseInt(chk.dataset.idx, 10);
+          const item = list.find(s => s.index === idx);
+          if (item) {
+            item.selected = chk.checked;
+            const tr = document.getElementById(`desktop-ai-tr-${idx}`);
+            if (tr) tr.style.opacity = chk.checked ? '1' : '0.45';
+            const selectedCount = list.filter(s => s.selected).length;
+            const summaryText = document.getElementById('desktop-ai-preview-summary-text');
+            const saveBtnText = document.getElementById('desktop-ai-save-btn-text');
+            const toggleBtn = document.getElementById('desktop-ai-btn-toggle-select');
+            if (summaryText) summaryText.textContent = `${list.length} öğrenciden ${selectedCount} tanesi seçildi`;
+            if (saveBtnText) saveBtnText.textContent = `${selectedCount} Öğrenciyi Sınıfa Kaydet`;
+            if (toggleBtn) toggleBtn.textContent = (selectedCount === list.length && list.length > 0) ? 'Tümünü Kaldır' : 'Tümünü Seç';
+          }
+          return;
+        }
+
+        const inp = e.target.closest('.desktop-ai-inp');
+        if (inp) {
+          const idx = parseInt(inp.dataset.idx, 10);
+          const field = inp.dataset.field;
+          const item = list.find(s => s.index === idx);
+          if (item && field) {
+            item[field] = inp.value.trim();
+          }
+        }
+      });
+
+      desktopAiPreviewTbody.addEventListener('click', (e) => {
+        const btnDel = e.target.closest('.desktop-ai-btn-del');
+        if (btnDel) {
+          const idx = parseInt(btnDel.dataset.idx, 10);
+          window.tempDesktopAiStudents = (window.tempDesktopAiStudents || []).filter(s => s.index !== idx);
+          renderDesktopAiStudentPreview();
+        }
+      });
+    }
+
+    // Tümünü Seç / Kaldır Butonu
+    const desktopAiBtnToggleSelect = document.getElementById('desktop-ai-btn-toggle-select');
+    if (desktopAiBtnToggleSelect) {
+      desktopAiBtnToggleSelect.addEventListener('click', () => {
+        const list = window.tempDesktopAiStudents || [];
+        const allSelected = list.every(s => s.selected);
+        list.forEach(s => { s.selected = !allSelected; });
+        renderDesktopAiStudentPreview();
+      });
+    }
+
+    // Seçilen Öğrencileri Sınıfa Kaydet Butonu
+    const desktopAiBtnConfirmSave = document.getElementById('desktop-ai-btn-confirm-save');
+    if (desktopAiBtnConfirmSave) {
+      desktopAiBtnConfirmSave.addEventListener('click', () => {
+        const list = (window.tempDesktopAiStudents || []).filter(s => s.selected);
+        if (list.length === 0) {
+          if (toastCallback) toastCallback('Lütfen eklenecek en az bir öğrenci seçin!', 'warning');
+          return;
+        }
+
+        const isMiddle = (typeof window.isMiddleSchool === 'function') ? window.isMiddleSchool() : false;
+        const branchInput = document.getElementById('desktop-ai-branch-input');
+        const targetBranch = isMiddle ? (branchInput ? branchInput.value.trim().toUpperCase() : '5-A') : '';
+
+        let added = 0;
+        let skipped = 0;
+        const state = stateManager.loadState();
+
+        list.forEach(st => {
+          if (!st.name) return;
+          const num = (st.number || '').trim();
+          if (num && state.students.some(s => s.number === num && (!isMiddle || s.branch === targetBranch))) {
+            skipped++;
+            return;
+          }
+
+          const newStudent = {
+            name: st.name.trim(),
+            surname: (st.surname || '').trim(),
+            number: num,
+            gender: st.gender || 'male',
+            parentPhone: '',
+            notes: 'Yapay zeka ile eklendi',
+            branch: isMiddle ? targetBranch : '',
+            schoolLevel: isMiddle ? 'middle' : 'primary'
+          };
+          stateManager.addStudent(newStudent);
+          added++;
+        });
+
+        if (added > 0) {
+          stateManager.saveState('Yapay zeka ile öğrenciler eklendi');
+        }
+
+        if (modalDesktopAiPreview) modalDesktopAiPreview.classList.remove('active');
+
+        if (toastCallback) {
+          if (added > 0 && skipped > 0) {
+            toastCallback(`🎉 ${added} öğrenci eklendi, ${skipped} öğrenci mükerrer numara nedeniyle atlandı.`, 'warning');
+          } else if (added > 0) {
+            toastCallback(`🎉 ${added} öğrenci başarıyla sınıfa eklendi!`, 'success');
+          } else {
+            toastCallback('Tüm öğrencilerin numaraları zaten kayıtlı!', 'danger');
+          }
+        }
+
+        renderConfigStudentsList();
+        const evt = new CustomEvent('stateChanged');
+        document.dispatchEvent(evt);
+      });
+    }
+
+    // Modal Kapatma Butonları (Yöntem, Loading, Preview)
+    [modalAddStudentMethod, modalDesktopAiLoading, modalDesktopAiPreview].forEach(mod => {
+      if (mod) {
+        mod.querySelectorAll('.close-btn, .close-btn-action').forEach(btn => {
+          btn.addEventListener('click', () => {
+            mod.classList.remove('active');
+          });
+        });
+      }
+    });
 
     // Student upload trigger
     const configBtnUploadTrigger = document.getElementById('config-btn-upload-trigger');
