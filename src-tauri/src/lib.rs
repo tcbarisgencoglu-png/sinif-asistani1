@@ -150,6 +150,75 @@ fn save_portable_data(data_json: String, api_key: String) -> Result<bool, String
     Ok(false)
 }
 
+#[tauri::command]
+fn save_desktop_data(app: tauri::AppHandle, data_json: String, api_key: String) -> Result<bool, String> {
+    if let Ok(app_dir) = app.path().app_data_dir() {
+        if !app_dir.exists() {
+            let _ = std::fs::create_dir_all(&app_dir);
+        }
+        let file_path = app_dir.join("sinif_asistani_veriler.json");
+        let backup_path = app_dir.join("sinif_asistani_veriler.bak");
+
+        let now_sec = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_secs())
+            .unwrap_or(0);
+
+        let json_obj = serde_json::json!({
+            "version": "1.0.37",
+            "updated_at": now_sec,
+            "sinif_asistani_data": data_json,
+            "sinif_asistani_gemini_api_key": api_key,
+        });
+
+        if let Ok(serialized) = serde_json::to_string_pretty(&json_obj) {
+            // Mevcut sağlam dosya varsa önce .bak yedeği al
+            if file_path.exists() {
+                let _ = std::fs::copy(&file_path, &backup_path);
+            }
+            if std::fs::write(&file_path, serialized).is_ok() {
+                return Ok(true);
+            }
+        }
+    }
+    Ok(false)
+}
+
+#[tauri::command]
+fn load_desktop_data(app: tauri::AppHandle) -> Result<Option<String>, String> {
+    if let Ok(app_dir) = app.path().app_data_dir() {
+        let file_path = app_dir.join("sinif_asistani_veriler.json");
+        let backup_path = app_dir.join("sinif_asistani_veriler.bak");
+
+        // Önce ana dosyayı kontrol et
+        if file_path.exists() {
+            if let Ok(content) = std::fs::read_to_string(&file_path) {
+                if let Ok(json) = serde_json::from_str::<serde_json::Value>(&content) {
+                    if let Some(data) = json.get("sinif_asistani_data").and_then(|v| v.as_str()) {
+                        if !data.trim().is_empty() {
+                            return Ok(Some(content));
+                        }
+                    }
+                }
+            }
+        }
+
+        // Ana dosya boş veya bozulmuşsa yedek dosyadan kurtar
+        if backup_path.exists() {
+            if let Ok(content) = std::fs::read_to_string(&backup_path) {
+                if let Ok(json) = serde_json::from_str::<serde_json::Value>(&content) {
+                    if let Some(data) = json.get("sinif_asistani_data").and_then(|v| v.as_str()) {
+                        if !data.trim().is_empty() {
+                            return Ok(Some(content));
+                        }
+                    }
+                }
+            }
+        }
+    }
+    Ok(None)
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -160,7 +229,9 @@ pub fn run() {
             get_machine_id,
             get_portable_info,
             load_portable_data,
-            save_portable_data
+            save_portable_data,
+            save_desktop_data,
+            load_desktop_data
         ])
         .setup(|app| {
             let _window = app.get_webview_window("main").unwrap();

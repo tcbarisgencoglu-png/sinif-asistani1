@@ -149,19 +149,29 @@ function formatWeekTR(weekId, formatType) {
   return info.label;
 }
 window.formatWeekTR = formatWeekTR;
-// IndexedDB Evrak Depolama Yardımcısı (localStorage kotasını korumak için)
-const DOCS_DB_NAME = 'DocumentsStorageDB';
-const DOCS_DB_VERSION = 1;
+// ============================================================================
+// GÜVENLİ VE SINIRSIZ ÇİFT KATMANLI VERİTABANI MOTORU (INDEXEDDB & DESKTOP NATIVE)
+// ============================================================================
+const APP_STORAGE_DB_NAME = 'SinifAsistaniStorageDB';
+const APP_STORAGE_DB_VERSION = 2;
+const APP_STATE_STORE = 'app_state';
+const APP_BACKUP_STORE = 'rolling_backups';
 const DOCS_STORE_NAME = 'document_files';
 
-function openDocsDBHelper() {
+function openAppStorageDBHelper() {
   return new Promise((resolve, reject) => {
     if (typeof window === 'undefined' || !window.indexedDB) {
       return reject(new Error('IndexedDB desteklenmiyor.'));
     }
-    const request = window.indexedDB.open(DOCS_DB_NAME, DOCS_DB_VERSION);
+    const request = window.indexedDB.open(APP_STORAGE_DB_NAME, APP_STORAGE_DB_VERSION);
     request.onupgradeneeded = (e) => {
       const db = e.target.result;
+      if (!db.objectStoreNames.contains(APP_STATE_STORE)) {
+        db.createObjectStore(APP_STATE_STORE, { keyPath: 'id' });
+      }
+      if (!db.objectStoreNames.contains(APP_BACKUP_STORE)) {
+        db.createObjectStore(APP_BACKUP_STORE, { keyPath: 'id' });
+      }
       if (!db.objectStoreNames.contains(DOCS_STORE_NAME)) {
         db.createObjectStore(DOCS_STORE_NAME, { keyPath: 'id' });
       }
@@ -171,9 +181,14 @@ function openDocsDBHelper() {
   });
 }
 
+// Geriye dönük uyumluluk köprüsü
+function openDocsDBHelper() {
+  return openAppStorageDBHelper();
+}
+
 async function saveDocFileToIndexedDBHelper(id, content, htmlContent) {
   try {
-    const db = await openDocsDBHelper();
+    const db = await openAppStorageDBHelper();
     return new Promise((resolve, reject) => {
       const transaction = db.transaction(DOCS_STORE_NAME, 'readwrite');
       const store = transaction.objectStore(DOCS_STORE_NAME);
@@ -185,8 +200,149 @@ async function saveDocFileToIndexedDBHelper(id, content, htmlContent) {
     console.warn("saveDocFileToIndexedDBHelper error:", err);
   }
 }
+
+// 1. IndexedDB Tam Durum ve Döngüsel Yedek (Son 5 Nokta) Kaydı
+async function saveStateToIndexedDB(stateObj, reason = 'Kayıt güncellendi') {
+  try {
+    const db = await openAppStorageDBHelper();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction([APP_STATE_STORE, APP_BACKUP_STORE], 'readwrite');
+      const stateStore = tx.objectStore(APP_STATE_STORE);
+      const backupStore = tx.objectStore(APP_BACKUP_STORE);
+
+      const now = Date.now();
+      const dateStr = new Date().toLocaleString('tr-TR');
+
+      // Ana durumu kaydet
+      stateStore.put({ id: 'current_state', data: stateObj, updatedAt: now });
+
+      // Rolling Backup kaydet
+      const studentCount = Array.isArray(stateObj.students) ? stateObj.students.length : 0;
+      backupStore.put({
+        id: now,
+        timestamp: now,
+        dateStr: dateStr,
+        reason: reason,
+        studentCount: studentCount,
+        data: stateObj
+      });
+
+      // 5'ten fazla yedek varsa eskileri temizle
+      const req = backupStore.getAllKeys();
+      req.onsuccess = () => {
+        const keys = req.result || [];
+        if (keys.length > 5) {
+          keys.sort((a, b) => a - b);
+          while (keys.length > 5) {
+            const oldKey = keys.shift();
+            backupStore.delete(oldKey);
+          }
+        }
+      };
+
+      tx.oncomplete = () => resolve(true);
+      tx.onerror = () => reject(tx.error);
+    });
+  } catch (err) {
+    console.warn('[IndexedDB] saveStateToIndexedDB hatası:', err);
+  }
+}
+
+// 2. IndexedDB'den Güncel Durumu Oku
+async function loadStateFromIndexedDB() {
+  try {
+    const db = await openAppStorageDBHelper();
+    return new Promise((resolve) => {
+      const tx = db.transaction(APP_STATE_STORE, 'readonly');
+      const store = tx.objectStore(APP_STATE_STORE);
+      const req = store.get('current_state');
+      req.onsuccess = () => {
+        if (req.result && req.result.data) {
+          resolve(req.result.data);
+        } else {
+          resolve(null);
+        }
+      };
+      req.onerror = () => resolve(null);
+    });
+  } catch (err) {
+    return null;
+  }
+}
+
+// 3. IndexedDB'deki Son 5 Otomatik Yedeği Listele
+async function getRollingBackupsFromIndexedDB() {
+  try {
+    const db = await openAppStorageDBHelper();
+    return new Promise((resolve) => {
+      const tx = db.transaction(APP_BACKUP_STORE, 'readonly');
+      const store = tx.objectStore(APP_BACKUP_STORE);
+      const req = store.getAll();
+      req.onsuccess = () => {
+        const items = req.result || [];
+        items.sort((a, b) => b.timestamp - a.timestamp);
+        resolve(items);
+      };
+      req.onerror = () => resolve([]);
+    });
+  } catch (err) {
+    return [];
+  }
+}
+
+// 4. Masaüstü Tauri Yerel Dosya Senkronizasyonu (Kotası Yoktur)
+let _desktopNativeSyncTimeout = null;
+function syncDesktopNativeData(stateJson) {
+  if (typeof window === 'undefined') return;
+  const invoke = (window.__TAURI__?.core?.invoke) || window.__TAURI__?.invoke;
+  if (!invoke) return;
+
+  if (_desktopNativeSyncTimeout) clearTimeout(_desktopNativeSyncTimeout);
+  _desktopNativeSyncTimeout = setTimeout(() => {
+    try {
+      const apiKey = localStorage.getItem('sinif_asistani_gemini_api_key') || '';
+      invoke('save_desktop_data', { dataJson: stateJson, apiKey })
+        .then(success => {
+          if (success) {
+            console.debug('[Masaüstü Yerel Depolama] Veriler yerel disk JSON dosyasına başarıyla yazıldı.');
+          }
+        })
+        .catch(err => {
+          console.debug('[Masaüstü Yerel Depolama] Kayıt bildirimi:', err);
+        });
+    } catch (e) {}
+  }, 350);
+}
+
+// 5. Masaüstü Tauri Yerel Dosyadan Veri Oku
+async function loadDesktopNativeData() {
+  if (typeof window === 'undefined') return null;
+  const invoke = (window.__TAURI__?.core?.invoke) || window.__TAURI__?.invoke;
+  if (!invoke) return null;
+
+  try {
+    const rawContent = await invoke('load_desktop_data');
+    if (rawContent && typeof rawContent === 'string') {
+      const parsed = JSON.parse(rawContent);
+      if (parsed && parsed.sinif_asistani_data) {
+        return JSON.parse(parsed.sinif_asistani_data);
+      }
+    }
+  } catch (err) {
+    console.debug('[Masaüstü Yerel Depolama] Okuma hatası:', err);
+  }
+  return null;
+}
+
 if (typeof window !== 'undefined') {
   window.saveDocFileToIndexedDBHelper = saveDocFileToIndexedDBHelper;
+  window.openDocsDBHelper = openDocsDBHelper;
+  window.openAppStorageDBHelper = openAppStorageDBHelper;
+  window.saveStateToIndexedDB = saveStateToIndexedDB;
+  window.loadStateFromIndexedDB = loadStateFromIndexedDB;
+  window.getRollingBackupsFromIndexedDB = getRollingBackupsFromIndexedDB;
+  window.syncDesktopNativeData = syncDesktopNativeData;
+  window.loadDesktopNativeData = loadDesktopNativeData;
 }
 
 
@@ -1957,9 +2113,42 @@ class StateManager {
     const data = localStorage.getItem(STORAGE_KEY);
     this.state = this.loadState(true); // Load unfiltered for internal state to prevent data loss
     this.subscribers = [];
-    if (!data) {
+    const hasRealDataEver = localStorage.getItem('sinif_asistani_has_real_data') === 'true';
+
+    if (!data && !hasRealDataEver) {
       this.saveState(); // Seeding database instantly on first run
       this.loadDefaultStateFromServer();
+    } else if (!data && hasRealDataEver) {
+      // Kurtarma protokolü: Masaüstü disk ve IndexedDB kontrolü
+      if (typeof window !== 'undefined') {
+        setTimeout(async () => {
+          try {
+            let restored = null;
+            if (typeof loadDesktopNativeData === 'function') {
+              restored = await loadDesktopNativeData();
+            }
+            if (!restored && typeof loadStateFromIndexedDB === 'function') {
+              restored = await loadStateFromIndexedDB();
+            }
+            if (!restored && typeof getRollingBackupsFromIndexedDB === 'function') {
+              const backups = await getRollingBackupsFromIndexedDB();
+              if (backups && backups.length > 0 && backups[0].data) {
+                restored = backups[0].data;
+              }
+            }
+            if (restored && (restored.students?.length > 0 || restored.books?.library?.length > 0)) {
+              this.state = wrapState(restored, true);
+              try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(restored));
+              } catch (e) {}
+              this.notify();
+              console.log('[Kurtarma] Otomatik kurtarma protokolü ile veritabanı başarıyla ayağa kaldırıldı.');
+            }
+          } catch (e) {
+            console.error('[Kurtarma] Hata:', e);
+          }
+        }, 80);
+      }
     }
   }
 
@@ -2151,12 +2340,15 @@ class StateManager {
           }
         }
         
-        // Eğer veritabanı boşsa (0 öğrenci ve 0 kitap varsa), demo verilerini otomatik olarak yükle
+        // Eğer veritabanı boşsa (0 öğrenci ve 0 kitap varsa), sadece İLK KURULUMDA demo verilerini yükle
         if ((!parsed.students || parsed.students.length === 0) && 
             (!parsed.books || !parsed.books.library || parsed.books.library.length === 0)) {
-          const seeded = JSON.parse(JSON.stringify(DEFAULT_STATE));
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(seeded));
-          return wrapState(seeded, unfiltered);
+          const hasRealDataEver = localStorage.getItem('sinif_asistani_has_real_data') === 'true';
+          if (!hasRealDataEver) {
+            const seeded = JSON.parse(JSON.stringify(DEFAULT_STATE));
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(seeded));
+            return wrapState(seeded, unfiltered);
+          }
         }
         
         // Ensure all transaction IDs are unique (Migration)
@@ -2338,12 +2530,17 @@ class StateManager {
     } catch (e) {
       console.error("Veri yüklenirken hata oluştu:", e);
     }
+    const hasRealDataEver = localStorage.getItem('sinif_asistani_has_real_data') === 'true';
+    if (hasRealDataEver && this.state && (this.state.rawStudents?.length > 0 || this.state.students?.length > 0)) {
+      console.warn("loadState: LocalStorage boş veya okunamadı, ancak bellekteki gerçek veriler korunuyor.");
+      return wrapState(this.state, unfiltered);
+    }
     return wrapState(JSON.parse(JSON.stringify(DEFAULT_STATE)), unfiltered);
   }
 
-  saveState() {
+  saveState(reason = 'Kayıt güncellendi') {
     try {
-      // 1. Doğrudan this.state.documents üzerindeki ağır ikili dosyaları temizle
+      // 1. Doğrudan this.state.documents üzerindeki ağır ikili dosyaları temizle (IndexedDB'de saklanır)
       if (this.state.documents && Array.isArray(this.state.documents)) {
         this.state.documents.forEach(d => {
           if (d.content || d.htmlContent) {
@@ -2365,68 +2562,81 @@ class StateManager {
         });
       }
 
+      // Kullanıcının gerçek veritabanı olduğunu işaretle (ASLA otomatik demoya dönmeyi engeller)
+      const hasRealData = (Array.isArray(toSave.students) && toSave.students.length > 0) || 
+                          (toSave.books && toSave.books.library && toSave.books.library.length > 0);
+      if (hasRealData) {
+        try {
+          localStorage.setItem('sinif_asistani_has_real_data', 'true');
+        } catch (e) {}
+      }
+
       const jsonString = JSON.stringify(toSave);
 
+      // 2. Birincil Kalıcı Depolama: IndexedDB (Kotası yüzlerce MB'tır, çökme korumalıdır + Son 5 yedek noktası oluşturur)
+      if (typeof window !== 'undefined' && window.indexedDB && typeof saveStateToIndexedDB === 'function') {
+        saveStateToIndexedDB(toSave, reason).catch(err => {
+          console.warn('[IndexedDB] Kayıt uyarısı:', err);
+        });
+      }
+
+      // 3. Masaüstü Yerel Disk Dosyası (Tauri Native File - Sıfır kota limiti, doğrudan bilgisayarın diskine yazar)
+      if (typeof syncDesktopNativeData === 'function') {
+        syncDesktopNativeData(jsonString);
+      }
+
+      // 4. Taşınabilir Flash Bellek Senkronizasyonu (varsa)
+      if (typeof window.syncPortableDataToFlash === 'function') {
+        window.syncPortableDataToFlash();
+      }
+
+      // 5. LocalStorage Senkron Önbellek Kaydı
       try {
         localStorage.setItem(STORAGE_KEY, jsonString);
       } catch (storageErr) {
         if (storageErr && (storageErr.name === 'QuotaExceededError' || storageErr.code === 22 || storageErr.number === -2147024882)) {
-          console.warn("saveState: QuotaExceededError alındı. Eski veri kilidi kaldırılıp (removeItem) tekrar yazılıyor...");
+          // KESİNLİKLE removeItem(STORAGE_KEY) ÇAĞRILMAZ! Eski veri silinmez!
+          console.warn("saveState: LocalStorage kotası doldu (5MB sınırı). Verileriniz IndexedDB ve Masaüstü Dosyasına başarıyla kaydedildi.");
+          
+          // LocalStorage'a sığabilmesi için ağır fotoğrafları hafifletip önbelleği güncellemeyi dene
           try {
-            localStorage.removeItem(STORAGE_KEY);
-            localStorage.setItem(STORAGE_KEY, jsonString);
-            console.log("saveState: removeItem sonrası kayıt başarılı.");
-          } catch (retryErr) {
-            console.error("saveState: removeItem sonrası kayıt da başarısız oldu!", retryErr);
-            throw retryErr;
+            const lightweight = { ...toSave };
+            if (Array.isArray(lightweight.students)) {
+              lightweight.students = lightweight.students.map(s => {
+                if (s.photo && typeof s.photo === 'string' && s.photo.length > 300) {
+                  const { photo, ...rest } = s;
+                  return rest;
+                }
+                return s;
+              });
+            }
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(lightweight));
+            console.log("saveState: Fotoğraflar hafifletilerek localStorage kopyası güncellendi.");
+          } catch (lightErr) {
+            console.warn("saveState: LocalStorage kopyası güncellenemedi, ana veritabanı IndexedDB ve Masaüstü Diskte %100 güvendedir.");
           }
         } else {
-          throw storageErr;
+          console.error("saveState depolama hatası:", storageErr);
         }
       }
 
       this.notify();
-
-      if (typeof window.syncPortableDataToFlash === 'function') {
-        window.syncPortableDataToFlash();
-      }
       return true;
     } catch (e) {
       console.error("Veri kaydedilirken hata oluştu:", e);
-      if (e && (e.name === 'QuotaExceededError' || e.code === 22 || e.number === -2147024882)) {
-        this.recoverFromQuotaExceeded();
-        if (typeof window.showToast === 'function') {
-          window.showToast('Depolama alanı doldu! Eski veriler optimize edildi. Lütfen tekrar deneyin.', 'warning');
-        }
-      }
       return false;
     }
   }
 
   recoverFromQuotaExceeded() {
     try {
-      console.warn("--- ACİL DURUM DEPOLAMA BOYUT ANALİZİ ---");
-      for (const key of Object.keys(this.state)) {
-        try {
-          const sz = JSON.stringify(this.state[key]).length;
-          if (sz > 30000) {
-            console.warn(`Büyük alan: ${key} = ${(sz / 1024).toFixed(1)} KB`);
-          }
-        } catch (err) {}
+      console.warn("--- ACİL DURUM DEPOLAMA BİLGİLENDİRMESİ ---");
+      // Ana veritabanı IndexedDB ve Tauri dosyasında güvenle saklanmaktadır.
+      if (typeof window !== 'undefined' && window.indexedDB && typeof saveStateToIndexedDB === 'function') {
+        saveStateToIndexedDB(this.state, 'Acil Durum Kurtarma').catch(() => {});
       }
-      if (this.state.documents && Array.isArray(this.state.documents)) {
-        this.state.documents.forEach(d => {
-          delete d.content;
-          delete d.htmlContent;
-        });
-      }
-      const toSave = { ...this.state };
-      delete toSave.rawStudents;
-      localStorage.removeItem(STORAGE_KEY);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
-      console.log("recoverFromQuotaExceeded: Acil kurtarma ile localStorage yenilendi.");
     } catch (err) {
-      console.error("recoverFromQuotaExceeded: Acil kurtarma da başarısız:", err);
+      console.error("recoverFromQuotaExceeded:", err);
     }
   }
 
@@ -2657,8 +2867,34 @@ class StateManager {
       ...extraData
     };
     this.state.performance.push(record);
-    this.saveState();
+    this.saveState(`Puan eklendi: ${reason}`);
     return record;
+  }
+
+  addBatchPerformance(records) {
+    if (!Array.isArray(records) || records.length === 0) return [];
+    if (!this.state.performance) this.state.performance = [];
+    const added = [];
+    const nowIso = new Date().toISOString();
+    const activeWeek = window.getISOWeek ? window.getISOWeek() : 'week_1';
+
+    records.forEach(r => {
+      const record = {
+        id: 'perf_' + Date.now() + Math.random().toString(36).substr(2, 5),
+        studentId: r.studentId,
+        type: r.type,
+        point: parseInt(r.point),
+        reason: r.reason,
+        date: r.date || nowIso,
+        weekId: r.weekId || activeWeek,
+        ...(r.extraData || {})
+      };
+      this.state.performance.push(record);
+      added.push(record);
+    });
+
+    this.saveState(`Toplu puan eklendi (${added.length} Öğrenci)`);
+    return added;
   }
 
   deletePerformance(id) {

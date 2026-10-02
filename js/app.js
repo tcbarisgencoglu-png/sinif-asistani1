@@ -2126,11 +2126,60 @@ async function initApp() {
   // 0. Taşınabilir USB Ortamı Kontrolü ve Otomatik Yükleme
   await syncPortableDataOnStartup();
 
-  // 1. Veritabanını kontrol et, boşsa demo verisi yükle
-  const currentDB = localStorage.getItem('sinif_asistani_data');
+  // 0.5. Masaüstü Yerel Disk Dosyası (Tauri) ve IndexedDB Otomatik Kurtarma Kontrolü
+  let currentDB = localStorage.getItem('sinif_asistani_data');
+  const hasRealDataEver = localStorage.getItem('sinif_asistani_has_real_data') === 'true';
+
   if (!currentDB) {
-    localStorage.setItem('sinif_asistani_data', JSON.stringify(SEED_DATA));
-    console.log("Demo verileri sisteme başarıyla yüklendi.");
+    // A) Önce Masaüstü Yerel Disk Dosyasından (Tauri Native File) yüklemeyi dene
+    if (typeof window.loadDesktopNativeData === 'function') {
+      try {
+        const desktopState = await window.loadDesktopNativeData();
+        if (desktopState && (desktopState.students?.length > 0 || desktopState.books?.library?.length > 0)) {
+          localStorage.setItem('sinif_asistani_data', JSON.stringify(desktopState));
+          localStorage.setItem('sinif_asistani_has_real_data', 'true');
+          currentDB = JSON.stringify(desktopState);
+          console.log('[Kurtarma] Masaüstü yerel disk JSON dosyasından tüm veriler başarıyla geri yüklendi.');
+        }
+      } catch (e) {}
+    }
+
+    // B) Eğer hala boşsa, IndexedDB ana tablosundan yüklemeyi dene
+    if (!currentDB && typeof window.loadStateFromIndexedDB === 'function') {
+      try {
+        const idbState = await window.loadStateFromIndexedDB();
+        if (idbState && (idbState.students?.length > 0 || idbState.books?.library?.length > 0)) {
+          localStorage.setItem('sinif_asistani_data', JSON.stringify(idbState));
+          localStorage.setItem('sinif_asistani_has_real_data', 'true');
+          currentDB = JSON.stringify(idbState);
+          console.log('[Kurtarma] IndexedDB kalıcı deposundan tüm veriler başarıyla geri yüklendi.');
+        }
+      } catch (e) {}
+    }
+
+    // C) Eğer hala boşsa ama kullanıcı daha önce gerçek veri kullanmışsa, son döngüsel yedekten kurtar
+    if (!currentDB && hasRealDataEver && typeof window.getRollingBackupsFromIndexedDB === 'function') {
+      try {
+        const backups = await window.getRollingBackupsFromIndexedDB();
+        if (backups && backups.length > 0 && backups[0].data) {
+          const restoredState = backups[0].data;
+          localStorage.setItem('sinif_asistani_data', JSON.stringify(restoredState));
+          currentDB = JSON.stringify(restoredState);
+          console.log(`[Kurtarma] IndexedDB döngüsel yedeğinden (${backups[0].dateStr}) tüm veriler başarıyla geri yüklendi.`);
+        }
+      } catch (e) {}
+    }
+
+    // D) SADECE VE SADECE daha önce hiç veri girilmemişse (ilk kurulum) demo verisini yükle
+    if (!currentDB && !hasRealDataEver) {
+      localStorage.setItem('sinif_asistani_data', JSON.stringify(SEED_DATA));
+      console.log("İlk kurulum: Demo verileri sisteme başarıyla yüklendi.");
+    }
+
+    if (window.stateManager) {
+      window.stateManager.state = window.stateManager.loadState(true);
+      window.stateManager.notify();
+    }
   }
 
   // 2. Temayı Yükle
@@ -2681,7 +2730,7 @@ async function initApp() {
 }
 
 // Mevcut uygulama sürümü (her güncellemede değişir)
-const APP_VERSION = '1.0.37';
+const APP_VERSION = '1.0.38';
 
 // GitHub & Tauri Auto-Updater kontrolü
 async function checkForUpdates() {

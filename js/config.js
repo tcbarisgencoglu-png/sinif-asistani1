@@ -281,6 +281,104 @@
       });
     }
 
+    // --- Otomatik Kurtarma Noktaları (Rolling Backups) ---
+    const configBackupRollingTrigger = document.getElementById('config-backup-rolling-trigger');
+    const modalRollingBackups = document.getElementById('modal-rolling-backups');
+    const rollingBackupsContainer = document.getElementById('rolling-backups-container');
+
+    if (configBackupRollingTrigger && modalRollingBackups) {
+      configBackupRollingTrigger.addEventListener('click', async () => {
+        if (!rollingBackupsContainer) return;
+        rollingBackupsContainer.innerHTML = '<div style="text-align: center; padding: 1.5rem; color: var(--text-muted);"><i data-lucide="loader" class="spin"></i> Kurtarma noktaları taranıyor...</div>';
+        modalRollingBackups.classList.add('active');
+        if (window.safeCreateIcons) window.safeCreateIcons();
+
+        let backups = [];
+        if (typeof window.getRollingBackupsFromIndexedDB === 'function') {
+          backups = await window.getRollingBackupsFromIndexedDB();
+        }
+
+        if (!backups || backups.length === 0) {
+          rollingBackupsContainer.innerHTML = `
+            <div style="text-align: center; padding: 2rem 1rem; color: var(--text-muted);">
+              <i data-lucide="info" style="width: 32px; height: 32px; margin-bottom: 0.5rem; opacity: 0.5;"></i>
+              <div>Henüz kayıtlı bir otomatik kurtarma noktası bulunmuyor.</div>
+              <div style="font-size: 0.75rem; margin-top: 4px;">Sistemde puan veya sınav işlemi yapıldığında otomatik yedekler burada listelenir.</div>
+            </div>
+          `;
+          if (window.safeCreateIcons) window.safeCreateIcons();
+          return;
+        }
+
+        rollingBackupsContainer.innerHTML = '';
+        backups.forEach((b, idx) => {
+          const item = document.createElement('div');
+          item.className = 'glass-card';
+          item.style.padding = '0.75rem 1rem';
+          item.style.display = 'flex';
+          item.style.justifyContent = 'space-between';
+          item.style.alignItems = 'center';
+          item.style.borderRadius = '8px';
+          item.style.border = '1px solid var(--border-color)';
+          item.style.background = 'var(--bg-secondary)';
+
+          const stdCountText = b.studentCount !== undefined ? `(${b.studentCount} Öğrenci)` : '';
+
+          item.innerHTML = `
+            <div>
+              <div style="font-weight: 700; font-size: 0.88rem; color: var(--text-primary); display: flex; align-items: center; gap: 6px;">
+                <span>🕒 ${b.dateStr || 'Bilinmeyen Tarih'}</span>
+                <span class="badge" style="background: rgba(16, 185, 129, 0.15); color: #10b981; font-size: 0.7rem;">${idx === 0 ? 'En Son Yedek' : `#${idx + 1}`}</span>
+              </div>
+              <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 3px;">
+                ${b.reason || 'Kayıt noktası'} <strong style="color: var(--text-secondary);">${stdCountText}</strong>
+              </div>
+            </div>
+            <button type="button" class="btn btn-primary btn-sm restore-rolling-btn" style="padding: 0.35rem 0.75rem; font-size: 0.8rem; font-weight: 700; background: #10b981; border: none; gap: 4px;">
+              <i data-lucide="rotate-ccw" style="width: 14px; height: 14px;"></i> Geri Yükle
+            </button>
+          `;
+
+          const btnRestore = item.querySelector('.restore-rolling-btn');
+          btnRestore.addEventListener('click', async () => {
+            const confirmed = window.confirmAsync 
+              ? await window.confirmAsync(`"${b.dateStr}" tarihli otomatik yedeğe dönmek istediğinize emin misiniz? Mevcut durum bu yedekle güncellenecektir.`)
+              : confirm(`"${b.dateStr}" tarihli otomatik yedeğe dönmek istediğinize emin misiniz?`);
+            
+            if (confirmed && b.data) {
+              try {
+                localStorage.setItem('sinif_asistani_data', JSON.stringify(b.data));
+                localStorage.setItem('sinif_asistani_has_real_data', 'true');
+                if (window.stateManager) {
+                  window.stateManager.state = window.stateManager.loadState(true);
+                  window.stateManager.saveState('Kurtarma noktasından geri yüklendi');
+                  window.stateManager.notify();
+                }
+                modalRollingBackups.classList.remove('active');
+                if (toastCallback) toastCallback(`"${b.dateStr}" tarihli yedek başarıyla geri yüklendi!`, 'success');
+                const event = new CustomEvent('stateChanged');
+                document.dispatchEvent(event);
+              } catch (err) {
+                if (toastCallback) toastCallback('Geri yükleme sırasında hata oluştu!', 'danger');
+              }
+            }
+          });
+
+          rollingBackupsContainer.appendChild(item);
+        });
+
+        if (window.safeCreateIcons) window.safeCreateIcons();
+      });
+    }
+
+    if (modalRollingBackups) {
+      modalRollingBackups.querySelectorAll('.close-btn, .close-btn-action').forEach(btn => {
+        btn.addEventListener('click', () => {
+          modalRollingBackups.classList.remove('active');
+        });
+      });
+    }
+
     if (configSystemReset) {
       configSystemReset.addEventListener('click', () => {
         const modalSystemReset = document.getElementById('modal-system-reset');

@@ -321,11 +321,28 @@
     if (isWholeClass) {
       if (targetStudents.length === 0) return;
       
+      const batchList = [];
       targetStudents.forEach(student => {
         if (!stateManager.isStudentAbsent(student.id)) {
-          stateManager.addPerformance(student.id, currentBehaviorType, behavior.point, behavior.name, activeWeekId);
+          batchList.push({
+            studentId: student.id,
+            type: currentBehaviorType,
+            point: behavior.point,
+            reason: behavior.name,
+            weekId: activeWeekId
+          });
         }
       });
+
+      if (batchList.length > 0) {
+        if (typeof stateManager.addBatchPerformance === 'function') {
+          stateManager.addBatchPerformance(batchList);
+        } else {
+          batchList.forEach(item => {
+            stateManager.addPerformance(item.studentId, item.type, item.point, item.reason, item.weekId);
+          });
+        }
+      }
 
       if (behavior.point >= 0) playPointUpSound();
       else playPointDownSound();
