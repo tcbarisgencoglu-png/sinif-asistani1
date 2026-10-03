@@ -1,0 +1,4542 @@
+(() => {
+// Android ve web için blob indirme yardımcısı
+function downloadBlob(blob, filename) {
+  if (window.AndroidInterface && window.AndroidInterface.downloadFile) {
+    const reader = new FileReader();
+    reader.onload = function() {
+      const base64 = reader.result.split(',')[1];
+      window.AndroidInterface.downloadFile(base64, filename);
+    };
+    reader.readAsDataURL(blob);
+  } else {
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", filename);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setTimeout(() => URL.revokeObjectURL(url), 100);
+  }
+}
+window.downloadBlob = downloadBlob;
+
+// Kitap Değerlendirme Soruları Veri Tabanı
+const PRELOADED_QUESTIONS = {
+  'book_1': [
+    { question: "Küçük Prens'in kendi gezegenindeki en değerli varlığı nedir ve ona nasıl bakardı?", answer: "En değerli varlığı tek bir güldür. Onu her gün sular, rüzgardan korumak için üzerine cam bir fanus örter ve tırtılları temizlerdi." },
+    { question: "Küçük Prens, Dünya'ya gelmeden önce uğradığı gezegenlerde kimlerle karşılaştı?", answer: "Kral, Kendini Beğenmiş Adam, Sarhoş, İş Adamı, Fenerci ve Coğrafyacı ile karşılaşmıştır." },
+    { question: "Küçük Prens ile tilki arasındaki dostluk bağı nasıl kuruldu? Tilkinin 'evcilleştirmek' kelimesine yüklediği anlam nedir?", answer: "Tilki, Küçük Prens'e kendisini evcilleştirmesini söylemiştir. 'Evcilleştirmek', bağ kurmak ve birbirleri için dünyada tek ve eşsiz hale gelmek demektir." },
+    { question: "Yazarın çölde Küçük Prens ile karşılaşması onun hayata bakışını nasıl değiştirdi?", answer: "Yazar, büyüklerin yüzeysel dünyasından sıyrılarak çocuksu masumiyeti, hayal gücünü ve hayattaki gerçek değerlerin gözle görülmeyen, sadece kalple hissedilen şeyler olduğunu yeniden keşfetmiştir." },
+    { question: "Küçük Prens kitabında büyüklerin dünyası ile çocukların dünyası nasıl karşılaştırılıyor?", answer: "Büyükler sayılarla, parayla ve mevkilerle ilgilenirken; çocuklar sevgiyle, merakla ve şeylerin özüyle ilgilenir." },
+    { question: "Küçük Prens'in gezegenindeki yanardağları ve baobab ağaçlarını neden düzenli olarak temizlemesi gerekiyordu?", answer: "Baobab ağaçları temizlenmezse gezegeni tamamen kaplayıp kökleriyle patlatabilirdi. Yanardağları ise düzenli temizlemek onların birden patlamasını önler ve yavaşça yanmalarını sağlardı." }
+  ],
+  'book_2': [
+    { question: "Zeze'nin en yakın dostu olan şeker portakalı fidanının adı nedir ve onunla nasıl konuşurdu?", answer: "Adı Minguinho'dur (veya Xururuca). Zeze onunla hayal gücü vasıtasıyla içinden konuşurdu; fidanın ona cevap verdiğini hissederdi." },
+    { question: "Zeze'nin hayatını derinden etkileyen ve ona gerçek sevgiyi öğreten Portekizli (Portuga) ile dostluğu nasıl başladı?", answer: "Başlangıçta Portuga'nın arabasına kaçak bindiği için dayak yiyen Zeze, daha sonra ayağı yaralandığında Portuga'nın onu eczaneye götürüp tedavi ettirmesiyle onunla dost olmuştur." },
+    { question: "Zeze'nin yaramazlıklarının arkasında yatan asıl sebepler nelerdir? Sınıftaki öğretmeni onun hakkında ne düşünüyordu?", answer: "Zeze çok zeki, hayal gücü geniş, sevgisiz kalmış ve ilgi arayan bir çocuktur. Öğretmeni (Cecilia Paim) onun çok iyi kalpli, paylaşımcı ve zeki olduğunu düşünür, ona sevgiyle yaklaşırdı." },
+    { question: "Portuga'nın geçirdiği kaza haberi Zeze'yi nasıl etkiledi ve bu olaydan sonra Zeze nasıl olgunlaştı?", answer: "Portuga'nın tren kazasında ölmesi Zeze'yi yatağa düşürecek kadar ağır bir yasa boğmuştur. Bu kayıpla Zeze çocukluk masumiyetini geride bırakıp 'acıyı ve sevgiyi' tam anlamıyla keşfederek erken yaşta olgunlaşmıştır." },
+    { question: "Şeker Portakalı kitabında 'acıyı keşfetmek' teması Zeze üzerinden nasıl işleniyor?", answer: "Zeze'nin fiziksel şiddete maruz kalması ve ardından hayattaki en sevdiği insan olan Portuga'yı aniden kaybetmesiyle, acının fiziksel bir yaradan çok kalpte hissedilen derin bir sızı olduğunu keşfetmesi üzerinden işlenir." },
+    { question: "Zeze'nin ailesiyle olan ilişkisi nasıldı ve ailesi onun yaramazlıklarına nasıl tepki verirdi?", answer: "Ailesi yoksulluk ve çaresizlikten ötürü gergindi. Zeze'nin hayal gücünü ve yaramazlıklarını anlamak yerine onu sık sık ağır şekilde döverlerdi." }
+  ],
+  'book_3': [
+    { question: "Christy Brown'ın doğumundan itibaren karşılaştığı en büyük fiziksel engel neydi ve ailesi buna nasıl yaklaştı?", answer: "Beyin felci (serebral palsi) nedeniyle tüm vücut kaslarını kontrol edemiyordu. Babası ve diğer insanlar onun zihinsel engelli olduğunu düşünürken, annesi onun zekasına inanmış ve onu asla dışlamamıştır." },
+    { question: "Christy'nin ailesine zihinsel olarak sağlıklı olduğunu kanıtladığı ilk an (tebeşirle yazı yazma sahnesi) nasıl gerçekleşti?", answer: "Ablasının tebeşirini sol ayağıyla kapıp, annesinin yoğun cesaretlendirmesiyle yere zorlukla da olsa 'A' harfini çizmeyi başarmasıyla kanıtlamıştır." },
+    { question: "Christy'nin resim yapmaya ve yazmaya başlamasında annesinin rolü nedir?", answer: "Annesi ona her zaman inanmış, maddi imkansızlıklara rağmen ona boyalar, kitaplar ve kağıtlar temin etmiş, onu pes etmemesi için sürekli desteklemiştir." },
+    { question: "Sol Ayağım kitabında Christy'nin kardeşleriyle olan ilişkisi ve çocukluk oyunları nasıl anlatılıyor?", answer: "Kardeşleri onu arabasıyla sokaklara taşımış, çamur savaşlarına ve oyunlara dahil etmiştir. Christy kendini kardeşleri sayesinde dışlanmış hissetmemiştir." },
+    { question: "Christy'nin ergenlik döneminde engeliyle yüzleşmesi ve yaşadığı içsel çatışmalar nelerdir?", answer: "Büyüdükçe diğer insanlardan farklı olduğunu, hiçbir zaman normal yürüyüp konuşamayacağını ve aşık olduğu kızlar tarafından sadece bir dost olarak görüldüğünü fark ederek derin bir bunalıma girmiştir." },
+    { question: "Christy Brown'ın sol ayağını kullanarak başardığı en önemli şeyler nelerdir?", answer: "Sol ayağıyla resim yapmayı, daktiloda yazı yazmayı öğrenmiş ve kendi otobiyografisini (Sol Ayağım) yazarak dünyaca ünlü bir yazar ve ressam olmuştur." }
+  ],
+  'book_4': [
+    { question: "Jim Hawkins'in hanında kalan gizemli denizci Billy Bones kimdir ve Jim'e ne bıraktı?", answer: "Kaptan Flint'in eski tayfasından olan eski bir korsandır. Korsanların elinden kaçırdığı ve içinde define adasının haritası olan eski bir sandık bırakmıştır." },
+    { question: "Define haritasının bulunmasından sonra çıkılan Hispaniola gemisi yolculuğunda Jim, Kaptan Flint'in tayfasıyla ilgili ne öğrendi?", answer: "Elma fıçısının içine saklandığında, gemi aşçısı Uzun John Silver'ın Flint'in eski tayfasından korsanlarla isyan planladığını kulak misafiri olarak öğrenmiştir." },
+    { question: "Uzun John Silver (Long John Silver) karakteri Jim için başlangıçta kimdi, sonradan nasıl bir tehlikeye dönüştü?", answer: "Başlangıçta cana yakın, korumacı bir gemi aşçısıydı. Ancak adaya varıldığında acımasız, kurnaz ve hazineye ulaşmak için herkesi öldürebilecek bir korsan lideri olduğu ortaya çıktı." },
+    { question: "Define Adası'nda yıllardır mahsur kalan Ben Gunn kimdir ve Jim'e defineyi bulmasında nasıl yardım etmiştir?", answer: "Eski bir korsan olan ve adada tek başına bırakılan bir denizcidir. Defineyi korsanlardan önce bulup bir mağaraya saklamış ve Jim'in grubuna defineyi teslim etmiştir." },
+    { question: "Jim Hawkins'in gemiyi korsanların elinden tek başına geri alma macerası nasıl gerçekleşti?", answer: "Ben Gunn'ın yaptığı küçük yerli derisi sandalla gece Hispaniola gemisine yaklaşmış, geminin çapa halatını kesmiş, korsan Israel Hands ile mücadele ederek gemiyi güvenli bir koya yönlendirmiştir." },
+    { question: "Define Adası macerasının sonunda Jim ve arkadaşları adadan nasıl ayrıldılar ve defineye ne oldu?", answer: "Hazineyi gemiye yükleyip yola çıktılar. Uzun John Silver yolda bir limanda hazinenin bir kısmıyla kaçtı. Jim ve diğerleri sağ salim dönüp paylarını aldılar." }
+  ]
+};
+
+const GENERIC_QUESTIONS = [
+  { question: "Bu kitabın baş kahramanı kimdir ve onun en belirgin kişilik özelliği nedir?", answer: "Kitabın baş kahramanını belirterek; onun cesaret, merak, dürüstlük veya yardımseverlik gibi öne çıkan yönlerini açıklaması beklenir." },
+  { question: "Kitabın geçtiği yer ve zaman hakkında bilgi verebilir misin?", answer: "Hikayenin yaşandığı mekanları (örn: bir köy, ada, okul) ve zaman dilimini (örn: geçmiş zaman, yaz mevsimi) tarif etmesi beklenir." },
+  { question: "Kitaptaki olayların başlangıcına sebep olan ana sorun veya macera nedir?", answer: "Hikayeyi başlatan temel çatışmayı, gizemi veya yerine getirilmesi gereken görevi açıklaması beklenir." },
+  { question: "Kitapta seni en çok şaşırtan veya heyecanlandıran olay hangisiydi?", answer: "Kendi okuma deneyiminde en çok şaşırdığı, heyecanlandığı veya üzüldüğü kırılma anını anlatması beklenir." },
+  { question: "Eğer kitabın sonunu sen yazsaydın, nasıl bitirmek isterdin?", answer: "Kitabın sonunu kendi yaratıcılığıyla değiştirerek, karakterlerin akıbetini nasıl görmek istediğini açıklaması beklenir." },
+  { question: "Bu kitaptan çıkardığın en önemli ders veya ana fikir nedir?", answer: "Kitabın okuyucuya vermek istediği ahlaki dersi, öğüdü veya ana temayı özetlemesi beklenir." },
+  { question: "Kitaptaki karakterlerden biri olsaydın, hangisi olmak isterdin ve neden?", answer: "Seçtiği bir karakterle empati kurarak, onun hangi davranışlarını veya rolünü beğendiğini ifade etmesi beklenir." },
+  { question: "Bu kitabı bir arkadaşına tavsiye eder miydin? Neden?", answer: "Kitabı sürükleyicilik, bilgilendiricilik veya duygusal yönlerden değerlendirip arkadaşına önerme sebeplerini söylemesi beklenir." },
+  { question: "Kitabın yazarı bu hikaye aracılığıyla okuyuculara ne anlatmak istemiş olabilir?", answer: "Yazarın vermeye çalıştığı toplumsal veya bireysel mesajları kendi kelimeleriyle yorumlaması beklenir." },
+  { question: "Kitapta en çok beğendiğin cümle veya paragraf hangisidir?", answer: "Kitaptan aklında kalan anlamlı bir sözü veya bölümü paylaşarak nedenini açıklaması beklenir." }
+];
+
+let activeQuestionsState = {
+  bookId: null,
+  questions: [],
+  currentIndex: 0,
+  bookTitle: '',
+  bookAuthor: ''
+};
+
+let currentEditBookId = null;
+let currentEditBookTitle = '';
+let currentEditBookAuthor = '';
+let currentEditBookLevel = 'seviye_1';
+
+function getTargetGradeLevelInfo() {
+  const state = stateManager.loadState();
+  const className = (state.className || '').trim();
+  const educationLevel = state.educationLevel || 'primary';
+  
+  const match = className.match(/(\d+)/);
+  let gradeNum = match ? parseInt(match[1], 10) : null;
+  
+  if (!gradeNum || isNaN(gradeNum)) {
+    gradeNum = educationLevel === 'middle' ? 6 : 3;
+  }
+  
+  if (gradeNum < 1) gradeNum = 1;
+  if (gradeNum > 8) gradeNum = 8;
+  
+  return { gradeNum, educationLevel };
+}
+
+function getGeminiApiKey() {
+  const key = (localStorage.getItem('sinif_asistani_gemini_api_key') || '').trim();
+  return key.replace(/^["'“”‘’\s]+|["'“”‘’\s]+$/g, '');
+}
+window.getGeminiApiKey = getGeminiApiKey;
+
+function setGeminiApiKey(key) {
+  const trimmed = (key || '').trim().replace(/^["'“”‘’\s]+|["'“”‘’\s]+$/g, '');
+  if (trimmed) {
+    localStorage.setItem('sinif_asistani_gemini_api_key', trimmed);
+  } else {
+    localStorage.removeItem('sinif_asistani_gemini_api_key');
+  }
+}
+window.setGeminiApiKey = setGeminiApiKey;
+
+window.callGeminiAPI = async function(prompt, options = {}) {
+  const apiKey = getGeminiApiKey();
+  if (!apiKey) {
+    throw new Error('NO_API_KEY');
+  }
+
+  // 1. Önce API anahtarının erişebildiği aktif modelleri Google'dan doğrudan çek
+  let listData = null;
+  let listError = null;
+
+  for (const apiVer of ['v1beta', 'v1']) {
+    try {
+      const listRes = await fetch(`https://generativelanguage.googleapis.com/${apiVer}/models?key=${apiKey}`);
+      const json = await listRes.json();
+      if (listRes.ok && json.models && json.models.length > 0) {
+        listData = { version: apiVer, models: json.models };
+        break;
+      } else if (!listRes.ok) {
+        listError = json.error?.message || `HTTP ${listRes.status}`;
+      }
+    } catch (e) {
+      listError = e.message;
+    }
+  }
+
+  if (!listData) {
+    if (listError && (listError.toLowerCase().includes('api key not valid') || listError.toLowerCase().includes('invalid'))) {
+      throw new Error('Google API anahtarı geçersiz! Lütfen anahtarınızı kontrol edip tekrar kaydedin.');
+    }
+    if (listError && (listError.includes('not been used in project') || listError.includes('disabled'))) {
+      throw new Error('Google Cloud projenizde Generative Language API henüz etkin değil. Lütfen Google AI Studio\'da anahtar oluştururken "Create API key in new project" (Yeni projede oluştur) seçeneğini seçin.');
+    }
+    throw new Error(`Google API bağlantı hatası: ${listError || 'Modeller sorgulanamadı'}`);
+  }
+
+  // 2. generateContent destekleyen modelleri filtrele
+  const supportedModels = listData.models.filter(m => 
+    !m.supportedGenerationMethods || m.supportedGenerationMethods.includes('generateContent')
+  );
+
+  if (supportedModels.length === 0) {
+    throw new Error('Bu API anahtarının içerik üretme modellerine izni bulunmuyor. Lütfen Google AI Studio üzerinden "Create API key in new project" seçeneğiyle yeni bir anahtar oluşturun.');
+  }
+
+  // Flash modellerine ve alternatif sürümlere öncelik ver
+  const prioritizedCandidateNames = [
+    'models/gemini-2.0-flash',
+    'models/gemini-1.5-flash',
+    'models/gemini-2.5-flash-lite',
+    'models/gemini-2.0-flash-lite',
+    'models/gemini-3.6-flash',
+    'models/gemini-3-flash',
+    ...supportedModels.map(m => m.name.startsWith('models/') ? m.name : `models/${m.name}`)
+  ].filter((v, i, a) => a.indexOf(v) === i);
+
+  let response = null;
+  let lastErrDetail = '';
+  const temperature = options.temperature !== undefined ? options.temperature : 0.3;
+  const wantJson = options.json !== false;
+
+  const requestParts = [{ text: prompt }];
+  if (options.imageBase64) {
+    requestParts.push({
+      inlineData: {
+        mimeType: options.imageMimeType || 'image/jpeg',
+        data: options.imageBase64.replace(/^data:[a-zA-Z0-9.\/+-]+;base64,/, '')
+      }
+    });
+  } else if (Array.isArray(options.parts)) {
+    requestParts.push(...options.parts);
+  }
+
+  for (const modelPath of prioritizedCandidateNames) {
+    const url = `https://generativelanguage.googleapis.com/${listData.version}/${modelPath}:generateContent?key=${apiKey}`;
+    try {
+      let curRes = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: requestParts
+            }
+          ],
+          generationConfig: {
+            temperature: temperature,
+            ...(wantJson ? { responseMimeType: "application/json" } : {})
+          }
+        })
+      });
+
+      // Eğer responseMimeType desteklenmezse (400) formatsız dene
+      if (curRes.status === 400 && wantJson) {
+        curRes = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            contents: [{ parts: requestParts }],
+            generationConfig: { temperature: temperature }
+          })
+        });
+      }
+
+      if (curRes.ok) {
+        response = curRes;
+        break;
+      }
+
+      let errDetail = '';
+      try {
+        const errJson = await curRes.json();
+        errDetail = errJson.error?.message || curRes.statusText;
+      } catch (e) {
+        errDetail = curRes.statusText;
+      }
+      lastErrDetail = errDetail;
+
+      // Google hata mesajında "Please update your code to use models/XYZ" önerisi verdiyse onu doğrudan dene!
+      const match = errDetail.match(/use\s+(models\/[a-zA-Z0-9.-]+)/i);
+      if (match && match[1]) {
+        const suggestedUrl = `https://generativelanguage.googleapis.com/${listData.version}/${match[1]}:generateContent?key=${apiKey}`;
+        const retryRes = await fetch(suggestedUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: requestParts }],
+            generationConfig: { temperature: temperature, ...(wantJson ? { responseMimeType: "application/json" } : {}) }
+          })
+        });
+        if (retryRes.ok) {
+          response = retryRes;
+          break;
+        }
+      }
+
+      // 404 (model bulunamadı), 503/500 (sunucu yoğun), High Demand veya 429 Kota Aşımı (Resource Exhausted) durumunda diğer modele geç!
+      const isQuotaExceeded = curRes.status === 429 || 
+        errDetail.toLowerCase().includes('quota') || 
+        errDetail.toLowerCase().includes('resource_exhausted') ||
+        errDetail.toLowerCase().includes('rate limit');
+
+      const isHighDemandOrUnavailable = curRes.status === 404 || 
+        curRes.status === 503 || 
+        curRes.status === 500 || 
+        (curRes.status === 429 && errDetail.toLowerCase().includes('demand')) ||
+        errDetail.toLowerCase().includes('high demand') ||
+        errDetail.toLowerCase().includes('overloaded') ||
+        errDetail.toLowerCase().includes('unavailable');
+
+      if (isQuotaExceeded || isHighDemandOrUnavailable) {
+        // Eğer bu modelde anlık kota dolduysa veya yoğunluk varsa, diğer modeli denemek için kısa bir bekleme yap
+        await new Promise(r => setTimeout(r, 400));
+        continue;
+      }
+
+      // Sadece gerçek yetkisiz (401/403) veya kalıcı geçersiz anahtar durumunda döngüyü sonlandır
+      break;
+    } catch (e) {
+      lastErrDetail = e.message;
+    }
+  }
+
+  if (!response || !response.ok) {
+    const errLower = (lastErrDetail || '').toLowerCase();
+    if (errLower.includes('quota') || errLower.includes('resource_exhausted') || errLower.includes('rate limit') || errLower.includes('free_tier_requests')) {
+      // Bekleme süresini yakalamaya çalış (örn: Please retry in 19.4111582s)
+      const secMatch = lastErrDetail.match(/retry in\s+([0-9.]+)\s*s/i);
+      const retrySec = secMatch ? Math.ceil(parseFloat(secMatch[1])) : 20;
+      throw new Error(`Google Yapay Zeka ücretsiz kullanım sınırına (dakikalık istek kotası) ulaşıldı. Lütfen yaklaşık ${retrySec} saniye bekleyip tekrar deneyin.`);
+    }
+    if (errLower.includes('high demand') || errLower.includes('overloaded')) {
+      throw new Error('Google Gemini sunucularında şu an anlık bir yoğunluk yaşanıyor. Lütfen 5-10 saniye sonra tekrar deneyin.');
+    }
+    throw new Error(`Yapay zeka servisi hatası: ${lastErrDetail || 'İstek tamamlanamadı.'}`);
+  }
+
+  const data = await response.json();
+  const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+  if (!rawText) {
+    throw new Error('Yapay zekadan boş yanıt alındı.');
+  }
+
+  return rawText;
+};
+
+async function generateBookQuestionsWithAI(bookTitle, bookAuthor, options = {}) {
+  const apiKey = getGeminiApiKey();
+  if (!apiKey) {
+    throw new Error('NO_API_KEY');
+  }
+
+  const gradeLevel = options.gradeLevel || 3;
+  const bookLevel = options.bookLevel || 'seviye_1';
+
+  let gradeInstruction = '';
+  if (gradeLevel === 1) {
+    gradeInstruction = `HEDEF ÖĞRENCİ DÜZEYİ: 1. Sınıf (6-7 Yaş) İlkokul öğrencileri.
+DİL VE ANLATIM KURALI: Çok sade, kısa ve en temel Türkçe kelimeleri kullan. Cümleler en fazla 5-7 kelimeden oluşmalıdır. Karmaşık, uzun cümleler kurma.
+SORU TİPİ: Kitabın ana kahramanı kimdir, ne yapmıştır, olay nerede geçmiştir gibi en somut ve doğrudan hatırlama/tanıma soruları sor.`;
+  } else if (gradeLevel === 2) {
+    gradeInstruction = `HEDEF ÖĞRENCİ DÜZEYİ: 2. Sınıf (7-8 Yaş) İlkokul öğrencileri.
+DİL VE ANLATIM KURALI: 7-8 yaş çocuğunun kelime hazinesine uygun, çok yalın, açık ve somut bir anlatım kullan. Edebi tahlil, felsefi çıkarım ve soyut kavramlar KESİNLİKLE KULLANMA.
+SORU TİPİ: Kitaptaki ana olayları, kahramanların somut hareketlerini ve temel olay sırasını ölçecek net sorular sor.`;
+  } else if (gradeLevel === 3) {
+    gradeInstruction = `HEDEF ÖĞRENCİ DÜZEYİ: 3. Sınıf (8-9 Yaş) İlkokul öğrencileri.
+DİL VE ANLATIM KURALI: 3. sınıf çocuğunun kelime dağarcığına ve anlama dünyasına tam uygun, son derece duru, anlaşılır ve somut bir Türkçe kullan. Felsefi, derin edebi tahlil gerektiren veya ortaokul/LGS düzeyinde soyut sorular KESİNLİKLE SORMA.
+SORU TİPİ: Çocuğun kitabı gerçekten zevkle okuyup olayları kavradığını kanıtlayacak somut olaylar, karakterlerin sergilediği davranışlar ve basit neden-sonuç ilişkileri üzerine odaklan. Beklenen cevaplar çocuğun kendi cümleleriyle 1-2 cümlede rahatça ifade edebileceği netlikte olmalıdır.`;
+  } else if (gradeLevel === 4) {
+    gradeInstruction = `HEDEF ÖĞRENCİ DÜZEYİ: 4. Sınıf (9-10 Yaş) İlkokul öğrencileri.
+DİL VE ANLATIM KURALI: İlkokul 4. sınıf düzeyine uygun, akıcı ve anlaşılır bir dil kullan. Gereksiz soyut edebi terimlerden kaçın.
+SORU TİPİ: Olay örgüsü, karakterlerin motivasyonları, ana fikir ve olayların neden-sonuç ilişkilerini değerlendiren sorular sor.`;
+  } else if (gradeLevel <= 6) {
+    gradeInstruction = `HEDEF ÖĞRENCİ DÜZEYİ: 5 ve 6. Sınıf (10-12 Yaş) Ortaokul öğrencileri.
+DİL VE ANLATIM KURALI: Ortaokul kademesine uygun, akıcı ve gelişimsel düzeyi destekleyen bir Türkçe kullan.
+SORU TİPİ: Olay örgüsü, karakterlerin özellikleri, çatışmalar ve kitabın ana temasına yönelik sorular sor.`;
+  } else {
+    gradeInstruction = `HEDEF ÖĞRENCİ DÜZEYİ: 7 ve 8. Sınıf (12-14 Yaş) Ortaokul öğrencileri.
+DİL VE ANLATIM KURALI: Ortaokul üst kademe düzeyine uygun, zengin bir Türkçe kullan.
+SORU TİPİ: Karakterlerin psikolojik/ahlaki kararları, olay örgüsü, alt metin ve ana fikir tahlili soruları sor.`;
+  }
+
+  const levelText = bookLevel === 'seviye_2' 
+    ? 'Kitap Seviyesi: 2. Seviye (Biraz daha detaylı olaylar ve neden-sonuç ilişkileri).' 
+    : 'Kitap Seviyesi: 1. Seviye (Doğrudan ana olaylar ve temel kahramanlar odaklı).';
+
+  const prompt = `Sen uzman ve pedagojik formasyona sahip bir Türkçe/Edebiyat öğretmenisin. Aşağıdaki kitap için hedef öğrenci kitlesinin seviyesine tam olarak uygun, okuduğunu anlama becerisini ölçecek 5 adet açık uçlu soru ve her birinin model cevabını hazırla.
+
+Kitap Adı: "${bookTitle}"
+Yazar: "${bookAuthor || 'Bilinmiyor'}"
+${levelText}
+
+${gradeInstruction}
+
+Yanıtını YALNIZCA geçerli bir JSON dizisi formatında ver. Kesinlikle başka hiçbir metin, açıklama veya markdown kodu (json codeblock vb.) yazma:
+[
+  {
+    "question": "Soru metni...",
+    "answer": "Beklenen doğru cevap / açıklama..."
+  }
+]
+
+Kurallar:
+1. Sorular yukarıda belirtilen sınıf ve yaş düzeyinin bilişsel gelişim sınırlarına ve kelime hazinesine TAM UYMALIDIR.
+2. Basit evet/hayır soruları sorma; öğrencinin okuduğunu kanıtlayacak belirleyici detaylar içersin ancak öğrenciyi zorlayacak karmaşık felsefi veya edebi çıkarımlar sorma.
+3. Tam 5 adet soru-cevap çifti üret.`;
+
+  const rawText = await window.callGeminiAPI(prompt, { json: true, temperature: 0.3 });
+
+  let cleanJson = rawText.trim();
+  if (cleanJson.startsWith('```json')) {
+    cleanJson = cleanJson.replace(/^```json\s*/i, '').replace(/```\s*$/, '').trim();
+  } else if (cleanJson.startsWith('```')) {
+    cleanJson = cleanJson.replace(/^```\s*/, '').replace(/```\s*$/, '').trim();
+  }
+
+  const arrayMatch = cleanJson.match(/\[[\s\S]*\]/);
+  if (arrayMatch) {
+    cleanJson = arrayMatch[0];
+  }
+
+  let questions;
+  try {
+    questions = JSON.parse(cleanJson);
+  } catch (e) {
+    throw new Error('Yapay zeka yanıtı geçerli JSON formatında değil: ' + e.message);
+  }
+
+  if (!Array.isArray(questions) || questions.length === 0) {
+    throw new Error('Yapay zeka geçerli soru listesi üretemedi.');
+  }
+
+  return questions;
+}
+
+function shuffleArray(array) {
+  const arr = [...array];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+function openBookQuestionsModal(bookId, bookTitle, bookAuthor) {
+  const state = stateManager.loadState();
+  const book = state.books.library.find(b => b.id === bookId);
+  
+  let questions = [];
+  if (book && book.questions && book.questions.length > 0) {
+    questions = book.questions;
+  } else {
+    let preloaded = PRELOADED_QUESTIONS[bookId];
+    if (!preloaded) {
+      const normalizedTitle = bookTitle.toLowerCase().trim();
+      if (normalizedTitle.includes("küçük prens")) {
+        preloaded = PRELOADED_QUESTIONS['book_1'];
+      } else if (normalizedTitle.includes("şeker portakalı")) {
+        preloaded = PRELOADED_QUESTIONS['book_2'];
+      } else if (normalizedTitle.includes("sol ayağım")) {
+        preloaded = PRELOADED_QUESTIONS['book_3'];
+      } else if (normalizedTitle.includes("define adası")) {
+        preloaded = PRELOADED_QUESTIONS['book_4'];
+      } else {
+        preloaded = GENERIC_QUESTIONS;
+      }
+    }
+    questions = preloaded;
+  }
+
+  const shuffledQuestions = shuffleArray(questions);
+
+  activeQuestionsState = {
+    bookId: bookId,
+    questions: shuffledQuestions,
+    currentIndex: 0,
+    bookTitle: bookTitle,
+    bookAuthor: bookAuthor
+  };
+
+  const modal = document.getElementById('modal-book-questions');
+  if (modal) {
+    modal.classList.add('active');
+    renderCurrentQuestion();
+    window.safeCreateIcons();
+  }
+}
+
+function renderCurrentQuestion() {
+  const { questions, currentIndex, bookTitle, bookAuthor } = activeQuestionsState;
+  
+  const titleElem = document.getElementById('question-book-title');
+  const authorElem = document.getElementById('question-book-author');
+  const textElem = document.getElementById('book-question-text');
+  const progressTextElem = document.getElementById('question-progress-text');
+  const progressBarElem = document.getElementById('question-progress-bar');
+  
+  const answerContainer = document.getElementById('answer-container');
+  const answerElem = document.getElementById('answer-text');
+  const btnShowAnswer = document.getElementById('btn-show-answer');
+
+  if (titleElem) titleElem.textContent = bookTitle;
+  if (authorElem) authorElem.textContent = bookAuthor;
+  
+  if (answerContainer) answerContainer.style.display = 'none';
+  if (btnShowAnswer) {
+    btnShowAnswer.innerHTML = `<span>Cevabı Göster</span> <i data-lucide="eye" style="width: 16px; height: 16px;"></i>`;
+  }
+
+  const currentQuestion = questions[currentIndex];
+  const qText = typeof currentQuestion === 'string' ? currentQuestion : currentQuestion.question;
+  const aText = typeof currentQuestion === 'string' ? 'Cevap eklenmemiş.' : currentQuestion.answer;
+
+  if (textElem) {
+    textElem.textContent = qText;
+    
+    // Animasyonu yeniden başlat
+    textElem.style.animation = 'none';
+    textElem.offsetHeight; // reflow
+    textElem.style.animation = null;
+  }
+  
+  if (answerElem) {
+    answerElem.textContent = aText;
+  }
+  
+  const total = questions.length;
+  const currentNum = currentIndex + 1;
+  if (progressTextElem) {
+    progressTextElem.textContent = `Soru ${currentNum} / ${total}`;
+  }
+  if (progressBarElem) {
+    const percentage = (currentNum / total) * 100;
+    progressBarElem.style.width = `${percentage}%`;
+  }
+}
+
+function openEditQuestionsModal(bookId, bookTitle, bookAuthor) {
+  currentEditBookId = bookId;
+  currentEditBookTitle = bookTitle;
+  currentEditBookAuthor = bookAuthor;
+  const state = stateManager.loadState();
+  const book = state.books.library.find(b => b.id === bookId);
+  if (!book) return;
+  currentEditBookLevel = book.level || 'seviye_1';
+
+  // AI yükleme ve buton durumunu sıfırla
+  const aiLoadingState = document.getElementById('ai-questions-loading-state');
+  if (aiLoadingState) aiLoadingState.style.display = 'none';
+  const btnAi = document.getElementById('btn-ai-generate-book-questions');
+  if (btnAi) btnAi.disabled = false;
+
+  // Hedef sınıf seçimini öğretmenin mevcut sınıfına göre ayarla
+  const selectGrade = document.getElementById('select-ai-questions-grade');
+  if (selectGrade) {
+    const gradeInfo = getTargetGradeLevelInfo();
+    selectGrade.value = String(gradeInfo.gradeNum);
+  }
+
+  const titleElem = document.getElementById('edit-questions-book-title');
+  const authorElem = document.getElementById('edit-questions-book-author');
+  if (titleElem) titleElem.textContent = bookTitle;
+  if (authorElem) authorElem.textContent = bookAuthor;
+
+  const container = document.getElementById('edit-questions-list-container');
+  if (!container) return;
+  container.innerHTML = '';
+
+  let questions = book.questions;
+  if (!questions || questions.length === 0) {
+    const normalizedTitle = bookTitle.toLowerCase().trim();
+    if (normalizedTitle.includes("küçük prens")) {
+      questions = PRELOADED_QUESTIONS['book_1'];
+    } else if (normalizedTitle.includes("şeker portakalı")) {
+      questions = PRELOADED_QUESTIONS['book_2'];
+    } else if (normalizedTitle.includes("sol ayağım")) {
+      questions = PRELOADED_QUESTIONS['book_3'];
+    } else if (normalizedTitle.includes("define adası")) {
+      questions = PRELOADED_QUESTIONS['book_4'];
+    } else {
+      questions = GENERIC_QUESTIONS;
+    }
+  }
+
+  questions.forEach(q => {
+    const qText = typeof q === 'string' ? q : q.question;
+    const aText = typeof q === 'string' ? 'Cevap eklenmemiş.' : q.answer;
+    addQuestionEditRow(container, qText, aText);
+  });
+
+  const modal = document.getElementById('modal-edit-book-questions');
+  if (modal) {
+    modal.classList.add('active');
+    window.safeCreateIcons();
+  }
+}
+
+function addQuestionEditRow(container, questionVal = '', answerVal = '') {
+  const row = document.createElement('div');
+  row.className = 'edit-question-row glass-card';
+  row.style.cssText = 'padding: 1.25rem; margin-bottom: 1rem; position: relative; border-left: 4px solid var(--primary); background: var(--bg-primary); border-radius: var(--radius-md); border-top: 1px solid var(--border-color); border-right: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color);';
+
+  row.innerHTML = `
+    <button type="button" class="action-btn-sm delete btn-remove-question" style="position: absolute; right: 10px; top: 10px;" title="Soruyu Sil">
+      <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i>
+    </button>
+    <div class="form-group" style="margin-bottom: 0.75rem; padding-right: 25px;">
+      <label style="font-size: 0.8rem; font-weight: 700; margin-bottom: 0.25rem; display: block; color: var(--text-primary);">Soru Metni</label>
+      <textarea class="form-control edit-question-input" rows="2" style="font-size: 0.85rem; width: 100%; border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 0.5rem; background: var(--bg-secondary); color: var(--text-primary);" placeholder="Soru metnini yazın..." required>${questionVal}</textarea>
+    </div>
+    <div class="form-group" style="margin-bottom: 0;">
+      <label style="font-size: 0.8rem; font-weight: 700; margin-bottom: 0.25rem; display: block; color: var(--success);">Doğru Cevap / Beklenen Açıklama</label>
+      <textarea class="form-control edit-answer-input" rows="2" style="font-size: 0.85rem; width: 100%; border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 0.5rem; background: var(--bg-secondary); color: var(--text-primary);" placeholder="Doğru cevabı veya beklenen açıklamayı yazın..." required>${answerVal}</textarea>
+    </div>
+  `;
+
+  row.querySelector('.btn-remove-question').addEventListener('click', () => {
+    row.remove();
+  });
+
+  container.appendChild(row);
+  window.safeCreateIcons();
+}
+
+function parseCSV(text) {
+  const lines = text.split(/\r?\n/);
+  const result = [];
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (!line) continue;
+    
+    // Excel sep= belirtecini atla
+    if (line.toLowerCase().startsWith('sep=')) {
+      continue;
+    }
+    
+    // Ayırıcı karakteri algıla (semicolon veya virgül)
+    let delimiter = ';';
+    if (!line.includes(';') && line.includes(',')) {
+      delimiter = ',';
+    }
+    
+    const parts = parseCSVLine(line, delimiter);
+    if (parts.length >= 2) {
+      const question = parts[0].trim();
+      const answer = parts[1].trim();
+      
+      if (i === 0 && (question.toLowerCase() === 'soru' || question.toLowerCase() === 'question' || question.toLowerCase() === 'soru metni')) {
+        continue;
+      }
+      
+      if (question && answer) {
+        result.push({ question, answer });
+      }
+    }
+  }
+  return result;
+}
+
+function parseCSVLine(line, delimiter) {
+  const result = [];
+  let current = '';
+  let inQuotes = false;
+  
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i];
+    
+    if (char === '"') {
+      // Çift tırnak içinde çift tırnak varsa ("") bunu tek çift tırnağa dönüştür
+      if (inQuotes && line[i + 1] === '"') {
+        current += '"';
+        i++; // Bir sonraki karakteri atla
+      } else {
+        inQuotes = !inQuotes;
+      }
+    } else if (char === delimiter && !inQuotes) {
+      result.push(current);
+      current = '';
+    } else {
+      current += char;
+    }
+  }
+  result.push(current);
+  return result;
+}
+
+function escapeHtml(str) {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function sortBooksByBookNo(books) {
+  return books.sort((a, b) => {
+    const noA = parseInt(a.bookNo, 10);
+    const noB = parseInt(b.bookNo, 10);
+    if (!isNaN(noA) && !isNaN(noB)) {
+      if (noA !== noB) return noA - noB;
+    } else if (!isNaN(noA)) {
+      return -1;
+    } else if (!isNaN(noB)) {
+      return 1;
+    } else if (a.bookNo && b.bookNo) {
+      const cmp = a.bookNo.localeCompare(b.bookNo, 'tr', { numeric: true });
+      if (cmp !== 0) return cmp;
+    } else if (a.bookNo) {
+      return -1;
+    } else if (b.bookNo) {
+      return 1;
+    }
+    return (a.title || '').localeCompare(b.title || '', 'tr');
+  });
+}
+
+const libraryContainer = document.getElementById('library-books-container');
+const borrowedBooksTable = document.getElementById('borrowed-books-table');
+let selectedStudentId = null;
+let currentStudentDetailLevelFilter = 'all';
+let currentStudentDetailSearchQuery = '';
+
+// Modallar ve Formlar
+const btnAddBook = document.getElementById('btn-add-book');
+const modalBook = document.getElementById('modal-book');
+const formBook = document.getElementById('form-book');
+const bookNoInput = document.getElementById('book-no-input');
+const bookTitleInput = document.getElementById('book-title-input');
+const bookAuthorInput = document.getElementById('book-author-input');
+const bookPagesInput = document.getElementById('book-pages-input');
+const bookLevelInput = document.getElementById('book-level-input');
+
+const btnBorrowBook = document.getElementById('btn-borrow-book');
+const modalBorrow = document.getElementById('modal-borrow');
+const formBorrow = document.getElementById('form-borrow');
+const borrowStudentSelect = document.getElementById('borrow-student-select');
+const borrowBookSelect = document.getElementById('borrow-book-select');
+const borrowDateInput = document.getElementById('borrow-date-input');
+const borrowLevelFilter = document.getElementById('borrow-level-filter');
+
+let toastCallback = null;
+
+function setupBooksTab(showToast) {
+  toastCallback = showToast;
+
+  function updateBooksHeaderActions(activeTab) {
+    const btnAddBook = document.getElementById('btn-add-book');
+    const btnDownloadTemplate = document.getElementById('btn-download-book-template');
+    const btnUploadTrigger = document.getElementById('btn-upload-books-trigger');
+    const btnBatchAIQuestions = document.getElementById('btn-batch-ai-questions');
+    
+    if (btnAddBook) {
+      if (activeTab === 'leaderboard') {
+        btnAddBook.style.display = 'inline-flex';
+        if (btnDownloadTemplate) btnDownloadTemplate.style.display = 'inline-flex';
+        if (btnUploadTrigger) btnUploadTrigger.style.display = 'inline-flex';
+        if (btnBatchAIQuestions) btnBatchAIQuestions.style.display = 'inline-flex';
+      } else {
+        btnAddBook.style.display = 'none';
+        if (btnDownloadTemplate) btnDownloadTemplate.style.display = 'none';
+        if (btnUploadTrigger) btnUploadTrigger.style.display = 'none';
+        if (btnBatchAIQuestions) btnBatchAIQuestions.style.display = 'none';
+      }
+    }
+  }
+
+  // Set initial state (default tab is library)
+  updateBooksHeaderActions('library');
+
+  // Excel Kitap Şablonu İndirme Fonksiyonu
+  function downloadBookExcelTemplate() {
+    if (window.XLSX) {
+      const data = [
+        ["Kitap No", "Kitap Adı", "Yazar", "Sayfa Sayısı", "Seviye (1 veya 2)"],
+        ["101", "Küçük Prens", "Antoine de Saint-Exupéry", 96, 1],
+        ["102", "Şeker Portakalı", "José Mauro de Vasconcelos", 182, 1],
+        ["103", "Sol Ayağım", "Christy Brown", 192, 2],
+        ["104", "Define Adası", "Robert Louis Stevenson", 224, 2]
+      ];
+      const ws = XLSX.utils.aoa_to_sheet(data);
+      ws['!cols'] = [{ wch: 12 }, { wch: 30 }, { wch: 30 }, { wch: 15 }, { wch: 18 }];
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Kitaplık Şablonu");
+      
+      const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+      const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      downloadBlob(blob, "kitap_ekleme_sablonu.xlsx");
+      
+      if (toastCallback) {
+        toastCallback('Excel (.xlsx) kitap ekleme şablonu indirildi.', 'success');
+      }
+    } else {
+      const headers = "Kitap No;Kitap Adı;Yazar;Sayfa Sayısı;Seviye (1 veya 2)";
+      const rows = [
+        "101;Küçük Prens;Antoine de Saint-Exupéry;96;1",
+        "102;Şeker Portakalı;José Mauro de Vasconcelos;182;1",
+        "103;Sol Ayağım;Christy Brown;192;2",
+        "104;Define Adası;Robert Louis Stevenson;224;2"
+      ];
+      const csvContent = "\uFEFFsep=;\r\n" + [headers, ...rows].join("\r\n");
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      downloadBlob(blob, "kitap_ekleme_sablonu.csv");
+      
+      if (toastCallback) {
+        toastCallback('CSV kitap ekleme şablonu indirildi.', 'info');
+      }
+    }
+  }
+
+  // Excel Kitap Şablonu İndirme Butonları (Header eski buton & Yeni Yöntem Seçim Modalı butonu)
+  const btnDownloadBookTemplate = document.getElementById('btn-download-book-template');
+  if (btnDownloadBookTemplate) {
+    btnDownloadBookTemplate.addEventListener('click', downloadBookExcelTemplate);
+  }
+  const btnMethodDownloadBookTemplateBtn = document.getElementById('btn-method-download-book-template-btn');
+  if (btnMethodDownloadBookTemplateBtn) {
+    btnMethodDownloadBookTemplateBtn.addEventListener('click', downloadBookExcelTemplate);
+  }
+
+  const btnUploadBooksTrigger = document.getElementById('btn-upload-books-trigger');
+  const inputUploadBooksFile = document.getElementById('input-upload-books-file');
+  
+  if (btnUploadBooksTrigger && inputUploadBooksFile) {
+    btnUploadBooksTrigger.addEventListener('click', () => {
+      inputUploadBooksFile.click();
+    });
+
+    inputUploadBooksFile.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const fileName = file.name.toLowerCase();
+      const isExcel = fileName.endsWith('.xlsx') || fileName.endsWith('.xls');
+
+      const handleParsedBooks = (parsed) => {
+        if (parsed.length === 0) {
+          if (toastCallback) {
+            toastCallback('Geçerli kitap satırı bulunamadı! Lütfen şablon biçimine uygun dosya yükleyin.', 'danger');
+          }
+          return;
+        }
+
+        let addedCount = 0;
+        parsed.forEach(book => {
+          const res = stateManager.addBook(book);
+          if (res) addedCount++;
+        });
+
+        if (toastCallback && addedCount > 0) {
+          toastCallback(`${addedCount} adet kitap başarıyla kütüphaneye eklendi.`, 'success');
+        }
+
+        renderBooksList();
+        renderLeaderboard();
+        
+        const event = new CustomEvent('stateChanged');
+        document.dispatchEvent(event);
+      };
+
+      if (window.XLSX && (isExcel || fileName.endsWith('.csv'))) {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          try {
+            const data = new Uint8Array(event.target.result);
+            const workbook = XLSX.read(data, { type: 'array' });
+            const firstSheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[firstSheetName];
+            const json = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+            
+            let colBookNo = -1;
+            let colTitle = 0;
+            let colAuthor = 1;
+            let colPages = 2;
+            let colLevel = -1;
+            let startIdx = 0;
+
+            if (json.length > 0) {
+              const firstRow = json[0];
+              const firstVal = String(firstRow[0] || '').toLowerCase().trim();
+              const hasHeaders = firstVal.includes('ad') || firstVal.includes('title') || firstVal.includes('no') || firstVal.includes('yazar') || firstVal.includes('sayfa') || firstVal.includes('seviye');
+              if (hasHeaders) {
+                startIdx = 1;
+                for (let c = 0; c < firstRow.length; c++) {
+                  const val = String(firstRow[c] || '').toLowerCase().trim();
+                  if (val.includes('no')) {
+                    colBookNo = c;
+                  } else if (val.includes('ad') || val.includes('title')) {
+                    colTitle = c;
+                  } else if (val.includes('yazar') || val.includes('author')) {
+                    colAuthor = c;
+                  } else if (val.includes('sayfa') || val.includes('page')) {
+                    colPages = c;
+                  } else if (val.includes('seviye') || val.includes('level')) {
+                    colLevel = c;
+                  }
+                }
+              }
+            }
+
+            const parsed = [];
+            for (let i = startIdx; i < json.length; i++) {
+              const row = json[i];
+              if (!row || row.length < 1) continue;
+              
+              const title = String(row[colTitle] || '').trim();
+              const bookNo = colBookNo !== -1 ? String(row[colBookNo] || '').trim() : '';
+              const author = String(row[colAuthor] || 'Bilinmiyor').trim();
+              const pages = parseInt(row[colPages]) || 0;
+              let level = 'seviye_1';
+              if (colLevel !== -1 && row[colLevel] !== undefined) {
+                const lvlStr = String(row[colLevel]).toLowerCase().trim();
+                if (lvlStr === '2' || lvlStr.includes('2') || lvlStr.includes('ileri')) {
+                  level = 'seviye_2';
+                }
+              }
+              
+              if (title) {
+                parsed.push({ bookNo, title, author, pages, level });
+              }
+            }
+            handleParsedBooks(parsed);
+          } catch (error) {
+            console.error("Excel okuma hatası:", error);
+            if (toastCallback) {
+              toastCallback(`Excel dosyası okunurken hata oluştu: ${error.message}`, 'danger');
+            }
+          }
+        };
+        reader.readAsArrayBuffer(file);
+      } else {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          try {
+            const text = event.target.result;
+            const lines = text.split(/\r?\n/);
+            const parsed = [];
+            
+            let delimiter = ';';
+            if (lines.length > 0 && lines[0].includes(',')) {
+              delimiter = ',';
+            }
+
+            let colBookNo = -1;
+            let colTitle = 0;
+            let colAuthor = 1;
+            let colPages = 2;
+            let colLevel = -1;
+            let startIdx = 0;
+            
+            let headerLineIdx = 0;
+            if (lines.length > 0 && lines[0].trim().startsWith('sep=')) {
+              headerLineIdx = 1;
+              startIdx = 2;
+            } else {
+              startIdx = 1;
+            }
+            
+            if (lines.length > headerLineIdx) {
+              const firstRowCols = lines[headerLineIdx].split(delimiter).map(c => c.replace(/"/g, '').toLowerCase().trim());
+              const hasHeaders = firstRowCols.some(val => val.includes('ad') || val.includes('title') || val.includes('no') || val.includes('yazar') || val.includes('sayfa') || val.includes('seviye'));
+              if (hasHeaders) {
+                firstRowCols.forEach((val, c) => {
+                  if (val.includes('no')) {
+                    colBookNo = c;
+                  } else if (val.includes('ad') || val.includes('title')) {
+                    colTitle = c;
+                  } else if (val.includes('yazar') || val.includes('author')) {
+                    colAuthor = c;
+                  } else if (val.includes('sayfa') || val.includes('page')) {
+                    colPages = c;
+                  } else if (val.includes('seviye') || val.includes('level')) {
+                    colLevel = c;
+                  }
+                });
+              } else {
+                startIdx = headerLineIdx;
+              }
+            }
+
+            for (let i = startIdx; i < lines.length; i++) {
+              const line = lines[i].trim();
+              if (!line || line.startsWith('sep=')) continue;
+
+              const cols = line.split(delimiter);
+              if (cols.length < 1) continue;
+
+              const title = cols[colTitle] ? cols[colTitle].replace(/"/g, '').trim() : '';
+              const bookNo = colBookNo !== -1 && cols[colBookNo] ? cols[colBookNo].replace(/"/g, '').trim() : '';
+              const author = cols[colAuthor] ? cols[colAuthor].replace(/"/g, '').trim() : 'Bilinmiyor';
+              const pages = cols[colPages] ? parseInt(cols[colPages].replace(/"/g, '')) || 0 : 0;
+              let level = 'seviye_1';
+              if (colLevel !== -1 && cols[colLevel] !== undefined) {
+                const lvlStr = String(cols[colLevel]).replace(/"/g, '').toLowerCase().trim();
+                if (lvlStr === '2' || lvlStr.includes('2') || lvlStr.includes('ileri')) {
+                  level = 'seviye_2';
+                }
+              }
+
+              if (title) {
+                parsed.push({ bookNo, title, author, pages, level });
+              }
+            }
+            handleParsedBooks(parsed);
+          } catch (error) {
+            console.error("CSV okuma hatası:", error);
+            if (toastCallback) {
+              toastCallback(`CSV dosyası okunurken hata oluştu: ${error.message}`, 'danger');
+            }
+          }
+        };
+        reader.readAsText(file, 'utf-8');
+      }
+
+      e.target.value = '';
+    });
+  }
+
+  // Hızlı Ödünç Verme Olay Delegasyonu (Event Delegation)
+  const quickReborrowTbody = document.getElementById('quick-reborrow-tbody');
+  if (quickReborrowTbody) {
+    quickReborrowTbody.addEventListener('click', (e) => {
+      const btn = e.target.closest('.btn-quick-borrow');
+      if (!btn) return;
+      
+      try {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        const studentId = btn.getAttribute('data-student-id');
+        const bookId = btn.getAttribute('data-book-id');
+        const studentName = btn.getAttribute('data-student-name');
+        const bookTitle = btn.getAttribute('data-book-title');
+        
+        console.log("Quick borrow clicked (Delegated) - Student:", studentId, "Book:", bookId);
+        const todayStr = window.formatLocalDate();
+        const result = stateManager.borrowBook(studentId, bookId, todayStr);
+        console.log("Quick borrow result:", result);
+        
+        if (result.success) {
+          if (toastCallback) {
+            toastCallback(`"${bookTitle}" kitabı ${studentName} adlı öğrenciye ödünç verildi.`, 'success');
+          }
+          document.getElementById('quick-reborrow-container').style.display = 'none';
+          
+          const event = new CustomEvent('stateChanged');
+          document.dispatchEvent(event);
+        } else {
+          if (toastCallback) {
+            toastCallback(result.message, 'danger');
+          }
+        }
+      } catch (err) {
+        console.error("Delegated quick borrow click error:", err);
+        if (window.showToast) {
+          window.showToast(`Hata oluştu: ${err.message}`, 'danger');
+        } else {
+          alert(`Hata oluştu: ${err.message}`);
+        }
+      }
+    });
+  }
+
+  // ==========================================================================
+  // MERKEZİ KİTAP EKLEME YÖNTEMİ & YAPAY ZEKA İLE KİTAP YÜKLEME (GÖRSEL / PDF)
+  // ==========================================================================
+  const modalAddBookMethod = document.getElementById('modal-add-book-method');
+  const btnMethodAiAddBook = document.getElementById('btn-method-ai-add-book');
+  const btnMethodManualAddBook = document.getElementById('btn-method-manual-add-book');
+  const btnMethodExcelUploadBook = document.getElementById('btn-method-excel-upload-book');
+  const desktopAiBookFileInput = document.getElementById('desktop-ai-book-file-input');
+  const modalDesktopAiBookLoading = document.getElementById('modal-desktop-ai-book-loading');
+  const modalDesktopAiBookPreview = document.getElementById('modal-desktop-ai-book-preview');
+
+  function safeEscapeHTML(str) {
+    if (!str) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function openManualBookForm() {
+    if (formBook) formBook.reset();
+    if (bookLevelInput) bookLevelInput.value = 'seviye_1';
+    if (modalBook) modalBook.classList.add('active');
+    if (window.safeCreateIcons) window.safeCreateIcons();
+  }
+
+  // 1. Ana "Kitap Ekle" Butonu -> Yöntem Seçim Modalı Açar
+  if (btnAddBook) {
+    btnAddBook.addEventListener('click', () => {
+      if (modalAddBookMethod) {
+        modalAddBookMethod.classList.add('active');
+        if (window.safeCreateIcons) window.safeCreateIcons();
+      } else {
+        openManualBookForm();
+      }
+    });
+  }
+
+  // 2. Yöntem: Tek Tek Elle Ekle
+  if (btnMethodManualAddBook) {
+    btnMethodManualAddBook.addEventListener('click', () => {
+      if (modalAddBookMethod) modalAddBookMethod.classList.remove('active');
+      openManualBookForm();
+    });
+  }
+
+  // 3. Yöntem: Excel / CSV ile Toplu Yükle
+  if (btnMethodExcelUploadBook) {
+    btnMethodExcelUploadBook.addEventListener('click', () => {
+      if (modalAddBookMethod) modalAddBookMethod.classList.remove('active');
+      if (inputUploadBooksFile) inputUploadBooksFile.click();
+    });
+  }
+
+  // 4. Yöntem: Yapay Zeka ile Otomatik Ekle (Görsel veya PDF)
+  if (btnMethodAiAddBook) {
+    btnMethodAiAddBook.addEventListener('click', () => {
+      const apiKey = getGeminiApiKey();
+      if (!apiKey) {
+        if (modalAddBookMethod) modalAddBookMethod.classList.remove('active');
+        if (toastCallback) {
+          toastCallback('⚠️ Yapay zeka ile kitap listesi taramak için lütfen önce Gemini API anahtarınızı kaydedin.', 'warning');
+        }
+        if (typeof openGeminiKeyModal === 'function') {
+          openGeminiKeyModal();
+        } else if (window.navigateToConfigAI) {
+          window.navigateToConfigAI();
+        }
+        return;
+      }
+
+      if (modalAddBookMethod) modalAddBookMethod.classList.remove('active');
+      if (desktopAiBookFileInput) {
+        desktopAiBookFileInput.value = '';
+        desktopAiBookFileInput.click();
+      }
+    });
+  }
+
+  // Dosyayı (Görsel / PDF) Gemini İçin İşleme
+  async function processBookFileForDesktopGemini(file) {
+    const fileName = file.name.toLowerCase();
+    const isPdf = fileName.endsWith('.pdf') || file.type === 'application/pdf';
+
+    if (isPdf) {
+      const arrayBuffer = await file.arrayBuffer();
+      // PDF.js ile Sayfa 1'i JPEG Olarak Render Et
+      if (window.pdfjsLib) {
+        try {
+          const loadingTask = window.pdfjsLib.getDocument({ data: arrayBuffer });
+          const pdfDoc = await loadingTask.promise;
+          const page = await pdfDoc.getPage(1);
+          const initialVp = page.getViewport({ scale: 1.0 });
+          const maxDim = Math.max(initialVp.width, initialVp.height);
+          const scale = Math.max(1.2, Math.min(2.5, 1800 / maxDim));
+          const viewport = page.getViewport({ scale });
+
+          const canvas = document.createElement('canvas');
+          canvas.width = viewport.width;
+          canvas.height = viewport.height;
+          const ctx = canvas.getContext('2d');
+          await page.render({ canvasContext: ctx, viewport }).promise;
+
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.88);
+          return {
+            base64: dataUrl.split(',')[1],
+            mimeType: 'image/jpeg'
+          };
+        } catch (pdfErr) {
+          console.warn('PDF.js render hatası, doğrudan PDF verisi deneniyor:', pdfErr);
+        }
+      }
+
+      // Fallback: PDF'i doğrudan base64 olarak gönder
+      let binary = '';
+      const bytes = new Uint8Array(arrayBuffer);
+      const len = bytes.byteLength;
+      for (let i = 0; i < len; i++) {
+        binary += String.fromCharCode(bytes[i]);
+      }
+      return {
+        base64: btoa(binary),
+        mimeType: 'application/pdf'
+      };
+    }
+
+    // Görsel dosyası (JPEG, PNG, WebP)
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const maxDim = 1800;
+          let w = img.width;
+          let h = img.height;
+          if (w > maxDim || h > maxDim) {
+            if (w > h) {
+              h = Math.round((h * maxDim) / w);
+              w = maxDim;
+            } else {
+              w = Math.round((w * maxDim) / h);
+              h = maxDim;
+            }
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, w, h);
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.88);
+          resolve({
+            base64: dataUrl.split(',')[1],
+            mimeType: 'image/jpeg'
+          });
+        };
+        img.onerror = () => reject(new Error('Görsel dosyası açılamadı.'));
+        img.src = e.target.result;
+      };
+      reader.onerror = () => reject(new Error('Dosya okunamadı.'));
+      reader.readAsDataURL(file);
+    });
+  }
+
+  // Gemini İle Kitap Listesini Ayrıştırma
+  async function analyzeBookListWithDesktopGemini(base64Data, mimeType) {
+    const apiKey = getGeminiApiKey();
+    if (!apiKey) throw new Error('API anahtarı bulunamadı.');
+
+    let listData = null;
+    let listError = null;
+
+    for (const apiVer of ['v1beta', 'v1']) {
+      try {
+        const listRes = await fetch(`https://generativelanguage.googleapis.com/${apiVer}/models?key=${apiKey}`);
+        const json = await listRes.json();
+        if (listRes.ok && json.models && json.models.length > 0) {
+          listData = { version: apiVer, models: json.models };
+          break;
+        } else if (!listRes.ok) {
+          listError = json.error?.message || `HTTP ${listRes.status}`;
+        }
+      } catch (e) {
+        listError = e.message;
+      }
+    }
+
+    if (!listData) {
+      if (listError && (listError.toLowerCase().includes('api key not valid') || listError.toLowerCase().includes('invalid'))) {
+        throw new Error('Google API anahtarı geçersiz! Lütfen anahtarınızı kontrol edip tekrar kaydedin.');
+      }
+      throw new Error(`Google API bağlantı hatası: ${listError || 'Modeller sorgulanamadı'}`);
+    }
+
+    const supportedModels = listData.models.filter(m =>
+      !m.supportedGenerationMethods || m.supportedGenerationMethods.includes('generateContent')
+    );
+
+    if (supportedModels.length === 0) {
+      throw new Error('Bu API anahtarının içerik üretme modellerine izni bulunmuyor.');
+    }
+
+    let savedModel = (localStorage.getItem('sinif_asistani_gemini_model') || 'gemini-1.5-flash').trim();
+    if (savedModel === 'gemini-1.5-pro') savedModel = 'gemini-1.5-flash';
+
+    const candidatePreferences = [
+      savedModel,
+      'gemini-2.0-flash',
+      'gemini-1.5-flash',
+      'gemini-2.5-flash',
+      'gemini-2.0-flash-lite',
+      'gemini-1.5-flash-latest',
+      ...supportedModels.map(m => m.name.replace(/^models\//, ''))
+    ];
+
+    const validCandidatePaths = [];
+    for (const pref of candidatePreferences) {
+      const match = supportedModels.find(sm => sm.name === pref || sm.name === `models/${pref}` || sm.name.endsWith(`/${pref}`));
+      if (match && !validCandidatePaths.includes(match.name)) {
+        validCandidatePaths.push(match.name);
+      }
+    }
+
+    if (validCandidatePaths.length === 0) {
+      validCandidatePaths.push(supportedModels[0].name);
+    }
+
+    const promptText = `Bu görsel veya PDF bir kütüphane / sınıf kitaplık listesidir. Belgedeki tüm kitapları satır satır tespit et.
+Her kitap için varsa kitap numarasını (bookNo), kitap adını (title), yazarını (author), sayfa sayısını (pages) ve okuma seviyesini (level: 'seviye_1' veya 'seviye_2') çıkar.
+- Sayfa sayısı belirtilmemişse 0 olarak bırak veya tahmin edilebiliyorsa tam sayı olarak yaz.
+- Seviye belirtilmemişse veya ilkokul/kolay düzeydeyse 'seviye_1', ortaokul/ileri düzeydeyse 'seviye_2' olarak belirle.
+- Kitap numarası yoksa boş bırak ("").
+- Yazar yoksa veya bilinmiyorsa boş bırak ("") veya "Bilinmiyor".
+
+SADECE VE SADECE GEÇERLİ BİR JSON DİZİSİ DÖNDÜR. Markdown (örneğin \`\`\`json) veya başka hiçbir metin/açıklama ekleme:
+[
+  {"bookNo": "1", "title": "Küçük Prens", "author": "Antoine de Saint-Exupéry", "pages": 96, "level": "seviye_1"},
+  {"bookNo": "2", "title": "Şeker Portakalı", "author": "José Mauro de Vasconcelos", "pages": 182, "level": "seviye_2"}
+]`;
+
+    let lastError = null;
+
+    for (const modelPath of validCandidatePaths) {
+      const cleanPath = modelPath.startsWith('models/') ? modelPath : `models/${modelPath}`;
+      const url = `https://generativelanguage.googleapis.com/${listData.version}/${cleanPath}:generateContent?key=${apiKey}`;
+
+      try {
+        let res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [
+              {
+                parts: [
+                  { text: promptText },
+                  {
+                    inline_data: {
+                      mime_type: mimeType || 'image/jpeg',
+                      data: base64Data
+                    }
+                  }
+                ]
+              }
+            ],
+            generationConfig: {
+              temperature: 0.1,
+              responseMimeType: 'application/json'
+            }
+          })
+        });
+
+        if (res.status === 400) {
+          res = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [
+                {
+                  parts: [
+                    { text: promptText },
+                    {
+                      inline_data: {
+                        mime_type: mimeType || 'image/jpeg',
+                        data: base64Data
+                      }
+                    }
+                  ]
+                }
+              ],
+              generationConfig: { temperature: 0.1 }
+            })
+          });
+        }
+
+        if (res.ok) {
+          const data = await res.json();
+          let rawText = '';
+          const parts = data.candidates?.[0]?.content?.parts || [];
+          for (const p of parts) {
+            if (p.text) rawText += p.text;
+          }
+          if (!rawText && data.candidates?.[0]?.content?.parts?.[0]?.text) {
+            rawText = data.candidates[0].content.parts[0].text;
+          }
+
+          const jsonMatch = rawText.match(/\[\s*\{[\s\S]*\}\s*\]/);
+          if (jsonMatch) {
+            rawText = jsonMatch[0];
+          } else {
+            rawText = rawText.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
+          }
+
+          const parsed = JSON.parse(rawText);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            return parsed;
+          }
+        } else {
+          const errData = await res.json().catch(() => ({}));
+          lastError = new Error((errData.error && errData.error.message) || `HTTP ${res.status}`);
+        }
+      } catch (err) {
+        lastError = err;
+      }
+    }
+
+    throw lastError || new Error('Yapay zeka kitap listesini okuyamadı');
+  }
+
+  // Dosya Seçildiğinde Tetiklenir
+  if (desktopAiBookFileInput) {
+    desktopAiBookFileInput.addEventListener('change', async (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+
+      if (modalDesktopAiBookLoading) modalDesktopAiBookLoading.classList.add('active');
+
+      try {
+        const processed = await processBookFileForDesktopGemini(file);
+        const books = await analyzeBookListWithDesktopGemini(processed.base64, processed.mimeType);
+
+        if (!books || books.length === 0) {
+          if (modalDesktopAiBookLoading) modalDesktopAiBookLoading.classList.remove('active');
+          if (toastCallback) toastCallback('❌ Listede kitap tespit edilemedi. Lütfen daha net bir liste görseli veya PDF yükleyin.', 'danger');
+          return;
+        }
+
+        const scanned = books.map((b, idx) => ({
+          index: idx,
+          bookNo: String(b.bookNo || b.no || '').trim(),
+          title: String(b.title || b.ad || b.kitapAdi || '').trim(),
+          author: String(b.author || b.yazar || '').trim() || 'Bilinmiyor',
+          pages: parseInt(b.pages || b.sayfa || b.sayfaSayisi) || 0,
+          level: (b.level === 'seviye_2' || b.level === '2' || b.level === 2) ? 'seviye_2' : 'seviye_1',
+          selected: true
+        })).filter(b => !!b.title);
+
+        if (scanned.length === 0) {
+          if (modalDesktopAiBookLoading) modalDesktopAiBookLoading.classList.remove('active');
+          if (toastCallback) toastCallback('❌ Kitap isimleri okunamadı.', 'danger');
+          return;
+        }
+
+        window.tempDesktopAiBooks = scanned;
+        if (modalDesktopAiBookLoading) modalDesktopAiBookLoading.classList.remove('active');
+
+        if (modalDesktopAiBookPreview) {
+          renderDesktopAiBookPreview();
+          modalDesktopAiBookPreview.classList.add('active');
+        }
+      } catch (err) {
+        if (modalDesktopAiBookLoading) modalDesktopAiBookLoading.classList.remove('active');
+        console.error('Desktop AI book scan error:', err);
+        if (toastCallback) toastCallback(`❌ Hata: ${err.message || 'Belge işlenirken bir sorun oluştu.'}`, 'danger');
+      }
+    });
+  }
+
+  // Önizleme Tablosunu Render Et
+  function renderDesktopAiBookPreview() {
+    const list = window.tempDesktopAiBooks || [];
+    const tbody = document.getElementById('desktop-ai-book-preview-tbody');
+    const countBadge = document.getElementById('desktop-ai-book-preview-count-badge');
+    const summaryText = document.getElementById('desktop-ai-book-summary-text');
+    const footerSummary = document.getElementById('desktop-ai-book-footer-summary');
+    const toggleBtn = document.getElementById('desktop-ai-book-btn-toggle-select');
+    const saveBtnText = document.getElementById('desktop-ai-book-save-btn-text');
+
+    if (countBadge) countBadge.textContent = list.length;
+
+    const selectedCount = list.filter(b => b.selected).length;
+    if (summaryText) summaryText.textContent = `${list.length} kitaptan ${selectedCount} tanesi seçildi`;
+    if (footerSummary) footerSummary.textContent = `${selectedCount} kitap kaydedilecek`;
+    if (saveBtnText) saveBtnText.textContent = `${selectedCount} Kitabı Kitaplığa Kaydet`;
+    if (toggleBtn) toggleBtn.textContent = (selectedCount === list.length && list.length > 0) ? 'Tümünü Kaldır' : 'Tümünü Seç';
+
+    if (!tbody) return;
+
+    if (list.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; padding: 2.5rem; color: var(--text-muted); font-size: 0.9rem;">Listelenecek kitap kalmadı.</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = list.map((b) => `
+      <tr style="border-bottom: 1px solid var(--border-color); opacity: ${b.selected ? '1' : '0.45'}; transition: opacity 0.2s ease;" id="desktop-ai-book-tr-${b.index}">
+        <td style="text-align: center; vertical-align: middle;">
+          <input type="checkbox" data-idx="${b.index}" class="desktop-ai-book-chk" ${b.selected ? 'checked' : ''} style="cursor: pointer; width: 16px; height: 16px; accent-color: var(--primary);">
+        </td>
+        <td style="vertical-align: middle;">
+          <input type="text" data-idx="${b.index}" data-field="bookNo" class="form-control desktop-ai-book-inp" value="${safeEscapeHTML(b.bookNo || '')}" placeholder="No" style="height: 32px; padding: 2px 6px; font-size: 0.82rem; font-weight: 700; text-align: center;">
+        </td>
+        <td style="vertical-align: middle;">
+          <input type="text" data-idx="${b.index}" data-field="title" class="form-control desktop-ai-book-inp" value="${safeEscapeHTML(b.title || '')}" placeholder="Kitap Adı" style="height: 32px; padding: 2px 8px; font-size: 0.82rem; font-weight: 700;">
+        </td>
+        <td style="vertical-align: middle;">
+          <input type="text" data-idx="${b.index}" data-field="author" class="form-control desktop-ai-book-inp" value="${safeEscapeHTML(b.author || '')}" placeholder="Yazar" style="height: 32px; padding: 2px 8px; font-size: 0.82rem;">
+        </td>
+        <td style="vertical-align: middle;">
+          <input type="number" data-idx="${b.index}" data-field="pages" class="form-control desktop-ai-book-inp" value="${b.pages || 0}" min="0" placeholder="Sayfa" style="height: 32px; padding: 2px 6px; font-size: 0.82rem; text-align: center;">
+        </td>
+        <td style="vertical-align: middle;">
+          <select data-idx="${b.index}" data-field="level" class="form-control desktop-ai-book-inp" style="height: 32px; padding: 2px 6px; font-size: 0.8rem; font-weight: 600;">
+            <option value="seviye_1" ${b.level === 'seviye_1' ? 'selected' : ''}>1. Seviye (Kolay)</option>
+            <option value="seviye_2" ${b.level === 'seviye_2' ? 'selected' : ''}>2. Seviye (İleri)</option>
+          </select>
+        </td>
+        <td style="text-align: center; vertical-align: middle;">
+          <button type="button" data-idx="${b.index}" class="btn btn-sm btn-outline-danger desktop-ai-book-btn-del" style="padding: 4px 6px; border: none; border-radius: 6px;" title="Listeden Çıkar">
+            <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i>
+          </button>
+        </td>
+      </tr>
+    `).join('');
+
+    if (window.safeCreateIcons) window.safeCreateIcons();
+  }
+
+  // Önizleme Tablosu Etkileşimleri (Delegation)
+  const desktopAiBookPreviewTbody = document.getElementById('desktop-ai-book-preview-tbody');
+  if (desktopAiBookPreviewTbody) {
+    desktopAiBookPreviewTbody.addEventListener('change', (e) => {
+      const list = window.tempDesktopAiBooks || [];
+      const chk = e.target.closest('.desktop-ai-book-chk');
+      if (chk) {
+        const idx = parseInt(chk.dataset.idx, 10);
+        const item = list.find(b => b.index === idx);
+        if (item) {
+          item.selected = chk.checked;
+          const tr = document.getElementById(`desktop-ai-book-tr-${idx}`);
+          if (tr) tr.style.opacity = chk.checked ? '1' : '0.45';
+          const selectedCount = list.filter(b => b.selected).length;
+          const summaryText = document.getElementById('desktop-ai-book-summary-text');
+          const footerSummary = document.getElementById('desktop-ai-book-footer-summary');
+          const saveBtnText = document.getElementById('desktop-ai-book-save-btn-text');
+          const toggleBtn = document.getElementById('desktop-ai-book-btn-toggle-select');
+          if (summaryText) summaryText.textContent = `${list.length} kitaptan ${selectedCount} tanesi seçildi`;
+          if (footerSummary) footerSummary.textContent = `${selectedCount} kitap kaydedilecek`;
+          if (saveBtnText) saveBtnText.textContent = `${selectedCount} Kitabı Kitaplığa Kaydet`;
+          if (toggleBtn) toggleBtn.textContent = (selectedCount === list.length && list.length > 0) ? 'Tümünü Kaldır' : 'Tümünü Seç';
+        }
+        return;
+      }
+
+      const inp = e.target.closest('.desktop-ai-book-inp');
+      if (inp) {
+        const idx = parseInt(inp.dataset.idx, 10);
+        const field = inp.dataset.field;
+        const item = list.find(b => b.index === idx);
+        if (item && field) {
+          if (field === 'pages') {
+            item[field] = parseInt(inp.value) || 0;
+          } else {
+            item[field] = inp.value.trim();
+          }
+        }
+      }
+    });
+
+    desktopAiBookPreviewTbody.addEventListener('click', (e) => {
+      const btnDel = e.target.closest('.desktop-ai-book-btn-del');
+      if (btnDel) {
+        const idx = parseInt(btnDel.dataset.idx, 10);
+        window.tempDesktopAiBooks = (window.tempDesktopAiBooks || []).filter(b => b.index !== idx);
+        renderDesktopAiBookPreview();
+      }
+    });
+  }
+
+  // Tümünü Seç / Kaldır Butonu
+  const desktopAiBookBtnToggleSelect = document.getElementById('desktop-ai-book-btn-toggle-select');
+  if (desktopAiBookBtnToggleSelect) {
+    desktopAiBookBtnToggleSelect.addEventListener('click', () => {
+      const list = window.tempDesktopAiBooks || [];
+      const allSelected = list.every(b => b.selected);
+      list.forEach(b => { b.selected = !allSelected; });
+      renderDesktopAiBookPreview();
+    });
+  }
+
+  // Seçilen Kitapları Kitaplığa Kaydet Butonu
+  const desktopAiBookBtnConfirmSave = document.getElementById('desktop-ai-book-btn-confirm-save');
+  if (desktopAiBookBtnConfirmSave) {
+    desktopAiBookBtnConfirmSave.addEventListener('click', () => {
+      const list = (window.tempDesktopAiBooks || []).filter(b => b.selected);
+      if (list.length === 0) {
+        if (toastCallback) toastCallback('Lütfen eklenecek en az bir kitap seçin!', 'warning');
+        return;
+      }
+
+      let addedCount = 0;
+      for (const b of list) {
+        if (!b.title) continue;
+        const res = stateManager.addBook({
+          title: b.title.trim(),
+          author: b.author.trim() || 'Bilinmiyor',
+          pages: parseInt(b.pages) || 0,
+          bookNo: (b.bookNo || '').trim(),
+          level: b.level || 'seviye_1'
+        });
+        if (res) addedCount++;
+      }
+
+      if (modalDesktopAiBookPreview) modalDesktopAiBookPreview.classList.remove('active');
+
+      if (addedCount > 0) {
+        if (toastCallback) toastCallback(`🎉 ${addedCount} adet kitap başarıyla kitaplığa eklendi!`, 'success');
+      } else {
+        if (toastCallback) toastCallback('Kitap eklenemedi veya demo sınırına ulaşıldı.', 'danger');
+      }
+
+      renderBooksList();
+      renderLeaderboard();
+      const event = new CustomEvent('stateChanged');
+      document.dispatchEvent(event);
+    });
+  }
+
+  // Modal Kapatma Butonları (Yöntem, Loading, Preview)
+  [modalAddBookMethod, modalDesktopAiBookLoading, modalDesktopAiBookPreview].forEach(mod => {
+    if (mod) {
+      mod.querySelectorAll('.close-btn, .close-btn-action').forEach(btn => {
+        btn.addEventListener('click', () => {
+          mod.classList.remove('active');
+        });
+      });
+    }
+  });
+
+  // Ödünç Verme Modalı Açılış
+  btnBorrowBook.addEventListener('click', () => {
+    if (borrowLevelFilter) borrowLevelFilter.value = 'all';
+    const borrowBookNoInput = document.getElementById('borrow-book-no-input');
+    const feedback = document.getElementById('borrow-book-no-feedback');
+    const btnClear = document.getElementById('btn-clear-borrow-book-no');
+    if (borrowBookNoInput) borrowBookNoInput.value = '';
+    if (feedback) feedback.style.display = 'none';
+    if (btnClear) btnClear.style.display = 'none';
+
+    populateBorrowDropdowns();
+    // Tarih seçiciyi bugünün tarihi ile başlat
+    borrowDateInput.value = window.formatLocalDate();
+    modalBorrow.classList.add('active');
+    if (window.safeCreateIcons) window.safeCreateIcons();
+  });
+
+  // Öğrenci veya Seviye Filtresi seçildiğinde kitap listesini güncelle
+  if (borrowStudentSelect) {
+    borrowStudentSelect.addEventListener('change', () => {
+      updateBorrowBookSelect();
+    });
+  }
+  if (borrowLevelFilter) {
+    borrowLevelFilter.addEventListener('change', () => {
+      updateBorrowBookSelect();
+    });
+  }
+
+  // Kitap No ile Hızlı Arama Girişi Dinleyicileri
+  const borrowBookNoInput = document.getElementById('borrow-book-no-input');
+  const btnClearBorrowBookNo = document.getElementById('btn-clear-borrow-book-no');
+
+  if (borrowBookNoInput) {
+    borrowBookNoInput.addEventListener('input', () => {
+      updateBorrowBookSelect();
+    });
+
+    borrowBookNoInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        if (borrowBookSelect && borrowBookSelect.value && borrowStudentSelect && borrowStudentSelect.value) {
+          formBorrow.requestSubmit();
+        }
+      }
+    });
+  }
+
+  if (btnClearBorrowBookNo) {
+    btnClearBorrowBookNo.addEventListener('click', () => {
+      if (borrowBookNoInput) {
+        borrowBookNoInput.value = '';
+        borrowBookNoInput.focus();
+      }
+      updateBorrowBookSelect();
+    });
+  }
+
+  // Dropdown'dan kitap seçildiğinde Kitap No kutusunu senkronize et
+  if (borrowBookSelect) {
+    borrowBookSelect.addEventListener('change', () => {
+      const state = stateManager.loadState();
+      const selectedId = borrowBookSelect.value;
+      const noInput = document.getElementById('borrow-book-no-input');
+      const feedback = document.getElementById('borrow-book-no-feedback');
+      const btnClear = document.getElementById('btn-clear-borrow-book-no');
+
+      if (selectedId) {
+        const book = (state.books.library || []).find(b => b.id === selectedId);
+        if (book) {
+          if (noInput && book.bookNo) {
+            noInput.value = book.bookNo;
+          }
+          if (btnClear) btnClear.style.display = 'block';
+          if (feedback) {
+            feedback.style.display = 'block';
+            feedback.style.background = 'rgba(16, 185, 129, 0.12)';
+            feedback.style.color = '#059669';
+            feedback.style.border = '1px solid rgba(16, 185, 129, 0.35)';
+            feedback.innerHTML = `✅ <strong>[No: ${book.bookNo || '-'}] "${book.title}"</strong> (${book.pages} s.) seçildi.`;
+          }
+        }
+      }
+    });
+  }
+
+  // Modal Kapatma Düğmeleri
+  document.querySelectorAll('#modal-book .close-btn, #modal-book .close-btn-action').forEach(btn => {
+    btn.addEventListener('click', () => {
+      modalBook.classList.remove('active');
+    });
+  });
+
+  document.querySelectorAll('#modal-borrow .close-btn, #modal-borrow .close-btn-action').forEach(btn => {
+    btn.addEventListener('click', () => {
+      modalBorrow.classList.remove('active');
+    });
+  });
+
+  const modalReservation = document.getElementById('modal-book-reservation-suggestion');
+  if (modalReservation) {
+    modalReservation.querySelectorAll('.close-btn, .close-btn-action').forEach(btn => {
+      btn.addEventListener('click', () => {
+        modalReservation.classList.remove('active');
+      });
+    });
+  }
+
+  // Kitap Form Gönderimi
+  formBook.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const bookData = {
+      title: bookTitleInput.value.trim(),
+      author: bookAuthorInput.value.trim(),
+      pages: parseInt(bookPagesInput.value),
+      bookNo: bookNoInput.value.trim(),
+      level: bookLevelInput ? bookLevelInput.value : 'seviye_1'
+    };
+
+    const addedBook = stateManager.addBook(bookData);
+    if (!addedBook) return; // Limit aşıldıysa çık ve modalı kapatma
+    if (toastCallback) {
+      toastCallback('Yeni kitap kütüphaneye eklendi.', 'success');
+    }
+    modalBook.classList.remove('active');
+    
+    const event = new CustomEvent('stateChanged');
+    document.dispatchEvent(event);
+  });
+
+  // Ödünç Verme Form Gönderimi
+  formBorrow.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const studentId = borrowStudentSelect.value;
+    const bookId = borrowBookSelect.value;
+    const date = borrowDateInput.value;
+
+    const result = stateManager.borrowBook(studentId, bookId, date);
+    
+    if (result.success) {
+      if (toastCallback) {
+        toastCallback('Kitap başarıyla ödünç verildi.', 'success');
+      }
+      modalBorrow.classList.remove('active');
+      
+      const event = new CustomEvent('stateChanged');
+      document.dispatchEvent(event);
+    } else {
+      if (toastCallback) {
+        toastCallback(result.message, 'danger');
+      }
+    }
+  });
+
+  // Alt Sekme Geçişleri
+  const btnLibraryTab = document.getElementById('tab-btn-books-library');
+  const btnLeaderboardTab = document.getElementById('tab-btn-books-leaderboard');
+  const btnLateTab = document.getElementById('tab-btn-books-late');
+  const btnTop20Tab = document.getElementById('tab-btn-books-top20');
+  const btnStudentLibraryTab = document.getElementById('tab-btn-books-student-library');
+  
+  const sectionLibrary = document.getElementById('books-library-section');
+  const sectionLeaderboard = document.getElementById('books-leaderboard-section');
+  const sectionLate = document.getElementById('books-late-section');
+  const sectionTop20 = document.getElementById('books-top20-section');
+  const sectionStudentLibrary = document.getElementById('books-student-library-section');
+
+  if (btnLibraryTab && btnLeaderboardTab && btnLateTab) {
+    btnLibraryTab.addEventListener('click', () => {
+      btnLibraryTab.classList.add('active');
+      btnLeaderboardTab.classList.remove('active');
+      btnLateTab.classList.remove('active');
+      if (btnTop20Tab) btnTop20Tab.classList.remove('active');
+      if (btnStudentLibraryTab) btnStudentLibraryTab.classList.remove('active');
+      
+      sectionLibrary.style.display = 'block';
+      sectionLeaderboard.style.display = 'none';
+      sectionLate.style.display = 'none';
+      if (sectionTop20) sectionTop20.style.display = 'none';
+      if (sectionStudentLibrary) sectionStudentLibrary.style.display = 'none';
+      
+      renderLeaderboard();
+      updateBooksHeaderActions('library');
+      window.safeCreateIcons();
+    });
+
+    btnLeaderboardTab.addEventListener('click', () => {
+      btnLibraryTab.classList.remove('active');
+      btnLeaderboardTab.classList.add('active');
+      btnLateTab.classList.remove('active');
+      if (btnTop20Tab) btnTop20Tab.classList.remove('active');
+      if (btnStudentLibraryTab) btnStudentLibraryTab.classList.remove('active');
+      
+      sectionLibrary.style.display = 'none';
+      sectionLeaderboard.style.display = 'block';
+      sectionLate.style.display = 'none';
+      if (sectionTop20) sectionTop20.style.display = 'none';
+      if (sectionStudentLibrary) sectionStudentLibrary.style.display = 'none';
+      
+      renderBooksList();
+      updateBooksHeaderActions('leaderboard');
+      window.safeCreateIcons();
+    });
+
+    btnLateTab.addEventListener('click', () => {
+      btnLibraryTab.classList.remove('active');
+      btnLeaderboardTab.classList.remove('active');
+      btnLateTab.classList.add('active');
+      if (btnTop20Tab) btnTop20Tab.classList.remove('active');
+      if (btnStudentLibraryTab) btnStudentLibraryTab.classList.remove('active');
+      
+      sectionLibrary.style.display = 'none';
+      sectionLeaderboard.style.display = 'none';
+      sectionLate.style.display = 'block';
+      if (sectionTop20) sectionTop20.style.display = 'none';
+      if (sectionStudentLibrary) sectionStudentLibrary.style.display = 'none';
+      
+      renderLateBooksList();
+      updateBooksHeaderActions('late');
+      window.safeCreateIcons();
+    });
+
+    if (btnTop20Tab && sectionTop20) {
+      btnTop20Tab.addEventListener('click', () => {
+        btnLibraryTab.classList.remove('active');
+        btnLeaderboardTab.classList.remove('active');
+        btnLateTab.classList.remove('active');
+        btnTop20Tab.classList.add('active');
+        if (btnStudentLibraryTab) btnStudentLibraryTab.classList.remove('active');
+        
+        sectionLibrary.style.display = 'none';
+        sectionLeaderboard.style.display = 'none';
+        sectionLate.style.display = 'none';
+        sectionTop20.style.display = 'block';
+        if (sectionStudentLibrary) sectionStudentLibrary.style.display = 'none';
+        
+        renderTop20Leaderboard();
+        updateBooksHeaderActions('top20');
+        window.safeCreateIcons();
+      });
+    }
+
+    if (btnStudentLibraryTab && sectionStudentLibrary) {
+      btnStudentLibraryTab.addEventListener('click', () => {
+        btnLibraryTab.classList.remove('active');
+        btnLeaderboardTab.classList.remove('active');
+        btnLateTab.classList.remove('active');
+        if (btnTop20Tab) btnTop20Tab.classList.remove('active');
+        btnStudentLibraryTab.classList.add('active');
+        
+        sectionLibrary.style.display = 'none';
+        sectionLeaderboard.style.display = 'none';
+        sectionLate.style.display = 'none';
+        if (sectionTop20) sectionTop20.style.display = 'none';
+        sectionStudentLibrary.style.display = 'block';
+        
+        initStudentLibraryTab();
+        updateBooksHeaderActions('student-library');
+        window.safeCreateIcons();
+      });
+    }
+  }
+
+  // Makul Okuma Süresi seviye bazlı Genel Puan Ayarlarından yönetilmektedir
+
+  // Kitap Soruları Modalı Kapatma ve Sonraki Soru Olayları
+  document.querySelectorAll('#modal-book-questions .close-btn, #modal-book-questions .close-btn-action').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.getElementById('modal-book-questions').classList.remove('active');
+    });
+  });
+
+  const btnShowAnswer = document.getElementById('btn-show-answer');
+  const ansContainer = document.getElementById('answer-container');
+  if (btnShowAnswer && ansContainer) {
+    btnShowAnswer.addEventListener('click', () => {
+      if (ansContainer.style.display === 'none') {
+        ansContainer.style.display = 'block';
+        btnShowAnswer.innerHTML = `<span>Cevabı Gizle</span> <i data-lucide="eye-off" style="width: 16px; height: 16px;"></i>`;
+      } else {
+        ansContainer.style.display = 'none';
+        btnShowAnswer.innerHTML = `<span>Cevabı Göster</span> <i data-lucide="eye" style="width: 16px; height: 16px;"></i>`;
+      }
+      window.safeCreateIcons();
+    });
+  }
+
+  const btnNextQuestion = document.getElementById('btn-next-question');
+  if (btnNextQuestion) {
+    btnNextQuestion.addEventListener('click', () => {
+      activeQuestionsState.currentIndex++;
+      if (activeQuestionsState.currentIndex >= activeQuestionsState.questions.length) {
+        if (toastCallback) {
+          toastCallback("Bütün sorular soruldu. Yeni rastgele sıra ile baştan başlanıyor!", "info");
+        }
+        
+        const state = stateManager.loadState();
+        const book = state.books.library.find(b => b.id === activeQuestionsState.bookId);
+        
+        let questions = [];
+        if (book && book.questions && book.questions.length > 0) {
+          questions = book.questions;
+        } else {
+          let preloaded = PRELOADED_QUESTIONS[activeQuestionsState.bookId];
+          if (!preloaded) {
+            const normalizedTitle = activeQuestionsState.bookTitle.toLowerCase().trim();
+            if (normalizedTitle.includes("küçük prens")) {
+              questions = PRELOADED_QUESTIONS['book_1'];
+            } else if (normalizedTitle.includes("şeker portakalı")) {
+              questions = PRELOADED_QUESTIONS['book_2'];
+            } else if (normalizedTitle.includes("sol ayağım")) {
+              questions = PRELOADED_QUESTIONS['book_3'];
+            } else if (normalizedTitle.includes("define adası")) {
+              questions = PRELOADED_QUESTIONS['book_4'];
+            } else {
+              questions = GENERIC_QUESTIONS;
+            }
+          } else {
+            questions = preloaded;
+          }
+        }
+        activeQuestionsState.questions = shuffleArray(questions);
+        activeQuestionsState.currentIndex = 0;
+      }
+      renderCurrentQuestion();
+    });
+  }
+
+  const btnEditQuestionsFromModal = document.getElementById('btn-edit-questions-from-modal');
+  if (btnEditQuestionsFromModal) {
+    btnEditQuestionsFromModal.addEventListener('click', () => {
+      document.getElementById('modal-book-questions').classList.remove('active');
+      openEditQuestionsModal(activeQuestionsState.bookId, activeQuestionsState.bookTitle, activeQuestionsState.bookAuthor);
+    });
+  }
+
+  // Excel/CSV Şablon İndirme ve Yükleme Olayları
+  const btnDownloadTemplate = document.getElementById('btn-download-q-template');
+  if (btnDownloadTemplate) {
+    btnDownloadTemplate.addEventListener('click', () => {
+      if (window.XLSX) {
+        // XLSX kitaplığı yüklüyse gerçek bir Excel (.xlsx) dosyası oluştur ve indir
+        const data = [
+          ["Soru Metni", "Doğru Cevap / Beklenen Açıklama"],
+          ["Küçük Prens'in en değerli varlığı nedir?", "Tek bir güldür."],
+          ["Zeze'nin en yakın arkadaşı kimdir?", "Şeker portakalı fidanıdır."],
+          ["Jim Hawkins gemide nereye saklandı?", "Elma fıçısının içine."]
+        ];
+        const ws = XLSX.utils.aoa_to_sheet(data);
+        // Sütun genişliklerini ayarla (Soru için 50, Cevap için 45 karakter genişlik)
+        ws['!cols'] = [{ wch: 50 }, { wch: 45 }];
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Soru Şablonu");
+        
+        const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+        const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        downloadBlob(blob, "kitap_soru_sablonu.xlsx");
+        
+        if (toastCallback) {
+          toastCallback('Excel (.xlsx) şablonu indirildi.', 'success');
+        }
+      } else {
+        // XLSX yüklenmemişse CSV formatında indir
+        const headers = "Soru;Cevap";
+        const rows = [
+          "Küçük Prens'in en değerli varlığı nedir?;Tek bir güldür.",
+          "Zeze'nin en yakın arkadaşı kimdir?;Şeker portakalı fidanıdır.",
+          "Jim Hawkins gemide nereye saklandı?;Elma fıçısının içine."
+        ];
+        
+        const csvContent = "\uFEFFsep=;\r\n" + [headers, ...rows].join("\r\n");
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        downloadBlob(blob, "kitap_soru_sablonu.csv");
+        
+        if (toastCallback) {
+          toastCallback('CSV şablonu indirildi.', 'info');
+        }
+      }
+    });
+  }
+
+  const btnUploadTrigger = document.getElementById('btn-upload-q-file-trigger');
+  const fileInput = document.getElementById('input-upload-q-file');
+  if (btnUploadTrigger && fileInput) {
+    btnUploadTrigger.addEventListener('click', () => {
+      fileInput.click();
+    });
+
+    fileInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const fileName = file.name.toLowerCase();
+      const isExcel = fileName.endsWith('.xlsx') || fileName.endsWith('.xls');
+
+      const handleParsedQuestions = (parsed) => {
+        if (parsed.length === 0) {
+          if (toastCallback) {
+            toastCallback('Geçerli soru-cevap satırı bulunamadı! Lütfen şablon biçimine uygun dosya yükleyin.', 'danger');
+          }
+          return;
+        }
+
+        const container = document.getElementById('edit-questions-list-container');
+        if (container) {
+          container.innerHTML = '';
+          parsed.forEach(item => {
+            addQuestionEditRow(container, item.question, item.answer);
+          });
+
+          if (toastCallback) {
+            toastCallback(`${parsed.length} adet soru başarıyla yüklendi. Kalıcı olması için lütfen Kaydet butonuna basın.`, 'success');
+          }
+        }
+      };
+
+      if (window.XLSX && (isExcel || fileName.endsWith('.csv'))) {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          try {
+            const data = new Uint8Array(event.target.result);
+            const workbook = XLSX.read(data, { type: 'array' });
+            const firstSheetName = workbook.SheetNames[0];
+            const worksheet = workbook.Sheets[firstSheetName];
+            const json = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+            
+            const parsed = [];
+            for (let i = 0; i < json.length; i++) {
+              const row = json[i];
+              if (!row || row.length < 2) continue;
+              
+              const question = String(row[0] || '').trim();
+              const answer = String(row[1] || '').trim();
+              
+              // Başlık satırını atla
+              if (i === 0 && (
+                question.toLowerCase() === 'soru' || 
+                question.toLowerCase() === 'question' || 
+                question.toLowerCase() === 'soru metni' ||
+                question.toLowerCase() === 'soru_metni' ||
+                question.toLowerCase() === 'doğru cevap / beklenen açıklama' ||
+                question.toLowerCase() === 'cevap'
+              )) {
+                continue;
+              }
+              
+              if (question && answer) {
+                parsed.push({ question, answer });
+              }
+            }
+            handleParsedQuestions(parsed);
+          } catch (error) {
+            console.error(error);
+            if (toastCallback) {
+              toastCallback('Excel dosyası çözümlenirken bir hata oluştu.', 'danger');
+            }
+          }
+        };
+        reader.readAsArrayBuffer(file);
+      } else {
+        // CSV / TXT fallback
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          const text = event.target.result;
+          const parsed = parseCSV(text);
+          handleParsedQuestions(parsed);
+        };
+        reader.readAsText(file, 'UTF-8');
+      }
+      fileInput.value = '';
+    });
+  }
+
+  // Kitap Soruları Düzenleme Modalı Kapatma, Ekleme ve Kaydetme
+  document.querySelectorAll('#modal-edit-book-questions .close-btn, #modal-edit-book-questions .close-btn-action').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.getElementById('modal-edit-book-questions').classList.remove('active');
+    });
+  });
+
+  const btnAddEditQuestionRow = document.getElementById('btn-add-edit-question-row');
+  if (btnAddEditQuestionRow) {
+    btnAddEditQuestionRow.addEventListener('click', () => {
+      const container = document.getElementById('edit-questions-list-container');
+      if (container) {
+        addQuestionEditRow(container);
+      }
+    });
+  }
+
+  const formEditQuestions = document.getElementById('form-edit-book-questions');
+  if (formEditQuestions) {
+    formEditQuestions.addEventListener('submit', (e) => {
+      e.preventDefault();
+      
+      const rows = document.querySelectorAll('.edit-question-row');
+      const updatedQuestions = [];
+      
+      rows.forEach(row => {
+        const qText = row.querySelector('.edit-question-input').value.trim();
+        const aText = row.querySelector('.edit-answer-input').value.trim();
+        if (qText && aText) {
+          updatedQuestions.push({ question: qText, answer: aText });
+        }
+      });
+
+      if (updatedQuestions.length === 0) {
+        if (toastCallback) {
+          toastCallback('En az bir soru ve cevap girmelisiniz.', 'danger');
+        }
+        return;
+      }
+
+      const result = stateManager.updateBookQuestions(currentEditBookId, updatedQuestions);
+      if (result.success) {
+        if (toastCallback) {
+          toastCallback('Kitap soruları başarıyla güncellendi.', 'success');
+        }
+        document.getElementById('modal-edit-book-questions').classList.remove('active');
+        
+        renderBooksList();
+        
+        const event = new CustomEvent('stateChanged');
+        document.dispatchEvent(event);
+      } else {
+        if (toastCallback) {
+          toastCallback(result.message, 'danger');
+        }
+      }
+    });
+  }
+
+  // --- Yapay Zeka (AI) Soru Üretimi ve API Anahtarı Olayları ---
+  const btnAiGenerateQuestions = document.getElementById('btn-ai-generate-book-questions');
+  const btnEditQuestionsApiKey = document.getElementById('btn-edit-questions-api-key');
+  const modalGeminiKeySetup = document.getElementById('modal-gemini-key-setup');
+  const inputModalGeminiApiKey = document.getElementById('input-modal-gemini-api-key');
+  const btnSaveModalGeminiKey = document.getElementById('btn-save-modal-gemini-key');
+  const btnToggleModalKeyVisibility = document.getElementById('btn-toggle-modal-key-visibility');
+  const iconToggleModalKey = document.getElementById('icon-toggle-modal-key');
+  const aiLoadingState = document.getElementById('ai-questions-loading-state');
+  const aiLoadingBookTitle = document.getElementById('ai-loading-book-title');
+
+  function openGeminiKeyModal() {
+    if (window.navigateToConfigAI) {
+      window.navigateToConfigAI();
+    } else if (modalGeminiKeySetup && inputModalGeminiApiKey) {
+      inputModalGeminiApiKey.value = getGeminiApiKey();
+      modalGeminiKeySetup.classList.add('active');
+      window.safeCreateIcons();
+    }
+  }
+  window.openGeminiKeyModal = openGeminiKeyModal;
+
+  if (btnEditQuestionsApiKey) {
+    btnEditQuestionsApiKey.addEventListener('click', () => {
+      openGeminiKeyModal();
+    });
+  }
+
+  if (btnToggleModalKeyVisibility && inputModalGeminiApiKey) {
+    btnToggleModalKeyVisibility.addEventListener('click', () => {
+      if (inputModalGeminiApiKey.type === 'password') {
+        inputModalGeminiApiKey.type = 'text';
+        if (iconToggleModalKey) iconToggleModalKey.setAttribute('data-lucide', 'eye-off');
+      } else {
+        inputModalGeminiApiKey.type = 'password';
+        if (iconToggleModalKey) iconToggleModalKey.setAttribute('data-lucide', 'eye');
+      }
+      window.safeCreateIcons();
+    });
+  }
+
+  if (btnSaveModalGeminiKey && inputModalGeminiApiKey) {
+    btnSaveModalGeminiKey.addEventListener('click', () => {
+      const key = inputModalGeminiApiKey.value.trim();
+      setGeminiApiKey(key);
+      const configKeyInput = document.getElementById('config-gemini-api-key');
+      if (configKeyInput) configKeyInput.value = key;
+      const statusMsg = document.getElementById('gemini-key-status-msg');
+      if (statusMsg) {
+        if (key) {
+          statusMsg.style.display = 'block';
+          statusMsg.style.color = 'var(--success)';
+          statusMsg.textContent = '✓ Tanımlı API anahtarı aktif.';
+        } else {
+          statusMsg.style.display = 'none';
+        }
+      }
+      if (modalGeminiKeySetup) modalGeminiKeySetup.classList.remove('active');
+      if (toastCallback) {
+        toastCallback(key ? 'Google Gemini API anahtarı başarıyla kaydedildi!' : 'API anahtarı temizlendi.', key ? 'success' : 'info');
+      }
+    });
+  }
+
+  document.querySelectorAll('#modal-gemini-key-setup .close-btn, #modal-gemini-key-setup .close-btn-action').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (modalGeminiKeySetup) modalGeminiKeySetup.classList.remove('active');
+    });
+  });
+
+  if (btnAiGenerateQuestions) {
+    btnAiGenerateQuestions.addEventListener('click', async () => {
+      const apiKey = getGeminiApiKey();
+      if (!apiKey) {
+        if (toastCallback) {
+          toastCallback('Lütfen önce ücretsiz Google Gemini API anahtarınızı tanımlayın.', 'warning');
+        }
+        openGeminiKeyModal();
+        return;
+      }
+
+      if (!currentEditBookId) {
+        if (toastCallback) toastCallback('Düzenlenecek kitap seçilemedi.', 'danger');
+        return;
+      }
+
+      const container = document.getElementById('edit-questions-list-container');
+      if (!container) return;
+
+      const selectGrade = document.getElementById('select-ai-questions-grade');
+      const chosenGrade = selectGrade ? parseInt(selectGrade.value, 10) : getTargetGradeLevelInfo().gradeNum;
+
+      try {
+        btnAiGenerateQuestions.disabled = true;
+        if (aiLoadingState) {
+          if (aiLoadingBookTitle) {
+            aiLoadingBookTitle.textContent = `Yapay zeka ${chosenGrade}. Sınıf seviyesine uygun olarak "${currentEditBookTitle}" kitabı için soruları hazırlıyor...`;
+          }
+          aiLoadingState.style.display = 'block';
+        }
+
+        const generatedQuestions = await generateBookQuestionsWithAI(currentEditBookTitle, currentEditBookAuthor, {
+          gradeLevel: chosenGrade,
+          bookLevel: currentEditBookLevel || 'seviye_1'
+        });
+
+        container.innerHTML = '';
+        generatedQuestions.forEach(item => {
+          addQuestionEditRow(container, item.question, item.answer);
+        });
+
+        if (toastCallback) {
+          toastCallback(`"${currentEditBookTitle}" kitabı için ${chosenGrade}. Sınıf düzeyinde 5 adet soru hazırlandı! Kalıcı olması için lütfen Kaydet butonuna basın.`, 'success');
+        }
+      } catch (err) {
+        console.error('Yapay Zeka Soru Üretim Hatası:', err);
+        if (err.message === 'NO_API_KEY') {
+          openGeminiKeyModal();
+        } else {
+          if (toastCallback) {
+            toastCallback(err.message || 'Yapay zeka soruları hazırlarken bir hata oluştu.', 'danger');
+          }
+        }
+      } finally {
+        btnAiGenerateQuestions.disabled = false;
+        if (aiLoadingState) aiLoadingState.style.display = 'none';
+        window.safeCreateIcons();
+      }
+    });
+  }
+
+  // Toplu Yapay Zeka Soru Üretimi (Kütüphanedeki sorusuz kitaplar için)
+  const btnBatchAIQuestions = document.getElementById('btn-batch-ai-questions');
+  if (btnBatchAIQuestions) {
+    btnBatchAIQuestions.addEventListener('click', async () => {
+      const apiKey = getGeminiApiKey();
+      if (!apiKey) {
+        if (toastCallback) {
+          toastCallback('Toplu soru üretimi için lütfen önce Gemini API anahtarınızı tanımlayın.', 'warning');
+        }
+        openGeminiKeyModal();
+        return;
+      }
+
+      const state = stateManager.loadState();
+      const library = state.books.library || [];
+      if (library.length === 0) {
+        if (toastCallback) toastCallback('Kütüphanede henüz kitap bulunmuyor.', 'info');
+        return;
+      }
+
+      // Özel sorusu olmayan veya boş olan kitapları filtrele
+      const targetBooks = library.filter(b => !b.questions || b.questions.length === 0);
+      if (targetBooks.length === 0) {
+        if (toastCallback) toastCallback('Kütüphanedeki tüm kitapların soruları zaten tanımlı!', 'success');
+        return;
+      }
+
+      const gradeInfo = getTargetGradeLevelInfo();
+
+      const confirmed = confirm(
+        `Kütüphanenizde henüz özel sorusu bulunmayan ${targetBooks.length} adet kitap tespit edildi.\n\n` +
+        `Yapay zeka her biri için ${gradeInfo.gradeNum}. Sınıf düzeyine uygun 5'er adet okuduğunu anlama sorusu ve cevabı hazırlayıp kaydedecektir.\n` +
+        `İşlemi başlatmak istiyor musunuz?`
+      );
+      if (!confirmed) return;
+
+      btnBatchAIQuestions.disabled = true;
+      btnBatchAIQuestions.innerHTML = `<span class="ai-spinner" style="width:14px;height:14px;border-width:2px;"></span> Hazırlanıyor...`;
+
+      let successCount = 0;
+      let failCount = 0;
+
+      for (let i = 0; i < targetBooks.length; i++) {
+        const book = targetBooks[i];
+        if (toastCallback) {
+          toastCallback(`[${i + 1}/${targetBooks.length}] "${book.title}" için ${gradeInfo.gradeNum}. Sınıf düzeyinde sorular hazırlanıyor...`, 'info');
+        }
+
+        try {
+          const qs = await generateBookQuestionsWithAI(book.title, book.author, {
+            gradeLevel: gradeInfo.gradeNum,
+            bookLevel: book.level || 'seviye_1'
+          });
+          const res = stateManager.updateBookQuestions(book.id, qs);
+          if (res && res.success) {
+            successCount++;
+          } else {
+            failCount++;
+          }
+        } catch (err) {
+          console.error(`Soru üretim hatası (${book.title}):`, err);
+          failCount++;
+        }
+
+        // Dakikalık kota (15 RPM) aşılmaması için istekler arası 1.2 saniye bekle
+        if (i < targetBooks.length - 1) {
+          await new Promise(res => setTimeout(res, 1200));
+        }
+      }
+
+      btnBatchAIQuestions.disabled = false;
+      btnBatchAIQuestions.innerHTML = `<i data-lucide="sparkles" style="width: 15px; height: 15px;"></i> Toplu AI Soruları`;
+      window.safeCreateIcons();
+
+      renderBooksList();
+      const event = new CustomEvent('stateChanged');
+      document.dispatchEvent(event);
+
+      if (toastCallback) {
+        if (failCount === 0) {
+          toastCallback(`Harika! ${successCount} adet kitabın tüm soruları yapay zeka ile başarıyla hazırlandı ve kaydedildi.`, 'success');
+        } else {
+          toastCallback(`${successCount} kitabın soruları hazırlandı, ${failCount} kitapta hata oluştu.`, 'warning');
+        }
+      }
+    });
+  }
+
+  // --- KİTAP DÜZENLEME & SİLME MODAL VE TOOLBAR DİNLİYİCİLERİ ---
+  const modalEditBook = document.getElementById('modal-edit-book');
+  const formEditBook = document.getElementById('form-edit-book');
+  const btnModalDeleteBook = document.getElementById('btn-modal-delete-book');
+  const editIdInput = document.getElementById('edit-book-id');
+  const editNoInput = document.getElementById('edit-book-no-input');
+  const editTitleInput = document.getElementById('edit-book-title-input');
+  const editAuthorInput = document.getElementById('edit-book-author-input');
+  const editPagesInput = document.getElementById('edit-book-pages-input');
+
+  // Düzenleme Modalı Kapatma
+  if (modalEditBook) {
+    modalEditBook.querySelectorAll('.close-btn, .close-btn-action').forEach(btn => {
+      btn.addEventListener('click', () => {
+        modalEditBook.classList.remove('active');
+      });
+    });
+  }
+
+  // Düzenleme Formu Gönderimi (Kitap Bilgilerini Güncelleme)
+  if (formEditBook) {
+    formEditBook.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const bookId = editIdInput ? editIdInput.value : '';
+      if (!bookId) return;
+
+      const editLevelInput = document.getElementById('edit-book-level-input');
+      const bookData = {
+        bookNo: editNoInput ? editNoInput.value.trim() : '',
+        title: editTitleInput ? editTitleInput.value.trim() : '',
+        author: editAuthorInput ? editAuthorInput.value.trim() : '',
+        pages: editPagesInput ? parseInt(editPagesInput.value) || 0 : 0,
+        level: editLevelInput ? editLevelInput.value : 'seviye_1'
+      };
+
+      if (!bookData.title) {
+        if (toastCallback) toastCallback('Lütfen kitap adını giriniz.', 'danger');
+        return;
+      }
+
+      stateManager.updateBook(bookId, bookData);
+      if (modalEditBook) modalEditBook.classList.remove('active');
+      if (toastCallback) toastCallback(`"${bookData.title}" kitap bilgileri güncellendi.`, 'success');
+
+      renderBooksList();
+      renderLeaderboard();
+      const event = new CustomEvent('stateChanged');
+      document.dispatchEvent(event);
+    });
+  }
+
+  // Düzenleme Modalındaki "Bu Kitabı Sil" Düğmesi
+  if (btnModalDeleteBook) {
+    btnModalDeleteBook.addEventListener('click', () => {
+      const bookId = editIdInput ? editIdInput.value : '';
+      if (!bookId) return;
+      const state = stateManager.loadState();
+      const book = state.books.library.find(b => b.id === bookId);
+      if (book) {
+        if (modalEditBook) modalEditBook.classList.remove('active');
+        confirmAndDeleteBook(book);
+      }
+    });
+  }
+
+  // Kitaplık Arama Çubuğu
+  const inputLibrarySearch = document.getElementById('input-library-search');
+  if (inputLibrarySearch) {
+    inputLibrarySearch.addEventListener('input', (e) => {
+      librarySearchQuery = e.target.value;
+      renderBooksList();
+    });
+  }
+
+  // Kitaplık Durum Filtresi
+  const selectLibraryFilter = document.getElementById('select-library-filter');
+  if (selectLibraryFilter) {
+    selectLibraryFilter.addEventListener('change', (e) => {
+      libraryFilterStatus = e.target.value;
+      renderBooksList();
+    });
+  }
+
+  // Toplu Silme Modu Açma/Kapatma
+  const btnToggleBulk = document.getElementById('btn-toggle-bulk-delete-books');
+  const bulkBar = document.getElementById('bulk-delete-books-bar');
+  const btnCancelBulk = document.getElementById('btn-cancel-bulk-delete-books');
+  const chkSelectAll = document.getElementById('chk-select-all-books');
+  const btnConfirmBulk = document.getElementById('btn-confirm-bulk-delete-books');
+
+  if (btnToggleBulk) {
+    btnToggleBulk.addEventListener('click', () => {
+      isBulkDeleteMode = !isBulkDeleteMode;
+      selectedBookIds.clear();
+      if (bulkBar) {
+        bulkBar.style.display = isBulkDeleteMode ? 'flex' : 'none';
+      }
+      if (isBulkDeleteMode) {
+        btnToggleBulk.classList.add('btn-primary');
+        btnToggleBulk.classList.remove('btn-secondary');
+      } else {
+        btnToggleBulk.classList.remove('btn-primary');
+        btnToggleBulk.classList.add('btn-secondary');
+      }
+      renderBooksList();
+      updateBulkDeleteCountUI();
+    });
+  }
+
+  if (btnCancelBulk) {
+    btnCancelBulk.addEventListener('click', () => {
+      isBulkDeleteMode = false;
+      selectedBookIds.clear();
+      if (bulkBar) bulkBar.style.display = 'none';
+      if (btnToggleBulk) {
+        btnToggleBulk.classList.remove('btn-primary');
+        btnToggleBulk.classList.add('btn-secondary');
+      }
+      renderBooksList();
+      updateBulkDeleteCountUI();
+    });
+  }
+
+  // Tümünü Seç / Kaldır Onay Kutusu
+  if (chkSelectAll) {
+    chkSelectAll.addEventListener('change', () => {
+      const state = stateManager.loadState();
+      const allBooks = state.books.library || [];
+      const query = librarySearchQuery.trim().toLowerCase();
+      const readingBookIds = state.books.transactions
+        .filter(t => t.status === 'reading')
+        .map(t => t.bookId);
+
+      const visibleBooks = allBooks.filter(book => {
+        if (query) {
+          const titleMatch = (book.title || '').toLowerCase().includes(query);
+          const authorMatch = (book.author || '').toLowerCase().includes(query);
+          const noMatch = (book.bookNo || '').toLowerCase().includes(query);
+          if (!titleMatch && !authorMatch && !noMatch) return false;
+        }
+        const isReading = readingBookIds.includes(book.id);
+        const hasQuestions = Array.isArray(book.questions) && book.questions.length > 0;
+        if (libraryFilterStatus === 'available' && isReading) return false;
+        if (libraryFilterStatus === 'reading' && !isReading) return false;
+        if (libraryFilterStatus === 'has_questions' && !hasQuestions) return false;
+        if (libraryFilterStatus === 'no_questions' && hasQuestions) return false;
+        return true;
+      });
+
+      if (chkSelectAll.checked) {
+        visibleBooks.forEach(b => selectedBookIds.add(b.id));
+      } else {
+        visibleBooks.forEach(b => selectedBookIds.delete(b.id));
+      }
+
+      renderBooksList();
+      updateBulkDeleteCountUI(visibleBooks.length);
+    });
+  }
+
+  // Seçilenleri Silme Onayı ve İşlemi
+  if (btnConfirmBulk) {
+    btnConfirmBulk.addEventListener('click', async () => {
+      const count = selectedBookIds.size;
+      if (count === 0) {
+        if (toastCallback) toastCallback('Lütfen önce silinecek kitapları seçin.', 'warning');
+        return;
+      }
+
+      const state = stateManager.loadState();
+      const readingCount = state.books.transactions.filter(
+        t => t.status === 'reading' && selectedBookIds.has(t.bookId)
+      ).length;
+
+      let msg = `Seçilen ${count} adet kitabı kütüphaneden kalıcı olarak silmek istediğinize emin misiniz?`;
+      if (readingCount > 0) {
+        msg += `\n\nDikkat: Seçtiğiniz kitaplardan ${readingCount} tanesi şu anda öğrenciler tarafından okunmaktadır!`;
+      }
+
+      const ok = window.confirmAsync ?
+        await window.confirmAsync(msg) :
+        confirm(msg);
+
+      if (ok) {
+        const idsToDelete = Array.from(selectedBookIds);
+        stateManager.deleteBooks(idsToDelete);
+        selectedBookIds.clear();
+        isBulkDeleteMode = false;
+        if (bulkBar) bulkBar.style.display = 'none';
+        if (btnToggleBulk) {
+          btnToggleBulk.classList.remove('btn-primary');
+          btnToggleBulk.classList.add('btn-secondary');
+        }
+
+        renderBooksList();
+        renderLeaderboard();
+        if (toastCallback) toastCallback(`${count} adet kitap başarıyla silindi.`, 'success');
+
+        const event = new CustomEvent('stateChanged');
+        document.dispatchEvent(event);
+      }
+    });
+  }
+
+  // Tümünü Temizle (Kütüphanedeki Tüm Kitapları Sil) Düğmesi
+  const btnDeleteAllBooks = document.getElementById('btn-delete-all-books');
+  if (btnDeleteAllBooks) {
+    btnDeleteAllBooks.addEventListener('click', async () => {
+      const state = stateManager.loadState();
+      const totalBooks = (state.books.library || []).length;
+      if (totalBooks === 0) {
+        if (toastCallback) toastCallback('Kütüphanenizde silinecek kitap bulunmuyor.', 'info');
+        return;
+      }
+
+      const activeReadings = state.books.transactions.filter(t => t.status === 'reading').length;
+      let msg = `Kütüphanedeki TÜM KİTAPLARI (${totalBooks} adet) silmek istediğinize emin misiniz?\n\nBu işlem geri alınamaz!`;
+      if (activeReadings > 0) {
+        msg += `\n\nUyarı: Şu anda aktif olarak okunan ${activeReadings} adet kitap bulunmaktadır.`;
+      }
+
+      const ok = window.confirmAsync ?
+        await window.confirmAsync(msg) :
+        confirm(msg);
+
+      if (ok) {
+        stateManager.deleteAllBooks();
+        selectedBookIds.clear();
+        isBulkDeleteMode = false;
+        if (bulkBar) bulkBar.style.display = 'none';
+        if (btnToggleBulk) {
+          btnToggleBulk.classList.remove('btn-primary');
+          btnToggleBulk.classList.add('btn-secondary');
+        }
+
+        renderBooksList();
+        renderLeaderboard();
+        if (toastCallback) toastCallback('Kütüphanedeki tüm kitaplar temizlendi.', 'success');
+
+        const event = new CustomEvent('stateChanged');
+        document.dispatchEvent(event);
+      }
+    });
+  }
+}
+
+// Dropdown Menüleri Doldur
+function populateBorrowDropdowns() {
+  const state = stateManager.loadState();
+  const selectBranch = document.getElementById('books-select-branch');
+  const branchFilter = selectBranch ? selectBranch.value : 'all';
+  
+  // Öğrencileri yükle
+  borrowStudentSelect.innerHTML = '<option value="">Öğrenci Seçin...</option>';
+  const activeStudents = state.students.filter(student => {
+    return state.educationLevel === 'primary' || branchFilter === 'all' || student.branch === branchFilter;
+  });
+  const sortedStudents = [...activeStudents].sort((a, b) => a.name.localeCompare(b.name, 'tr'));
+  sortedStudents.forEach(std => {
+    const branchText = std.branch ? ` [${std.branch}]` : '';
+    borrowStudentSelect.innerHTML += `<option value="${std.id}">${std.name} ${std.surname} (${std.number})${branchText}</option>`;
+  });
+
+  // Başlangıçta kitap seçimi boş ve pasif olsun (öğrenci seçilmeden kitap seçilemesin)
+  updateBorrowBookSelect();
+}
+
+function updateBorrowBookSelect() {
+  const state = stateManager.loadState();
+  const studentId = borrowStudentSelect.value;
+  const borrowBookNoInput = document.getElementById('borrow-book-no-input');
+  const btnClearBorrowBookNo = document.getElementById('btn-clear-borrow-book-no');
+  const feedback = document.getElementById('borrow-book-no-feedback');
+  const countBadge = document.getElementById('borrow-book-count-badge');
+
+  if (!studentId) {
+    borrowBookSelect.innerHTML = '<option value="">Lütfen önce öğrenci seçin...</option>';
+    borrowBookSelect.disabled = true;
+    if (borrowBookNoInput) {
+      borrowBookNoInput.disabled = true;
+      borrowBookNoInput.placeholder = 'Önce öğrenci seçiniz...';
+    }
+    if (feedback) feedback.style.display = 'none';
+    if (countBadge) countBadge.textContent = '';
+    return;
+  }
+
+  borrowBookSelect.disabled = false;
+  if (borrowBookNoInput) {
+    borrowBookNoInput.disabled = false;
+    borrowBookNoInput.placeholder = 'Kitap No girin (Örn: 24)...';
+  }
+
+  const readBookIds = state.books.transactions
+    .filter(t => t.studentId === studentId && t.status === 'returned')
+    .map(t => t.bookId);
+
+  const currentlyReadingBookIds = state.books.transactions
+    .filter(t => t.status === 'reading')
+    .map(t => t.bookId);
+
+  let libraryBooks = state.books.library || [];
+  if (window.LicenseConfig && window.LicenseConfig.isDemo) {
+    libraryBooks = libraryBooks.slice(0, window.LicenseConfig.bookLimit);
+  }
+
+  const availableBooks = libraryBooks.filter(book => {
+    const hasRead = readBookIds.includes(book.id);
+    const isCurrentlyBorrowed = currentlyReadingBookIds.includes(book.id);
+    return !hasRead && !isCurrentlyBorrowed;
+  });
+
+  const borrowLevelFilter = document.getElementById('borrow-level-filter');
+  const selectedLevel = borrowLevelFilter ? borrowLevelFilter.value : 'all';
+
+  let filteredByLevel = availableBooks;
+  if (selectedLevel !== 'all') {
+    filteredByLevel = availableBooks.filter(book => (book.level || 'seviye_1') === selectedLevel);
+  }
+
+  // Kitap No'ya göre sayısal doğal sıralama, yoksa başlığa göre sıralama
+  filteredByLevel.sort((a, b) => {
+    const noA = parseInt(a.bookNo, 10);
+    const noB = parseInt(b.bookNo, 10);
+    if (!isNaN(noA) && !isNaN(noB)) {
+      if (noA !== noB) return noA - noB;
+    } else if (!isNaN(noA)) {
+      return -1;
+    } else if (!isNaN(noB)) {
+      return 1;
+    } else if (a.bookNo && b.bookNo) {
+      const cmp = a.bookNo.localeCompare(b.bookNo, 'tr', { numeric: true });
+      if (cmp !== 0) return cmp;
+    }
+    return a.title.localeCompare(b.title, 'tr');
+  });
+
+  const query = borrowBookNoInput ? borrowBookNoInput.value.trim() : '';
+  const queryLower = query.toLowerCase();
+
+  let finalBooks = filteredByLevel;
+
+  if (query) {
+    if (btnClearBorrowBookNo) btnClearBorrowBookNo.style.display = 'block';
+
+    finalBooks = filteredByLevel.filter(b => {
+      const matchNo = b.bookNo && b.bookNo.toLowerCase().includes(queryLower);
+      const matchTitle = b.title && b.title.toLowerCase().includes(queryLower);
+      const matchAuthor = b.author && b.author.toLowerCase().includes(queryLower);
+      return matchNo || matchTitle || matchAuthor;
+    });
+
+    // Kütüphanedeki tüm kitaplarda tam numara eşleşmesini kontrol et (ödünçte mi, okundu mu bilgi vermek için)
+    const exactInLibrary = libraryBooks.find(b => b.bookNo && b.bookNo.trim().toLowerCase() === queryLower);
+
+    if (feedback) {
+      feedback.style.display = 'block';
+
+      if (exactInLibrary) {
+        if (currentlyReadingBookIds.includes(exactInLibrary.id)) {
+          const activeTx = state.books.transactions.find(t => t.bookId === exactInLibrary.id && t.status === 'reading');
+          const borrower = activeTx ? (state.students || []).find(s => s.id === activeTx.studentId) : null;
+          const borrowerName = borrower ? `${borrower.name} ${borrower.surname}` : 'başka bir öğrencide';
+          feedback.style.background = 'rgba(245, 158, 11, 0.12)';
+          feedback.style.color = '#d97706';
+          feedback.style.border = '1px solid rgba(245, 158, 11, 0.35)';
+          feedback.innerHTML = `⚠️ <strong>[No: ${exactInLibrary.bookNo}] "${exactInLibrary.title}"</strong> şu an <strong>${borrowerName}</strong> adlı öğrencide ödünçte!`;
+        } else if (readBookIds.includes(exactInLibrary.id)) {
+          feedback.style.background = 'rgba(59, 130, 246, 0.12)';
+          feedback.style.color = '#2563eb';
+          feedback.style.border = '1px solid rgba(59, 130, 246, 0.35)';
+          feedback.innerHTML = `ℹ️ <strong>[No: ${exactInLibrary.bookNo}] "${exactInLibrary.title}"</strong> bu öğrenci tarafından daha önce okundu.`;
+        } else {
+          feedback.style.background = 'rgba(16, 185, 129, 0.12)';
+          feedback.style.color = '#059669';
+          feedback.style.border = '1px solid rgba(16, 185, 129, 0.35)';
+          feedback.innerHTML = `✅ <strong>[No: ${exactInLibrary.bookNo}] "${exactInLibrary.title}"</strong> (${exactInLibrary.pages} s.) seçildi.`;
+        }
+      } else if (finalBooks.length > 0) {
+        feedback.style.background = 'rgba(99, 102, 241, 0.08)';
+        feedback.style.color = 'var(--primary)';
+        feedback.style.border = '1px solid rgba(99, 102, 241, 0.25)';
+        feedback.innerHTML = `🔍 <strong>${finalBooks.length}</strong> adet uygun kitap bulundu.`;
+      } else {
+        feedback.style.background = 'rgba(239, 68, 68, 0.1)';
+        feedback.style.color = '#ef4444';
+        feedback.style.border = '1px solid rgba(239, 68, 68, 0.3)';
+        feedback.innerHTML = `❌ "<strong>${query}</strong>" numaralı veya adlı uygun kitap bulunamadı.`;
+      }
+    }
+  } else {
+    if (btnClearBorrowBookNo) btnClearBorrowBookNo.style.display = 'none';
+    if (feedback) feedback.style.display = 'none';
+  }
+
+  // Dropdown'ı doldur
+  borrowBookSelect.innerHTML = '<option value="">Kitap Seçin...</option>';
+
+  if (countBadge) {
+    countBadge.textContent = `(Uygun: ${finalBooks.length} / ${availableBooks.length})`;
+  }
+
+  if (finalBooks.length === 0) {
+    const levelLabel = selectedLevel === 'seviye_1' ? '1. Seviye' : (selectedLevel === 'seviye_2' ? '2. Seviye' : '');
+    borrowBookSelect.innerHTML = `<option value="">${query ? 'Aramaya uygun' : (levelLabel ? levelLabel + ' kategorisinde' : '')} ödünç verilebilecek kitap bulunmuyor</option>`;
+  } else {
+    finalBooks.forEach(book => {
+      const noTag = book.bookNo ? `[No: ${book.bookNo}]` : '[No: -]';
+      const levelTag = (book.level === 'seviye_2') ? '[2. Seviye]' : '[1. Seviye]';
+      borrowBookSelect.innerHTML += `<option value="${book.id}">${noTag} ${book.title} - ${book.author} (${book.pages} s.) ${levelTag}</option>`;
+    });
+
+    // Otomatik seçim: Eğer tam no eşleşen kitap varsa veya filtrelenmiş tek bir kitap kaldıysa otomatik seç
+    if (query) {
+      const exactAvailable = finalBooks.find(b => b.bookNo && b.bookNo.trim().toLowerCase() === queryLower);
+      if (exactAvailable) {
+        borrowBookSelect.value = exactAvailable.id;
+      } else if (finalBooks.length === 1) {
+        borrowBookSelect.value = finalBooks[0].id;
+      }
+    }
+  }
+}
+
+// Kitaplık Arama, Filtreleme ve Toplu Silme Durum Değişkenleri
+let librarySearchQuery = '';
+let libraryFilterStatus = 'all';
+let isBulkDeleteMode = false;
+const selectedBookIds = new Set();
+
+// Kitap Silme Onay ve Gerçekleştirme Yardımcısı
+async function confirmAndDeleteBook(book) {
+  if (!book) return;
+  const state = stateManager.loadState();
+  const activeTx = state.books.transactions.find(t => t.bookId === book.id && t.status === 'reading');
+  let confirmMsg = `"${book.title}" adlı kitabı kütüphaneden silmek istediğinize emin misiniz?`;
+  if (activeTx) {
+    const student = state.students.find(s => s.id === activeTx.studentId);
+    const studentName = student ? `${student.name} ${student.surname}` : 'bir öğrenci';
+    confirmMsg = `"${book.title}" adlı kitap şu an ${studentName} tarafından okunmaktadır.\n\nKitabı silerseniz öğrencinin aktif okuma kaydı da silinecektir. Devam etmek istiyor musunuz?`;
+  }
+
+  const ok = window.confirmAsync ?
+    await window.confirmAsync(confirmMsg) :
+    confirm(confirmMsg);
+
+  if (ok) {
+    selectedBookIds.delete(book.id);
+    stateManager.deleteBook(book.id);
+    renderBooksList();
+
+    if (toastCallback) {
+      toastCallback(`"${book.title}" kütüphaneden silindi.`, 'success');
+    }
+
+    const event = new CustomEvent('stateChanged');
+    document.dispatchEvent(event);
+  }
+}
+
+// Kitap Bilgilerini Düzenleme Modalını Açma
+function openEditBookModal(bookId) {
+  const state = stateManager.loadState();
+  const book = state.books.library.find(b => b.id === bookId);
+  if (!book) return;
+
+  const modalEditBook = document.getElementById('modal-edit-book');
+  const editIdInput = document.getElementById('edit-book-id');
+  const editNoInput = document.getElementById('edit-book-no-input');
+  const editTitleInput = document.getElementById('edit-book-title-input');
+  const editAuthorInput = document.getElementById('edit-book-author-input');
+  const editPagesInput = document.getElementById('edit-book-pages-input');
+
+  if (modalEditBook && editIdInput && editTitleInput && editAuthorInput && editPagesInput) {
+    editIdInput.value = book.id;
+    if (editNoInput) editNoInput.value = book.bookNo || '';
+    editTitleInput.value = book.title || '';
+    editAuthorInput.value = book.author || '';
+    editPagesInput.value = book.pages || 0;
+    const editLevelInput = document.getElementById('edit-book-level-input');
+    if (editLevelInput) editLevelInput.value = book.level || 'seviye_1';
+    modalEditBook.classList.add('active');
+    if (window.safeCreateIcons) window.safeCreateIcons();
+  }
+}
+
+// Toplu Silme Seçim Sayısı ve Durumu Arayüz Yardımcısı
+function updateBulkDeleteCountUI(currentVisibleCount = 0) {
+  const countText = document.getElementById('selected-books-count-text');
+  const chkSelectAll = document.getElementById('chk-select-all-books');
+  const btnConfirmBulk = document.getElementById('btn-confirm-bulk-delete-books');
+  const count = selectedBookIds.size;
+
+  if (countText) {
+    countText.textContent = `(${count} kitap seçildi)`;
+  }
+
+  if (btnConfirmBulk) {
+    btnConfirmBulk.disabled = count === 0;
+    btnConfirmBulk.style.opacity = count === 0 ? '0.6' : '1';
+    btnConfirmBulk.style.cursor = count === 0 ? 'not-allowed' : 'pointer';
+  }
+
+  if (chkSelectAll && currentVisibleCount > 0) {
+    chkSelectAll.checked = count > 0 && count === currentVisibleCount;
+    chkSelectAll.indeterminate = count > 0 && count < currentVisibleCount;
+  }
+}
+
+// Kitaplık ve Aktif Okumaları Çiz
+function renderBooksList() {
+  const state = stateManager.loadState();
+  
+  // 1. Kitaplık Envanteri Çizimi
+  libraryContainer.innerHTML = '';
+  const allBooks = state.books.library || [];
+
+  // Toplam rozetini güncelle
+  const countBadge = document.getElementById('library-books-count-badge');
+  if (countBadge) {
+    countBadge.textContent = `${allBooks.length} Kitap`;
+  }
+
+  if (allBooks.length === 0) {
+    libraryContainer.innerHTML = `
+      <div style="grid-column: 1 / -1; text-align: center; padding: 2rem; color: var(--text-muted);">
+        Kütüphanenizde henüz kitap bulunmuyor.
+      </div>
+    `;
+  } else {
+    // Okunmakta olan kitapları belirle
+    const readingBookIds = state.books.transactions
+      .filter(t => t.status === 'reading')
+      .map(t => t.bookId);
+
+    // Arama ve Filtreleme Uygula
+    const query = librarySearchQuery.trim().toLowerCase();
+    const filteredBooks = allBooks.filter(book => {
+      // 1. Arama sorgusu filtresi
+      if (query) {
+        const titleMatch = (book.title || '').toLowerCase().includes(query);
+        const authorMatch = (book.author || '').toLowerCase().includes(query);
+        const noMatch = (book.bookNo || '').toLowerCase().includes(query);
+        if (!titleMatch && !authorMatch && !noMatch) return false;
+      }
+
+      // 2. Durum filtresi
+      const isReading = readingBookIds.includes(book.id);
+      const hasQuestions = Array.isArray(book.questions) && book.questions.length > 0;
+
+      if (libraryFilterStatus === 'available' && isReading) return false;
+      if (libraryFilterStatus === 'reading' && !isReading) return false;
+      if (libraryFilterStatus === 'level_1' && (book.level || 'seviye_1') !== 'seviye_1') return false;
+      if (libraryFilterStatus === 'level_2' && book.level !== 'seviye_2') return false;
+      if (libraryFilterStatus === 'has_questions' && !hasQuestions) return false;
+      if (libraryFilterStatus === 'no_questions' && hasQuestions) return false;
+
+      return true;
+    });
+
+    if (filteredBooks.length === 0) {
+      libraryContainer.innerHTML = `
+        <div style="grid-column: 1 / -1; text-align: center; padding: 2.5rem 1rem; color: var(--text-muted);">
+          <i data-lucide="search-x" style="width: 36px; height: 36px; opacity: 0.5; margin-bottom: 0.5rem;"></i>
+          <p style="margin: 0; font-size: 0.9rem;">Arama kriterlerinize uygun kitap bulunamadı.</p>
+        </div>
+      `;
+      if (window.safeCreateIcons) window.safeCreateIcons();
+    } else {
+      const sortedLibrary = [...filteredBooks].sort((a, b) => (a.title || '').localeCompare(b.title || '', 'tr'));
+
+      sortedLibrary.forEach(book => {
+        const activeTxForBook = state.books.transactions.find(t => t.bookId === book.id && t.status === 'reading');
+        const isReading = !!activeTxForBook;
+        const isSelected = selectedBookIds.has(book.id);
+        const levelNumber = book.level === 'seviye_2' ? '2' : '1';
+        
+        let readingTopHtml = '';
+        if (isReading) {
+          let readerName = '';
+          if (activeTxForBook) {
+            const student = state.students.find(s => s.id === activeTxForBook.studentId);
+            if (student) {
+              readerName = `${student.name} ${student.surname}`;
+            }
+          }
+          readingTopHtml = `
+            <div class="book-cover-top-status">
+              <span class="book-cover-status-badge">OKUNUYOR</span>
+              ${readerName ? `<span class="book-cover-reader-name" title="${readerName}">${readerName}</span>` : ''}
+            </div>
+          `;
+        }
+        
+        const card = document.createElement('div');
+        card.className = `glass-card book-card ${isSelected ? 'book-card-selected' : ''}`;
+        card.style.cursor = 'pointer';
+        if (isSelected) {
+          card.style.borderColor = 'var(--danger)';
+          card.style.boxShadow = '0 0 0 2px rgba(239, 68, 68, 0.3)';
+        }
+        
+        const bulkCheckboxHtml = isBulkDeleteMode ? `
+          <div class="book-select-checkbox-container">
+            <input type="checkbox" class="chk-book-select" data-id="${book.id}" ${isSelected ? 'checked' : ''}>
+          </div>
+        ` : '';
+
+        card.innerHTML = `
+          ${bulkCheckboxHtml}
+          <div class="book-cover" style="background: ${isReading ? 'linear-gradient(135deg, #d97706 0%, #b45309 100%)' : 'linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%)'}; position: relative;">
+            ${readingTopHtml}
+            <i data-lucide="book" class="book-cover-main-icon"></i>
+            <div class="book-cover-bottom-bar">
+              <button type="button" class="book-cover-btn edit edit-book-card-btn" title="Kitap Bilgilerini Düzenle" data-id="${book.id}">
+                <i data-lucide="edit-3"></i>
+              </button>
+              <button type="button" class="book-cover-btn delete delete-book-card-btn" title="Bu Kitabı Sil" data-id="${book.id}">
+                <i data-lucide="trash-2"></i>
+              </button>
+              <span class="book-cover-level-badge level-${levelNumber}" title="${levelNumber}. Seviye">${levelNumber}</span>
+            </div>
+          </div>
+          <div class="book-title" title="${book.title}" style="font-weight: 700;">${book.title}</div>
+          <div class="book-author" style="color: var(--text-muted); font-size: 0.8rem; margin-bottom: 0.35rem;">${book.author}</div>
+          <div class="book-pages" style="display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; font-size: 0.75rem; color: var(--text-secondary); margin-top: auto; padding-top: 0.4rem; border-top: 1px dashed var(--border-color);">
+            <span style="font-weight: 600;">No: ${book.bookNo || '-'}</span>
+            <span>${book.pages} Sayfa</span>
+          </div>
+        `;
+
+        // Kartın kendisine tıklandığında soruları aç
+        card.addEventListener('click', (e) => {
+          if (e.target.closest('.delete-book-card-btn') || 
+              e.target.closest('.edit-book-card-btn') || 
+              e.target.closest('.book-select-checkbox-container') ||
+              e.target.closest('.lock-overlay')) {
+            return;
+          }
+          openBookQuestionsModal(book.id, book.title, book.author);
+        });
+
+        // Kitap Düzenle (Sol üst buton)
+        const topEditBtn = card.querySelector('.edit-book-card-btn');
+        if (topEditBtn) {
+          topEditBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            openEditBookModal(book.id);
+          });
+        }
+
+        // Kitap Sil (Sağ üst buton)
+        const topDeleteBtn = card.querySelector('.delete-book-card-btn');
+        if (topDeleteBtn) {
+          topDeleteBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            confirmAndDeleteBook(book);
+          });
+        }
+
+        // Toplu seçim onay kutusu
+        if (isBulkDeleteMode) {
+          const chk = card.querySelector('.chk-book-select');
+          if (chk) {
+            chk.addEventListener('change', (e) => {
+              e.stopPropagation();
+              if (chk.checked) {
+                selectedBookIds.add(book.id);
+                card.style.borderColor = 'var(--danger)';
+                card.style.boxShadow = '0 0 0 2px rgba(239, 68, 68, 0.3)';
+              } else {
+                selectedBookIds.delete(book.id);
+                card.style.borderColor = '';
+                card.style.boxShadow = '';
+              }
+              updateBulkDeleteCountUI(filteredBooks.length);
+            });
+          }
+        }
+
+        // Lisans kısıtlama kontrolü
+        const originalIndex = state.books.library.findIndex(b => b.id === book.id);
+        const isPassive = window.LicenseConfig && window.LicenseConfig.isDemo && originalIndex >= window.LicenseConfig.bookLimit;
+        if (isPassive) {
+          card.classList.add('passive-locked');
+          const lockOverlay = document.createElement('div');
+          lockOverlay.className = 'lock-overlay';
+          lockOverlay.innerHTML = `<i data-lucide="lock"></i><span>Pasif (Lisans Gerekli)</span>`;
+          lockOverlay.addEventListener('click', (e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            if (window.LicenseConfig && typeof window.LicenseConfig.showPrompt === 'function') {
+              window.LicenseConfig.showPrompt('Kitaplık', window.LicenseConfig.bookLimit);
+            } else if (window.openLicensePurchase) {
+              window.openLicensePurchase('Kitaplık Limiti');
+            }
+          });
+          card.appendChild(lockOverlay);
+        }
+
+        libraryContainer.appendChild(card);
+      });
+    }
+  }
+
+  if (window.safeCreateIcons) window.safeCreateIcons();
+
+  // 2. Aktif Okuma Tablosu Çizimi (Eğer varsa - eski yerleşim uyumluluğu için)
+  if (borrowedBooksTable) {
+    const tbody = borrowedBooksTable.querySelector('tbody');
+    tbody.innerHTML = '';
+
+    const activeTransactions = state.books.transactions
+      .filter(t => t.status === 'reading')
+      .sort((a, b) => new Date(b.borrowDate) - new Date(a.borrowDate));
+
+    if (activeTransactions.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--text-muted);">Şu an ödünç verilmiş aktif bir kitap bulunmuyor.</td></tr>';
+    } else {
+      activeTransactions.forEach(t => {
+        const student = state.students.find(s => s.id === t.studentId) || { name: 'Bilinmeyen', surname: 'Öğrenci', number: '-' };
+        const book = state.books.library.find(b => b.id === t.bookId) || { title: 'Silinmiş Kitap' };
+        
+        const borrowDate = new Date(t.borrowDate);
+        const today = new Date();
+        const diffTime = Math.abs(today - borrowDate);
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        
+        let statusClass = 'incomplete';
+        let statusText = 'Okuyor';
+        
+        // Kitap iadesi 15 günü geçerse uyarı verelim
+        if (diffDays > 15) {
+          statusClass = 'missing';
+          statusText = `Gecikti (${diffDays} gün)`;
+        }
+
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td><strong>${student.name} ${student.surname}</strong> (${student.number})</td>
+          <td>
+            <div style="display: flex; flex-direction: column;">
+              <a class="book-title-question-link" data-book-id="${book.id}" title="Kitap Sorularını Gör" style="display: inline-flex; align-items: center; gap: 0.25rem; width: fit-content;">
+                <i data-lucide="help-circle" style="width: 14px; height: 14px;"></i><strong>${book.title}</strong>
+              </a>
+              <span style="font-size: 0.75rem; color: var(--text-muted); margin-left: 1.15rem;">No: ${book.bookNo || '-'}</span>
+            </div>
+          </td>
+          <td>${borrowDate.toLocaleDateString('tr-TR')}</td>
+          <td><span class="status-badge ${statusClass}">${statusText}</span></td>
+          <td>
+            <button class="btn btn-success btn-return" style="padding: 0.35rem 0.75rem; font-size: 0.75rem;">
+              <i data-lucide="check" style="width: 12px; height: 12px; margin-right: 2px;"></i> İade Al
+            </button>
+          </td>
+        `;
+
+        row.querySelector('.book-title-question-link').addEventListener('click', (e) => {
+          e.preventDefault();
+          openBookQuestionsModal(book.id, book.title, book.author);
+        });
+
+        row.querySelector('.btn-return').addEventListener('click', (e) => {
+          try {
+            e.preventDefault();
+            e.stopPropagation();
+
+            const bookSettings = stateManager.getBookSettings();
+            const borrowDate = new Date(t.borrowDate);
+            const today = new Date();
+            const diffTime = Math.abs(today - borrowDate);
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            
+            const isLevel2 = book.level === 'seviye_2';
+            const lvlSettings = isLevel2 ? (bookSettings.level2 || {}) : (bookSettings.level1 || {});
+            const limitDays = lvlSettings.limitDays || (isLevel2 ? 20 : 10);
+            const isOnTime = diffDays <= limitDays;
+            const points = isOnTime 
+              ? (lvlSettings.onTimePoints !== undefined ? lvlSettings.onTimePoints : (isLevel2 ? 4 : 2))
+              : (lvlSettings.latePoints !== undefined ? lvlSettings.latePoints : 0);
+
+            stateManager.returnBook(t.id);
+            if (toastCallback) {
+              toastCallback(`"${book.title}" iade alındı.`, 'success');
+            }
+            
+            stateManager.addPerformance(
+              student.id,
+              points >= 0 ? 'positive' : 'development',
+              points,
+              `Kitap Okuma Tamamlandı: ${book.title}${isOnTime ? '' : ' (Gecikmeli)'}`,
+              stateManager.getSelectedWeek()
+            );
+            
+            const levelLabel = isLevel2 ? '2. Seviye' : '1. Seviye';
+            const timingLabel = isOnTime ? 'Zamanında' : 'Gecikmeli';
+            if (toastCallback) {
+              toastCallback(`${student.name} öğrencisine kitap okuduğu için (${levelLabel}, ${timingLabel}) ${points >= 0 ? '+' : ''}${points} Performans puanı eklendi!`, 'info');
+            }
+
+            const event = new CustomEvent('stateChanged');
+            document.dispatchEvent(event);
+
+            // Hızlı yeniden ödünç verme panelini aç
+            showQuickReborrow(student.id, `${student.name} ${student.surname}`);
+
+            // Yüzde 85 okuma oranına sahip öğrencilere göre rezervasyon önerisini kontrol et
+            setTimeout(() => {
+              if (typeof checkForBookReservation === 'function') {
+                checkForBookReservation(book);
+              }
+            }, 300);
+          } catch (err) {
+            console.error("Return button click error:", err);
+            if (window.showToast) {
+              window.showToast(`İade Hatası: ${err.message}`, 'danger');
+            } else {
+              alert(`İade Hatası: ${err.message}`);
+            }
+          }
+        });
+
+        tbody.appendChild(row);
+      });
+    }
+  }
+
+  // Liderlik Tablosunu da Güncelle
+  renderLeaderboard();
+
+  // Geciken Kitapları da Güncelle
+  renderLateBooksList();
+}
+
+function renderLeaderboard() {
+  const state = stateManager.loadState();
+  const tbody = document.getElementById('books-leaderboard-tbody');
+  if (!tbody) return;
+
+  tbody.innerHTML = '';
+
+  const bookSettings = stateManager.getBookSettings();
+  const selectBranch = document.getElementById('books-select-branch');
+  const branchFilter = selectBranch ? selectBranch.value : 'all';
+  const activeStudents = state.students.filter(student => {
+    return state.educationLevel === 'primary' || branchFilter === 'all' || student.branch === branchFilter;
+  });
+
+  const today = new Date();
+  const todayPure = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+
+  // 1. Her öğrenci için okuma verilerini ve gecikme durumunu topla
+  const studentData = activeStudents.map(student => {
+    // Bu öğrencinin iade ettiği işlemleri filtrele
+    const returnedTransactions = state.books.transactions.filter(t => t.studentId === student.id && t.status === 'returned');
+    
+    // Toplam sayfa sayısı
+    let totalPages = 0;
+    returnedTransactions.forEach(t => {
+      const book = state.books.library.find(b => b.id === t.bookId);
+      if (book) {
+        totalPages += book.pages || 0;
+      }
+    });
+
+    // Aktif ödünç alınan (okunmakta olan) kitaplar ve seviyeye göre gecikme kontrolü
+    const activeTxs = state.books.transactions.filter(t => t.studentId === student.id && t.status === 'reading');
+    let hasOverdue = false;
+    let maxOverdueDays = 0;
+    let overdueBookTitle = '';
+    let overdueTotalDays = 0;
+    let overdueLimitDays = 0;
+
+    activeTxs.forEach(t => {
+      const book = state.books.library.find(b => b.id === t.bookId);
+      const isLevel2 = (book && book.level === 'seviye_2');
+      const lvlSettings = isLevel2 ? (bookSettings.level2 || {}) : (bookSettings.level1 || {});
+      const limitDays = (lvlSettings.limitDays !== undefined && lvlSettings.limitDays !== null) ? lvlSettings.limitDays : (isLevel2 ? 20 : 10);
+
+      const borrowDate = new Date(t.borrowDate);
+      const borrowDatePure = new Date(borrowDate.getFullYear(), borrowDate.getMonth(), borrowDate.getDate());
+      const diffTime = todayPure - borrowDatePure;
+      const diffDays = Math.max(0, Math.floor(diffTime / (1000 * 60 * 60 * 24)));
+
+      if (diffDays > limitDays) {
+        hasOverdue = true;
+        const overdue = diffDays - limitDays;
+        if (overdue > maxOverdueDays) {
+          maxOverdueDays = overdue;
+          overdueBookTitle = book ? book.title : 'Kitap';
+          overdueTotalDays = diffDays;
+          overdueLimitDays = limitDays;
+        }
+      }
+    });
+
+    return {
+      student,
+      bookCount: returnedTransactions.length,
+      totalPages,
+      hasOverdue,
+      maxOverdueDays,
+      overdueBookTitle,
+      overdueTotalDays,
+      overdueLimitDays
+    };
+  });
+
+  // 2. Sayfa sayısına göre sırala (Eşitlik durumunda kitap sayısı, sonra alfabetik isim)
+  studentData.sort((a, b) => {
+    if (b.totalPages !== a.totalPages) {
+      return b.totalPages - a.totalPages;
+    }
+    if (b.bookCount !== a.bookCount) {
+      return b.bookCount - a.bookCount;
+    }
+    const nameA = `${a.student.name} ${a.student.surname}`;
+    const nameB = `${b.student.name} ${b.student.surname}`;
+    return nameA.localeCompare(nameB, 'tr');
+  });
+
+  // Varsayılan olarak ilk sıradaki öğrenciyi seçelim (eğer seçili öğrenci yoksa veya silinmişse)
+  if (studentData.length > 0) {
+    const studentExists = studentData.some(d => d.student.id === selectedStudentId);
+    if (!selectedStudentId || !studentExists) {
+      selectedStudentId = studentData[0].student.id;
+    }
+  } else {
+    selectedStudentId = null;
+  }
+
+  // 3. Tabloyu çiz
+  if (studentData.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: var(--text-muted);">Sınıfta kayıtlı öğrenci bulunmuyor.</td></tr>';
+    renderStudentDetailPanel();
+    return;
+  }
+
+  studentData.forEach((data, index) => {
+    const rank = index + 1;
+    let rankHtml = '';
+    
+    if (rank === 1) rankHtml = '<span class="leaderboard-rank rank-1" title="1. Derece">🥇</span>';
+    else if (rank === 2) rankHtml = '<span class="leaderboard-rank rank-2" title="2. Derece">🥈</span>';
+    else if (rank === 3) rankHtml = '<span class="leaderboard-rank rank-3" title="3. Derece">🥉</span>';
+    else rankHtml = `<span class="leaderboard-rank">${rank}</span>`;
+
+    const row = document.createElement('tr');
+    row.className = 'leaderboard-row';
+    row.style.cursor = 'pointer';
+    
+    if (data.student.id === selectedStudentId) {
+      row.classList.add('active-student-row');
+    }
+
+    if (data.hasOverdue) {
+      row.classList.add('has-overdue-book');
+    }
+    
+    row.innerHTML = `
+      <td style="text-align: center; vertical-align: middle;">
+        <div style="display: inline-flex; justify-content: center; align-items: center; width: 100%;">
+          ${rankHtml}
+        </div>
+      </td>
+      <td>
+        <div style="display: flex; flex-direction: column; gap: 0.2rem;">
+          <div style="display: flex; align-items: center; gap: 0.35rem; flex-wrap: wrap;">
+            <strong>${escapeHtml(data.student.name)} ${escapeHtml(data.student.surname)}</strong>
+            <span style="color: var(--text-muted); font-size: 0.8rem;">(${escapeHtml(data.student.number)})</span>
+          </div>
+          ${data.hasOverdue ? `
+            <div style="display: inline-flex; align-items: center; gap: 0.3rem; margin-top: 1px;">
+              <span class="badge" style="background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.35); font-size: 0.72rem; font-weight: 700; padding: 0.15rem 0.5rem; border-radius: 4px; display: inline-flex; align-items: center; gap: 0.25rem;" title="${escapeHtml(data.overdueBookTitle)} | Toplam ${data.overdueTotalDays} gün (Makul süre: ${data.overdueLimitDays} gün)">
+                ⚠️ ${data.maxOverdueDays} gün gecikti
+              </span>
+            </div>
+          ` : ''}
+        </div>
+      </td>
+      <td style="text-align: center;"><strong>${data.bookCount}</strong> adet</td>
+      <td style="text-align: center;"><span class="status-badge positive-tab active" style="font-weight: 700; font-size: 0.85rem; padding: 0.35rem 0.75rem;">${data.totalPages}</span></td>
+    `;
+
+    row.addEventListener('click', (e) => {
+      e.preventDefault();
+      selectedStudentId = data.student.id;
+      currentStudentDetailSearchQuery = '';
+      renderLeaderboard();
+      
+      // Mobil ve tablet ekranlarda detay panelini otomatik olarak görünür alana kaydır
+      const panel = document.getElementById('books-student-detail-panel');
+      if (panel && window.innerWidth <= 1024) {
+        panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    });
+
+    tbody.appendChild(row);
+  });
+
+  // Detay panelini de güncelle
+  renderStudentDetailPanel();
+}
+
+function formatDateTR(dateStr) {
+  if (!dateStr) return '-';
+  if (typeof dateStr === 'string' && dateStr.includes('-')) {
+    const parts = dateStr.split('-');
+    if (parts.length === 3 && parts[0].length === 4) {
+      return `${parts[2].padStart(2, '0')}.${parts[1].padStart(2, '0')}.${parts[0]}`;
+    }
+  }
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return dateStr;
+  const day = String(d.getDate()).padStart(2, '0');
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const year = d.getFullYear();
+  return `${day}.${month}.${year}`;
+}
+
+function renderLateBooksList() {
+  const state = stateManager.loadState();
+  const tbody = document.getElementById('books-late-tbody');
+  if (!tbody) return;
+
+  tbody.innerHTML = '';
+  
+  const bookSettings = stateManager.getBookSettings();
+
+  const lateInfoL1 = document.getElementById('late-info-l1-days');
+  const lateInfoL2 = document.getElementById('late-info-l2-days');
+  if (lateInfoL1) {
+    lateInfoL1.textContent = (bookSettings.level1 && bookSettings.level1.limitDays) || 10;
+  }
+  if (lateInfoL2) {
+    lateInfoL2.textContent = (bookSettings.level2 && bookSettings.level2.limitDays) || 20;
+  }
+
+  const activeTransactions = state.books.transactions.filter(t => t.status === 'reading');
+  const lateTransactions = [];
+  
+  const today = new Date();
+  const todayPure = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+
+  activeTransactions.forEach(t => {
+    const book = state.books.library.find(b => b.id === t.bookId);
+    const borrowDate = new Date(t.borrowDate);
+    const borrowDatePure = new Date(borrowDate.getFullYear(), borrowDate.getMonth(), borrowDate.getDate());
+    const diffTime = todayPure - borrowDatePure;
+    const diffDays = Math.max(0, Math.floor(diffTime / (1000 * 60 * 60 * 24)));
+    
+    const isLevel2 = (book && book.level === 'seviye_2');
+    const lvlSettings = isLevel2 ? (bookSettings.level2 || {}) : (bookSettings.level1 || {});
+    const bookLimit = (lvlSettings.limitDays !== undefined && lvlSettings.limitDays !== null) ? lvlSettings.limitDays : (isLevel2 ? 20 : 10);
+    
+    if (diffDays > bookLimit) {
+      lateTransactions.push({
+        transaction: t,
+        diffDays: diffDays,
+        overdueDays: diffDays - bookLimit,
+        bookLimit: bookLimit,
+        isLevel2: isLevel2,
+        levelLabel: isLevel2 ? '2. Seviye' : '1. Seviye'
+      });
+    }
+  });
+
+  lateTransactions.sort((a, b) => b.overdueDays - a.overdueDays);
+
+  if (lateTransactions.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="8" style="text-align: center; color: var(--text-muted); padding: 2rem;">
+          Şu an süresi geciken herhangi bir kitap bulunmuyor.
+        </td>
+      </tr>
+    `;
+    return;
+  }
+
+  lateTransactions.forEach(item => {
+    const t = item.transaction;
+    const diffDays = item.diffDays;
+    
+    const student = state.students.find(s => s.id === t.studentId) || { name: 'Bilinmeyen', surname: 'Öğrenci', number: '-' };
+    const book = state.books.library.find(b => b.id === t.bookId) || { title: 'Silinmiş Kitap', author: 'Bilinmiyor', bookNo: '-' };
+
+    const row = document.createElement('tr');
+    
+    row.innerHTML = `
+      <td style="text-align: center; font-weight: 600;">${escapeHtml(book.bookNo || '-')}</td>
+      <td>
+        <div style="display: flex; flex-direction: column; gap: 0.2rem;">
+          <div style="display: flex; align-items: center; gap: 0.35rem; flex-wrap: wrap;">
+            <a class="book-title-question-link" data-book-id="${book.id}" title="Kitap Sorularını Gör" style="display: inline-flex; align-items: center; gap: 0.25rem; width: fit-content; font-weight: 700; color: var(--text-primary); cursor: pointer;">
+              <i data-lucide="help-circle" style="width: 14px; height: 14px;"></i>${escapeHtml(book.title)}
+            </a>
+            <span class="badge" style="background: ${item.isLevel2 ? 'rgba(139, 92, 246, 0.15)' : 'rgba(59, 130, 246, 0.15)'}; color: ${item.isLevel2 ? '#8b5cf6' : '#3b82f6'}; font-size: 0.7rem; font-weight: 700; padding: 0.15rem 0.4rem; border-radius: 4px;">
+              ${item.levelLabel}
+            </span>
+          </div>
+        </div>
+      </td>
+      <td>${escapeHtml(book.author || '-')}</td>
+      <td><strong>${escapeHtml(student.name)} ${escapeHtml(student.surname)}</strong></td>
+      <td style="text-align: center;">${escapeHtml(student.number)}</td>
+      <td style="text-align: center;">${formatDateTR(t.borrowDate)}</td>
+      <td style="text-align: center;">
+        <span class="status-badge missing" style="font-weight: 700; font-size: 0.8rem; padding: 0.25rem 0.55rem; display: inline-flex; align-items: center; gap: 0.25rem;">
+          ⚠️ ${item.overdueDays} gün gecikti
+        </span>
+        <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 3px;">
+          Toplam: ${diffDays} gün | Sınır: ${item.bookLimit} gün
+        </div>
+      </td>
+      <td style="text-align: center;">
+        <button class="btn btn-success btn-return-late" style="padding: 0.35rem 0.75rem; font-size: 0.75rem; display: inline-flex; align-items: center; gap: 0.25rem; font-weight: 600;">
+          <i data-lucide="check" style="width: 12px; height: 12px;"></i> İade Al
+        </button>
+      </td>
+    `;
+
+    const questionLink = row.querySelector('.book-title-question-link');
+    if (questionLink) {
+      questionLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        openBookQuestionsModal(book.id, book.title, book.author);
+      });
+    }
+
+    row.querySelector('.btn-return-late').addEventListener('click', (e) => {
+      try {
+        e.preventDefault();
+        e.stopPropagation();
+
+        const bookSettings = stateManager.getBookSettings();
+        const isLevel2 = book.level === 'seviye_2';
+        const lvlSettings = isLevel2 ? (bookSettings.level2 || {}) : (bookSettings.level1 || {});
+        const points = lvlSettings.latePoints !== undefined ? lvlSettings.latePoints : 0;
+
+        stateManager.returnBook(t.id);
+        if (toastCallback) {
+          toastCallback(`"${book.title}" iade alındı.`, 'success');
+        }
+
+        stateManager.addPerformance(
+          student.id,
+          points >= 0 ? 'positive' : 'development',
+          points,
+          `Kitap Okuma Tamamlandı: ${book.title} (Gecikmeli)`,
+          stateManager.getSelectedWeek()
+        );
+
+        const levelLabel = isLevel2 ? '2. Seviye' : '1. Seviye';
+        if (toastCallback) {
+          toastCallback(`${student.name} öğrencisine kitap okuduğu için (${levelLabel}, Gecikmeli) ${points >= 0 ? '+' : ''}${points} Performans puanı eklendi!`, 'info');
+        }
+
+        const event = new CustomEvent('stateChanged');
+        document.dispatchEvent(event);
+
+        showQuickReborrow(student.id, `${student.name} ${student.surname}`);
+
+        setTimeout(() => {
+          if (typeof checkForBookReservation === 'function') {
+            checkForBookReservation(book);
+          }
+        }, 300);
+
+        renderLateBooksList();
+      } catch (err) {
+        console.error("Late return button click error:", err);
+        if (window.showToast) {
+          window.showToast(`İade Hatası: ${err.message}`, 'danger');
+        } else {
+          alert(`İade Hatası: ${err.message}`);
+        }
+      }
+    });
+
+    tbody.appendChild(row);
+  });
+
+  window.safeCreateIcons();
+}
+
+function renderStudentDetailPanel() {
+  const state = stateManager.loadState();
+  const panel = document.getElementById('books-student-detail-panel');
+  if (!panel) return;
+
+  panel.innerHTML = '';
+
+  const student = state.students.find(s => s.id === selectedStudentId);
+  if (!student) {
+    panel.innerHTML = `
+      <div style="text-align: center; padding: 3rem; color: var(--text-muted); margin: auto;">
+        <i data-lucide="user" style="width: 48px; height: 48px; margin-bottom: 1rem; opacity: 0.5;"></i>
+        <p>Lütfen detayları ve ödünç işlemlerini görmek için sol listeden bir öğrenci seçin.</p>
+      </div>
+    `;
+    window.safeCreateIcons();
+    return;
+  }
+
+  // 1. Öğrenci Başlığı (Fotoğraf + İsim/Bilgi)
+  const headerDiv = document.createElement('div');
+  headerDiv.style.borderBottom = '1px solid var(--border-color)';
+  headerDiv.style.paddingBottom = '0.85rem';
+  headerDiv.style.display = 'flex';
+  headerDiv.style.alignItems = 'center';
+  headerDiv.style.gap = '0.85rem';
+
+  const initials = `${(student.name || '')[0] || ''}${(student.surname || '')[0] || ''}`;
+  const isFemale = student.gender === 'female';
+  const photoHtml = student.photo
+    ? `<img src="${student.photo}" alt="${escapeHtml(student.name)}" style="width: 48px; height: 48px; border-radius: 50%; object-fit: cover; border: 2px solid ${isFemale ? 'rgba(236, 72, 153, 0.4)' : 'rgba(99, 102, 241, 0.4)'}; box-shadow: 0 2px 8px rgba(0,0,0,0.1); flex-shrink: 0;">`
+    : `<div style="width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1.1rem; text-transform: uppercase; flex-shrink: 0; box-shadow: 0 2px 8px rgba(0,0,0,0.06); ${
+        isFemale
+          ? 'background-color: rgba(236, 72, 153, 0.15); color: rgb(236, 72, 153); border: 2px solid rgba(236, 72, 153, 0.35);'
+          : 'background-color: var(--primary-light); color: var(--primary); border: 2px solid rgba(99, 102, 241, 0.35);'
+      }">${initials}</div>`;
+
+  headerDiv.innerHTML = `
+    ${photoHtml}
+    <div style="display: flex; flex-direction: column; gap: 0.15rem; min-width: 0;">
+      <h3 style="margin: 0; color: var(--text-primary); font-weight: 800; font-size: 1.15rem; display: flex; align-items: center; gap: 0.45rem; flex-wrap: wrap;">
+        <span>${escapeHtml(student.name)} ${escapeHtml(student.surname)}</span>
+        ${student.branch ? `<span class="badge" style="background: rgba(99, 102, 241, 0.1); color: var(--primary); font-size: 0.72rem; font-weight: 700; padding: 0.12rem 0.45rem; border-radius: 4px;">${escapeHtml(student.branch)}</span>` : ''}
+      </h3>
+      <span style="font-size: 0.8rem; color: var(--text-muted); font-weight: 500;">
+        Okul No: <strong>${escapeHtml(student.number || '-')}</strong> | Kitap Ödünç & İade Detayları
+      </span>
+    </div>
+  `;
+  panel.appendChild(headerDiv);
+
+  // 2. Şu An Okuyor / Yeni Ödünç Ver Bölümü
+  const activeTxs = state.books.transactions.filter(t => t.studentId === selectedStudentId && t.status === 'reading');
+  const actionDiv = document.createElement('div');
+
+  if (activeTxs.length > 0) {
+    actionDiv.innerHTML = `
+      <h4 style="color: var(--primary); font-weight: 700; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem; font-size: 1rem;">
+        <i data-lucide="book-open" style="width: 18px; height: 18px;"></i> Şu An Okuyor (${activeTxs.length})
+      </h4>
+      
+      <div class="student-reading-list" style="display: flex; flex-direction: column; gap: 0.75rem;">
+        ${activeTxs.map((activeTx, index) => {
+          const book = state.books.library.find(b => b.id === activeTx.bookId) || { title: 'Silinmiş Kitap', author: 'Bilinmiyor', pages: 0 };
+          const bookSettings = stateManager.getBookSettings();
+          const borrowDate = new Date(activeTx.borrowDate);
+          const today = new Date();
+          const borrowDatePure = new Date(borrowDate.getFullYear(), borrowDate.getMonth(), borrowDate.getDate());
+          const todayPure = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+          const diffTime = todayPure - borrowDatePure;
+          const diffDays = Math.max(0, Math.floor(diffTime / (1000 * 60 * 60 * 24)));
+          const isLevel2 = (book.level === 'seviye_2');
+          const lvlSettings = isLevel2 ? (bookSettings.level2 || {}) : (bookSettings.level1 || {});
+          const limitDays = (lvlSettings.limitDays !== undefined && lvlSettings.limitDays !== null) ? lvlSettings.limitDays : (isLevel2 ? 20 : 10);
+          const isLate = diffDays > limitDays;
+          const overdueDays = diffDays - limitDays;
+          return `
+            <div class="reading-item glass-card" data-tx-id="${activeTx.id}" data-book-id="${book.id}" data-book-level="${book.level || 'seviye_1'}" data-book-title="${(book.title || '').replace(/"/g, '&quot;')}" data-book-author="${(book.author || '').replace(/"/g, '&quot;')}" style="border: 1.5px solid ${isLate ? '#ef4444' : 'var(--primary)'}; background: ${isLate ? 'rgba(239, 68, 68, 0.06)' : 'var(--primary-light)'}; padding: 1.25rem; border-radius: var(--radius-md); box-sizing: border-box;">
+              <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                <div style="width: 100%;">
+                  <div style="display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap;">
+                    ${book.bookNo ? `<span class="badge" style="background: rgba(99, 102, 241, 0.15); color: var(--primary); font-weight: 700; font-size: 0.75rem; padding: 0.15rem 0.45rem; border-radius: 4px;">No: ${escapeHtml(book.bookNo)}</span>` : ''}
+                    <strong style="font-size: 1.05rem; color: var(--text-primary);">${escapeHtml(book.title)}</strong>
+                    <span class="badge" style="background: ${isLevel2 ? 'rgba(139, 92, 246, 0.15)' : 'rgba(59, 130, 246, 0.15)'}; color: ${isLevel2 ? '#8b5cf6' : '#3b82f6'}; font-size: 0.7rem; font-weight: 700; padding: 0.15rem 0.4rem; border-radius: 4px;">
+                      ${isLevel2 ? '2. Seviye' : '1. Seviye'}
+                    </span>
+                  </div>
+                  <div style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.25rem;">${escapeHtml(book.author)} | ${book.pages} Sayfa</div>
+                  <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">Veriliş Tarihi: ${borrowDate.toLocaleDateString('tr-TR')} (${diffDays} gündür)</div>
+                  ${isLate ? `<span class="status-badge missing" style="margin-top: 0.5rem; display: inline-flex; align-items: center; gap: 0.3rem; font-weight: 700;">⚠️ ${overdueDays} Gün Gecikti <small style="font-weight: normal; opacity: 0.85;">(Toplam ${diffDays} gün, Makul: ${limitDays} gün)</small></span>` : ''}
+                </div>
+                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; justify-content: flex-start; border-top: 1px solid rgba(0,0,0,0.06); padding-top: 0.75rem; margin-top: 0.25rem;">
+                  <button class="btn btn-warning btn-ask-question" style="padding: 0.5rem 0.85rem; font-size: 0.8rem; display: inline-flex; align-items: center; gap: 0.25rem; font-weight:600;">
+                    <i data-lucide="help-circle" style="width: 14px; height: 14px;"></i> Soru Sor
+                  </button>
+                  <button class="btn btn-success btn-return-book" data-diff-days="${diffDays}" style="padding: 0.5rem 0.85rem; font-size: 0.8rem; display: inline-flex; align-items: center; gap: 0.25rem; font-weight:600;">
+                    <i data-lucide="check" style="width: 14px; height: 14px;"></i> İade Al
+                  </button>
+                  <button class="btn btn-danger btn-cancel-borrow" style="padding: 0.5rem 0.85rem; font-size: 0.8rem; display: inline-flex; align-items: center; gap: 0.25rem; font-weight:600; margin-left: auto;">
+                    <i data-lucide="x-circle" style="width: 14px; height: 14px;"></i> İptal Et
+                  </button>
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    `;
+
+    actionDiv.querySelectorAll('.btn-ask-question').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        const item = btn.closest('.reading-item');
+        const bookId = item.getAttribute('data-book-id');
+        const bookTitle = item.getAttribute('data-book-title');
+        const bookAuthor = item.getAttribute('data-book-author');
+        openBookQuestionsModal(bookId, bookTitle, bookAuthor);
+      });
+    });
+
+    actionDiv.querySelectorAll('.btn-return-book').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        const item = btn.closest('.reading-item');
+        const txId = item.getAttribute('data-tx-id');
+        const bookTitle = item.getAttribute('data-book-title');
+        const diffDays = parseInt(btn.getAttribute('data-diff-days'));
+
+        try {
+          const bookSettings = stateManager.getBookSettings();
+          const bookLevel = item.getAttribute('data-book-level') || 'seviye_1';
+          const isLevel2 = bookLevel === 'seviye_2';
+          const lvlSettings = isLevel2 ? (bookSettings.level2 || {}) : (bookSettings.level1 || {});
+          const limitDays = lvlSettings.limitDays || (isLevel2 ? 20 : 10);
+          const isOnTime = diffDays <= limitDays;
+          const points = isOnTime 
+            ? (lvlSettings.onTimePoints !== undefined ? lvlSettings.onTimePoints : (isLevel2 ? 4 : 2))
+            : (lvlSettings.latePoints !== undefined ? lvlSettings.latePoints : 0);
+
+          stateManager.returnBook(txId);
+          if (toastCallback) {
+            toastCallback(`"${bookTitle}" iade alındı.`, 'success');
+          }
+
+          stateManager.addPerformance(
+            student.id,
+            points >= 0 ? 'positive' : 'development',
+            points,
+            `Kitap Okuma Tamamlandı: ${bookTitle}${isOnTime ? '' : ' (Gecikmeli)'}`,
+            stateManager.getSelectedWeek()
+          );
+
+          const levelLabel = isLevel2 ? '2. Seviye' : '1. Seviye';
+          const timingLabel = isOnTime ? 'Zamanında' : 'Gecikmeli';
+          if (toastCallback) {
+            toastCallback(`${student.name} öğrencisine kitap okuduğu için (${levelLabel}, ${timingLabel}) ${points >= 0 ? '+' : ''}${points} Performans puanı eklendi!`, 'info');
+          }
+
+          window._focusStudentDetailBookSearch = true;
+          const event = new CustomEvent('stateChanged');
+          document.dispatchEvent(event);
+        } catch (err) {
+          console.error("Return error:", err);
+        }
+      });
+    });
+
+    actionDiv.querySelectorAll('.btn-cancel-borrow').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        e.preventDefault();
+        const item = btn.closest('.reading-item');
+        const txId = item.getAttribute('data-tx-id');
+        const bookTitle = item.getAttribute('data-book-title');
+
+        const ok = window.confirmAsync ?
+          await window.confirmAsync(`"${bookTitle}" kitabının ödünç işlemini iptal etmek istediğinize emin misiniz? (Kitap okunmamış sayılarak kitaplığa dönecektir)`) :
+          confirm(`"${bookTitle}" kitabının ödünç işlemini iptal etmek istediğinize emin misiniz? (Kitap okunmamış sayılarak kitaplığa dönecektir)`);
+
+        if (ok) {
+          try {
+            stateManager.cancelBorrow(txId);
+            if (toastCallback) {
+              toastCallback(`"${bookTitle}" ödünç işlemi iptal edildi.`, 'info');
+            }
+
+            const event = new CustomEvent('stateChanged');
+            document.dispatchEvent(event);
+          } catch (err) {
+            console.error("Cancel borrow error:", err);
+          }
+        }
+      });
+    });
+
+  } else {
+    // Öğrenci kitap okumuyor, yeni ödünç verme listesi göster
+    const readBookIds = state.books.transactions
+      .filter(t => t.studentId === selectedStudentId && t.status === 'returned')
+      .map(t => t.bookId);
+
+    const currentlyReadingBookIds = state.books.transactions
+      .filter(t => t.status === 'reading')
+      .map(t => t.bookId);
+
+    let libraryBooks = state.books.library || [];
+    if (window.LicenseConfig && window.LicenseConfig.isDemo) {
+      libraryBooks = libraryBooks.slice(0, window.LicenseConfig.bookLimit);
+    }
+
+    const availableBooks = libraryBooks.filter(book => {
+      const hasRead = readBookIds.includes(book.id);
+      const isCurrentlyBorrowed = currentlyReadingBookIds.includes(book.id);
+      return !hasRead && !isCurrentlyBorrowed;
+    });
+
+    // Kayıt numarasına göre sayısal doğal sıralama
+    sortBooksByBookNo(availableBooks);
+
+    actionDiv.className = 'glass-card';
+    actionDiv.style.border = '1px solid var(--border-color)';
+    actionDiv.style.padding = '1.25rem';
+    actionDiv.style.borderRadius = 'var(--radius-md)';
+    
+    const filterPillsHtml = `
+      <div style="display: flex; align-items: center; gap: 0.35rem; margin-bottom: 0.75rem; flex-wrap: wrap;">
+        <span style="font-size: 0.72rem; font-weight: 700; color: var(--text-muted); margin-right: 0.25rem;">Seviye Süzgeci:</span>
+        <button type="button" class="btn btn-sm btn-student-level-pill" data-level="all" style="padding: 0.2rem 0.55rem; font-size: 0.72rem; font-weight: 600; border-radius: 20px; cursor: pointer; ${currentStudentDetailLevelFilter === 'all' ? 'background: var(--primary); color: #fff;' : 'background: var(--bg-secondary); color: var(--text-secondary); border: 1px solid var(--border-color);'}">Tümü</button>
+        <button type="button" class="btn btn-sm btn-student-level-pill" data-level="seviye_1" style="padding: 0.2rem 0.55rem; font-size: 0.72rem; font-weight: 600; border-radius: 20px; cursor: pointer; ${currentStudentDetailLevelFilter === 'seviye_1' ? 'background: var(--success); color: #fff;' : 'background: var(--bg-secondary); color: var(--text-secondary); border: 1px solid var(--border-color);'}">1. Seviye (Kolay)</button>
+        <button type="button" class="btn btn-sm btn-student-level-pill" data-level="seviye_2" style="padding: 0.2rem 0.55rem; font-size: 0.72rem; font-weight: 600; border-radius: 20px; cursor: pointer; ${currentStudentDetailLevelFilter === 'seviye_2' ? 'background: #9333ea; color: #fff;' : 'background: var(--bg-secondary); color: var(--text-secondary); border: 1px solid var(--border-color);'}">2. Seviye (İleri)</button>
+      </div>
+    `;
+
+    actionDiv.innerHTML = `
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.65rem; flex-wrap: wrap; gap: 0.5rem;">
+        <h4 style="color: var(--text-primary); font-weight: 700; margin: 0; display: flex; align-items: center; gap: 0.5rem; font-size: 1rem;">
+          <i data-lucide="bookmark-plus" style="width: 18px; height: 18px; color: var(--primary);"></i> Yeni Kitap Ödünç Ver
+        </h4>
+        <span id="student-detail-books-count" class="badge" style="background: rgba(99, 102, 241, 0.12); color: var(--primary); font-size: 0.72rem; font-weight: 700; padding: 0.2rem 0.55rem; border-radius: 4px;"></span>
+      </div>
+
+      <!-- Kitap No ile Hızlı Arama & Filtreleme -->
+      <div style="margin-bottom: 0.65rem;">
+        <div style="position: relative; display: flex; align-items: center;">
+          <div style="position: absolute; left: 0.75rem; display: flex; align-items: center; pointer-events: none; color: var(--primary);">
+            <i data-lucide="hash" style="width: 15px; height: 15px;"></i>
+          </div>
+          <input type="text"
+                 id="student-detail-book-search-input"
+                 class="form-control"
+                 placeholder="Kitap No girin (Örn: 24) veya Kitap / Yazar arayın..."
+                 value="${escapeHtml(currentStudentDetailSearchQuery || '')}"
+                 autocomplete="off"
+                 style="padding-left: 2.25rem; padding-right: 2.25rem; font-size: 0.85rem; height: 38px; border-radius: var(--radius-sm); font-weight: 600;">
+          <button type="button"
+                  id="btn-clear-student-detail-search"
+                  title="Temizle"
+                  style="display: ${currentStudentDetailSearchQuery ? 'block' : 'none'}; position: absolute; right: 0.6rem; background: none; border: none; font-size: 1.25rem; color: var(--text-muted); cursor: pointer; line-height: 1; padding: 0.2rem;">&times;</button>
+        </div>
+        <div id="student-detail-search-feedback" style="display: none; margin-top: 0.4rem; font-size: 0.8rem; padding: 0.35rem 0.6rem; border-radius: var(--radius-sm); font-weight: 600;"></div>
+      </div>
+
+      ${filterPillsHtml}
+      <div id="student-detail-books-list-container"></div>
+    `;
+
+    function refreshStudentDetailBooksList() {
+      const countBadge = actionDiv.querySelector('#student-detail-books-count');
+      const feedbackDiv = actionDiv.querySelector('#student-detail-search-feedback');
+      const clearBtn = actionDiv.querySelector('#btn-clear-student-detail-search');
+      const listContainer = actionDiv.querySelector('#student-detail-books-list-container');
+      if (!listContainer) return;
+
+      const query = (currentStudentDetailSearchQuery || '').trim();
+      const queryLower = query.toLowerCase();
+
+      if (clearBtn) {
+        clearBtn.style.display = query ? 'block' : 'none';
+      }
+
+      // Seviyeye göre filtrele
+      let filtered = availableBooks.filter(book => {
+        if (currentStudentDetailLevelFilter === 'seviye_1') return (book.level || 'seviye_1') === 'seviye_1';
+        if (currentStudentDetailLevelFilter === 'seviye_2') return book.level === 'seviye_2';
+        return true;
+      });
+
+      // Kayıt no'ya göre sırala
+      sortBooksByBookNo(filtered);
+
+      if (query) {
+        let matched = filtered.filter(b => {
+          const matchNo = b.bookNo && b.bookNo.toLowerCase().includes(queryLower);
+          const matchTitle = b.title && b.title.toLowerCase().includes(queryLower);
+          const matchAuthor = b.author && b.author.toLowerCase().includes(queryLower);
+          return matchNo || matchTitle || matchAuthor;
+        });
+
+        // Tam no eşleşmesi olan kitabı listenin en başına alalım
+        const exactIndex = matched.findIndex(b => b.bookNo && b.bookNo.trim().toLowerCase() === queryLower);
+        if (exactIndex > 0) {
+          const [exactBook] = matched.splice(exactIndex, 1);
+          matched.unshift(exactBook);
+        }
+
+        filtered = matched;
+
+        // Kütüphanedeki tüm kitaplarda tam numara eşleşmesini kontrol et (bilgilendirme için)
+        const exactInLibrary = libraryBooks.find(b => b.bookNo && b.bookNo.trim().toLowerCase() === queryLower);
+
+        if (feedbackDiv) {
+          feedbackDiv.style.display = 'block';
+          if (exactInLibrary) {
+            if (currentlyReadingBookIds.includes(exactInLibrary.id)) {
+              const activeTx = state.books.transactions.find(t => t.bookId === exactInLibrary.id && t.status === 'reading');
+              const borrower = activeTx ? (state.students || []).find(s => s.id === activeTx.studentId) : null;
+              const borrowerName = borrower ? `${borrower.name} ${borrower.surname}` : 'başka bir öğrencide';
+              feedbackDiv.style.background = 'rgba(245, 158, 11, 0.12)';
+              feedbackDiv.style.color = '#d97706';
+              feedbackDiv.style.border = '1px solid rgba(245, 158, 11, 0.35)';
+              feedbackDiv.innerHTML = `⚠️ <strong>[No: ${escapeHtml(exactInLibrary.bookNo)}] "${escapeHtml(exactInLibrary.title)}"</strong> şu an <strong>${escapeHtml(borrowerName)}</strong> adlı öğrencide ödünçte!`;
+            } else if (readBookIds.includes(exactInLibrary.id)) {
+              feedbackDiv.style.background = 'rgba(59, 130, 246, 0.12)';
+              feedbackDiv.style.color = '#2563eb';
+              feedbackDiv.style.border = '1px solid rgba(59, 130, 246, 0.35)';
+              feedbackDiv.innerHTML = `ℹ️ <strong>[No: ${escapeHtml(exactInLibrary.bookNo)}] "${escapeHtml(exactInLibrary.title)}"</strong> bu öğrenci tarafından daha önce okundu.`;
+            } else {
+              feedbackDiv.style.background = 'rgba(16, 185, 129, 0.12)';
+              feedbackDiv.style.color = '#059669';
+              feedbackDiv.style.border = '1px solid rgba(16, 185, 129, 0.35)';
+              feedbackDiv.innerHTML = `✅ <strong>[No: ${escapeHtml(exactInLibrary.bookNo)}] "${escapeHtml(exactInLibrary.title)}"</strong> (${exactInLibrary.pages} s.) ödünç verilmeye hazır.`;
+            }
+          } else if (filtered.length > 0) {
+            feedbackDiv.style.background = 'rgba(99, 102, 241, 0.08)';
+            feedbackDiv.style.color = 'var(--primary)';
+            feedbackDiv.style.border = '1px solid rgba(99, 102, 241, 0.25)';
+            feedbackDiv.innerHTML = `🔍 "<strong>${escapeHtml(query)}</strong>" ile eşleşen <strong>${filtered.length}</strong> kitap bulundu.`;
+          } else {
+            feedbackDiv.style.background = 'rgba(239, 68, 68, 0.1)';
+            feedbackDiv.style.color = '#ef4444';
+            feedbackDiv.style.border = '1px solid rgba(239, 68, 68, 0.3)';
+            feedbackDiv.innerHTML = `❌ "<strong>${escapeHtml(query)}</strong>" numaralı veya adlı uygun kitap bulunamadı.`;
+          }
+        }
+      } else {
+        if (feedbackDiv) feedbackDiv.style.display = 'none';
+      }
+
+      if (countBadge) {
+        countBadge.textContent = `${filtered.length} / ${availableBooks.length} Kitap`;
+      }
+
+      if (filtered.length === 0) {
+        listContainer.innerHTML = `
+          <div style="font-size: 0.85rem; color: var(--text-muted); padding: 1.25rem; text-align: center;">
+            ${query ? `"${escapeHtml(query)}" aramasına uygun kitap bulunamadı.` : (currentStudentDetailLevelFilter !== 'all' ? 'Bu seviyede ödünç verilebilecek uygun kitap bulunmuyor.' : 'Ödünç verilebilecek uygun kitap bulunmuyor (Tüm kitaplar okunmuş veya başkalarında).')}
+          </div>
+        `;
+      } else {
+        listContainer.innerHTML = `
+          <div class="student-books-list" style="max-height: 240px; overflow-y: auto; display: flex; flex-direction: column; gap: 0.5rem; padding-right: 2px;">
+            ${filtered.map(book => {
+              const isLvl2 = book.level === 'seviye_2';
+              const badgeStyle = isLvl2 ? 'background: rgba(147, 51, 234, 0.12); color: #9333ea;' : 'background: rgba(16, 185, 129, 0.12); color: #10b981;';
+              const badgeLabel = isLvl2 ? '2. Seviye (İleri)' : '1. Seviye (Kolay)';
+              const isExactMatch = query && book.bookNo && book.bookNo.trim().toLowerCase() === queryLower;
+              const itemStyle = isExactMatch 
+                ? 'background: rgba(99, 102, 241, 0.08); border: 2px solid var(--primary); box-shadow: 0 0 8px rgba(99, 102, 241, 0.25);' 
+                : 'background: var(--bg-secondary); border: 1px solid var(--border-color);';
+
+              return `
+                <div class="student-book-item" style="display: flex; justify-content: space-between; align-items: center; padding: 0.6rem 0.75rem; border-radius: var(--radius-sm); gap: 0.5rem; transition: all var(--transition-fast); ${itemStyle}">
+                  <div style="flex: 1; min-width: 0;">
+                    <div style="display: flex; align-items: center; gap: 0.4rem;">
+                      <span class="badge" style="background: rgba(99, 102, 241, 0.15); color: var(--primary); font-weight: 700; font-size: 0.72rem; padding: 0.1rem 0.45rem; border-radius: 4px; white-space: nowrap;">No: ${escapeHtml(book.bookNo || '-')}</span>
+                      <div style="font-weight: 700; font-size: 0.85rem; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${escapeHtml(book.title)}">${escapeHtml(book.title)}</div>
+                      <span style="font-size: 0.65rem; padding: 0.1rem 0.35rem; border-radius: 3px; font-weight: 700; white-space: nowrap; ${badgeStyle}">${badgeLabel}</span>
+                      ${isExactMatch ? `<span class="badge" style="background: var(--primary); color: #fff; font-size: 0.65rem; padding: 0.1rem 0.35rem; border-radius: 3px; font-weight: 700; white-space: nowrap;">Eşleşen</span>` : ''}
+                    </div>
+                    <div style="font-size: 0.75rem; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 0.15rem;" title="${escapeHtml(book.author)}">${escapeHtml(book.author)} • ${book.pages} S.</div>
+                  </div>
+                  <button class="btn btn-primary btn-lend-book" data-book-id="${book.id}" data-book-title="${escapeHtml(book.title)}" style="padding: 0.38rem 0.75rem; font-size: 0.78rem; font-weight:600; white-space: nowrap; flex-shrink: 0; display: inline-flex; align-items: center; gap: 0.3rem;">
+                    <i data-lucide="bookmark-plus" style="width: 14px; height: 14px;"></i> Ödünç Ver
+                  </button>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        `;
+
+        listContainer.querySelectorAll('.btn-lend-book').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            const bookId = btn.getAttribute('data-book-id');
+            const bookTitle = btn.getAttribute('data-book-title') || 'Kitap';
+            const todayStr = new Date().toISOString().slice(0, 10);
+
+            stateManager.borrowBook(selectedStudentId, bookId, todayStr);
+            if (toastCallback) {
+              toastCallback(`"${bookTitle}" kitabı ${student.name} adlı öğrenciye ödünç verildi.`, 'success');
+            }
+
+            currentStudentDetailSearchQuery = '';
+
+            const event = new CustomEvent('stateChanged');
+            document.dispatchEvent(event);
+          });
+        });
+      }
+
+      window.safeCreateIcons();
+    }
+
+    // İlk listelemeyi yap
+    refreshStudentDetailBooksList();
+
+    // Arama ve temizleme olaylarını bağla
+    const searchInput = actionDiv.querySelector('#student-detail-book-search-input');
+    const clearBtn = actionDiv.querySelector('#btn-clear-student-detail-search');
+
+    if (searchInput) {
+      searchInput.addEventListener('input', () => {
+        currentStudentDetailSearchQuery = searchInput.value;
+        refreshStudentDetailBooksList();
+      });
+
+      searchInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          const firstLendBtn = actionDiv.querySelector('#student-detail-books-list-container .btn-lend-book');
+          if (firstLendBtn) {
+            firstLendBtn.click();
+          }
+        } else if (e.key === 'Escape') {
+          searchInput.value = '';
+          currentStudentDetailSearchQuery = '';
+          refreshStudentDetailBooksList();
+        }
+      });
+
+      if (window._focusStudentDetailBookSearch) {
+        setTimeout(() => {
+          if (searchInput) searchInput.focus();
+        }, 150);
+        window._focusStudentDetailBookSearch = false;
+      }
+    }
+
+    if (clearBtn) {
+      clearBtn.addEventListener('click', () => {
+        if (searchInput) {
+          searchInput.value = '';
+          currentStudentDetailSearchQuery = '';
+          refreshStudentDetailBooksList();
+          searchInput.focus();
+        }
+      });
+    }
+
+    // Seviye süzgeç butonları
+    actionDiv.querySelectorAll('.btn-student-level-pill').forEach(pill => {
+      pill.addEventListener('click', (e) => {
+        e.preventDefault();
+        currentStudentDetailLevelFilter = pill.getAttribute('data-level');
+        actionDiv.querySelectorAll('.btn-student-level-pill').forEach(p => {
+          const lvl = p.getAttribute('data-level');
+          if (lvl === currentStudentDetailLevelFilter) {
+            p.style.background = lvl === 'all' ? 'var(--primary)' : (lvl === 'seviye_1' ? 'var(--success)' : '#9333ea');
+            p.style.color = '#fff';
+            p.style.border = 'none';
+          } else {
+            p.style.background = 'var(--bg-secondary)';
+            p.style.color = 'var(--text-secondary)';
+            p.style.border = '1px solid var(--border-color)';
+          }
+        });
+        refreshStudentDetailBooksList();
+      });
+    });
+  }
+
+  panel.appendChild(actionDiv);
+
+  // 3. Okuma Geçmişi Bölümü (İade tarihine göre azalan sırada)
+  const pastTransactions = state.books.transactions
+    .filter(t => t.studentId === selectedStudentId && t.status === 'returned')
+    .sort((a, b) => {
+      const dateA = a.returnDate ? new Date(a.returnDate) : new Date(0);
+      const dateB = b.returnDate ? new Date(b.returnDate) : new Date(0);
+      return dateB - dateA;
+    });
+
+  const historyDiv = document.createElement('div');
+  historyDiv.className = 'glass-card';
+  historyDiv.style.padding = '1.25rem';
+  historyDiv.style.borderRadius = 'var(--radius-md)';
+  
+  window.booksHistoryExpanded = window.booksHistoryExpanded || {};
+  const isExpanded = !!window.booksHistoryExpanded[selectedStudentId];
+  const displayTxs = isExpanded ? pastTransactions : pastTransactions.slice(0, 5);
+
+  let historyHtml = '';
+  if (pastTransactions.length === 0) {
+    historyHtml = `
+      <div style="font-size: 0.85rem; color: var(--text-muted); padding: 1rem; text-align: center;">
+        Henüz tamamlanmış kitap okuma kaydı bulunmuyor.
+      </div>
+    `;
+  } else {
+    historyHtml = `
+      <div class="student-books-list" style="max-height: ${isExpanded ? '400px' : '250px'}; overflow-y: auto; display: flex; flex-direction: column; gap: 0.5rem; padding-right: 2px;">
+        ${displayTxs.map(t => {
+          const book = state.books.library.find(b => b.id === t.bookId) || { title: 'Silinmiş Kitap', author: 'Bilinmiyor', pages: 0 };
+          const borrowD = new Date(t.borrowDate).toLocaleDateString('tr-TR');
+          const returnD = t.returnDate ? new Date(t.returnDate).toLocaleDateString('tr-TR') : '-';
+          return `
+            <div class="student-book-item" style="display: flex; justify-content: space-between; align-items: center; padding: 0.6rem 0.75rem; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: var(--radius-sm); gap: 0.5rem;">
+              <div style="flex: 1; min-width: 0;">
+                <div style="display: flex; align-items: center; gap: 0.35rem; min-width: 0;">
+                  ${book.bookNo ? `<span class="badge" style="background: rgba(99, 102, 241, 0.12); color: var(--primary); font-size: 0.7rem; padding: 0.1rem 0.35rem; border-radius: 4px; font-weight: 700; white-space: nowrap;">No: ${escapeHtml(book.bookNo)}</span>` : ''}
+                  <div style="font-weight: 700; font-size: 0.85rem; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${escapeHtml(book.title)}">${escapeHtml(book.title)}</div>
+                </div>
+                <div style="font-size: 0.75rem; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${escapeHtml(book.author)}">${escapeHtml(book.author)}</div>
+                <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 0.15rem;">Veriliş: ${borrowD} • İade: ${returnD}</div>
+              </div>
+              <div style="text-align: right; flex-shrink: 0;">
+                <span class="status-badge positive-tab active" style="font-size: 0.75rem; padding: 0.25rem 0.5rem; font-weight:700; display: inline-block;">${book.pages} S.</span>
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+      ${pastTransactions.length > 5 ? `
+        <button class="btn btn-secondary btn-sm" id="btn-toggle-history" style="margin-top: 0.75rem; width: 100%; display: flex; justify-content: center; align-items: center; gap: 0.25rem; font-weight: 600;">
+          <i data-lucide="${isExpanded ? 'chevron-up' : 'chevron-down'}" style="width: 14px; height: 14px;"></i>
+          ${isExpanded ? 'Daha Az Göster (Daralt)' : `Tümünü Göster (Genişlet - ${pastTransactions.length})`}
+        </button>
+      ` : ''}
+    `;
+  }
+
+  historyDiv.innerHTML = `
+    <h4 style="color: var(--text-primary); font-weight: 700; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem; font-size: 1rem;">
+      <i data-lucide="history" style="width: 18px; height: 18px; color: var(--success);"></i> Okuma Geçmişi
+    </h4>
+    ${historyHtml}
+  `;
+
+  panel.appendChild(historyDiv);
+
+  const btnToggle = historyDiv.querySelector('#btn-toggle-history');
+  if (btnToggle) {
+    btnToggle.addEventListener('click', (e) => {
+      e.preventDefault();
+      window.booksHistoryExpanded[selectedStudentId] = !isExpanded;
+      renderStudentDetailPanel();
+    });
+  }
+
+  window.safeCreateIcons();
+}
+
+function showQuickReborrow(studentId, studentName) {
+  const container = document.getElementById('quick-reborrow-container');
+  const title = document.getElementById('quick-reborrow-title');
+  const tbody = document.getElementById('quick-reborrow-tbody');
+  if (!container || !title || !tbody) return;
+
+  const state = stateManager.loadState();
+
+  title.innerHTML = `<i data-lucide="sparkles" style="color: var(--warning);"></i> <strong>${studentName}</strong> İçin Yeni Ödünç Kitap Seçin`;
+  tbody.innerHTML = '';
+
+  // 1. Öğrencinin geçmişte okuduğu tüm kitapların id'lerini bul
+  const studentReadBookIds = state.books.transactions
+    .filter(t => t.studentId === studentId)
+    .map(t => t.bookId);
+
+  // 2. Kütüphanedeki diğer kitaplardan (o an bir başkası tarafından okunmayan ve bu öğrencinin okumadığı) kitapları filtrele
+  const readingBookIds = state.books.transactions
+    .filter(t => t.status === 'reading')
+    .map(t => t.bookId);
+
+  const availableUnreadBooks = state.books.library.filter(book => 
+    !studentReadBookIds.includes(book.id) && !readingBookIds.includes(book.id)
+  );
+
+  if (availableUnreadBooks.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: var(--text-muted);">Öğrencinin okumadığı müsait kitap bulunamadı.</td></tr>';
+    container.style.display = 'block';
+    window.safeCreateIcons();
+    return;
+  }
+
+  sortBooksByBookNo(availableUnreadBooks);
+
+  availableUnreadBooks.forEach(book => {
+    const row = document.createElement('tr');
+    row.innerHTML = `
+      <td>
+        <div style="display: flex; flex-direction: column;">
+          <strong>${book.title}</strong>
+          <span style="font-size: 0.75rem; color: var(--text-muted);">No: ${book.bookNo || '-'}</span>
+        </div>
+      </td>
+      <td>${book.author}</td>
+      <td>${book.pages} s.</td>
+      <td>
+        <button class="btn btn-primary btn-quick-borrow" 
+                data-student-id="${studentId}" 
+                data-book-id="${book.id}" 
+                data-student-name="${studentName}" 
+                data-book-title="${book.title}" 
+                style="padding: 0.25rem 0.5rem; font-size: 0.75rem;">
+          Ödünç Ver
+        </button>
+      </td>
+    `;
+
+    tbody.appendChild(row);
+  });
+
+  container.style.display = 'block';
+  window.safeCreateIcons();
+}
+
+function checkForBookReservation(book) {
+  const state = stateManager.loadState();
+  const totalBooks = state.books.library;
+  const totalBooksCount = totalBooks.length;
+  if (totalBooksCount === 0) return;
+
+  const students = state.students;
+  const candidates = [];
+
+  students.forEach(std => {
+    // Okuduğu kitapların ID'lerini filtrele (returned transaction'lar)
+    const readBookIds = new Set(
+      state.books.transactions
+        .filter(t => t.studentId === std.id && t.status === 'returned')
+        .map(t => t.bookId)
+    );
+
+    const readCount = readBookIds.size;
+    const readRatio = readCount / totalBooksCount;
+
+    // Yüzde 85 veya daha fazlasını okumuşsa
+    if (readRatio >= 0.85) {
+      // Bu kitabı henüz okumamışsa
+      if (!readBookIds.has(book.id)) {
+        // Şu anda başka bir kitap okumadığından da emin olalım (bilgi amaçlı, rezerve edilebilir)
+        const isCurrentlyReading = state.books.transactions.some(t => t.studentId === std.id && t.status === 'reading');
+        candidates.push({
+          student: std,
+          readPercentage: Math.round(readRatio * 100),
+          isCurrentlyReading: isCurrentlyReading
+        });
+      }
+    }
+  });
+
+  if (candidates.length > 0) {
+    const modal = document.getElementById('modal-book-reservation-suggestion');
+    const titleElem = document.getElementById('reserved-book-title');
+    const listContainer = document.getElementById('reservation-candidates-list');
+
+    if (modal && titleElem && listContainer) {
+      titleElem.textContent = book.title;
+      listContainer.innerHTML = '';
+
+      candidates.forEach(cand => {
+        const row = document.createElement('div');
+        row.className = 'candidate-row';
+        row.style.display = 'flex';
+        row.style.alignItems = 'center';
+        row.style.justifyContent = 'space-between';
+        row.style.padding = '0.75rem';
+        row.style.background = 'var(--bg-primary)';
+        row.style.border = '1px solid var(--border-color)';
+        row.style.borderRadius = 'var(--radius-md)';
+        row.style.gap = '1rem';
+
+        const statusText = cand.isCurrentlyReading 
+          ? ' <span style="font-size: 0.7rem; color: var(--text-muted);"> (Şu an okuduğu kitap var)</span>'
+          : '';
+
+        row.innerHTML = `
+          <div style="display: flex; flex-direction: column; gap: 0.15rem;">
+            <strong style="font-size: 0.85rem; color: var(--text-primary);">${cand.student.name} ${cand.student.surname}</strong>
+            <span style="font-size: 0.75rem; color: var(--success); font-weight: 600;">%${cand.readPercentage} Okuma Oranı${statusText}</span>
+          </div>
+          <button type="button" class="btn btn-primary btn-sm btn-reserve-action" data-student-id="${cand.student.id}" style="font-size: 0.8rem; padding: 0.35rem 0.5rem; display: flex; align-items: center; gap: 0.25rem;">
+            <i data-lucide="bookmark-check" style="width: 14px; height: 14px;"></i> Ödünç Ver
+          </button>
+        `;
+
+        row.querySelector('.btn-reserve-action').addEventListener('click', () => {
+          // Bu öğrenciye kitabı ödünç ver
+          const borrowResult = stateManager.borrowBook(cand.student.id, book.id);
+          if (borrowResult.success) {
+            if (toastCallback) {
+              toastCallback(`"${book.title}" kitabı ${cand.student.name} için başarıyla rezerve edildi ve ödünç verildi.`, 'success');
+            }
+            modal.classList.remove('active');
+            
+            const event = new CustomEvent('stateChanged');
+            document.dispatchEvent(event);
+          } else {
+            if (toastCallback) {
+              toastCallback(borrowResult.message, 'danger');
+            }
+          }
+        });
+
+        listContainer.appendChild(row);
+      });
+
+      // İkonları oluştur
+      window.safeCreateIcons();
+      
+      // Modalı aç
+      modal.classList.add('active');
+    }
+  }
+}
+
+function renderTop20Leaderboard() {
+  const state = stateManager.loadState();
+  const tbody = document.getElementById('books-top20-tbody');
+  if (!tbody) return;
+
+  tbody.innerHTML = '';
+
+  // 1. Tüm öğrenciler için okuma verilerini topla
+  const studentData = state.students.map(student => {
+    const returnedTransactions = state.books.transactions.filter(t => t.studentId === student.id && t.status === 'returned');
+    let totalPages = 0;
+    returnedTransactions.forEach(t => {
+      const book = state.books.library.find(b => b.id === t.bookId);
+      if (book) {
+        totalPages += book.pages || 0;
+      }
+    });
+
+    return {
+      student,
+      bookCount: returnedTransactions.length,
+      totalPages
+    };
+  });
+
+  // 2. Sayfa sayısına göre sırala (en çok okuyandan en aza)
+  studentData.sort((a, b) => {
+    if (b.totalPages !== a.totalPages) {
+      return b.totalPages - a.totalPages;
+    }
+    if (b.bookCount !== a.bookCount) {
+      return b.bookCount - a.bookCount;
+    }
+    const nameA = `${a.student.name} ${a.student.surname}`;
+    const nameB = `${b.student.name} ${b.student.surname}`;
+    return nameA.localeCompare(nameB, 'tr');
+  });
+
+  // 3. İlk 20'yi al
+  const top20 = studentData.slice(0, 20);
+
+  if (top20.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--text-muted);">Sınıfta kayıtlı öğrenci bulunmuyor.</td></tr>';
+    return;
+  }
+
+  top20.forEach((data, index) => {
+    const rank = index + 1;
+    let rankHtml = '';
+    
+    if (rank === 1) rankHtml = '<span class="leaderboard-rank rank-1" title="1. Derece">🥇</span>';
+    else if (rank === 2) rankHtml = '<span class="leaderboard-rank rank-2" title="2. Derece">🥈</span>';
+    else if (rank === 3) rankHtml = '<span class="leaderboard-rank rank-3" title="3. Derece">🥉</span>';
+    else rankHtml = `<span class="leaderboard-rank">${rank}</span>`;
+
+    const row = document.createElement('tr');
+    row.innerHTML = `
+      <td style="text-align: center; vertical-align: middle;">
+        <div style="display: inline-flex; justify-content: center; align-items: center; width: 100%;">
+          ${rankHtml}
+        </div>
+      </td>
+      <td>
+        <strong>${data.student.name} ${data.student.surname}</strong>
+        <span style="color: var(--text-muted); font-size: 0.8rem; margin-left: 4px;">(${data.student.number})</span>
+      </td>
+      <td>
+        <span class="badge" style="background: rgba(255, 255, 255, 0.1); color: var(--text-primary); font-weight: 600;">${data.student.branch || '-'}</span>
+      </td>
+      <td style="text-align: center;"><strong>${data.bookCount}</strong> adet</td>
+      <td style="text-align: center;"><span class="status-badge positive-tab active" style="font-weight: 700; font-size: 0.85rem; padding: 0.35rem 0.75rem;">${data.totalPages}</span></td>
+    `;
+    tbody.appendChild(row);
+  });
+}
+
+function initStudentLibraryTab() {
+  const select = document.getElementById('student-library-select');
+  const statsContainer = document.getElementById('student-library-stats');
+  const listsContainer = document.getElementById('student-library-lists');
+  
+  if (!select || !statsContainer || !listsContainer) return;
+  
+  // Save current select value to restore it after loading
+  const currentSelectedId = select.value;
+  
+  // Clear previous options
+  select.innerHTML = '<option value="">-- Öğrenci Seçin --</option>';
+  statsContainer.style.display = 'none';
+  listsContainer.style.display = 'none';
+  
+  const state = stateManager.loadState();
+  const selectBranch = document.getElementById('books-select-branch');
+  const branchFilter = selectBranch ? selectBranch.value : 'all';
+  
+  const activeStudents = state.students.filter(student => {
+    return state.educationLevel === 'primary' || branchFilter === 'all' || student.branch === branchFilter;
+  });
+  
+  const sortedStudents = [...activeStudents].sort((a, b) => a.name.localeCompare(b.name, 'tr'));
+  
+  sortedStudents.forEach(student => {
+    const opt = document.createElement('option');
+    opt.value = student.id;
+    opt.textContent = `${student.name} ${student.surname} (${student.number})`;
+    select.appendChild(opt);
+  });
+  
+  // Restore select value if it still exists
+  if (currentSelectedId && activeStudents.some(s => s.id === currentSelectedId)) {
+    select.value = currentSelectedId;
+    statsContainer.style.display = 'grid';
+    listsContainer.style.display = 'grid';
+    renderStudentLibraryDetails(currentSelectedId);
+  }
+  
+  select.onchange = () => {
+    const studentId = select.value;
+    if (studentId) {
+      statsContainer.style.display = 'grid';
+      listsContainer.style.display = 'grid';
+      renderStudentLibraryDetails(studentId);
+    } else {
+      statsContainer.style.display = 'none';
+      listsContainer.style.display = 'none';
+    }
+  };
+}
+
+function renderStudentLibraryDetails(studentId) {
+  const state = stateManager.loadState();
+  const student = state.students.find(s => s.id === studentId);
+  if (!student) return;
+  
+  const selectBranch = document.getElementById('books-select-branch');
+  const branchFilter = selectBranch ? selectBranch.value : 'all';
+  const activeStudents = state.students.filter(s => {
+    return state.educationLevel === 'primary' || branchFilter === 'all' || s.branch === branchFilter;
+  });
+  
+  // 1. Her öğrenci için okuma verilerini topla (Sıralama hesabı için)
+  const studentData = activeStudents.map(s => {
+    const returnedTx = state.books.transactions.filter(t => t.studentId === s.id && t.status === 'returned');
+    let totalPages = 0;
+    returnedTx.forEach(t => {
+      const book = state.books.library.find(b => b.id === t.bookId);
+      if (book) {
+        totalPages += book.pages || 0;
+      }
+    });
+    return {
+      studentId: s.id,
+      bookCount: returnedTx.length,
+      totalPages
+    };
+  });
+  
+  // Liderlik tablosundaki gibi sırala
+  studentData.sort((a, b) => {
+    if (b.totalPages !== a.totalPages) {
+      return b.totalPages - a.totalPages;
+    }
+    if (b.bookCount !== a.bookCount) {
+      return b.bookCount - a.bookCount;
+    }
+    const studentA = state.students.find(s => s.id === a.studentId) || { name: '', surname: '' };
+    const studentB = state.students.find(s => s.id === b.studentId) || { name: '', surname: '' };
+    const nameA = `${studentA.name} ${studentA.surname}`;
+    const nameB = `${studentB.name} ${studentB.surname}`;
+    return nameA.localeCompare(nameB, 'tr');
+  });
+  
+  const rankIndex = studentData.findIndex(d => d.studentId === studentId);
+  const rank = rankIndex !== -1 ? rankIndex + 1 : '-';
+  
+  // 2. Seçili öğrencinin istatistiklerini hesapla
+  const returnedTransactions = state.books.transactions.filter(t => t.studentId === studentId && t.status === 'returned');
+  const readBookIds = new Set(returnedTransactions.map(t => t.bookId));
+  
+  let totalPages = 0;
+  returnedTransactions.forEach(t => {
+    const book = state.books.library.find(b => b.id === t.bookId);
+    if (book) {
+      totalPages += book.pages || 0;
+    }
+  });
+  
+  const readCount = returnedTransactions.length;
+  const totalLibraryCount = state.books.library.length;
+  const uniqueReadCount = readBookIds.size;
+  const readingRatio = totalLibraryCount > 0 ? Math.round((uniqueReadCount / totalLibraryCount) * 100) : 0;
+  
+  // 3. İstatistik kartlarını çiz
+  const statsContainer = document.getElementById('student-library-stats');
+  if (statsContainer) {
+    statsContainer.innerHTML = `
+      <div class="report-stat-box" style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 1rem; text-align: center; display: flex; flex-direction: column; gap: 0.25rem;">
+        <span style="font-size: 1.5rem; font-weight: 800; color: var(--success);">${readCount}</span>
+        <span style="font-size: 0.75rem; font-weight: 600; color: var(--text-secondary);">Okunan Kitap</span>
+      </div>
+      <div class="report-stat-box" style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 1rem; text-align: center; display: flex; flex-direction: column; gap: 0.25rem;">
+        <span style="font-size: 1.5rem; font-weight: 800; color: var(--primary);">${totalPages}</span>
+        <span style="font-size: 0.75rem; font-weight: 600; color: var(--text-secondary);">Toplam Sayfa</span>
+      </div>
+      <div class="report-stat-box" style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 1rem; text-align: center; display: flex; flex-direction: column; gap: 0.25rem;">
+        <span style="font-size: 1.5rem; font-weight: 800; color: var(--warning);">%${readingRatio}</span>
+        <span style="font-size: 0.75rem; font-weight: 600; color: var(--text-secondary);">Kitaplık Okuma Oranı</span>
+      </div>
+      <div class="report-stat-box" style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 1rem; text-align: center; display: flex; flex-direction: column; gap: 0.25rem;">
+        <span style="font-size: 1.5rem; font-weight: 800; color: #ec4899;">#${rank} / ${activeStudents.length}</span>
+        <span style="font-size: 0.75rem; font-weight: 600; color: var(--text-secondary);">Sınıftaki Sırası</span>
+      </div>
+    `;
+  }
+  
+  // 4. Okunan / Okunmayan kitap listelerini oluştur
+  const readContainer = document.getElementById('list-read-books');
+  const unreadContainer = document.getElementById('list-unread-books');
+  const countReadSpan = document.getElementById('count-read-books');
+  const countUnreadSpan = document.getElementById('count-unread-books');
+  
+  if (readContainer && unreadContainer) {
+    readContainer.innerHTML = '';
+    unreadContainer.innerHTML = '';
+    
+    let readHtml = '';
+    let unreadHtml = '';
+    let readTotal = 0;
+    let unreadTotal = 0;
+    
+    const sortedLibrary = [...state.books.library].sort((a, b) => a.title.localeCompare(b.title, 'tr'));
+    
+    sortedLibrary.forEach(book => {
+      const userTxForBook = returnedTransactions.filter(t => t.bookId === book.id);
+      
+      if (userTxForBook.length > 0) {
+        // Okudu
+        readTotal++;
+        const latestTx = userTxForBook.sort((a,b) => new Date(b.borrowDate) - new Date(a.borrowDate))[0];
+        const returnDateFormatted = latestTx && latestTx.returnDate 
+          ? new Date(latestTx.returnDate).toLocaleDateString('tr-TR')
+          : '-';
+          
+        readHtml += `
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: var(--radius-md); background: rgba(255,255,255,0.01);">
+            <div>
+              <strong style="display: block; font-size: 0.85rem; color: var(--text-primary);">${book.title}</strong>
+              <span style="font-size: 0.75rem; color: var(--text-muted);">${book.author || 'Bilinmeyen Yazar'} | ${book.pages || 0} Sayfa</span>
+            </div>
+            <span style="font-size: 0.75rem; color: var(--success); font-weight: 600;">İade: ${returnDateFormatted}</span>
+          </div>
+        `;
+      } else {
+        // Okumadı
+        unreadTotal++;
+        const activeTx = state.books.transactions.find(t => t.bookId === book.id && t.status === 'reading');
+        let statusBadge = '';
+        if (activeTx) {
+          const borrower = state.students.find(s => s.id === activeTx.studentId);
+          const borrowerName = borrower ? `${borrower.name} ${borrower.surname}` : 'Başka Bir Öğrenci';
+          statusBadge = `<span class="badge" style="background: rgba(245, 158, 11, 0.08); color: var(--warning); border: 1px solid rgba(245, 158, 11, 0.2); font-size: 0.7rem; padding: 0.25rem 0.5rem; border-radius: 4px; font-weight: 600; max-width: 140px; text-overflow: ellipsis; white-space: nowrap; overflow: hidden;" title="Ödünç alan öğrenci: ${borrowerName}">${borrowerName}</span>`;
+        } else {
+          statusBadge = `<span class="badge" style="background: rgba(16, 185, 129, 0.08); color: var(--success); border: 1px solid rgba(16, 185, 129, 0.2); font-size: 0.7rem; padding: 0.25rem 0.5rem; border-radius: 4px; font-weight: 600;">Kitaplıkta</span>`;
+        }
+        
+        unreadHtml += `
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: var(--radius-md); background: rgba(255,255,255,0.01);">
+            <div style="flex: 1; min-width: 0; padding-right: 0.5rem;">
+              <strong style="display: block; font-size: 0.85rem; color: var(--text-primary); text-overflow: ellipsis; white-space: nowrap; overflow: hidden;" title="${book.title}">${book.title}</strong>
+              <span style="font-size: 0.75rem; color: var(--text-muted); text-overflow: ellipsis; white-space: nowrap; overflow: hidden; display: block;" title="${book.author || 'Bilinmeyen Yazar'}">${book.author || 'Bilinmeyen Yazar'} | ${book.pages || 0} Sayfa</span>
+            </div>
+            ${statusBadge}
+          </div>
+        `;
+      }
+    });
+    
+    if (readTotal === 0) {
+      readContainer.innerHTML = '<div style="text-align: center; padding: 2rem; color: var(--text-muted); font-size: 0.85rem;">Okunan kitap bulunmuyor.</div>';
+    } else {
+      readContainer.innerHTML = readHtml;
+    }
+    
+    if (unreadTotal === 0) {
+      unreadContainer.innerHTML = '<div style="text-align: center; padding: 2rem; color: var(--text-muted); font-size: 0.85rem;">Kütüphanede okunmamış kitap kalmadı! 🎉</div>';
+    } else {
+      unreadContainer.innerHTML = unreadHtml;
+    }
+    
+    if (countReadSpan) countReadSpan.textContent = readTotal;
+    if (countUnreadSpan) countUnreadSpan.textContent = unreadTotal;
+  }
+}
+
+window.setupBooksTab = setupBooksTab;
+window.renderBooksList = renderBooksList;
+window.renderLateBooksList = renderLateBooksList;
+window.renderLeaderboard = renderLeaderboard;
+window.renderTop20Leaderboard = renderTop20Leaderboard;
+window.initStudentLibraryTab = initStudentLibraryTab;
+window.renderStudentLibraryDetails = renderStudentLibraryDetails;
+})();

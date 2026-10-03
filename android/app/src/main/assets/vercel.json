@@ -1,0 +1,20 @@
+{
+  "cleanUrls": true,
+  "redirects": [
+    {
+      "source": "/",
+      "destination": "/tanitim",
+      "permanent": false
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/images/:path*",
+      "destination": "/tanitim/images/:path*"
+    },
+    {
+      "source": "/uygulama",
+      "destination": "/index"
+    }
+  ]
+}

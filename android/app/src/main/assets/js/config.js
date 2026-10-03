@@ -1,0 +1,2253 @@
+(() => {
+  let toastCallback = null;
+
+  // DOM elements for config
+  let configSearchStudent;
+  let configFilterGender;
+  let configStudentsTbody;
+  let configSelectWeek;
+  let configWeekDisplayText;
+  let btnConfigPrevWeek;
+  let btnConfigNextWeek;
+  let btnConfigCurrentWeek;
+  
+  // Points inputs
+  let configFormGlobalSettings;
+  let configHwCompleted;
+  let configHwIncomplete;
+  let configHwMissing;
+  let configHwExcused;
+  let configBookL1Ontime;
+  let configBookL1Late;
+  let configBookL1Limit;
+  let configBookL2Ontime;
+  let configBookL2Late;
+  let configBookL2Limit;
+  let configExamTopcount;
+  let configExamRanksContainer;
+
+  // Setup Config Tab
+  function setupConfigTab(showToast) {
+    toastCallback = showToast;
+
+    // --- Sub-Tab Switching (Genel, Puan, Hafta, Öğrenci) ---
+    const configTabButtons = document.querySelectorAll('[data-config-tab]');
+    const configTabContents = document.querySelectorAll('.config-tab-content');
+
+    configTabButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const targetTab = btn.getAttribute('data-config-tab');
+        configTabButtons.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+
+        configTabContents.forEach(c => {
+          if (c.id === targetTab) {
+            c.classList.add('active');
+            c.style.display = 'block';
+          } else {
+            c.classList.remove('active');
+            c.style.display = 'none';
+          }
+        });
+
+        renderConfig();
+      });
+    });
+
+    // --- Points Settings Sub-Tab Switching ---
+    const ptTabButtons = document.querySelectorAll('[data-pt-tab]');
+    const ptTabContents = document.querySelectorAll('.pt-tab-content');
+
+    ptTabButtons.forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        const targetTab = btn.getAttribute('data-pt-tab');
+        ptTabButtons.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+
+        ptTabContents.forEach(c => {
+          if (c.id === targetTab) {
+            c.classList.add('active');
+            c.style.display = 'block';
+          } else {
+            c.classList.remove('active');
+            c.style.display = 'none';
+          }
+        });
+      });
+    });
+
+    // --- 1. Genel Ayarlar (General Settings) ---
+    const configThemeSelect = document.getElementById('config-theme-select');
+    const configBackupExport = document.getElementById('config-backup-export');
+    const configBackupImportTrigger = document.getElementById('config-backup-import-trigger');
+    const configBackupImportFile = document.getElementById('config-backup-import-file');
+    const configSystemReset = document.getElementById('config-system-reset');
+
+    if (configThemeSelect) {
+      configThemeSelect.addEventListener('change', () => {
+        if (window.setTheme) {
+          window.setTheme(configThemeSelect.value);
+          updateConfigThemeUI();
+        }
+      });
+    }
+
+    const configEducationLevel = document.getElementById('config-education-level');
+    if (configEducationLevel) {
+      configEducationLevel.addEventListener('change', () => {
+        stateManager.setEducationLevel(configEducationLevel.value);
+        if (toastCallback) {
+          toastCallback(`Eğitim kademesi ${configEducationLevel.value === 'middle' ? 'Ortaokul' : 'İlkokul'} olarak güncellendi.`, 'success');
+        }
+        
+        // Update visibility immediately
+        if (window.updateVisibilityByEducationLevel) {
+          window.updateVisibilityByEducationLevel();
+        }
+
+        const event = new CustomEvent('stateChanged');
+        document.dispatchEvent(event);
+      });
+    }
+
+    // --- Gemini AI API Anahtarı Ayarları ---
+    const configGeminiApiKey = document.getElementById('config-gemini-api-key');
+    const btnSaveGeminiApiKey = document.getElementById('btn-save-gemini-api-key');
+    const btnToggleGeminiKeyVisibility = document.getElementById('btn-toggle-gemini-key-visibility');
+    const iconToggleGeminiKey = document.getElementById('icon-toggle-gemini-key');
+    const geminiKeyStatusMsg = document.getElementById('gemini-key-status-msg');
+    const btnTestGeminiApiKey = document.getElementById('btn-test-gemini-api-key');
+    const btnDeleteGeminiApiKey = document.getElementById('btn-delete-gemini-api-key');
+
+    if (btnToggleGeminiKeyVisibility && configGeminiApiKey) {
+      btnToggleGeminiKeyVisibility.addEventListener('click', () => {
+        if (configGeminiApiKey.type === 'password') {
+          configGeminiApiKey.type = 'text';
+          if (iconToggleGeminiKey) iconToggleGeminiKey.setAttribute('data-lucide', 'eye-off');
+        } else {
+          configGeminiApiKey.type = 'password';
+          if (iconToggleGeminiKey) iconToggleGeminiKey.setAttribute('data-lucide', 'eye');
+        }
+        window.safeCreateIcons();
+      });
+    }
+
+    if (btnSaveGeminiApiKey && configGeminiApiKey) {
+      btnSaveGeminiApiKey.addEventListener('click', () => {
+        const key = configGeminiApiKey.value.trim().replace(/^["'“”‘’\s]+|["'“”‘’\s]+$/g, '');
+        if (key) {
+          localStorage.setItem('sinif_asistani_gemini_api_key', key);
+          configGeminiApiKey.value = key;
+          if (geminiKeyStatusMsg) {
+            geminiKeyStatusMsg.style.display = 'block';
+            geminiKeyStatusMsg.style.backgroundColor = 'rgba(16, 185, 129, 0.1)';
+            geminiKeyStatusMsg.style.color = '#10b981';
+            geminiKeyStatusMsg.style.border = '1px solid rgba(16, 185, 129, 0.3)';
+            geminiKeyStatusMsg.innerHTML = '✓ <strong>Google Gemini API anahtarı başarıyla kaydedildi.</strong>';
+          }
+          if (toastCallback) toastCallback('Google Gemini API anahtarı kaydedildi.', 'success');
+        } else {
+          localStorage.removeItem('sinif_asistani_gemini_api_key');
+          configGeminiApiKey.value = '';
+          if (geminiKeyStatusMsg) {
+            geminiKeyStatusMsg.style.display = 'block';
+            geminiKeyStatusMsg.style.backgroundColor = 'rgba(100, 116, 139, 0.1)';
+            geminiKeyStatusMsg.style.color = 'var(--text-muted)';
+            geminiKeyStatusMsg.style.border = '1px solid rgba(100, 116, 139, 0.2)';
+            geminiKeyStatusMsg.textContent = 'API anahtarı kaldırıldı.';
+          }
+          if (toastCallback) toastCallback('Google Gemini API anahtarı kaldırıldı.', 'info');
+        }
+        if (typeof window.syncPortableDataToFlash === 'function') {
+          window.syncPortableDataToFlash();
+        }
+      });
+    }
+
+    if (btnTestGeminiApiKey && configGeminiApiKey) {
+      btnTestGeminiApiKey.addEventListener('click', async () => {
+        const key = configGeminiApiKey.value.trim().replace(/^["'“”‘’\s]+|["'“”‘’\s]+$/g, '');
+        if (!key) {
+          if (geminiKeyStatusMsg) {
+            geminiKeyStatusMsg.style.display = 'block';
+            geminiKeyStatusMsg.style.backgroundColor = 'rgba(239, 68, 68, 0.1)';
+            geminiKeyStatusMsg.style.color = '#ef4444';
+            geminiKeyStatusMsg.style.border = '1px solid rgba(239, 68, 68, 0.3)';
+            geminiKeyStatusMsg.innerHTML = '⚠️ Lütfen önce kutucuğa bir API anahtarı girin.';
+          }
+          if (toastCallback) toastCallback('Lütfen önce bir API anahtarı girin.', 'warning');
+          return;
+        }
+
+        const originalBtnHtml = btnTestGeminiApiKey.innerHTML;
+        btnTestGeminiApiKey.disabled = true;
+        btnTestGeminiApiKey.innerHTML = '<i data-lucide="loader-2" class="animate-spin" style="width:16px;height:16px;"></i> Test Ediliyor...';
+        if (window.safeCreateIcons) window.safeCreateIcons();
+
+        if (geminiKeyStatusMsg) {
+          geminiKeyStatusMsg.style.display = 'block';
+          geminiKeyStatusMsg.style.backgroundColor = 'rgba(99, 102, 241, 0.1)';
+          geminiKeyStatusMsg.style.color = '#6366f1';
+          geminiKeyStatusMsg.style.border = '1px solid rgba(99, 102, 241, 0.3)';
+          geminiKeyStatusMsg.innerHTML = '🔄 Google sunucularına bağlanılıyor, anahtar kontrol ediliyor...';
+        }
+
+        try {
+          const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(key)}`);
+          const data = await res.json();
+
+          if (res.ok && data.models && data.models.length > 0) {
+            geminiKeyStatusMsg.style.backgroundColor = 'rgba(16, 185, 129, 0.1)';
+            geminiKeyStatusMsg.style.color = '#10b981';
+            geminiKeyStatusMsg.style.border = '1px solid rgba(16, 185, 129, 0.3)';
+            geminiKeyStatusMsg.innerHTML = '✓ <strong>Bağlantı Başarılı!</strong> Google Gemini API anahtarınız geçerli ve kullanıma hazır.';
+            if (toastCallback) toastCallback('Google Gemini API bağlantısı başarılı!', 'success');
+          } else {
+            const errMsg = data.error?.message || `Durum kodu: ${res.status}`;
+            geminiKeyStatusMsg.style.backgroundColor = 'rgba(239, 68, 68, 0.1)';
+            geminiKeyStatusMsg.style.color = '#ef4444';
+            geminiKeyStatusMsg.style.border = '1px solid rgba(239, 68, 68, 0.3)';
+            geminiKeyStatusMsg.innerHTML = `✗ <strong>Bağlantı Başarısız:</strong> ${errMsg}`;
+            if (toastCallback) toastCallback('API anahtarı doğrulanamadı. Lütfen kontrol edin.', 'error');
+          }
+        } catch (err) {
+          geminiKeyStatusMsg.style.backgroundColor = 'rgba(239, 68, 68, 0.1)';
+          geminiKeyStatusMsg.style.color = '#ef4444';
+          geminiKeyStatusMsg.style.border = '1px solid rgba(239, 68, 68, 0.3)';
+          geminiKeyStatusMsg.innerHTML = '✗ <strong>Bağlantı Hatası:</strong> İnternet bağlantınızı kontrol edin veya anahtarı kontrol edin.';
+          if (toastCallback) toastCallback('Bağlantı hatası: İnternetinizi kontrol edin.', 'error');
+        } finally {
+          btnTestGeminiApiKey.disabled = false;
+          btnTestGeminiApiKey.innerHTML = originalBtnHtml;
+          if (window.safeCreateIcons) window.safeCreateIcons();
+        }
+      });
+    }
+
+    if (btnDeleteGeminiApiKey && configGeminiApiKey) {
+      btnDeleteGeminiApiKey.addEventListener('click', () => {
+        if (!localStorage.getItem('sinif_asistani_gemini_api_key') && !configGeminiApiKey.value) {
+          if (toastCallback) toastCallback('Silinecek kayıtlı bir API anahtarı bulunamadı.', 'info');
+          return;
+        }
+        if (confirm('Kayıtlı Gemini API anahtarını silmek istediğinize emin misiniz?')) {
+          localStorage.removeItem('sinif_asistani_gemini_api_key');
+          configGeminiApiKey.value = '';
+          if (geminiKeyStatusMsg) {
+            geminiKeyStatusMsg.style.display = 'block';
+            geminiKeyStatusMsg.style.backgroundColor = 'rgba(100, 116, 139, 0.1)';
+            geminiKeyStatusMsg.style.color = 'var(--text-muted)';
+            geminiKeyStatusMsg.style.border = '1px solid rgba(100, 116, 139, 0.2)';
+            geminiKeyStatusMsg.textContent = 'API anahtarı başarıyla kaldırıldı.';
+          }
+          if (toastCallback) toastCallback('API anahtarı kaldırıldı.', 'info');
+          if (typeof window.syncPortableDataToFlash === 'function') {
+            window.syncPortableDataToFlash();
+          }
+        }
+      });
+    }
+
+    if (configBackupExport) {
+      configBackupExport.addEventListener('click', () => {
+        stateManager.exportData();
+        if (toastCallback) toastCallback('Verileriniz bilgisayarınıza indirildi.', 'success');
+      });
+    }
+
+    if (configBackupImportTrigger && configBackupImportFile) {
+      configBackupImportTrigger.addEventListener('click', () => {
+        configBackupImportFile.click();
+      });
+
+      configBackupImportFile.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function(evt) {
+          const success = stateManager.importData(evt.target.result);
+          if (success) {
+            if (toastCallback) toastCallback('Yedek başarıyla yüklendi, veriler güncellendi.', 'success');
+            const event = new CustomEvent('stateChanged');
+            document.dispatchEvent(event);
+          } else {
+            if (toastCallback) toastCallback('Yüklenen dosya geçersiz bir sınıf yedek dosyası!', 'danger');
+          }
+        };
+        reader.readAsText(file);
+        configBackupImportFile.value = '';
+      });
+    }
+
+    // --- Akıllı Günlük Yedek Paketleri (Daily Backups) ---
+    const configBackupRollingTrigger = document.getElementById('config-backup-rolling-trigger');
+    const modalRollingBackups = document.getElementById('modal-rolling-backups');
+    const rollingBackupsContainer = document.getElementById('rolling-backups-container');
+
+    if (configBackupRollingTrigger && modalRollingBackups) {
+      configBackupRollingTrigger.addEventListener('click', async () => {
+        if (!rollingBackupsContainer) return;
+        rollingBackupsContainer.innerHTML = '<div style="text-align: center; padding: 1.5rem; color: var(--text-muted);"><i data-lucide="loader" class="spin"></i> Günlük yedek paketleri taranıyor...</div>';
+        modalRollingBackups.classList.add('active');
+        if (window.safeCreateIcons) window.safeCreateIcons();
+
+        let backups = [];
+        if (typeof window.getDailyBackupsFromIndexedDB === 'function') {
+          backups = await window.getDailyBackupsFromIndexedDB();
+        } else if (typeof window.getRollingBackupsFromIndexedDB === 'function') {
+          backups = await window.getRollingBackupsFromIndexedDB();
+        }
+
+        if (!backups || backups.length === 0) {
+          rollingBackupsContainer.innerHTML = `
+            <div style="text-align: center; padding: 2rem 1rem; color: var(--text-muted);">
+              <i data-lucide="calendar" style="width: 32px; height: 32px; margin-bottom: 0.5rem; opacity: 0.5;"></i>
+              <div>Henüz kayıtlı bir günlük yedek paketi bulunmuyor.</div>
+              <div style="font-size: 0.75rem; margin-top: 4px;">Uygulama kullanıldıkça her günün gün başı koruması ve gün sonu kapanış yedekleri burada listelenir.</div>
+            </div>
+          `;
+          if (window.safeCreateIcons) window.safeCreateIcons();
+          return;
+        }
+
+        rollingBackupsContainer.innerHTML = '';
+        backups.forEach((b) => {
+          const item = document.createElement('div');
+          item.className = 'glass-card';
+          item.style.padding = '0.75rem 1rem';
+          item.style.display = 'flex';
+          item.style.justifyContent = 'space-between';
+          item.style.alignItems = 'center';
+          item.style.borderRadius = '8px';
+          item.style.border = '1px solid var(--border-color)';
+          item.style.background = 'var(--bg-secondary)';
+
+          const stdCountText = b.studentCount !== undefined ? `(${b.studentCount} Öğrenci)` : '';
+          const badgeBg = b.badgeColor || '#10b981';
+
+          item.innerHTML = `
+            <div>
+              <div style="font-weight: 700; font-size: 0.88rem; color: var(--text-primary); display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                <span style="display: flex; align-items: center; gap: 4px;">
+                  <i data-lucide="calendar" style="width: 14px; height: 14px; color: var(--text-muted);"></i>
+                  ${b.dayLabel || 'Yedek'}
+                </span>
+                <span style="font-size: 0.78rem; font-weight: 600; color: var(--text-muted);">(${b.dateStr || ''})</span>
+                <span class="badge" style="background: ${badgeBg}20; color: ${badgeBg}; border: 1px solid ${badgeBg}50; font-size: 0.72rem; padding: 0.15rem 0.5rem; border-radius: 6px; font-weight: 700;">
+                  ${b.typeLabel || 'Sistem Yedeği'}
+                </span>
+              </div>
+              <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 4px;">
+                ${b.reason || 'Kayıt noktası'} <strong style="color: var(--text-secondary);">${stdCountText}</strong>
+              </div>
+            </div>
+            <button type="button" class="btn btn-primary btn-sm restore-rolling-btn" style="padding: 0.4rem 0.85rem; font-size: 0.8rem; font-weight: 700; background: #10b981; border: none; gap: 5px; flex-shrink: 0;">
+              <i data-lucide="rotate-ccw" style="width: 14px; height: 14px;"></i> Geri Yükle
+            </button>
+          `;
+
+          const btnRestore = item.querySelector('.restore-rolling-btn');
+          btnRestore.addEventListener('click', async () => {
+            const labelText = `${b.dayLabel || ''} - ${b.typeLabel || ''} (${b.dateStr || ''})`;
+            const confirmed = window.confirmAsync 
+              ? await window.confirmAsync(`"${labelText}" tarihli yedek paketine dönmek istediğinize emin misiniz?\n${stdCountText}\n\nMevcut sınıf verileriniz bu paketteki duruma geri yüklenecektir.`)
+              : confirm(`"${labelText}" tarihli yedeğe dönmek istediğinize emin misiniz?`);
+            
+            if (confirmed && b.data) {
+              try {
+                localStorage.setItem('sinif_asistani_data', JSON.stringify(b.data));
+                localStorage.setItem('sinif_asistani_has_real_data', 'true');
+                if (window.stateManager) {
+                  window.stateManager.state = window.stateManager.loadState(true);
+                  window.stateManager.saveState('Günlük yedek paketinden geri yüklendi');
+                  window.stateManager.notify();
+                }
+                modalRollingBackups.classList.remove('active');
+                if (toastCallback) toastCallback(`"${b.dayLabel || 'Yedek'}" paketi başarıyla geri yüklendi!`, 'success');
+                const event = new CustomEvent('stateChanged');
+                document.dispatchEvent(event);
+              } catch (err) {
+                if (toastCallback) toastCallback('Geri yükleme sırasında hata oluştu!', 'danger');
+              }
+            }
+          });
+
+          rollingBackupsContainer.appendChild(item);
+        });
+
+        if (window.safeCreateIcons) window.safeCreateIcons();
+      });
+    }
+
+    if (modalRollingBackups) {
+      modalRollingBackups.querySelectorAll('.close-btn, .close-btn-action').forEach(btn => {
+        btn.addEventListener('click', () => {
+          modalRollingBackups.classList.remove('active');
+        });
+      });
+    }
+
+    // --- Masaüstü Sabit Disk Klasörünü Aç Butonu ---
+    const configDesktopFolderRow = document.getElementById('config-desktop-folder-row');
+    const configOpenDesktopFolder = document.getElementById('config-open-desktop-folder');
+
+    if (window.__TAURI__ && configDesktopFolderRow) {
+      configDesktopFolderRow.style.display = 'flex';
+      if (configOpenDesktopFolder) {
+        configOpenDesktopFolder.addEventListener('click', async () => {
+          if (typeof window.openDesktopDataDir === 'function') {
+            const folderPath = await window.openDesktopDataDir();
+            if (toastCallback) {
+              toastCallback(`Sabit disk veri klasörü açıldı: ${folderPath || ''}`, 'info');
+            }
+          }
+        });
+      }
+    }
+
+    if (configSystemReset) {
+      configSystemReset.addEventListener('click', () => {
+        const modalSystemReset = document.getElementById('modal-system-reset');
+        if (modalSystemReset) {
+          const formSystemReset = document.getElementById('form-system-reset');
+          const resetErrorMsg = document.getElementById('reset-error-msg');
+          if (formSystemReset) formSystemReset.reset();
+          if (resetErrorMsg) resetErrorMsg.style.display = 'none';
+          modalSystemReset.classList.add('active');
+        }
+      });
+    }
+
+    // --- 2. Puan Ayarları (Points Settings) ---
+    configFormGlobalSettings = document.getElementById('config-form-global-settings');
+    configHwCompleted = document.getElementById('config-settings-hw-completed');
+    configHwIncomplete = document.getElementById('config-settings-hw-incomplete');
+    configHwMissing = document.getElementById('config-settings-hw-missing');
+    configHwExcused = document.getElementById('config-settings-hw-excused');
+    configBookL1Ontime = document.getElementById('config-settings-book-l1-ontime');
+    configBookL1Late = document.getElementById('config-settings-book-l1-late');
+    configBookL1Limit = document.getElementById('config-settings-book-l1-limit');
+    configBookL2Ontime = document.getElementById('config-settings-book-l2-ontime');
+    configBookL2Late = document.getElementById('config-settings-book-l2-late');
+    configBookL2Limit = document.getElementById('config-settings-book-l2-limit');
+    configExamTopcount = document.getElementById('config-settings-exam-topcount');
+    configExamRanksContainer = document.getElementById('config-settings-exam-ranks-container');
+
+    const btnAddPos = document.getElementById('config-btn-add-positive-behavior');
+    const btnAddDev = document.getElementById('config-btn-add-development-behavior');
+
+    if (btnAddPos) {
+      btnAddPos.addEventListener('click', () => {
+        const row = addBehaviorRow(document.getElementById('config-settings-positive-behaviors-list'), '', 1, '⭐', 'positive');
+        if (row) {
+          const btn = row.querySelector('.btn-bh-icon-picker');
+          if (btn) btn.click();
+        }
+      });
+    }
+
+    if (btnAddDev) {
+      btnAddDev.addEventListener('click', () => {
+        const row = addBehaviorRow(document.getElementById('config-settings-development-behaviors-list'), '', -1, '⚠️', 'development');
+        if (row) {
+          const btn = row.querySelector('.btn-bh-icon-picker');
+          if (btn) btn.click();
+        }
+      });
+    }
+
+    if (configExamTopcount) {
+      configExamTopcount.addEventListener('input', () => {
+        let val = parseInt(configExamTopcount.value) || 3;
+        if (val < 1) val = 1;
+        if (val > 10) val = 10;
+        
+        const currentPoints = {};
+        document.querySelectorAll('.config-exam-rank-point-input').forEach(input => {
+          const r = input.getAttribute('data-rank');
+          currentPoints[r] = parseInt(input.value) || 0;
+        });
+        
+        renderExamRankInputs(val, currentPoints);
+      });
+    }
+
+    if (configFormGlobalSettings) {
+      configFormGlobalSettings.addEventListener('submit', (e) => {
+        e.preventDefault();
+
+        // 1. Behaviors
+        const positive = [];
+        document.querySelectorAll('#config-settings-positive-behaviors-list .behavior-setting-row').forEach(row => {
+          const icon = row.querySelector('.bh-icon-input').value.trim() || '⭐';
+          const name = row.querySelector('.bh-name-input').value.trim();
+          const point = parseInt(row.querySelector('.bh-point-input').value) || 0;
+          if (name) {
+            positive.push({ name, point, icon });
+          }
+        });
+
+        const development = [];
+        document.querySelectorAll('#config-settings-development-behaviors-list .behavior-setting-row').forEach(row => {
+          const icon = row.querySelector('.bh-icon-input').value.trim() || '⚠️';
+          const name = row.querySelector('.bh-name-input').value.trim();
+          const point = parseInt(row.querySelector('.bh-point-input').value) || 0;
+          if (name) {
+            development.push({ name, point, icon });
+          }
+        });
+
+        stateManager.updatePerformanceBehaviors({ positive, development });
+
+        // 2. Homework settings
+        const hwSettings = {
+          completed: parseInt(configHwCompleted.value) || 0,
+          incomplete: parseInt(configHwIncomplete.value) || 0,
+          missing: parseInt(configHwMissing.value) || 0,
+          excused: parseInt(configHwExcused.value) || 0
+        };
+        stateManager.updateHomeworkSettings(hwSettings);
+
+        // 3. Book settings (1. Seviye ve 2. Seviye ayarları)
+        if (configBookL1Ontime && configBookL2Ontime) {
+          const bookSettings = {
+            level1: {
+              onTimePoints: parseInt(configBookL1Ontime.value) || 0,
+              latePoints: parseInt(configBookL1Late.value) || 0,
+              limitDays: parseInt(configBookL1Limit.value) || 10
+            },
+            level2: {
+              onTimePoints: parseInt(configBookL2Ontime.value) || 0,
+              latePoints: parseInt(configBookL2Late.value) || 0,
+              limitDays: parseInt(configBookL2Limit.value) || 20
+            }
+          };
+          stateManager.updateBookSettings(bookSettings);
+
+          const booksLateLimitInput = document.getElementById('books-late-limit-input');
+          if (booksLateLimitInput) {
+            booksLateLimitInput.value = bookSettings.level1.limitDays;
+          }
+        }
+
+        // 4. Exam settings
+        const topCount = parseInt(configExamTopcount.value) || 3;
+        const rankPoints = {};
+        document.querySelectorAll('.config-exam-rank-point-input').forEach(input => {
+          const r = input.getAttribute('data-rank');
+          rankPoints[r] = parseInt(input.value) || 0;
+        });
+        stateManager.updateWeeklyExamSettings({ topCount, rankPoints });
+
+        if (toastCallback) {
+          toastCallback('Tüm puanlama kuralları ve ayarları başarıyla kaydedildi.', 'success');
+        }
+
+        const event = new CustomEvent('stateChanged');
+        document.dispatchEvent(event);
+      });
+    }
+
+    // --- 3. Geçerli Hafta (Current Week) ---
+    configSelectWeek = document.getElementById('config-select-week');
+    configWeekDisplayText = document.getElementById('config-week-display-text');
+    btnConfigPrevWeek = document.getElementById('btn-config-prev-week');
+    btnConfigNextWeek = document.getElementById('btn-config-next-week');
+    btnConfigCurrentWeek = document.getElementById('btn-config-current-week');
+
+    if (configSelectWeek) {
+      configSelectWeek.addEventListener('change', () => {
+        stateManager.setSelectedWeek(configSelectWeek.value);
+        updateConfigWeekUI(configSelectWeek.value);
+      });
+    }
+
+    if (btnConfigPrevWeek) {
+      btnConfigPrevWeek.addEventListener('click', () => adjustConfigWeek(-1));
+    }
+
+    if (btnConfigNextWeek) {
+      btnConfigNextWeek.addEventListener('click', () => adjustConfigWeek(1));
+    }
+
+    if (btnConfigCurrentWeek) {
+      btnConfigCurrentWeek.addEventListener('click', () => {
+        const thisWeek = window.getISOWeek(new Date());
+        if (configSelectWeek) configSelectWeek.value = thisWeek;
+        stateManager.setSelectedWeek(thisWeek);
+        updateConfigWeekUI(thisWeek);
+        if (toastCallback) toastCallback('Aktif haftaya geçiş yapıldı.', 'info');
+      });
+    }
+
+    // --- 4. Öğrenci Yönetimi (Student Management) ---
+    configSearchStudent = document.getElementById('config-search-student');
+    configFilterGender = document.getElementById('config-filter-gender');
+    configStudentsTbody = document.getElementById('config-students-tbody');
+
+    if (configSearchStudent) {
+      configSearchStudent.addEventListener('input', () => renderConfigStudentsList());
+    }
+    if (configFilterGender) {
+      configFilterGender.addEventListener('change', () => renderConfigStudentsList());
+    }
+
+    // ==========================================================================
+    // MERKEZİ ÖĞRENCİ EKLEME YÖNTEMİ & YAPAY ZEKA İLE ÖĞRENCİ YÜKLEME (GÖRSEL / PDF)
+    // ==========================================================================
+    const configBtnAddStudent = document.getElementById('config-btn-add-student');
+    const modalAddStudentMethod = document.getElementById('modal-add-student-method');
+    const btnMethodAiAdd = document.getElementById('btn-method-ai-add');
+    const btnMethodManualAdd = document.getElementById('btn-method-manual-add');
+    const btnMethodExcelUpload = document.getElementById('btn-method-excel-upload');
+    const btnMethodDownloadTemplate = document.getElementById('btn-method-download-template');
+    const desktopAiStudentFileInput = document.getElementById('desktop-ai-student-file-input');
+    const modalDesktopAiLoading = document.getElementById('modal-desktop-ai-student-loading');
+    const modalDesktopAiPreview = document.getElementById('modal-desktop-ai-student-preview');
+
+    function safeEscapeHTML(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function downloadStudentExcelTemplate() {
+      const btnReal = document.getElementById('btn-download-student-template');
+      if (btnReal) {
+        btnReal.click();
+      } else if (window.XLSX) {
+        const data = [
+          ["Okul Numarası", "Adı", "Soyadı", "Cinsiyet (Kız/Erkek)", "Veli Telefon", "Notlar", "Şube (Ortaokul için)"],
+          ["101", "Ahmet", "Yılmaz", "Erkek", "05551234567", "Matematik dersinde çok ilgili ve başarılı.", "5-A"],
+          ["102", "Zeynep", "Kaya", "Kız", "05559876543", "Kitap okumayı ve resim yapmayı çok seviyor.", "5-A"],
+          ["103", "Can", "Demir", "Erkek", "05555555555", "Sınıf içi yardımlaşmada çok duyarlı.", "6-B"]
+        ];
+        const ws = XLSX.utils.aoa_to_sheet(data);
+        ws['!cols'] = [{ wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 20 }, { wch: 18 }, { wch: 35 }, { wch: 20 }];
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Öğrenci Yükleme Şablonu");
+        const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+        const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        if (window.downloadBlob) window.downloadBlob(blob, "ogrenci_yukleme_sablonu.xlsx");
+        if (toastCallback) toastCallback('Excel (.xlsx) öğrenci yükleme şablonu indirildi.', 'success');
+      }
+    }
+
+    // 1. Ana "Öğrenci Ekle" Butonu -> Yöntem Seçim Modalı Açar
+    if (configBtnAddStudent) {
+      configBtnAddStudent.addEventListener('click', () => {
+        if (modalAddStudentMethod) {
+          modalAddStudentMethod.classList.add('active');
+          if (window.safeCreateIcons) window.safeCreateIcons();
+        } else {
+          // Fallback: Doğrudan manuel ekleme aç
+          openManualStudentForm();
+        }
+      });
+    }
+
+    function openManualStudentForm() {
+      const formStudent = document.getElementById('form-student');
+      const studentIdInput = document.getElementById('student-id');
+      const studentPhotoPreview = document.getElementById('student-photo-preview');
+      const studentPhotoInput = document.getElementById('student-photo-input');
+      const modalStudentTitle = document.getElementById('modal-student-title');
+      const modalStudent = document.getElementById('modal-student');
+
+      if (formStudent) formStudent.reset();
+      if (studentIdInput) studentIdInput.value = '';
+      window.currentPhotoBase64 = '';
+      if (studentPhotoPreview) studentPhotoPreview.style.display = 'none';
+      if (studentPhotoInput) studentPhotoInput.value = '';
+      if (modalStudentTitle) modalStudentTitle.textContent = 'Öğrenci Ekle';
+      if (modalStudent) modalStudent.classList.add('active');
+    }
+
+    // 2. Yöntem 1: Tek Tek Manuel Ekle
+    if (btnMethodManualAdd) {
+      btnMethodManualAdd.addEventListener('click', () => {
+        if (modalAddStudentMethod) modalAddStudentMethod.classList.remove('active');
+        openManualStudentForm();
+      });
+    }
+
+    // 3. Yöntem 2: Excel Şablonu ile Yükle
+    if (btnMethodExcelUpload) {
+      btnMethodExcelUpload.addEventListener('click', () => {
+        if (modalAddStudentMethod) modalAddStudentMethod.classList.remove('active');
+        const configInputUploadFile = document.getElementById('config-input-upload-file');
+        if (configInputUploadFile) configInputUploadFile.click();
+      });
+    }
+
+    // 4. Şablon İndirme Butonları
+    if (btnMethodDownloadTemplate) {
+      btnMethodDownloadTemplate.addEventListener('click', () => {
+        downloadStudentExcelTemplate();
+      });
+    }
+    const configBtnDownloadTemplate = document.getElementById('config-btn-download-template');
+    if (configBtnDownloadTemplate) {
+      configBtnDownloadTemplate.addEventListener('click', () => {
+        downloadStudentExcelTemplate();
+      });
+    }
+
+    // 5. Yöntem 3: Yapay Zeka ile Otomatik Ekle (Görsel veya PDF)
+    if (btnMethodAiAdd) {
+      btnMethodAiAdd.addEventListener('click', () => {
+        const apiKey = (localStorage.getItem('sinif_asistani_gemini_api_key') || '').trim();
+        if (!apiKey) {
+          if (modalAddStudentMethod) modalAddStudentMethod.classList.remove('active');
+          if (toastCallback) toastCallback('⚠️ Yapay zeka ile liste taramak için lütfen önce Gemini API anahtarınızı kaydedin.', 'warning');
+          const aiTabBtn = document.querySelector('[data-config-tab="config-ai"]');
+          if (aiTabBtn) aiTabBtn.click();
+          return;
+        }
+
+        if (modalAddStudentMethod) modalAddStudentMethod.classList.remove('active');
+        if (desktopAiStudentFileInput) {
+          desktopAiStudentFileInput.value = '';
+          desktopAiStudentFileInput.click();
+        }
+      });
+    }
+
+    // Dosyayı (Görsel / PDF) Gemini İçin İşleme
+    async function processFileForDesktopGemini(file) {
+      const fileName = file.name.toLowerCase();
+      const isPdf = fileName.endsWith('.pdf') || file.type === 'application/pdf';
+
+      if (isPdf) {
+        const arrayBuffer = await file.arrayBuffer();
+        // PDF.js ile Sayfa 1'i JPEG Olarak Render Et
+        if (window.pdfjsLib) {
+          try {
+            const loadingTask = window.pdfjsLib.getDocument({ data: arrayBuffer });
+            const pdfDoc = await loadingTask.promise;
+            const page = await pdfDoc.getPage(1);
+            const initialVp = page.getViewport({ scale: 1.0 });
+            const maxDim = Math.max(initialVp.width, initialVp.height);
+            const scale = Math.max(1.2, Math.min(2.5, 1800 / maxDim));
+            const viewport = page.getViewport({ scale });
+
+            const canvas = document.createElement('canvas');
+            canvas.width = viewport.width;
+            canvas.height = viewport.height;
+            const ctx = canvas.getContext('2d');
+            await page.render({ canvasContext: ctx, viewport }).promise;
+
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.88);
+            return {
+              base64: dataUrl.split(',')[1],
+              mimeType: 'image/jpeg'
+            };
+          } catch (pdfErr) {
+            console.warn('PDF.js render hatası, doğrudan PDF verisi deneniyor:', pdfErr);
+          }
+        }
+
+        // Fallback: PDF'i doğrudan base64 olarak gönder
+        let binary = '';
+        const bytes = new Uint8Array(arrayBuffer);
+        const len = bytes.byteLength;
+        for (let i = 0; i < len; i++) {
+          binary += String.fromCharCode(bytes[i]);
+        }
+        return {
+          base64: btoa(binary),
+          mimeType: 'application/pdf'
+        };
+      }
+
+      // Görsel dosyası (JPEG, PNG, WebP)
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const img = new Image();
+          img.onload = () => {
+            const maxDim = 1800;
+            let w = img.width;
+            let h = img.height;
+            if (w > maxDim || h > maxDim) {
+              if (w > h) {
+                h = Math.round((h * maxDim) / w);
+                w = maxDim;
+              } else {
+                w = Math.round((w * maxDim) / h);
+                h = maxDim;
+              }
+            }
+            const canvas = document.createElement('canvas');
+            canvas.width = w;
+            canvas.height = h;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, w, h);
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.88);
+            resolve({
+              base64: dataUrl.split(',')[1],
+              mimeType: 'image/jpeg'
+            });
+          };
+          img.onerror = () => reject(new Error('Görsel dosyası açılamadı.'));
+          img.src = e.target.result;
+        };
+        reader.onerror = () => reject(new Error('Dosya okunamadı.'));
+        reader.readAsDataURL(file);
+      });
+    }
+
+    // Gemini İle Öğrenci Listesini Ayrıştırma
+    async function analyzeStudentListWithDesktopGemini(base64Data, mimeType) {
+      const apiKey = (localStorage.getItem('sinif_asistani_gemini_api_key') || '').trim();
+      if (!apiKey) throw new Error('API anahtarı bulunamadı.');
+
+      let listData = null;
+      let listError = null;
+
+      for (const apiVer of ['v1beta', 'v1']) {
+        try {
+          const listRes = await fetch(`https://generativelanguage.googleapis.com/${apiVer}/models?key=${apiKey}`);
+          const json = await listRes.json();
+          if (listRes.ok && json.models && json.models.length > 0) {
+            listData = { version: apiVer, models: json.models };
+            break;
+          } else if (!listRes.ok) {
+            listError = json.error?.message || `HTTP ${listRes.status}`;
+          }
+        } catch (e) {
+          listError = e.message;
+        }
+      }
+
+      if (!listData) {
+        if (listError && (listError.toLowerCase().includes('api key not valid') || listError.toLowerCase().includes('invalid'))) {
+          throw new Error('Google API anahtarı geçersiz! Lütfen anahtarınızı kontrol edip tekrar kaydedin.');
+        }
+        throw new Error(`Google API bağlantı hatası: ${listError || 'Modeller sorgulanamadı'}`);
+      }
+
+      const supportedModels = listData.models.filter(m =>
+        !m.supportedGenerationMethods || m.supportedGenerationMethods.includes('generateContent')
+      );
+
+      if (supportedModels.length === 0) {
+        throw new Error('Bu API anahtarının içerik üretme modellerine izni bulunmuyor.');
+      }
+
+      let savedModel = (localStorage.getItem('sinif_asistani_gemini_model') || 'gemini-1.5-flash').trim();
+      if (savedModel === 'gemini-1.5-pro') savedModel = 'gemini-1.5-flash';
+
+      const candidatePreferences = [
+        savedModel,
+        'gemini-2.0-flash',
+        'gemini-1.5-flash',
+        'gemini-2.5-flash',
+        'gemini-2.0-flash-lite',
+        'gemini-1.5-flash-latest',
+        ...supportedModels.map(m => m.name.replace(/^models\//, ''))
+      ];
+
+      const validCandidatePaths = [];
+      for (const pref of candidatePreferences) {
+        const match = supportedModels.find(sm => sm.name === pref || sm.name === `models/${pref}` || sm.name.endsWith(`/${pref}`));
+        if (match && !validCandidatePaths.includes(match.name)) {
+          validCandidatePaths.push(match.name);
+        }
+      }
+
+      if (validCandidatePaths.length === 0) {
+        validCandidatePaths.push(supportedModels[0].name);
+      }
+
+      const promptText = `Bu görsel veya PDF bir okul sınıf listesidir. Belgedeki tüm öğrencileri satır satır tespit et.
+Her öğrenci için okul numarasını, adını, soyadını ve cinsiyetini ('male' veya 'female') çıkar.
+Ad ve soyad ayrılmış olmalıdır.
+Eğer cinsiyet listede açıkça belirtilmemişse Türk isim yapısına göre tahmin et ('male' ya da 'female').
+Numara yoksa boş bırak ("").
+
+SADECE VE SADECE GEÇERLİ BİR JSON DİZİSİ DÖNDÜR. Markdown (örneğin \`\`\`json) veya başka hiçbir metin/açıklama ekleme:
+[
+  {"number": "101", "name": "Ahmet", "surname": "Yılmaz", "gender": "male"},
+  {"number": "105", "name": "Zeynep", "surname": "Kaya", "gender": "female"}
+]`;
+
+      let lastError = null;
+
+      for (const modelPath of validCandidatePaths) {
+        const cleanPath = modelPath.startsWith('models/') ? modelPath : `models/${modelPath}`;
+        const url = `https://generativelanguage.googleapis.com/${listData.version}/${cleanPath}:generateContent?key=${apiKey}`;
+
+        try {
+          let res = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [
+                {
+                  parts: [
+                    { text: promptText },
+                    {
+                      inline_data: {
+                        mime_type: mimeType || 'image/jpeg',
+                        data: base64Data
+                      }
+                    }
+                  ]
+                }
+              ],
+              generationConfig: {
+                temperature: 0.1,
+                responseMimeType: 'application/json'
+              }
+            })
+          });
+
+          if (res.status === 400) {
+            res = await fetch(url, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                contents: [
+                  {
+                    parts: [
+                      { text: promptText },
+                      {
+                        inline_data: {
+                          mime_type: mimeType || 'image/jpeg',
+                          data: base64Data
+                        }
+                      }
+                    ]
+                  }
+                ],
+                generationConfig: { temperature: 0.1 }
+              })
+            });
+          }
+
+          if (res.ok) {
+            const data = await res.json();
+            let rawText = '';
+            const parts = data.candidates?.[0]?.content?.parts || [];
+            for (const p of parts) {
+              if (p.text) rawText += p.text;
+            }
+            if (!rawText && data.candidates?.[0]?.content?.parts?.[0]?.text) {
+              rawText = data.candidates[0].content.parts[0].text;
+            }
+
+            const jsonMatch = rawText.match(/\[\s*\{[\s\S]*\}\s*\]/);
+            if (jsonMatch) {
+              rawText = jsonMatch[0];
+            } else {
+              rawText = rawText.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
+            }
+
+            const parsed = JSON.parse(rawText);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              return parsed;
+            }
+          } else {
+            const errData = await res.json().catch(() => ({}));
+            lastError = new Error((errData.error && errData.error.message) || `HTTP ${res.status}`);
+          }
+        } catch (err) {
+          lastError = err;
+        }
+      }
+
+      throw lastError || new Error('Yapay zeka belgeyi okuyamadı');
+    }
+
+    // Dosya Seçildiğinde Tetiklenir
+    if (desktopAiStudentFileInput) {
+      desktopAiStudentFileInput.addEventListener('change', async (e) => {
+        const file = e.target.files && e.target.files[0];
+        if (!file) return;
+
+        if (modalDesktopAiLoading) modalDesktopAiLoading.classList.add('active');
+
+        try {
+          const processed = await processFileForDesktopGemini(file);
+          const students = await analyzeStudentListWithDesktopGemini(processed.base64, processed.mimeType);
+
+          if (!students || students.length === 0) {
+            if (modalDesktopAiLoading) modalDesktopAiLoading.classList.remove('active');
+            if (toastCallback) toastCallback('❌ Listede öğrenci tespit edilemedi. Lütfen daha net bir liste görseli veya PDF yükleyin.', 'danger');
+            return;
+          }
+
+          const scanned = students.map((s, idx) => ({
+            index: idx,
+            number: String(s.number || s.no || '').trim(),
+            name: String(s.name || s.ad || '').trim(),
+            surname: String(s.surname || s.soyad || '').trim(),
+            gender: (s.gender === 'female' || s.gender === 'kız' || s.gender === 'K') ? 'female' : 'male',
+            selected: true
+          })).filter(s => !!s.name);
+
+          if (scanned.length === 0) {
+            if (modalDesktopAiLoading) modalDesktopAiLoading.classList.remove('active');
+            if (toastCallback) toastCallback('❌ Öğrenci isimleri okunamadı.', 'danger');
+            return;
+          }
+
+          window.tempDesktopAiStudents = scanned;
+          if (modalDesktopAiLoading) modalDesktopAiLoading.classList.remove('active');
+
+          if (modalDesktopAiPreview) {
+            renderDesktopAiStudentPreview();
+            modalDesktopAiPreview.classList.add('active');
+          }
+        } catch (err) {
+          if (modalDesktopAiLoading) modalDesktopAiLoading.classList.remove('active');
+          console.error('Desktop AI student scan error:', err);
+          if (toastCallback) toastCallback(`❌ Hata: ${err.message || 'Belge işlenirken bir sorun oluştu.'}`, 'danger');
+        }
+      });
+    }
+
+    // Önizleme Tablosunu Render Et
+    function renderDesktopAiStudentPreview() {
+      const list = window.tempDesktopAiStudents || [];
+      const tbody = document.getElementById('desktop-ai-preview-tbody');
+      const countBadge = document.getElementById('desktop-ai-preview-count-badge');
+      const summaryText = document.getElementById('desktop-ai-preview-summary-text');
+      const toggleBtn = document.getElementById('desktop-ai-btn-toggle-select');
+      const saveBtnText = document.getElementById('desktop-ai-save-btn-text');
+      const branchWrapper = document.getElementById('desktop-ai-branch-wrapper');
+      const branchInput = document.getElementById('desktop-ai-branch-input');
+
+      const isMiddle = (typeof window.isMiddleSchool === 'function') 
+        ? window.isMiddleSchool() 
+        : ((stateManager.loadState(true)?.educationLevel || stateManager.state?.educationLevel) === 'middle');
+      if (branchWrapper) {
+        branchWrapper.style.display = isMiddle ? 'flex' : 'none';
+      }
+      if (branchInput && !branchInput.value) {
+        const dashSelect = document.getElementById('dash-select-branch');
+        const currentBranch = (dashSelect && dashSelect.value && dashSelect.value !== 'all') 
+          ? dashSelect.value 
+          : (localStorage.getItem('sinif_asistani_active_branch') || '5/A');
+        branchInput.value = currentBranch;
+      }
+
+      if (countBadge) countBadge.textContent = list.length;
+
+      const selectedCount = list.filter(s => s.selected).length;
+      if (summaryText) summaryText.textContent = `${list.length} öğrenciden ${selectedCount} tanesi seçildi`;
+      if (saveBtnText) saveBtnText.textContent = `${selectedCount} Öğrenciyi Sınıfa Kaydet`;
+      if (toggleBtn) toggleBtn.textContent = (selectedCount === list.length && list.length > 0) ? 'Tümünü Kaldır' : 'Tümünü Seç';
+
+      if (!tbody) return;
+
+      if (list.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 2.5rem; color: var(--text-muted); font-size: 0.9rem;">Listelenecek öğrenci kalmadı.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = list.map((st) => `
+        <tr style="border-bottom: 1px solid var(--border-color); opacity: ${st.selected ? '1' : '0.45'}; transition: opacity 0.2s ease;" id="desktop-ai-tr-${st.index}">
+          <td style="text-align: center; vertical-align: middle;">
+            <input type="checkbox" data-idx="${st.index}" class="desktop-ai-chk" ${st.selected ? 'checked' : ''} style="cursor: pointer; width: 16px; height: 16px; accent-color: var(--primary);">
+          </td>
+          <td style="vertical-align: middle;">
+            <input type="text" data-idx="${st.index}" data-field="number" class="form-control desktop-ai-inp" value="${safeEscapeHTML(st.number || '')}" placeholder="No" style="height: 32px; padding: 2px 6px; font-size: 0.82rem; font-weight: 700; text-align: center;">
+          </td>
+          <td style="vertical-align: middle;">
+            <input type="text" data-idx="${st.index}" data-field="name" class="form-control desktop-ai-inp" value="${safeEscapeHTML(st.name || '')}" placeholder="Ad" style="height: 32px; padding: 2px 8px; font-size: 0.82rem; font-weight: 700;">
+          </td>
+          <td style="vertical-align: middle;">
+            <input type="text" data-idx="${st.index}" data-field="surname" class="form-control desktop-ai-inp" value="${safeEscapeHTML(st.surname || '')}" placeholder="Soyad" style="height: 32px; padding: 2px 8px; font-size: 0.82rem; font-weight: 700;">
+          </td>
+          <td style="vertical-align: middle;">
+            <select data-idx="${st.index}" data-field="gender" class="form-control desktop-ai-inp" style="height: 32px; padding: 2px 6px; font-size: 0.8rem; font-weight: 600;">
+              <option value="male" ${st.gender === 'male' ? 'selected' : ''}>👦 Erkek</option>
+              <option value="female" ${st.gender === 'female' ? 'selected' : ''}>👧 Kız</option>
+            </select>
+          </td>
+          <td style="text-align: center; vertical-align: middle;">
+            <button type="button" data-idx="${st.index}" class="btn btn-sm btn-outline-danger desktop-ai-btn-del" style="padding: 4px 6px; border: none; border-radius: 6px;" title="Listeden Çıkar">
+              <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i>
+            </button>
+          </td>
+        </tr>
+      `).join('');
+
+      if (window.safeCreateIcons) window.safeCreateIcons();
+    }
+
+    // Önizleme Tablosu Etkileşimleri (Delegation)
+    const desktopAiPreviewTbody = document.getElementById('desktop-ai-preview-tbody');
+    if (desktopAiPreviewTbody) {
+      desktopAiPreviewTbody.addEventListener('change', (e) => {
+        const list = window.tempDesktopAiStudents || [];
+        const chk = e.target.closest('.desktop-ai-chk');
+        if (chk) {
+          const idx = parseInt(chk.dataset.idx, 10);
+          const item = list.find(s => s.index === idx);
+          if (item) {
+            item.selected = chk.checked;
+            const tr = document.getElementById(`desktop-ai-tr-${idx}`);
+            if (tr) tr.style.opacity = chk.checked ? '1' : '0.45';
+            const selectedCount = list.filter(s => s.selected).length;
+            const summaryText = document.getElementById('desktop-ai-preview-summary-text');
+            const saveBtnText = document.getElementById('desktop-ai-save-btn-text');
+            const toggleBtn = document.getElementById('desktop-ai-btn-toggle-select');
+            if (summaryText) summaryText.textContent = `${list.length} öğrenciden ${selectedCount} tanesi seçildi`;
+            if (saveBtnText) saveBtnText.textContent = `${selectedCount} Öğrenciyi Sınıfa Kaydet`;
+            if (toggleBtn) toggleBtn.textContent = (selectedCount === list.length && list.length > 0) ? 'Tümünü Kaldır' : 'Tümünü Seç';
+          }
+          return;
+        }
+
+        const inp = e.target.closest('.desktop-ai-inp');
+        if (inp) {
+          const idx = parseInt(inp.dataset.idx, 10);
+          const field = inp.dataset.field;
+          const item = list.find(s => s.index === idx);
+          if (item && field) {
+            item[field] = inp.value.trim();
+          }
+        }
+      });
+
+      desktopAiPreviewTbody.addEventListener('click', (e) => {
+        const btnDel = e.target.closest('.desktop-ai-btn-del');
+        if (btnDel) {
+          const idx = parseInt(btnDel.dataset.idx, 10);
+          window.tempDesktopAiStudents = (window.tempDesktopAiStudents || []).filter(s => s.index !== idx);
+          renderDesktopAiStudentPreview();
+        }
+      });
+    }
+
+    // Tümünü Seç / Kaldır Butonu
+    const desktopAiBtnToggleSelect = document.getElementById('desktop-ai-btn-toggle-select');
+    if (desktopAiBtnToggleSelect) {
+      desktopAiBtnToggleSelect.addEventListener('click', () => {
+        const list = window.tempDesktopAiStudents || [];
+        const allSelected = list.every(s => s.selected);
+        list.forEach(s => { s.selected = !allSelected; });
+        renderDesktopAiStudentPreview();
+      });
+    }
+
+    // Seçilen Öğrencileri Sınıfa Kaydet Butonu
+    const desktopAiBtnConfirmSave = document.getElementById('desktop-ai-btn-confirm-save');
+    if (desktopAiBtnConfirmSave) {
+      desktopAiBtnConfirmSave.addEventListener('click', () => {
+        const list = (window.tempDesktopAiStudents || []).filter(s => s.selected);
+        if (list.length === 0) {
+          if (toastCallback) toastCallback('Lütfen eklenecek en az bir öğrenci seçin!', 'warning');
+          return;
+        }
+
+        const isMiddle = (typeof window.isMiddleSchool === 'function') 
+          ? window.isMiddleSchool() 
+          : ((stateManager.loadState(true)?.educationLevel || stateManager.state?.educationLevel) === 'middle');
+        
+        const branchInput = document.getElementById('desktop-ai-branch-input');
+        let targetBranch = isMiddle ? (branchInput ? branchInput.value.trim().toUpperCase() : '') : '';
+        if (isMiddle && !targetBranch) {
+          const dashBranch = document.getElementById('dash-select-branch')?.value;
+          targetBranch = (dashBranch && dashBranch !== 'all') ? dashBranch : '5/A';
+        }
+
+        // 1. Eğer sistemde yalnızca demo/test dummy öğrencileri varsa, kullanıcının gerçek sınıfı için onları temizle
+        if (typeof removeDemoStudentsIfOnlyDemoExist === 'function') {
+          removeDemoStudentsIfOnlyDemoExist();
+        } else if (typeof window.isDemoStudent === 'function') {
+          const curr = stateManager.state.students || [];
+          if (curr.length > 0 && curr.every(s => window.isDemoStudent(s))) {
+            stateManager.state.students = [];
+          }
+        }
+
+        if (!stateManager.state.students) stateManager.state.students = [];
+
+        // 2. Demo lisans kontrolü
+        const isDemo = window.LicenseConfig && window.LicenseConfig.isDemo;
+        const studentLimit = isDemo ? (window.LicenseConfig.studentLimit || 5) : Infinity;
+        const currentCount = stateManager.state.students.length;
+
+        if (isDemo && currentCount >= studentLimit) {
+          if (toastCallback) {
+            toastCallback(`Demo sürümünde en fazla ${studentLimit} öğrenci ekleyebilirsiniz. Lütfen lisansınızı aktifleştirin.`, 'danger');
+          }
+          if (window.LicenseConfig && typeof window.LicenseConfig.showPrompt === 'function') {
+            window.LicenseConfig.showPrompt('Öğrenci Yönetimi', studentLimit);
+          }
+          return;
+        }
+
+        let added = 0;
+        let skipped = 0;
+        let hitLimit = false;
+
+        for (let i = 0; i < list.length; i++) {
+          const st = list[i];
+          if (!st.name) continue;
+
+          if (isDemo && stateManager.state.students.length >= studentLimit) {
+            hitLimit = true;
+            break;
+          }
+
+          const num = (st.number || '').trim();
+          // Aynı şubede aynı numara varsa mükerrerlikten atla
+          if (num && stateManager.state.students.some(s => s.number === num && (!isMiddle || s.branch === targetBranch))) {
+            skipped++;
+            continue;
+          }
+
+          const newStudent = {
+            id: 'std_' + Date.now() + '_' + i + '_' + Math.random().toString(36).substr(2, 6),
+            name: st.name.trim(),
+            surname: (st.surname || '').trim(),
+            number: num,
+            gender: (st.gender === 'female' || st.gender === 'kız' || st.gender === 'K') ? 'female' : 'male',
+            parentPhone: '',
+            notes: 'Yapay zeka ile eklendi',
+            branch: isMiddle ? targetBranch : '',
+            schoolLevel: isMiddle ? 'middle' : 'primary',
+            createdAt: new Date().toISOString()
+          };
+
+          stateManager.state.students.push(newStudent);
+          added++;
+        }
+
+        if (added > 0) {
+          stateManager.saveState('Yapay zeka ile öğrenciler eklendi');
+        }
+
+        if (modalDesktopAiPreview) modalDesktopAiPreview.classList.remove('active');
+
+        // Şube dropdownlarını güncelle ve seçili şubeyi ayarla
+        if (isMiddle && targetBranch) {
+          localStorage.setItem('sinif_asistani_active_branch', targetBranch);
+          if (typeof updateBranchDropdowns === 'function') {
+            updateBranchDropdowns(stateManager.state);
+          }
+          const dashSelectBranch = document.getElementById('dash-select-branch');
+          if (dashSelectBranch) {
+            dashSelectBranch.value = targetBranch;
+          }
+        }
+
+        if (toastCallback) {
+          if (added > 0) {
+            let msg = `🎉 ${added} öğrenci ${isMiddle ? targetBranch + ' şubesine ' : ''}başarıyla sınıfa eklendi!`;
+            if (hitLimit) {
+              msg += ` (Demo sürümü sınırı nedeniyle ilk ${added} öğrenci eklendi)`;
+            } else if (skipped > 0) {
+              msg += ` (${skipped} mükerrer numara atlandı)`;
+            }
+            toastCallback(msg, hitLimit ? 'warning' : 'success');
+          } else if (skipped > 0) {
+            toastCallback('Tüm öğrencilerin numaraları zaten bu şubede kayıtlı!', 'danger');
+          } else if (hitLimit) {
+            toastCallback(`Demo sürümü sınırına ulaşıldı (Maks: ${studentLimit} öğrenci).`, 'danger');
+          } else {
+            toastCallback('Öğrenci eklenemedi.', 'danger');
+          }
+        }
+
+        renderConfigStudentsList();
+        if (typeof renderDashboard === 'function') {
+          renderDashboard();
+        }
+        const evt = new CustomEvent('stateChanged');
+        document.dispatchEvent(evt);
+      });
+    }
+
+    // Modal Kapatma Butonları (Yöntem, Loading, Preview)
+    [modalAddStudentMethod, modalDesktopAiLoading, modalDesktopAiPreview].forEach(mod => {
+      if (mod) {
+        mod.querySelectorAll('.close-btn, .close-btn-action').forEach(btn => {
+          btn.addEventListener('click', () => {
+            mod.classList.remove('active');
+          });
+        });
+      }
+    });
+
+    // Student upload trigger
+    const configBtnUploadTrigger = document.getElementById('config-btn-upload-trigger');
+    const configInputUploadFile = document.getElementById('config-input-upload-file');
+    if (configBtnUploadTrigger && configInputUploadFile) {
+      configBtnUploadTrigger.addEventListener('click', () => {
+        configInputUploadFile.click();
+      });
+
+      configInputUploadFile.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const fileName = file.name.toLowerCase();
+        const isExcel = fileName.endsWith('.xlsx') || fileName.endsWith('.xls');
+
+        const handleParsed = (parsed) => {
+          if (parsed.length === 0) {
+            if (toastCallback) toastCallback('Geçerli öğrenci satırı bulunamadı!', 'danger');
+            return;
+          }
+
+          if (typeof removeDemoStudentsIfOnlyDemoExist === 'function') {
+            removeDemoStudentsIfOnlyDemoExist();
+          }
+
+          const isMiddle = (typeof window.isMiddleSchool === 'function') 
+            ? window.isMiddleSchool() 
+            : ((stateManager.loadState(true)?.educationLevel || stateManager.state?.educationLevel) === 'middle');
+          const dashBranch = document.getElementById('dash-select-branch')?.value;
+          const defaultBranch = (dashBranch && dashBranch !== 'all') 
+            ? dashBranch 
+            : (localStorage.getItem('sinif_asistani_active_branch') || '5/A');
+
+          let added = 0;
+          let skipped = 0;
+          let hitLimit = false;
+
+          const isDemo = window.LicenseConfig && window.LicenseConfig.isDemo;
+          const studentLimit = isDemo ? (window.LicenseConfig.studentLimit || 5) : Infinity;
+
+          parsed.forEach(std => {
+            if (isMiddle && !std.branch) {
+              std.branch = defaultBranch;
+            }
+            if (isDemo && stateManager.state.students.length >= studentLimit) {
+              hitLimit = true;
+              return;
+            }
+
+            const conflict = stateManager.state.students.some(s => s.number === std.number && (!isMiddle || s.branch === std.branch));
+            if (conflict) {
+              skipped++;
+            } else {
+              const res = stateManager.addStudent(std);
+              if (res) added++;
+            }
+          });
+
+          if (isMiddle && typeof updateBranchDropdowns === 'function') {
+            updateBranchDropdowns(stateManager.state);
+          }
+
+          if (toastCallback) {
+            if (added > 0) {
+              let msg = `${added} öğrenci başarıyla listeye eklendi.`;
+              if (hitLimit) msg += ` (Demo sürüm sınırı nedeniyle ilk ${added} öğrenci eklendi)`;
+              else if (skipped > 0) msg += ` (${skipped} mükerrer numara atlandı)`;
+              toastCallback(msg, hitLimit ? 'warning' : 'success');
+            } else if (skipped > 0) {
+              toastCallback('Hiç yeni öğrenci eklenmedi. Tüm numaralar bu şubede kayıtlı!', 'danger');
+            } else if (hitLimit) {
+              toastCallback(`Demo sürümü sınırına ulaşıldı (Maks: ${studentLimit} öğrenci).`, 'danger');
+            } else {
+              toastCallback('Öğrenci eklenemedi.', 'danger');
+            }
+          }
+
+          renderConfigStudentsList();
+          if (typeof renderDashboard === 'function') {
+            renderDashboard();
+          }
+          const evt = new CustomEvent('stateChanged');
+          document.dispatchEvent(evt);
+        };
+
+        if (window.XLSX && (isExcel || fileName.endsWith('.csv'))) {
+          const reader = new FileReader();
+          reader.onload = (event) => {
+            try {
+              const data = new Uint8Array(event.target.result);
+              const workbook = XLSX.read(data, { type: 'array' });
+              const firstSheetName = workbook.SheetNames[0];
+              const worksheet = workbook.Sheets[firstSheetName];
+              const json = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+              
+              const parsed = [];
+              for (let i = 0; i < json.length; i++) {
+                const row = json[i];
+                if (!row || row.length < 1) continue;
+                
+                const number = String(row[0] || '').trim();
+                const name = String(row[1] || '').trim();
+                const surname = String(row[2] || '').trim();
+                let gender = String(row[3] || '').trim().toLowerCase();
+                const parentPhone = String(row[4] || '').trim();
+                const notes = String(row[5] || '').trim();
+                const branch = String(row[6] || '').trim();
+                
+                if (i === 0 && (number.toLowerCase().includes('okul') || number.toLowerCase().includes('no'))) continue;
+                
+                if (number && name) {
+                  if (gender === 'kız' || gender === 'kiz' || gender === 'female') {
+                    gender = 'female';
+                  } else if (gender === 'erkek' || gender === 'male') {
+                    gender = 'male';
+                  } else {
+                    gender = 'unspecified';
+                  }
+                  parsed.push({ number, name, surname, gender, parentPhone, notes, branch });
+                }
+              }
+              handleParsed(parsed);
+            } catch (err) {
+              if (toastCallback) toastCallback(`Dosya okunurken hata oluştu: ${err.message}`, 'danger');
+            }
+          };
+          reader.readAsArrayBuffer(file);
+        } else {
+          // CSV reader
+          const reader = new FileReader();
+          reader.onload = (event) => {
+            try {
+              const text = event.target.result;
+              const lines = text.split(/\r?\n/);
+              const parsed = [];
+              let delimiter = ';';
+              if (lines.length > 0 && lines[0].includes(',')) delimiter = ',';
+
+              for (let i = 0; i < lines.length; i++) {
+                const line = lines[i].trim();
+                if (!line || line.startsWith('sep=')) continue;
+
+                const cols = line.split(delimiter);
+                if (cols.length < 1) continue;
+
+                const number = cols[0].replace(/"/g, '').trim();
+                const name = cols[1] ? cols[1].replace(/"/g, '').trim() : '';
+                const surname = cols[2] ? cols[2].replace(/"/g, '').trim() : '';
+                let gender = cols[3] ? cols[3].replace(/"/g, '').trim().toLowerCase() : '';
+                const parentPhone = cols[4] ? cols[4].replace(/"/g, '').trim() : '';
+                const notes = cols[5] ? cols[5].replace(/"/g, '').trim() : '';
+                const branch = cols[6] ? cols[6].replace(/"/g, '').trim() : '';
+
+                if (i === 0 && (number.toLowerCase().includes('okul') || number.toLowerCase().includes('no'))) continue;
+
+                if (number && name) {
+                  if (gender === 'kız' || gender === 'kiz' || gender === 'female') {
+                    gender = 'female';
+                  } else if (gender === 'erkek' || gender === 'male') {
+                    gender = 'male';
+                  } else {
+                    gender = 'unspecified';
+                  }
+                  parsed.push({ number, name, surname, gender, parentPhone, notes, branch });
+                }
+              }
+              handleParsed(parsed);
+            } catch (err) {
+              if (toastCallback) toastCallback(`Dosya okunurken hata oluştu: ${err.message}`, 'danger');
+            }
+          };
+          reader.readAsText(file, 'utf-8');
+        }
+
+        configInputUploadFile.value = '';
+      });
+    }
+
+    // --- LİSANS YÖNETİMİ ENTEGRASYONU ---
+    const btnActivate = document.getElementById('btn-activate-license');
+    const btnRemove = document.getElementById('btn-remove-license');
+    const txtKey = document.getElementById('txt-license-key');
+    const btnBannerActivate = document.getElementById('btn-activate-license-banner');
+
+    function updateLicenseUI() {
+      const config = window.LicenseConfig;
+      if (!config) return;
+
+      const topBanner = document.getElementById('demo-top-banner');
+      const sidebarContainer = document.getElementById('sidebar-demo-container');
+      const lblStatus = document.getElementById('lbl-license-status');
+      const detailInfo = document.getElementById('license-detail-info');
+
+      if (config.isDemo) {
+        if (topBanner) topBanner.style.display = 'none';
+        if (sidebarContainer) {
+          sidebarContainer.innerHTML = `<div class="sidebar-demo-badge" style="cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.35rem;" title="Lisans Satın Almak veya Kodu Girmek İçin Tıklayın"><i data-lucide="sparkles" style="width: 13px; height: 13px;"></i> Demo Sürüm (Limitli)</div>`;
+          sidebarContainer.onclick = () => {
+            if (window.LicenseConfig && typeof window.LicenseConfig.showPrompt === 'function') {
+              window.LicenseConfig.showPrompt('Sınıf Asistanı', window.LicenseConfig.studentLimit);
+            }
+          };
+        }
+        if (lblStatus) {
+          lblStatus.textContent = 'Demo Sürüm';
+          lblStatus.style.backgroundColor = 'rgba(245, 158, 11, 0.15)';
+          lblStatus.style.color = '#f59e0b';
+          lblStatus.style.border = '1px solid rgba(245, 158, 11, 0.3)';
+        }
+        if (detailInfo) {
+          detailInfo.innerHTML = `
+            Uygulama Demo sürümündedir. Aşağıdaki sınırlamalar geçerlidir:<br>
+            • Öğrenci Sayısı: Maksimum <strong>${config.studentLimit}</strong> öğrenci<br>
+            • Kitaplık Kitap Sayısı: Maksimum <strong>${config.bookLimit}</strong> kitap<br>
+            • Yıllık Ders Planı Sayısı: Maksimum <strong>${config.planLimit}</strong> plan<br>
+            • Defter Sayısı: Maksimum <strong>${config.notebookLimit}</strong> defter
+          `;
+        }
+        if (btnRemove) btnRemove.style.display = 'none';
+      } else {
+        if (topBanner) topBanner.style.display = 'none';
+        if (sidebarContainer) sidebarContainer.innerHTML = '';
+        if (lblStatus) {
+          lblStatus.textContent = 'Lisanslı / Aktif';
+          lblStatus.style.backgroundColor = 'rgba(16, 185, 129, 0.15)';
+          lblStatus.style.color = '#10b981';
+          lblStatus.style.border = '1px solid rgba(16, 185, 129, 0.3)';
+        }
+        
+        const expiryText = config.expiryDate === 'never' ? 'Süresiz / Ömür Boyu' : new Date(config.expiryDate).toLocaleDateString('tr-TR');
+        if (detailInfo) {
+          detailInfo.innerHTML = `
+            <strong>Lisans Sahibi:</strong> ${config.licensee}<br>
+            <strong>Geçerlilik Tarihi:</strong> ${expiryText}<br>
+            <strong>Kullanım Hakkı:</strong> Sınırsız (Tam Sürüm)
+          `;
+        }
+        if (btnRemove) btnRemove.style.display = 'block';
+      }
+      if (window.safeCreateIcons) window.safeCreateIcons();
+    }
+
+    // İlk yüklemede UI'ı güncelle
+    updateLicenseUI();
+
+    const btnBuyWhatsapp = document.getElementById('btn-buy-license-whatsapp');
+    if (btnBuyWhatsapp) {
+      btnBuyWhatsapp.addEventListener('click', () => {
+        if (window.openLicensePurchase) {
+          window.openLicensePurchase('Lisans Satın Alma');
+        }
+      });
+    }
+
+    if (btnActivate && txtKey) {
+      // Yapıştırma veya yazma anında otomatik temizlik yap
+      txtKey.addEventListener('paste', () => {
+        setTimeout(() => {
+          txtKey.value = (txtKey.value || '').replace(/[\u200B-\u200D\uFEFF"']/g, '').replace(/\s+/g, '').replace(/--+/g, '-').trim();
+        }, 10);
+      });
+
+      txtKey.addEventListener('input', () => {
+        let val = txtKey.value;
+        // Çift tire veya boşlukları otomatik düzelt
+        val = val.replace(/[\u200B-\u200D\uFEFF"']/g, '').replace(/\s+/g, '').replace(/--+/g, '-');
+        if (txtKey.value !== val) {
+          txtKey.value = val;
+        }
+      });
+
+      btnActivate.addEventListener('click', async () => {
+        let key = (txtKey.value || '').trim();
+        // Otomatik temizleme: tırnaklar, görünmez karakterler, çift tireler
+        key = key.replace(/[\u200B-\u200D\uFEFF"']/g, '').replace(/\s+/g, '').replace(/--+/g, '-').trim();
+        txtKey.value = key;
+
+        if (!key) {
+          if (toastCallback) toastCallback('Lütfen bir lisans anahtarı girin!', 'warning');
+          return;
+        }
+
+        btnActivate.disabled = true;
+        const originalText = btnActivate.textContent;
+        btnActivate.textContent = 'Doğrulanıyor...';
+
+        try {
+          const res = await window.LicenseConfig.saveLicense(key);
+          if (res.success) {
+            txtKey.value = '';
+            updateLicenseUI();
+            if (toastCallback) toastCallback(`Tebrikler! Lisans başarıyla doğrulandı. Sınırsız sürüm aktif edildi. Lisans Sahibi: ${res.licensee}`, 'success');
+            
+            // Durum değiştiğinde diğer sekmeleri de tetikle
+            const event = new CustomEvent('stateChanged');
+            document.dispatchEvent(event);
+          } else {
+            if (toastCallback) toastCallback(`Aktivasyon Hatası: ${res.reason}`, 'danger');
+          }
+        } catch (err) {
+          console.error(err);
+          if (toastCallback) toastCallback(`Bağlantı hatası oluştu. Lütfen internetinizi kontrol edin.`, 'danger');
+        } finally {
+          btnActivate.disabled = false;
+          btnActivate.textContent = originalText;
+        }
+      });
+    }
+
+    if (btnRemove) {
+      btnRemove.addEventListener('click', async () => {
+        const confirmed = await window.confirmAsync('Mevcut lisansı kaldırmak istediğinize emin misiniz? Uygulama tekrar Demo sürümüne dönecektir.');
+        if (confirmed) {
+          window.LicenseConfig.removeLicense();
+          updateLicenseUI();
+          if (toastCallback) toastCallback('Lisans kaldırıldı. Uygulama demo moduna geri döndü.', 'warning');
+          
+          const event = new CustomEvent('stateChanged');
+          document.dispatchEvent(event);
+        }
+      });
+    }
+
+    if (btnBannerActivate) {
+      btnBannerActivate.addEventListener('click', () => {
+        if (window.switchTab) {
+          window.switchTab('assistant-config');
+          const tabGeneralBtn = document.getElementById('tab-btn-config-general');
+          if (tabGeneralBtn) tabGeneralBtn.click();
+          
+          setTimeout(() => {
+            if (txtKey) {
+              txtKey.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              txtKey.focus();
+            }
+          }, 100);
+        }
+      });
+    }
+
+    // Bind state changes to automatically refresh
+    document.addEventListener('stateChanged', () => {
+      // If the configuration section is visible, refresh its lists/inputs
+      const configSec = document.getElementById('assistant-config');
+      if (configSec && configSec.classList.contains('active')) {
+        renderConfig();
+      }
+      updateLicenseUI();
+    });
+  }
+
+  // Week UI helper
+  function updateConfigWeekUI(weekId) {
+    if (!weekId) {
+      weekId = stateManager.getSelectedWeek() || (window.getISOWeek ? window.getISOWeek(new Date()) : '');
+    }
+    if (configSelectWeek) {
+      configSelectWeek.value = weekId;
+    }
+    if (configWeekDisplayText) {
+      if (!weekId) {
+        configWeekDisplayText.textContent = '-';
+        return;
+      }
+      if (window.formatWeekTR) {
+        configWeekDisplayText.textContent = window.formatWeekTR(weekId, 'full');
+      } else {
+        configWeekDisplayText.textContent = weekId;
+      }
+    }
+  }
+
+  // Week helper
+  function adjustConfigWeek(offset) {
+    let val = configSelectWeek ? configSelectWeek.value : null;
+    if (!val) {
+      val = stateManager.getSelectedWeek() || (window.getISOWeek ? window.getISOWeek(new Date()) : '');
+    }
+    if (!val) return;
+
+    const parts = val.split('-W');
+    if (parts.length !== 2) return;
+
+    const year = parseInt(parts[0]);
+    const week = parseInt(parts[1]);
+
+    const simpleDate = window.getDayInWeek ? window.getDayInWeek(year, week, 4) : new Date();
+    simpleDate.setDate(simpleDate.getDate() + (offset * 7));
+
+    const newWeek = window.getISOWeek(simpleDate);
+    if (configSelectWeek) configSelectWeek.value = newWeek;
+    stateManager.setSelectedWeek(newWeek);
+    updateConfigWeekUI(newWeek);
+  }
+
+  // Update configuration components
+  function renderConfig() {
+    updateConfigThemeUI();
+    const configEducationLevel = document.getElementById('config-education-level');
+    if (configEducationLevel) {
+      configEducationLevel.value = stateManager.loadState().educationLevel || 'middle';
+    }
+    
+    // 1. Load Puan Ayarları inputs
+    const hwSettings = stateManager.getHomeworkSettings();
+    if (configHwCompleted) configHwCompleted.value = hwSettings.completed;
+    if (configHwIncomplete) configHwIncomplete.value = hwSettings.incomplete;
+    if (configHwMissing) configHwMissing.value = hwSettings.missing;
+    if (configHwExcused) configHwExcused.value = hwSettings.excused !== undefined ? hwSettings.excused : 0;
+
+    const bookSettings = stateManager.getBookSettings();
+    const l1 = bookSettings.level1 || {};
+    const l2 = bookSettings.level2 || {};
+    if (configBookL1Ontime) configBookL1Ontime.value = l1.onTimePoints !== undefined ? l1.onTimePoints : 2;
+    if (configBookL1Late) configBookL1Late.value = l1.latePoints !== undefined ? l1.latePoints : 0;
+    if (configBookL1Limit) configBookL1Limit.value = l1.limitDays !== undefined ? l1.limitDays : 10;
+
+    if (configBookL2Ontime) configBookL2Ontime.value = l2.onTimePoints !== undefined ? l2.onTimePoints : 4;
+    if (configBookL2Late) configBookL2Late.value = l2.latePoints !== undefined ? l2.latePoints : 0;
+    if (configBookL2Limit) configBookL2Limit.value = l2.limitDays !== undefined ? l2.limitDays : 20;
+
+    const examSettings = stateManager.getWeeklyExamSettings();
+    if (configExamTopcount) configExamTopcount.value = examSettings.topCount;
+    renderExamRankInputs(examSettings.topCount, examSettings.rankPoints);
+    populateConfigBehaviorsList();
+
+    // 2. Load Active Week
+    const selectedWeek = stateManager.getSelectedWeek();
+    updateConfigWeekUI(selectedWeek);
+
+    // 3. Load Students Management List
+    renderConfigStudentsList();
+
+    // 4. Load Gemini API Key
+    const configGeminiApiKeyElem = document.getElementById('config-gemini-api-key');
+    if (configGeminiApiKeyElem) {
+      const savedKey = localStorage.getItem('sinif_asistani_gemini_api_key') || '';
+      configGeminiApiKeyElem.value = savedKey;
+      const statusMsg = document.getElementById('gemini-key-status-msg');
+      if (statusMsg) {
+        if (savedKey) {
+          statusMsg.style.display = 'block';
+          statusMsg.style.backgroundColor = 'rgba(16, 185, 129, 0.1)';
+          statusMsg.style.color = '#10b981';
+          statusMsg.style.border = '1px solid rgba(16, 185, 129, 0.3)';
+          statusMsg.innerHTML = '✓ <strong>Tanımlı API anahtarı aktif.</strong> İstediğiniz zaman değiştirebilir, test edebilir veya silebilirsiniz.';
+        } else {
+          statusMsg.style.display = 'none';
+        }
+      }
+    }
+
+    window.safeCreateIcons();
+  }
+
+  function updateConfigThemeUI() {
+    const configThemeSelect = document.getElementById('config-theme-select');
+    const theme = document.body.getAttribute('data-theme') || 'light';
+
+    if (configThemeSelect) {
+      configThemeSelect.value = theme;
+    }
+  }
+
+  function populateConfigBehaviorsList() {
+    const behaviors = stateManager.getPerformanceBehaviors();
+    const posList = document.getElementById('config-settings-positive-behaviors-list');
+    const devList = document.getElementById('config-settings-development-behaviors-list');
+
+    if (posList) posList.innerHTML = '';
+    if (devList) devList.innerHTML = '';
+
+    behaviors.positive.forEach((bh, index) => {
+      addBehaviorRow(posList, bh.name, bh.point, bh.icon, 'positive', index);
+    });
+
+    behaviors.development.forEach((bh, index) => {
+      addBehaviorRow(devList, bh.name, bh.point, bh.icon, 'development', index);
+    });
+  }
+
+  const BEHAVIOR_ICON_POOL = {
+    all: {
+      title: 'Tümü',
+      icons: []
+    },
+    positive: {
+      title: '🌟 Olumlu',
+      icons: [
+        '⭐', '🌟', '✨', '🏆', '🥇', '🥈', '🥉', '🎯', '🚀', '💯',
+        '👏', '👍', '💡', '🧠', '📚', '📖', '✍️', '🎨', '🎵', '🔬',
+        '🍀', '💖', '🕊️', '🌿', '👑', '🎖️', '💎', '🌈', '🤝', '🎓',
+        '🏅', '🌺', '🍎', '🛡️', '☀️', '🔥', '⚡', '💪', '🦸', '🪄',
+        '✅', '🎉', '💐', '🔔', '🎈', '❤️', '🙌', '👌', '🤩', '🌸'
+      ]
+    },
+    development: {
+      title: '⚠️ Geliştirilmeli',
+      icons: [
+        '⚠️', '❌', '⏳', '🔇', '💤', '💔', '📉', '🚫', '🛑', '🐢',
+        '📱', '📢', '🌧️', '🩹', '🗯️', '⏰', '🥱', '🚯', '❓', '❗',
+        '⛔', '🔒', '💥', '🕸️', '🌪️', '🧊', '🤕', '🚨', '🔕', '🤐',
+        '🤦', '🐌', '💣', '👎', '😶', '📴', '⚡', '🚧', '🛑', '💢'
+      ]
+    },
+    school: {
+      title: '📖 Okul & Etkinlik',
+      icons: [
+        '📖', '✏️', '📐', '🎒', '🔔', '🍎', '⚽', '🏀', '🎨', '🎭',
+        '🧩', '🎲', '💬', '🗨️', '🙋', '🧑‍🏫', '💻', '📝', '🧪', '📌',
+        '📎', '🏷️', '🗺️', '🌏', '🔭', '🎻', '🎹', '🥁', '⛹️', '🧘'
+      ]
+    }
+  };
+
+  function openIconPicker(currentIcon = '⭐', onSelect) {
+    const existing = document.querySelector('.icon-picker-overlay');
+    if (existing) existing.remove();
+
+    const overlay = document.createElement('div');
+    overlay.className = 'icon-picker-overlay';
+
+    let activeCategory = 'positive';
+    
+    const card = document.createElement('div');
+    card.className = 'icon-picker-card';
+    card.innerHTML = `
+      <div class="icon-picker-header">
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <i data-lucide="sparkles" style="color: var(--primary); width: 18px; height: 18px;"></i>
+          <span style="font-weight: 700; font-size: 1rem; color: var(--text-primary);">Simge Havuzu</span>
+        </div>
+        <button type="button" class="icon-picker-close" style="background: none; border: none; font-size: 1.5rem; line-height: 1; cursor: pointer; color: var(--text-muted);">&times;</button>
+      </div>
+      <div class="icon-picker-tabs">
+        <button type="button" class="icon-picker-tab-btn active" data-cat="positive">🌟 Olumlu</button>
+        <button type="button" class="icon-picker-tab-btn" data-cat="development">⚠️ Geliştirilmeli</button>
+        <button type="button" class="icon-picker-tab-btn" data-cat="school">📖 Okul & Etkinlik</button>
+        <button type="button" class="icon-picker-tab-btn" data-cat="all">🌈 Tümü</button>
+      </div>
+      <div class="icon-picker-body">
+        <div class="icon-picker-grid" id="icon-picker-grid"></div>
+      </div>
+      <div class="icon-picker-custom-row">
+        <input type="text" class="form-control icon-picker-custom-input" placeholder="Veya klavyeden bir simge / emoji yazın..." style="flex: 1; padding: 0.4rem 0.6rem; font-size: 0.9rem;">
+        <button type="button" class="btn btn-primary btn-sm icon-picker-apply-custom" style="padding: 0.4rem 0.8rem; font-size: 0.85rem;">Seç</button>
+      </div>
+    `;
+
+    overlay.appendChild(card);
+    document.body.appendChild(overlay);
+    if (window.safeCreateIcons) window.safeCreateIcons();
+
+    const grid = card.querySelector('#icon-picker-grid');
+    const customInput = card.querySelector('.icon-picker-custom-input');
+    const customBtn = card.querySelector('.icon-picker-apply-custom');
+    const closeBtn = card.querySelector('.icon-picker-close');
+    const tabBtns = card.querySelectorAll('.icon-picker-tab-btn');
+
+    // Tümü kategorisini doldur
+    if (BEHAVIOR_ICON_POOL.all.icons.length === 0) {
+      const allSet = new Set([
+        ...BEHAVIOR_ICON_POOL.positive.icons,
+        ...BEHAVIOR_ICON_POOL.development.icons,
+        ...BEHAVIOR_ICON_POOL.school.icons
+      ]);
+      BEHAVIOR_ICON_POOL.all.icons = Array.from(allSet);
+    }
+
+    function renderIcons(cat) {
+      grid.innerHTML = '';
+      const list = BEHAVIOR_ICON_POOL[cat]?.icons || BEHAVIOR_ICON_POOL.positive.icons;
+      list.forEach(ico => {
+        const item = document.createElement('button');
+        item.type = 'button';
+        item.className = `icon-picker-item ${ico === currentIcon ? 'selected' : ''}`;
+        item.textContent = ico;
+        item.title = ico;
+        item.addEventListener('click', () => {
+          if (onSelect) onSelect(ico);
+          overlay.remove();
+        });
+        grid.appendChild(item);
+      });
+    }
+
+    tabBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        tabBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        activeCategory = btn.getAttribute('data-cat');
+        renderIcons(activeCategory);
+      });
+    });
+
+    renderIcons('positive');
+
+    customBtn.addEventListener('click', () => {
+      const val = customInput.value.trim();
+      if (val) {
+        if (onSelect) onSelect(val);
+        overlay.remove();
+      }
+    });
+
+    customInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        customBtn.click();
+      }
+    });
+
+    closeBtn.addEventListener('click', () => overlay.remove());
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) overlay.remove();
+    });
+
+    const handleEsc = (e) => {
+      if (e.key === 'Escape') {
+        overlay.remove();
+        document.removeEventListener('keydown', handleEsc);
+      }
+    };
+    document.addEventListener('keydown', handleEsc);
+  }
+
+  function addBehaviorRow(container, name = '', point = 1, icon = '⭐', type = 'positive', index) {
+    if (!container) return null;
+
+    const row = document.createElement('div');
+    row.className = `behavior-setting-row ${type}-row`;
+    row.style.display = 'flex';
+    row.style.alignItems = 'center';
+    row.style.gap = '0.5rem';
+    row.style.marginBottom = '0.5rem';
+
+    row.innerHTML = `
+      <button type="button" class="btn-bh-icon-picker" title="Simge Havuzu (Simge Seç)" style="width: 44px; height: 38px; border-radius: var(--radius-sm); border: 1px solid var(--border-color); background: var(--bg-primary); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; transition: transform 0.15s, border-color 0.15s; flex-shrink: 0;">
+        <span class="bh-icon-preview">${icon}</span>
+      </button>
+      <input type="hidden" class="bh-icon-input" value="${icon}">
+      <input type="text" class="form-control bh-name-input" value="${name}" style="flex: 1; padding: 0.35rem 0.5rem;" placeholder="Açıklama" required>
+      <input type="number" class="form-control bh-point-input" value="${point}" style="width: 60px; text-align: center; padding: 0.35rem 0.5rem;" placeholder="Puan" required>
+      <button type="button" class="action-btn-sm delete-bh-row" style="color: var(--danger); border-color: rgba(239, 68, 68, 0.2); background: rgba(239, 68, 68, 0.05);" title="Sil">
+        <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i>
+      </button>
+    `;
+
+    const iconPickerBtn = row.querySelector('.btn-bh-icon-picker');
+    const iconInput = row.querySelector('.bh-icon-input');
+    const iconPreview = row.querySelector('.bh-icon-preview');
+
+    iconPickerBtn.addEventListener('click', () => {
+      openIconPicker(iconInput.value, (newIcon) => {
+        iconInput.value = newIcon;
+        iconPreview.textContent = newIcon;
+      });
+    });
+
+    row.querySelector('.delete-bh-row').addEventListener('click', () => {
+      row.remove();
+    });
+
+    container.appendChild(row);
+    window.safeCreateIcons();
+    return row;
+  }
+
+  function renderExamRankInputs(topCount, rankPoints = {}) {
+    if (!configExamRanksContainer) return;
+    configExamRanksContainer.innerHTML = '';
+
+    for (let r = 1; r <= topCount; r++) {
+      const val = rankPoints[r] !== undefined ? rankPoints[r] : (r === 1 ? 10 : (r === 2 ? 7 : (r === 3 ? 4 : 0)));
+      
+      const group = document.createElement('div');
+      group.className = 'form-group';
+      group.innerHTML = `
+        <label style="font-size: 0.8rem; font-weight: 600;">${r}. Derece Puanı (+)</label>
+        <input type="number" class="form-control config-exam-rank-point-input" data-rank="${r}" value="${val}" required>
+      `;
+      configExamRanksContainer.appendChild(group);
+    }
+  }
+
+  // Render student list in Student Management Tab
+  function renderConfigStudentsList() {
+    const state = stateManager.loadState();
+    const query = configSearchStudent ? configSearchStudent.value.toLowerCase().trim() : '';
+    const genderFilter = configFilterGender ? configFilterGender.value : 'all';
+    const isMiddle = state.educationLevel === 'middle';
+
+    // Update table header dynamically
+    const theadTr = document.querySelector('#config-students-table thead tr');
+    if (theadTr) {
+      theadTr.innerHTML = `
+        <th style="width: 60px; text-align: center;">No</th>
+        <th style="width: 70px; text-align: center;">Fotoğraf</th>
+        <th>Öğrenci Adı Soyadı</th>
+        <th style="width: 100px; text-align: center;">Okul No</th>
+        <th style="width: 100px; text-align: center;">Cinsiyet</th>
+        ${isMiddle ? '<th style="width: 100px; text-align: center;">Şube</th>' : ''}
+        <th style="width: 150px; text-align: center;">Veli Telefonu</th>
+        <th style="width: 150px; text-align: center;">İşlemler</th>
+      `;
+    }
+
+    if (!configStudentsTbody) return;
+    configStudentsTbody.innerHTML = '';
+
+    const filtered = state.students.filter(student => {
+      const fullName = `${student.name} ${student.surname}`.toLowerCase();
+      const matchQuery = fullName.includes(query) || student.number.includes(query);
+      const matchGender = genderFilter === 'all' || student.gender === genderFilter;
+      return matchQuery && matchGender;
+    });
+
+    if (filtered.length === 0) {
+      configStudentsTbody.innerHTML = `<tr><td colspan="${isMiddle ? 8 : 7}" style="text-align: center; color: var(--text-muted); padding: 2rem;">Kayıtlı öğrenci bulunamadı.</td></tr>`;
+      return;
+    }
+
+    filtered.sort((a, b) => a.name.localeCompare(b.name, 'tr'));
+
+    filtered.forEach((student, index) => {
+      const initials = `${student.name[0] || ''}${student.surname[0] || ''}`;
+      const avatarHtml = student.photo
+        ? `<img src="${student.photo}" style="width: 36px; height: 36px; border-radius: 50%; object-fit: cover;">`
+        : `<div class="student-avatar" style="width: 36px; height: 36px; border-radius: 50%; font-size: 0.75rem; display: flex; align-items: center; justify-content: center; background: var(--primary-light); color: var(--primary); font-weight: 700;">${initials}</div>`;
+
+      const genderText = student.gender === 'female' ? 'Kız' : (student.gender === 'male' ? 'Erkek' : '-');
+
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td style="text-align: center; font-weight: 600; color: var(--text-muted);">${index + 1}</td>
+        <td style="text-align: center; display: flex; justify-content: center; align-items: center; height: 50px;">${avatarHtml}</td>
+        <td><strong>${student.name} ${student.surname}</strong></td>
+        <td style="text-align: center;">${student.number}</td>
+        <td style="text-align: center;">${genderText}</td>
+        ${isMiddle ? `<td style="text-align: center;"><strong>${student.branch || '-'}</strong></td>` : ''}
+        <td style="text-align: center;">${student.parentPhone || '-'}</td>
+        <td style="text-align: center;">
+          <div style="display: flex; gap: 0.5rem; justify-content: center;">
+            <button class="action-btn-sm edit-btn" title="Düzenle" style="color: var(--primary); border-color: rgba(99,102,241,0.2); background: rgba(99,102,241,0.05);">
+              <i data-lucide="edit-3" style="width: 14px; height: 14px;"></i>
+            </button>
+            <button class="action-btn-sm delete-btn" title="Sil" style="color: var(--danger); border-color: rgba(239,68,68,0.2); background: rgba(239,68,68,0.05);">
+              <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i>
+            </button>
+          </div>
+        </td>
+      `;
+
+      // Bind edit event
+      tr.querySelector('.edit-btn').addEventListener('click', () => {
+        if (window.openEditStudentModal) {
+          window.openEditStudentModal(student.id);
+        }
+      });
+
+      // Bind delete event
+      tr.querySelector('.delete-btn').addEventListener('click', async () => {
+        const confirmed = await window.confirmAsync(`${student.name} ${student.surname} adlı öğrenciyi ve ona ait tüm verileri (puan, kitap, ödev) silmek istediğinize emin misiniz?`);
+        if (confirmed) {
+          stateManager.deleteStudent(student.id);
+          if (toastCallback) toastCallback('Öğrenci silindi.', 'success');
+          
+          const event = new CustomEvent('stateChanged');
+          document.dispatchEvent(event);
+        }
+      });
+
+      configStudentsTbody.appendChild(tr);
+    });
+
+    window.safeCreateIcons();
+  }
+
+  // ============================================
+  // ŞİFRE KONTROLÜ SEKMESİ
+  // ============================================
+
+  function timeToMinutesConfig(t) {
+    if (!t) return -1;
+    const parts = t.split(':');
+    return parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10);
+  }
+
+  function renderLockTab() {
+    const state = window.AppState ? window.AppState.state : null;
+    if (!state) return;
+
+    const appLock = state.appLock || { enabled: false, passwordHash: null, breakModeEnabled: false };
+    const hasPassword = !!(appLock.enabled && appLock.passwordHash);
+
+    // Durum badge ve metin
+    const badge = document.getElementById('lock-status-badge');
+    const statusText = document.getElementById('lock-status-text');
+    if (badge) {
+      if (hasPassword) {
+        badge.textContent = 'AKTİF';
+        badge.style.background = 'rgba(16,185,129,0.15)';
+        badge.style.color = '#10b981';
+      } else {
+        badge.textContent = 'PASİF';
+        badge.style.background = 'rgba(239,68,68,0.15)';
+        badge.style.color = '#ef4444';
+      }
+    }
+    if (statusText) {
+      statusText.textContent = hasPassword
+        ? 'Şifre koruması aktif — uygulama açılışta şifre sorar.'
+        : 'Şifre belirlenmemiş — uygulama herkese açık.';
+    }
+
+    // Şifre kaldır butonu
+    const removeSection = document.getElementById('lock-remove-section');
+    if (removeSection) removeSection.style.display = hasPassword ? 'block' : 'none';
+
+    // Teneffüs modu toggle
+    const breakToggle = document.getElementById('config-break-mode-toggle');
+    const noScheduleWarn = document.getElementById('lock-no-schedule-warning');
+    const breakSummary = document.getElementById('lock-break-summary');
+
+    const scheduleOk = window.AppLock ? window.AppLock.isScheduleConfigured() : false;
+
+    if (breakToggle) {
+      breakToggle.disabled = !hasPassword || !scheduleOk;
+      breakToggle.checked = !!(appLock.breakModeEnabled && hasPassword && scheduleOk);
+    }
+
+    // Ders programı uyarısı
+    if (noScheduleWarn) {
+      noScheduleWarn.style.display = (hasPassword && !scheduleOk) ? 'block' : 'none';
+    }
+
+    // Teneffüs saatleri özeti
+    if (breakSummary && scheduleOk && hasPassword) {
+      breakSummary.style.display = 'block';
+      const times = state.scheduleTimes;
+      const isMiddle = state.educationLevel === 'middle';
+      const maxPeriods = isMiddle ? ['p1','p2','p3','p4','p5','p6','p7'] : ['p1','p2','p3','p4','p5','p6'];
+      const periodKeys = maxPeriods.filter(k => times && times[k]);
+      let html = '<div style="font-size:0.78rem;color:var(--text-muted);display:flex;flex-wrap:wrap;gap:0.4rem;">';
+      html += '<span style="font-weight:600;color:var(--text-secondary);margin-right:2px;">Teneffüsler:</span>';
+      for (let i = 0; i < periodKeys.length - 1; i++) {
+        const endT = times[periodKeys[i]].end;
+        const startT = times[periodKeys[i + 1]].start;
+        const dur = timeToMinutesConfig(startT) - timeToMinutesConfig(endT);
+        if (dur > 0) {
+          html += `<span style="background:rgba(99,102,241,0.12);padding:2px 8px;border-radius:20px;">${endT}–${startT} (${dur} dk)</span>`;
+        }
+      }
+      if (times.lunch) {
+        const lDur = timeToMinutesConfig(times.lunch.end) - timeToMinutesConfig(times.lunch.start);
+        html += `<span style="background:rgba(245,158,11,0.12);padding:2px 8px;border-radius:20px;">Öğle: ${times.lunch.start}–${times.lunch.end} (${lDur} dk)</span>`;
+      }
+      html += '</div>';
+      breakSummary.innerHTML = html;
+    } else if (breakSummary) {
+      breakSummary.style.display = 'none';
+    }
+
+    window.safeCreateIcons();
+  }
+
+  function setupLockTab() {
+    // Şifre kaydet
+    const saveBtn = document.getElementById('btn-save-lock-password');
+    if (saveBtn) {
+      saveBtn.addEventListener('click', async () => {
+        const newPass = document.getElementById('config-lock-new-pass');
+        const confirmPass = document.getElementById('config-lock-confirm-pass');
+        const errEl = document.getElementById('config-lock-form-error');
+
+        const p1 = newPass ? newPass.value.trim() : '';
+        const p2 = confirmPass ? confirmPass.value.trim() : '';
+
+        if (!p1) {
+          if (errEl) { errEl.textContent = 'Şifre boş olamaz.'; errEl.style.display = 'block'; }
+          return;
+        }
+        if (p1.length < 4) {
+          if (errEl) { errEl.textContent = 'Şifre en az 4 karakter olmalıdır.'; errEl.style.display = 'block'; }
+          return;
+        }
+        if (p1 !== p2) {
+          if (errEl) { errEl.textContent = 'Şifreler eşleşmiyor.'; errEl.style.display = 'block'; }
+          return;
+        }
+
+        if (errEl) errEl.style.display = 'none';
+        await window.AppLock.savePassword(p1);
+        if (newPass) newPass.value = '';
+        if (confirmPass) confirmPass.value = '';
+
+        renderLockTab();
+        if (toastCallback) toastCallback('Şifre başarıyla kaydedildi. ✅', 'success');
+      });
+    }
+
+    // Şifreyi kaldır
+    const removeBtn = document.getElementById('btn-remove-lock-password');
+    if (removeBtn) {
+      removeBtn.addEventListener('click', async () => {
+        const confirmed = await window.confirmAsync('Şifre korumasını kaldırmak istediğinize emin misiniz?\nBundan sonra uygulama şifresiz açılacak.');
+        if (confirmed) {
+          window.AppLock.removePassword();
+          renderLockTab();
+          if (toastCallback) toastCallback('Şifre koruması kaldırıldı.', 'info');
+        }
+      });
+    }
+
+    // Teneffüs modu toggle
+    const breakToggle = document.getElementById('config-break-mode-toggle');
+    if (breakToggle) {
+      breakToggle.addEventListener('change', () => {
+        window.AppLock.setBreakMode(breakToggle.checked);
+        renderLockTab();
+        if (toastCallback) {
+          toastCallback(
+            breakToggle.checked ? 'Teneffüs modu aktif edildi. ☕' : 'Teneffüs modu devre dışı bırakıldı.',
+            'info'
+          );
+        }
+      });
+    }
+  }
+
+  // Config sekmesi değişince lock tab'ı da render et
+  const _origRenderConfig = typeof renderConfig !== 'undefined' ? renderConfig : null;
+  document.addEventListener('DOMContentLoaded', () => {
+    setupLockTab();
+
+    // Şifre Kontrolü sekmesine tıklanınca render et
+    const lockTabBtn = document.getElementById('tab-btn-config-lock');
+    if (lockTabBtn) {
+      lockTabBtn.addEventListener('click', () => {
+        setTimeout(renderLockTab, 50);
+      });
+    }
+  });
+
+  // Helper function to directly navigate to Config AI sub-tab
+  function navigateToConfigAI() {
+    if (window.switchTab) {
+      window.switchTab('assistant-config');
+    }
+    const aiTabBtn = document.getElementById('tab-btn-config-ai');
+    if (aiTabBtn) {
+      aiTabBtn.click();
+    }
+    setTimeout(() => {
+      const configGeminiApiKeyElem = document.getElementById('config-gemini-api-key');
+      if (configGeminiApiKeyElem) {
+        configGeminiApiKeyElem.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        configGeminiApiKeyElem.focus();
+      }
+    }, 150);
+  }
+
+  // Export globally
+  window.setupConfigTab = setupConfigTab;
+  window.renderConfig = renderConfig;
+  window.updateConfigThemeUI = updateConfigThemeUI;
+  window.renderLockTab = renderLockTab;
+  window.navigateToConfigAI = navigateToConfigAI;
+})();
+

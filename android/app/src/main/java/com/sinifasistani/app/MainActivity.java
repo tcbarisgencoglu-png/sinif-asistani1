@@ -13,6 +13,7 @@ import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
+import android.webkit.WebResourceError;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
@@ -314,7 +315,19 @@ public class MainActivity extends AppCompatActivity {
         webView.setWebViewClient(new WebViewClient() {
             @Override
             public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
-                return assetLoader.shouldInterceptRequest(request.getUrl());
+                WebResourceResponse response = assetLoader.shouldInterceptRequest(request.getUrl());
+                if (response != null) return response;
+                return super.shouldInterceptRequest(view, request);
+            }
+
+            @SuppressWarnings("deprecation")
+            @Override
+            public WebResourceResponse shouldInterceptRequest(WebView view, String url) {
+                if (url != null) {
+                    WebResourceResponse response = assetLoader.shouldInterceptRequest(Uri.parse(url));
+                    if (response != null) return response;
+                }
+                return super.shouldInterceptRequest(view, url);
             }
 
             @Override
@@ -329,6 +342,17 @@ public class MainActivity extends AppCompatActivity {
                     startActivity(intent);
                 } catch (Exception ignored) {}
                 return true;
+            }
+
+            @Override
+            public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
+                super.onReceivedError(view, request, error);
+                if (request != null && request.isForMainFrame()) {
+                    Uri url = request.getUrl();
+                    if (url != null && "appassets.androidplatform.net".equals(url.getHost())) {
+                        view.post(() -> view.loadUrl("file:///android_asset/mobile.html"));
+                    }
+                }
             }
         });
 

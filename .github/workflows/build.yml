@@ -201,10 +201,14 @@ jobs:
           node-version: "lts/*"
           cache: "npm"
 
-      - name: Bağımlılıkları yükle ve dist klasörünü hazırla
+      - name: Bağımlılıkları yükle ve Android web varlıklarını hazırla
         run: |
           npm install
-          npm run sync
+          node scripts/sync-version.js sync
+          mkdir -p android/app/src/main/assets
+          rsync -av --delete --exclude='*.DS_Store' dist/ android/app/src/main/assets/
+          echo "=== Android Web Assets Doğrulama ==="
+          ls -lh android/app/src/main/assets/mobile.html
 
       - name: Java 17 kur
         uses: actions/setup-java@v4
@@ -222,7 +226,7 @@ jobs:
           cd android
           gradle assembleRelease --stacktrace
 
-      - name: APK Dosyasını Hazırla
+      - name: APK Dosyasını Hazırla ve Doğrula
         run: |
           mkdir -p artifacts
           echo "Üretilen APK dosyaları listeleniyor:"
@@ -238,6 +242,11 @@ jobs:
           echo "✅ Kopyalanacak APK: $APK_FILE"
           cp "$APK_FILE" artifacts/sinif-asistani.apk
           ls -lh artifacts/sinif-asistani.apk
+          echo "=== APK İçi Assets Kontrolü ==="
+          unzip -l artifacts/sinif-asistani.apk | grep "assets/mobile.html" || {
+            echo "❌ HATA: APK içerisinde mobile.html bulunamadı!"
+            exit 1
+          }
 
       - name: APK'yı Artifact Olarak Kaydet (Push)
         uses: actions/upload-artifact@v4

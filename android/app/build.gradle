@@ -42,14 +42,31 @@ android {
             debuggable true
         }
     }
+    sourceSets {
+        main {
+            assets.srcDirs = ['src/main/assets', "${project.rootDir}/../dist"]
+        }
+    }
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
     }
 }
 
-// Web assetleri derleme oncesi dist dizininden src/main/assets dizinine sync edilir
+// Web varlıklarını derleme öncesinde dist dizininden src/main/assets dizinine otomatik kopyala
+tasks.register('syncDistAssets', Sync) {
+    from "${project.rootDir}/../dist"
+    into "src/main/assets"
+}
 
+project.afterEvaluate {
+    tasks.matching { it.name.startsWith("merge") && it.name.endsWith("Assets") }.configureEach {
+        dependsOn 'syncDistAssets'
+    }
+    tasks.matching { it.name.startsWith("generate") && it.name.endsWith("Assets") }.configureEach {
+        dependsOn 'syncDistAssets'
+    }
+}
 
 dependencies {
     implementation 'androidx.appcompat:appcompat:1.6.1'

@@ -1,14 +1,15 @@
 {
-  "version": "1.0.43",
+  "version": "1.0.44",
   "releaseDate": "2026-10-03",
   "minRequiredVersion": "1.0.0",
-  "title": "Sınıf Asistanı v1.0.43 Yayında!",
-  "description": "Hazine Sandığı Akıllı Tahta Tam Ekran Modu, Optik Form & OMR Tarayıcı ve Mobil Değerlendirme İyileştirmeleri",
+  "title": "Sınıf Asistanı v1.0.44 Yayında!",
+  "description": "Android Sürüm Düzeltmeleri, Hızlı Araç Çubuğu, Ödev Yönetimi ve Davranış Emojileri Güncellemesi",
   "features": [
-    "Hazine Sandığı Tam Ekran Modu: Akıllı tahtalar için devasa soru ekranı, senkronize dairesel geri sayım sayacı ve interaktif kontroller",
-    "Hazine Sandığı Hızlı Kontroller: Tam ekranda süreyi durdurma/başlatma, sıfırlama, doğru cevabı vurgulama ve yeni soru çekme butonları",
-    "Mobil Optik Form & OMR Desteği: Çevrimdışı optik form üretici ve kamera ile anlık haftalık değerlendirme tarayıcısı",
-    "Arayüz ve Performans İyileştirmeleri: Mobil ve masaüstü arayüzlerde kaydırma ve buton etkileşimleri optimize edildi"
+    "Android Release Düzeltmesi: ERR_INVALID_RESPONSE hatası giderildi, web varlıkları eksiksiz paketlendi ve otomatik fallback eklendi",
+    "Hızlı Araç Çubuğu: Süre tut, şanslı öğrenci, toplu değişken puan gir ve tam ekran hızlı butonları eklendi",
+    "Gelişmiş Ödev Yönetimi: Tüm liste görünümü, sıra gezme düzeni, yeni ödev verme ve WhatsApp ile anlık veli/öğrenci paylaşımı",
+    "Davranış Emojileri: Yapılandırma ekranında davranışlara özel emoji tanımlama ve arayüzde emoji gösterimi",
+    "İletişim & Destek: WhatsApp iletişim numarası güncellendi"
   ],
   "release_url": "https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/latest"
 }

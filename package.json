@@ -1,10 +1,10 @@
 {
   "name": "sinif-asistani",
-  "version": "1.0.43",
+  "version": "1.0.44",
   "description": "Sınıf Asistanı - Dijital Öğretmen Yardımcısı",
   "scripts": {
     "tauri": "tauri",
-    "sync": "rsync -av --delete --exclude='*.DS_Store' index.html mobile.html css js manifest.json sw.js icons tanitim vercel.json version.json dist/",
+    "sync": "rsync -av --delete --exclude='*.DS_Store' index.html mobile.html css js manifest.json sw.js icons tanitim vercel.json version.json dist/ && rsync -av --delete --exclude='*.DS_Store' dist/ android/app/src/main/assets/",
     "dev": "npm run sync && tauri dev",
     "build": "node scripts/sync-version.js sync",
     "build:tauri": "node scripts/sync-version.js sync && tauri build",

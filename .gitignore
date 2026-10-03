@@ -48,7 +48,6 @@ src-tauri/*.key.pub
 android/.gradle/
 android/build/
 android/app/build/
-android/app/src/main/assets/
 *.apk
 *.aab
 local.properties
