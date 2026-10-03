@@ -1226,7 +1226,7 @@
       <span>🎁 1 Ay Ücretsiz Dene</span>
     </button>
     <button type="button" id="btn-tanitim-download" onclick="window.openTanitimDownloadModal(event)" class="nav-cta" style="background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.2); box-shadow: none; display: flex; align-items: center; gap: 0.4rem; cursor: pointer;">
-      <span>📥 Masaüstü İndir</span>
+      <span>📥 Masaüstü / Android İndir</span>
     </button>
     <a href="/uygulama" class="nav-cta">Uygulamaya Git →</a>
   </div>
@@ -1649,8 +1649,13 @@
     if (currentSlide < totalSlides - 1) goToSlide(currentSlide + 1);
   });
 
-  // Keyboard navigation (Supports Arrows, PageUp/Down, Space)
+  // Keyboard navigation (Supports Arrows, PageUp/Down, Space, Escape)
   document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      window.closeTanitimDownloadModal();
+      window.closeDemoLicenseModal();
+      return;
+    }
     if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName)) return;
     if (e.key === 'ArrowLeft' || e.key === 'ArrowUp' || e.key === 'PageUp') {
       if (currentSlide > 0) {
@@ -1775,9 +1780,13 @@
     if (e && e.preventDefault) e.preventDefault();
     const modal = document.getElementById('modal-tanitim-download');
     if (!modal) return;
+    modal.style.display = 'flex';
     // 1. Önce hızlı ve rate-limit'siz yerel version.json'dan en güncel sürümü kontrol et
     try {
-      const vRes = await fetch('../version.json?t=' + Date.now()).catch(() => null);
+      let vRes = await fetch('../version.json?t=' + Date.now()).catch(() => null);
+      if (!vRes || !vRes.ok) {
+        vRes = await fetch('/version.json?t=' + Date.now()).catch(() => null);
+      }
       if (vRes && vRes.ok) {
         const vData = await vRes.json();
         if (vData && vData.version) {
@@ -2457,7 +2466,7 @@
           </a>
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem;">
             <button type="button" onclick="window.closeDemoLicenseModal(); window.openTanitimDownloadModal(event);" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.15); color: #fff; border-radius: 8px; padding: 0.6rem; font-size: 0.8rem; font-weight: 600; cursor: pointer;">
-              📥 Masaüstü İndir
+              📥 Masaüstü / Android İndir
             </button>
             <button type="button" onclick="window.resetDemoLicenseForm();" style="background: transparent; border: 1px solid rgba(255,255,255,0.1); color: #94a3b8; border-radius: 8px; padding: 0.6rem; font-size: 0.8rem; cursor: pointer;">
               🔄 Yeni Kod Üret
