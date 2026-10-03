@@ -44,6 +44,7 @@ public class MainActivity extends AppCompatActivity {
     private Uri cameraPhotoUri;
 
     private WebView printWebViewHolder;
+    private boolean isAppFullscreen = false;
 
     private File createCameraFile() throws IOException {
         String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(new Date());
@@ -60,6 +61,43 @@ public class MainActivity extends AppCompatActivity {
 
         WebAppInterface(Context c) {
             mContext = c;
+        }
+
+        @JavascriptInterface
+        public boolean toggleFullscreen() {
+            isAppFullscreen = !isAppFullscreen;
+            final boolean fs = isAppFullscreen;
+            runOnUiThread(() -> {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    android.view.WindowInsetsController controller = getWindow().getInsetsController();
+                    if (controller != null) {
+                        int types = android.view.WindowInsets.Type.statusBars() | android.view.WindowInsets.Type.navigationBars();
+                        if (fs) {
+                            controller.hide(types);
+                            controller.setSystemBarsBehavior(android.view.WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
+                        } else {
+                            controller.show(types);
+                        }
+                    }
+                } else {
+                    android.view.View decorView = getWindow().getDecorView();
+                    if (fs) {
+                        decorView.setSystemUiVisibility(
+                            android.view.View.SYSTEM_UI_FLAG_FULLSCREEN
+                            | android.view.View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                            | android.view.View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+                        );
+                    } else {
+                        decorView.setSystemUiVisibility(android.view.View.SYSTEM_UI_FLAG_VISIBLE);
+                    }
+                }
+            });
+            return isAppFullscreen;
+        }
+
+        @JavascriptInterface
+        public boolean isFullscreen() {
+            return isAppFullscreen;
         }
 
         @JavascriptInterface

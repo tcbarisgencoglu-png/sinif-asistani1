@@ -102,8 +102,8 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding-left: 1rem;
-  padding-right: 1rem;
+  padding-left: 0.75rem;
+  padding-right: 0.75rem;
   z-index: 500;
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
@@ -112,12 +112,14 @@ body {
 .appbar-left {
   display: flex;
   align-items: center;
-  gap: 0.6rem;
+  gap: 0.45rem;
+  min-width: 0;
+  flex-shrink: 1;
 }
 
 .appbar-logo-icon {
-  width: 34px;
-  height: 34px;
+  width: 32px;
+  height: 32px;
   border-radius: var(--m-radius-sm);
   background: linear-gradient(135deg, var(--m-primary), #818cf8);
   color: #fff;
@@ -125,46 +127,57 @@ body {
   align-items: center;
   justify-content: center;
   box-shadow: 0 4px 10px var(--m-primary-glow);
+  flex-shrink: 0;
 }
 
 .appbar-brand-title {
-  font-size: 1.05rem;
+  font-size: 0.96rem;
   font-weight: 800;
   letter-spacing: -0.3px;
   color: var(--m-text);
+  white-space: nowrap;
 }
 
 .appbar-branch-badge {
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   font-weight: 700;
   background: var(--m-primary-light);
   color: var(--m-primary);
-  padding: 0.2rem 0.5rem;
+  padding: 0.15rem 0.45rem;
   border-radius: var(--m-radius-full);
+  white-space: nowrap;
+}
+
+@media (max-width: 410px) {
+  .appbar-branch-badge {
+    display: none;
+  }
 }
 
 .appbar-right {
   display: flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: 3px;
+  flex-shrink: 0;
 }
 
 .appbar-btn {
   background: none;
   border: none;
-  width: 38px;
-  height: 38px;
-  border-radius: 50%;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
   color: var(--m-text-muted);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: background 0.15s, transform 0.1s;
+  transition: background 0.15s, transform 0.1s, color 0.15s;
 }
 
 .appbar-btn:active {
   background: var(--m-surface-subtle);
+  color: var(--m-primary);
   transform: scale(0.92);
 }
 
@@ -2763,13 +2776,81 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.55rem 0.75rem;
+  padding: 0.5rem 0.75rem;
   background: var(--m-bg);
   border: 1px solid var(--m-border);
   border-radius: var(--m-radius-sm);
   font-size: 0.82rem;
   font-weight: 600;
   gap: 8px;
+}
+
+.m-cfg-emoji-btn {
+  width: 38px;
+  height: 38px;
+  min-width: 38px;
+  border-radius: var(--m-radius-sm);
+  border: 1px solid var(--m-border);
+  background: var(--m-surface);
+  color: var(--m-text);
+  font-size: 1.18rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  padding: 0;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+}
+.m-cfg-emoji-btn:active {
+  transform: scale(0.92);
+  background: var(--m-surface-alt);
+}
+
+.m-behavior-emoji-pill {
+  width: 34px;
+  height: 34px;
+  min-width: 34px;
+  border-radius: 8px;
+  border: 1px dashed var(--m-border);
+  background: var(--m-surface-alt);
+  font-size: 1.15rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.15s, border-color 0.15s, background-color 0.15s;
+  padding: 0;
+}
+.m-behavior-emoji-pill:active {
+  transform: scale(0.92);
+  border-color: var(--m-primary);
+  background-color: rgba(99, 102, 241, 0.1);
+}
+
+.m-emoji-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 8px;
+  margin-top: 6px;
+}
+.m-emoji-picker-item {
+  height: 44px;
+  border-radius: 10px;
+  border: 1px solid var(--m-border);
+  background: var(--m-surface);
+  font-size: 1.45rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.12s ease;
+  user-select: none;
+}
+.m-emoji-picker-item:active {
+  transform: scale(0.88);
+  background: rgba(99, 102, 241, 0.15);
+  border-color: var(--m-primary);
 }
 
 .m-accordion-item {

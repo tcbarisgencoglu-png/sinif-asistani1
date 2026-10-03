@@ -12,7 +12,7 @@
   let activeSearchTerm = '';
   let selectedStudentForPoints = null;
   let hwWalkIndex = 0;
-  let hwMode = 'walk'; // 'walk' veya 'list'
+  let hwMode = 'list'; // 'list' veya 'walk'
   let currentHwDate = getTodayDateStr();
   let attendanceData = {}; // Tarihe göre geçici yoklama durumu
   let timerInterval = null;
@@ -230,20 +230,22 @@
     // Ödev Mod Değiştiricileri
     const btnHwModeWalk = document.getElementById('btn-hw-mode-walk');
     const btnHwModeList = document.getElementById('btn-hw-mode-list');
+    const btnHwModeOrder = document.getElementById('btn-hw-mode-order');
     if (btnHwModeWalk) {
       btnHwModeWalk.addEventListener('click', () => {
         hwMode = 'walk';
         btnHwModeWalk.classList.add('active');
         if (btnHwModeList) btnHwModeList.classList.remove('active');
+        if (btnHwModeOrder) btnHwModeOrder.style.display = 'inline-flex';
         renderHomeworkTab();
       });
     }
     if (btnHwModeList) {
       btnHwModeList.addEventListener('click', () => {
         hwMode = 'list';
-        currentHwDate = getTodayDateStr(); // Her girişte içinde bulunulan günün listesi
         btnHwModeList.classList.add('active');
         if (btnHwModeWalk) btnHwModeWalk.classList.remove('active');
+        if (btnHwModeOrder) btnHwModeOrder.style.display = 'none';
         renderHomeworkTab();
       });
     }
@@ -466,8 +468,9 @@
     if (fabBtn) fabBtn.classList.remove('active');
 
     if (tabId === 'homework') {
-      // Ödev menüsüne her girişte içinde bulunulan günün listesi açılacak
+      // Ödev menüsüne her girişte içinde bulunulan günün listesi ve TÜM LİSTE modu açılacak
       currentHwDate = getTodayDateStr();
+      hwMode = 'list';
     }
 
     // Alt menü butonlarını güncelle
@@ -1470,12 +1473,13 @@
     const gridPos = document.getElementById('m-point-grid-positive');
     if (gridPos) {
       gridPos.innerHTML = positiveList.map(b => {
-        const point = b.point !== undefined ? Math.abs(b.point) : 1;
+        const point = b.point !== undefined ? Math.abs(b.point) : (b.points !== undefined ? Math.abs(b.points) : 1);
+        const name = b.name || b.title || 'Davranış';
         const icon = b.icon || '⭐';
         return `
-          <button type="button" class="m-point-btn-item positive" onclick="window.giveQuickPoint(${point}, '${escapeHTML(b.name)}')">
+          <button type="button" class="m-point-btn-item positive" onclick="window.giveQuickPoint(${point}, '${escapeHTML(name)}')">
             <span class="m-point-btn-icon">${icon}</span>
-            <span class="m-point-btn-name">${escapeHTML(b.name)}</span>
+            <span class="m-point-btn-name">${escapeHTML(name)}</span>
             <span class="m-point-btn-badge plus">+${point}</span>
           </button>
         `;
@@ -1486,13 +1490,14 @@
     const gridNeg = document.getElementById('m-point-grid-negative');
     if (gridNeg) {
       gridNeg.innerHTML = negativeList.map(b => {
-        let point = b.point !== undefined ? b.point : -1;
+        let point = b.point !== undefined ? b.point : (b.points !== undefined ? b.points : -1);
         if (point > 0) point = -point; // Olumsuz puanlar eksi olmalıdır
+        const name = b.name || b.title || 'Davranış';
         const icon = b.icon || '⚠️';
         return `
-          <button type="button" class="m-point-btn-item negative" onclick="window.giveQuickPoint(${point}, '${escapeHTML(b.name)}')">
+          <button type="button" class="m-point-btn-item negative" onclick="window.giveQuickPoint(${point}, '${escapeHTML(name)}')">
             <span class="m-point-btn-icon">${icon}</span>
-            <span class="m-point-btn-name">${escapeHTML(b.name)}</span>
+            <span class="m-point-btn-name">${escapeHTML(name)}</span>
             <span class="m-point-btn-badge minus">${point}</span>
           </button>
         `;
@@ -1625,6 +1630,293 @@
       closeBottomSheet();
     }
   };
+
+  // ==========================================================================
+  // TOPLU DEĞİŞKEN PUAN GİRİŞİ MODAL FONKSİYONLARI
+  // ==========================================================================
+  window.openBulkVariablePointsModal = function() {
+    window.vibrate(25);
+    const branchGroup = document.getElementById('m-bulk-var-branch-group');
+    const branchSelect = document.getElementById('m-bulk-var-branch');
+    const isMiddle = isMiddleSchool();
+
+    if (branchGroup && branchSelect) {
+      if (isMiddle) {
+        branchGroup.style.display = 'block';
+        populateBranchOptions(branchSelect);
+        branchSelect.value = activeBranch || 'all';
+      } else {
+        branchGroup.style.display = 'none';
+      }
+    }
+
+    const qInput = document.getElementById('m-bulk-var-quick-val');
+    if (qInput) qInput.value = '';
+
+    window.renderBulkVariablePointsList();
+    openBottomSheet('modal-bulk-variable-points');
+  };
+
+  window.renderBulkVariablePointsList = function() {
+    const listEl = document.getElementById('m-bulk-var-students-list');
+    if (!listEl) return;
+
+    if (!window.stateManager) {
+      listEl.innerHTML = '<div style="text-align: center; padding: 2rem 1rem; color: var(--m-text-muted);">Sistem durumu yüklenemedi.</div>';
+      return;
+    }
+
+    const state = (window.stateManager.loadState) ? window.stateManager.loadState() : (window.stateManager.state || {});
+    const all = state.students || [];
+    const isMiddle = isMiddleSchool();
+    const branchSelect = document.getElementById('m-bulk-var-branch');
+    const filterBranch = (isMiddle && branchSelect) ? branchSelect.value : (activeBranch || 'all');
+
+    let students = all.filter(s => isStudentInCurrentLevel(s));
+    if (isMiddle && filterBranch && filterBranch !== 'all') {
+      students = students.filter(s => s.branch === filterBranch);
+    }
+
+    students.sort((a, b) => {
+      const numA = parseInt(a.number, 10);
+      const numB = parseInt(b.number, 10);
+      if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
+      return (a.name || '').localeCompare(b.name || '', 'tr');
+    });
+
+    if (students.length === 0) {
+      listEl.innerHTML = `
+        <div style="text-align: center; padding: 2.5rem 1rem; color: var(--m-text-muted);">
+          <i data-lucide="users" style="width: 36px; height: 36px; opacity: 0.4; margin-bottom: 0.5rem;"></i>
+          <p style="font-weight: 600; font-size: 0.88rem;">Seçili kriterlerde öğrenci bulunamadı.</p>
+        </div>
+      `;
+      if (window.lucide) window.lucide.createIcons();
+      return;
+    }
+
+    listEl.innerHTML = students.map(st => {
+      const avatarColor = getAvatarColor(st.id || st.name);
+      const currentScore = (st.scores && st.scores.total !== undefined) 
+        ? st.scores.total 
+        : ((window.stateManager && window.stateManager.getStudentScore) ? window.stateManager.getStudentScore(st.id) : 0);
+      const photoHtml = st.photo 
+        ? `<img src="${st.photo}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">` 
+        : escapeHTML((st.name || '?').charAt(0).toUpperCase());
+
+      return `
+        <div class="m-bulk-var-row" style="display: flex; align-items: center; justify-content: space-between; padding: 8px 6px; border-bottom: 1px solid var(--m-border); gap: 8px;">
+          <div style="display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1;">
+            <div style="width: 34px; height: 34px; border-radius: 50%; background: ${avatarColor}; color: white; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.82rem; flex-shrink: 0; overflow: hidden;">
+              ${photoHtml}
+            </div>
+            <div style="min-width: 0;">
+              <div style="font-weight: 700; font-size: 0.85rem; color: var(--m-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                <span style="font-size: 0.72rem; color: var(--m-text-muted); margin-right: 4px;">#${escapeHTML(st.number || st.id || '')}</span>${escapeHTML(st.name || '')}
+              </div>
+              <div style="font-size: 0.7rem; color: var(--m-text-muted);">
+                Puan: <b style="color: ${currentScore >= 0 ? 'var(--m-success)' : 'var(--m-danger)'};">${currentScore >= 0 ? '+' : ''}${currentScore}</b>
+                ${st.branch ? ` • ${escapeHTML(st.branch)}` : ''}
+              </div>
+            </div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 4px; flex-shrink: 0;">
+            <button type="button" onclick="window.adjustBulkVarInput('${st.id}', -1)" style="width: 28px; height: 28px; border-radius: 6px; border: 1px solid var(--m-border); background: var(--m-surface); color: var(--m-text); font-weight: 800; font-size: 0.95rem; display: flex; align-items: center; justify-content: center; cursor: pointer;">-</button>
+            <input type="number" id="m-bulk-input-${st.id}" class="m-bulk-var-input" data-student-id="${st.id}" placeholder="0" oninput="window.onBulkVarInputChange(this)" style="width: 48px; height: 28px; text-align: center; border-radius: 6px; border: 1px solid var(--m-border); background: var(--m-surface); font-weight: 800; font-size: 0.88rem; color: var(--m-text);">
+            <button type="button" onclick="window.adjustBulkVarInput('${st.id}', 1)" style="width: 28px; height: 28px; border-radius: 6px; border: 1px solid var(--m-border); background: var(--m-surface); color: var(--m-text); font-weight: 800; font-size: 0.95rem; display: flex; align-items: center; justify-content: center; cursor: pointer;">+</button>
+            <button type="button" onclick="window.adjustBulkVarInput('${st.id}', 5)" style="padding: 4px 6px; height: 28px; font-size: 0.72rem; font-weight: 800; border-radius: 6px; border: 1px solid rgba(99,102,241,0.25); background: rgba(99,102,241,0.1); color: var(--m-primary); cursor: pointer;">+5</button>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    if (window.lucide) window.lucide.createIcons();
+  };
+
+  window.adjustBulkVarInput = function(studentId, delta) {
+    const input = document.getElementById(`m-bulk-input-${studentId}`);
+    if (!input) return;
+    window.vibrate(15);
+    let val = parseInt(input.value, 10);
+    if (isNaN(val)) val = 0;
+    val += delta;
+    input.value = val === 0 ? '' : val;
+    window.onBulkVarInputChange(input);
+  };
+
+  window.onBulkVarInputChange = function(input) {
+    if (!input) return;
+    const val = parseInt(input.value, 10);
+    if (!isNaN(val) && val !== 0) {
+      input.style.borderColor = val > 0 ? '#10b981' : '#ef4444';
+      input.style.color = val > 0 ? '#10b981' : '#ef4444';
+      input.style.backgroundColor = val > 0 ? 'rgba(16,185,129,0.06)' : 'rgba(239,68,68,0.06)';
+    } else {
+      input.style.borderColor = '';
+      input.style.color = '';
+      input.style.backgroundColor = '';
+    }
+  };
+
+  window.setBulkVarReason = function(reason) {
+    window.vibrate(15);
+    const input = document.getElementById('m-bulk-var-reason');
+    if (input) input.value = reason;
+  };
+
+  window.applyBulkVarQuickValue = function() {
+    window.vibrate(20);
+    const qInput = document.getElementById('m-bulk-var-quick-val');
+    const qVal = parseInt(qInput ? qInput.value : '', 10);
+    if (isNaN(qVal) || qVal === 0) {
+      showMobileToast('Lütfen geçerli bir puan girin (Örn: 5 veya -2)');
+      return;
+    }
+    const inputs = document.querySelectorAll('.m-bulk-var-input');
+    inputs.forEach(inp => {
+      inp.value = qVal;
+      window.onBulkVarInputChange(inp);
+    });
+    showMobileToast(`Tüm öğrencilere ${qVal > 0 ? '+' : ''}${qVal} uygulandı.`);
+  };
+
+  window.clearBulkVarInputs = function() {
+    window.vibrate(20);
+    const inputs = document.querySelectorAll('.m-bulk-var-input');
+    inputs.forEach(inp => {
+      inp.value = '';
+      window.onBulkVarInputChange(inp);
+    });
+    const qInput = document.getElementById('m-bulk-var-quick-val');
+    if (qInput) qInput.value = '';
+    showMobileToast('Tüm puanlar temizlendi.');
+  };
+
+  window.saveBulkVariablePoints = function() {
+    if (!window.stateManager) return;
+    const reasonInput = document.getElementById('m-bulk-var-reason');
+    const reason = (reasonInput && reasonInput.value.trim()) ? reasonInput.value.trim() : 'Ders İçi Katılım';
+
+    const inputs = document.querySelectorAll('.m-bulk-var-input');
+    const records = [];
+    inputs.forEach(inp => {
+      const pts = parseInt(inp.value, 10);
+      if (!isNaN(pts) && pts !== 0) {
+        const studentId = inp.getAttribute('data-student-id');
+        records.push({
+          studentId: studentId,
+          type: pts >= 0 ? 'positive' : 'development',
+          point: pts,
+          reason: reason
+        });
+      }
+    });
+
+    if (records.length === 0) {
+      showMobileToast('Lütfen en az bir öğrenciye puan girin.');
+      return;
+    }
+
+    if (typeof window.stateManager.addBatchPerformance === 'function') {
+      window.stateManager.addBatchPerformance(records);
+    } else {
+      records.forEach(r => {
+        if (typeof window.stateManager.addPerformance === 'function') {
+          window.stateManager.addPerformance(r.studentId, r.type, r.point, r.reason);
+        } else if (typeof window.stateManager.addScore === 'function') {
+          window.stateManager.addScore(r.studentId, r.point, r.reason);
+        }
+      });
+    }
+
+    window.vibrate(45);
+
+    // Ana performans ekranını yenile
+    renderPerformanceTab();
+
+    // Varsa açık öğrenci detay modalını yenile
+    const detailModal = document.getElementById('modal-student-detail');
+    if (window.currentDetailedStudentId && detailModal && detailModal.classList.contains('active')) {
+      window.openStudentDetailModal(window.currentDetailedStudentId);
+    }
+
+    showMobileToast(`✅ ${records.length} öğrencinin puanı başarıyla kaydedildi!`);
+    closeBottomSheet();
+
+    const event = new CustomEvent('stateChanged');
+    document.dispatchEvent(event);
+  };
+
+  // ==========================================================================
+  // TAM EKRAN (FULLSCREEN) YÖNETİMİ
+  // ==========================================================================
+  window.isMobileFullscreen = false;
+
+  window.toggleMobileFullscreen = function() {
+    window.vibrate(25);
+    let isFs = false;
+
+    // 1. Android Native Köprüsü
+    if (window.AndroidBridge && typeof window.AndroidBridge.toggleFullscreen === 'function') {
+      try {
+        isFs = window.AndroidBridge.toggleFullscreen();
+      } catch (e) {
+        console.warn('AndroidBridge.toggleFullscreen çağrısı başarısız', e);
+      }
+    }
+
+    // 2. Web Fullscreen API Senkronizasyonu
+    if (document.fullscreenElement || document.webkitFullscreenElement) {
+      if (document.exitFullscreen) {
+        document.exitFullscreen().catch(() => {});
+      } else if (document.webkitExitFullscreen) {
+        document.webkitExitFullscreen();
+      }
+      isFs = false;
+    } else if (!window.AndroidBridge) {
+      const docEl = document.documentElement;
+      if (docEl.requestFullscreen) {
+        docEl.requestFullscreen().then(() => {
+          updateFullscreenUI(true);
+        }).catch(() => {});
+        isFs = true;
+      } else if (docEl.webkitRequestFullscreen) {
+        docEl.webkitRequestFullscreen();
+        isFs = true;
+      }
+    }
+
+    window.isMobileFullscreen = isFs;
+    updateFullscreenUI(isFs);
+    showMobileToast(isFs ? '🖥️ Tam ekran moduna geçildi' : 'Pencereli moda dönüldü');
+  };
+
+  function updateFullscreenUI(isFs) {
+    const fsBtn = document.getElementById('btn-appbar-fullscreen');
+    const fsIcon = document.getElementById('appbar-fs-icon');
+    if (!fsBtn) return;
+
+    if (isFs) {
+      fsBtn.setAttribute('title', 'Tam Ekrandan Çık');
+      if (fsIcon) {
+        fsIcon.setAttribute('data-lucide', 'minimize');
+      }
+    } else {
+      fsBtn.setAttribute('title', 'Tam Ekran Yap');
+      if (fsIcon) {
+        fsIcon.setAttribute('data-lucide', 'maximize');
+      }
+    }
+    if (window.lucide && typeof window.lucide.createIcons === 'function') {
+      window.lucide.createIcons();
+    }
+  }
+
+  document.addEventListener('fullscreenchange', () => {
+    const isFs = !!document.fullscreenElement;
+    window.isMobileFullscreen = isFs;
+    updateFullscreenUI(isFs);
+  });
 
   // ==========================================================================
   // ÖĞRENCİ DETAYLARI MODALI
@@ -2123,14 +2415,443 @@
 
     if (subEl) {
       const state = window.stateManager ? window.stateManager.loadState() : null;
-      const hw = (state && state.homeworks) ? state.homeworks.find(h => h.dueDate === currentHwDate) : null;
+      const isMiddle = isMiddleSchool();
+      const branch = isMiddle ? (activeBranch || '') : '';
+      const hw = (state && state.homeworks) ? state.homeworks.find(h =>
+        h.dueDate === currentHwDate &&
+        (!isMiddle || h.branch === branch || (!h.branch && branch === 'all'))
+      ) : null;
+
       if (hw && hw.title) {
-        subEl.textContent = `📚 ${hw.title}`;
+        subEl.innerHTML = `📚 ${escapeHTML(hw.title)} <button type="button" onclick="event.stopPropagation(); window.shareCurrentDateHomeworkWhatsApp();" title="WhatsApp ile Paylaş" style="background: rgba(37,211,102,0.15); border: 1px solid rgba(37,211,102,0.35); color: #15803d; border-radius: 6px; padding: 2px 7px; font-size: 0.7rem; font-weight: 700; margin-left: 6px; cursor: pointer; display: inline-flex; align-items: center; gap: 3px;"><i data-lucide="message-circle" style="width: 12px; height: 12px;"></i> Paylaş</button>`;
       } else {
         subEl.textContent = '📅 Günlük Ödev Kontrolü';
       }
     }
   }
+
+  // --- SIRA GEZME KONTROL SIRASI YÖNETİMİ ---
+  let hwWalkOrderDraft = [];
+
+  function getHwWalkBranchKey() {
+    const isMiddle = isMiddleSchool();
+    return isMiddle ? (activeBranch || 'all') : 'primary';
+  }
+
+  function getHomeworkWalkStudents() {
+    const filtered = getFilteredStudents();
+    if (!filtered || filtered.length === 0) return [];
+
+    const branchKey = getHwWalkBranchKey();
+    const savedOrderJson = localStorage.getItem(`sinif_asistani_hw_walk_order_${branchKey}`);
+    if (savedOrderJson) {
+      try {
+        const savedIds = JSON.parse(savedOrderJson);
+        if (Array.isArray(savedIds) && savedIds.length > 0) {
+          const map = new Map();
+          filtered.forEach(s => map.set(String(s.id), s));
+          const ordered = [];
+          savedIds.forEach(id => {
+            const st = map.get(String(id));
+            if (st) {
+              ordered.push(st);
+              map.delete(String(id));
+            }
+          });
+          // Henüz sırada yer almayan yeni öğrencileri sona ekle
+          map.forEach(st => ordered.push(st));
+          return ordered;
+        }
+      } catch (e) {}
+    }
+
+    return filtered;
+  }
+
+  window.openHomeworkOrderModal = () => {
+    if (window.vibrate) window.vibrate(20);
+    const students = getHomeworkWalkStudents();
+    hwWalkOrderDraft = students.map(s => String(s.id));
+    renderHwOrderList();
+    openBottomSheet('modal-hw-order');
+  };
+
+  function renderHwOrderList() {
+    const container = document.getElementById('m-hw-order-list');
+    if (!container) return;
+
+    const filtered = getFilteredStudents();
+    const map = new Map();
+    filtered.forEach(s => map.set(String(s.id), s));
+
+    const draftStudents = [];
+    hwWalkOrderDraft.forEach(id => {
+      const st = map.get(String(id));
+      if (st) draftStudents.push(st);
+    });
+    // Varsa eksik kalanları ekle
+    filtered.forEach(s => {
+      if (!hwWalkOrderDraft.includes(String(s.id))) {
+        draftStudents.push(s);
+        hwWalkOrderDraft.push(String(s.id));
+      }
+    });
+
+    if (draftStudents.length === 0) {
+      container.innerHTML = '<div style="padding: 2rem; text-align: center; color: var(--m-text-muted);">Ödev kontrolü için öğrenci bulunamadı.</div>';
+      return;
+    }
+
+    container.innerHTML = draftStudents.map((st, idx) => {
+      const avatarColor = getAvatarColor(st.id || st.name);
+      const isFirst = (idx === 0);
+      const isLast = (idx === draftStudents.length - 1);
+      return `
+        <div style="display: flex; align-items: center; gap: 8px; padding: 7px 10px; background: var(--m-surface); border: 1px solid var(--m-border); border-radius: 10px; margin-bottom: 6px;">
+          <div style="font-weight: 800; font-size: 0.78rem; color: var(--m-primary); min-width: 24px;">#${idx + 1}</div>
+          <div style="width: 32px; height: 32px; border-radius: 50%; background-color: ${avatarColor}; color: #fff; font-weight: 800; font-size: 0.8rem; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+            ${st.photo ? `<img src="${st.photo}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">` : escapeHTML(st.name.charAt(0).toUpperCase())}
+          </div>
+          <div style="flex: 1; min-width: 0;">
+            <div style="font-weight: 700; font-size: 0.85rem; color: var(--m-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+              ${escapeHTML(st.name)} ${escapeHTML(st.surname || '')}
+            </div>
+            <div style="font-size: 0.7rem; color: var(--m-text-muted);">
+              ${st.number ? `No: ${escapeHTML(st.number)}` : ''} ${st.branch ? `| ${escapeHTML(st.branch)}` : ''}
+            </div>
+          </div>
+          <div style="display: flex; gap: 4px; flex-shrink: 0;">
+            <button type="button" onclick="window.moveHwWalkStudent(${idx}, -1)" ${isFirst ? 'disabled style="opacity: 0.35;"' : ''} style="width: 30px; height: 30px; border-radius: 6px; border: 1px solid var(--m-border); background: var(--m-surface-subtle); display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--m-text); font-weight: 800;">
+              ▲
+            </button>
+            <button type="button" onclick="window.moveHwWalkStudent(${idx}, 1)" ${isLast ? 'disabled style="opacity: 0.35;"' : ''} style="width: 30px; height: 30px; border-radius: 6px; border: 1px solid var(--m-border); background: var(--m-surface-subtle); display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--m-text); font-weight: 800;">
+              ▼
+            </button>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    if (window.lucide) window.lucide.createIcons();
+  }
+
+  window.moveHwWalkStudent = (index, delta) => {
+    const target = index + delta;
+    if (target < 0 || target >= hwWalkOrderDraft.length) return;
+    const temp = hwWalkOrderDraft[index];
+    hwWalkOrderDraft[index] = hwWalkOrderDraft[target];
+    hwWalkOrderDraft[target] = temp;
+    window.vibrate(20);
+    renderHwOrderList();
+  };
+
+  window.applyHwWalkPreset = (preset) => {
+    const filtered = getFilteredStudents();
+    if (!filtered || filtered.length === 0) return;
+
+    if (preset === 'number') {
+      filtered.sort((a, b) => {
+        const numA = parseInt(a.number) || 999999;
+        const numB = parseInt(b.number) || 999999;
+        return numA - numB;
+      });
+      hwWalkOrderDraft = filtered.map(s => String(s.id));
+      showMobileToast('Numara sırasına göre dizildi');
+    } else if (preset === 'name') {
+      filtered.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'tr'));
+      hwWalkOrderDraft = filtered.map(s => String(s.id));
+      showMobileToast('İsim sırasına (A-Z) göre dizildi');
+    } else if (preset === 'reverse') {
+      hwWalkOrderDraft.reverse();
+      showMobileToast('Mevcut sıra ters çevrildi');
+    } else if (preset === 'seating') {
+      const state = (window.stateManager && window.stateManager.state) || {};
+      const isMiddle = isMiddleSchool();
+      const branchKey = isMiddle ? (activeBranch || 'all') : 'all';
+      const plan = (state.seatingPlans && state.seatingPlans[branchKey]);
+
+      if (plan && Array.isArray(plan.desks) && plan.desks.length > 0) {
+        const seatingIds = [];
+        const sortedDesks = plan.desks.slice().sort((a, b) => {
+          if (Math.abs(a.y - b.y) > 5) return a.y - b.y;
+          return a.x - b.x;
+        });
+        sortedDesks.forEach(desk => {
+          if (Array.isArray(desk.studentIds)) {
+            desk.studentIds.forEach(sid => {
+              if (sid && !seatingIds.includes(String(sid))) seatingIds.push(String(sid));
+            });
+          }
+        });
+
+        const finalIds = [];
+        seatingIds.forEach(id => {
+          if (filtered.some(s => String(s.id) === id)) finalIds.push(id);
+        });
+        filtered.forEach(s => {
+          if (!finalIds.includes(String(s.id))) finalIds.push(String(s.id));
+        });
+        hwWalkOrderDraft = finalIds;
+        showMobileToast('🪑 Oturma planına göre dizildi');
+      } else {
+        showMobileToast('Kayıtlı oturma planı bulunamadı, numara sırasına göre dizildi');
+        filtered.sort((a, b) => (parseInt(a.number) || 999999) - (parseInt(b.number) || 999999));
+        hwWalkOrderDraft = filtered.map(s => String(s.id));
+      }
+    }
+
+    window.vibrate(25);
+    renderHwOrderList();
+  };
+
+  window.saveHwWalkOrder = () => {
+    const branchKey = getHwWalkBranchKey();
+    localStorage.setItem(`sinif_asistani_hw_walk_order_${branchKey}`, JSON.stringify(hwWalkOrderDraft));
+    window.vibrate(40);
+    showMobileToast('✓ Kontrol sırası kaydedildi');
+    window.closeBottomSheet();
+    hwWalkIndex = 0;
+    renderHomeworkTab();
+  };
+
+  // --- YENİ ÖDEV VERME & WHATSAPP PAYLAŞIMI ---
+  window.openNewHomeworkModal = () => {
+    if (window.vibrate) window.vibrate(20);
+    const dateInput = document.getElementById('m-new-hw-date');
+    const titleInput = document.getElementById('m-new-hw-title');
+    const descInput = document.getElementById('m-new-hw-desc');
+    const branchSelect = document.getElementById('m-new-hw-branch');
+    const branchGroup = document.getElementById('m-new-hw-branch-group');
+
+    // 1. Şube seçimi (ortaokul ise)
+    const isMiddle = isMiddleSchool();
+    if (branchGroup) {
+      branchGroup.style.display = isMiddle ? 'block' : 'none';
+      if (isMiddle && branchSelect) {
+        populateBranchOptions(branchSelect);
+        branchSelect.value = (activeBranch && activeBranch !== 'all') ? activeBranch : (branchSelect.options[1]?.value || 'all');
+      }
+    }
+
+    // 2. Bir sonraki okul günü tarihi ayarla
+    window.setNewHwDateQuick('tomorrow');
+
+    if (titleInput) titleInput.value = '';
+    if (descInput) descInput.value = '';
+
+    openBottomSheet('modal-new-homework');
+  };
+
+  window.setNewHwDateQuick = (mode) => {
+    const dateInput = document.getElementById('m-new-hw-date');
+    if (!dateInput) return;
+
+    const now = new Date();
+    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+    if (mode === 'tomorrow') {
+      d.setDate(d.getDate() + 1);
+      // Cuma ise Pazartesi (+2 gün daha), Cumartesi ise Pazartesi (+2 gün daha), Pazar ise Pazartesi (+1 gün)
+      if (d.getDay() === 6) d.setDate(d.getDate() + 2);
+      else if (d.getDay() === 0) d.setDate(d.getDate() + 1);
+    } else if (mode === 'monday') {
+      const day = d.getDay();
+      const diff = (day === 0 ? 1 : 8 - day);
+      d.setDate(d.getDate() + diff);
+    } else if (mode === 'week') {
+      d.setDate(d.getDate() + 7);
+    }
+
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    dateInput.value = `${y}-${m}-${day}`;
+    window.onNewHwDateChanged();
+  };
+
+  window.onNewHwDateChanged = () => {
+    const dateInput = document.getElementById('m-new-hw-date');
+    const badge = document.getElementById('m-new-hw-dayname-badge');
+    if (!dateInput || !badge) return;
+
+    const val = dateInput.value;
+    if (!val) {
+      badge.textContent = '';
+      return;
+    }
+    const parts = val.split('-');
+    const d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+    const days = ['Pazar', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi'];
+
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const diffTime = d.getTime() - today.getTime();
+    const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+
+    let relative = '';
+    if (diffDays === 0) relative = 'Bugün';
+    else if (diffDays === 1) relative = 'Yarın';
+    else if (diffDays === 2) relative = '2 Gün Sonra';
+    else if (diffDays > 2) relative = `${diffDays} Gün Sonra`;
+
+    badge.textContent = relative ? `${relative} (${days[d.getDay()]})` : `${days[d.getDay()]}`;
+  };
+
+  window.appendNewHwSubject = (prefix) => {
+    const titleInput = document.getElementById('m-new-hw-title');
+    if (!titleInput) return;
+    if (!titleInput.value.trim()) {
+      titleInput.value = prefix;
+    } else if (!titleInput.value.startsWith(prefix)) {
+      titleInput.value = prefix + titleInput.value.replace(/^[A-Za-zÇĞİÖŞÜçğıöşü\s]+:\s*/, '');
+    }
+    titleInput.focus();
+  };
+
+  window.saveAndShareNewHomework = (sendWhatsApp) => {
+    const dateInput = document.getElementById('m-new-hw-date');
+    const titleInput = document.getElementById('m-new-hw-title');
+    const descInput = document.getElementById('m-new-hw-desc');
+    const branchSelect = document.getElementById('m-new-hw-branch');
+
+    const dueDate = dateInput ? dateInput.value : '';
+    const title = titleInput ? titleInput.value.trim() : '';
+    const description = descInput ? descInput.value.trim() : '';
+    const isMiddle = isMiddleSchool();
+    const branch = isMiddle && branchSelect ? branchSelect.value : (activeBranch || '');
+
+    if (!dueDate) {
+      showMobileToast('Lütfen teslim tarihini seçin');
+      return;
+    }
+    if (!title) {
+      showMobileToast('Lütfen ödev konusunu girin');
+      return;
+    }
+
+    if (!window.stateManager) {
+      showMobileToast('Hata: Sistem yöneticisi bulunamadı');
+      return;
+    }
+
+    const state = window.stateManager.loadState();
+    let hw = (state.homeworks || []).find(h =>
+      h.dueDate === dueDate &&
+      (!isMiddle || h.branch === branch || (!h.branch && branch === 'all'))
+    );
+
+    if (hw) {
+      window.stateManager.updateHomework(hw.id, { title, description, dueDate, branch });
+    } else {
+      hw = window.stateManager.addHomework({ title, description, dueDate, branch });
+    }
+
+    // Aktif ödev tarihini güncelleyip sekmede göster
+    currentHwDate = dueDate;
+    window.vibrate(40);
+    renderHomeworkTab();
+    const event = new CustomEvent('stateChanged');
+    document.dispatchEvent(event);
+
+    window.closeBottomSheet();
+
+    if (sendWhatsApp) {
+      const parts = dueDate.split('-');
+      const d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+      const days = ['Pazar', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi'];
+      const months = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
+      const formattedDate = `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}, ${days[d.getDay()]}`;
+
+      let msg = `📚 *YENİ ÖDEV BİLDİRİMİ*\n\n`;
+      if (branch && branch !== 'all') {
+        msg += `🏷️ *Sınıf / Şube:* ${branch}\n`;
+      }
+      msg += `🗓️ *Son Teslim / Kontrol Tarihi:* ${formattedDate}\n`;
+      msg += `📖 *Ödev Konusu:* ${title}\n`;
+      if (description) {
+        msg += `📝 *Açıklama & Detay:* ${description}\n`;
+      }
+      msg += `\n✨ _Sınıf Asistanı ile gönderildi_`;
+
+      showMobileToast('Ödev kaydedildi! WhatsApp açılıyor...');
+      setTimeout(() => {
+        shareHomeworkWhatsAppMessage(msg);
+      }, 350);
+    } else {
+      showMobileToast('✓ Ödev başarıyla kaydedildi');
+    }
+  };
+
+  function shareHomeworkWhatsAppMessage(message) {
+    const encoded = encodeURIComponent(message);
+    const groupLink = (window.stateManager && typeof window.stateManager.getWhatsappGroupLink === 'function')
+      ? window.stateManager.getWhatsappGroupLink()
+      : '';
+
+    // Metni panoya da kopyala
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(message).catch(() => {});
+    }
+
+    // Grup davet linki varsa doğrudan gruba yönlendir
+    if (groupLink && groupLink.trim().startsWith('https://chat.whatsapp.com/')) {
+      showMobileToast('Ödev panoya kopyalandı, grup açılıyor...');
+      setTimeout(() => {
+        try {
+          window.location.href = groupLink.trim();
+        } catch (e) {
+          window.open(groupLink.trim(), '_blank');
+        }
+      }, 300);
+      return;
+    }
+
+    // Doğrudan WhatsApp paylaşımı
+    const waUrl = `https://api.whatsapp.com/send?text=${encoded}`;
+    try {
+      window.location.href = waUrl;
+    } catch (e) {
+      if (window.AndroidBridge && typeof window.AndroidBridge.shareData === 'function') {
+        window.AndroidBridge.shareData(message, 'Ödev Bildirimi', 'text/plain');
+      } else {
+        window.open(waUrl, '_blank');
+      }
+    }
+  }
+
+  window.shareCurrentDateHomeworkWhatsApp = () => {
+    const state = window.stateManager ? window.stateManager.loadState() : null;
+    const isMiddle = isMiddleSchool();
+    const branch = isMiddle ? (activeBranch || '') : '';
+    const hw = (state && state.homeworks) ? state.homeworks.find(h =>
+      h.dueDate === currentHwDate &&
+      (!isMiddle || h.branch === branch || (!h.branch && branch === 'all'))
+    ) : null;
+
+    if (!hw) {
+      showMobileToast('Bu güne ait kayıtlı ödev bulunamadı.');
+      return;
+    }
+
+    const parts = currentHwDate.split('-');
+    const d = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+    const days = ['Pazar', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi'];
+    const months = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
+    const formattedDate = `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}, ${days[d.getDay()]}`;
+
+    let msg = `📚 *ÖDEV BİLDİRİMİ*\n\n`;
+    if (hw.branch && hw.branch !== 'all') {
+      msg += `🏷️ *Sınıf / Şube:* ${hw.branch}\n`;
+    }
+    msg += `🗓️ *Son Teslim / Kontrol Tarihi:* ${formattedDate}\n`;
+    msg += `📖 *Ödev Konusu:* ${hw.title}\n`;
+    if (hw.description) {
+      msg += `📝 *Açıklama & Detay:* ${hw.description}\n`;
+    }
+    msg += `\n✨ _Sınıf Asistanı ile gönderildi_`;
+
+    shareHomeworkWhatsAppMessage(msg);
+  };
 
   function renderHomeworkTab() {
     const students = getFilteredStudents();
@@ -2138,10 +2859,14 @@
     const listWrapper = document.getElementById('hw-list-wrapper');
     const toggleWalkBtn = document.getElementById('btn-hw-mode-walk');
     const toggleListBtn = document.getElementById('btn-hw-mode-list');
+    const orderBtn = document.getElementById('btn-hw-mode-order');
 
     if (toggleWalkBtn && toggleListBtn) {
       toggleWalkBtn.classList.toggle('active', hwMode === 'walk');
       toggleListBtn.classList.toggle('active', hwMode === 'list');
+    }
+    if (orderBtn) {
+      orderBtn.style.display = (hwMode === 'walk') ? 'inline-flex' : 'none';
     }
 
     updateHwDateDisplay();
@@ -2149,7 +2874,8 @@
     if (hwMode === 'walk') {
       if (walkContainer) walkContainer.style.display = 'block';
       if (listWrapper) listWrapper.style.display = 'none';
-      renderHomeworkWalkCard(students);
+      const walkStudents = getHomeworkWalkStudents();
+      renderHomeworkWalkCard(walkStudents);
     } else {
       if (walkContainer) walkContainer.style.display = 'none';
       if (listWrapper) listWrapper.style.display = 'block';
@@ -2161,7 +2887,7 @@
     const container = document.getElementById('hw-walk-card-inner');
     if (!container) return;
 
-    if (students.length === 0) {
+    if (!students || students.length === 0) {
       container.innerHTML = `<p style="padding: 2rem; color: var(--m-text-muted);">Ödev kontrolü için öğrenci bulunamadı.</p>`;
       return;
     }
@@ -2179,7 +2905,13 @@
     const statusColor = curStatus === 'completed' ? 'var(--m-success)' : (curStatus === 'incomplete' || curStatus === 'partial') ? 'var(--m-warning)' : curStatus === 'missing' ? 'var(--m-danger)' : 'var(--m-text-muted)';
 
     container.innerHTML = `
-      <div class="hw-walk-counter">Sıradaki: ${hwWalkIndex + 1} / ${students.length} (%${Math.round(((hwWalkIndex + 1) / students.length) * 100)})</div>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.65rem; width: 100%;">
+        <div class="hw-walk-counter" style="margin-bottom: 0;">Sıradaki: ${hwWalkIndex + 1} / ${students.length} (%${Math.round(((hwWalkIndex + 1) / students.length) * 100)})</div>
+        <button type="button" onclick="window.openHomeworkOrderModal()" style="background: var(--m-surface-subtle); border: 1px solid var(--m-border); color: var(--m-primary); font-size: 0.74rem; font-weight: 700; padding: 4px 9px; border-radius: 8px; display: inline-flex; align-items: center; gap: 4px; cursor: pointer;">
+          <i data-lucide="arrow-up-down" style="width: 13px; height: 13px;"></i>
+          <span>Sırayı Düzenle</span>
+        </button>
+      </div>
       <div class="hw-walk-avatar" style="background-color: ${avatarColor};">
         ${st.photo ? `<img src="${st.photo}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">` : escapeHTML(st.name.charAt(0).toUpperCase())}
       </div>
@@ -2230,7 +2962,7 @@
     showMobileToast(`${st ? st.name : 'Öğrenci'}: ${statusText}`);
 
     // Otomatik bir sonraki öğrenciye geç
-    const students = getFilteredStudents();
+    const students = getHomeworkWalkStudents();
     if (hwWalkIndex < students.length - 1) {
       hwWalkIndex++;
     } else {
@@ -2241,14 +2973,14 @@
   };
 
   window.nextHwStudent = () => {
-    const students = getFilteredStudents();
+    const students = getHomeworkWalkStudents();
     if (hwWalkIndex < students.length - 1) hwWalkIndex++;
     else hwWalkIndex = 0;
     renderHomeworkWalkCard(students);
   };
 
   window.prevHwStudent = () => {
-    const students = getFilteredStudents();
+    const students = getHomeworkWalkStudents();
     if (hwWalkIndex > 0) hwWalkIndex--;
     else hwWalkIndex = students.length - 1;
     renderHomeworkWalkCard(students);
@@ -3292,7 +4024,12 @@
   window.buyMobileLicense = () => {
     const devId = localStorage.getItem('sinif_asistani_device_uuid') || '';
     const msg = encodeURIComponent(`Merhaba, Sınıf Asistanı Android sürümü için lisans satın almak istiyorum. Cihaz ID: ${devId}`);
-    window.open(`https://wa.me/905335601267?text=${msg}`, '_blank');
+    const url = `https://wa.me/905058856785?text=${msg}`;
+    try {
+      window.location.href = url;
+    } catch (e) {
+      window.open(url, '_blank');
+    }
   };
 
   // --- SİSTEM SIFIRLAMA ---
@@ -3322,31 +4059,50 @@
       const posList = behaviors.positive || [];
       posContainer.innerHTML = posList.length === 0
         ? '<div style="font-size: 0.75rem; color: var(--m-text-muted); padding: 4px;">Kayıtlı olumlu davranış bulunmuyor.</div>'
-        : posList.map(b => `
-          <div class="m-behavior-row">
-            <span style="flex: 1;">${escapeHTML(b.title)}</span>
-            <span class="badge" style="background: var(--m-success); color: white; padding: 2px 7px; border-radius: 10px; font-size: 0.72rem; font-weight: 700;">+${b.points}</span>
-            <button onclick="window.deleteMobileBehavior('positive', '${b.id}')" style="background: none; border: none; padding: 2px 4px; color: var(--m-danger); cursor: pointer;">
-              <i data-lucide="x" style="width: 14px; height: 14px;"></i>
-            </button>
-          </div>
-        `).join('');
+        : posList.map((b, idx) => {
+          const bId = b.id || ('pos_' + idx);
+          const icon = b.icon || '⭐';
+          const name = b.name || b.title || 'Davranış';
+          const pts = b.point !== undefined ? Math.abs(b.point) : (b.points !== undefined ? Math.abs(b.points) : 5);
+          return `
+            <div class="m-behavior-row">
+              <button type="button" class="m-behavior-emoji-pill" onclick="window.openBehaviorEmojiPicker('existing', 'positive', '${bId}', '${encodeURIComponent(name)}')" title="Emojiyi Değiştir">
+                ${icon}
+              </button>
+              <span style="flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHTML(name)}</span>
+              <span class="badge" onclick="window.editMobileBehaviorPoints('positive', '${bId}', '${encodeURIComponent(name)}', ${pts})" style="background: var(--m-success); color: white; padding: 2px 7px; border-radius: 10px; font-size: 0.72rem; font-weight: 700; cursor: pointer;" title="Puanı Değiştir">+${pts}</span>
+              <button type="button" onclick="window.deleteMobileBehavior('positive', '${bId}', '${encodeURIComponent(name)}')" style="background: none; border: none; padding: 2px 4px; color: var(--m-danger); cursor: pointer;" title="Sil">
+                <i data-lucide="x" style="width: 14px; height: 14px;"></i>
+              </button>
+            </div>
+          `;
+        }).join('');
     }
 
     const devContainer = document.getElementById('m-cfg-dev-behaviors-list');
     if (devContainer) {
-      const devList = behaviors.development || [];
+      const devList = behaviors.development || behaviors.negative || [];
       devContainer.innerHTML = devList.length === 0
         ? '<div style="font-size: 0.75rem; color: var(--m-text-muted); padding: 4px;">Kayıtlı geliştirilmeli davranış bulunmuyor.</div>'
-        : devList.map(b => `
-          <div class="m-behavior-row">
-            <span style="flex: 1;">${escapeHTML(b.title)}</span>
-            <span class="badge" style="background: var(--m-danger); color: white; padding: 2px 7px; border-radius: 10px; font-size: 0.72rem; font-weight: 700;">${b.points}</span>
-            <button onclick="window.deleteMobileBehavior('development', '${b.id}')" style="background: none; border: none; padding: 2px 4px; color: var(--m-danger); cursor: pointer;">
-              <i data-lucide="x" style="width: 14px; height: 14px;"></i>
-            </button>
-          </div>
-        `).join('');
+        : devList.map((b, idx) => {
+          const bId = b.id || ('dev_' + idx);
+          const icon = b.icon || '⚠️';
+          const name = b.name || b.title || 'Davranış';
+          let pts = b.point !== undefined ? b.point : (b.points !== undefined ? b.points : -5);
+          if (pts > 0) pts = -pts;
+          return `
+            <div class="m-behavior-row">
+              <button type="button" class="m-behavior-emoji-pill" onclick="window.openBehaviorEmojiPicker('existing', 'development', '${bId}', '${encodeURIComponent(name)}')" title="Emojiyi Değiştir">
+                ${icon}
+              </button>
+              <span style="flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHTML(name)}</span>
+              <span class="badge" onclick="window.editMobileBehaviorPoints('development', '${bId}', '${encodeURIComponent(name)}', ${pts})" style="background: var(--m-danger); color: white; padding: 2px 7px; border-radius: 10px; font-size: 0.72rem; font-weight: 700; cursor: pointer;" title="Puanı Değiştir">${pts}</span>
+              <button type="button" onclick="window.deleteMobileBehavior('development', '${bId}', '${encodeURIComponent(name)}')" style="background: none; border: none; padding: 2px 4px; color: var(--m-danger); cursor: pointer;" title="Sil">
+                <i data-lucide="x" style="width: 14px; height: 14px;"></i>
+              </button>
+            </div>
+          `;
+        }).join('');
     }
 
     // 2. Ödev Puanları
@@ -3394,6 +4150,119 @@
     if (window.lucide) window.lucide.createIcons();
   }
 
+  // ==========================================================================
+  // DAVRANIŞ EMOJİ SEÇİCİ & YÖNETİMİ
+  // ==========================================================================
+  window.behaviorEmojiTarget = null;
+
+  window.openBehaviorEmojiPicker = (targetType, category, behaviorId, behaviorName) => {
+    window.vibrate(20);
+    window.behaviorEmojiTarget = {
+      targetType, // 'pos-new', 'dev-new', 'existing'
+      category: category || 'positive', // 'positive', 'development'
+      behaviorId,
+      behaviorName: behaviorName ? decodeURIComponent(behaviorName) : ''
+    };
+
+    const titleEl = document.getElementById('m-emoji-picker-title');
+    if (titleEl) {
+      if (targetType === 'existing') {
+        titleEl.textContent = `Emoji Değiştir: ${window.behaviorEmojiTarget.behaviorName || 'Davranış'}`;
+      } else if (targetType === 'pos-new') {
+        titleEl.textContent = 'Olumlu Davranış Emojisi Seç';
+      } else {
+        titleEl.textContent = 'Geliştirilmeli Davranış Emojisi Seç';
+      }
+    }
+
+    const input = document.getElementById('m-emoji-custom-input');
+    if (input) input.value = '';
+
+    openBottomSheet('modal-behavior-emoji-picker');
+  };
+
+  window.selectBehaviorEmoji = (emoji) => {
+    if (!emoji) return;
+    window.vibrate(25);
+    const target = window.behaviorEmojiTarget;
+    if (!target) return;
+
+    if (target.targetType === 'pos-new') {
+      const prev = document.getElementById('m-new-pos-emoji-preview');
+      const hidden = document.getElementById('m-new-pos-emoji');
+      if (prev) prev.textContent = emoji;
+      if (hidden) hidden.value = emoji;
+      closeBottomSheet();
+    } else if (target.targetType === 'dev-new') {
+      const prev = document.getElementById('m-new-dev-emoji-preview');
+      const hidden = document.getElementById('m-new-dev-emoji');
+      if (prev) prev.textContent = emoji;
+      if (hidden) hidden.value = emoji;
+      closeBottomSheet();
+    } else if (target.targetType === 'existing') {
+      if (window.stateManager && window.stateManager.state.performanceBehaviors) {
+        const cat = target.category || 'positive';
+        let list = window.stateManager.state.performanceBehaviors[cat];
+        if (!list && cat === 'development') list = window.stateManager.state.performanceBehaviors.negative;
+        if (list) {
+          const item = list.find(b => (b.id && b.id === target.behaviorId) || ((b.name || b.title) && (b.name || b.title) === target.behaviorName));
+          if (item) {
+            item.icon = emoji;
+            window.stateManager.saveState(`Davranış emojisi güncellendi: ${emoji}`);
+            closeBottomSheet();
+            renderMobilePointsConfig();
+            showMobileToast(`✅ Emoji güncellendi: ${emoji}`);
+          } else {
+            closeBottomSheet();
+          }
+        } else {
+          closeBottomSheet();
+        }
+      } else {
+        closeBottomSheet();
+      }
+    }
+  };
+
+  window.applyCustomBehaviorEmoji = () => {
+    const input = document.getElementById('m-emoji-custom-input');
+    const val = input ? input.value.trim() : '';
+    if (!val) {
+      showMobileToast('Lütfen bir emoji veya simge girin');
+      return;
+    }
+    window.selectBehaviorEmoji(val);
+  };
+
+  window.editMobileBehaviorPoints = async (type, id, encodedName, currentPts) => {
+    window.vibrate(20);
+    const name = encodedName ? decodeURIComponent(encodedName) : 'Davranış';
+    const inputVal = await (window.promptAsync 
+      ? window.promptAsync(`"${name}" için puan değerini girin:`, Math.abs(currentPts)) 
+      : Promise.resolve(prompt(`"${name}" için puan değerini girin:`, Math.abs(currentPts))));
+    if (inputVal === null || inputVal.trim() === '') return;
+    let newPts = parseInt(inputVal, 10);
+    if (isNaN(newPts)) return;
+    if (type === 'positive') newPts = Math.abs(newPts) || 1;
+    if (type === 'development') newPts = -(Math.abs(newPts) || 1);
+
+    if (window.stateManager && window.stateManager.state.performanceBehaviors) {
+      const cat = type;
+      let list = window.stateManager.state.performanceBehaviors[cat];
+      if (!list && cat === 'development') list = window.stateManager.state.performanceBehaviors.negative;
+      if (list) {
+        const item = list.find(b => (b.id && b.id === id) || ((b.name || b.title) && (b.name || b.title) === name));
+        if (item) {
+          item.point = newPts;
+          item.points = newPts;
+          window.stateManager.saveState(`Davranış puanı güncellendi: ${newPts}`);
+          renderMobilePointsConfig();
+          showMobileToast(`✅ "${name}" puanı güncellendi: ${newPts > 0 ? '+' : ''}${newPts}`);
+        }
+      }
+    }
+  };
+
   window.renderMobileExamRanks = () => {
     const topCountEl = document.getElementById('m-cfg-exam-topcount');
     const container = document.getElementById('m-cfg-exam-ranks-container');
@@ -3420,8 +4289,10 @@
   window.addMobilePosBehavior = () => {
     const nameEl = document.getElementById('m-new-pos-name');
     const ptsEl = document.getElementById('m-new-pos-pts');
+    const emojiEl = document.getElementById('m-new-pos-emoji');
     const title = nameEl ? nameEl.value.trim() : '';
     const points = ptsEl ? (parseInt(ptsEl.value) || 5) : 5;
+    const icon = (emojiEl && emojiEl.value.trim()) ? emojiEl.value.trim() : '⭐';
 
     if (!title) {
       showMobileToast('Lütfen davranış başlığı girin');
@@ -3436,27 +4307,31 @@
     }
 
     const newBh = {
-      id: 'bh_' + Date.now(),
+      id: 'bh_' + Date.now() + Math.random().toString(36).substr(2, 4),
       title,
+      name: title,
       points: Math.abs(points),
-      icon: '⭐',
+      point: Math.abs(points),
+      icon,
       category: 'positive'
     };
     window.stateManager.state.performanceBehaviors.positive.push(newBh);
-    window.stateManager.saveState();
+    window.stateManager.saveState('Yeni olumlu davranış eklendi');
 
     if (nameEl) nameEl.value = '';
     window.vibrate(20);
     renderMobilePointsConfig();
-    showMobileToast('✅ Olumlu davranış eklendi');
+    showMobileToast(`✅ Olumlu davranış eklendi (${icon})`);
   };
 
   window.addMobileDevBehavior = () => {
     const nameEl = document.getElementById('m-new-dev-name');
     const ptsEl = document.getElementById('m-new-dev-pts');
+    const emojiEl = document.getElementById('m-new-dev-emoji');
     const title = nameEl ? nameEl.value.trim() : '';
     let points = ptsEl ? (parseInt(ptsEl.value) || -5) : -5;
     if (points > 0) points = -points;
+    const icon = (emojiEl && emojiEl.value.trim()) ? emojiEl.value.trim() : '⚠️';
 
     if (!title) {
       showMobileToast('Lütfen davranış başlığı girin');
@@ -3471,27 +4346,34 @@
     }
 
     const newBh = {
-      id: 'bh_' + Date.now(),
+      id: 'bh_' + Date.now() + Math.random().toString(36).substr(2, 4),
       title,
+      name: title,
       points,
-      icon: '⚠️',
+      point: points,
+      icon,
       category: 'development'
     };
     window.stateManager.state.performanceBehaviors.development.push(newBh);
-    window.stateManager.saveState();
+    window.stateManager.saveState('Yeni geliştirilmeli davranış eklendi');
 
     if (nameEl) nameEl.value = '';
     window.vibrate(20);
     renderMobilePointsConfig();
-    showMobileToast('✅ Geliştirilmeli davranış eklendi');
+    showMobileToast(`✅ Geliştirilmeli davranış eklendi (${icon})`);
   };
 
-  window.deleteMobileBehavior = (type, id) => {
-    if (!confirm('Bu davranışı silmek istediğinize emin misiniz?')) return;
+  window.deleteMobileBehavior = (type, id, encodedName) => {
+    const name = encodedName ? decodeURIComponent(encodedName) : '';
+    if (!confirm(`"${name || 'Bu davranışı'}" silmek istediğinize emin misiniz?`)) return;
     if (window.stateManager && window.stateManager.state.performanceBehaviors) {
       const list = window.stateManager.state.performanceBehaviors[type] || [];
-      window.stateManager.state.performanceBehaviors[type] = list.filter(b => b.id !== id);
-      window.stateManager.saveState();
+      window.stateManager.state.performanceBehaviors[type] = list.filter(b => {
+        if (id && b.id) return b.id !== id;
+        if (name && (b.name || b.title)) return (b.name || b.title) !== name;
+        return true;
+      });
+      window.stateManager.saveState('Davranış silindi');
       window.vibrate(15);
       renderMobilePointsConfig();
       showMobileToast('Davranış silindi');

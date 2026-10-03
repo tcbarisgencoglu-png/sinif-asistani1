@@ -29,11 +29,29 @@
     </div>
 
     <div class="appbar-right">
+      <!-- 1. Süre Tut -->
+      <button class="appbar-btn" title="Süre Tut (Sayaç & Kronometre)" onclick="window.openToolModal('timer')">
+        <i data-lucide="timer" style="width: 19px; height: 19px;"></i>
+      </button>
+
+      <!-- 2. Rastgele Öğrenci Seç (Kura) -->
+      <button class="appbar-btn" title="Rastgele Öğrenci Seç (Kura)" onclick="window.openToolModal('lucky')">
+        <i data-lucide="dices" style="width: 19px; height: 19px;"></i>
+      </button>
+
+      <!-- 3. Toplu Değişken Puan Gir -->
+      <button class="appbar-btn" title="Toplu Değişken Puan Gir" onclick="window.openBulkVariablePointsModal()">
+        <i data-lucide="award" style="width: 19px; height: 19px;"></i>
+      </button>
+
+      <!-- 4. Tam Ekran Yap -->
+      <button class="appbar-btn" id="btn-appbar-fullscreen" title="Tam Ekran Yap" onclick="window.toggleMobileFullscreen()">
+        <i data-lucide="maximize" id="appbar-fs-icon" style="width: 19px; height: 19px;"></i>
+      </button>
+
+      <!-- Tema Değiştirici -->
       <button class="appbar-btn" title="Karanlık/Aydınlık Tema" onclick="document.body.dataset.theme = document.body.dataset.theme === 'dark' ? 'light' : 'dark';">
         <i data-lucide="moon" style="width: 18px; height: 18px;"></i>
-      </button>
-      <button class="appbar-btn" title="Hızlı Sayaç" onclick="window.switchTab('more')">
-        <i data-lucide="timer" style="width: 18px; height: 18px;"></i>
       </button>
     </div>
   </header>
@@ -100,6 +118,14 @@
 
     <!-- 2. SEKME: SERİ ÖDEV KONTROLÜ -->
     <div class="tab-pane" id="tab-homework">
+      <!-- Üst Eylem: Yeni Ödev Ver Butonu -->
+      <div style="margin-bottom: 0.75rem;">
+        <button type="button" class="subview-primary-action-btn" onclick="window.openNewHomeworkModal()" style="width: 100%; margin: 0; padding: 0.75rem 1rem; background: linear-gradient(135deg, #4f46e5, #6366f1); font-size: 0.92rem; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 8px; border-radius: var(--m-radius-sm); box-shadow: 0 4px 14px rgba(79, 70, 229, 0.3);">
+          <i data-lucide="plus-circle" style="width: 18px; height: 18px;"></i>
+          <span>➕ Yeni Ödev Ver & WhatsApp'ta Paylaş</span>
+        </button>
+      </div>
+
       <!-- Gün Navigasyonu (1 Günlük Liste Kontrolü) -->
       <div class="hw-date-navigator">
         <button class="hw-date-nav-btn" id="btn-hw-prev-day" title="Önceki Gün">
@@ -114,20 +140,23 @@
         </button>
       </div>
 
-      <div class="hw-mode-toggle">
-        <button class="hw-mode-btn" id="btn-hw-mode-list">📋 Tüm Liste</button>
-        <button class="hw-mode-btn active" id="btn-hw-mode-walk">🚶‍♂️ Sıra Gezme</button>
+      <div class="hw-mode-toggle" style="display: flex; gap: 6px;">
+        <button class="hw-mode-btn active" id="btn-hw-mode-list" style="flex: 1;">📋 Tüm Liste</button>
+        <button class="hw-mode-btn" id="btn-hw-mode-walk" style="flex: 1;">🚶‍♂️ Sıra Gezme</button>
+        <button type="button" class="hw-mode-btn" id="btn-hw-mode-order" onclick="window.openHomeworkOrderModal()" title="Sıra Gezme Kontrol Sırasını Düzenle" style="flex: 0 0 auto; padding: 0.45rem 0.65rem; display: none;">
+          <i data-lucide="arrow-up-down" style="width: 14px; height: 14px; vertical-align: middle;"></i> Sıra
+        </button>
       </div>
 
       <!-- Sıra Sıra Gezme Odak Kartı -->
-      <div id="hw-walk-container">
+      <div id="hw-walk-container" style="display: none;">
         <div class="hw-walk-card" id="hw-walk-card-inner">
           <!-- Dinamik öğrenci odak kartı -->
         </div>
       </div>
 
       <!-- 1 Günlük Tüm Liste Modu -->
-      <div id="hw-list-wrapper" style="display: none;">
+      <div id="hw-list-wrapper">
         <div class="hw-list-summary-bar" id="hw-list-summary-bar">
           <!-- Dinamik özet istatistikler -->
         </div>
@@ -266,24 +295,6 @@
           <div style="font-size: 0.7rem; color: var(--m-text-muted);">Günlük yoklama & devam</div>
         </div>
 
-        <!-- 2. Kura (Şanslı Öğrenci) -->
-        <div class="tool-compact-card" role="button" tabindex="0" onclick="window.openToolModal('lucky')">
-          <div class="tool-icon-circle" style="background: rgba(245, 158, 11, 0.12); color: var(--m-warning);">
-            🎲
-          </div>
-          <div style="font-weight: 800; font-size: 0.88rem; color: var(--m-text);">Şanslı Öğrenci</div>
-          <div style="font-size: 0.7rem; color: var(--m-text-muted);">Sözlü & etkinlik kurası</div>
-        </div>
-
-        <!-- 3. Sayaç -->
-        <div class="tool-compact-card" role="button" tabindex="0" onclick="window.openToolModal('timer')">
-          <div class="tool-icon-circle" style="background: rgba(79, 70, 229, 0.12); color: var(--m-primary);">
-            ⏱️
-          </div>
-          <div style="font-weight: 800; font-size: 0.88rem; color: var(--m-text);">Akıllı Sayaç</div>
-          <div style="font-size: 0.7rem; color: var(--m-text-muted);">Geri sayım ve alarm</div>
-        </div>
-
         <!-- 4. Sesler -->
         <div class="tool-compact-card" role="button" tabindex="0" onclick="window.openToolModal('sounds')">
           <div class="tool-icon-circle" style="background: rgba(244, 63, 94, 0.12); color: var(--m-danger);">
@@ -409,22 +420,6 @@
           <div class="bento-info">
             <div class="bento-title">Görevler</div>
             <div class="bento-desc">Görev takip asistanı, aktif ve teslim edilen görevler.</div>
-          </div>
-        </div>
-
-        <!-- 4. Araçlar -->
-        <div class="bento-card bento-tools" onclick="window.switchTab('tools')">
-          <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-            <div class="bento-icon-box">
-              <i data-lucide="wrench"></i>
-            </div>
-            <div class="bento-arrow">
-              <i data-lucide="chevron-right" style="width: 18px; height: 18px;"></i>
-            </div>
-          </div>
-          <div class="bento-info">
-            <div class="bento-title">Araçlar</div>
-            <div class="bento-desc">Sayaç, kura, gruplar, nöbet ve ses efektleri.</div>
           </div>
         </div>
 
@@ -992,23 +987,6 @@
         <div style="font-size: 0.7rem; color: var(--m-text-muted);">Günlük yoklama & devam</div>
       </div>
 
-      <!-- 2. Kura -->
-      <div class="tool-compact-card" role="button" tabindex="0" onclick="window.openToolModal('lucky')">
-        <div class="tool-icon-circle" style="background: rgba(245, 158, 11, 0.12); color: var(--m-warning);">
-          🎲
-        </div>
-        <div style="font-weight: 800; font-size: 0.88rem; color: var(--m-text);">Şanslı Öğrenci</div>
-        <div style="font-size: 0.7rem; color: var(--m-text-muted);">Sözlü & etkinlik kurası</div>
-      </div>
-
-      <!-- 2. Sayaç -->
-      <div class="tool-compact-card" role="button" tabindex="0" onclick="window.openToolModal('timer')">
-        <div class="tool-icon-circle" style="background: rgba(79, 70, 229, 0.12); color: var(--m-primary);">
-          ⏱️
-        </div>
-        <div style="font-weight: 800; font-size: 0.88rem; color: var(--m-text);">Akıllı Sayaç</div>
-        <div style="font-size: 0.7rem; color: var(--m-text-muted);">Geri sayım ve alarm</div>
-      </div>
 
       <!-- 3. Sesler -->
       <div class="tool-compact-card" role="button" tabindex="0" onclick="window.openToolModal('sounds')">
@@ -1311,11 +1289,11 @@
               </div>
               <div>
                 <div style="font-size: 0.85rem; font-weight: 800; color: #15803d;">Lisans Satın Alma & Destek</div>
-                <div style="font-size: 0.72rem; color: var(--m-text-muted);">Ömür boyu tam sürüm lisansı için WhatsApp'tan ulaşın.</div>
+                <div style="font-size: 0.72rem; color: var(--m-text-muted);">Ömür boyu tam sürüm lisansı için WhatsApp'tan ulaşın: 0505 885 67 85</div>
               </div>
             </div>
             <button class="m-btn-sm" onclick="window.buyMobileLicense()" style="background: #25D366; color: #fff; font-weight: 700; justify-content: center; border: none; padding: 0.6rem;">
-              <i data-lucide="message-circle" style="width: 16px; height: 16px;"></i> WhatsApp ile İletişime Geç
+              <i data-lucide="message-circle" style="width: 16px; height: 16px;"></i> WhatsApp ile İletişime Geç (0505 885 67 85)
             </button>
           </div>
         </div>
@@ -1395,10 +1373,14 @@
               <!-- JS ile doldurulacak -->
             </div>
             <!-- Yeni Olumlu Ekle -->
-            <div style="display: flex; gap: 6px;">
+            <div style="display: flex; gap: 6px; align-items: center;">
+              <button type="button" id="m-new-pos-emoji-btn" class="m-cfg-emoji-btn" onclick="window.openBehaviorEmojiPicker('pos-new')" title="Emoji Seç">
+                <span id="m-new-pos-emoji-preview">⭐</span>
+              </button>
+              <input type="hidden" id="m-new-pos-emoji" value="⭐">
               <input type="text" id="m-new-pos-name" class="m-form-input" placeholder="Yeni olumlu davranış adı..." style="flex: 2; font-size: 0.8rem; padding: 6px 10px;">
-              <input type="number" id="m-new-pos-pts" class="m-form-input" value="5" min="1" max="100" style="flex: 1; font-size: 0.8rem; padding: 6px 8px; text-align: center;">
-              <button class="m-btn-sm primary" onclick="window.addMobilePosBehavior()" style="padding: 6px 12px;">Ekle</button>
+              <input type="number" id="m-new-pos-pts" class="m-form-input" value="5" min="1" max="100" style="width: 58px; font-size: 0.8rem; padding: 6px 8px; text-align: center;">
+              <button class="m-btn-sm primary" onclick="window.addMobilePosBehavior()" style="padding: 6px 12px; white-space: nowrap;">Ekle</button>
             </div>
           </div>
 
@@ -1411,10 +1393,14 @@
               <!-- JS ile doldurulacak -->
             </div>
             <!-- Yeni Geliştirilmeli Ekle -->
-            <div style="display: flex; gap: 6px;">
+            <div style="display: flex; gap: 6px; align-items: center;">
+              <button type="button" id="m-new-dev-emoji-btn" class="m-cfg-emoji-btn" onclick="window.openBehaviorEmojiPicker('dev-new')" title="Emoji Seç">
+                <span id="m-new-dev-emoji-preview">⚠️</span>
+              </button>
+              <input type="hidden" id="m-new-dev-emoji" value="⚠️">
               <input type="text" id="m-new-dev-name" class="m-form-input" placeholder="Yeni geliştirilmeli davranış adı..." style="flex: 2; font-size: 0.8rem; padding: 6px 10px;">
-              <input type="number" id="m-new-dev-pts" class="m-form-input" value="-5" max="-1" style="flex: 1; font-size: 0.8rem; padding: 6px 8px; text-align: center;">
-              <button class="m-btn-sm danger" onclick="window.addMobileDevBehavior()" style="padding: 6px 12px;">Ekle</button>
+              <input type="number" id="m-new-dev-pts" class="m-form-input" value="-5" max="-1" style="width: 58px; font-size: 0.8rem; padding: 6px 8px; text-align: center;">
+              <button class="m-btn-sm danger" onclick="window.addMobileDevBehavior()" style="padding: 6px 12px; white-space: nowrap;">Ekle</button>
             </div>
           </div>
         </div>
@@ -2418,8 +2404,291 @@
   </div>
 
   <!-- ==========================================================================
-       MODALLER (GÖREV TANIMLAMA, RAPOR OLUŞTURMA, MATERYAL, ARAÇLAR)
+       MODALLER (ÖDEV, GÖREV TANIMLAMA, RAPOR OLUŞTURMA, MATERYAL, ARAÇLAR)
        ========================================================================== -->
+  <!-- TOPLU DEĞİŞKEN PUAN GİRİŞİ MODALI -->
+  <div class="bottom-sheet" id="modal-bulk-variable-points" style="max-height: 94vh; height: 92vh; display: flex; flex-direction: column; padding: 1.25rem 1rem calc(1.5rem + var(--safe-bottom));">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header" style="margin-bottom: 0.65rem; flex-shrink: 0;">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span style="font-size: 1.3rem;">🎯</span>
+        <div>
+          <div class="sheet-title">Toplu Değişken Puan Girişi</div>
+          <div style="font-size: 0.72rem; color: var(--m-text-muted);">Öğrencilere tek ekranda farklı puanlar tanımlayın</div>
+        </div>
+      </div>
+      <button class="sheet-close-btn" onclick="window.closeBottomSheet()">&times;</button>
+    </div>
+
+    <!-- Filtre & Başlık / Neden Seçimi -->
+    <div style="flex-shrink: 0; background: var(--m-surface-subtle); border-radius: var(--m-radius-sm); padding: 0.75rem; margin-bottom: 0.75rem; border: 1px solid var(--m-border);">
+      <!-- Ortaokul ise Şube Seçici -->
+      <div class="m-form-group" id="m-bulk-var-branch-group" style="display: none; margin-bottom: 0.5rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
+          <label class="m-form-label" style="margin-bottom: 0;">Sınıf / Şube</label>
+        </div>
+        <select class="m-form-input" id="m-bulk-var-branch" onchange="window.renderBulkVariablePointsList()" style="padding: 6px 10px; font-size: 0.82rem;"></select>
+      </div>
+
+      <!-- Değerlendirme Nedeni -->
+      <div class="m-form-group" style="margin-bottom: 0.5rem;">
+        <label class="m-form-label" style="margin-bottom: 3px;">Puanlama Nedeni / Başlık</label>
+        <!-- Hızlı Neden Çipleri -->
+        <div style="display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 5px;">
+          <span class="badge" onclick="window.setBulkVarReason('Ders İçi Katılım')" style="cursor: pointer; background: rgba(99,102,241,0.12); color: var(--m-primary); font-size: 0.72rem; padding: 2px 7px; border-radius: 6px; font-weight: 700;">Ders İçi Katılım</span>
+          <span class="badge" onclick="window.setBulkVarReason('Sözlü / Değerlendirme')" style="cursor: pointer; background: rgba(16,185,129,0.12); color: var(--m-success); font-size: 0.72rem; padding: 2px 7px; border-radius: 6px; font-weight: 700;">Sözlü Notu</span>
+          <span class="badge" onclick="window.setBulkVarReason('Etkinlik / Uygulama')" style="cursor: pointer; background: rgba(245,158,11,0.12); color: var(--m-warning); font-size: 0.72rem; padding: 2px 7px; border-radius: 6px; font-weight: 700;">Etkinlik</span>
+          <span class="badge" onclick="window.setBulkVarReason('Mini Test / Quiz')" style="cursor: pointer; background: rgba(14,165,233,0.12); color: #0ea5e9; font-size: 0.72rem; padding: 2px 7px; border-radius: 6px; font-weight: 700;">Mini Quiz</span>
+          <span class="badge" onclick="window.setBulkVarReason('Ödev Değerlendirme')" style="cursor: pointer; background: rgba(168,85,247,0.12); color: #a855f7; font-size: 0.72rem; padding: 2px 7px; border-radius: 6px; font-weight: 700;">Ödev</span>
+        </div>
+        <input type="text" class="m-form-input" id="m-bulk-var-reason" placeholder="Örn: Ders İçi Katılım" value="Ders İçi Katılım" style="padding: 6px 10px; font-size: 0.85rem;">
+      </div>
+
+      <!-- Hızlı Toplu Doldurma -->
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px;">
+        <div style="font-size: 0.74rem; font-weight: 700; color: var(--m-text-muted);">Hızlı Değer Ata:</div>
+        <div style="display: flex; gap: 4px; align-items: center;">
+          <input type="number" id="m-bulk-var-quick-val" placeholder="+5" style="width: 55px; padding: 4px 6px; font-size: 0.8rem; text-align: center; border-radius: 6px; border: 1px solid var(--m-border); background: var(--m-surface); font-weight: 800;">
+          <button type="button" class="m-btn-sm" onclick="window.applyBulkVarQuickValue()" style="padding: 4px 8px; font-size: 0.74rem; font-weight: 700; background: var(--m-primary); color: white; border: none; border-radius: 6px; cursor: pointer;">
+            Tümüne Ver
+          </button>
+          <button type="button" class="m-btn-sm" onclick="window.clearBulkVarInputs()" style="padding: 4px 8px; font-size: 0.74rem; font-weight: 700; background: var(--m-surface); border: 1px solid var(--m-border); color: var(--m-text-muted); border-radius: 6px; cursor: pointer;">
+            Temizle
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Öğrenci Listesi (Scrollable) -->
+    <div style="flex: 1; overflow-y: auto; padding-right: 2px;" id="m-bulk-var-students-list">
+      <!-- Dinamik liste oluşturulacak -->
+    </div>
+
+    <!-- Alt Buton: Kaydet -->
+    <div style="margin-top: 0.75rem; flex-shrink: 0; display: flex; gap: 8px;">
+      <button type="button" class="subview-primary-action-btn" onclick="window.saveBulkVariablePoints()" style="flex: 1; margin: 0; padding: 0.85rem; background: linear-gradient(135deg, var(--m-primary), #4338ca); font-size: 0.92rem; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 14px rgba(79, 70, 229, 0.35);">
+        <i data-lucide="check-circle" style="width: 18px; height: 18px;"></i>
+        <span>Puanları Kaydet ve Uygula</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- DAVRANIŞ EMOJİ SEÇİCİ BOTTOM SHEET -->
+  <div class="bottom-sheet" id="modal-behavior-emoji-picker" style="max-height: 85vh; height: auto; display: flex; flex-direction: column; padding: 1.25rem 1rem calc(1.5rem + var(--safe-bottom));">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header" style="margin-bottom: 0.75rem; flex-shrink: 0;">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span style="font-size: 1.3rem;">🎨</span>
+        <div>
+          <div class="sheet-title" id="m-emoji-picker-title">Davranış Emojisi Seç</div>
+          <div style="font-size: 0.72rem; color: var(--m-text-muted);">Davranış için bir sembol veya emoji belirleyin</div>
+        </div>
+      </div>
+      <button class="sheet-close-btn" onclick="window.closeBottomSheet()">&times;</button>
+    </div>
+
+    <!-- Özel Emoji / Simge Yazma / Yapıştırma -->
+    <div style="flex-shrink: 0; background: var(--m-surface-subtle); border-radius: var(--m-radius-sm); padding: 0.65rem; margin-bottom: 0.85rem; border: 1px solid var(--m-border);">
+      <label class="m-form-label" style="margin-bottom: 4px; font-size: 0.75rem;">Klavyeden Yaz veya Yapıştır</label>
+      <div style="display: flex; gap: 6px;">
+        <input type="text" id="m-emoji-custom-input" class="m-form-input" placeholder="Örn: 🏆 veya ⭐" style="flex: 1; text-align: center; font-size: 1.15rem; padding: 6px 10px;">
+        <button type="button" class="m-btn-sm primary" onclick="window.applyCustomBehaviorEmoji()" style="padding: 6px 14px; font-weight: 700;">Seç</button>
+      </div>
+    </div>
+
+    <div style="overflow-y: auto; flex: 1; padding-right: 2px;">
+      <!-- Kategori 1: Başarı, Ödül & Katılım -->
+      <div style="font-size: 0.72rem; font-weight: 800; color: var(--m-primary); text-transform: uppercase; margin-bottom: 4px; letter-spacing: 0.5px;">⭐ Başarı, Ödül & Katılım</div>
+      <div class="m-emoji-picker-grid" style="margin-bottom: 1rem;">
+        <button type="button" class="m-emoji-picker-item" onclick="window.selectBehaviorEmoji('⭐')">⭐</button>
+        <button type="button" class="m-emoji-picker-item" onclick="window.selectBehaviorEmoji('🌟')">🌟</button>
+        <button type="button" class="m-emoji-picker-item" onclick="window.selectBehaviorEmoji('🏆')">🏆</button>
+        <button type="button" class="m-emoji-picker-item" onclick="window.selectBehaviorEmoji('🥇')">🥇</button>
+        <button type="button" class="m-emoji-picker-item" onclick="window.selectBehaviorEmoji('🎖️')">🎖️</button>
+        <button type="button" class="m-emoji-picker-item" onclick="window.selectBehaviorEmoji('🎯')">🎯</button>
+        <button type="button" class="m-emoji-picker-item" onclick="window.selectBehaviorEmoji('👑')">👑</button>
+        <button type="button" class="m-emoji-picker-item" onclick="window.selectBehaviorEmoji('💎')">💎</button>
+        <button type="button" class="m-emoji-picker-item" onclick="window.selectBehaviorEmoji('🚀')">🚀</button>
+        <button type="button" class="m-emoji-picker-item" onclick="window.selectBehaviorEmoji('💡')">💡</button>
+        <button type="button" class="m-emoji-picker-item" onclick="window.selectBehaviorEmoji('✨')">✨</button>
+        <button type="button" class="m-emoji-picker-item" onclick="window.selectBehaviorEmoji('💯')">💯</button>
+      </div>
+
+      <!-- Kategori 2: Ders, Kitap & Okul -->
+      <div style="font-size: 0.72rem; font-weight: 800; color: var(--m-success); text-transform: uppercase; margin-bottom: 4px; letter-spacing: 0.5px;">📚 Ders, Kitap & Okul</div>
+      <div class="m-emoji-picker-grid" style="margin-bottom: 1rem;">
+        <button type="button" class="m-emoji-picker-item" onclick="window.selectBehaviorEmoji('📚')">📚</button>
+        <button type="button" class="m-emoji-picker-item" onclick="window.selectBehaviorEmoji('📖')">📖</button>
+        <button type="button" class="m-emoji-picker-item" onclick="window.selectBehaviorEmoji('📝')">📝</button>
+        <button type="button" class="m-emoji-picker-item" onclick="window.selectBehaviorEmoji('✏️')">✏️</button>
+        <button type="button" class="m-emoji-picker-item" onclick="window.selectBehaviorEmoji('✍️')">✍️</button>
+        <button type="button" class="m-emoji-picker-item" onclick="window.selectBehaviorEmoji('🎒')">🎒</button>
+        <button type="button" class="m-emoji-picker-item" onclick="window.selectBehaviorEmoji('🙋‍♂️')">🙋‍♂️</button>
+        <button type="button" class="m-emoji-picker-item" onclick="window.selectBehaviorEmoji('🙋‍♀️')">🙋‍♀️</button>
+        <button type="button" class="m-emoji-picker-item" onclick="window.selectBehaviorEmoji('✋')">✋</button>
+        <button type="button" class="m-emoji-picker-item" onclick="window.selectBehaviorEmoji('🔬')">🔬</button>
+        <button type="button" class="m-emoji-picker-item" onclick="window.selectBehaviorEmoji('📐')">📐</button>
+        <button type="button" class="m-emoji-picker-item" onclick="window.selectBehaviorEmoji('🎨')">🎨</button>
+      </div>
+
+      <!-- Kategori 3: Karakter, Saygı & Yardımlaşma -->
+      <div style="font-size: 0.72rem; font-weight: 800; color: #0ea5e9; text-transform: uppercase; margin-bottom: 4px; letter-spacing: 0.5px;">🤝 Karakter, Saygı & Nezaket</div>
+      <div class="m-emoji-picker-grid" style="margin-bottom: 1rem;">
+        <button type="button" class="m-emoji-picker-item" onclick="window.selectBehaviorEmoji('🤝')">🤝</button>
+        <button type="button" class="m-emoji-picker-item" onclick="window.selectBehaviorEmoji('🧼')">🧼</button>
+        <button type="button" class="m-emoji-picker-item" onclick="window.selectBehaviorEmoji('🕊️')">🕊️</button>
+        <button type="button" class="m-emoji-picker-item" onclick="window.selectBehaviorEmoji('❤️')">❤️</button>
+        <button type="button" class="m-emoji-picker-item" onclick="window.selectBehaviorEmoji('👏')">👏</button>
+        <button type="button" class="m-emoji-picker-item" onclick="window.selectBehaviorEmoji('🌈')">🌈</button>
+        <button type="button" class="m-emoji-picker-item" onclick="window.selectBehaviorEmoji('🌻')">🌻</button>
+        <button type="button" class="m-emoji-picker-item" onclick="window.selectBehaviorEmoji('☀️')">☀️</button>
+        <button type="button" class="m-emoji-picker-item" onclick="window.selectBehaviorEmoji('😇')">😇</button>
+        <button type="button" class="m-emoji-picker-item" onclick="window.selectBehaviorEmoji('😊')">😊</button>
+        <button type="button" class="m-emoji-picker-item" onclick="window.selectBehaviorEmoji('👍')">👍</button>
+        <button type="button" class="m-emoji-picker-item" onclick="window.selectBehaviorEmoji('✅')">✅</button>
+      </div>
+
+      <!-- Kategori 4: Geliştirilmeli, Uyarı & Dikkat -->
+      <div style="font-size: 0.72rem; font-weight: 800; color: var(--m-danger); text-transform: uppercase; margin-bottom: 4px; letter-spacing: 0.5px;">⚠️ Geliştirilmeli & Uyarı</div>
+      <div class="m-emoji-picker-grid" style="margin-bottom: 0.5rem;">
+        <button type="button" class="m-emoji-picker-item" onclick="window.selectBehaviorEmoji('⚠️')">⚠️</button>
+        <button type="button" class="m-emoji-picker-item" onclick="window.selectBehaviorEmoji('📣')">📣</button>
+        <button type="button" class="m-emoji-picker-item" onclick="window.selectBehaviorEmoji('⏰')">⏰</button>
+        <button type="button" class="m-emoji-picker-item" onclick="window.selectBehaviorEmoji('⏳')">⏳</button>
+        <button type="button" class="m-emoji-picker-item" onclick="window.selectBehaviorEmoji('❌')">❌</button>
+        <button type="button" class="m-emoji-picker-item" onclick="window.selectBehaviorEmoji('🚫')">🚫</button>
+        <button type="button" class="m-emoji-picker-item" onclick="window.selectBehaviorEmoji('💤')">💤</button>
+        <button type="button" class="m-emoji-picker-item" onclick="window.selectBehaviorEmoji('🥱')">🥱</button>
+        <button type="button" class="m-emoji-picker-item" onclick="window.selectBehaviorEmoji('📱')">📱</button>
+        <button type="button" class="m-emoji-picker-item" onclick="window.selectBehaviorEmoji('🔇')">🔇</button>
+        <button type="button" class="m-emoji-picker-item" onclick="window.selectBehaviorEmoji('🏃')">🏃</button>
+        <button type="button" class="m-emoji-picker-item" onclick="window.selectBehaviorEmoji('⚡')">⚡</button>
+        <button type="button" class="m-emoji-picker-item" onclick="window.selectBehaviorEmoji('🛑')">🛑</button>
+        <button type="button" class="m-emoji-picker-item" onclick="window.selectBehaviorEmoji('🤦‍♂️')">🤦‍♂️</button>
+        <button type="button" class="m-emoji-picker-item" onclick="window.selectBehaviorEmoji('🤕')">🤕</button>
+        <button type="button" class="m-emoji-picker-item" onclick="window.selectBehaviorEmoji('💥')">💥</button>
+        <button type="button" class="m-emoji-picker-item" onclick="window.selectBehaviorEmoji('🗯️')">🗯️</button>
+        <button type="button" class="m-emoji-picker-item" onclick="window.selectBehaviorEmoji('🌪️')">🌪️</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- YENİ ÖDEV VER & PAYLAŞ MODALI -->
+  <div class="bottom-sheet" id="modal-new-homework" style="max-height: 94vh; height: auto; display: flex; flex-direction: column; padding: 1.25rem 1rem calc(1.5rem + var(--safe-bottom));">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header" style="margin-bottom: 0.85rem; flex-shrink: 0;">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span style="font-size: 1.3rem;">📝</span>
+        <div>
+          <div class="sheet-title">Yeni Ödev Ver & Paylaş</div>
+          <div style="font-size: 0.72rem; color: var(--m-text-muted);">Ödev oluşturup WhatsApp'ta tek tıkla paylaşın</div>
+        </div>
+      </div>
+      <button class="sheet-close-btn" onclick="window.closeBottomSheet()">&times;</button>
+    </div>
+
+    <div style="overflow-y: auto; flex: 1; padding-right: 2px;">
+      <!-- Ortaokul ise Şube Seçimi -->
+      <div class="m-form-group" id="m-new-hw-branch-group" style="display: none; margin-bottom: 0.75rem;">
+        <label class="m-form-label">Sınıf / Şube</label>
+        <select class="m-form-input" id="m-new-hw-branch"></select>
+      </div>
+
+      <!-- Ödev Teslim Tarihi -->
+      <div class="m-form-group" style="margin-bottom: 0.75rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+          <label class="m-form-label" style="margin-bottom: 0;">Son Teslim / Kontrol Tarihi</label>
+          <span id="m-new-hw-dayname-badge" style="font-size: 0.75rem; font-weight: 700; color: var(--m-primary);">Yarın</span>
+        </div>
+        <!-- Hızlı Tarih Seçim Butonları -->
+        <div style="display: flex; gap: 6px; margin-bottom: 6px;">
+          <button type="button" class="m-btn-sm" onclick="window.setNewHwDateQuick('tomorrow')" style="flex: 1; justify-content: center; font-size: 0.75rem; padding: 5px 8px; font-weight: 700; background: var(--m-surface); border: 1px solid var(--m-border);">📅 Yarın</button>
+          <button type="button" class="m-btn-sm" onclick="window.setNewHwDateQuick('monday')" style="flex: 1; justify-content: center; font-size: 0.75rem; padding: 5px 8px; font-weight: 700; background: var(--m-surface); border: 1px solid var(--m-border);">📅 Pazartesi</button>
+          <button type="button" class="m-btn-sm" onclick="window.setNewHwDateQuick('week')" style="flex: 1; justify-content: center; font-size: 0.75rem; padding: 5px 8px; font-weight: 700; background: var(--m-surface); border: 1px solid var(--m-border);">📅 1 Hafta Sonra</button>
+        </div>
+        <input type="date" class="m-form-input" id="m-new-hw-date" onchange="window.onNewHwDateChanged()">
+      </div>
+
+      <!-- Ders & Konu Başlığı -->
+      <div class="m-form-group" style="margin-bottom: 0.75rem;">
+        <label class="m-form-label">Ödev Konusu / Ders Adı</label>
+        <!-- Hızlı Ders Çipleri -->
+        <div style="display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 6px;">
+          <span class="badge" onclick="window.appendNewHwSubject('Türkçe: ')" style="cursor: pointer; background: rgba(99,102,241,0.12); color: var(--m-primary); font-size: 0.73rem; padding: 3px 8px; border-radius: 6px; font-weight: 700;">Türkçe</span>
+          <span class="badge" onclick="window.appendNewHwSubject('Matematik: ')" style="cursor: pointer; background: rgba(16,185,129,0.12); color: var(--m-success); font-size: 0.73rem; padding: 3px 8px; border-radius: 6px; font-weight: 700;">Matematik</span>
+          <span class="badge" onclick="window.appendNewHwSubject('Fen Bilimleri: ')" style="cursor: pointer; background: rgba(245,158,11,0.12); color: var(--m-warning); font-size: 0.73rem; padding: 3px 8px; border-radius: 6px; font-weight: 700;">Fen Bilimleri</span>
+          <span class="badge" onclick="window.appendNewHwSubject('Sosyal Bilgiler: ')" style="cursor: pointer; background: rgba(236,72,153,0.12); color: #ec4899; font-size: 0.73rem; padding: 3px 8px; border-radius: 6px; font-weight: 700;">Sosyal Bilgiler</span>
+          <span class="badge" onclick="window.appendNewHwSubject('İngilizce: ')" style="cursor: pointer; background: rgba(14,165,233,0.12); color: #0ea5e9; font-size: 0.73rem; padding: 3px 8px; border-radius: 6px; font-weight: 700;">İngilizce</span>
+          <span class="badge" onclick="window.appendNewHwSubject('Hayat Bilgisi: ')" style="cursor: pointer; background: rgba(168,85,247,0.12); color: #a855f7; font-size: 0.73rem; padding: 3px 8px; border-radius: 6px; font-weight: 700;">Hayat Bilgisi</span>
+        </div>
+        <input type="text" class="m-form-input" id="m-new-hw-title" placeholder="Örn: Matematik: Kesirler Sayfa 42-45 Alıştırmaları">
+      </div>
+
+      <!-- Detay Açıklama -->
+      <div class="m-form-group" style="margin-bottom: 1.25rem;">
+        <label class="m-form-label">Ödev Detayı & Yönergeler (İsteğe Bağlı)</label>
+        <textarea class="m-form-input" id="m-new-hw-desc" rows="3" placeholder="Örn: 1. ve 2. kısımdaki problemler kareli deftere işlem adımlarıyla yazılacak. Kontrol ders başlangıcında yapılacaktır."></textarea>
+      </div>
+
+      <!-- Eylem Butonları -->
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <button type="button" class="subview-primary-action-btn" onclick="window.saveAndShareNewHomework(true)" style="background: linear-gradient(135deg, #25D366, #128C7E); color: white; margin: 0; padding: 0.85rem; font-size: 0.92rem; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 14px rgba(37, 211, 102, 0.35);">
+          <i data-lucide="message-circle" style="width: 18px; height: 18px;"></i>
+          <span>Kaydet ve WhatsApp'ta Paylaş</span>
+        </button>
+        <button type="button" class="subview-secondary-btn" onclick="window.saveAndShareNewHomework(false)" style="margin: 0; padding: 0.75rem; justify-content: center; font-weight: 700;">
+          <span>Sadece Kaydet</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SIRA GEZME KONTROL SIRASI DÜZENLEME MODALI -->
+  <div class="bottom-sheet" id="modal-hw-order" style="max-height: 94vh; height: 88vh; display: flex; flex-direction: column; padding: 1.25rem 1rem calc(1.5rem + var(--safe-bottom));">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header" style="margin-bottom: 0.75rem; flex-shrink: 0;">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span style="font-size: 1.3rem;">🔃</span>
+        <div>
+          <div class="sheet-title">Kontrol Sırasını Düzenle</div>
+          <div style="font-size: 0.72rem; color: var(--m-text-muted);">Sıra gezme modunda öğrencilerin kontrol sırası</div>
+        </div>
+      </div>
+      <button class="sheet-close-btn" onclick="window.closeBottomSheet()">&times;</button>
+    </div>
+
+    <!-- Hızlı Sıralama Şablonları (Presets) -->
+    <div style="margin-bottom: 0.75rem; flex-shrink: 0;">
+      <div style="font-size: 0.75rem; font-weight: 700; color: var(--m-text-muted); margin-bottom: 5px;">Hızlı Sıralama:</div>
+      <div style="display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px;">
+        <button type="button" class="m-btn-sm" onclick="window.applyHwWalkPreset('seating')" style="font-size: 0.75rem; padding: 6px 10px; white-space: nowrap; font-weight: 700; background: var(--m-surface); border: 1px solid var(--m-border);">
+          🪑 Oturma Planı
+        </button>
+        <button type="button" class="m-btn-sm" onclick="window.applyHwWalkPreset('number')" style="font-size: 0.75rem; padding: 6px 10px; white-space: nowrap; font-weight: 700; background: var(--m-surface); border: 1px solid var(--m-border);">
+          🔢 Okul No (Artan)
+        </button>
+        <button type="button" class="m-btn-sm" onclick="window.applyHwWalkPreset('name')" style="font-size: 0.75rem; padding: 6px 10px; white-space: nowrap; font-weight: 700; background: var(--m-surface); border: 1px solid var(--m-border);">
+          🔤 İsim (A-Z)
+        </button>
+        <button type="button" class="m-btn-sm" onclick="window.applyHwWalkPreset('reverse')" style="font-size: 0.75rem; padding: 6px 10px; white-space: nowrap; font-weight: 700; background: var(--m-surface); border: 1px solid var(--m-border);">
+          🔄 Tersten Sırala
+        </button>
+      </div>
+    </div>
+
+    <!-- Sıralı Öğrenci Listesi (Yukarı/Aşağı Taşıma) -->
+    <div style="flex: 1; overflow-y: auto; padding-right: 2px;" id="m-hw-order-list">
+      <!-- Dinamik öğrenci satırları -->
+    </div>
+
+    <!-- Alt Kaydet Butonu -->
+    <div style="margin-top: 0.75rem; flex-shrink: 0;">
+      <button type="button" class="subview-primary-action-btn" onclick="window.saveHwWalkOrder()" style="width: 100%; margin: 0; padding: 0.85rem; background: linear-gradient(135deg, var(--m-primary), #4338ca); font-size: 0.92rem; font-weight: 800;">
+        ✓ Kontrol Sırasını Kaydet
+      </button>
+    </div>
+  </div>
+
   <!-- 1. Görev Tanımla Modalı -->
   <div class="bottom-sheet" id="modal-assign-task">
     <div class="sheet-handle"></div>

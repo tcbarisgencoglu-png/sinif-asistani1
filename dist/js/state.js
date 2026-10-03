@@ -3044,6 +3044,12 @@ class StateManager {
     return record;
   }
 
+  addScore(studentId, point, reason = 'Değerlendirme') {
+    const pts = parseInt(point, 10) || 0;
+    const type = pts >= 0 ? 'positive' : 'development';
+    return this.addPerformance(studentId, type, pts, reason);
+  }
+
   addBatchPerformance(records) {
     if (!Array.isArray(records) || records.length === 0) return [];
     if (!this.state.performance) this.state.performance = [];
