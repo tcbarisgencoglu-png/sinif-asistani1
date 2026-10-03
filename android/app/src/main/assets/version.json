@@ -1,8 +1,8 @@
 {
-  "version": "1.0.44",
+  "version": "1.0.45",
   "releaseDate": "2026-10-03",
   "minRequiredVersion": "1.0.0",
-  "title": "Sınıf Asistanı v1.0.44 Yayında!",
+  "title": "Sınıf Asistanı v1.0.45 Yayında!",
   "description": "Android Sürüm Düzeltmeleri, Hızlı Araç Çubuğu, Ödev Yönetimi ve Davranış Emojileri Güncellemesi",
   "features": [
     "Android Release Düzeltmesi: ERR_INVALID_RESPONSE hatası giderildi, web varlıkları eksiksiz paketlendi ve otomatik fallback eklendi",
