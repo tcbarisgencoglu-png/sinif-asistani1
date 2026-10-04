@@ -756,21 +756,21 @@ Açık Uçlu (open):
         temperature: 0.5,
       });
       rawText = typeof response === "string" ? response : (response?.text || "");
-    } catch (err) {
       if (err.message === "NO_API_KEY") {
-        // API anahtarı yok — Ayarlar Yapay Zeka sekmesine yönlendir
-        window.closeQuizAIGeneratorModal();
-        if (window.navigateToConfigAI) {
+        if (typeof window.showGeminiKeyRequiredModal === "function") {
+          window.showGeminiKeyRequiredModal({
+            featureName: "Soru Havuzu Üretimi",
+            description: "Müfredat ve kazanımlara uygun soruları yapay zekaya hazırlatabilmek için Google Gemini bağlantısı gereklidir.",
+            confirmText: "Kaydet ve Soru Üret",
+            onSuccess: () => {
+              if (window.generateQuestionsFromModal) {
+                window.generateQuestionsFromModal();
+              }
+            }
+          });
+        } else if (window.navigateToConfigAI) {
+          window.closeQuizAIGeneratorModal();
           window.navigateToConfigAI();
-        } else {
-          const keyModal = document.getElementById("modal-gemini-key-setup");
-          if (keyModal) {
-            keyModal.classList.add("active");
-            keyModal.style.display = "flex";
-          }
-        }
-        if (window.showToast) {
-          window.showToast("Yapay zeka ile soru hazırlamak için lütfen Google Gemini API anahtarınızı tanımlayın.", "warning");
         }
         return null;
       }

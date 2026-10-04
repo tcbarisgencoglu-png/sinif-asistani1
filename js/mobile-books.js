@@ -646,12 +646,18 @@
               </div>
             </div>
 
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 6px; padding-top: 8px; border-top: 1px dashed var(--m-border);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 6px; padding-top: 8px; border-top: 1px dashed var(--m-border); flex-wrap: wrap; gap: 8px;">
               <span style="font-size: 0.72rem; color: var(--m-text-muted);">Makul okuma süresi: ${it.limitDays} gün</span>
-              <button class="m-btn-sm" style="background: linear-gradient(135deg, var(--m-success), #059669); color: white; border: none; font-weight: 700; padding: 6px 14px; gap: 6px; border-radius: var(--m-radius-sm); box-shadow: 0 2px 6px rgba(16, 185, 129, 0.3);" onclick="window.confirmReturnStudentBook('${it.transaction.id}', '${student.id}')">
-                <i data-lucide="check-circle" style="width: 15px; height: 15px;"></i>
-                <span>İade Al</span>
-              </button>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <button type="button" class="m-btn-sm" style="background: linear-gradient(135deg, #6366f1, #4f46e5); color: white; border: none; font-weight: 700; padding: 6px 12px; gap: 5px; border-radius: var(--m-radius-sm); box-shadow: 0 2px 6px rgba(99, 102, 241, 0.35); cursor: pointer;" onclick="window.openBookQuestionsModal('${it.book.id}', '${student.id}')" title="Kitap Soru Sorma">
+                  <i data-lucide="help-circle" style="width: 15px; height: 15px;"></i>
+                  <span>Soru Sor</span>
+                </button>
+                <button type="button" class="m-btn-sm" style="background: linear-gradient(135deg, var(--m-success), #059669); color: white; border: none; font-weight: 700; padding: 6px 14px; gap: 6px; border-radius: var(--m-radius-sm); box-shadow: 0 2px 6px rgba(16, 185, 129, 0.3); cursor: pointer;" onclick="window.confirmReturnStudentBook('${it.transaction.id}', '${student.id}')">
+                  <i data-lucide="check-circle" style="width: 15px; height: 15px;"></i>
+                  <span>İade Al</span>
+                </button>
+              </div>
             </div>
           </div>
         `).join('')}
@@ -999,11 +1005,27 @@
     { question: "Bu kitabı okuduktan sonra kendinize çıkardığınız ana fikir veya ders nedir?", answer: "Kitabın ana fikri ve verilen mesaj." }
   ];
 
-  window.openBookQuestionsModal = (bookId) => {
+  let activeQuestionReturnStudentId = null;
+
+  window.closeBookQuestionsModal = () => {
+    const studentIdToReturn = activeQuestionReturnStudentId;
+    activeQuestionReturnStudentId = null;
+    if (studentIdToReturn) {
+      window.openManageStudentBooksModal(studentIdToReturn);
+    } else {
+      window.closeBottomSheet();
+    }
+  };
+
+  window.openBookQuestionsModal = (bookId, returnStudentId = null) => {
     if (!window.stateManager) return;
     const allBooks = window.stateManager.getBooks ? window.stateManager.getBooks() : (window.stateManager.state.books ? window.stateManager.state.books.library || [] : []);
     const book = allBooks.find(b => b.id === bookId);
     if (!book) return;
+
+    if (returnStudentId !== undefined) {
+      activeQuestionReturnStudentId = returnStudentId;
+    }
 
     const titleEl = document.getElementById('m-questions-book-title');
     const authorEl = document.getElementById('m-questions-book-author');
@@ -1022,10 +1044,15 @@
         <div style="text-align: center; padding: 1.5rem 1rem; color: var(--m-text-muted); background: var(--m-surface-subtle); border-radius: var(--m-radius-md); border: 1px dashed var(--m-border); margin-bottom: 1rem;">
           <i data-lucide="help-circle" style="width: 32px; height: 32px; opacity: 0.4; margin-bottom: 0.4rem;"></i>
           <p style="font-weight: 700; margin: 0; font-size: 0.85rem;">Bu kitaba henüz özel soru eklenmemiş.</p>
-          <p style="font-size: 0.75rem; margin-top: 4px;">Aşağıdaki formu kullanarak kitaba dilediğiniz kadar soru ve cevap ekleyebilirsiniz.</p>
-          <button class="btn-primary-action" style="margin: 0.75rem auto 0 auto; font-size: 0.75rem; padding: 0.4rem 0.85rem;" onclick="window.loadStarterQuestionsToBook('${book.id}')">
-            ✨ Standart Soruları Otomatik Ekle
-          </button>
+          <p style="font-size: 0.75rem; margin-top: 4px;">Yapay zekaya otomatik soru hazırlatabilir veya standart soruları ekleyebilirsiniz.</p>
+          <div style="display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-top: 0.85rem;">
+            <button type="button" class="m-btn-sm" style="background: linear-gradient(135deg, #8b5cf6, #6366f1); color: white; border: none; font-weight: 700; padding: 7px 14px; border-radius: var(--m-radius-sm); box-shadow: 0 2px 6px rgba(139, 92, 246, 0.35); cursor: pointer;" onclick="window.generateAiBookQuestionsMobile('${book.id}')">
+              ✨ Yapay Zeka ile Üret
+            </button>
+            <button type="button" class="m-btn-sm" style="background: var(--m-surface); border: 1.5px solid var(--m-border); color: var(--m-text); font-weight: 700; padding: 7px 14px; border-radius: var(--m-radius-sm); cursor: pointer;" onclick="window.loadStarterQuestionsToBook('${book.id}')">
+              📋 Standart Soruları Ekle
+            </button>
+          </div>
         </div>
       `;
     } else {
@@ -1033,12 +1060,12 @@
         <div class="question-bubble-card">
           <div class="question-bubble-header">
             <span class="question-num-pill">Soru ${idx + 1}</span>
-            <button class="question-del-btn" title="Soruyu Sil" onclick="window.deleteBookQuestion('${book.id}', ${idx})">
+            <button type="button" class="question-del-btn" title="Soruyu Sil" onclick="window.deleteBookQuestion('${book.id}', ${idx})">
               <i data-lucide="trash-2" style="width: 15px; height: 15px;"></i>
             </button>
           </div>
           <div class="question-text-content">❓ ${escapeHTML(q.question)}</div>
-          <div class="answer-text-content">
+          <div class="answer-text-content" style="margin-top: 6px; padding: 6px 10px; background: rgba(16, 185, 129, 0.08); border-radius: 6px; border-left: 3px solid var(--m-success); font-size: 0.82rem;">
             <strong style="color: var(--m-success);">Cevap:</strong> ${escapeHTML(q.answer || 'Cevap belirtilmemiş')}
           </div>
         </div>
@@ -1051,6 +1078,9 @@
           <h4 style="font-size: 0.88rem; font-weight: 800; color: var(--m-text);">
             Kayıtlı Sorular (${questions.length})
           </h4>
+          <button type="button" class="m-btn-sm" style="background: linear-gradient(135deg, #8b5cf6, #6366f1); color: white; border: none; font-weight: 700; font-size: 0.72rem; padding: 4px 10px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 4px;" onclick="window.generateAiBookQuestionsMobile('${book.id}')">
+            <span>✨ AI Soru Üret</span>
+          </button>
         </div>
         ${questionsListHtml}
       </div>
@@ -1068,13 +1098,13 @@
           <label style="font-size: 0.75rem; font-weight: 700; color: var(--m-text-muted); display: block; margin-bottom: 3px;">Beklenen Cevap (İsteğe Bağlı)</label>
           <input type="text" id="m-new-q-ans" class="mobile-input" placeholder="Örn: Minguinho">
         </div>
-        <button class="subview-primary-action-btn" onclick="window.saveNewBookQuestion('${book.id}')">
+        <button type="button" class="subview-primary-action-btn" onclick="window.saveNewBookQuestion('${book.id}')">
           <i data-lucide="check" style="width: 16px; height: 16px;"></i> Soruyu Kaydet
         </button>
       </div>
 
-      <button class="subview-secondary-btn" style="margin-top: 1rem;" onclick="window.closeBottomSheet()">
-        Kapat
+      <button type="button" class="subview-secondary-btn" style="margin-top: 1rem;" onclick="window.closeBookQuestionsModal()">
+        ${activeQuestionReturnStudentId ? '← Geri Dön (Kitap İşlemleri)' : 'Kapat'}
       </button>
     `;
 
@@ -1113,7 +1143,7 @@
 
     window.vibrate(30);
     showMobileToast('✅ Soru kitaba başarıyla eklendi!');
-    window.openBookQuestionsModal(bookId);
+    window.openBookQuestionsModal(bookId, activeQuestionReturnStudentId);
     renderBooksCatalogPane();
   };
 
@@ -1132,7 +1162,7 @@
 
     window.vibrate(25);
     showMobileToast('🗑️ Soru silindi');
-    window.openBookQuestionsModal(bookId);
+    window.openBookQuestionsModal(bookId, activeQuestionReturnStudentId);
     renderBooksCatalogPane();
   };
 
@@ -1151,8 +1181,282 @@
 
     window.vibrate(35);
     showMobileToast('✨ Standart sorular kitaba yüklendi!');
-    window.openBookQuestionsModal(bookId);
+    window.openBookQuestionsModal(bookId, activeQuestionReturnStudentId);
     renderBooksCatalogPane();
+  };
+
+  // ==========================================================================
+  // YAPAY ZEKA İLE KİTAP SORUSU HAZIRLAMA: ÖN BİLGİLENDİRME & CANLI SÜREÇ
+  // ==========================================================================
+  window.showAiBookQuestionsInfo = (bookId) => {
+    const allBooks = window.stateManager.getBooks ? window.stateManager.getBooks() : (window.stateManager.state.books ? window.stateManager.state.books.library || [] : []);
+    const book = allBooks.find(b => b.id === bookId);
+    if (!book) return;
+
+    if (!window.hasGeminiApiKey || !window.hasGeminiApiKey()) {
+      if (typeof window.showGeminiKeyRequiredModal === 'function') {
+        window.showGeminiKeyRequiredModal({
+          featureName: 'Kitap Soru Hazırlama',
+          description: 'Kitaba ait okuduğunu anlama sorularını yapay zekaya hazırlatabilmek için Google Gemini bağlantısı gereklidir.',
+          onSuccess: () => window.showAiBookQuestionsInfo(bookId)
+        });
+      } else {
+        showMobileToast('⚠️ Yapay zeka ile soru hazırlamak için lütfen Ayarlar > Yapay Zeka menüsünden API anahtarınızı girin.');
+      }
+      return;
+    }
+
+    const bodyEl = document.getElementById('m-book-questions-body');
+    if (!bodyEl) return;
+
+    const state = (window.stateManager && window.stateManager.state) || {};
+    const gradeLevel = state.gradeLevel || 3;
+    const isMiddle = isMiddleSchool();
+    const currentQuestionCount = Array.isArray(book.questions) ? book.questions.length : 0;
+
+    bodyEl.innerHTML = `
+      <div class="ai-gen-info-card">
+        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 0.85rem;">
+          <div style="width: 44px; height: 44px; border-radius: 12px; background: linear-gradient(135deg, #8b5cf6, #6366f1); display: flex; align-items: center; justify-content: center; color: white; box-shadow: 0 4px 12px rgba(139, 92, 246, 0.35); flex-shrink: 0;">
+            <i data-lucide="sparkles" style="width: 24px; height: 24px;"></i>
+          </div>
+          <div style="min-width: 0; flex: 1;">
+            <div style="font-size: 1rem; font-weight: 800; color: var(--m-primary);">Yapay Zeka Soru Hazırlama</div>
+            <div style="font-size: 0.74rem; color: var(--m-text-muted);">Gemini AI Pedagojik Soru & Cevap Motoru</div>
+          </div>
+        </div>
+
+        <div class="ai-book-summary-box">
+          <div style="margin-bottom: 3px;">📖 <strong>Kitap:</strong> ${escapeHTML(book.title)}</div>
+          <div style="margin-bottom: 3px;">✍️ <strong>Yazar:</strong> ${escapeHTML(book.author || 'Belirtilmemiş')} (${book.pages || 0} Sayfa)</div>
+          <div>🎯 <strong>Hedef Düzey:</strong> ${gradeLevel}. Sınıf (${isMiddle ? 'Ortaokul' : 'İlkokul'}) Öğrenci Seviyesi</div>
+        </div>
+
+        <div style="font-size: 0.78rem; font-weight: 700; color: var(--m-text); margin-bottom: 0.45rem;">
+          📋 Süreç ve Hazırlanacak İçerik Bilgisi:
+        </div>
+
+        <div class="ai-gen-steps-desc">
+          <div class="ai-gen-step-item">
+            <span class="step-num">1</span>
+            <div>
+              <strong>5 Adet Açık Uçlu Soru:</strong> Kitabın ana fikri, olay örgüsü, kahramanları ve mesajını ölçen, ezber yerine kavrama ve metin tahlili odaklı sorular hazırlanır.
+            </div>
+          </div>
+          <div class="ai-gen-step-item">
+            <span class="step-num">2</span>
+            <div>
+              <strong>Öğretmen Model Cevapları:</strong> Öğrenciyi sözlü veya yazılı yoklarken doğru yanıtı hemen teyit edebilmeniz için her sorunun altına beklenen doğru cevap anahtarı eklenir.
+            </div>
+          </div>
+          <div class="ai-gen-step-item">
+            <span class="step-num">3</span>
+            <div>
+              <strong>Kalıcı Soru Havuzu:</strong> Üretilen sorular kütüphanenizdeki bu kitaba kaydedilir. Bu kitabı okuyan diğer öğrencilerde sorularınız hazır olacaktır. ${currentQuestionCount > 0 ? `<br><span style="color: #8b5cf6; font-weight: 700;">(Kitapta şu an ${currentQuestionCount} soru kayıtlı. Yeni sorular bu listeye eklenecektir.)</span>` : ''}
+            </div>
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 8px; margin-top: 1.15rem;">
+          <button type="button" class="subview-secondary-btn" style="flex: 1; margin: 0; padding: 10px;" onclick="window.openBookQuestionsModal('${book.id}', activeQuestionReturnStudentId)">
+            Vazgeç
+          </button>
+          <button type="button" class="subview-primary-action-btn" style="flex: 2; margin: 0; padding: 10px; background: linear-gradient(135deg, #8b5cf6, #6366f1); box-shadow: 0 4px 12px rgba(139, 92, 246, 0.35); font-size: 0.88rem;" onclick="window.startAiQuestionsGeneration('${book.id}')">
+            <i data-lucide="sparkles" style="width: 16px; height: 16px;"></i>
+            <span>Soruları Oluşturmaya Başla</span>
+          </button>
+        </div>
+      </div>
+    `;
+
+    if (window.lucide) window.lucide.createIcons();
+  };
+
+  // Eski fonksiyon adı çağrıldığında doğrudan ön bilgilendirmeyi aç
+  window.generateAiBookQuestionsMobile = (bookId) => {
+    window.showAiBookQuestionsInfo(bookId);
+  };
+
+  window.startAiQuestionsGeneration = async (bookId) => {
+    const allBooks = window.stateManager.getBooks ? window.stateManager.getBooks() : (window.stateManager.state.books ? window.stateManager.state.books.library || [] : []);
+    const book = allBooks.find(b => b.id === bookId);
+    if (!book) return;
+
+    const bodyEl = document.getElementById('m-book-questions-body');
+    if (!bodyEl) return;
+
+    window.vibrate(30);
+
+    // Canlı İlerleme Ekranını Göster
+    bodyEl.innerHTML = `
+      <div class="ai-gen-progress-card" id="m-ai-gen-progress-card">
+        <div class="ai-pulse-icon">
+          <div class="ai-pulse-ring"></div>
+          <i data-lucide="sparkles" style="width: 30px; height: 30px; color: white;"></i>
+        </div>
+
+        <h3 style="font-size: 1.05rem; font-weight: 800; color: var(--m-text); margin: 0.95rem 0 0.25rem 0;">
+          Yapay Zeka Soruları Hazırlıyor...
+        </h3>
+        <p style="font-size: 0.78rem; color: var(--m-text-muted); margin: 0 0 1rem 0; line-height: 1.45;">
+          "${escapeHTML(book.title)}" kitabı inceleniyor ve pedagojik sorular oluşturuluyor.
+        </p>
+
+        <!-- Canlı Durum Adımları -->
+        <div class="ai-live-steps-container">
+          <div class="ai-live-step done" id="ai-step-1">
+            <span class="step-icon">✓</span>
+            <span class="step-label">Kitap bilgileri ve sınıf düzeyi analiz edildi</span>
+          </div>
+          <div class="ai-live-step active" id="ai-step-2">
+            <span class="step-icon"><i data-lucide="loader-2" style="width: 14px; height: 14px;"></i></span>
+            <span class="step-label">Gemini AI ile metin kavrama soruları yazılıyor...</span>
+          </div>
+          <div class="ai-live-step pending" id="ai-step-3">
+            <span class="step-icon">○</span>
+            <span class="step-label">Öğretmen değerlendirme cevap anahtarları düzenleniyor...</span>
+          </div>
+          <div class="ai-live-step pending" id="ai-step-4">
+            <span class="step-icon">○</span>
+            <span class="step-label">Kitap soru havuzuna kaydediliyor...</span>
+          </div>
+        </div>
+
+        <!-- İlerleme Çubuğu -->
+        <div class="ai-progress-bar-wrapper">
+          <div class="ai-progress-bar-fill" id="ai-progress-fill" style="width: 35%;"></div>
+        </div>
+
+        <div style="font-size: 0.72rem; color: var(--m-text-muted); margin-top: 0.85rem; display: flex; align-items: center; justify-content: center; gap: 4px;">
+          <i data-lucide="info" style="width: 14px; height: 14px;"></i>
+          <span>Bu işlem genellikle 3-5 saniye sürer. Lütfen bekleyin...</span>
+        </div>
+      </div>
+    `;
+
+    if (window.lucide) window.lucide.createIcons();
+
+    // Zamanlayıcılarla adım ilerleme görseli
+    const stepTimer1 = setTimeout(() => {
+      const s2 = document.getElementById('ai-step-2');
+      const s3 = document.getElementById('ai-step-3');
+      const fill = document.getElementById('ai-progress-fill');
+      if (s2) {
+        s2.className = 'ai-live-step done';
+        s2.querySelector('.step-icon').innerHTML = '✓';
+      }
+      if (s3) {
+        s3.className = 'ai-live-step active';
+        s3.querySelector('.step-icon').innerHTML = '<i data-lucide="loader-2" style="width: 14px; height: 14px;"></i>';
+      }
+      if (fill) fill.style.width = '70%';
+      if (window.lucide) window.lucide.createIcons();
+    }, 1800);
+
+    try {
+      const state = (window.stateManager && window.stateManager.state) || {};
+      const grade = state.gradeLevel || 3;
+      const prompt = `Sen uzman ve pedagojik formasyona sahip bir Türkçe öğretmenisin. "${book.title}" (${book.author || 'Bilinmiyor'}) kitabı için ${grade}. sınıf öğrencilerine uygun 5 adet okuduğunu anlama sorusu ve cevaplarını hazırla.
+Sorular ezber yerine olay örgüsü, ana fikir, karakter analizi ve neden-sonuç ilişkilerini içersin.
+Yanıtını YALNIZCA geçerli bir JSON formatında ver:
+[
+  {"question": "Soru metni...", "answer": "Beklenen cevap..."}
+]`;
+
+      const response = await window.callGeminiAPI(prompt, { temperature: 0.7 });
+      clearTimeout(stepTimer1);
+
+      // Adım 3 ve 4 tamamlandı
+      const s3 = document.getElementById('ai-step-3');
+      const s4 = document.getElementById('ai-step-4');
+      const fill = document.getElementById('ai-progress-fill');
+      if (s3) {
+        s3.className = 'ai-live-step done';
+        s3.querySelector('.step-icon').innerHTML = '✓';
+      }
+      if (s4) {
+        s4.className = 'ai-live-step done';
+        s4.querySelector('.step-icon').innerHTML = '✓';
+      }
+      if (fill) fill.style.width = '100%';
+
+      let cleanText = response.trim();
+      if (cleanText.startsWith('```json')) cleanText = cleanText.substring(7);
+      if (cleanText.startsWith('```')) cleanText = cleanText.substring(3);
+      if (cleanText.endsWith('```')) cleanText = cleanText.substring(0, cleanText.length - 3);
+      cleanText = cleanText.trim();
+
+      const questions = JSON.parse(cleanText);
+      if (Array.isArray(questions) && questions.length > 0) {
+        if (!Array.isArray(book.questions)) book.questions = [];
+        questions.forEach(q => {
+          if (q.question) book.questions.push({ question: q.question, answer: q.answer || '' });
+        });
+
+        if (typeof window.stateManager.updateBookQuestions === 'function') {
+          window.stateManager.updateBookQuestions(bookId, book.questions);
+        } else {
+          window.stateManager.saveState();
+        }
+
+        window.vibrate(40);
+
+        // Başarı ekranını 700ms gösterip soru listesini aç
+        const progCard = document.getElementById('m-ai-gen-progress-card');
+        if (progCard) {
+          progCard.innerHTML = `
+            <div style="width: 58px; height: 58px; border-radius: 50%; background: rgba(16, 185, 129, 0.15); color: var(--m-success); display: inline-flex; align-items: center; justify-content: center; margin-bottom: 0.75rem;">
+              <i data-lucide="check" style="width: 32px; height: 32px;"></i>
+            </div>
+            <h3 style="font-size: 1.05rem; font-weight: 800; color: var(--m-success); margin: 0 0 0.4rem 0;">
+              ✨ Sorular Başarıyla Hazırlandı!
+            </h3>
+            <p style="font-size: 0.8rem; color: var(--m-text-muted); margin: 0;">
+              ${questions.length} adet yeni soru kitaba kaydedildi. Soru listesine dönülüyor...
+            </p>
+          `;
+          if (window.lucide) window.lucide.createIcons();
+        }
+
+        setTimeout(() => {
+          showMobileToast(`✨ "${book.title}" için ${questions.length} soru başarıyla eklendi!`);
+          window.openBookQuestionsModal(bookId, activeQuestionReturnStudentId);
+          renderBooksCatalogPane();
+        }, 800);
+      } else {
+        throw new Error('Soru listesi ayrıştırılamadı.');
+      }
+    } catch (err) {
+      clearTimeout(stepTimer1);
+      console.error(err);
+      window.vibrate([40, 60, 40]);
+      
+      const progCard = document.getElementById('m-ai-gen-progress-card');
+      if (progCard) {
+        progCard.innerHTML = `
+          <div style="width: 58px; height: 58px; border-radius: 50%; background: rgba(239, 68, 68, 0.15); color: var(--m-danger); display: inline-flex; align-items: center; justify-content: center; margin-bottom: 0.75rem;">
+            <i data-lucide="alert-triangle" style="width: 30px; height: 30px;"></i>
+          </div>
+          <h3 style="font-size: 1rem; font-weight: 800; color: var(--m-danger); margin: 0 0 0.4rem 0;">
+            Soru Hazırlanırken Hata Oluştu
+          </h3>
+          <p style="font-size: 0.78rem; color: var(--m-text-muted); margin: 0 0 1rem 0; line-height: 1.45;">
+            ${escapeHTML(err.message || 'Yapay zeka servisi yanıt vermedi.')}
+          </p>
+          <div style="display: flex; gap: 8px; justify-content: center;">
+            <button type="button" class="subview-secondary-btn" style="width: auto; padding: 7px 16px; margin: 0;" onclick="window.openBookQuestionsModal('${book.id}', activeQuestionReturnStudentId)">
+              Kapat
+            </button>
+            <button type="button" class="subview-primary-action-btn" style="width: auto; padding: 7px 16px; margin: 0; background: linear-gradient(135deg, #8b5cf6, #6366f1);" onclick="window.startAiQuestionsGeneration('${book.id}')">
+              Tekrar Dene
+            </button>
+          </div>
+        `;
+        if (window.lucide) window.lucide.createIcons();
+      } else {
+        showMobileToast('❌ Soru üretilirken hata oluştu: ' + (err.message || ''));
+      }
+    }
   };
 
 

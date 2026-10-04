@@ -48,25 +48,61 @@
     '#64748b'  // Gri
   ];
 
-  let activeScheduleFlowTab = 'schedule'; // 'schedule' | 'plans' | 'times'
+  let activePlanSubtab = 'plans'; // 'plans' | 'schedule' | 'times'
+  let activeScheduleFlowTab = 'plans'; // 'schedule' | 'plans' | 'times'
+  let activePlanCardWeek = {}; // planId -> active week index
+  let activeViewPlanId = null;
+  let activePlanViewMode = 'weekly'; // 'weekly' | 'monthly'
   let activeSelectedLessonColor = '#3b82f6';
   let activeCellPickerSlot = null; // { dayIdx, periodKey, dayName, periodName }
   let activeMebGradeFilter = 'all';
 
-  // Ana Modalı Açma
-  window.openScheduleFlowModal = (tab = 'schedule') => {
+  // Plan Menüsü Ana Çizim Fonksiyonu (#tab-plan)
+  window.renderPlanTabMobile = () => {
+    const container = document.getElementById('m-plan-subtab-content');
+    if (!container) return;
+
+    // Alt sekme butonlarını güncelle
+    const subtabs = ['plans', 'schedule', 'times'];
+    subtabs.forEach(st => {
+      const btn = document.getElementById(`btn-plan-subtab-${st}`);
+      if (btn) {
+        btn.classList.toggle('active', st === activePlanSubtab);
+      }
+    });
+
+    if (activePlanSubtab === 'plans') {
+      renderSchedulePlansTab(container);
+    } else if (activePlanSubtab === 'schedule') {
+      renderScheduleProgramTab(container);
+    } else if (activePlanSubtab === 'times') {
+      renderScheduleTimesTab(container);
+    }
+
+    if (typeof updateLiveLessonCard === 'function') {
+      try { updateLiveLessonCard(); } catch (e) {}
+    }
+    if (window.lucide) window.lucide.createIcons();
+  };
+
+  // Plan Alt Sekmesi Değiştirme
+  window.switchPlanSubtab = (subtab) => {
+    activePlanSubtab = subtab || 'plans';
+    activeScheduleFlowTab = subtab || 'plans';
+    if (window.vibrate) window.vibrate(15);
+    window.renderPlanTabMobile();
+  };
+
+  // Ana Modalı veya Sekmeyi Açma (Geriye Dönük Uyumluluk ile Plan Sayfasına Yönlendirir)
+  window.openScheduleFlowModal = (tab = 'plans') => {
     if (window.vibrate) window.vibrate(20);
     try {
-      activeScheduleFlowTab = tab || 'schedule';
-      const menu = document.getElementById('m-sched-fab-menu');
-      const btn = document.getElementById('m-sched-fab-btn');
-      if (menu) menu.classList.remove('show');
-      if (btn) btn.classList.remove('active');
-
-      openBottomSheet('modal-schedule-flow');
-      window.updateScheduleFlowTabsUI();
-      window.renderScheduleFlowContent();
-      if (window.lucide) window.lucide.createIcons();
+      activePlanSubtab = tab || 'plans';
+      activeScheduleFlowTab = tab || 'plans';
+      if (typeof window.switchTab === 'function') {
+        window.switchTab('plan');
+      }
+      window.renderPlanTabMobile();
     } catch (e) {
       console.error('Error in openScheduleFlowModal:', e);
     }
@@ -87,6 +123,7 @@
   // Sekme / Alt Araç Değiştirme (Yüzen Menüden Çağrılır)
   window.switchScheduleFlowTab = (tab) => {
     activeScheduleFlowTab = tab;
+    activePlanSubtab = tab;
     const menu = document.getElementById('m-sched-fab-menu');
     const btn = document.getElementById('m-sched-fab-btn');
     if (menu && menu.classList.contains('show')) {
@@ -95,6 +132,7 @@
     }
     window.updateScheduleFlowTabsUI();
     window.renderScheduleFlowContent();
+    window.renderPlanTabMobile();
     window.vibrate(10);
   };
 
@@ -570,77 +608,199 @@
   // --------------------------------------------------------------------------
   // 2. SEKME: PLANLAR (YILLIK MÜFREDAT PLANLARI)
   // --------------------------------------------------------------------------
+  const MONTH_NAMES_ORDER = [
+    'EYLÜL', 'EKİM', 'KASIM', 'ARALIK', 'OCAK',
+    'ŞUBAT', 'MART', 'NİSAN', 'MAYIS', 'HAZİRAN'
+  ];
+
+  function getPlanActiveWeekIndex(p) {
+    const weeks = p.weeklySchedule || p.weeks || [];
+    if (!weeks.length) return 0;
+    if (activePlanCardWeek[p.id] !== undefined) {
+      const idx = activePlanCardWeek[p.id];
+      if (idx >= 0 && idx < weeks.length) return idx;
+    }
+    if (typeof window.getMobileActiveWeekIndex === 'function') {
+      const activeIdx = window.getMobileActiveWeekIndex(weeks);
+      if (activeIdx >= 0 && activeIdx < weeks.length) {
+        activePlanCardWeek[p.id] = activeIdx;
+        return activeIdx;
+      }
+    }
+    // Varsayılan olarak ilk tamamlanmamış hafta
+    for (let i = 0; i < weeks.length; i++) {
+      if (!weeks[i].isCompleted && !weeks[i].completed && !weeks[i].isHoliday) {
+        activePlanCardWeek[p.id] = i;
+        return i;
+      }
+    }
+    activePlanCardWeek[p.id] = 0;
+    return 0;
+  }
+
   function renderSchedulePlansTab(container) {
     const state = (window.stateManager && window.stateManager.loadState()) || {};
     const plans = state.plans || [];
 
-    container.innerHTML = `
-      <div style="display: flex; flex-direction: column; gap: 10px;">
-        <!-- Üst Buton ve Başlık -->
-        <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
-          <div>
-            <div style="font-weight: 800; font-size: 0.95rem; color: var(--m-text);">Yıllık Ders Planları</div>
-            <div style="font-size: 0.72rem; color: var(--m-text-muted);">Toplam ${plans.length} plan kayıtlı</div>
+    if (plans.length === 0) {
+      container.innerHTML = `
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+            <div>
+              <div style="font-weight: 850; font-size: 1rem; color: var(--m-text);">Yıllık Ders Planları</div>
+              <div style="font-size: 0.74rem; color: var(--m-text-muted);">Müfredat ve haftalık kazanım takibi</div>
+            </div>
+            <button class="subview-primary-action-btn" style="width: auto; padding: 7px 14px; font-size: 0.8rem; border-radius: 10px; margin: 0;" onclick="window.openPlanAddOptions()">
+              <i data-lucide="plus" style="width: 16px; height: 16px;"></i> Plan Ekle
+            </button>
           </div>
-          <button class="subview-primary-action-btn" style="width: auto; padding: 7px 14px; font-size: 0.8rem; border-radius: 10px; margin: 0;" onclick="window.openPlanAddOptions()">
-            <i data-lucide="plus" style="width: 16px; height: 16px;"></i> Plan Ekle
-          </button>
-        </div>
 
-        <!-- Planlar Listesi -->
-        ${plans.length === 0 ? `
           <div class="empty-state" style="padding: 2.5rem 1rem; text-align: center; background: var(--m-surface); border: 1.5px dashed var(--m-border); border-radius: var(--m-radius-md); margin-top: 0.5rem;">
             <div style="font-size: 2.2rem; margin-bottom: 0.5rem;">📑</div>
-            <div style="font-weight: 800; font-size: 1rem; color: var(--m-text); margin-bottom: 0.25rem;">Henüz Yıllık Plan Eklenmemiş</div>
-            <div style="font-size: 0.8rem; color: var(--m-text-muted); max-width: 280px; margin: 0 auto 1.25rem;">
-              MEB müfredat havuzundan hazır yükleyebilir, Excel dosyanızı aktarabilir veya yapay zeka ile 36 haftalık plan oluşturabilirsiniz.
+            <div style="font-weight: 850; font-size: 1rem; color: var(--m-text); margin-bottom: 0.25rem;">Henüz Yıllık Plan Eklenmemiş</div>
+            <div style="font-size: 0.8rem; color: var(--m-text-muted); max-width: 290px; margin: 0 auto 1.25rem; line-height: 1.4;">
+              MEB müfredat havuzundan hazır yükleyebilir, Excel dosyanızı aktarabilir veya yapay zeka ile 36 haftalık Maarif/MEB planı oluşturabilirsiniz.
             </div>
             <button class="subview-secondary-btn" style="margin: 0 auto;" onclick="window.openPlanAddOptions()">
               <i data-lucide="plus" style="width: 16px; height: 16px;"></i> Hemen Plan Ekle
             </button>
           </div>
-        ` : `
-          <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 0.25rem;">
-            ${plans.map(p => {
-              const weeks = p.weeklySchedule || p.weeks || [];
-              const completedCount = weeks.filter(w => w.isCompleted || w.completed).length;
+        </div>
+      `;
+      if (window.lucide) window.lucide.createIcons();
+      return;
+    }
 
-              return `
-                <div class="m-item-card" style="padding: 1rem; border-left: 4px solid var(--m-primary);">
-                  <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 8px;">
-                    <div>
-                      <div style="font-weight: 800; font-size: 0.95rem; color: var(--m-text);">
-                        ${escapeHTML(p.className ? p.className + ' - ' : '')}${escapeHTML(p.courseName || p.title)}
-                      </div>
-                      <div style="display: flex; align-items: center; gap: 6px; margin-top: 4px; flex-wrap: wrap;">
-                        <span class="m-badge" style="background: rgba(99, 102, 241, 0.1); color: var(--m-primary); font-size: 0.7rem; font-weight: 700; padding: 2px 8px; border-radius: 6px;">
-                          ${escapeHTML(p.modelName || (p.modelType === 'maarif' ? 'Maarif Modeli' : 'Standart MEB'))}
-                        </span>
-                        <span style="font-size: 0.72rem; color: var(--m-text-muted);">
-                          📅 ${weeks.length} Hafta (${completedCount} tamamlandı)
-                        </span>
-                      </div>
+    container.innerHTML = `
+      <div style="display: flex; flex-direction: column; gap: 12px;">
+        <!-- Üst Başlık & Plan Ekle Butonu -->
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+          <div>
+            <div style="font-weight: 850; font-size: 1rem; color: var(--m-text);">Yıllık Ders Planları</div>
+            <div style="font-size: 0.74rem; color: var(--m-text-muted);">Toplam ${plans.length} plan aktif</div>
+          </div>
+          <button class="subview-primary-action-btn" style="width: auto; padding: 7px 14px; font-size: 0.8rem; border-radius: 10px; margin: 0; box-shadow: var(--m-shadow-sm);" onclick="window.openPlanAddOptions()">
+            <i data-lucide="plus" style="width: 16px; height: 16px;"></i> Plan Ekle
+          </button>
+        </div>
+
+        <!-- Plan Kartları Listesi -->
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+          ${plans.map(p => {
+            const weeks = p.weeklySchedule || p.weeks || [];
+            const totalWeeks = weeks.length || 36;
+            const completedCount = weeks.filter(w => w.isCompleted || w.completed).length;
+            const percent = totalWeeks > 0 ? Math.round((completedCount / totalWeeks) * 100) : 0;
+
+            const curIdx = getPlanActiveWeekIndex(p);
+            const w = weeks[curIdx] || {};
+            const isDone = Boolean(w.isCompleted || w.completed);
+            const wNum = w.weekNumber ? (Array.isArray(w.weekNumber) ? w.weekNumber[0] : w.weekNumber) : (curIdx + 1);
+            const wLabel = w.weekLabel || `${wNum}. Hafta`;
+            const wDate = w.dateRange ? `(${w.dateRange})` : '';
+
+            const academicActiveIdx = (typeof window.getMobileActiveWeekIndex === 'function')
+              ? window.getMobileActiveWeekIndex(weeks)
+              : 0;
+            const isAcademicWeek = (curIdx === academicActiveIdx);
+
+            let topicText = '';
+            if (typeof window.extractMobileWeekTopic === 'function') {
+              topicText = window.extractMobileWeekTopic(w);
+            } else {
+              topicText = Array.isArray(w.topics) ? w.topics.join(', ') : (w.topics || w.topic || 'Ders konusu planda belirtilmemiş.');
+            }
+
+            const unitText = w.unitName ? (w.unitNo ? `${w.unitNo}. Ünite: ${w.unitName}` : `Ünite: ${w.unitName}`) : '';
+            const outcomes = Array.isArray(w.learningOutcomes) ? w.learningOutcomes : (w.learningOutcomes ? [w.learningOutcomes] : []);
+            const outcomePreview = outcomes.length > 0 ? outcomes[0] : '';
+
+            const title = `${p.className ? p.className + ' - ' : ''}${p.courseName || p.title}`;
+            const modelName = p.modelName || (p.modelType === 'maarif' ? 'Türkiye Yüzyılı Maarif Modeli' : 'Standart MEB');
+
+            return `
+              <div class="m-plan-card" id="m-plan-card-${p.id}">
+                <!-- 1. Üst Kısım: Ders Başlığı, Model ve Aksiyonlar -->
+                <div class="m-plan-card-header" onclick="window.openPlanWeeksViewModal('${p.id}')">
+                  <div style="flex: 1; min-width: 0;">
+                    <div class="m-plan-card-title">${escapeHTML(title)}</div>
+                    <div style="display: flex; align-items: center; gap: 6px; margin-top: 4px; flex-wrap: wrap;">
+                      <span class="m-plan-badge-model">${escapeHTML(modelName)}</span>
+                      <span class="m-plan-badge-year">📅 ${escapeHTML(p.educationYear || '2026-2027')}</span>
                     </div>
-                    <button style="border: none; background: rgba(244, 63, 94, 0.12); color: var(--m-danger); width: 32px; height: 32px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0;" onclick="window.deletePlanFromMobile('${p.id}')" title="Planı Sil">
-                      <i data-lucide="trash-2" style="width: 15px; height: 15px;"></i>
-                    </button>
                   </div>
-
-                  <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 0.85rem; padding-top: 0.65rem; border-top: 1px solid var(--m-border);">
-                    <div style="font-size: 0.72rem; color: var(--m-text-light);">
-                      Eğitim Yılı: ${escapeHTML(p.educationYear || '2026-2027')}
-                    </div>
-                    <button class="m-btn-sm" style="display: flex; align-items: center; gap: 4px; background: var(--m-surface-subtle); color: var(--m-primary); border: 1px solid var(--m-border); font-weight: 700; font-size: 0.76rem; padding: 5px 10px; border-radius: 8px; cursor: pointer;" onclick="window.openPlanWeeksViewModal('${p.id}')">
-                      <i data-lucide="eye" style="width: 13px; height: 13px;"></i> Haftalık Konular
+                  <div style="display: flex; align-items: center; gap: 4px;" onclick="event.stopPropagation();">
+                    <button class="m-plan-card-view-btn" onclick="window.openPlanWeeksViewModal('${p.id}')" title="Aylık ve Haftalık Görünüm">
+                      <i data-lucide="eye" style="width: 13px; height: 13px;"></i>
+                      <span>Görünüm</span>
+                    </button>
+                    <button class="m-plan-card-del-btn" onclick="window.deletePlanFromMobile('${p.id}')" title="Planı Sil">
+                      <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i>
                     </button>
                   </div>
                 </div>
-              `;
-            }).join('')}
-          </div>
-        `}
+
+                <!-- 2. İlerleme Çubuğu (Yüzde ve Hafta) -->
+                <div class="m-plan-progress-section" onclick="window.openPlanWeeksViewModal('${p.id}')">
+                  <div class="m-plan-progress-header">
+                    <span class="m-plan-progress-label">Müfredat İlerlemesi</span>
+                    <span class="m-plan-progress-value">%${percent} • ${completedCount}/${totalWeeks} Hafta</span>
+                  </div>
+                  <div class="m-plan-progress-track">
+                    <div class="m-plan-progress-fill" style="width: ${percent}%;"></div>
+                  </div>
+                </div>
+
+                <!-- 3. Hafta İlerletme Navigasyonu -->
+                <div class="m-plan-week-nav-bar" onclick="event.stopPropagation();">
+                  <button class="m-plan-nav-arrow" ${curIdx === 0 ? 'disabled' : ''} onclick="window.stepPlanCardWeek('${p.id}', -1)" title="Önceki Hafta">
+                    <i data-lucide="chevron-left" style="width: 18px; height: 18px;"></i>
+                  </button>
+                  <div class="m-plan-nav-week-info" onclick="window.openPlanWeeksViewModal('${p.id}')">
+                    <span class="m-plan-nav-week-title">${escapeHTML(wLabel)}</span>
+                    ${wDate ? `<span class="m-plan-nav-week-date">${escapeHTML(wDate)}</span>` : ''}
+                    ${isAcademicWeek ? `<span class="m-plan-active-dot">● Aktif Hafta</span>` : `
+                      <button class="m-plan-jump-current-btn" onclick="event.stopPropagation(); window.jumpPlanCardToActiveWeek('${p.id}')" title="Aktif takvim haftasına dön">
+                        <span>📌 Bu Hafta</span>
+                      </button>
+                    `}
+                  </div>
+                  <button class="m-plan-nav-arrow" ${curIdx >= weeks.length - 1 ? 'disabled' : ''} onclick="window.stepPlanCardWeek('${p.id}', 1)" title="Sonraki Hafta">
+                    <i data-lucide="chevron-right" style="width: 18px; height: 18px;"></i>
+                  </button>
+                </div>
+
+                <!-- 4. Haftaya Ait Ders Konusu & Detaylar -->
+                <div class="m-plan-week-content-box" onclick="window.openPlanWeeksViewModal('${p.id}')">
+                  ${unitText ? `<div class="m-plan-unit-name">${escapeHTML(unitText)}</div>` : ''}
+                  <div class="m-plan-topic-text">
+                    <strong>Konu:</strong> ${escapeHTML(topicText)}
+                  </div>
+                  ${outcomePreview ? `
+                    <div class="m-plan-outcomes-text">
+                      <strong>Kazanım / Çıktı:</strong> ${escapeHTML(outcomePreview)}
+                    </div>
+                  ` : ''}
+                </div>
+
+                <!-- 5. Konunun İşlendiğini İşaretleyecek Onay Kutusu -->
+                <div class="m-plan-check-row" onclick="event.stopPropagation();">
+                  <label class="m-plan-check-label">
+                    <input type="checkbox" class="m-plan-check-input" ${isDone ? 'checked' : ''} onchange="window.togglePlanWeekStatus('${p.id}', ${curIdx})">
+                    <span style="color: ${isDone ? '#059669' : 'var(--m-text)'};">
+                      ${isDone ? '✓ Bu Haftanın Konusu İşlendi' : 'Bu haftanın konusu işlendi olarak işaretle'}
+                    </span>
+                  </label>
+                  ${isDone ? `<span style="font-size: 0.7rem; font-weight: 800; color: #10b981; background: rgba(16, 185, 129, 0.12); padding: 2px 7px; border-radius: 6px;">Tamamlandı</span>` : ''}
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
       </div>
     `;
+
+    if (window.lucide) window.lucide.createIcons();
   }
 
   // Plan Ekleme Seçenekler Modalı
@@ -658,21 +818,71 @@
       if (window.stateManager) {
         window.stateManager.deletePlan(planId);
       }
-      window.renderScheduleFlowContent();
+      delete activePlanCardWeek[planId];
+      window.renderPlanTabMobile();
       updateLiveLessonCard();
       showMobileToast('Yıllık plan silindi', 'info');
     }
   };
 
-  // Plan Haftaları İnceleme Modalı
+  // Plan Kartında Hafta İlerletme / Geriletme
+  window.stepPlanCardWeek = (planId, delta) => {
+    const state = (window.stateManager && window.stateManager.loadState()) || {};
+    const plan = (state.plans || []).find(p => p.id === planId);
+    if (!plan) return;
+    const weeks = plan.weeklySchedule || plan.weeks || [];
+    if (!weeks.length) return;
+
+    let curIdx = activePlanCardWeek[planId] !== undefined ? activePlanCardWeek[planId] : 0;
+    curIdx = Math.max(0, Math.min(weeks.length - 1, curIdx + delta));
+    activePlanCardWeek[planId] = curIdx;
+    if (window.vibrate) window.vibrate(15);
+    window.renderPlanTabMobile();
+  };
+
+  // Plan Kartını Aktif Takvim Haftasına Atlama
+  window.jumpPlanCardToActiveWeek = (planId) => {
+    const state = (window.stateManager && window.stateManager.loadState()) || {};
+    const plan = (state.plans || []).find(p => p.id === planId);
+    if (!plan) return;
+    const weeks = plan.weeklySchedule || plan.weeks || [];
+    if (!weeks.length) return;
+
+    const activeIdx = (typeof window.getMobileActiveWeekIndex === 'function')
+      ? window.getMobileActiveWeekIndex(weeks)
+      : 0;
+    activePlanCardWeek[planId] = Math.max(0, Math.min(weeks.length - 1, activeIdx));
+    if (window.vibrate) window.vibrate(20);
+    window.renderPlanTabMobile();
+  };
+
+  // Plan Kartındaki Onay Kutusu ile Hafta Tamamlama Durumunu Değiştirme
+  window.togglePlanWeekStatus = (planId, weekIdx) => {
+    if (window.stateManager) {
+      window.stateManager.toggleWeekCompleted(planId, weekIdx);
+    }
+    if (window.vibrate) window.vibrate(20);
+    const state = (window.stateManager && window.stateManager.loadState()) || {};
+    const plan = (state.plans || []).find(p => p.id === planId);
+    const weeks = plan?.weeklySchedule || plan?.weeks || [];
+    const isNowDone = Boolean(weeks[weekIdx]?.isCompleted || weeks[weekIdx]?.completed);
+    showMobileToast(isNowDone ? '✓ Hafta konusu işlendi olarak kaydedildi' : 'Hafta konusu işlenmedi olarak işaretlendi', isNowDone ? 'success' : 'info');
+
+    window.renderPlanTabMobile();
+    if (typeof updateLiveLessonCard === 'function') {
+      updateLiveLessonCard();
+    }
+  };
+
+  // Plan Haftaları ve Aylık Görünümü Açma Modalı
   window.openPlanWeeksViewModal = (planId) => {
+    activeViewPlanId = planId;
     const state = (window.stateManager && window.stateManager.loadState()) || {};
     const plan = (state.plans || []).find(p => p.id === planId);
     if (!plan) return;
 
     const titleEl = document.getElementById('m-plan-weeks-title');
     const subTitleEl = document.getElementById('m-plan-weeks-subtitle');
-    const contentEl = document.getElementById('m-plan-weeks-content');
 
     if (titleEl) {
       titleEl.textContent = `📑 ${plan.className ? plan.className + ' - ' : ''}${plan.courseName || plan.title}`;
@@ -681,45 +891,157 @@
       subTitleEl.textContent = `${plan.educationYear || '2026-2027'} • ${plan.modelName || 'MEB Müfredatı'}`;
     }
 
-    const weeks = plan.weeklySchedule || plan.weeks || [];
+    renderPlanWeeksModalContent();
+    openBottomSheet('modal-plan-view-weeks');
+    if (window.lucide) window.lucide.createIcons();
+  };
 
-    if (contentEl) {
+  // Modal İçi Görünüm Modu Değiştirme (Haftalık vs Aylık)
+  window.setPlanViewMode = (mode) => {
+    activePlanViewMode = mode || 'weekly';
+    const btnWeekly = document.getElementById('m-plan-mode-weekly');
+    const btnMonthly = document.getElementById('m-plan-mode-monthly');
+    if (btnWeekly) btnWeekly.classList.toggle('active', activePlanViewMode === 'weekly');
+    if (btnMonthly) btnMonthly.classList.toggle('active', activePlanViewMode === 'monthly');
+    if (window.vibrate) window.vibrate(10);
+    renderPlanWeeksModalContent();
+  };
+
+  // Modal İçerik Çizimi
+  function renderPlanWeeksModalContent() {
+    const contentEl = document.getElementById('m-plan-weeks-content');
+    if (!contentEl) return;
+    const state = (window.stateManager && window.stateManager.loadState()) || {};
+    const plan = (state.plans || []).find(p => p.id === activeViewPlanId);
+    if (!plan) return;
+
+    const weeks = plan.weeklySchedule || plan.weeks || [];
+    const academicActiveIdx = (typeof window.getMobileActiveWeekIndex === 'function')
+      ? window.getMobileActiveWeekIndex(weeks)
+      : -1;
+
+    if (activePlanViewMode === 'weekly') {
+      // 1. HAFTALIK SIRALI GÖRÜNÜM (1-36 Hafta)
       contentEl.innerHTML = weeks.map((w, idx) => {
         const isDone = Boolean(w.isCompleted || w.completed);
+        const isAcademic = (idx === academicActiveIdx);
         const wTitle = w.weekLabel || `${idx + 1}. Hafta`;
         const topics = Array.isArray(w.topics) ? w.topics.join(', ') : (w.topics || w.topic || '');
         const outcomes = Array.isArray(w.learningOutcomes) ? w.learningOutcomes.join('<br>• ') : (w.learningOutcomes || '');
 
         return `
-          <div class="m-item-card" style="padding: 0.85rem; border-left: 3px solid ${isDone ? 'var(--m-success)' : 'var(--m-border)'};">
+          <div class="m-item-card" style="padding: 0.85rem; border-left: 4px solid ${isDone ? '#10b981' : (isAcademic ? 'var(--m-primary)' : 'var(--m-border)')}; background: var(--m-surface);">
             <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 8px;">
-              <div style="flex: 1;">
-                <div style="display: flex; align-items: center; gap: 6px;">
-                  <span style="font-weight: 800; font-size: 0.88rem; color: var(--m-text);">${wTitle}</span>
+              <div style="flex: 1; min-width: 0;">
+                <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                  <span style="font-weight: 850; font-size: 0.9rem; color: var(--m-text);">${escapeHTML(wTitle)}</span>
                   ${w.dateRange ? `<span style="font-size: 0.72rem; color: var(--m-text-muted);">(${escapeHTML(w.dateRange)})</span>` : ''}
+                  ${isAcademic ? `<span class="m-badge" style="background: rgba(99, 102, 241, 0.12); color: var(--m-primary); font-size: 0.68rem; font-weight: 800; padding: 1px 6px; border-radius: 4px;">Aktif Hafta</span>` : ''}
+                  ${w.month ? `<span class="m-badge" style="background: var(--m-surface-subtle); color: var(--m-text-muted); font-size: 0.68rem; font-weight: 700; padding: 1px 6px; border-radius: 4px;">${escapeHTML(w.month)}</span>` : ''}
                 </div>
-                ${w.unitName ? `<div style="font-size: 0.76rem; font-weight: 700; color: var(--m-primary); margin-top: 2px;">Ünite: ${escapeHTML(w.unitName)}</div>` : ''}
-                ${topics ? `<div style="font-size: 0.8rem; color: var(--m-text); margin-top: 3px;"><strong>Konu:</strong> ${escapeHTML(topics)}</div>` : ''}
+                ${w.unitName ? `<div style="font-size: 0.76rem; font-weight: 750; color: var(--m-primary); margin-top: 3px;">Ünite: ${escapeHTML(w.unitName)}</div>` : ''}
+                ${topics ? `<div style="font-size: 0.82rem; color: var(--m-text); margin-top: 3px; line-height: 1.35;"><strong>Konu:</strong> ${escapeHTML(topics)}</div>` : ''}
                 ${outcomes ? `<div style="font-size: 0.74rem; color: var(--m-text-muted); margin-top: 4px; line-height: 1.35;"><strong>Kazanım / Çıktı:</strong><br>• ${outcomes}</div>` : ''}
               </div>
-              <label style="display: flex; align-items: center; cursor: pointer; padding: 4px;">
-                <input type="checkbox" ${isDone ? 'checked' : ''} style="width: 20px; height: 20px; accent-color: var(--m-success); cursor: pointer;" onchange="window.togglePlanWeekCompletedMobile('${plan.id}', ${idx})">
+              <label style="display: flex; align-items: center; cursor: pointer; padding: 4px; flex-shrink: 0;" title="İşlendi olarak işaretle">
+                <input type="checkbox" ${isDone ? 'checked' : ''} style="width: 22px; height: 22px; accent-color: #10b981; cursor: pointer;" onchange="window.togglePlanWeekCompletedMobile('${plan.id}', ${idx})">
               </label>
+            </div>
+          </div>
+        `;
+      }).join('');
+    } else {
+      // 2. AYLIK GÖRÜNÜM (Aylara göre gruplanmış)
+      const monthGroups = {};
+      weeks.forEach((w, idx) => {
+        let m = (w.month || '').trim().toUpperCase();
+        if (!m) {
+          const dStr = (w.dateRange || '').toLocaleLowerCase('tr');
+          for (const mName of MONTH_NAMES_ORDER) {
+            if (dStr.includes(mName.toLocaleLowerCase('tr'))) {
+              m = mName;
+              break;
+            }
+          }
+        }
+        if (!m) {
+          const mIdx = Math.min(MONTH_NAMES_ORDER.length - 1, Math.floor(idx / 3.6));
+          m = MONTH_NAMES_ORDER[mIdx];
+        }
+        if (!monthGroups[m]) {
+          monthGroups[m] = [];
+        }
+        monthGroups[m].push({ ...w, index: idx });
+      });
+
+      const monthKeys = Object.keys(monthGroups);
+      monthKeys.sort((a, b) => {
+        let ia = MONTH_NAMES_ORDER.indexOf(a);
+        let ib = MONTH_NAMES_ORDER.indexOf(b);
+        if (ia === -1) ia = 99;
+        if (ib === -1) ib = 99;
+        return ia - ib;
+      });
+
+      contentEl.innerHTML = monthKeys.map(mName => {
+        const mWeeks = monthGroups[mName] || [];
+        const mDoneCount = mWeeks.filter(w => w.isCompleted || w.completed).length;
+        const mTotal = mWeeks.length;
+        const mPercent = mTotal > 0 ? Math.round((mDoneCount / mTotal) * 100) : 0;
+
+        return `
+          <div class="m-plan-month-card">
+            <div class="m-plan-month-header">
+              <div class="m-plan-month-title">
+                <span>🗓️</span>
+                <span>${escapeHTML(mName)}</span>
+              </div>
+              <span class="m-plan-month-stat">
+                ${mDoneCount}/${mTotal} Hafta Tamamlandı (%${mPercent})
+              </span>
+            </div>
+            <div style="padding: 8px 10px; display: flex; flex-direction: column; gap: 8px;">
+              ${mWeeks.map(w => {
+                const isDone = Boolean(w.isCompleted || w.completed);
+                const isAcademic = (w.index === academicActiveIdx);
+                const wTitle = w.weekLabel || `${w.index + 1}. Hafta`;
+                const topics = Array.isArray(w.topics) ? w.topics.join(', ') : (w.topics || w.topic || '');
+
+                return `
+                  <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; padding: 7px 8px; border-radius: 8px; background: ${isDone ? 'rgba(16, 185, 129, 0.06)' : 'var(--m-surface-subtle)'}; border: 1px solid ${isDone ? 'rgba(16, 185, 129, 0.25)' : (isAcademic ? 'var(--m-primary)' : 'var(--m-border)')};">
+                    <div style="flex: 1; min-width: 0;">
+                      <div style="display: flex; align-items: center; gap: 6px;">
+                        <span style="font-weight: 800; font-size: 0.82rem; color: var(--m-text);">${escapeHTML(wTitle)}</span>
+                        ${w.dateRange ? `<span style="font-size: 0.7rem; color: var(--m-text-muted);">(${escapeHTML(w.dateRange)})</span>` : ''}
+                        ${isAcademic ? `<span class="m-badge" style="background: rgba(99, 102, 241, 0.12); color: var(--m-primary); font-size: 0.65rem; font-weight: 800; padding: 1px 5px; border-radius: 4px;">Aktif</span>` : ''}
+                      </div>
+                      ${topics ? `<div style="font-size: 0.78rem; color: var(--m-text); margin-top: 2px; line-height: 1.3;">${escapeHTML(topics)}</div>` : ''}
+                    </div>
+                    <label style="display: flex; align-items: center; cursor: pointer; padding: 2px; flex-shrink: 0;">
+                      <input type="checkbox" ${isDone ? 'checked' : ''} style="width: 20px; height: 20px; accent-color: #10b981; cursor: pointer;" onchange="window.togglePlanWeekCompletedMobile('${plan.id}', ${w.index})">
+                    </label>
+                  </div>
+                `;
+              }).join('')}
             </div>
           </div>
         `;
       }).join('');
     }
 
-    openBottomSheet('modal-plan-view-weeks');
     if (window.lucide) window.lucide.createIcons();
-  };
+  }
 
   window.togglePlanWeekCompletedMobile = (planId, weekIdx) => {
     if (window.stateManager) {
       window.stateManager.toggleWeekCompleted(planId, weekIdx);
     }
-    window.vibrate(10);
+    if (window.vibrate) window.vibrate(10);
+    renderPlanWeeksModalContent();
+    window.renderPlanTabMobile();
+    if (typeof updateLiveLessonCard === 'function') {
+      updateLiveLessonCard();
+    }
     showMobileToast('Hafta durumu güncellendi', 'success');
   };
 
@@ -1027,14 +1349,20 @@
   };
 
   window.generateAiPlanMobile = async () => {
-    let apiKey = (localStorage.getItem('sinif_asistani_gemini_api_key') || '').trim();
-    if (!apiKey) {
-      const promptKey = prompt('Yapay zeka ile plan üretmek için lütfen Google Gemini API anahtarınızı girin:');
-      if (promptKey && promptKey.trim()) {
-        apiKey = promptKey.trim();
-        localStorage.setItem('sinif_asistani_gemini_api_key', apiKey);
-      } else {
-        showMobileToast('Gemini API anahtarı tanımlanmadan yapay zeka kullanılamaz.', 'warning');
+    // 0. API Anahtarı Kontrolü ve Adım Adım Rehber Modalı (Anahtar yoksa kullanıcıya adım adım anlatır)
+    if (typeof window.ensureGeminiApiKey === 'function') {
+      const hasKey = await window.ensureGeminiApiKey({
+        featureName: 'Yapay Zeka ile Yıllık Plan Oluşturucu',
+        description: 'Müfredat kazanımları ve 36 haftalık yıllık ders planını MEB standartlarında hazırlamak için Google Gemini API anahtarı gereklidir.'
+      });
+      if (!hasKey) return;
+    } else if (typeof window.hasGeminiApiKey === 'function' && !window.hasGeminiApiKey()) {
+      if (typeof window.showGeminiKeyRequiredModal === 'function') {
+        window.showGeminiKeyRequiredModal({
+          featureName: 'Yapay Zeka ile Yıllık Plan Oluşturucu',
+          confirmText: 'Kaydet ve Planı Oluştur',
+          onSuccess: () => { window.generateAiPlanMobile(); }
+        });
         return;
       }
     }
@@ -1105,7 +1433,8 @@ Yanıtını YALNIZCA geçerli bir JSON objesi olarak ver. Markdown kod bloğu vb
         if (objM) clean = objM[0];
         responseJson = JSON.parse(clean);
       } else {
-        // Doğrudan fetch ile çağır
+        const apiKey = (typeof window.getGeminiApiKey === 'function') ? window.getGeminiApiKey() : '';
+        if (!apiKey) throw new Error('NO_API_KEY');
         const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
         const res = await fetch(url, {
           method: 'POST',
@@ -1160,7 +1489,22 @@ Yanıtını YALNIZCA geçerli bir JSON objesi olarak ver. Markdown kod bloğu vb
       showMobileToast(`"${courseName}" yıllık planı yapay zeka ile başarıyla oluşturuldu!`, 'success');
     } catch (err) {
       console.error(err);
-      showMobileToast('Yapay zeka planı üretirken hata oluştu: ' + (err.message || 'Bilinmeyen hata'), 'danger');
+      if ((err.message === 'NO_API_KEY' || String(err.message).includes('API key')) && typeof window.ensureGeminiApiKey === 'function') {
+        window.ensureGeminiApiKey({
+          featureName: 'Yapay Zeka ile Yıllık Plan Üretimi',
+          description: 'Müfredat kazanımları ve 36 haftalık yıllık ders planını hazırlamak için geçerli bir Google Gemini API anahtarı gereklidir.'
+        });
+      } else if (err.message === 'NO_API_KEY' && typeof window.showGeminiKeyRequiredModal === 'function') {
+        window.showGeminiKeyRequiredModal({
+          featureName: 'Yapay Zeka ile Yıllık Plan Üretimi',
+          confirmText: 'Kaydet ve Planı Oluştur',
+          onSuccess: () => {
+            window.generateAiPlanMobile();
+          }
+        });
+      } else {
+        showMobileToast('Yapay zeka planı üretirken hata oluştu: ' + (err.message || 'Bilinmeyen hata'), 'danger');
+      }
     } finally {
       if (statusBox) statusBox.style.display = 'none';
       if (btnGenerate) btnGenerate.disabled = false;

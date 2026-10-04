@@ -61,43 +61,6 @@
        ========================================================================== -->
   <main class="mobile-view-container">
 
-    <!-- CANLI DERS KARTI (HER EKRANDA ÜSTTE YER ALIR) -->
-    <section class="live-lesson-card" id="m-live-lesson-card">
-      <div class="live-lesson-header-row">
-        <div class="live-lesson-time-badge" id="live-lesson-time-badge">
-          <i data-lucide="clock" style="width: 13px; height: 13px;"></i>
-          <span id="live-lesson-period-span">Ders Yükleniyor...</span>
-          <span style="opacity: 0.4;">•</span>
-          <span id="live-lesson-week-span">📅 Aktif Hafta</span>
-        </div>
-        <button type="button" class="live-lesson-action-btn" id="btn-live-lesson-outcome" onclick="window.showLiveLessonOutcomeModal()" title="Haftalık Kazanımı Görüntüle">
-          <i data-lucide="target" style="width: 13px; height: 13px;"></i>
-          <span>Kazanım</span>
-        </button>
-      </div>
-
-      <!-- Azalan Kalan Zaman Çubuğu ve Ders Adı (Masaüstü Birebir Uyumlu) -->
-      <div class="m-lesson-progress-container" id="m-lesson-progress-container">
-        <div class="m-lesson-progress-bar" id="m-live-lesson-progress-bar" style="width: 100%;"></div>
-        <div class="m-lesson-progress-content">
-          <div class="m-lesson-progress-left">
-            <i data-lucide="book-open" id="m-live-lesson-icon" style="width: 16px; height: 16px; color: var(--m-primary);"></i>
-            <span class="live-lesson-title" id="live-lesson-name">YÜKLENİYOR...</span>
-          </div>
-          <div class="m-lesson-progress-time" id="m-live-lesson-time-wrap">
-            <i data-lucide="hourglass" style="width: 12px; height: 12px;"></i>
-            <span id="live-lesson-remaining-text">--:--</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Alt Kısım: Konu Bilgisi ve İşlendi Rozeti -->
-      <div class="live-lesson-topic-row">
-        <div class="live-lesson-topic" id="live-lesson-topic-text">Müfredat Konusu Getiriliyor...</div>
-        <span id="live-lesson-completed-badge" style="display: none; font-size: 0.7rem; font-weight: 800; color: #10b981; background: rgba(16, 185, 129, 0.12); padding: 2px 7px; border-radius: 6px; flex-shrink: 0;">✓ İşlendi</span>
-      </div>
-    </section>
-
     <!-- FİLTRE VE ARAMA ÇUBUĞU (PERFORMANS VE ÖDEV İÇİN) -->
     <div class="mobile-filter-bar" id="mobile-filter-bar">
       <div class="mobile-search-box">
@@ -111,6 +74,29 @@
 
     <!-- 1. SEKME: PERFORMANS (HIZLI PUAN & DOJO) -->
     <div class="tab-pane active" id="tab-performance">
+      <!-- PERFORMANS KAPSAMI (HAFTALIK / AYLIK / YILLIK) SEÇİCİ KUTUSU -->
+      <div class="perf-scope-container" id="m-perf-scope-container">
+        <div class="perf-scope-segmented">
+          <button type="button" class="perf-scope-btn active" id="btn-perf-scope-weekly" onclick="window.setPerformanceScope('weekly')">
+            <i data-lucide="calendar" style="width: 15px; height: 15px;"></i>
+            <span>Haftalık</span>
+          </button>
+          <button type="button" class="perf-scope-btn" id="btn-perf-scope-monthly" onclick="window.setPerformanceScope('monthly')">
+            <i data-lucide="calendar-days" style="width: 15px; height: 15px;"></i>
+            <span>Aylık</span>
+          </button>
+          <button type="button" class="perf-scope-btn" id="btn-perf-scope-yearly" onclick="window.setPerformanceScope('yearly')">
+            <i data-lucide="trophy" style="width: 15px; height: 15px;"></i>
+            <span>Yıllık</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- DÖNEM BİLGİ VE GEZİNME ÇUBUĞU -->
+      <div class="perf-period-bar" id="m-perf-period-bar">
+        <!-- Dinamik İçerik: Hafta/Ay Gezinme, Başlık ve Sıfırlanma/Sıralama Açıklaması -->
+      </div>
+
       <div class="students-grid" id="m-students-grid">
         <!-- Dinamik öğrenci kartları -->
       </div>
@@ -277,95 +263,65 @@
       </div>
     </div>
 
-    <!-- 4. SEKME: ARAÇLAR (SINIF YARDIMCI ARAÇLARI) -->
-    <div class="tab-pane" id="tab-tools">
-      <div class="bento-header" style="margin-bottom: 1rem;">
-        <div class="bento-header-title">Sınıf Yardımcı Araçları</div>
-        <div class="bento-header-subtitle">Ders içi aktiviteler ve sınıf yönetimi için pratik araçlar.</div>
+    <!-- 4. SEKME: PLAN (CANLI DERS AKIŞI, YILLIK PLANLAR, DERS PROGRAMI & SAATLER) -->
+    <div class="tab-pane" id="tab-plan">
+
+      <!-- CANLI DERS KARTI (EN ÜSTTE) -->
+      <section class="live-lesson-card" id="m-live-lesson-card" style="display: flex;">
+        <div class="live-lesson-header-row">
+          <div class="live-lesson-time-badge" id="live-lesson-time-badge">
+            <i data-lucide="clock" style="width: 13px; height: 13px;"></i>
+            <span id="live-lesson-period-span">Ders Yükleniyor...</span>
+            <span style="opacity: 0.4;">•</span>
+            <span id="live-lesson-week-span">📅 Aktif Hafta</span>
+          </div>
+          <button type="button" class="live-lesson-action-btn" id="btn-live-lesson-outcome" onclick="window.showLiveLessonOutcomeModal()" title="Haftalık Kazanımı Görüntüle">
+            <i data-lucide="target" style="width: 13px; height: 13px;"></i>
+            <span>Kazanım</span>
+          </button>
+        </div>
+
+        <!-- Azalan Kalan Zaman Çubuğu ve Ders Adı (Masaüstü Birebir Uyumlu) -->
+        <div class="m-lesson-progress-container" id="m-lesson-progress-container">
+          <div class="m-lesson-progress-bar" id="m-live-lesson-progress-bar" style="width: 100%;"></div>
+          <div class="m-lesson-progress-content">
+            <div class="m-lesson-progress-left">
+              <i data-lucide="book-open" id="m-live-lesson-icon" style="width: 16px; height: 16px; color: var(--m-primary);"></i>
+              <span class="live-lesson-title" id="live-lesson-name">YÜKLENİYOR...</span>
+            </div>
+            <div class="m-lesson-progress-time" id="m-live-lesson-time-wrap">
+              <i data-lucide="hourglass" style="width: 12px; height: 12px;"></i>
+              <span id="live-lesson-remaining-text">--:--</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Alt Kısım: Konu Bilgisi ve İşlendi Rozeti -->
+        <div class="live-lesson-topic-row">
+          <div class="live-lesson-topic" id="live-lesson-topic-text">Müfredat Konusu Getiriliyor...</div>
+          <span id="live-lesson-completed-badge" style="display: none; font-size: 0.7rem; font-weight: 800; color: #10b981; background: rgba(16, 185, 129, 0.12); padding: 2px 7px; border-radius: 6px; flex-shrink: 0;">✓ İşlendi</span>
+        </div>
+      </section>
+
+      <!-- PLAN MODÜLÜ ALT SEKMELERİ -->
+      <div class="m-plan-subtabs-bar" id="m-plan-subtabs-bar">
+        <button class="m-plan-subtab active" id="btn-plan-subtab-plans" onclick="window.switchPlanSubtab('plans')">
+          <i data-lucide="file-text" style="width: 15px; height: 15px;"></i>
+          <span>Yıllık Plan</span>
+        </button>
+        <button class="m-plan-subtab" id="btn-plan-subtab-schedule" onclick="window.switchPlanSubtab('schedule')">
+          <i data-lucide="calendar" style="width: 15px; height: 15px;"></i>
+          <span>Ders Programı</span>
+        </button>
+        <button class="m-plan-subtab" id="btn-plan-subtab-times" onclick="window.switchPlanSubtab('times')">
+          <i data-lucide="clock" style="width: 15px; height: 15px;"></i>
+          <span>Ders Saatleri</span>
+        </button>
       </div>
 
-      <!-- Araçlar Küçük Kartlar Izgarası -->
-      <div class="tools-grid-compact">
-        <!-- 1. Yoklama (Sınıf Yoklaması) -->
-        <div class="tool-compact-card" role="button" tabindex="0" onclick="window.openAttendanceModal()">
-          <div class="tool-icon-circle" style="background: rgba(16, 185, 129, 0.12); color: var(--m-success);">
-            📋
-          </div>
-          <div style="font-weight: 800; font-size: 0.88rem; color: var(--m-text);">Sınıf Yoklaması</div>
-          <div style="font-size: 0.7rem; color: var(--m-text-muted);">Günlük yoklama & devam</div>
-        </div>
-
-        <!-- 4. Sesler -->
-        <div class="tool-compact-card" role="button" tabindex="0" onclick="window.openToolModal('sounds')">
-          <div class="tool-icon-circle" style="background: rgba(244, 63, 94, 0.12); color: var(--m-danger);">
-            🔔
-          </div>
-          <div style="font-weight: 800; font-size: 0.88rem; color: var(--m-text);">Zil & Sesler</div>
-          <div style="font-size: 0.7rem; color: var(--m-text-muted);">Zil, alkış ve efektler</div>
-        </div>
-
-        <!-- 5. Grup Oluşturucu -->
-        <div class="tool-compact-card" role="button" tabindex="0" onclick="window.openToolModal('groups')">
-          <div class="tool-icon-circle" style="background: rgba(16, 185, 129, 0.12); color: var(--m-success);">
-            👥
-          </div>
-          <div style="font-weight: 800; font-size: 0.88rem; color: var(--m-text);">Grup Kurucu</div>
-          <div style="font-size: 0.7rem; color: var(--m-text-muted);">Rastgele takım oluştur</div>
-        </div>
-
-        <!-- 6. Nöbet Listesi -->
-        <div class="tool-compact-card" role="button" tabindex="0" onclick="window.openDutyRosterModal()">
-          <div class="tool-icon-circle" style="background: rgba(6, 182, 212, 0.12); color: var(--m-info);">
-            📅
-          </div>
-          <div style="font-weight: 800; font-size: 0.88rem; color: var(--m-text);">Nöbetçi Listesi</div>
-          <div style="font-size: 0.7rem; color: var(--m-text-muted);">Haftalık sınıf nöbeti</div>
-        </div>
-
-        <!-- 7. Oturma Planı -->
-        <div class="tool-compact-card" role="button" tabindex="0" onclick="window.openSeatingPlanModal()">
-          <div class="tool-icon-circle" style="background: rgba(139, 92, 246, 0.12); color: #8b5cf6;">
-            🗺️
-          </div>
-          <div style="font-weight: 800; font-size: 0.88rem; color: var(--m-text);">Sınıf Oturma Planı</div>
-          <div style="font-size: 0.7rem; color: var(--m-text-muted);">Sıra ve masa düzeni</div>
-        </div>
-
-        <!-- 8. Ders Akışı -->
-        <div class="tool-compact-card" role="button" tabindex="0" onclick="window.openScheduleFlowModal()">
-          <div class="tool-icon-circle" style="background: rgba(59, 130, 246, 0.12); color: #3b82f6;">
-            📖
-          </div>
-          <div style="font-weight: 800; font-size: 0.88rem; color: var(--m-text);">Ders Akışı</div>
-          <div style="font-size: 0.7rem; color: var(--m-text-muted);">Program, planlar ve saatler</div>
-        </div>
-
-        <!-- 9. Katkı & Tedarik -->
-        <div class="tool-compact-card" role="button" tabindex="0" onclick="window.openSuppliesModal()">
-          <div class="tool-icon-circle" style="background: rgba(234, 88, 12, 0.12); color: #ea580c;">
-            📦
-          </div>
-          <div style="font-weight: 800; font-size: 0.88rem; color: var(--m-text);">Katkı & Tedarik</div>
-          <div style="font-size: 0.7rem; color: var(--m-text-muted);">Sınıf ihtiyaç takibi</div>
-        </div>
-
-        <!-- 10. Kişisel Evrak Deposu -->
-        <div class="tool-compact-card" role="button" tabindex="0" onclick="window.openDocumentsModal()">
-          <div class="tool-icon-circle" style="background: rgba(16, 185, 129, 0.12); color: #10b981;">
-            📁
-          </div>
-          <div style="font-weight: 800; font-size: 0.88rem; color: var(--m-text);">Kişisel Evrak Deposu</div>
-          <div style="font-size: 0.7rem; color: var(--m-text-muted);">Zümre, toplantı ve resmi evraklar</div>
-        </div>
-
-        <!-- 11. Sınavlar & Analiz -->
-        <div class="tool-compact-card" role="button" tabindex="0" onclick="window.openExamsHubModal()">
-          <div class="tool-icon-circle" style="background: rgba(168, 85, 247, 0.12); color: #a855f7;">
-            📝
-          </div>
-          <div style="font-weight: 800; font-size: 0.88rem; color: var(--m-text);">Sınavlar & Analiz</div>
-          <div style="font-size: 0.7rem; color: var(--m-text-muted);">Yazılı hazırla ve sınav analizi</div>
-        </div>
+      <!-- DİNAMİK İÇERİK ALANI -->
+      <div id="m-plan-subtab-content" style="display: flex; flex-direction: column; gap: 10px; padding-bottom: 2rem;">
+        <!-- JS ile çizilir -->
       </div>
     </div>
 
@@ -388,6 +344,22 @@
           </div>
           <div class="bento-arrow">
             <i data-lucide="chevron-right" style="width: 20px; height: 20px;"></i>
+          </div>
+        </div>
+
+        <!-- Sınıf Yardımcı Araçları (Yoklama, Sesler, Gruplar, Nöbet, Oturma Planı) -->
+        <div class="bento-card bento-tools" onclick="window.openMobileSubview('tools')">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+            <div class="bento-icon-box" style="background: rgba(99, 102, 241, 0.12); color: var(--m-primary);">
+              <i data-lucide="wrench"></i>
+            </div>
+            <div class="bento-arrow">
+              <i data-lucide="chevron-right" style="width: 18px; height: 18px;"></i>
+            </div>
+          </div>
+          <div class="bento-info">
+            <div class="bento-title">Sınıf Yardımcı Araçları</div>
+            <div class="bento-desc">Yoklama, zil ve sesler, grup kurucu, nöbet listesi ve oturma planı.</div>
           </div>
         </div>
 
@@ -1024,16 +996,7 @@
         <div style="font-size: 0.7rem; color: var(--m-text-muted);">Sıra ve masa düzeni</div>
       </div>
 
-      <!-- 7. Ders Akışı -->
-      <div class="tool-compact-card" role="button" tabindex="0" onclick="window.openScheduleFlowModal()">
-        <div class="tool-icon-circle" style="background: rgba(59, 130, 246, 0.12); color: #3b82f6;">
-          📖
-        </div>
-        <div style="font-weight: 800; font-size: 0.88rem; color: var(--m-text);">Ders Akışı</div>
-        <div style="font-size: 0.7rem; color: var(--m-text-muted);">Program, planlar ve saatler</div>
-      </div>
-
-      <!-- 8. Katkı & Tedarik -->
+      <!-- 7. Katkı & Tedarik -->
       <div class="tool-compact-card" role="button" tabindex="0" onclick="window.openSuppliesModal()">
         <div class="tool-icon-circle" style="background: rgba(234, 88, 12, 0.12); color: #ea580c;">
           📦
@@ -1620,13 +1583,18 @@
           </div>
 
           <div class="m-form-group">
-            <label class="m-form-label">PIN Kodu (4 Hane)</label>
-            <input type="password" maxlength="4" class="m-form-input" id="m-cfg-pin-code" placeholder="****" style="text-align: center; font-size: 1.35rem; letter-spacing: 8px; font-weight: 800;">
+            <label class="m-form-label">PIN / Şifre (En az 4 Karakter)</label>
+            <div style="position: relative;">
+              <input type="password" maxlength="16" class="m-form-input" id="m-cfg-pin-code" placeholder="••••" style="text-align: center; font-size: 1.35rem; letter-spacing: 6px; font-weight: 800; padding-right: 42px;">
+              <button type="button" onclick="window.togglePasswordVisibility('m-cfg-pin-code')" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--m-text-muted); cursor: pointer; padding: 4px;" aria-label="Şifreyi Göster/Gizle">
+                <i data-lucide="eye" style="width: 18px; height: 18px;"></i>
+              </button>
+            </div>
           </div>
 
           <div style="display: flex; gap: 8px;">
             <button class="m-btn-sm primary" onclick="window.saveMobilePin()" style="flex: 1; justify-content: center;">
-              <i data-lucide="save" style="width: 14px; height: 14px;"></i> PIN'i Kaydet
+              <i data-lucide="save" style="width: 14px; height: 14px;"></i> Şifreyi Kaydet
             </button>
             <button class="m-btn-sm danger" onclick="window.removeMobilePin()" style="flex: 1; justify-content: center;">
               <i data-lucide="unlock" style="width: 14px; height: 14px;"></i> Kilidi Kaldır
@@ -1644,7 +1612,7 @@
             📱 Sınıf Asistanı Kullanım Kılavuzu
           </div>
           <div style="font-size: 0.75rem; color: var(--m-text-muted); margin-bottom: 1rem;">
-            Versiyon: <strong>v1.0.45</strong> — Geliştirici: <strong>Barış Gençoğlu</strong>
+            Versiyon: <strong>v1.0.46</strong> — Geliştirici: <strong>Barış Gençoğlu</strong>
           </div>
 
           <div style="display: flex; flex-direction: column;">
@@ -3046,7 +3014,7 @@
   <div class="bottom-sheet" id="modal-quiz-raffle" style="max-height: 75vh; z-index: 1300; text-align: center;">
     <div class="sheet-handle"></div>
     <div style="padding: 1.5rem 1.25rem 2rem 1.25rem; display: flex; flex-direction: column; align-items: center;">
-      <div style="width: 68px; height: 68px; border-radius: 20px; background: linear-gradient(135deg, #8b5cf6, #6366f1); color: white; display: flex; align-items: center; justify-content: center; font-size: 2rem; margin-bottom: 1rem; box-shadow: 0 4px 16px rgba(139, 92, 246, 0.4);">
+      <div id="m-quiz-raffle-icon" style="width: 72px; height: 72px; border-radius: 50%; background: linear-gradient(135deg, #8b5cf6, #6366f1); color: white; display: flex; align-items: center; justify-content: center; font-size: 2rem; margin-bottom: 1rem; box-shadow: 0 4px 16px rgba(139, 92, 246, 0.4); overflow: hidden; border: 3px solid transparent;">
         🎲
       </div>
       <div style="font-size: 0.82rem; font-weight: 700; color: var(--m-primary); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px;">
@@ -3343,7 +3311,7 @@
   </div>
 
   <!-- 5.4 OTURMA PLANI ÖĞRENCİ SEÇİMİ MODALI (Alt Çekmece) -->
-  <div class="bottom-sheet" id="modal-seating-student-select" style="max-height: 85vh; z-index: 1250; display: flex; flex-direction: column;">
+  <div class="bottom-sheet" id="modal-seating-student-select" style="max-height: 85vh; z-index: 1250 !important; display: flex; flex-direction: column;">
     <div class="sheet-handle"></div>
     <div class="sheet-header" style="flex-shrink: 0; margin-bottom: 0.5rem;">
       <div style="display: flex; align-items: center; gap: 8px;">
@@ -3609,18 +3577,33 @@
     </div>
   </div>
 
-  <!-- PLAN HAFTALIK İNCELEME & KAZANIMLAR MODALI -->
-  <div class="bottom-sheet" id="modal-plan-view-weeks" style="max-height: 90vh; z-index: 1300; display: flex; flex-direction: column;">
+  <!-- PLAN HAFTALIK & AYLIK İNCELEME MODALI -->
+  <div class="bottom-sheet" id="modal-plan-view-weeks" style="max-height: 92vh; height: 90vh; z-index: 1300; display: flex; flex-direction: column;">
     <div class="sheet-handle"></div>
     <div class="sheet-header" style="flex-shrink: 0; margin-bottom: 0.5rem;">
       <div>
-        <div class="sheet-title" id="m-plan-weeks-title">Plan Haftaları</div>
+        <div class="sheet-title" id="m-plan-weeks-title">Yıllık Plan İnceleme</div>
         <div id="m-plan-weeks-subtitle" style="font-size: 0.78rem; color: var(--m-text-muted); font-weight: 600;"></div>
       </div>
-      <button class="sheet-close-btn" onclick="window.openScheduleFlowModal('plans')">&times;</button>
+      <button class="sheet-close-btn" onclick="window.closeBottomSheet()">&times;</button>
     </div>
-    <div id="m-plan-weeks-content" style="flex: 1; overflow-y: auto; padding: 0 0.5rem 1.5rem 0.5rem; display: flex; flex-direction: column; gap: 8px;">
-      <!-- Haftalar JS ile listelenecek -->
+
+    <!-- Görünüm Seçici (Haftalık & Aylık) -->
+    <div style="padding: 0 0.5rem 0.6rem 0.5rem; flex-shrink: 0;">
+      <div class="m-plan-subtabs-bar" style="margin-bottom: 0;">
+        <button class="m-plan-subtab active" id="m-plan-mode-weekly" onclick="window.setPlanViewMode('weekly')">
+          <i data-lucide="list" style="width: 14px; height: 14px;"></i>
+          <span>Haftalık Görünüm</span>
+        </button>
+        <button class="m-plan-subtab" id="m-plan-mode-monthly" onclick="window.setPlanViewMode('monthly')">
+          <i data-lucide="calendar-days" style="width: 14px; height: 14px;"></i>
+          <span>Aylık Görünüm</span>
+        </button>
+      </div>
+    </div>
+
+    <div id="m-plan-weeks-content" style="flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 0 0.5rem 1.5rem 0.5rem; display: flex; flex-direction: column; gap: 8px;">
+      <!-- Haftalar veya Aylar JS ile listelenecek -->
     </div>
   </div>
 
@@ -3880,7 +3863,7 @@
         <div class="sheet-title" id="m-questions-book-title" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Kitap Soruları</div>
         <div style="font-size: 0.75rem; color: var(--m-text-muted);" id="m-questions-book-author">Yazar</div>
       </div>
-      <button class="sheet-close-btn" onclick="window.closeBottomSheet()">&times;</button>
+      <button class="sheet-close-btn" onclick="window.closeBookQuestionsModal ? window.closeBookQuestionsModal() : window.closeBottomSheet()">&times;</button>
     </div>
     <div style="padding: 0 1.25rem 1.75rem 1.25rem; overflow-y: auto;" id="m-book-questions-body">
       <!-- Dinamik: Mevcut sorular listesi + Yeni soru ekleme formu -->
@@ -4849,15 +4832,106 @@
       <i data-lucide="book-open"></i>
       <span>Kitap</span>
     </button>
-    <button class="nav-item-btn" data-tab="tools" onclick="window.switchTab('tools')">
-      <i data-lucide="wrench"></i>
-      <span>Araçlar</span>
+    <button class="nav-item-btn" data-tab="plan" onclick="window.switchTab('plan')">
+      <i data-lucide="calendar"></i>
+      <span>Plan</span>
     </button>
-    <button class="nav-item-btn" data-tab="more" onclick="window.switchTab('more')">
+    <button class="nav-item-btn" id="m-nav-btn-more" data-tab="more" onclick="window.toggleMoreMenu(event)">
       <i data-lucide="layout-grid"></i>
       <span>Diğer</span>
     </button>
   </nav>
+
+  <!-- ==========================================================================
+       DİĞER YÜZEN MENÜSÜ (FLOATING ACTION MENU)
+       ========================================================================== -->
+  <div class="m-more-popup-backdrop" id="m-more-popup-backdrop" onclick="window.closeMoreMenu()"></div>
+
+  <div class="mobile-fab-menu m-more-popup-menu" id="m-more-popup-menu" role="menu" aria-label="Diğer Yüzen Menüsü">
+    <!-- 1. Haftalık Değerlendirme -->
+    <button type="button" class="mobile-fab-item" onclick="window.selectMoreMenuItem('weekly')">
+      <i data-lucide="calendar-check" style="width: 18px; height: 18px; color: #6366f1;"></i>
+      <span>Haftalık Değerlendirme</span>
+    </button>
+
+    <!-- 2. Öğrenci Görev Kartı -->
+    <button type="button" class="mobile-fab-item" onclick="window.selectMoreMenuItem('tasks')">
+      <i data-lucide="check-square" style="width: 18px; height: 18px; color: #10b981;"></i>
+      <span>Öğrenci Görev Kartı</span>
+    </button>
+
+    <!-- 3. Oyunlar -->
+    <button type="button" class="mobile-fab-item" onclick="window.selectMoreMenuItem('games')">
+      <i data-lucide="gamepad-2" style="width: 18px; height: 18px; color: #f59e0b;"></i>
+      <span>Oyunlar</span>
+    </button>
+
+    <!-- 4. Ders Materyalleri -->
+    <button type="button" class="mobile-fab-item" onclick="window.selectMoreMenuItem('materials')">
+      <i data-lucide="notebook" style="width: 18px; height: 18px; color: #06b6d4;"></i>
+      <span>Ders Materyalleri</span>
+    </button>
+
+    <!-- 5. Raporlar -->
+    <button type="button" class="mobile-fab-item" onclick="window.selectMoreMenuItem('reports')">
+      <i data-lucide="printer" style="width: 18px; height: 18px; color: #8b5cf6;"></i>
+      <span>Raporlar</span>
+    </button>
+
+    <!-- 6. Sınıf Yardımcı Araçları -->
+    <button type="button" class="mobile-fab-item" onclick="window.selectMoreMenuItem('tools')">
+      <i data-lucide="wrench" style="width: 18px; height: 18px; color: #ef4444;"></i>
+      <span>Sınıf Yardımcı Araçları</span>
+    </button>
+
+    <div style="height: 1px; background: var(--m-border); margin: 3px 6px;"></div>
+
+    <!-- 7. Asistan Ayarları -->
+    <button type="button" class="mobile-fab-item" onclick="window.selectMoreMenuItem('config')">
+      <i data-lucide="settings" style="width: 18px; height: 18px; color: #64748b;"></i>
+      <span>Asistan Ayarları</span>
+    </button>
+  </div>
+
+  <!-- ==========================================================================
+       MOBİL UYGULAMA KİLİT EKRANI (APP LOCK OVERLAY)
+       ========================================================================== -->
+  <div id="m-app-lock-overlay" style="display: none;" role="dialog" aria-modal="true" aria-label="Uygulama Kilit Ekranı">
+    <div class="m-lock-container" id="m-lock-box">
+      <div class="m-lock-avatar">
+        <i data-lucide="lock" style="width: 34px; height: 34px;"></i>
+      </div>
+      <div class="m-lock-title">Sınıf Asistanı Kilitli</div>
+      <div class="m-lock-desc">Devam etmek için belirlediğiniz 4 haneli PIN veya öğretmen şifrenizi girin.</div>
+
+      <div class="m-lock-input-group">
+        <input
+          type="password"
+          id="m-lock-password-input"
+          class="m-lock-input"
+          placeholder="••••"
+          autocomplete="current-password"
+          inputmode="numeric"
+          maxlength="16"
+          onkeypress="if(event.key==='Enter') window.attemptUnlockMobile()"
+        />
+        <button type="button" class="m-lock-toggle-eye" onclick="window.toggleLockPasswordVisibility()" aria-label="Şifreyi Göster">
+          <i data-lucide="eye" id="m-lock-eye-icon" style="width: 20px; height: 20px;"></i>
+        </button>
+      </div>
+
+      <div id="m-lock-error-msg" class="m-lock-error"></div>
+
+      <button type="button" class="m-lock-submit-btn" onclick="window.attemptUnlockMobile()">
+        <i data-lucide="unlock" style="width: 18px; height: 18px;"></i>
+        <span>Kilidi Aç</span>
+      </button>
+
+      <button type="button" class="m-lock-forgot-btn" onclick="window.handleMobileForgotPassword()">
+        Şifremi Unuttum
+      </button>
+    </div>
+  </div>
 
   <!-- Yazdırma Şablonu (Yalnızca Yazıcı/PDF çıktısında görünür) -->
   <div class="roster-report-print"></div>
@@ -4874,6 +4948,7 @@
   <!-- Veri Motoru ve Mobil Kontrolcü -->
   <script src="js/license-config.js?v=34"></script>
   <script src="js/state.js?v=34"></script>
+  <script src="js/ai-helper.js?v=1"></script>
   <script src="js/mobile.js?v=34"></script>
   <script src="js/mobile-books.js?v=34"></script>
   <script src="js/mobile-games.js?v=34"></script>

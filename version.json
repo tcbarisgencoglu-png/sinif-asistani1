@@ -1,15 +1,16 @@
 {
-  "version": "1.0.45",
-  "releaseDate": "2026-10-03",
+  "version": "1.0.46",
+  "releaseDate": "2026-10-04",
   "minRequiredVersion": "1.0.0",
-  "title": "Sınıf Asistanı v1.0.45 Yayında!",
-  "description": "Android Sürüm Düzeltmeleri, Hızlı Araç Çubuğu, Ödev Yönetimi ve Davranış Emojileri Güncellemesi",
+  "title": "Sınıf Asistanı v1.0.46 Yayında!",
+  "description": "Şanslı Öğrenci Resimli Kura, AI Soru Üretimi Bildirimleri, Haftalık/Aylık/Yıllık Puanlama ve Mobil Kullanılabilirlik Güncellemeleri",
   "features": [
-    "Android Release Düzeltmesi: ERR_INVALID_RESPONSE hatası giderildi, web varlıkları eksiksiz paketlendi ve otomatik fallback eklendi",
-    "Hızlı Araç Çubuğu: Süre tut, şanslı öğrenci, toplu değişken puan gir ve tam ekran hızlı butonları eklendi",
-    "Gelişmiş Ödev Yönetimi: Tüm liste görünümü, sıra gezme düzeni, yeni ödev verme ve WhatsApp ile anlık veli/öğrenci paylaşımı",
-    "Davranış Emojileri: Yapılandırma ekranında davranışlara özel emoji tanımlama ve arayüzde emoji gösterimi",
-    "İletişim & Destek: WhatsApp iletişim numarası güncellendi"
+    "Şanslı Öğrenci (Kura) Fotoğraf Entegrasyonu: Kura çekiminde ve sonuç ekranında öğrenci fotoğrafları, animasyonlar ve doğrudan puan verme butonu eklendi",
+    "Yapay Zeka Soru Üretim Süreci Göstergesi: AI ile soru hazırlarken aşamaları (hazırlık, istek, ayrıştırma, tamamlama) anlık bildiren bildirim sistemi",
+    "Puanlama Modülü: Haftalık (Pazartesi sıfırlanan aktif hafta), Aylık ve Yıllık performans sekmeleri ve detaylı listeleme",
+    "Kitap Modülü: Android okunanlar işlem menüsüne doğrudan 'Kitap Soru Sorma' butonu eklendi",
+    "Oturma Planı İyileştirmesi: Koltuk ataması yapıldığında ekrandan çıkma sorunu giderildi, istikrarlı plan düzeni sağlandı",
+    "Diğer Menüsü: Yüzen menü (Floating Action Menu) tasarımına geçildi ve yinelenen menü öğeleri sadeleştirildi"
   ],
   "release_url": "https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/latest"
 }

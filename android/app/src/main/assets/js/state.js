@@ -3036,7 +3036,7 @@ class StateManager {
       point: parseInt(point),
       reason,
       date: new Date().toISOString(),
-      weekId: weekId || window.getISOWeek(),
+      weekId: weekId || (this.getSelectedWeek ? this.getSelectedWeek() : (window.getISOWeek ? window.getISOWeek() : 'week_1')),
       ...extraData
     };
     this.state.performance.push(record);
@@ -3044,10 +3044,11 @@ class StateManager {
     return record;
   }
 
-  addScore(studentId, point, reason = 'Değerlendirme') {
+  addScore(studentId, point, reason = 'Değerlendirme', weekId = null) {
     const pts = parseInt(point, 10) || 0;
     const type = pts >= 0 ? 'positive' : 'development';
-    return this.addPerformance(studentId, type, pts, reason);
+    const activeWeek = weekId || (this.getSelectedWeek ? this.getSelectedWeek() : (window.getISOWeek ? window.getISOWeek() : ''));
+    return this.addPerformance(studentId, type, pts, reason, activeWeek);
   }
 
   addBatchPerformance(records) {
@@ -3055,7 +3056,7 @@ class StateManager {
     if (!this.state.performance) this.state.performance = [];
     const added = [];
     const nowIso = new Date().toISOString();
-    const activeWeek = window.getISOWeek ? window.getISOWeek() : 'week_1';
+    const activeWeek = (this.getSelectedWeek ? this.getSelectedWeek() : (window.getISOWeek ? window.getISOWeek() : 'week_1'));
 
     records.forEach(r => {
       const record = {
@@ -3096,15 +3097,63 @@ class StateManager {
   }
 
   getStudentWeeklyScore(studentId, weekId) {
+    if (!weekId) weekId = (this.getSelectedWeek ? this.getSelectedWeek() : (window.getISOWeek ? window.getISOWeek() : ''));
     return this.state.performance
       .filter(p => {
         if (p.studentId !== studentId) return false;
         if (p.weekId) return p.weekId === weekId;
-        if (p.homeworkId) {
+        if (p.homeworkId && this.state.homeworks) {
           const hw = this.state.homeworks.find(h => h.id === p.homeworkId);
-          if (hw) return window.getISOWeek(hw.dueDate) === weekId;
+          if (hw && hw.dueDate) return window.getISOWeek(hw.dueDate) === weekId;
         }
-        return window.getISOWeek(p.date) === weekId;
+        if (p.taskId && this.state.tasks) {
+          const task = this.state.tasks.find(t => t.id === p.taskId || t.performanceId === p.id);
+          if (task && task.completedDate) return window.getISOWeek(task.completedDate) === weekId;
+          if (task && task.dueDate) return window.getISOWeek(task.dueDate) === weekId;
+        }
+        if (this.state.tasks) {
+          const linkedTask = this.state.tasks.find(t => t.performanceId === p.id);
+          if (linkedTask && linkedTask.completedDate) return window.getISOWeek(linkedTask.completedDate) === weekId;
+        }
+        return p.date ? (window.getISOWeek(p.date) === weekId) : false;
+      })
+      .reduce((sum, p) => sum + p.point, 0);
+  }
+
+  getStudentMonthlyScore(studentId, monthStr) {
+    if (!monthStr) {
+      const now = new Date();
+      monthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    }
+    return this.state.performance
+      .filter(p => {
+        if (p.studentId !== studentId) return false;
+        let rMonth = '';
+        if (p.weekId) {
+          const parts = p.weekId.split('-W');
+          if (parts.length === 2) {
+            const yr = parseInt(parts[0], 10);
+            const wk = parseInt(parts[1], 10);
+            const d = window.getDayInWeek ? window.getDayInWeek(yr, wk, 4) : null;
+            if (d) rMonth = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+          }
+        }
+        if (!rMonth && p.homeworkId && this.state.homeworks) {
+          const hw = this.state.homeworks.find(h => h.id === p.homeworkId);
+          if (hw && hw.dueDate) rMonth = hw.dueDate.substring(0, 7);
+        }
+        if (!rMonth && p.taskId && this.state.tasks) {
+          const task = this.state.tasks.find(t => t.id === p.taskId || t.performanceId === p.id);
+          if (task && task.completedDate) rMonth = task.completedDate.substring(0, 7);
+        }
+        if (!rMonth && this.state.tasks) {
+          const linkedTask = this.state.tasks.find(t => t.performanceId === p.id);
+          if (linkedTask && linkedTask.completedDate) rMonth = linkedTask.completedDate.substring(0, 7);
+        }
+        if (!rMonth && p.date) {
+          rMonth = p.date.substring(0, 7);
+        }
+        return rMonth === monthStr;
       })
       .reduce((sum, p) => sum + p.point, 0);
   }

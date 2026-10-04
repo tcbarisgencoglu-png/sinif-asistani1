@@ -259,11 +259,19 @@
     if (toolType === 'lucky') {
       titleEl.textContent = '🎲 Şanslı Öğrenci (Kura)';
       bodyEl.innerHTML = `
-        <div style="text-align: center; padding: 1.5rem 0.5rem;">
-          <div id="tool-lucky-display" style="font-size: 1.4rem; font-weight: 800; min-height: 80px; display: flex; align-items: center; justify-content: center; background: var(--m-surface-subtle); border-radius: var(--m-radius-md); border: 2px dashed var(--m-warning); margin-bottom: 1.25rem;">
-            Kurayı Başlatın!
+        <div style="text-align: center; padding: 1.25rem 0.5rem;">
+          <div id="tool-lucky-display" style="min-height: 190px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: var(--m-surface-subtle); border-radius: var(--m-radius-md); border: 2px dashed var(--m-warning); margin-bottom: 1.25rem; padding: 1.25rem 1rem;">
+            <div style="width: 76px; height: 76px; border-radius: 50%; background: rgba(245, 158, 11, 0.15); color: #f59e0b; display: flex; align-items: center; justify-content: center; font-size: 2.2rem; margin-bottom: 0.75rem; box-shadow: 0 4px 12px rgba(245, 158, 11, 0.2);">
+              🎲
+            </div>
+            <div style="font-size: 1.25rem; font-weight: 800; color: var(--m-text); margin-bottom: 4px;">
+              Kurayı Başlatın!
+            </div>
+            <div style="font-size: 0.8rem; color: var(--m-text-muted); max-width: 260px; line-height: 1.4;">
+              Sınıftan rastgele ve adil bir öğrenci seçmek için aşağıdaki butona dokunun.
+            </div>
           </div>
-          <button class="subview-primary-action-btn" onclick="window.spinLuckyStudentTool()">
+          <button id="btn-spin-lucky-tool" class="subview-primary-action-btn" onclick="window.spinLuckyStudentTool()">
             <i data-lucide="shuffle" style="width: 18px; height: 18px;"></i> Kura Çek
           </button>
         </div>
@@ -364,34 +372,109 @@
     openBottomSheet('modal-tool-window');
   };
 
-  // Kura Döndürücü
+  // Kura Döndürücü (Şanslı Öğrenci)
+  window.rewardLuckyStudent = (studentId) => {
+    const student = (window.getStudentByIdSafe ? window.getStudentByIdSafe(studentId) : null) ||
+      getFilteredStudents().find(s => String(s.id) === String(studentId)) ||
+      (((window.stateManager && window.stateManager.state && window.stateManager.state.students) || []).find(s => String(s.id) === String(studentId)));
+    if (student && typeof window.openPointBottomSheet === 'function') {
+      window.openPointBottomSheet(student);
+    } else {
+      showMobileToast('Öğrenci bulunamadı');
+    }
+  };
+
   window.spinLuckyStudentTool = () => {
-    const students = getFilteredStudents();
+    let students = getFilteredStudents();
+    if (window.stateManager && typeof window.stateManager.isStudentAbsent === 'function') {
+      const present = students.filter(s => !window.stateManager.isStudentAbsent(s.id));
+      if (present.length > 0) students = present;
+    }
     if (students.length === 0) {
       showMobileToast('Bu şubede öğrenci bulunamadı!');
       return;
     }
     const display = document.getElementById('tool-lucky-display');
+    const spinBtn = document.getElementById('btn-spin-lucky-tool');
     if (!display) return;
 
+    if (spinBtn) {
+      spinBtn.disabled = true;
+      spinBtn.style.opacity = '0.6';
+      spinBtn.style.pointerEvents = 'none';
+    }
+
     let count = 0;
+    const maxCount = 18;
     const interval = setInterval(() => {
       const rand = students[Math.floor(Math.random() * students.length)];
-      display.textContent = `${rand.name} ${rand.surname || ''}`;
-      window.vibrate(10);
+      const avatarColor = getAvatarColor(rand.id || rand.name);
+
+      display.innerHTML = `
+        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; animation: tabFadeIn 0.1s ease-out; width: 100%;">
+          <div style="width: 76px; height: 76px; border-radius: 50%; overflow: hidden; border: 3px solid var(--m-primary); box-shadow: 0 4px 14px rgba(99, 102, 241, 0.3); display: flex; align-items: center; justify-content: center; background: ${avatarColor}; flex-shrink: 0;">
+            ${rand.photo 
+              ? `<img src="${rand.photo}" alt="${escapeHTML(rand.name)}" style="width: 100%; height: 100%; object-fit: cover;">` 
+              : `<span style="font-size: 1.9rem; font-weight: 800; color: white;">${escapeHTML((rand.name || '?').charAt(0).toUpperCase())}</span>`
+            }
+          </div>
+          <div style="font-size: 1.25rem; font-weight: 800; color: var(--m-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 260px;">
+            ${escapeHTML(rand.name)} ${escapeHTML(rand.surname || '')}
+          </div>
+          <div style="font-size: 0.8rem; font-weight: 700; color: var(--m-text-muted);">
+            Okul No: ${escapeHTML(rand.number || '-')}
+          </div>
+        </div>
+      `;
+      if (window.vibrate) window.vibrate(10);
       count++;
-      if (count > 15) {
+
+      if (count >= maxCount) {
         clearInterval(interval);
         const winner = students[Math.floor(Math.random() * students.length)];
+        const winnerColor = getAvatarColor(winner.id || winner.name);
+
         display.innerHTML = `
-          <div style="color: var(--m-primary); font-size: 1.5rem; animation: tabFadeIn 0.3s;">
-            🎉 ${escapeHTML(winner.name)} ${escapeHTML(winner.surname || '')} (${escapeHTML(winner.number || '-')})
+          <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; animation: tabFadeIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1); width: 100%;">
+            <div style="font-size: 0.78rem; font-weight: 800; color: #f59e0b; text-transform: uppercase; letter-spacing: 1px; display: inline-flex; align-items: center; gap: 4px;">
+              <span>✨</span> ŞANSLI ÖĞRENCİ <span>✨</span>
+            </div>
+            
+            <div style="position: relative; width: 92px; height: 92px; border-radius: 50%; overflow: hidden; border: 3.5px solid #f59e0b; box-shadow: 0 6px 22px rgba(245, 158, 11, 0.45); display: flex; align-items: center; justify-content: center; background: ${winnerColor}; flex-shrink: 0; margin: 4px 0;">
+              ${winner.photo 
+                ? `<img src="${winner.photo}" alt="${escapeHTML(winner.name)}" style="width: 100%; height: 100%; object-fit: cover;">` 
+                : `<span style="font-size: 2.4rem; font-weight: 800; color: white;">${escapeHTML((winner.name || '?').charAt(0).toUpperCase())}</span>`
+              }
+            </div>
+
+            <div style="font-size: 1.35rem; font-weight: 900; color: var(--m-text); line-height: 1.2; margin-top: 2px;">
+              🎉 ${escapeHTML(winner.name)} ${escapeHTML(winner.surname || '')}
+            </div>
+
+            <div style="font-size: 0.85rem; font-weight: 700; color: var(--m-text-muted);">
+              Okul No: <strong style="color: var(--m-primary);">${escapeHTML(winner.number || '-')}</strong>
+              ${winner.branch ? ` &bull; Şube: <strong>${escapeHTML(winner.branch)}</strong>` : ''}
+            </div>
+
+            <div style="margin-top: 10px; display: flex; gap: 8px; justify-content: center; width: 100%;">
+              <button type="button" class="m-btn-sm" onclick="window.rewardLuckyStudent('${winner.id}')" style="background: linear-gradient(135deg, #f59e0b, #d97706); color: white; border: none; font-weight: 800; padding: 7px 18px; border-radius: 20px; font-size: 0.82rem; display: inline-flex; align-items: center; gap: 5px; box-shadow: 0 3px 10px rgba(245, 158, 11, 0.35); cursor: pointer;">
+                ⭐ Puan Ver
+              </button>
+            </div>
           </div>
         `;
-        window.vibrate(60);
-        playSynthChime('fanfare');
+
+        if (spinBtn) {
+          spinBtn.disabled = false;
+          spinBtn.style.opacity = '1';
+          spinBtn.style.pointerEvents = 'auto';
+        }
+
+        if (window.vibrate) window.vibrate(60);
+        if (typeof playSynthChime === 'function') playSynthChime('fanfare');
+        if (window.lucide) window.lucide.createIcons();
       }
-    }, 80);
+    }, 75);
   };
 
   // Sayaç Aracı Mantığı
@@ -1513,7 +1596,13 @@
     mCachedStudentsForSeating.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'tr'));
 
     renderMobileSeatStudentList(mCachedStudentsForSeating);
-    openBottomSheet('modal-seating-student-select');
+    const pickerSheet = document.getElementById('modal-seating-student-select');
+    const planSheet = document.getElementById('modal-seating-plan');
+    const backdrop = document.getElementById('sheet-backdrop');
+    if (pickerSheet) pickerSheet.classList.add('active');
+    if (planSheet) planSheet.classList.add('active');
+    if (backdrop) backdrop.classList.add('active');
+    if (window.lucide) window.lucide.createIcons();
   }
 
   function renderMobileSeatStudentList(students) {
@@ -1617,6 +1706,11 @@
     }
 
     window.closeMobileSeatPicker();
+    const planSheet = document.getElementById('modal-seating-plan');
+    if (planSheet) planSheet.classList.add('active');
+    const backdrop = document.getElementById('sheet-backdrop');
+    if (backdrop) backdrop.classList.add('active');
+
     showToast('Öğrenci sıraya yerleştirildi.', 'success');
   };
 
@@ -1631,6 +1725,11 @@
     }
 
     window.closeMobileSeatPicker();
+    const planSheet = document.getElementById('modal-seating-plan');
+    if (planSheet) planSheet.classList.add('active');
+    const backdrop = document.getElementById('sheet-backdrop');
+    if (backdrop) backdrop.classList.add('active');
+
     showToast('Koltuk boşaltıldı.', 'info');
   };
 
@@ -1638,6 +1737,11 @@
     mActiveSeatTarget = null;
     const sheet = document.getElementById('modal-seating-student-select');
     if (sheet) sheet.classList.remove('active');
+    // Oturma planının ve backdrop'ın aktif kalmasını sağla
+    const planSheet = document.getElementById('modal-seating-plan');
+    if (planSheet) planSheet.classList.add('active');
+    const backdrop = document.getElementById('sheet-backdrop');
+    if (backdrop) backdrop.classList.add('active');
   };
 
   window.clearMobileSeatingPlan = function() {

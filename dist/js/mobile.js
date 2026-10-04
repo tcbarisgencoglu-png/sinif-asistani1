@@ -8,6 +8,7 @@
 
   // Global State ve Değişkenler
   let currentTab = 'performance';
+  let lastActiveMainTab = 'performance';
   let activeBranch = 'all';
   let activeSearchTerm = '';
   let selectedStudentForPoints = null;
@@ -164,6 +165,9 @@
       window.lucide.createIcons();
     }
 
+    // Uygulama Açılış Kilit & Şifre Kontrolü
+    checkMobileLockOnStartup();
+
     // Kademe arayüzünü senkronize et (İlkokul / Ortaokul)
     syncEducationLevelUI();
 
@@ -172,13 +176,9 @@
       window.stateManager.getSelectedWeek();
     }
 
-    // Alt Navigasyon Butonlarını Dinle
-    const navButtons = document.querySelectorAll('.nav-item-btn');
-    navButtons.forEach(btn => {
-      btn.addEventListener('click', () => {
-        const tab = btn.dataset.tab;
-        switchTab(tab);
-      });
+    // State değişikliklerinde aktif sekmeyi güncelle
+    document.addEventListener('stateChanged', () => {
+      renderActiveTab();
     });
 
     // Arama Kutusu
@@ -298,6 +298,14 @@
         if (menu && menu.classList.contains('show')) {
           menu.classList.remove('show');
           if (btn) btn.classList.remove('active');
+        }
+      }
+
+      const moreFab = document.getElementById('m-more-popup-menu');
+      const moreBtn = document.getElementById('m-nav-btn-more');
+      if (moreFab && moreFab.classList.contains('show')) {
+        if (!moreFab.contains(e.target) && (!moreBtn || !moreBtn.contains(e.target))) {
+          window.closeMoreMenu();
         }
       }
 
@@ -424,19 +432,35 @@
   // ==========================================================================
   function switchTab(tabId) {
     if (tabId === 'attendance') {
-      switchTab('tools');
+      switchTab('plan');
       if (typeof window.openAttendanceModal === 'function') {
         window.openAttendanceModal();
       }
       return;
     }
+    if (tabId === 'tools') {
+      window.openMobileSubview('tools');
+      return;
+    }
+    if (tabId === 'more') {
+      if (typeof window.openMoreMenu === 'function') {
+        window.openMoreMenu();
+      }
+      return;
+    }
+    if (['performance', 'homework', 'books', 'plan'].includes(tabId)) {
+      lastActiveMainTab = tabId;
+    }
+    if (typeof window.closeMoreMenu === 'function') {
+      window.closeMoreMenu();
+    }
     cancelAllFabAttention();
     currentTab = tabId;
 
-    // Canlı Ders Kartı: Puan menüsü dışında hiçbir menüde üst tarafta canlı ders penceresi olmasın
+    // Canlı Ders Kartı: Puan sayfasından kaldırıldı, sadece Plan menüsünde en üstte gösterilir
     const liveCard = document.getElementById('m-live-lesson-card');
     if (liveCard) {
-      liveCard.style.display = (tabId === 'performance') ? 'flex' : 'none';
+      liveCard.style.display = (tabId === 'plan') ? 'flex' : 'none';
     }
 
     // Filtre & Arama Çubuğu: Sadece Puan ve Ödev sekmelerinde göster
@@ -513,8 +537,11 @@
       case 'books':
         if (typeof window.renderBooksTab === 'function') window.renderBooksTab();
         break;
+      case 'plan':
+        if (typeof window.renderPlanTabMobile === 'function') window.renderPlanTabMobile();
+        break;
       case 'tools':
-        if (typeof window.renderMobileTools === 'function') window.renderMobileTools();
+        window.openMobileSubview('tools');
         break;
       case 'attendance':
         renderAttendanceTab();
@@ -769,6 +796,9 @@
 
     return outcomes;
   }
+  window.getMobileActiveWeekIndex = getMobileActiveWeekIndex;
+  window.extractMobileWeekTopic = extractMobileWeekTopic;
+  window.extractMobileWeekOutcomes = extractMobileWeekOutcomes;
 
   function getCurrentMobileLessonInfo() {
     const state = (window.stateManager && typeof window.stateManager.loadState === 'function')
@@ -1207,7 +1237,201 @@
   // ==========================================================================
   window.currentDetailedStudentId = null;
 
+  // --- HAFTALIK / AYLIK / YILLIK PERFORMANS KAPSAMI YÖNETİMİ ---
+  let currentPerfScope = localStorage.getItem('m_perf_scope') || 'weekly';
+  let currentPerfMonth = new Date().toISOString().substring(0, 7); // 'YYYY-MM'
+
+  function getPerformanceRecordWeek(p, state) {
+    if (p.weekId) return p.weekId;
+    if (p.homeworkId && state && state.homeworks) {
+      const hw = state.homeworks.find(h => h.id === p.homeworkId);
+      if (hw && hw.dueDate && window.getISOWeek) return window.getISOWeek(hw.dueDate);
+    }
+    if (p.taskId && state && state.tasks) {
+      const task = state.tasks.find(t => t.id === p.taskId || t.performanceId === p.id);
+      if (task && task.completedDate && window.getISOWeek) return window.getISOWeek(task.completedDate);
+      if (task && task.dueDate && window.getISOWeek) return window.getISOWeek(task.dueDate);
+    }
+    if (state && state.tasks) {
+      const linkedTask = state.tasks.find(t => t.performanceId === p.id);
+      if (linkedTask && linkedTask.completedDate && window.getISOWeek) {
+        return window.getISOWeek(linkedTask.completedDate);
+      }
+    }
+    if (p.date && window.getISOWeek) {
+      return window.getISOWeek(p.date);
+    }
+    return '';
+  }
+
+  function getPerformanceRecordMonth(p, state, recordWeek) {
+    if (p.date) {
+      const dStr = String(p.date);
+      if (dStr.length >= 7 && dStr.includes('-')) {
+        const ym = dStr.substring(0, 7);
+        if (/^\d{4}-\d{2}$/.test(ym)) return ym;
+      }
+    }
+    if (p.homeworkId && state && state.homeworks) {
+      const hw = state.homeworks.find(h => h.id === p.homeworkId);
+      if (hw && hw.dueDate && hw.dueDate.length >= 7) return hw.dueDate.substring(0, 7);
+    }
+    if (p.taskId && state && state.tasks) {
+      const task = state.tasks.find(t => t.id === p.taskId || t.performanceId === p.id);
+      if (task && task.completedDate && task.completedDate.length >= 7) return task.completedDate.substring(0, 7);
+    }
+    const wk = recordWeek || p.weekId;
+    if (wk && wk.includes('-W')) {
+      const parts = wk.split('-W');
+      if (parts.length === 2) {
+        const yr = parseInt(parts[0], 10);
+        const wNum = parseInt(parts[1], 10);
+        const d = window.getDayInWeek ? window.getDayInWeek(yr, wNum, 4) : null;
+        if (d) {
+          return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        }
+      }
+    }
+    return '';
+  }
+
+  function getISOWeekDateRangeMobile(weekId) {
+    if (!weekId) return '';
+    const parts = weekId.split('-W');
+    if (parts.length !== 2) return '';
+    const year = parseInt(parts[0], 10);
+    const week = parseInt(parts[1], 10);
+    if (!window.getDayInWeek) return '';
+    const monday = window.getDayInWeek(year, week, 1);
+    const friday = window.getDayInWeek(year, week, 5);
+    if (isNaN(monday.getTime()) || isNaN(friday.getTime())) return '';
+    const dStart = monday.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' });
+    const dEnd = friday.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', year: 'numeric' });
+    return `${dStart} – ${dEnd}`;
+  }
+
+  window.setPerformanceScope = (scope) => {
+    if (!['weekly', 'monthly', 'yearly'].includes(scope)) return;
+    currentPerfScope = scope;
+    localStorage.setItem('m_perf_scope', scope);
+    window.vibrate(20);
+    renderPerformanceTab();
+  };
+
+  window.adjustPerformanceWeek = (offset) => {
+    if (typeof window.adjustMobileWeek === 'function') {
+      window.adjustMobileWeek(offset);
+    }
+  };
+
+  window.resetPerformanceWeekToCurrent = () => {
+    if (typeof window.resetMobileWeekToCurrent === 'function') {
+      window.resetMobileWeekToCurrent();
+    }
+  };
+
+  window.adjustPerformanceMonth = (offset) => {
+    if (!currentPerfMonth) currentPerfMonth = new Date().toISOString().substring(0, 7);
+    const [yr, mo] = currentPerfMonth.split('-').map(Number);
+    const d = new Date(yr, mo - 1 + offset, 1);
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    currentPerfMonth = `${yyyy}-${mm}`;
+    window.vibrate(20);
+    renderPerformanceTab();
+  };
+
+  window.resetPerformanceMonthToCurrent = () => {
+    currentPerfMonth = new Date().toISOString().substring(0, 7);
+    window.vibrate(25);
+    renderPerformanceTab();
+  };
+
   function renderPerformanceTab() {
+    // 1. Sekme butonları UI güncellemesi
+    const btnWeekly = document.getElementById('btn-perf-scope-weekly');
+    const btnMonthly = document.getElementById('btn-perf-scope-monthly');
+    const btnYearly = document.getElementById('btn-perf-scope-yearly');
+    if (btnWeekly) btnWeekly.classList.toggle('active', currentPerfScope === 'weekly');
+    if (btnMonthly) btnMonthly.classList.toggle('active', currentPerfScope === 'monthly');
+    if (btnYearly) btnYearly.classList.toggle('active', currentPerfScope === 'yearly');
+
+    const state = (window.stateManager && window.stateManager.loadState) 
+      ? window.stateManager.loadState() 
+      : (window.stateManager ? window.stateManager.state : {});
+
+    // Aktif hafta ve ay tespiti
+    const selectedWeek = (window.stateManager && typeof window.stateManager.getSelectedWeek === 'function') 
+      ? window.stateManager.getSelectedWeek() 
+      : (window.getISOWeek ? window.getISOWeek() : '');
+    const currentRealWeek = window.getISOWeek ? window.getISOWeek(new Date()) : '';
+    const currentRealMonth = new Date().toISOString().substring(0, 7);
+
+    // 2. Dönem gezinme çubuğu (m-perf-period-bar)
+    const periodBar = document.getElementById('m-perf-period-bar');
+    if (periodBar) {
+      if (currentPerfScope === 'weekly') {
+        const isCurrentWeek = (selectedWeek === currentRealWeek);
+        const weekInfo = typeof window.getEducationWeekInfo === 'function' ? window.getEducationWeekInfo(selectedWeek) : null;
+        const weekTitle = weekInfo ? weekInfo.label : (window.formatWeekTR ? window.formatWeekTR(selectedWeek, 'full') : selectedWeek);
+        const dateRange = getISOWeekDateRangeMobile(selectedWeek);
+
+        periodBar.innerHTML = `
+          <button type="button" class="perf-period-nav-btn" onclick="window.adjustPerformanceWeek(-1)" title="Önceki Hafta">
+            <i data-lucide="chevron-left" style="width: 18px; height: 18px;"></i>
+          </button>
+          <div class="perf-period-info">
+            <div class="perf-period-title">
+              <span>📅 ${escapeHTML(weekTitle)}</span>
+              ${isCurrentWeek ? '<span class="badge" style="background: rgba(16, 185, 129, 0.15); color: var(--m-success); font-size: 0.68rem; padding: 1px 6px; border-radius: 6px; font-weight: 700;">Bu Hafta</span>' : ''}
+            </div>
+            <div class="perf-period-desc">
+              ${!isCurrentWeek ? `<a href="javascript:void(0)" onclick="window.resetPerformanceWeekToCurrent()" style="color: var(--m-primary); font-weight: 700; text-decoration: underline; margin-right: 4px;">[Bu Haftaya Dön]</a>` : ''}
+              ${dateRange ? `${dateRange} • ` : ''}Her Pazartesi yeni haftaya başlanır, haftalık puanlar listelenir.
+            </div>
+          </div>
+          <button type="button" class="perf-period-nav-btn" onclick="window.adjustPerformanceWeek(1)" title="Sonraki Hafta">
+            <i data-lucide="chevron-right" style="width: 18px; height: 18px;"></i>
+          </button>
+        `;
+      } else if (currentPerfScope === 'monthly') {
+        const isCurrentMonth = (currentPerfMonth === currentRealMonth);
+        const [mYear, mMonth] = currentPerfMonth.split('-');
+        const monthNames = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
+        const monthTitle = `${monthNames[parseInt(mMonth, 10) - 1] || mMonth} ${mYear}`;
+
+        periodBar.innerHTML = `
+          <button type="button" class="perf-period-nav-btn" onclick="window.adjustPerformanceMonth(-1)" title="Önceki Ay">
+            <i data-lucide="chevron-left" style="width: 18px; height: 18px;"></i>
+          </button>
+          <div class="perf-period-info">
+            <div class="perf-period-title">
+              <span>🗓️ ${escapeHTML(monthTitle)}</span>
+              ${isCurrentMonth ? '<span class="badge" style="background: rgba(16, 185, 129, 0.15); color: var(--m-success); font-size: 0.68rem; padding: 1px 6px; border-radius: 6px; font-weight: 700;">Bu Ay</span>' : ''}
+            </div>
+            <div class="perf-period-desc">
+              ${!isCurrentMonth ? `<a href="javascript:void(0)" onclick="window.resetPerformanceMonthToCurrent()" style="color: var(--m-primary); font-weight: 700; text-decoration: underline; margin-right: 4px;">[Bu Aya Dön]</a>` : ''}
+              Hiçbir puan silinmeden puan üstünlüğüne göre listelenir.
+            </div>
+          </div>
+          <button type="button" class="perf-period-nav-btn" onclick="window.adjustPerformanceMonth(1)" title="Sonraki Ay">
+            <i data-lucide="chevron-right" style="width: 18px; height: 18px;"></i>
+          </button>
+        `;
+      } else {
+        periodBar.innerHTML = `
+          <div class="perf-period-info" style="padding: 2px 0;">
+            <div class="perf-period-title">
+              <span>🏆 2026-2027 Eğitim Öğretim Yılı (Genel Sıralama)</span>
+            </div>
+            <div class="perf-period-desc">
+              Tüm yıl boyunca kazanılan puanlar silinmeden puan üstünlüğüne göre listelenir.
+            </div>
+          </div>
+        `;
+      }
+    }
+
     const container = document.getElementById('m-students-grid');
     if (!container) return;
 
@@ -1225,21 +1449,105 @@
       return;
     }
 
-    const state = (window.stateManager && window.stateManager.loadState) 
-      ? window.stateManager.loadState() 
-      : (window.stateManager ? window.stateManager.state : {});
+    const perfRecords = state.performance || [];
     const transactions = (state.books && state.books.transactions) ? state.books.transactions : [];
     const homeworks = state.homeworks || [];
     const evaluations = state.weeklyEvaluations || [];
     const writtenExams = state.writtenExams || [];
 
+    // Her öğrenci için haftalık, aylık ve yıllık puanları topla
+    const studentScoresMap = {};
     students.forEach(st => {
+      let weeklyScore = 0;
+      let monthlyScore = 0;
+      let totalScore = 0;
+
+      perfRecords.forEach(p => {
+        if (String(p.studentId) !== String(st.id)) return;
+        const pt = parseInt(p.point, 10) || 0;
+        totalScore += pt;
+
+        const rWeek = getPerformanceRecordWeek(p, state);
+        if (rWeek === selectedWeek) {
+          weeklyScore += pt;
+        }
+
+        const rMonth = getPerformanceRecordMonth(p, state, rWeek);
+        if (rMonth === currentPerfMonth) {
+          monthlyScore += pt;
+        }
+      });
+
+      const activeScore = (currentPerfScope === 'weekly')
+        ? weeklyScore
+        : (currentPerfScope === 'monthly' ? monthlyScore : totalScore);
+
+      studentScoresMap[st.id] = {
+        weeklyScore,
+        monthlyScore,
+        totalScore,
+        activeScore
+      };
+    });
+
+    // Puan üstünlüğüne göre sıralama (Haftalık, Aylık veya Yıllık modunda)
+    const sortedStudents = [...students].sort((a, b) => {
+      const scoreA = studentScoresMap[a.id].activeScore;
+      const scoreB = studentScoresMap[b.id].activeScore;
+
+      if (scoreB !== scoreA) {
+        return scoreB - scoreA; // Puan üstünlüğüne göre azalan sıralama
+      }
+      // Puanlar eşitse: okul no sırası veya alfabetik isim
+      const noA = parseInt(a.number, 10);
+      const noB = parseInt(b.number, 10);
+      if (!isNaN(noA) && !isNaN(noB) && noA !== noB) {
+        return noA - noB;
+      }
+      return (a.name || '').localeCompare(b.name || '', 'tr');
+    });
+
+    sortedStudents.forEach((st, idx) => {
+      const sData = studentScoresMap[st.id];
+      const activeScore = sData.activeScore;
+      const weeklyScore = sData.weeklyScore;
+      const monthlyScore = sData.monthlyScore;
+      const totalScore = sData.totalScore;
+
       const card = document.createElement('div');
       card.className = 'student-card';
       const avatarColor = getAvatarColor(st.id || st.name);
-      const score = (st.scores && st.scores.total !== undefined) 
-        ? st.scores.total 
-        : ((window.stateManager && window.stateManager.getStudentScore) ? window.stateManager.getStudentScore(st.id) : 0);
+
+      // Sıralama / Madalya Rozeti
+      let rankBadgeHtml = '';
+      if (activeScore > 0) {
+        if (idx === 0) rankBadgeHtml = '<span class="perf-rank-badge rank-1">🥇 1.</span>';
+        else if (idx === 1) rankBadgeHtml = '<span class="perf-rank-badge rank-2">🥈 2.</span>';
+        else if (idx === 2) rankBadgeHtml = '<span class="perf-rank-badge rank-3">🥉 3.</span>';
+        else rankBadgeHtml = `<span class="perf-rank-badge rank-other">#${idx + 1}</span>`;
+      } else if (currentPerfScope !== 'weekly') {
+        rankBadgeHtml = `<span class="perf-rank-badge rank-other">#${idx + 1}</span>`;
+      }
+
+      // Alt Skor Açıklaması
+      let subtitleScoreText = '';
+      if (currentPerfScope === 'weekly') {
+        subtitleScoreText = `<span style="color: var(--m-primary); font-weight: 700;">Haftalık: ${weeklyScore >= 0 ? '+' : ''}${weeklyScore} Puan</span> <span style="font-size: 0.72rem; color: var(--m-text-muted);">(Genel: ${totalScore >= 0 ? '+' : ''}${totalScore})</span>`;
+      } else if (currentPerfScope === 'monthly') {
+        subtitleScoreText = `<span style="color: var(--m-primary); font-weight: 700;">Bu Ay: ${monthlyScore >= 0 ? '+' : ''}${monthlyScore} Puan</span> <span style="font-size: 0.72rem; color: var(--m-text-muted);">(Genel: ${totalScore >= 0 ? '+' : ''}${totalScore})</span>`;
+      } else {
+        subtitleScoreText = `<span style="color: var(--m-primary); font-weight: 700;">Toplam: ${totalScore >= 0 ? '+' : ''}${totalScore} Puan</span>`;
+      }
+
+      // Skor Buton Stili
+      let scoreBtnStyle = '';
+      if (activeScore > 0) {
+        scoreBtnStyle = 'background: rgba(16, 185, 129, 0.12); color: var(--m-success); border: 1px solid rgba(16, 185, 129, 0.3);';
+      } else if (activeScore < 0) {
+        scoreBtnStyle = 'background: rgba(239, 68, 68, 0.12); color: var(--m-danger); border: 1px solid rgba(239, 68, 68, 0.3);';
+      } else {
+        scoreBtnStyle = 'background: var(--m-bg); color: var(--m-text-muted); border: 1px solid var(--m-border);';
+      }
 
       // 1. Okuduğu kitap sayısı (İade edilmiş kitaplar)
       const readBookCount = transactions.filter(t => String(t.studentId) === String(st.id) && t.status === 'returned').length;
@@ -1291,12 +1599,12 @@
             ${st.photo ? `<img src="${st.photo}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">` : escapeHTML(st.name.charAt(0).toUpperCase())}
           </div>
           <div class="student-card-info">
-            <div class="student-card-name">${escapeHTML(st.name)} ${escapeHTML(st.surname || '')}</div>
-            <div class="student-card-no">${formatStudentSubtitle(st)}</div>
+            <div class="student-card-name">${rankBadgeHtml}${escapeHTML(st.name)} ${escapeHTML(st.surname || '')}</div>
+            <div class="student-card-no">${formatStudentSubtitle(st)} • ${subtitleScoreText}</div>
           </div>
           <div class="student-card-point-actions">
-            <button type="button" class="student-card-score-btn" id="score-badge-${st.id}" title="Hızlı Puan Ver">
-              <span class="score-val">${score >= 0 ? '+' : ''}${score}</span>
+            <button type="button" class="student-card-score-btn" id="score-badge-${st.id}" style="${scoreBtnStyle}" title="Hızlı Puan Ver">
+              <span class="score-val">${activeScore >= 0 ? '+' : ''}${activeScore}</span>
               <span class="score-plus" style="display: flex; align-items: center; justify-content: center; background: rgba(79, 70, 229, 0.15); border-radius: 50%; width: 20px; height: 20px; margin-left: 2px;">
                 <i data-lucide="plus" style="width: 13px; height: 13px;"></i>
               </span>
@@ -1424,8 +1732,31 @@
       ? student.scores.total 
       : ((window.stateManager && window.stateManager.getStudentScore) ? window.stateManager.getStudentScore(student.id) : 0);
 
+    const state = (window.stateManager && window.stateManager.loadState) 
+      ? window.stateManager.loadState() 
+      : (window.stateManager ? window.stateManager.state : {});
+    const selWeek = (window.stateManager && window.stateManager.getSelectedWeek) ? window.stateManager.getSelectedWeek() : '';
+    const curMonth = currentPerfMonth || (new Date().toISOString().substring(0, 7));
+
+    let wScore = 0;
+    let mScore = 0;
+    (state.performance || []).forEach(p => {
+      if (String(p.studentId) !== String(student.id)) return;
+      const pt = parseInt(p.point, 10) || 0;
+      const rw = getPerformanceRecordWeek(p, state);
+      if (rw === selWeek) wScore += pt;
+      const rm = getPerformanceRecordMonth(p, state, rw);
+      if (rm === curMonth) mScore += pt;
+    });
+
     if (scoreVal) {
-      scoreVal.textContent = `Toplam Puan: ${curScore >= 0 ? '+' : ''}${curScore}`;
+      if (currentPerfScope === 'weekly') {
+        scoreVal.innerHTML = `Haftalık Puan: <strong>${wScore >= 0 ? '+' : ''}${wScore}</strong> <span style="font-size: 0.72rem; color: var(--m-text-muted);">(Genel: ${curScore >= 0 ? '+' : ''}${curScore})</span>`;
+      } else if (currentPerfScope === 'monthly') {
+        scoreVal.innerHTML = `Aylık Puan: <strong>${mScore >= 0 ? '+' : ''}${mScore}</strong> <span style="font-size: 0.72rem; color: var(--m-text-muted);">(Genel: ${curScore >= 0 ? '+' : ''}${curScore})</span>`;
+      } else {
+        scoreVal.innerHTML = `Toplam Puan: <strong>${curScore >= 0 ? '+' : ''}${curScore}</strong>`;
+      }
     }
 
     if (avatarEl) {
@@ -1598,29 +1929,14 @@
     window.stateManager.addScore(selectedStudentForPoints.id, points, reason);
     window.vibrate(45);
 
-    // Rozet skorunu hemen güncelle
-    const updatedStudent = getStudentByIdSafe(selectedStudentForPoints.id);
-    const newTotal = (updatedStudent && updatedStudent.scores && updatedStudent.scores.total !== undefined) 
-      ? updatedStudent.scores.total 
-      : ((window.stateManager && window.stateManager.getStudentScore) ? window.stateManager.getStudentScore(selectedStudentForPoints.id) : 0);
-
-    const badge = document.getElementById(`score-badge-${selectedStudentForPoints.id}`);
-    if (badge) {
-      const valEl = badge.querySelector('.score-val');
-      if (valEl) {
-        valEl.textContent = `${newTotal >= 0 ? '+' : ''}${newTotal}`;
-      } else {
-        badge.textContent = `${newTotal >= 0 ? '+' : ''}${newTotal}`;
-      }
-      badge.style.transform = 'scale(1.25)';
-      setTimeout(() => { badge.style.transform = 'scale(1)'; }, 200);
-    }
-
     showMobileToast(`${selectedStudentForPoints.name}: ${points > 0 ? '+' : ''}${points} Puan (${reason})`);
     
     // sheet-points'i kapat
     const ptSheet = document.getElementById('sheet-points');
     if (ptSheet) ptSheet.classList.remove('active');
+
+    // Performans listesini ve sıralamasını güncel skorlara göre yenile
+    renderPerformanceTab();
 
     // Eğer öğrenci detay penceresi arkada açıksa hemen güncelle ve açık tut
     const detailModal = document.getElementById('modal-student-detail');
@@ -2068,6 +2384,19 @@
         }).join('');
       }
 
+      // Bu hafta ve bu ay puanları
+      const selWeek = (window.stateManager && window.stateManager.getSelectedWeek) ? window.stateManager.getSelectedWeek() : '';
+      const curMonth = currentPerfMonth || (new Date().toISOString().substring(0, 7));
+      let stdWeeklyScore = 0;
+      let stdMonthlyScore = 0;
+      studentPerf.forEach(p => {
+        const pt = parseInt(p.point, 10) || 0;
+        const rw = getPerformanceRecordWeek(p, state);
+        if (rw === selWeek) stdWeeklyScore += pt;
+        const rm = getPerformanceRecordMonth(p, state, rw);
+        if (rm === curMonth) stdMonthlyScore += pt;
+      });
+
       perfPane.innerHTML = `
         <div class="m-std-summary-card">
           <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
@@ -2076,18 +2405,30 @@
               <i data-lucide="plus" style="width: 14px; height: 14px;"></i> Puan Ver
             </button>
           </div>
-          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; text-align: center;">
+          <!-- 1. Satır: Dönemsel Puanlar (Hafta, Ay, Toplam) -->
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; text-align: center; margin-bottom: 6px;">
+            <div style="background: var(--m-bg); padding: 6px; border-radius: 6px; border: 1px solid var(--m-border);">
+              <div style="font-size: 0.65rem; color: var(--m-text-muted); font-weight: 600;">BU HAFTA</div>
+              <div style="font-size: 1.05rem; font-weight: 800; color: var(--m-primary);">${stdWeeklyScore >= 0 ? '+' : ''}${stdWeeklyScore}</div>
+            </div>
+            <div style="background: var(--m-bg); padding: 6px; border-radius: 6px; border: 1px solid var(--m-border);">
+              <div style="font-size: 0.65rem; color: var(--m-text-muted); font-weight: 600;">BU AY</div>
+              <div style="font-size: 1.05rem; font-weight: 800; color: #8b5cf6;">${stdMonthlyScore >= 0 ? '+' : ''}${stdMonthlyScore}</div>
+            </div>
             <div style="background: var(--m-bg); padding: 6px; border-radius: 6px; border: 1px solid var(--m-border);">
               <div style="font-size: 0.65rem; color: var(--m-text-muted); font-weight: 600;">TOPLAM</div>
-              <div style="font-size: 1.05rem; font-weight: 800; color: var(--m-primary);">${curScore >= 0 ? '+' : ''}${curScore}</div>
+              <div style="font-size: 1.05rem; font-weight: 800; color: var(--m-success);">${curScore >= 0 ? '+' : ''}${curScore}</div>
             </div>
-            <div style="background: var(--m-bg); padding: 6px; border-radius: 6px; border: 1px solid var(--m-border);">
-              <div style="font-size: 0.65rem; color: var(--m-text-muted); font-weight: 600;">POZİTİF</div>
-              <div style="font-size: 1.05rem; font-weight: 800; color: var(--m-success);">+${posPoints}</div>
+          </div>
+          <!-- 2. Satır: Pozitif ve Negatif Dağılımı -->
+          <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; text-align: center;">
+            <div style="background: var(--m-bg); padding: 5px; border-radius: 6px; border: 1px solid var(--m-border);">
+              <div style="font-size: 0.62rem; color: var(--m-text-muted); font-weight: 600;">POZİTİF</div>
+              <div style="font-size: 0.95rem; font-weight: 800; color: var(--m-success);">+${posPoints}</div>
             </div>
-            <div style="background: var(--m-bg); padding: 6px; border-radius: 6px; border: 1px solid var(--m-border);">
-              <div style="font-size: 0.65rem; color: var(--m-text-muted); font-weight: 600;">NEGATİF</div>
-              <div style="font-size: 1.05rem; font-weight: 800; color: var(--m-danger);">${negPoints > 0 ? `-${negPoints}` : '0'}</div>
+            <div style="background: var(--m-bg); padding: 5px; border-radius: 6px; border: 1px solid var(--m-border);">
+              <div style="font-size: 0.62rem; color: var(--m-text-muted); font-weight: 600;">NEGATİF</div>
+              <div style="font-size: 0.95rem; font-weight: 800; color: var(--m-danger);">${negPoints > 0 ? `-${negPoints}` : '0'}</div>
             </div>
           </div>
         </div>
@@ -3189,23 +3530,42 @@
 
   // Şanslı Öğrenci Çağırıcı (Kura Çarkı)
   window.drawLuckyStudent = () => {
-    const students = getFilteredStudents();
+    let students = getFilteredStudents();
+    if (window.stateManager && typeof window.stateManager.isStudentAbsent === 'function') {
+      const present = students.filter(s => !window.stateManager.isStudentAbsent(s.id));
+      if (present.length > 0) students = present;
+    }
     if (students.length === 0) {
       showMobileToast('Listede öğrenci bulunamadı.');
       return;
     }
 
     const lucky = students[Math.floor(Math.random() * students.length)];
+    const avatarColor = getAvatarColor(lucky.id || lucky.name);
     window.vibrate(80);
 
     const resultBox = document.getElementById('lucky-student-result');
     if (resultBox) {
       resultBox.style.display = 'block';
       resultBox.innerHTML = `
-        <div style="padding: 1.5rem; background: var(--m-surface); border: 2px solid var(--m-primary); border-radius: var(--m-radius-md); text-align: center; margin-top: 1rem; animation: tabFadeIn 0.3s;">
-          <div style="font-size: 0.75rem; font-weight: 800; color: var(--m-primary); text-transform: uppercase;">🎉 Şanslı Öğrenci</div>
-          <div style="font-size: 1.4rem; font-weight: 800; margin: 0.35rem 0;">${escapeHTML(lucky.name)} ${escapeHTML(lucky.surname || '')}</div>
-          <div style="font-size: 0.85rem; color: var(--m-text-muted);">Okul No: ${escapeHTML(lucky.number || '-')}</div>
+        <div style="padding: 1.25rem 1rem; background: var(--m-surface); border: 2px solid #f59e0b; border-radius: var(--m-radius-md); text-align: center; margin-top: 1rem; animation: tabFadeIn 0.3s; box-shadow: 0 4px 16px rgba(245, 158, 11, 0.15);">
+          <div style="font-size: 0.75rem; font-weight: 800; color: #f59e0b; text-transform: uppercase; letter-spacing: 0.5px;">✨ Şanslı Öğrenci ✨</div>
+          
+          <div style="position: relative; width: 84px; height: 84px; border-radius: 50%; overflow: hidden; border: 3.5px solid #f59e0b; box-shadow: 0 4px 14px rgba(245, 158, 11, 0.35); display: flex; align-items: center; justify-content: center; background: ${avatarColor}; margin: 0.75rem auto;">
+            ${lucky.photo 
+              ? `<img src="${lucky.photo}" alt="${escapeHTML(lucky.name)}" style="width: 100%; height: 100%; object-fit: cover;">` 
+              : `<span style="font-size: 2.2rem; font-weight: 800; color: white;">${escapeHTML((lucky.name || '?').charAt(0).toUpperCase())}</span>`
+            }
+          </div>
+
+          <div style="font-size: 1.35rem; font-weight: 800; margin: 0.35rem 0; color: var(--m-text);">🎉 ${escapeHTML(lucky.name)} ${escapeHTML(lucky.surname || '')}</div>
+          <div style="font-size: 0.85rem; color: var(--m-text-muted); font-weight: 700;">Okul No: <strong style="color: var(--m-primary);">${escapeHTML(lucky.number || '-')}</strong></div>
+          
+          <div style="margin-top: 10px;">
+            <button type="button" class="m-btn-sm" onclick="window.openPointBottomSheet(getStudentByIdSafe('${lucky.id}'))" style="background: linear-gradient(135deg, #f59e0b, #d97706); color: white; border: none; font-weight: 800; padding: 7px 18px; border-radius: 20px; font-size: 0.82rem; box-shadow: 0 3px 10px rgba(245, 158, 11, 0.35); cursor: pointer;">
+              ⭐ Puan Ver
+            </button>
+          </div>
         </div>
       `;
     }
@@ -3322,6 +3682,21 @@
   window.showMobileToast = showMobileToast;
 
   window.closeBottomSheet = () => {
+    // 0. Oturma planı öğrenci seçimi modalı açıksa, sadece onu kapatıp oturma planında kal!
+    const seatingPicker = document.getElementById('modal-seating-student-select');
+    if (seatingPicker && seatingPicker.classList.contains('active')) {
+      if (typeof window.closeMobileSeatPicker === 'function') {
+        window.closeMobileSeatPicker();
+      } else {
+        seatingPicker.classList.remove('active');
+        const planSheet = document.getElementById('modal-seating-plan');
+        if (planSheet) planSheet.classList.add('active');
+        const backdrop = document.getElementById('sheet-backdrop');
+        if (backdrop) backdrop.classList.add('active');
+      }
+      return;
+    }
+
     cancelAllFabAttention();
     window.currentDetailedStudentId = null;
     document.querySelectorAll('.bottom-sheet').forEach(s => s.classList.remove('active'));
@@ -3339,6 +3714,19 @@
 
   function openBottomSheet(sheetId) {
     cancelAllFabAttention();
+
+    // Eğer oturma planı açıkken öğrenci seçimi açılıyorsa oturma planı kapatılmaz
+    if (sheetId === 'modal-seating-student-select') {
+      const sheet = document.getElementById(sheetId);
+      const backdrop = document.getElementById('sheet-backdrop');
+      if (sheet) sheet.classList.add('active');
+      if (backdrop) backdrop.classList.add('active');
+      const planSheet = document.getElementById('modal-seating-plan');
+      if (planSheet) planSheet.classList.add('active');
+      if (window.lucide) window.lucide.createIcons();
+      return;
+    }
+
     window.closeBottomSheet();
     const sheet = document.getElementById(sheetId);
     const backdrop = document.getElementById('sheet-backdrop');
@@ -3359,10 +3747,6 @@
   let activeMobileSubview = null;
 
   window.openMobileSubview = (subviewId) => {
-    if (subviewId === 'tools') {
-      window.switchTab('tools');
-      return;
-    }
     cancelAllFabAttention();
     window.closeBottomSheet();
     window.closeConfigDrawer();
@@ -3410,6 +3794,53 @@
     if (window.lucide) window.lucide.createIcons();
   };
 
+  // ==========================================================================
+  // DİĞER YUKARI AÇILAN LİSTE MENÜSÜ KONTROLCÜSÜ (MORE POPUP LIST MENU)
+  // ==========================================================================
+  window.openMoreMenu = () => {
+    const popup = document.getElementById('m-more-popup-menu');
+    const backdrop = document.getElementById('m-more-popup-backdrop');
+    const navBtn = document.getElementById('m-nav-btn-more');
+    if (popup) popup.classList.add('show');
+    if (backdrop) backdrop.classList.add('show');
+    if (navBtn) navBtn.classList.add('active');
+    window.vibrate(20);
+    if (window.lucide) window.lucide.createIcons();
+  };
+
+  window.closeMoreMenu = () => {
+    const popup = document.getElementById('m-more-popup-menu');
+    const backdrop = document.getElementById('m-more-popup-backdrop');
+    const navBtn = document.getElementById('m-nav-btn-more');
+    if (popup) popup.classList.remove('show');
+    if (backdrop) backdrop.classList.remove('show');
+    if (navBtn) navBtn.classList.remove('active');
+    // Eğer bir alt sayfada (subview) değilsek son aktif ana sekme butonunun aktif durumunu geri getir
+    if (!activeMobileSubview) {
+      const targetTab = lastActiveMainTab || 'performance';
+      const activeBtn = document.querySelector(`.nav-item-btn[data-tab="${targetTab}"]`);
+      if (activeBtn) activeBtn.classList.add('active');
+    }
+  };
+
+  window.toggleMoreMenu = (e) => {
+    if (e) {
+      if (typeof e.preventDefault === 'function') e.preventDefault();
+      if (typeof e.stopPropagation === 'function') e.stopPropagation();
+    }
+    const popup = document.getElementById('m-more-popup-menu');
+    if (popup && popup.classList.contains('show')) {
+      window.closeMoreMenu();
+    } else {
+      window.openMoreMenu();
+    }
+  };
+
+  window.selectMoreMenuItem = (subviewId) => {
+    window.closeMoreMenu();
+    window.openMobileSubview(subviewId);
+  };
+
   window.closeMobileSubview = () => {
     cancelAllFabAttention();
     activeMobileSubview = null;
@@ -3421,12 +3852,25 @@
     const configFabBtn = document.getElementById('m-config-fab-btn');
     if (configFabMenu) configFabMenu.classList.remove('show');
     if (configFabBtn) configFabBtn.classList.remove('active');
-    // Diğer sekmesine dön
-    switchTab('more');
+    // Son aktif ana sekmeye dön (alt sayfa açılmadan önceki sekme)
+    switchTab(lastActiveMainTab || 'performance');
   };
 
   // Android Donanım Geri Tuşu Yönetimi
   window.handleAndroidBack = () => {
+    // -1. Kilit ekranı aktifken geri tuşuyla uygulamanın içine dönülmesini engelle
+    const lockOverlay = document.getElementById('m-app-lock-overlay');
+    if (lockOverlay && lockOverlay.classList.contains('visible')) {
+      return false; // Uygulamadan çıkışa izin ver, kilidi aşma
+    }
+
+    // 0.0 Diğer yukarı açılan liste menüsü açıksa kapat
+    const moreMenu = document.getElementById('m-more-popup-menu');
+    if (moreMenu && moreMenu.classList.contains('show')) {
+      window.closeMoreMenu();
+      return true;
+    }
+
     // 0. Özel diyaloglar açıksa kapat
     const noteDialog = document.getElementById('modal-supply-note-dialog');
     if (noteDialog && noteDialog.style.display !== 'none') {
@@ -3604,6 +4048,18 @@
     const seatingPickerSheet = document.getElementById('modal-seating-student-select');
     if (seatingPickerSheet && seatingPickerSheet.classList.contains('active')) {
       window.closeMobileSeatPicker();
+      return true;
+    }
+    // 1.3 Kitap soruları modalı açıksa kapat / geri dön
+    const bookQuestionsSheet = document.getElementById('modal-book-questions');
+    if (bookQuestionsSheet && bookQuestionsSheet.classList.contains('active')) {
+      if (typeof window.closeBookQuestionsModal === 'function') {
+        window.closeBookQuestionsModal();
+      } else {
+        bookQuestionsSheet.classList.remove('active');
+        const overlay = document.getElementById('sheet-overlay');
+        if (overlay) overlay.classList.remove('active');
+      }
       return true;
     }
 
@@ -4955,14 +5411,25 @@
   };
 
   window.triggerAiStudentScan = () => {
-    const apiKey = (localStorage.getItem('sinif_asistani_gemini_api_key') || '').trim();
+    const apiKey = (window.getGeminiApiKey ? window.getGeminiApiKey() : (localStorage.getItem('sinif_asistani_gemini_api_key') || '')).trim();
     if (!apiKey) {
-      window.closeBottomSheet();
-      showMobileToast('⚠️ Yapay zeka ile liste taramak için lütfen önce Gemini API anahtarınızı kaydedin');
-      if (activeMobileSubview !== 'config') {
-        window.openMobileSubview('config');
+      if (typeof window.showGeminiKeyRequiredModal === 'function') {
+        window.showGeminiKeyRequiredModal({
+          featureName: 'Öğrenci Listesi Tarama (OCR)',
+          description: 'Fotoğrafı çekilen sınıf listesindeki öğrenci ad ve numaralarını yapay zekayla otomatik aktarabilmek için Google Gemini bağlantısı gereklidir.',
+          confirmText: 'Kaydet ve Listeyi Tara',
+          onSuccess: () => {
+            window.triggerAiStudentScan();
+          }
+        });
+      } else {
+        window.closeBottomSheet();
+        showMobileToast('⚠️ Yapay zeka ile liste taramak için lütfen önce Gemini API anahtarınızı kaydedin');
+        if (activeMobileSubview !== 'config') {
+          window.openMobileSubview('config');
+        }
+        window.switchConfigPanel('ai');
       }
-      window.switchConfigPanel('ai');
       return;
     }
 
@@ -5553,36 +6020,223 @@ SADECE VE SADECE GEÇERLİ BİR JSON DİZİSİ DÖNDÜR. Markdown (örneğin \`\
     renderActiveTab();
   };
 
-  // --- PIN GÜVENLİK ---
+  // ==========================================================================
+  // UYGULAMA KİLİT & PIN GÜVENLİK MOTORU (MOBILE APP LOCK & SECURITY ENGINE)
+  // ==========================================================================
+  let isMobileLocked = false;
+
+  async function sha256(str) {
+    try {
+      const enc = new TextEncoder().encode(str);
+      const buf = await crypto.subtle.digest('SHA-256', enc);
+      return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+    } catch (e) {
+      let hash = 0;
+      for (let i = 0; i < str.length; i++) {
+        hash = ((hash << 5) - hash) + str.charCodeAt(i);
+        hash |= 0;
+      }
+      return 'hash_' + hash;
+    }
+  }
+
+  function hasMobilePasswordConfigured() {
+    try {
+      const pin = localStorage.getItem('sinif_asistani_app_pin');
+      if (pin && String(pin).trim().length >= 4) return true;
+      if (window.stateManager && window.stateManager.state && window.stateManager.state.appLock) {
+        const al = window.stateManager.state.appLock;
+        if (al.enabled && al.passwordHash) return true;
+      }
+      const raw = localStorage.getItem('sinif_asistani_state_v3');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && parsed.appLock && parsed.appLock.enabled && parsed.appLock.passwordHash) {
+          return true;
+        }
+      }
+    } catch (e) {}
+    return false;
+  }
+
+  function lockMobileApp() {
+    isMobileLocked = true;
+    const overlay = document.getElementById('m-app-lock-overlay');
+    if (!overlay) return;
+    const input = document.getElementById('m-lock-password-input');
+    const errEl = document.getElementById('m-lock-error-msg');
+    if (input) input.value = '';
+    if (errEl) errEl.style.display = 'none';
+    overlay.style.display = 'flex';
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        overlay.classList.add('visible');
+      });
+    });
+    setTimeout(() => {
+      if (input) input.focus();
+    }, 350);
+    if (window.lucide) window.lucide.createIcons();
+  }
+
+  function unlockMobileApp() {
+    isMobileLocked = false;
+    const overlay = document.getElementById('m-app-lock-overlay');
+    if (overlay) {
+      overlay.classList.remove('visible');
+      setTimeout(() => {
+        overlay.style.display = 'none';
+      }, 300);
+    }
+  }
+
+  function checkMobileLockOnStartup() {
+    if (hasMobilePasswordConfigured()) {
+      lockMobileApp();
+    }
+  }
+
+  window.attemptUnlockMobile = async () => {
+    const input = document.getElementById('m-lock-password-input');
+    const errEl = document.getElementById('m-lock-error-msg');
+    const lockBox = document.getElementById('m-lock-box');
+    if (!input) return;
+
+    const entered = input.value.trim();
+    if (!entered) {
+      if (errEl) {
+        errEl.textContent = 'Lütfen PIN veya şifrenizi girin.';
+        errEl.style.display = 'block';
+      }
+      return;
+    }
+
+    const storedPin = localStorage.getItem('sinif_asistani_app_pin');
+    let appLockHash = null;
+    if (window.stateManager && window.stateManager.state && window.stateManager.state.appLock) {
+      appLockHash = window.stateManager.state.appLock.passwordHash;
+    } else {
+      try {
+        const raw = localStorage.getItem('sinif_asistani_state_v3');
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed && parsed.appLock) appLockHash = parsed.appLock.passwordHash;
+        }
+      } catch (e) {}
+    }
+
+    const enteredHash = await sha256(entered);
+    let isMatch = false;
+
+    // 1. PIN ile eşleşme (düz metin veya SHA-256)
+    if (storedPin && (entered === storedPin || enteredHash === storedPin)) {
+      isMatch = true;
+    }
+    // 2. appLock SHA-256 hash ile eşleşme
+    if (!isMatch && appLockHash) {
+      if (enteredHash === appLockHash || (storedPin && entered === storedPin)) {
+        isMatch = true;
+      }
+    }
+    // 3. Genel kurtarma şifresi (sifirla123)
+    if (!isMatch && entered === 'sifirla123') {
+      isMatch = true;
+    }
+
+    if (isMatch) {
+      if (errEl) errEl.style.display = 'none';
+      window.vibrate(25);
+      unlockMobileApp();
+    } else {
+      window.vibrate(50);
+      if (errEl) {
+        errEl.textContent = 'Hatalı PIN veya şifre!';
+        errEl.style.display = 'block';
+      }
+      if (lockBox) {
+        lockBox.classList.add('shake');
+        setTimeout(() => lockBox.classList.remove('shake'), 500);
+      }
+      input.value = '';
+      input.focus();
+    }
+  };
+
+  window.toggleLockPasswordVisibility = () => {
+    const input = document.getElementById('m-lock-password-input');
+    const eyeIcon = document.getElementById('m-lock-eye-icon');
+    if (!input) return;
+    if (input.type === 'password') {
+      input.type = 'text';
+      if (eyeIcon) eyeIcon.setAttribute('data-lucide', 'eye-off');
+    } else {
+      input.type = 'password';
+      if (eyeIcon) eyeIcon.setAttribute('data-lucide', 'eye');
+    }
+    if (window.lucide) window.lucide.createIcons();
+  };
+
+  window.handleMobileForgotPassword = async () => {
+    const entered = prompt('Şifrenizi unuttuysanız kurtarma şifresini ("sifirla123") girerek kilidi kaldırabilirsiniz:');
+    if (entered === 'sifirla123') {
+      window.removeMobilePin();
+      unlockMobileApp();
+      showMobileToast('🔓 Kilit koruması başarıyla kaldırıldı.');
+    } else if (entered !== null && entered !== '') {
+      alert('Hatalı kurtarma anahtarı.');
+    }
+  };
+
   function checkMobilePinStatus() {
     const statusEl = document.getElementById('m-cfg-pin-status');
-    const pin = localStorage.getItem('sinif_asistani_app_pin');
+    const inputEl = document.getElementById('m-cfg-pin-code');
+    const hasLock = hasMobilePasswordConfigured();
+    const storedPin = localStorage.getItem('sinif_asistani_app_pin');
+    if (inputEl && storedPin && !inputEl.value) {
+      inputEl.value = storedPin;
+    }
     if (!statusEl) return;
-    if (pin && pin.length >= 4) {
+    if (hasLock) {
       statusEl.innerHTML = `<span style="background: var(--m-danger); color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.72rem; font-weight: 700;">🔒 Şifreli Giriş Aktif</span>`;
     } else {
       statusEl.innerHTML = `<span style="background: var(--m-text-muted); color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.72rem; font-weight: 700;">🔓 Kilit Devre Dışı</span>`;
     }
   }
 
-  window.saveMobilePin = () => {
+  window.saveMobilePin = async () => {
     const pin = document.getElementById('m-cfg-pin-code');
-    if (!pin || pin.value.length < 4) {
-      showMobileToast('Lütfen 4 haneli PIN girin');
+    if (!pin || pin.value.trim().length < 4) {
+      showMobileToast('Lütfen en az 4 haneli PIN veya şifre girin');
       return;
     }
-    localStorage.setItem('sinif_asistani_app_pin', pin.value);
+    const val = pin.value.trim();
+    localStorage.setItem('sinif_asistani_app_pin', val);
+
+    // stateManager içine de kaydet (SHA-256 hash ile)
+    if (window.stateManager && window.stateManager.state) {
+      const hash = await sha256(val);
+      if (!window.stateManager.state.appLock) window.stateManager.state.appLock = {};
+      window.stateManager.state.appLock.enabled = true;
+      window.stateManager.state.appLock.passwordHash = hash;
+      window.stateManager.state.appLock.breakModeEnabled = false;
+      window.stateManager.saveState();
+    }
     window.vibrate(30);
-    showMobileToast('✅ PIN kodu belirlendi');
+    showMobileToast('✅ Kilit şifresi başarıyla kaydedildi');
     checkMobilePinStatus();
   };
 
   window.removeMobilePin = () => {
     localStorage.removeItem('sinif_asistani_app_pin');
+    if (window.stateManager && window.stateManager.state && window.stateManager.state.appLock) {
+      window.stateManager.state.appLock.enabled = false;
+      window.stateManager.state.appLock.passwordHash = null;
+      window.stateManager.saveState();
+    }
     const pin = document.getElementById('m-cfg-pin-code');
     if (pin) pin.value = '';
     window.vibrate(20);
-    showMobileToast('Kilit kaldırıldı');
+    showMobileToast('Kilit koruması kaldırıldı');
     checkMobilePinStatus();
   };
 

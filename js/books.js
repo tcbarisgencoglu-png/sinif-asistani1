@@ -2117,8 +2117,15 @@ SADECE VE SADECE GEÇERLİ BİR JSON DİZİSİ DÖNDÜR. Markdown (örneğin \`\
   const aiLoadingState = document.getElementById('ai-questions-loading-state');
   const aiLoadingBookTitle = document.getElementById('ai-loading-book-title');
 
-  function openGeminiKeyModal() {
-    if (window.navigateToConfigAI) {
+  function openGeminiKeyModal(options = {}) {
+    if (typeof window.showGeminiKeyRequiredModal === 'function') {
+      window.showGeminiKeyRequiredModal({
+        featureName: options.featureName || 'Kitap Soru Hazırlama',
+        description: options.description || 'Kitaplara ait anlama sorularını yapay zekaya hazırlatabilmek için Google Gemini bağlantısı gereklidir.',
+        confirmText: options.confirmText || 'Kaydet ve Devam Et',
+        onSuccess: options.onSuccess
+      });
+    } else if (window.navigateToConfigAI) {
       window.navigateToConfigAI();
     } else if (modalGeminiKeySetup && inputModalGeminiApiKey) {
       inputModalGeminiApiKey.value = getGeminiApiKey();

@@ -1338,8 +1338,16 @@
 
     const apiKey = window.getGeminiApiKey ? window.getGeminiApiKey() : (localStorage.getItem('sinif_asistani_gemini_api_key') || '').trim();
     if (!apiKey) {
-      if (toastCallbackFn) toastCallbackFn('Yapay zeka ile sütun analizi için lütfen önce Gemini API anahtarınızı tanımlayın.', 'warning');
-      if (window.openGeminiKeyModal) window.openGeminiKeyModal();
+      if (typeof window.showGeminiKeyRequiredModal === 'function') {
+        window.showGeminiKeyRequiredModal({
+          featureName: 'Excel Tablo ve Sütun Analizi',
+          description: 'Yüklenen yıllık plan tablosunu yapay zeka ile otomatik çözümleyebilmek için Google Gemini bağlantısı gereklidir.',
+          confirmText: 'Kaydet ve Analiz Et',
+          onSuccess: () => aiAnalyzeColumns()
+        });
+      } else if (window.openGeminiKeyModal) {
+        window.openGeminiKeyModal();
+      }
       return;
     }
 
@@ -1628,8 +1636,16 @@ Cevabını YALNIZCA şu JSON formatında ver:
   async function handleGenerateAiAnnualPlan() {
     const apiKey = window.getGeminiApiKey ? window.getGeminiApiKey() : (localStorage.getItem('sinif_asistani_gemini_api_key') || '').trim();
     if (!apiKey) {
-      if (toastCallbackFn) toastCallbackFn('Yapay zeka ile plan üretmek için lütfen önce Gemini API anahtarınızı tanımlayın.', 'warning');
-      if (window.openGeminiKeyModal) window.openGeminiKeyModal();
+      if (typeof window.showGeminiKeyRequiredModal === 'function') {
+        window.showGeminiKeyRequiredModal({
+          featureName: 'Yıllık Plan Hazırlama',
+          description: 'MEB standartlarında 36 haftalık yıllık planı yapay zeka ile oluşturabilmek için Google Gemini bağlantısı gereklidir.',
+          confirmText: 'Kaydet ve Planı Oluştur',
+          onSuccess: () => handleGenerateAiAnnualPlan()
+        });
+      } else if (window.openGeminiKeyModal) {
+        window.openGeminiKeyModal();
+      }
       return;
     }
 

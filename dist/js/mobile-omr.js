@@ -1533,22 +1533,25 @@
   };
 
   window.promptOmrApiKey = function() {
-    const currentKey = (window.getGeminiApiKey ? window.getGeminiApiKey() : (localStorage.getItem('sinif_asistani_gemini_api_key') || '')).trim();
-    const promptMsg = currentKey 
-      ? `Mevcut Google API Anahtarı kayıtlı (${currentKey.slice(0, 6)}...${currentKey.slice(-4)}).\n\nDeğiştirmek veya güncellemek için yeni anahtarı yapıştırın:`
-      : 'Google Gemini API anahtarınızı giriniz:\n(Google AI Studio üzerinden ücretsiz alabilirsiniz)';
-    const entered = prompt(promptMsg, currentKey);
-    if (entered !== null) {
-      const trimmed = entered.trim();
-      if (window.setGeminiApiKey) {
-        window.setGeminiApiKey(trimmed);
-      } else {
-        if (trimmed) localStorage.setItem('sinif_asistani_gemini_api_key', trimmed);
+    if (typeof window.showGeminiKeyRequiredModal === 'function') {
+      window.showGeminiKeyRequiredModal({
+        featureName: 'Optik Form Okuma (Gemini Vision)',
+        description: 'Optik formları ve öğrenci işaretlemelerini kamera ile yapay zekaya okutabilmek için Google Gemini bağlantısı gereklidir.',
+        confirmText: 'Kaydet',
+        onSuccess: () => {
+          window.updateOmrApiBtnState();
+        }
+      });
+    } else {
+      const currentKey = (window.getGeminiApiKey ? window.getGeminiApiKey() : (localStorage.getItem('sinif_asistani_gemini_api_key') || '')).trim();
+      const promptMsg = 'Google Gemini API anahtarınızı giriniz:\n(Google AI Studio üzerinden ücretsiz alabilirsiniz)';
+      const entered = prompt(promptMsg, currentKey);
+      if (entered !== null) {
+        const trimmed = entered.trim();
+        if (window.setGeminiApiKey) window.setGeminiApiKey(trimmed);
+        else if (trimmed) localStorage.setItem('sinif_asistani_gemini_api_key', trimmed);
         else localStorage.removeItem('sinif_asistani_gemini_api_key');
-      }
-      window.updateOmrApiBtnState();
-      if (window.showMobileToast) {
-        window.showMobileToast(trimmed ? '✓ API Anahtarı kaydedildi!' : 'API Anahtarı temizlendi', trimmed ? 'success' : 'info');
+        window.updateOmrApiBtnState();
       }
     }
   };
@@ -1603,18 +1606,27 @@
 
     let apiKey = (window.getGeminiApiKey ? window.getGeminiApiKey() : (localStorage.getItem('sinif_asistani_gemini_api_key') || '')).trim();
     if (!apiKey) {
-      const entered = prompt('✨ Yapay Zeka (Gemini Vision) ile optik okuma yapabilmek için Google API anahtarı gereklidir.\n\nLütfen Google Gemini API anahtarınızı giriniz (AI Studio üzerinden ücretsiz oluşturabilirsiniz):', '');
-      if (entered && entered.trim()) {
-        apiKey = entered.trim();
-        if (window.setGeminiApiKey) window.setGeminiApiKey(apiKey);
-        else localStorage.setItem('sinif_asistani_gemini_api_key', apiKey);
-        window.updateOmrApiBtnState();
+      if (typeof window.showGeminiKeyRequiredModal === 'function') {
+        window.showGeminiKeyRequiredModal({
+          featureName: 'Optik Form Okuma (Gemini Vision)',
+          description: 'Optik formları ve öğrenci işaretlemelerini yapay zekayla otomatik tanıyabilmek için Google Gemini Vision bağlantısı gereklidir.',
+          confirmText: 'Kaydet ve Optik Formu Oku',
+          onSuccess: () => {
+            window.updateOmrApiBtnState();
+            processCapturedImageWithGemini(sourceElement);
+          },
+          onCancel: () => {
+            if (confirm('API anahtarı girilmedi. Çevrim dışı okuma yöntemiyle devam edilsin mi?')) {
+              processCapturedImageOffline(sourceElement);
+            }
+          }
+        });
       } else {
-        if (confirm('API anahtarı girilmedi. Çevrim dışı okuma yöntemiyle devam edilsin mi?')) {
+        if (confirm('API anahtarı bulunamadı. Çevrim dışı okuma yöntemiyle devam edilsin mi?')) {
           processCapturedImageOffline(sourceElement);
         }
-        return;
       }
+      return;
     }
 
     const srcW = sourceElement.width || sourceElement.videoWidth;

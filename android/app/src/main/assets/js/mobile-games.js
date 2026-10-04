@@ -642,6 +642,14 @@
     const spinner = document.getElementById('m-quiz-raffle-spinner');
     const confirmBtn = document.getElementById('btn-quiz-raffle-confirm');
     const subtext = document.getElementById('m-quiz-raffle-subtext');
+    const iconEl = document.getElementById('m-quiz-raffle-icon');
+    const allQuizStudents = getMobileQuizActiveStudents();
+
+    if (iconEl) {
+      iconEl.style.border = '3px solid transparent';
+      iconEl.style.background = 'linear-gradient(135deg, #8b5cf6, #6366f1)';
+      iconEl.innerHTML = '🎲';
+    }
 
     if (confirmBtn) confirmBtn.style.display = 'none';
     if (subtext) subtext.textContent = 'Sıradaki soruyu cevaplayacak şanslı öğrenci belirleniyor!';
@@ -655,6 +663,21 @@
       const randomIdx = Math.floor(Math.random() * pool.length);
       const candidate = pool[randomIdx] || 'Öğrenci';
       if (spinner) spinner.textContent = candidate;
+
+      const candidateStudent = allQuizStudents.find(s => getStudentDisplayName(s) === candidate);
+      if (iconEl && candidateStudent) {
+        const cColor = window.getAvatarColor ? window.getAvatarColor(candidateStudent.id || candidateStudent.name) : '#8b5cf6';
+        if (candidateStudent.photo) {
+          iconEl.style.border = '3px solid var(--m-primary)';
+          iconEl.style.background = 'transparent';
+          iconEl.innerHTML = `<img src="${candidateStudent.photo}" alt="${escapeHTML(candidateStudent.name)}" style="width: 100%; height: 100%; object-fit: cover;">`;
+        } else {
+          iconEl.style.border = '3px solid var(--m-primary)';
+          iconEl.style.background = cColor;
+          iconEl.innerHTML = `<span style="font-size: 1.8rem; font-weight: 800; color: white;">${escapeHTML(candidateStudent.name.charAt(0).toUpperCase())}</span>`;
+        }
+      }
+
       if (quizSoundEnabled) playSynthChime('tick');
 
       if (ticks >= maxTicks) {
@@ -665,6 +688,20 @@
 
         quizUnselectedStudents.splice(winnerIdx, 1);
         localStorage.setItem("tf_unselected_students", JSON.stringify(quizUnselectedStudents));
+
+        const winnerStudent = allQuizStudents.find(s => getStudentDisplayName(s) === winner);
+        if (iconEl && winnerStudent) {
+          const wColor = window.getAvatarColor ? window.getAvatarColor(winnerStudent.id || winnerStudent.name) : '#10b981';
+          if (winnerStudent.photo) {
+            iconEl.style.border = '3.5px solid #10b981';
+            iconEl.style.background = 'transparent';
+            iconEl.innerHTML = `<img src="${winnerStudent.photo}" alt="${escapeHTML(winnerStudent.name)}" style="width: 100%; height: 100%; object-fit: cover;">`;
+          } else {
+            iconEl.style.border = '3.5px solid #10b981';
+            iconEl.style.background = wColor;
+            iconEl.innerHTML = `<span style="font-size: 2rem; font-weight: 800; color: white;">${escapeHTML(winnerStudent.name.charAt(0).toUpperCase())}</span>`;
+          }
+        }
 
         if (spinner) {
           spinner.innerHTML = `🌟 ${escapeHTML(winner)} 🌟`;

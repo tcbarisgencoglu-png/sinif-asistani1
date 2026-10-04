@@ -1136,8 +1136,19 @@ function setupWeeklyTab(showToast) {
       const btnChange = document.getElementById('btn-change-optical-gemini-key');
       if (btnChange) {
         btnChange.addEventListener('click', () => {
-          const modalSetup = document.getElementById('modal-gemini-key-setup');
-          if (modalSetup) modalSetup.classList.add('active');
+          if (typeof window.showGeminiKeyRequiredModal === 'function') {
+            window.showGeminiKeyRequiredModal({
+              featureName: 'Optik Form Okuma (Gemini Vision)',
+              description: 'Gemini API anahtarınızı güncellemek için yeni anahtarı giriniz.',
+              confirmText: 'Anahtarı Güncelle',
+              onSuccess: () => {
+                updateOpticalApiKeyBanner();
+              }
+            });
+          } else {
+            const modalSetup = document.getElementById('modal-gemini-key-setup');
+            if (modalSetup) modalSetup.classList.add('active');
+          }
         });
       }
     } else {
@@ -1160,16 +1171,18 @@ function setupWeeklyTab(showToast) {
       const btnSetup = document.getElementById('btn-setup-optical-gemini-key');
       if (btnSetup) {
         btnSetup.addEventListener('click', () => {
-          const modalSetup = document.getElementById('modal-gemini-key-setup');
-          if (modalSetup) {
-            modalSetup.classList.add('active');
+          if (typeof window.showGeminiKeyRequiredModal === 'function') {
+            window.showGeminiKeyRequiredModal({
+              featureName: 'Optik Form Okuma (Gemini Vision)',
+              description: 'Taranan optik formların yapay zeka ile otomatik okunabilmesi için Google Gemini API anahtarı gereklidir.',
+              confirmText: 'Kaydet ve Devam Et',
+              onSuccess: () => {
+                updateOpticalApiKeyBanner();
+              }
+            });
           } else {
-            const entered = prompt('Lütfen Google Gemini API anahtarınızı giriniz:');
-            if (entered && entered.trim()) {
-              if (window.setGeminiApiKey) window.setGeminiApiKey(entered.trim());
-              else localStorage.setItem('sinif_asistani_gemini_api_key', entered.trim());
-              updateOpticalApiKeyBanner();
-            }
+            const modalSetup = document.getElementById('modal-gemini-key-setup');
+            if (modalSetup) modalSetup.classList.add('active');
           }
         });
       }
@@ -1648,15 +1661,18 @@ function setupWeeklyTab(showToast) {
 
     let apiKey = (window.getGeminiApiKey ? window.getGeminiApiKey() : (localStorage.getItem('sinif_asistani_gemini_api_key') || '')).trim();
     if (!apiKey) {
-      const entered = prompt('✨ Yapay zeka ile optik okuma yapabilmek için Google Gemini API anahtarı gereklidir.\n\nLütfen Gemini API anahtarınızı giriniz:');
-      if (entered && entered.trim()) {
-        apiKey = entered.trim();
-        if (window.setGeminiApiKey) window.setGeminiApiKey(apiKey);
-        else localStorage.setItem('sinif_asistani_gemini_api_key', apiKey);
-        updateOpticalApiKeyBanner();
-      } else {
-        return;
+      if (typeof window.showGeminiKeyRequiredModal === 'function') {
+        window.showGeminiKeyRequiredModal({
+          featureName: 'Optik Sınav Değerlendirme',
+          description: 'Taranan optik formları yapay zeka ile otomatik değerlendirebilmek için Google Gemini bağlantısı gereklidir.',
+          confirmText: 'Kaydet ve Değerlendirmeyi Başlat',
+          onSuccess: () => {
+            updateOpticalApiKeyBanner();
+            startOpticalAiEvaluation();
+          }
+        });
       }
+      return;
     }
 
     const qCount = parseInt(activeExam.totalQuestions, 10) || 20;
