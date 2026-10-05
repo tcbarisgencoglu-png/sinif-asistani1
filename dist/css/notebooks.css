@@ -170,6 +170,47 @@
   border-radius: var(--radius-md);
   border: 1px solid var(--border-color);
   box-shadow: var(--shadow-sm);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+  position: relative;
+}
+
+.notebook-topics-sidebar.collapsed {
+  width: 0 !important;
+  min-width: 0 !important;
+  max-width: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: none !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+/* Konu Menüsü Açma Butonu (Menü kapalıyken sol kenarda dikey şık sekme olarak durur) */
+.btn-expand-topics-sidebar {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  padding: 1rem 0.25rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  flex-shrink: 0;
+  box-shadow: var(--shadow-sm);
+  z-index: 10;
+  gap: 0.5rem;
+}
+
+.btn-expand-topics-sidebar:hover {
+  background: var(--primary-light);
+  color: var(--primary);
+  border-color: var(--primary);
+  transform: translateX(2px);
 }
 
 .topic-list {
@@ -326,6 +367,7 @@
   background-color: #f3f4f6; /* Dış masa rengi */
   padding: 1.5rem 1.5rem 1.5rem 2.5rem;
   overflow: hidden;
+  box-sizing: border-box;
 }
 
 /* Spiral Cilt Halka Efekti */
@@ -383,7 +425,11 @@
   box-shadow: 0 4px 15px rgba(0,0,0,0.06), 0 2px 4px rgba(0,0,0,0.04);
   position: relative;
   display: flex;
+  flex-direction: column;
   overflow: hidden;
+  height: 100%;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 /* Defter Sayfası Başlık Alanı */
@@ -419,12 +465,15 @@
 .notebook-editor-textarea {
   --nb-font-size: 26pt;
   --nb-line-height: 48px;
-  --nb-padding-top: 14px;
+  --nb-padding-top: 7px;
   flex: 1;
   border: none;
   outline: none;
   resize: none;
-  padding: var(--nb-padding-top, 14px) 20px 48px 65px !important;
+  padding-top: var(--nb-padding-top, 7px) !important;
+  padding-right: 20px !important;
+  padding-bottom: 48px !important;
+  padding-left: 65px !important;
   font-family: 'Comic Sans MS', 'Chalkboard SE', 'Comic Neue', sans-serif;
   font-size: var(--nb-font-size) !important;
   line-height: var(--nb-line-height) !important;
@@ -442,31 +491,31 @@
 .notebook-editor-textarea[data-font-size="small"] {
   --nb-font-size: 22pt;
   --nb-line-height: 42px;
-  --nb-padding-top: 13px;
+  --nb-padding-top: 6px;
 }
 
 .notebook-editor-textarea[data-font-size="normal"] {
   --nb-font-size: 26pt;
   --nb-line-height: 48px;
-  --nb-padding-top: 14px;
+  --nb-padding-top: 7px;
 }
 
 .notebook-editor-textarea[data-font-size="medium"] {
   --nb-font-size: 30pt;
   --nb-line-height: 54px;
-  --nb-padding-top: 16px;
+  --nb-padding-top: 7px;
 }
 
 .notebook-editor-textarea[data-font-size="large"] {
   --nb-font-size: 34pt;
   --nb-line-height: 60px;
-  --nb-padding-top: 17px;
+  --nb-padding-top: 8px;
 }
 
 .notebook-editor-textarea[data-font-size="xlarge"] {
   --nb-font-size: 40pt;
   --nb-line-height: 70px;
-  --nb-padding-top: 20px;
+  --nb-padding-top: 9px;
 }
 
 /* Poster sayfası gibi aşağıya doğru genişleyen ferah defter alanı */
@@ -572,33 +621,6 @@
   height: 100%;
 }
 
-/* Tam Ekran Modu Stilleri */
-.notebook-editor-card.fullscreen {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  z-index: 1050;
-  border-radius: 0;
-  margin: 0;
-  max-width: none;
-  max-height: none;
-}
-
-.notebook-editor-fullscreen-header {
-  display: none;
-}
-
-.notebook-editor-card.fullscreen .notebook-editor-fullscreen-header {
-  display: flex !important;
-  border-radius: 0;
-  padding: 0.75rem 1.5rem;
-}
-
-.notebook-editor-card.fullscreen .notebook-paper-wrapper {
-  padding: 1rem 2rem 1rem 3rem;
-}
 
 /* Matematiksel İfadeler Stilleri */
 .math-fraction, .math-exponent, .math-sqrt {

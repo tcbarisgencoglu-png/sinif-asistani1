@@ -39,22 +39,31 @@ public class MainActivity extends AppCompatActivity {
 
     private WebView webView;
     private ValueCallback<Uri[]> fileUploadCallback;
+    private WebChromeClient.FileChooserParams pendingFileChooserParams;
     private ActivityResultLauncher<Intent> fileChooserLauncher;
     private ActivityResultLauncher<String> cameraPermissionLauncher;
     private PermissionRequest pendingWebPermissionRequest;
     private Uri cameraPhotoUri;
+    private File currentPhotoFile;
+    private String currentPhotoPath;
 
     private WebView printWebViewHolder;
     private boolean isAppFullscreen = false;
 
     private File createCameraFile() throws IOException {
         String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(new Date());
-        String imageFileName = "OMR_" + timeStamp + "_";
+        String imageFileName = "IMG_" + timeStamp + "_";
         File storageDir = getExternalCacheDir();
         if (storageDir == null) {
             storageDir = getCacheDir();
         }
-        return File.createTempFile(imageFileName, ".jpg", storageDir);
+        if (storageDir != null && !storageDir.exists()) {
+            storageDir.mkdirs();
+        }
+        File file = File.createTempFile(imageFileName, ".jpg", storageDir);
+        currentPhotoFile = file;
+        currentPhotoPath = file.getAbsolutePath();
+        return file;
     }
 
     public class WebAppInterface {
@@ -235,6 +244,11 @@ public class MainActivity extends AppCompatActivity {
         }
 
         @JavascriptInterface
+        public boolean hasCameraPermission() {
+            return ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED;
+        }
+
+        @JavascriptInterface
         public void requestCameraPermission() {
             runOnUiThread(() -> {
                 if (ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
@@ -244,11 +258,83 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        if (currentPhotoPath != null) {
+            outState.putString("currentPhotoPath", currentPhotoPath);
+        }
+    }
+
+    private void launchFileChooser(WebChromeClient.FileChooserParams fileChooserParams) {
+        Intent takePictureIntent = null;
+        cameraPhotoUri = null;
+        currentPhotoFile = null;
+
+        boolean canUseCamera = ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED;
+
+        if (canUseCamera) {
+            try {
+                currentPhotoFile = createCameraFile();
+                cameraPhotoUri = FileProvider.getUriForFile(MainActivity.this, getPackageName() + ".fileprovider", currentPhotoFile);
+                takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+                takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, cameraPhotoUri);
+                takePictureIntent.setClipData(android.content.ClipData.newRawUri("", cameraPhotoUri));
+                takePictureIntent.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION | Intent.FLAG_GRANT_READ_URI_PERMISSION);
+
+                List<android.content.pm.ResolveInfo> resInfoList = getPackageManager().queryIntentActivities(takePictureIntent, PackageManager.MATCH_DEFAULT_ONLY);
+                for (android.content.pm.ResolveInfo resolveInfo : resInfoList) {
+                    String packageName = resolveInfo.activityInfo.packageName;
+                    grantUriPermission(packageName, cameraPhotoUri, Intent.FLAG_GRANT_WRITE_URI_PERMISSION | Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                }
+            } catch (Exception e) {
+                cameraPhotoUri = null;
+                currentPhotoFile = null;
+                takePictureIntent = null;
+            }
+        }
+
+        // Eğer HTML input'unda capture="environment" belirtilmişse doğrudan kamerayı başlat
+        if (fileChooserParams.isCaptureEnabled() && takePictureIntent != null) {
+            try {
+                fileChooserLauncher.launch(takePictureIntent);
+                return;
+            } catch (Exception ignored) {}
+        }
+
+        Intent contentSelectionIntent = fileChooserParams.createIntent();
+        Intent chooserIntent = new Intent(Intent.ACTION_CHOOSER);
+        chooserIntent.putExtra(Intent.EXTRA_INTENT, contentSelectionIntent);
+        chooserIntent.putExtra(Intent.EXTRA_TITLE, "Fotoğraf veya Belge Seç");
+        if (takePictureIntent != null) {
+            chooserIntent.putExtra(Intent.EXTRA_INITIAL_INTENTS, new Intent[]{takePictureIntent});
+        }
+
+        try {
+            fileChooserLauncher.launch(chooserIntent);
+        } catch (Exception e) {
+            if (fileUploadCallback != null) {
+                fileUploadCallback.onReceiveValue(null);
+                fileUploadCallback = null;
+            }
+        }
+    }
+
     @SuppressLint("SetJavaScriptEnabled")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        if (savedInstanceState != null) {
+            currentPhotoPath = savedInstanceState.getString("currentPhotoPath");
+            if (currentPhotoPath != null) {
+                currentPhotoFile = new File(currentPhotoPath);
+                try {
+                    cameraPhotoUri = FileProvider.getUriForFile(MainActivity.this, getPackageName() + ".fileprovider", currentPhotoFile);
+                } catch (Exception ignored) {}
+            }
+        }
 
         webView = findViewById(R.id.webview);
 
@@ -263,6 +349,10 @@ public class MainActivity extends AppCompatActivity {
                         Toast.makeText(this, "Kamera izni verilmedi. Optik form okumak için kamera izni gereklidir.", Toast.LENGTH_LONG).show();
                     }
                     pendingWebPermissionRequest = null;
+                } else if (pendingFileChooserParams != null && fileUploadCallback != null) {
+                    WebChromeClient.FileChooserParams params = pendingFileChooserParams;
+                    pendingFileChooserParams = null;
+                    launchFileChooser(params);
                 }
             }
         );
@@ -274,7 +364,9 @@ public class MainActivity extends AppCompatActivity {
                     Uri[] results = null;
                     if (result.getResultCode() == RESULT_OK) {
                         if (result.getData() == null || result.getData().getData() == null) {
-                            if (cameraPhotoUri != null) {
+                            if (cameraPhotoUri != null && currentPhotoFile != null && currentPhotoFile.exists() && currentPhotoFile.length() > 0) {
+                                results = new Uri[]{cameraPhotoUri};
+                            } else if (cameraPhotoUri != null) {
                                 results = new Uri[]{cameraPhotoUri};
                             }
                         } else {
@@ -288,10 +380,25 @@ public class MainActivity extends AppCompatActivity {
                                 results = new Uri[]{result.getData().getData()};
                             }
                         }
+
+                        // Bazı kamera uygulamaları EXTRA_OUTPUT dosyasına yazmayıp küçük resim (thumbnail) döndürür
+                        if ((results == null || results.length == 0) && result.getData() != null && result.getData().getExtras() != null) {
+                            Object bmpObj = result.getData().getExtras().get("data");
+                            if (bmpObj instanceof android.graphics.Bitmap) {
+                                try {
+                                    if (currentPhotoFile == null) currentPhotoFile = createCameraFile();
+                                    java.io.FileOutputStream fos = new java.io.FileOutputStream(currentPhotoFile);
+                                    ((android.graphics.Bitmap) bmpObj).compress(android.graphics.Bitmap.CompressFormat.JPEG, 92, fos);
+                                    fos.flush();
+                                    fos.close();
+                                    cameraPhotoUri = FileProvider.getUriForFile(MainActivity.this, getPackageName() + ".fileprovider", currentPhotoFile);
+                                    results = new Uri[]{cameraPhotoUri};
+                                } catch (Exception ignored) {}
+                            }
+                        }
                     }
                     fileUploadCallback.onReceiveValue(results);
                     fileUploadCallback = null;
-                    cameraPhotoUri = null;
                 }
             }
         );
@@ -389,42 +496,14 @@ public class MainActivity extends AppCompatActivity {
                 }
                 fileUploadCallback = filePathCallback;
 
-                Intent takePictureIntent = null;
-                cameraPhotoUri = null;
-
-                try {
-                    File photoFile = createCameraFile();
-                    cameraPhotoUri = FileProvider.getUriForFile(MainActivity.this, getPackageName() + ".fileprovider", photoFile);
-                    takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-                    takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, cameraPhotoUri);
-                    takePictureIntent.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION | Intent.FLAG_GRANT_READ_URI_PERMISSION);
-                } catch (Exception e) {
-                    cameraPhotoUri = null;
+                boolean hasCameraPermission = ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED;
+                if (!hasCameraPermission) {
+                    pendingFileChooserParams = fileChooserParams;
+                    cameraPermissionLauncher.launch(Manifest.permission.CAMERA);
+                    return true;
                 }
 
-                // Eğer HTML input'unda capture="environment" belirtilmişse doğrudan kamerayı başlat
-                if (fileChooserParams.isCaptureEnabled() && takePictureIntent != null) {
-                    try {
-                        fileChooserLauncher.launch(takePictureIntent);
-                        return true;
-                    } catch (Exception ignored) {}
-                }
-
-                // Aksi takdirde (örneğin Galeri butonuna basıldığında) hem Galeri hem Kamera içeren seçici sun
-                Intent contentSelectionIntent = fileChooserParams.createIntent();
-                Intent chooserIntent = new Intent(Intent.ACTION_CHOOSER);
-                chooserIntent.putExtra(Intent.EXTRA_INTENT, contentSelectionIntent);
-                chooserIntent.putExtra(Intent.EXTRA_TITLE, "Fotoğraf veya Belge Seç");
-                if (takePictureIntent != null) {
-                    chooserIntent.putExtra(Intent.EXTRA_INITIAL_INTENTS, new Intent[]{takePictureIntent});
-                }
-
-                try {
-                    fileChooserLauncher.launch(chooserIntent);
-                } catch (Exception e) {
-                    fileUploadCallback = null;
-                    return false;
-                }
+                launchFileChooser(fileChooserParams);
                 return true;
             }
 

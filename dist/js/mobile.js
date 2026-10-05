@@ -5812,6 +5812,44 @@
       window.openManualAddStudentModal();
     } else if (method === 'ai') {
       window.triggerAiStudentScan();
+    } else if (method === 'excel') {
+      window.triggerStudentExcelUpload();
+    }
+  };
+
+  window.triggerStudentExcelUpload = () => {
+    window.closeBottomSheet();
+    const excelInput = document.getElementById('m-student-excel-input') || document.getElementById('m-ai-student-file-input');
+    if (excelInput) {
+      excelInput.value = '';
+      excelInput.click();
+    }
+  };
+
+  window.downloadStudentExcelTemplate = () => {
+    if (window.XLSX) {
+      const data = [
+        ["Okul Numarası", "Adı", "Soyadı", "Cinsiyet (Kız/Erkek)", "Veli Telefon", "Notlar", "Şube (Ortaokul için)"],
+        ["101", "Ahmet", "Yılmaz", "Erkek", "05551234567", "Matematik dersinde ilgili.", "5/A"],
+        ["102", "Zeynep", "Kaya", "Kız", "05559876543", "Kitap okumayı seviyor.", "5/A"],
+        ["103", "Can", "Demir", "Erkek", "05555555555", "Sınıf içi yardımlaşmada duyarlı.", "5/B"]
+      ];
+      const ws = XLSX.utils.aoa_to_sheet(data);
+      ws['!cols'] = [{ wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 20 }, { wch: 18 }, { wch: 30 }, { wch: 20 }];
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Öğrenci Yükleme Şablonu");
+      const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+      const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = "ogrenci_yukleme_sablonu.xlsx";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showMobileToast('📥 Excel öğrenci yükleme şablonu indirildi.', 'success');
     }
   };
 
@@ -5934,86 +5972,137 @@
           const base64 = dataUrl.split(',')[1];
           resolve({ base64, mimeType: 'image/jpeg' });
         };
-        img.onerror = () => reject(new Error('Görsel yüklenemedi'));
+        img.onerror = () => reject(new Error('Görsel dosyası açılamadı. Lütfen geçerli bir resim seçin.'));
         img.src = e.target.result;
       };
-      reader.onerror = () => reject(new Error('Dosya okunamadı'));
+      reader.onerror = () => reject(new Error('Dosya okunamadı.'));
       reader.readAsDataURL(file);
     });
   }
 
-  async function analyzeStudentListWithGemini(base64Data, mimeType) {
-    const apiKey = (localStorage.getItem('sinif_asistani_gemini_api_key') || '').trim();
-    if (!apiKey) throw new Error('API anahtarı bulunamadı. Lütfen Ayarlar > Yapay Zeka menüsünden Gemini API anahtarınızı girin.');
+  function readFileAsBase64(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const dataUrl = e.target.result;
+        const base64 = (dataUrl || '').split(',')[1];
+        if (!base64) return reject(new Error('Dosya içeriği boş veya okunamadı.'));
+        resolve(base64);
+      };
+      reader.onerror = () => reject(new Error('Dosya okunamadı.'));
+      reader.readAsDataURL(file);
+    });
+  }
 
-    // 1. API anahtarının erişebildiği aktif modelleri ve desteklenen API sürümünü Google'dan doğrudan çek
-    let listData = null;
-    let listError = null;
+  async function parseStudentExcelFile(file) {
+    if (!window.XLSX) {
+      throw new Error('Excel okuma modülü yüklenemedi. Lütfen sayfayı yenileyin.');
+    }
+    const arrayBuffer = await file.arrayBuffer();
+    const data = new Uint8Array(arrayBuffer);
+    const workbook = window.XLSX.read(data, { type: 'array' });
+    if (!workbook || !workbook.SheetNames || workbook.SheetNames.length === 0) {
+      throw new Error('Excel dosyasında çalışma sayfası bulunamadı.');
+    }
 
-    for (const apiVer of ['v1beta', 'v1']) {
-      try {
-        const listRes = await fetch(`https://generativelanguage.googleapis.com/${apiVer}/models?key=${apiKey}`);
-        const json = await listRes.json();
-        if (listRes.ok && json.models && json.models.length > 0) {
-          listData = { version: apiVer, models: json.models };
-          break;
-        } else if (!listRes.ok) {
-          listError = json.error?.message || `HTTP ${listRes.status}`;
+    const firstSheetName = workbook.SheetNames[0];
+    const worksheet = workbook.Sheets[firstSheetName];
+    const json = window.XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+    if (!json || json.length === 0) {
+      throw new Error('Excel dosyasında veri satırı bulunamadı.');
+    }
+
+    // Başlık satırını ve sütun indekslerini tespit et
+    let headerRowIdx = -1;
+    let colNo = -1, colName = -1, colSurname = -1, colGender = -1, colBranch = -1, colPhone = -1;
+
+    for (let r = 0; r < Math.min(json.length, 12); r++) {
+      const row = json[r];
+      if (!row || !Array.isArray(row)) continue;
+      const lowerRow = row.map(cell => String(cell || '').trim().toLowerCase());
+
+      const noIdx = lowerRow.findIndex(c => c.includes('numara') || c.includes('okul no') || c.includes('öğrenci no') || c === 'no' || c === 'no.');
+      const nameIdx = lowerRow.findIndex(c => c.includes('adı') || c === 'ad' || c.includes('öğrenci adı') || c.includes('isim') || c.includes('ad soyad'));
+
+      if (noIdx !== -1 || nameIdx !== -1) {
+        headerRowIdx = r;
+        colNo = noIdx;
+        colName = nameIdx;
+        colSurname = lowerRow.findIndex(c => c.includes('soyad') || c === 'soyadı');
+        colGender = lowerRow.findIndex(c => c.includes('cinsiyet'));
+        colBranch = lowerRow.findIndex(c => c.includes('şube') || c.includes('sınıf'));
+        colPhone = lowerRow.findIndex(c => c.includes('telefon') || c.includes('gsm') || c.includes('veli') || c.includes('iletişim'));
+        break;
+      }
+    }
+
+    const parsedStudents = [];
+    const startRow = headerRowIdx !== -1 ? headerRowIdx + 1 : 0;
+
+    for (let i = startRow; i < json.length; i++) {
+      const row = json[i];
+      if (!row || !Array.isArray(row) || row.length === 0) continue;
+
+      let rawNo = '', rawName = '', rawSurname = '', rawGender = 'male', rawBranch = '', rawPhone = '';
+
+      if (headerRowIdx !== -1) {
+        rawNo = colNo !== -1 ? String(row[colNo] || '').trim() : '';
+        rawName = colName !== -1 ? String(row[colName] || '').trim() : '';
+        rawSurname = colSurname !== -1 ? String(row[colSurname] || '').trim() : '';
+        rawGender = colGender !== -1 ? String(row[colGender] || '').trim().toLowerCase() : '';
+        rawBranch = colBranch !== -1 ? String(row[colBranch] || '').trim() : '';
+        rawPhone = colPhone !== -1 ? String(row[colPhone] || '').trim() : '';
+      } else {
+        // Standart şablon varsayımı: [No, Ad, Soyad, Cinsiyet, Telefon, Notlar, Şube]
+        rawNo = String(row[0] || '').trim();
+        rawName = String(row[1] || '').trim();
+        rawSurname = String(row[2] || '').trim();
+        rawGender = String(row[3] || '').trim().toLowerCase();
+        rawPhone = String(row[4] || '').trim();
+        rawBranch = String(row[6] || '').trim();
+      }
+
+      // Başlık satırı kalıntısıysa atla
+      if (rawNo.toLowerCase().includes('okul') || rawNo.toLowerCase().includes('no') || rawName.toLowerCase().includes('ad soyad') || rawName.toLowerCase() === 'adı') continue;
+
+      // Ad ve Soyad tek sütunda birleşikse ayır
+      if (rawName && !rawSurname && rawName.includes(' ')) {
+        const parts = rawName.split(/\s+/);
+        rawSurname = parts.pop();
+        rawName = parts.join(' ');
+      }
+
+      if (rawName) {
+        let gender = 'male';
+        if (rawGender === 'kız' || rawGender === 'kiz' || rawGender === 'female' || rawGender === 'k') {
+          gender = 'female';
+        } else if (rawGender === 'erkek' || rawGender === 'male' || rawGender === 'e') {
+          gender = 'male';
         }
-      } catch (e) {
-        listError = e.message;
+
+        parsedStudents.push({
+          index: parsedStudents.length,
+          number: rawNo,
+          name: rawName,
+          surname: rawSurname,
+          gender: gender,
+          branch: rawBranch,
+          phone: rawPhone,
+          selected: true
+        });
       }
     }
 
-    if (!listData) {
-      if (listError && (listError.toLowerCase().includes('api key not valid') || listError.toLowerCase().includes('invalid'))) {
-        throw new Error('Google API anahtarı geçersiz! Lütfen anahtarınızı kontrol edip tekrar kaydedin.');
-      }
-      if (listError && (listError.includes('not been used in project') || listError.includes('disabled'))) {
-        throw new Error('Google Cloud projenizde Generative Language API henüz etkin değil. Google AI Studio üzerinden yeni bir anahtar oluşturabilirsiniz.');
-      }
-      throw new Error(`Google API bağlantı hatası: ${listError || 'Modeller sorgulanamadı'}`);
+    if (parsedStudents.length === 0) {
+      throw new Error('Excel dosyasında öğrenci ismi bulunamadı. Lütfen dosya formatını kontrol edin.');
     }
 
-    // 2. generateContent destekleyen modelleri filtrele
-    const supportedModels = listData.models.filter(m =>
-      !m.supportedGenerationMethods || m.supportedGenerationMethods.includes('generateContent')
-    );
+    return parsedStudents;
+  }
 
-    if (supportedModels.length === 0) {
-      throw new Error('Bu API anahtarının içerik üretme modellerine izni bulunmuyor.');
-    }
-
-    // Kullanıcının kayıtlı tercihini ve hızlı flash modellerini önceliklendir
-    let savedModel = (localStorage.getItem('sinif_asistani_gemini_model') || 'gemini-1.5-flash').trim();
-    if (savedModel === 'gemini-1.5-pro') {
-      savedModel = 'gemini-1.5-flash';
-    }
-
-    const candidatePreferences = [
-      savedModel,
-      'gemini-2.0-flash',
-      'gemini-1.5-flash',
-      'gemini-2.5-flash',
-      'gemini-2.0-flash-lite',
-      'gemini-1.5-flash-latest',
-      ...supportedModels.map(m => m.name.replace(/^models\//, ''))
-    ];
-
-    // Sadece Google'ın bu anahtar için izin verdiği geçerli modelleri listeye ekle
-    const validCandidatePaths = [];
-    for (const pref of candidatePreferences) {
-      const match = supportedModels.find(sm => sm.name === pref || sm.name === `models/${pref}` || sm.name.endsWith(`/${pref}`));
-      if (match && !validCandidatePaths.includes(match.name)) {
-        validCandidatePaths.push(match.name);
-      }
-    }
-
-    if (validCandidatePaths.length === 0) {
-      validCandidatePaths.push(supportedModels[0].name);
-    }
-
-    const promptText = `Bu görsel bir okul sınıf listesidir. Görseldeki tüm öğrencileri satır satır tespit et.
+  async function analyzeStudentDocumentWithGemini(base64Data, mimeType) {
+    const promptText = `Bu görsel veya belge bir okul sınıf listesidir. Belgedeki tüm öğrencileri satır satır tespit et.
 Her öğrenci için okul numarasını, adını, soyadını ve cinsiyetini ('male' veya 'female') çıkar.
 Ad ve soyad ayrılmış olmalıdır.
 Eğer cinsiyet listede açıkça belirtilmemişse Türk isim yapısına göre tahmin et ('male' ya da 'female').
@@ -6025,130 +6114,153 @@ SADECE VE SADECE GEÇERLİ BİR JSON DİZİSİ DÖNDÜR. Markdown (örneğin \`\
   {"number": "105", "name": "Zeynep", "surname": "Kaya", "gender": "female"}
 ]`;
 
-    let lastError = null;
+    let rawText = '';
 
-    for (const modelPath of validCandidatePaths) {
-      const cleanPath = modelPath.startsWith('models/') ? modelPath : `models/${modelPath}`;
-      const url = `https://generativelanguage.googleapis.com/${listData.version}/${cleanPath}:generateContent?key=${apiKey}`;
+    if (typeof window.callGeminiAPI === 'function') {
+      rawText = await window.callGeminiAPI(promptText, {
+        imageBase64: base64Data,
+        imageMimeType: mimeType || 'image/jpeg',
+        json: true,
+        temperature: 0.1
+      });
+    } else {
+      // Doğrudan çağrı fallback (doğru camelCase inlineData formatı ile)
+      const apiKey = (window.getGeminiApiKey ? window.getGeminiApiKey() : (localStorage.getItem('sinif_asistani_gemini_api_key') || '')).trim();
+      if (!apiKey) throw new Error('API anahtarı bulunamadı. Lütfen Ayarlar > Yapay Zeka menüsünden Gemini API anahtarınızı girin.');
 
-      try {
-        let res = await fetch(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{
+            parts: [
+              { text: promptText },
               {
-                parts: [
-                  { text: promptText },
-                  {
-                    inline_data: {
-                      mime_type: mimeType || 'image/jpeg',
-                      data: base64Data
-                    }
-                  }
-                ]
-              }
-            ],
-            generationConfig: {
-              temperature: 0.1,
-              responseMimeType: 'application/json'
-            }
-          })
-        });
-
-        // 400 hatası (responseMimeType desteklenmezse) formatsız tekrar dene
-        if (res.status === 400) {
-          res = await fetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              contents: [
-                {
-                  parts: [
-                    { text: promptText },
-                    {
-                      inline_data: {
-                        mime_type: mimeType || 'image/jpeg',
-                        data: base64Data
-                      }
-                    }
-                  ]
+                inlineData: {
+                  mimeType: mimeType || 'image/jpeg',
+                  data: base64Data
                 }
-              ],
-              generationConfig: { temperature: 0.1 }
-            })
-          });
-        }
+              }
+            ]
+          }],
+          generationConfig: {
+            temperature: 0.1,
+            responseMimeType: 'application/json'
+          }
+        })
+      });
 
-        if (res.ok) {
-          const data = await res.json();
-          let rawText = '';
-          const parts = data.candidates?.[0]?.content?.parts || [];
-          for (const p of parts) {
-            if (p.text) rawText += p.text;
-          }
-          if (!rawText && data.candidates?.[0]?.content?.parts?.[0]?.text) {
-            rawText = data.candidates[0].content.parts[0].text;
-          }
-
-          // JSON dizisini regex ile ayıkla
-          const jsonMatch = rawText.match(/\[\s*\{[\s\S]*\}\s*\]/);
-          if (jsonMatch) {
-            rawText = jsonMatch[0];
-          } else {
-            rawText = rawText.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
-          }
-
-          const parsed = JSON.parse(rawText);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            return parsed;
-          }
-        } else {
-          const errData = await res.json().catch(() => ({}));
-          lastError = new Error((errData.error && errData.error.message) || `HTTP ${res.status}`);
-        }
-      } catch (err) {
-        lastError = err;
+      if (!res.ok) {
+        const errJson = await res.json().catch(() => ({}));
+        throw new Error(errJson.error?.message || `HTTP ${res.status}`);
       }
+
+      const resJson = await res.json();
+      rawText = resJson.candidates?.[0]?.content?.parts?.[0]?.text || '';
     }
 
-    throw lastError || new Error('Yapay zeka görseli okuyamadı');
+    if (!rawText) throw new Error('Yapay zekadan yanıt alınamadı.');
+
+    // JSON dizisini ayıkla
+    const jsonMatch = rawText.match(/\[\s*\{[\s\S]*\}\s*\]/);
+    if (jsonMatch) {
+      rawText = jsonMatch[0];
+    } else {
+      rawText = rawText.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
+    }
+
+    const parsed = JSON.parse(rawText);
+    if (!Array.isArray(parsed) || parsed.length === 0) {
+      throw new Error('Yapay zeka geçerli bir öğrenci listesi bulamadı.');
+    }
+
+    return parsed.map((s, idx) => ({
+      index: idx,
+      number: String(s.number || s.no || '').trim(),
+      name: String(s.name || s.ad || '').trim(),
+      surname: String(s.surname || s.soyad || '').trim(),
+      gender: (s.gender === 'female' || s.gender === 'kız' || s.gender === 'K') ? 'female' : 'male',
+      selected: true
+    })).filter(s => !!s.name);
   }
 
   window.handleAiStudentImageSelected = async (event) => {
     const file = event.target.files && event.target.files[0];
     if (!file) return;
 
+    const fileName = (file.name || '').toLowerCase();
+    const fileType = (file.type || '').toLowerCase();
+    const isExcelOrCsv = fileName.endsWith('.xlsx') || fileName.endsWith('.xls') || fileName.endsWith('.csv') ||
+      fileType.includes('spreadsheet') || fileType.includes('excel') || fileType.includes('csv');
+    const isPdf = fileName.endsWith('.pdf') || fileType === 'application/pdf';
+
     openBottomSheet('modal-ai-student-loading');
+    const loadingTitle = document.getElementById('m-ai-loading-title');
+    const loadingDesc = document.getElementById('m-ai-loading-desc');
 
     try {
-      const processed = await processImageFileForGemini(file);
-      const students = await analyzeStudentListWithGemini(processed.base64, processed.mimeType);
+      let scanned = [];
 
-      if (!students || students.length === 0) {
+      // 1. Excel / CSV Doğrudan Çevrimdışı Ayrıştırma
+      if (isExcelOrCsv) {
+        if (loadingTitle) loadingTitle.textContent = 'Excel Dosyası Okunuyor...';
+        if (loadingDesc) loadingDesc.textContent = 'Sınıf listesindeki öğrenci ad ve numaraları ayrıştırılıyor...';
+
+        scanned = await parseStudentExcelFile(file);
+      }
+      // 2. PDF Dosyası (Gemini Vision)
+      else if (isPdf) {
+        if (loadingTitle) loadingTitle.textContent = 'PDF İnceleniyor...';
+        if (loadingDesc) loadingDesc.textContent = 'Google Gemini yapay zekası PDF sınıf listesini çözümlüyor... Lütfen bekleyin...';
+
+        const base64Data = await readFileAsBase64(file);
+        scanned = await analyzeStudentDocumentWithGemini(base64Data, 'application/pdf');
+      }
+      // 3. Kamera veya Görsel Dosyası (Gemini Vision)
+      else {
+        if (loadingTitle) loadingTitle.textContent = 'Görsel Analiz Ediliyor...';
+        if (loadingDesc) loadingDesc.textContent = 'Google Gemini yapay zekası sınıf listenizdeki öğrencileri inceliyor... Lütfen bekleyin...';
+
+        const processed = await processImageFileForGemini(file);
+        scanned = await analyzeStudentDocumentWithGemini(processed.base64, processed.mimeType);
+      }
+
+      if (!scanned || scanned.length === 0) {
         window.closeBottomSheet();
-        showMobileToast('❌ Listede öğrenci bulunamadı. Lütfen daha net bir fotoğraf çekin.');
+        showMobileToast('❌ Listede öğrenci bulunamadı. Lütfen daha net bir fotoğraf veya dosya seçin.');
         return;
       }
 
-      const scanned = students.map((s, idx) => ({
-        index: idx,
-        number: String(s.number || s.no || '').trim(),
-        name: String(s.name || s.ad || '').trim(),
-        surname: String(s.surname || s.soyad || '').trim(),
-        gender: (s.gender === 'female' || s.gender === 'kız' || s.gender === 'K') ? 'female' : 'male',
-        selected: true
-      })).filter(s => !!s.name);
+      // Demo Sürüm Kontrolü
+      const isDemo = window.LicenseConfig ? window.LicenseConfig.isDemo : true;
+      const limit = (window.LicenseConfig && window.LicenseConfig.studentLimit) || 5;
 
-      if (scanned.length === 0) {
-        window.closeBottomSheet();
-        showMobileToast('❌ Öğrenci isimleri okunamadı.');
-        return;
+      if (isDemo) {
+        if (typeof removeDemoStudentsIfOnlyDemoExist === 'function') {
+          removeDemoStudentsIfOnlyDemoExist();
+        }
+        const currentCount = (window.stateManager?.state?.students || []).length;
+        if (currentCount >= limit) {
+          window.closeBottomSheet();
+          window.vibrate(100);
+          showMobileToast(`⚠️ Demo sürümünde en fazla ${limit} öğrenci ekleyebilirsiniz!`, 'danger');
+          if (window.LicenseConfig && typeof window.LicenseConfig.showPrompt === 'function') {
+            window.LicenseConfig.showPrompt('Öğrenci Sınırı');
+          }
+          return;
+        }
+
+        const availableSlots = limit - currentCount;
+        if (scanned.length > availableSlots) {
+          showMobileToast(`ℹ️ Demo sürümü sınırı nedeniyle ilk ${availableSlots} öğrenci eklendi.`, 'warning', 4000);
+          scanned = scanned.slice(0, availableSlots);
+        }
       }
 
       window.tempAiScannedStudents = scanned;
 
-      // 1. İLKOKUL KADEMESİ: Doğrudan hiçbir şey sormadan kaydet!
+      // 1. İLKOKUL KADEMESİ: Doğrudan kaydet!
       if (!isMiddleSchool()) {
         if (!window.stateManager.state.students) window.stateManager.state.students = [];
         let addedCount = 0;
@@ -6158,10 +6270,10 @@ SADECE VE SADECE GEÇERLİ BİR JSON DİZİSİ DÖNDÜR. Markdown (örneğin \`\
             name: st.name,
             surname: st.surname || '',
             number: st.number || '',
-            branch: '',
+            branch: st.branch || '',
             schoolLevel: 'primary',
             gender: st.gender || 'male',
-            phone: '',
+            phone: st.phone || '',
             points: 0,
             booksRead: 0
           };
@@ -6172,7 +6284,7 @@ SADECE VE SADECE GEÇERLİ BİR JSON DİZİSİ DÖNDÜR. Markdown (örneğin \`\
         window.stateManager.saveState();
         window.closeBottomSheet();
         window.vibrate([40, 60, 40]);
-        showMobileToast(`🎉 ${addedCount} öğrenci doğrudan sınıfa kaydedildi!`, 'success');
+        showMobileToast(`🎉 ${addedCount} öğrenci sınıfa başarıyla kaydedildi!`, 'success');
 
         if (activeMobileSubview !== 'config') {
           window.openMobileSubview('config');
@@ -6188,8 +6300,8 @@ SADECE VE SADECE GEÇERLİ BİR JSON DİZİSİ DÖNDÜR. Markdown (örneğin \`\
       window.openAiAskBranchModal();
     } catch (err) {
       window.closeBottomSheet();
-      console.error('AI student scan error:', err);
-      showMobileToast(`❌ Hata: ${err.message || 'Görsel işlenirken bir sorun oluştu'}`);
+      console.error('Öğrenci listesi aktarma hatası:', err);
+      showMobileToast(`❌ Hata: ${err.message || 'Dosya işlenirken bir sorun oluştu'}`, 'danger', 5000);
     }
   };
 
@@ -6372,7 +6484,7 @@ SADECE VE SADECE GEÇERLİ BİR JSON DİZİSİ DÖNDÜR. Markdown (örneğin \`\
         branch: targetBranch,
         schoolLevel: 'middle',
         gender: st.gender || 'male',
-        phone: '',
+        phone: st.phone || '',
         points: 0,
         booksRead: 0
       };
@@ -6460,7 +6572,7 @@ SADECE VE SADECE GEÇERLİ BİR JSON DİZİSİ DÖNDÜR. Markdown (örneğin \`\
         branch: targetBranch,
         schoolLevel: isMiddle ? 'middle' : 'primary',
         gender: st.gender || 'male',
-        phone: '',
+        phone: st.phone || '',
         points: 0,
         booksRead: 0
       };

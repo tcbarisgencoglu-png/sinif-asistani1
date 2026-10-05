@@ -1618,7 +1618,7 @@
             📱 Sınıf Asistanı Kullanım Kılavuzu
           </div>
           <div style="font-size: 0.75rem; color: var(--m-text-muted); margin-bottom: 1rem;">
-            Versiyon: <strong>v1.0.47</strong> — Geliştirici: <strong>Barış Gençoğlu</strong>
+            Versiyon: <strong>v1.0.48</strong> — Geliştirici: <strong>Barış Gençoğlu</strong>
           </div>
 
           <div style="display: flex; flex-direction: column;">
@@ -4459,45 +4459,63 @@
     </div>
   </div>
 
-  <!-- Gizli AI Kamera / Görsel Dosya Girişi -->
-  <input type="file" id="m-ai-student-file-input" accept="image/*" capture="environment" style="display: none;" onchange="window.handleAiStudentImageSelected(event)">
+  <!-- Gizli AI Kamera / Görsel / Belge Dosya Girişi -->
+  <input type="file" id="m-ai-student-file-input" accept="image/*,application/pdf,.pdf,.xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv" style="display: none;" onchange="window.handleAiStudentImageSelected(event)">
+  <input type="file" id="m-student-excel-input" accept=".xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv" style="display: none;" onchange="window.handleAiStudentImageSelected(event)">
 
   <!-- 10. Öğrenci Ekleme Yöntemi Seçim Modalı -->
-  <div class="bottom-sheet" id="modal-add-student-method" style="max-height: 80vh;">
+  <div class="bottom-sheet" id="modal-add-student-method" style="max-height: 85vh;">
     <div class="sheet-handle"></div>
     <div class="sheet-header">
       <div class="sheet-title">👤 Öğrenci Ekle</div>
       <button class="sheet-close-btn" onclick="window.closeBottomSheet()">&times;</button>
     </div>
     <div style="padding: 0 1.25rem 1.75rem 1.25rem;">
-      <div style="font-size: 0.8rem; color: var(--m-text-muted); line-height: 1.4; margin-bottom: 1.25rem;">
+      <div style="font-size: 0.8rem; color: var(--m-text-muted); line-height: 1.4; margin-bottom: 1.1rem;">
         Sınıfa yeni öğrencileri nasıl eklemek istersiniz?
       </div>
 
       <!-- Seçenek 1: Yapay Zeka ile Ekle -->
-      <div class="m-card-btn" onclick="window.selectAddStudentMethod('ai')" style="display: flex; align-items: center; gap: 14px; padding: 1.1rem; border-radius: var(--m-radius-md); background: linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(168, 85, 247, 0.12)); border: 1.5px solid rgba(139, 92, 246, 0.35); margin-bottom: 0.85rem; cursor: pointer;">
-        <div style="width: 46px; height: 46px; border-radius: 12px; background: linear-gradient(135deg, #6366f1, #a855f7); display: flex; align-items: center; justify-content: center; color: white; flex-shrink: 0; box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);">
-          <i data-lucide="sparkles" style="width: 24px; height: 24px;"></i>
+      <div class="m-card-btn" onclick="window.selectAddStudentMethod('ai')" style="display: flex; align-items: center; gap: 14px; padding: 1rem 1.1rem; border-radius: var(--m-radius-md); background: linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(168, 85, 247, 0.12)); border: 1.5px solid rgba(139, 92, 246, 0.35); margin-bottom: 0.75rem; cursor: pointer;">
+        <div style="width: 44px; height: 44px; border-radius: 12px; background: linear-gradient(135deg, #6366f1, #a855f7); display: flex; align-items: center; justify-content: center; color: white; flex-shrink: 0; box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);">
+          <i data-lucide="sparkles" style="width: 22px; height: 22px;"></i>
         </div>
         <div style="flex: 1; min-width: 0;">
-          <div style="font-weight: 800; font-size: 0.95rem; color: var(--m-text); display: flex; align-items: center; gap: 6px;">
+          <div style="font-weight: 800; font-size: 0.93rem; color: var(--m-text); display: flex; align-items: center; gap: 6px;">
             <span>Yapay Zeka ile Listeden Tara</span>
-            <span style="background: #a855f7; color: white; font-size: 0.65rem; font-weight: 800; padding: 2px 6px; border-radius: 999px;">Önerilen</span>
+            <span style="background: #a855f7; color: white; font-size: 0.65rem; font-weight: 800; padding: 2px 6px; border-radius: 999px;">Kamera / Belge</span>
           </div>
           <div style="font-size: 0.74rem; color: var(--m-text-muted); line-height: 1.35; margin-top: 3px;">
-            Sınıf listesinin fotoğrafını çekin, yapay zeka tüm öğrencileri otomatik okuyup eklesin.
+            Sınıf listesinin fotoğrafını çekin veya belgesini (Görsel/PDF) yükleyin; yapay zeka ad ve numaraları otomatik okusun.
           </div>
         </div>
         <i data-lucide="chevron-right" style="width: 18px; height: 18px; color: var(--m-text-muted);"></i>
       </div>
 
-      <!-- Seçenek 2: Manuel Ekle -->
-      <div class="m-card-btn" onclick="window.selectAddStudentMethod('manual')" style="display: flex; align-items: center; gap: 14px; padding: 1.1rem; border-radius: var(--m-radius-md); background: var(--m-surface); border: 1.5px solid var(--m-border); cursor: pointer;">
-        <div style="width: 46px; height: 46px; border-radius: 12px; background: rgba(59, 130, 246, 0.12); color: #2563eb; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+      <!-- Seçenek 2: Excel / e-Okul Listesi Yükle -->
+      <div class="m-card-btn" onclick="window.selectAddStudentMethod('excel')" style="display: flex; align-items: center; gap: 14px; padding: 1rem 1.1rem; border-radius: var(--m-radius-md); background: linear-gradient(135deg, rgba(16, 185, 129, 0.08), rgba(5, 150, 105, 0.12)); border: 1.5px solid rgba(16, 185, 129, 0.35); margin-bottom: 0.75rem; cursor: pointer;">
+        <div style="width: 44px; height: 44px; border-radius: 12px; background: linear-gradient(135deg, #10b981, #059669); display: flex; align-items: center; justify-content: center; color: white; flex-shrink: 0; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);">
+          <i data-lucide="file-spreadsheet" style="width: 22px; height: 22px;"></i>
+        </div>
+        <div style="flex: 1; min-width: 0;">
+          <div style="font-weight: 800; font-size: 0.93rem; color: var(--m-text); display: flex; align-items: center; gap: 6px;">
+            <span>Excel / e-Okul Listesi Yükle</span>
+            <span style="background: #10b981; color: white; font-size: 0.65rem; font-weight: 800; padding: 2px 6px; border-radius: 999px;">.xlsx / .csv</span>
+          </div>
+          <div style="font-size: 0.74rem; color: var(--m-text-muted); line-height: 1.35; margin-top: 3px;">
+            e-Okul'dan veya bilgisayardan indirdiğiniz sınıf listesi Excel dosyasını doğrudan aktarın.
+          </div>
+        </div>
+        <i data-lucide="chevron-right" style="width: 18px; height: 18px; color: var(--m-text-muted);"></i>
+      </div>
+
+      <!-- Seçenek 3: Manuel Ekle -->
+      <div class="m-card-btn" onclick="window.selectAddStudentMethod('manual')" style="display: flex; align-items: center; gap: 14px; padding: 1rem 1.1rem; border-radius: var(--m-radius-md); background: var(--m-surface); border: 1.5px solid var(--m-border); margin-bottom: 1rem; cursor: pointer;">
+        <div style="width: 44px; height: 44px; border-radius: 12px; background: rgba(59, 130, 246, 0.12); color: #2563eb; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
           <i data-lucide="edit-3" style="width: 22px; height: 22px;"></i>
         </div>
         <div style="flex: 1; min-width: 0;">
-          <div style="font-weight: 800; font-size: 0.95rem; color: var(--m-text);">
+          <div style="font-weight: 800; font-size: 0.93rem; color: var(--m-text);">
             Manuel (Elle) Ekle
           </div>
           <div style="font-size: 0.74rem; color: var(--m-text-muted); line-height: 1.35; margin-top: 3px;">
@@ -4505,6 +4523,14 @@
           </div>
         </div>
         <i data-lucide="chevron-right" style="width: 18px; height: 18px; color: var(--m-text-muted);"></i>
+      </div>
+
+      <!-- Şablon İndirme Bağlantısı -->
+      <div style="text-align: center; padding-top: 0.35rem; border-top: 1px dashed var(--m-border);">
+        <button type="button" class="m-btn-sm" onclick="window.downloadStudentExcelTemplate()" style="background: none; border: none; color: var(--m-primary); font-size: 0.76rem; font-weight: 700; display: inline-flex; align-items: center; gap: 5px; cursor: pointer; text-decoration: underline;">
+          <i data-lucide="download" style="width: 14px; height: 14px;"></i>
+          <span>Örnek Excel Şablonunu İndir (.xlsx)</span>
+        </button>
       </div>
     </div>
   </div>

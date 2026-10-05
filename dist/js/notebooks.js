@@ -25,20 +25,16 @@
   let btnCloseNotebookModal = null;
   let btnRedTitle = null;
   let notebookColorIndicator = null;
-  let btnFullscreenNotebook = null;
-  let btnFullscreenClose = null;
-  let btnFullscreenRedTitle = null;
-  let btnFullscreenAddImage = null;
-  let btnFullscreenSave = null;
-  let notebookFullscreenColorIndicator = null;
   let btnMathDropdownTrigger = null;
   let mathDropdownMenu = null;
-  let btnFullscreenMathTrigger = null;
-  let fullscreenMathDropdownMenu = null;
+
+  // Konu Menüsü Daraltma / Genişletme Değişkenleri
+  let notebookTopicsSidebar = null;
+  let btnToggleTopicsSidebar = null;
+  let btnExpandTopicsSidebar = null;
 
   // Yapışkan not değişkenleri
   let btnAddStickyNote = null;
-  let btnFullscreenAddStickyNote = null;
   let modalStickyNote = null;
   let formStickyNote = null;
   let btnCloseStickyNoteModal = null;
@@ -50,14 +46,9 @@
   let listDropdownMenu = null;
   let listCustomNumberInput = null;
   let btnApplyItemNumber = null;
-  let btnFullscreenListDropdownTrigger = null;
-  let fullscreenListDropdownMenu = null;
-  let fullscreenListCustomNumberInput = null;
-  let btnFullscreenApplyItemNumber = null;
 
   // Tablo ekleme değişkenleri
   let btnAddTable = null;
-  let btnFullscreenAddTable = null;
   let modalTable = null;
   let formTable = null;
   let btnCloseTableModal = null;
@@ -66,17 +57,33 @@
   let tableColsInput = null;
 
   let btnPrintNotebook = null;
-  let btnFullscreenPrintNotebook = null;
   let notebookPrintArea = null;
 
   // Punto Seçici Değişkenleri
   let notebookFontSizeSelect = null;
   let btnFontDecrease = null;
   let btnFontIncrease = null;
-  let notebookFullscreenFontSizeSelect = null;
-  let btnFullscreenFontDecrease = null;
-  let btnFullscreenFontIncrease = null;
   const FONT_SIZE_LEVELS = ['small', 'normal', 'medium', 'large', 'xlarge'];
+
+  let notebookPaperWrapper = null;
+
+  // Konu Yan Menüsünü Daralt / Genişlet
+  function setTopicsSidebarCollapsed(collapsed) {
+    if (!notebookTopicsSidebar) return;
+    notebookTopicsSidebar.classList.toggle('collapsed', collapsed);
+    if (btnExpandTopicsSidebar) {
+      btnExpandTopicsSidebar.style.display = collapsed ? 'flex' : 'none';
+    }
+    try {
+      localStorage.setItem('sinif_asistani_topics_collapsed', collapsed ? 'true' : 'false');
+    } catch (e) {}
+    if (window.safeCreateIcons) {
+      window.safeCreateIcons();
+    } else if (window.lucide) {
+      window.lucide.createIcons();
+    }
+    adjustTopicTitleFontSize();
+  }
 
   let currentNotebookId = null;
   let currentTopicId = null;
@@ -172,9 +179,6 @@
     if (notebookFontSizeSelect) {
       notebookFontSizeSelect.value = sizeKey;
     }
-    if (notebookFullscreenFontSizeSelect) {
-      notebookFullscreenFontSizeSelect.value = sizeKey;
-    }
     try {
       localStorage.setItem('sinif_asistani_notebook_fontsize', sizeKey);
     } catch (e) {}
@@ -218,19 +222,10 @@
     btnCloseNotebookModal = document.getElementById('btn-close-notebook-modal');
     btnRedTitle = document.getElementById('btn-red-title');
     notebookColorIndicator = document.getElementById('notebook-color-indicator');
-    btnFullscreenNotebook = document.getElementById('btn-fullscreen-notebook');
-    btnFullscreenClose = document.getElementById('btn-fullscreen-close');
-    btnFullscreenRedTitle = document.getElementById('btn-fullscreen-red-title');
-    btnFullscreenAddImage = document.getElementById('btn-fullscreen-add-image');
-    btnFullscreenSave = document.getElementById('btn-fullscreen-save');
-    notebookFullscreenColorIndicator = document.getElementById('notebook-fullscreen-color-indicator');
     btnMathDropdownTrigger = document.getElementById('btn-math-dropdown-trigger');
     mathDropdownMenu = document.getElementById('math-dropdown-menu');
-    btnFullscreenMathTrigger = document.getElementById('btn-fullscreen-math-trigger');
-    fullscreenMathDropdownMenu = document.getElementById('fullscreen-math-dropdown-menu');
 
     btnAddStickyNote = document.getElementById('btn-add-sticky-note');
-    btnFullscreenAddStickyNote = document.getElementById('btn-fullscreen-add-sticky-note');
     modalStickyNote = document.getElementById('modal-sticky-note');
     formStickyNote = document.getElementById('form-sticky-note');
     btnCloseStickyNoteModal = document.getElementById('btn-close-sticky-note-modal');
@@ -241,13 +236,8 @@
     listDropdownMenu = document.getElementById('list-dropdown-menu');
     listCustomNumberInput = document.getElementById('list-custom-number-input');
     btnApplyItemNumber = document.getElementById('btn-apply-item-number');
-    btnFullscreenListDropdownTrigger = document.getElementById('btn-fullscreen-list-dropdown-trigger');
-    fullscreenListDropdownMenu = document.getElementById('fullscreen-list-dropdown-menu');
-    fullscreenListCustomNumberInput = document.getElementById('fullscreen-list-custom-number-input');
-    btnFullscreenApplyItemNumber = document.getElementById('btn-fullscreen-apply-item-number');
 
     btnAddTable = document.getElementById('btn-add-table');
-    btnFullscreenAddTable = document.getElementById('btn-fullscreen-add-table');
     modalTable = document.getElementById('modal-table');
     formTable = document.getElementById('form-table');
     btnCloseTableModal = document.getElementById('btn-close-table-modal');
@@ -256,7 +246,6 @@
     tableColsInput = document.getElementById('table-cols');
 
     btnPrintNotebook = document.getElementById('btn-print-notebook');
-    btnFullscreenPrintNotebook = document.getElementById('btn-fullscreen-print-notebook');
     notebookPrintArea = document.getElementById('notebook-print-area');
 
     function handlePrintNotebook() {
@@ -284,28 +273,14 @@
         handlePrintNotebook();
       });
     }
-    if (btnFullscreenPrintNotebook) {
-      btnFullscreenPrintNotebook.addEventListener('click', (e) => {
-        e.preventDefault();
-        handlePrintNotebook();
-      });
-    }
 
     // Punto Seçici Elemanları
     notebookFontSizeSelect = document.getElementById('notebook-font-size-select');
     btnFontDecrease = document.getElementById('btn-font-decrease');
     btnFontIncrease = document.getElementById('btn-font-increase');
-    notebookFullscreenFontSizeSelect = document.getElementById('notebook-fullscreen-font-size-select');
-    btnFullscreenFontDecrease = document.getElementById('btn-fullscreen-font-decrease');
-    btnFullscreenFontIncrease = document.getElementById('btn-fullscreen-font-increase');
 
     if (notebookFontSizeSelect) {
       notebookFontSizeSelect.addEventListener('change', (e) => {
-        applyNotebookFontSize(e.target.value);
-      });
-    }
-    if (notebookFullscreenFontSizeSelect) {
-      notebookFullscreenFontSizeSelect.addEventListener('change', (e) => {
         applyNotebookFontSize(e.target.value);
       });
     }
@@ -321,18 +296,34 @@
         changeNotebookFontSizeStep(1);
       });
     }
-    if (btnFullscreenFontDecrease) {
-      btnFullscreenFontDecrease.addEventListener('click', (e) => {
+
+    // Konu Menüsü Daraltma / Genişletme
+    notebookTopicsSidebar = document.getElementById('notebook-topics-sidebar');
+    btnToggleTopicsSidebar = document.getElementById('btn-toggle-topics-sidebar');
+    btnExpandTopicsSidebar = document.getElementById('btn-expand-topics-sidebar');
+
+    if (btnToggleTopicsSidebar) {
+      btnToggleTopicsSidebar.addEventListener('click', (e) => {
         e.preventDefault();
-        changeNotebookFontSizeStep(-1);
+        setTopicsSidebarCollapsed(true);
       });
     }
-    if (btnFullscreenFontIncrease) {
-      btnFullscreenFontIncrease.addEventListener('click', (e) => {
+
+    if (btnExpandTopicsSidebar) {
+      btnExpandTopicsSidebar.addEventListener('click', (e) => {
         e.preventDefault();
-        changeNotebookFontSizeStep(1);
+        setTopicsSidebarCollapsed(false);
       });
     }
+
+    try {
+      const isTopicsCollapsed = localStorage.getItem('sinif_asistani_topics_collapsed') === 'true';
+      if (isTopicsCollapsed) {
+        setTopicsSidebarCollapsed(true);
+      }
+    } catch (e) {}
+
+    notebookPaperWrapper = document.getElementById('notebook-paper-wrapper');
 
     // Güvenlik Kontrolü: Kritik DOM elemanları mevcut değilse kurulumu atla
     if (!notebookGrid || !modalNotebook || !formNotebook) {
@@ -569,7 +560,6 @@
     };
 
     if (btnAddStickyNote) btnAddStickyNote.addEventListener('click', openStickyNoteModalFn);
-    if (btnFullscreenAddStickyNote) btnFullscreenAddStickyNote.addEventListener('click', openStickyNoteModalFn);
 
     if (formStickyNote) {
       formStickyNote.addEventListener('submit', handleAddStickyNoteSubmit);
@@ -618,7 +608,7 @@
         currentBlock.className = lineClass;
         currentBlock.setAttribute('data-list-type', type);
         currentBlock.setAttribute('data-marker', formattedMarker);
-        currentBlock.style.cssText = `${indentStyle} min-height: 44px; line-height: 44px; margin: 0;`;
+        currentBlock.style.cssText = `${indentStyle} min-height: var(--nb-line-height); line-height: var(--nb-line-height); margin: 0;`;
         currentBlock.innerHTML = `<strong class="notebook-item-marker">${escapeHTML(formattedMarker)}</strong>&nbsp;`;
         targetLine = currentBlock;
       } else {
@@ -626,7 +616,7 @@
         newLine.className = lineClass;
         newLine.setAttribute('data-list-type', type);
         newLine.setAttribute('data-marker', formattedMarker);
-        newLine.style.cssText = `${indentStyle} min-height: 44px; line-height: 44px; margin: 0;`;
+        newLine.style.cssText = `${indentStyle} min-height: var(--nb-line-height); line-height: var(--nb-line-height); margin: 0;`;
         newLine.innerHTML = `<strong class="notebook-item-marker">${escapeHTML(formattedMarker)}</strong>&nbsp;`;
 
         if (currentBlock && currentBlock.parentNode === notebookTextarea) {
@@ -651,7 +641,6 @@
       }
 
       if (listDropdownMenu) listDropdownMenu.style.display = 'none';
-      if (fullscreenListDropdownMenu) fullscreenListDropdownMenu.style.display = 'none';
 
       triggerAutoSave();
     };
@@ -671,7 +660,6 @@
       }
       if (nextVal) {
         if (listCustomNumberInput) listCustomNumberInput.value = nextVal;
-        if (fullscreenListCustomNumberInput) fullscreenListCustomNumberInput.value = nextVal;
       }
     };
 
@@ -683,9 +671,7 @@
         e.stopPropagation();
         const isShown = listDropdownMenu.style.display === 'block';
         if (listDropdownMenu) listDropdownMenu.style.display = 'none';
-        if (fullscreenListDropdownMenu) fullscreenListDropdownMenu.style.display = 'none';
         if (mathDropdownMenu) mathDropdownMenu.style.display = 'none';
-        if (fullscreenMathDropdownMenu) fullscreenMathDropdownMenu.style.display = 'none';
 
         if (!isShown) {
           listDropdownMenu.style.display = 'block';
@@ -699,40 +685,10 @@
       });
     }
 
-    if (btnFullscreenListDropdownTrigger && fullscreenListDropdownMenu) {
-      btnFullscreenListDropdownTrigger.addEventListener('mousedown', () => {
-        updateSavedRange();
-      });
-      btnFullscreenListDropdownTrigger.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const isShown = fullscreenListDropdownMenu.style.display === 'block';
-        if (listDropdownMenu) listDropdownMenu.style.display = 'none';
-        if (fullscreenListDropdownMenu) fullscreenListDropdownMenu.style.display = 'none';
-        if (mathDropdownMenu) mathDropdownMenu.style.display = 'none';
-        if (fullscreenMathDropdownMenu) fullscreenMathDropdownMenu.style.display = 'none';
-
-        if (!isShown) {
-          fullscreenListDropdownMenu.style.display = 'block';
-          setTimeout(() => {
-            if (fullscreenListCustomNumberInput) {
-              fullscreenListCustomNumberInput.focus();
-              fullscreenListCustomNumberInput.select();
-            }
-          }, 50);
-        }
-      });
-    }
-
     if (btnApplyItemNumber) {
       btnApplyItemNumber.addEventListener('click', (e) => {
         e.preventDefault();
         applyCustomNumber(listCustomNumberInput);
-      });
-    }
-    if (btnFullscreenApplyItemNumber) {
-      btnFullscreenApplyItemNumber.addEventListener('click', (e) => {
-        e.preventDefault();
-        applyCustomNumber(fullscreenListCustomNumberInput);
       });
     }
 
@@ -741,14 +697,6 @@
         if (e.key === 'Enter') {
           e.preventDefault();
           applyCustomNumber(listCustomNumberInput);
-        }
-      });
-    }
-    if (fullscreenListCustomNumberInput) {
-      fullscreenListCustomNumberInput.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') {
-          e.preventDefault();
-          applyCustomNumber(fullscreenListCustomNumberInput);
         }
       });
     }
@@ -761,7 +709,6 @@
         e.stopPropagation();
         const val = quickNumBtn.getAttribute('data-val') || '1.';
         if (listCustomNumberInput) listCustomNumberInput.value = val;
-        if (fullscreenListCustomNumberInput) fullscreenListCustomNumberInput.value = val;
         insertNotebookListItem('number', val);
       }
     });
@@ -874,7 +821,6 @@
     };
 
     if (btnAddTable) btnAddTable.addEventListener('click', openTableModalFn);
-    if (btnFullscreenAddTable) btnFullscreenAddTable.addEventListener('click', openTableModalFn);
 
     if (formTable) {
       formTable.addEventListener('submit', handleAddTableSubmit);
@@ -967,7 +913,7 @@
                 listLine.className = '';
                 listLine.removeAttribute('data-list-type');
                 listLine.removeAttribute('data-marker');
-                listLine.style.cssText = 'min-height: 44px; line-height: 44px; padding-left: 0px; margin: 0;';
+                listLine.style.cssText = 'min-height: var(--nb-line-height); line-height: var(--nb-line-height); padding-left: 0px; margin: 0;';
                 listLine.innerHTML = '<br>';
 
                 const newRange = document.createRange();
@@ -1000,7 +946,7 @@
               newLine.setAttribute('data-list-type', isBullet ? 'bullet' : 'number');
               newLine.setAttribute('data-marker', nextMarker);
               const indentStyle = isBullet ? 'padding-left: 32px !important;' : 'padding-left: 0px !important;';
-              newLine.style.cssText = `${indentStyle} min-height: 44px; line-height: 44px; margin: 0;`;
+              newLine.style.cssText = `${indentStyle} min-height: var(--nb-line-height); line-height: var(--nb-line-height); margin: 0;`;
               newLine.innerHTML = `<strong class="notebook-item-marker">${escapeHTML(nextMarker)}</strong>&nbsp;`;
 
               if (listLine.nextSibling) {
@@ -1037,7 +983,7 @@
                 listLine.className = '';
                 listLine.removeAttribute('data-list-type');
                 listLine.removeAttribute('data-marker');
-                listLine.style.cssText = 'min-height: 44px; line-height: 44px; padding-left: 0px; margin: 0;';
+                listLine.style.cssText = 'min-height: var(--nb-line-height); line-height: var(--nb-line-height); padding-left: 0px; margin: 0;';
                 listLine.innerHTML = '<br>';
 
                 const newRange = document.createRange();
@@ -1172,10 +1118,6 @@
       if (notebookColorIndicator) {
         notebookColorIndicator.style.backgroundColor = color;
       }
-      if (notebookFullscreenColorIndicator) {
-        notebookFullscreenColorIndicator.style.backgroundColor = color;
-      }
-
       if (notebookTextarea) {
         notebookTextarea.focus();
       }
@@ -1184,31 +1126,6 @@
 
     if (btnRedTitle) {
       btnRedTitle.addEventListener('click', toggleTextColorRed);
-    }
-    if (btnFullscreenRedTitle) {
-      btnFullscreenRedTitle.addEventListener('click', toggleTextColorRed);
-    }
-
-    // Tam Ekran Buton Olayları
-    if (btnFullscreenNotebook) {
-      btnFullscreenNotebook.addEventListener('click', toggleFullscreen);
-    }
-    if (btnFullscreenClose) {
-      btnFullscreenClose.addEventListener('click', toggleFullscreen);
-    }
-
-    // Tam Ekran Kaydet Olayı
-    if (btnFullscreenSave) {
-      btnFullscreenSave.addEventListener('click', saveActiveNotebookManual);
-    }
-
-    // Tam Ekran Görsel Ekle Olayı
-    if (btnFullscreenAddImage) {
-      btnFullscreenAddImage.addEventListener('click', () => {
-        if (notebookImageInput) {
-          notebookImageInput.click();
-        }
-      });
     }
 
     // Matematik Menüsü Aç/Kapat Olayları
@@ -1221,9 +1138,6 @@
       btnMathDropdownTrigger.addEventListener('click', (e) => {
         e.stopPropagation();
         const isShown = mathDropdownMenu.style.display === 'block';
-        if (mathDropdownMenu) mathDropdownMenu.style.display = 'none';
-        if (fullscreenMathDropdownMenu) fullscreenMathDropdownMenu.style.display = 'none';
-        
         mathDropdownMenu.style.display = isShown ? 'none' : 'block';
       });
     }
@@ -1232,35 +1146,13 @@
       mathDropdownMenu.addEventListener('mousedown', preventFocusLoss);
     }
 
-    if (btnFullscreenMathTrigger && fullscreenMathDropdownMenu) {
-      btnFullscreenMathTrigger.addEventListener('mousedown', preventFocusLoss);
-      btnFullscreenMathTrigger.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const isShown = fullscreenMathDropdownMenu.style.display === 'block';
-        if (mathDropdownMenu) mathDropdownMenu.style.display = 'none';
-        if (fullscreenMathDropdownMenu) fullscreenMathDropdownMenu.style.display = 'none';
-
-        fullscreenMathDropdownMenu.style.display = isShown ? 'none' : 'block';
-      });
-    }
-
-    if (fullscreenMathDropdownMenu) {
-      fullscreenMathDropdownMenu.addEventListener('mousedown', preventFocusLoss);
-    }
-
     // Dropdown Dışına Tıklandığında Kapatma
     document.addEventListener('click', (e) => {
       if (mathDropdownMenu && btnMathDropdownTrigger && !btnMathDropdownTrigger.contains(e.target) && !mathDropdownMenu.contains(e.target)) {
         mathDropdownMenu.style.display = 'none';
       }
-      if (fullscreenMathDropdownMenu && btnFullscreenMathTrigger && !btnFullscreenMathTrigger.contains(e.target) && !fullscreenMathDropdownMenu.contains(e.target)) {
-        fullscreenMathDropdownMenu.style.display = 'none';
-      }
       if (listDropdownMenu && btnListDropdownTrigger && !btnListDropdownTrigger.contains(e.target) && !listDropdownMenu.contains(e.target)) {
         listDropdownMenu.style.display = 'none';
-      }
-      if (fullscreenListDropdownMenu && btnFullscreenListDropdownTrigger && !btnFullscreenListDropdownTrigger.contains(e.target) && !fullscreenListDropdownMenu.contains(e.target)) {
-        fullscreenListDropdownMenu.style.display = 'none';
       }
     });
 
@@ -1274,23 +1166,8 @@
         insertMathTemplate(type);
         
         if (mathDropdownMenu) mathDropdownMenu.style.display = 'none';
-        if (fullscreenMathDropdownMenu) fullscreenMathDropdownMenu.style.display = 'none';
       }
     });
-
-    // Canlı Akış Rozetlerine Tıklandığında Ders ve Konu Akışı Modalı Aç
-    const notebookLiveInfo = document.getElementById('notebook-fullscreen-live-info');
-    if (notebookLiveInfo) {
-      notebookLiveInfo.addEventListener('click', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        const flowModal = document.getElementById('modal-flow-info');
-        if (flowModal) {
-          flowModal.classList.add('active');
-          if (window.updateFlowContent) window.updateFlowContent(true);
-        }
-      });
-    }
 
     const pdfViewerLiveBadge = document.getElementById('pdf-viewer-live-badge');
     if (pdfViewerLiveBadge) {
@@ -1389,6 +1266,7 @@
 
     if (notebooksGridView) notebooksGridView.style.display = 'block';
     if (notebookDetailView) notebookDetailView.style.display = 'none';
+    if (btnExpandTopicsSidebar) btnExpandTopicsSidebar.style.display = 'none';
 
     renderNotebookGrid();
   }
@@ -1484,6 +1362,9 @@
       // Detay görünümünü göster
       if (notebooksGridView) notebooksGridView.style.display = 'none';
       if (notebookDetailView) notebookDetailView.style.display = 'block';
+      if (btnExpandTopicsSidebar) {
+        btnExpandTopicsSidebar.style.display = (notebookTopicsSidebar && notebookTopicsSidebar.classList.contains('collapsed')) ? 'flex' : 'none';
+      }
 
       if (detailNotebookTitle) detailNotebookTitle.textContent = notebook.title;
       if (notebookTitleInput) notebookTitleInput.value = notebook.title;
@@ -1588,9 +1469,6 @@
       isRedMode = false;
       if (notebookColorIndicator) {
         notebookColorIndicator.style.backgroundColor = '#1e293b';
-      }
-      if (notebookFullscreenColorIndicator) {
-        notebookFullscreenColorIndicator.style.backgroundColor = '#1e293b';
       }
     }
     adjustTopicTitleFontSize();
@@ -1711,7 +1589,6 @@
     }
   }
 
-  let notebookLiveInterval = null;
   let pdfLiveInterval = null;
 
   function updatePdfViewerLiveInfo() {
@@ -1750,89 +1627,6 @@
     }
 
     if (window.safeCreateIcons) window.safeCreateIcons();
-  }
-
-  function updateNotebookFullscreenLiveInfo() {
-    const periodText = document.getElementById('notebook-live-period-text');
-    const topicText = document.getElementById('notebook-live-topic-text');
-    const timeBadge = document.getElementById('notebook-live-time-badge');
-    const liveContainer = document.getElementById('notebook-fullscreen-live-info');
-    if (!periodText || !topicText) return;
-
-    if (typeof window.getCurrentLessonInfo !== 'function') return;
-
-    const info = window.getCurrentLessonInfo();
-    
-    // Ders Saati & Kalan Süre
-    if (info.statusType === 'lesson') {
-      const remainingStr = info.remainingMinutes !== null ? ` (Kalan: ${info.remainingMinutes} dk)` : '';
-      periodText.textContent = `${info.periodNum}${remainingStr}`;
-      if (timeBadge) timeBadge.style.color = '#10b981'; // yeşil
-    } else if (info.statusType === 'break' || info.statusType === 'lunch') {
-      const remainingStr = info.remainingMinutes !== null ? ` (${info.remainingMinutes} dk)` : '';
-      periodText.textContent = `${info.periodNum}${remainingStr}`;
-      if (timeBadge) timeBadge.style.color = '#f59e0b'; // sarı/amber
-    } else {
-      periodText.textContent = info.periodNum || 'Ders Saati Dışı';
-      if (timeBadge) timeBadge.style.color = '#94a3b8'; // gri
-    }
-
-    // Ders Adı & Konu Akışı
-    let topicDisplay = '';
-    if (info.statusType === 'lesson') {
-      topicDisplay = `${info.lessonName.toUpperCase()}: ${info.lessonTopic || 'Konu belirtilmemiş'}`;
-    } else if (info.statusType === 'break') {
-      topicDisplay = `${info.lessonName} - ${info.lessonTopic || ''}`;
-    } else {
-      topicDisplay = `${info.lessonName} - ${info.lessonTopic || ''}`;
-    }
-    topicText.textContent = topicDisplay;
-    if (liveContainer) {
-      liveContainer.title = `${info.periodNum} | ${topicDisplay} (Detaylar için tıklayın)`;
-    }
-
-    if (window.safeCreateIcons) window.safeCreateIcons();
-  }
-
-  // Tam ekran modunu aç/kapat
-  function toggleFullscreen() {
-    if (!notebookEditorContainer || !btnFullscreenNotebook) return;
-    const isFullscreen = notebookEditorContainer.classList.toggle('fullscreen');
-    
-    const icon = btnFullscreenNotebook.querySelector('i');
-    const textNode = [...btnFullscreenNotebook.childNodes].find(node => node.nodeType === Node.TEXT_NODE);
-    
-    if (isFullscreen) {
-      if (icon) {
-        icon.setAttribute('data-lucide', 'minimize');
-        if (window.lucide) window.lucide.createIcons();
-      }
-      if (textNode) textNode.textContent = ' Küçült';
-
-      // Canlı Akış Bilgisini Başlat
-      updateNotebookFullscreenLiveInfo();
-      if (notebookLiveInterval) clearInterval(notebookLiveInterval);
-      notebookLiveInterval = setInterval(updateNotebookFullscreenLiveInfo, 30000);
-    } else {
-      resetFullscreenButton();
-    }
-  }
-
-  // Tam ekran butonu durumunu sıfırla
-  function resetFullscreenButton() {
-    if (notebookLiveInterval) {
-      clearInterval(notebookLiveInterval);
-      notebookLiveInterval = null;
-    }
-    if (!btnFullscreenNotebook) return;
-    const icon = btnFullscreenNotebook.querySelector('i');
-    const textNode = [...btnFullscreenNotebook.childNodes].find(node => node.nodeType === Node.TEXT_NODE);
-    
-    if (icon) {
-      icon.setAttribute('data-lucide', 'maximize');
-      if (window.lucide) window.lucide.createIcons();
-    }
-    if (textNode) textNode.textContent = ' Tam Ekran';
   }
 
   // Modal Aç
