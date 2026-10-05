@@ -69,6 +69,15 @@
   let btnFullscreenPrintNotebook = null;
   let notebookPrintArea = null;
 
+  // Punto Seçici Değişkenleri
+  let notebookFontSizeSelect = null;
+  let btnFontDecrease = null;
+  let btnFontIncrease = null;
+  let notebookFullscreenFontSizeSelect = null;
+  let btnFullscreenFontDecrease = null;
+  let btnFullscreenFontIncrease = null;
+  const FONT_SIZE_LEVELS = ['small', 'normal', 'medium', 'large', 'xlarge'];
+
   let currentNotebookId = null;
   let currentTopicId = null;
   let autoSaveTimeout = null;
@@ -78,6 +87,109 @@
   let currentOpenPdfId = null;
   let currentOpenPdfUrl = null;
 
+  // Numaralı Liste Sürekliliği (Modül Seviyesi - Her yerden erişilebilir)
+  function syncOrderedListContinuity() {
+    if (!notebookTextarea) return;
+
+    const topOls = Array.from(notebookTextarea.querySelectorAll('ol')).filter(ol => {
+      return !ol.parentElement.closest('li') && !ol.parentElement.closest('ol') && !ol.parentElement.closest('ul');
+    });
+
+    if (topOls.length === 0) return;
+
+    let currentGroupRunningCount = 0;
+
+    for (let i = 0; i < topOls.length; i++) {
+      const ol = topOls[i];
+      const directItems = Array.from(ol.children).filter(child => child.tagName === 'LI');
+      const itemCount = directItems.length;
+      const listMode = ol.getAttribute('data-list-mode'); // 'restart' | 'continue' | null
+
+      if (i === 0) {
+        ol.removeAttribute('start');
+        currentGroupRunningCount = itemCount;
+        continue;
+      }
+
+      const prevOl = topOls[i - 1];
+      let shouldContinue = false;
+
+      if (listMode === 'restart') {
+        shouldContinue = false;
+      } else if (listMode === 'continue') {
+        shouldContinue = true;
+      } else {
+        // Otomatik mod: prevOl ile ol arasındaki kardeş düğümleri incele
+        let node = prevOl.nextSibling;
+        let foundUl = false;
+        let hasSignificantContent = false;
+
+        while (node && node !== ol) {
+          if (node.nodeType === Node.ELEMENT_NODE) {
+            if (node.tagName === 'UL') {
+              foundUl = true;
+            } else if (node.tagName === 'BR' || (node.tagName === 'DIV' && node.innerHTML.trim() === '<br>')) {
+              // Boş satır / boş div
+            } else {
+              const text = node.textContent ? node.textContent.trim() : '';
+              if (text.length > 0) {
+                hasSignificantContent = true;
+              }
+            }
+          } else if (node.nodeType === Node.TEXT_NODE) {
+            if (node.textContent && node.textContent.trim().length > 0) {
+              hasSignificantContent = true;
+            }
+          }
+          node = node.nextSibling;
+        }
+
+        if (foundUl && !hasSignificantContent) {
+          shouldContinue = true;
+        } else {
+          shouldContinue = false;
+        }
+      }
+
+      if (shouldContinue && currentGroupRunningCount > 0) {
+        ol.setAttribute('start', currentGroupRunningCount + 1);
+        currentGroupRunningCount += itemCount;
+      } else {
+        ol.removeAttribute('start');
+        currentGroupRunningCount = itemCount;
+      }
+    }
+  }
+
+  // Punto Uygulama ve Değiştirme Fonksiyonları
+  function applyNotebookFontSize(sizeKey) {
+    if (!FONT_SIZE_LEVELS.includes(sizeKey)) {
+      sizeKey = 'normal';
+    }
+    if (notebookTextarea) {
+      notebookTextarea.setAttribute('data-font-size', sizeKey);
+    }
+    if (notebookFontSizeSelect) {
+      notebookFontSizeSelect.value = sizeKey;
+    }
+    if (notebookFullscreenFontSizeSelect) {
+      notebookFullscreenFontSizeSelect.value = sizeKey;
+    }
+    try {
+      localStorage.setItem('sinif_asistani_notebook_fontsize', sizeKey);
+    } catch (e) {}
+  }
+
+  function changeNotebookFontSizeStep(delta) {
+    const current = (notebookTextarea && notebookTextarea.getAttribute('data-font-size')) ||
+                    localStorage.getItem('sinif_asistani_notebook_fontsize') || 'normal';
+    let idx = FONT_SIZE_LEVELS.indexOf(current);
+    if (idx === -1) idx = 1; // normal
+    let newIdx = idx + delta;
+    if (newIdx < 0) newIdx = 0;
+    if (newIdx >= FONT_SIZE_LEVELS.length) newIdx = FONT_SIZE_LEVELS.length - 1;
+    applyNotebookFontSize(FONT_SIZE_LEVELS[newIdx]);
+  }
 
   // Modülü başlat
   function init() {
@@ -146,6 +258,81 @@
     btnPrintNotebook = document.getElementById('btn-print-notebook');
     btnFullscreenPrintNotebook = document.getElementById('btn-fullscreen-print-notebook');
     notebookPrintArea = document.getElementById('notebook-print-area');
+
+    function handlePrintNotebook() {
+      if (!notebookPrintArea || !notebookTextarea) return;
+      const title = topicTitleInput ? topicTitleInput.value.trim() : '';
+      const content = notebookTextarea.innerHTML;
+
+      notebookPrintArea.innerHTML = `
+        <div class="notebook-print-sheet">
+          ${title ? `<div class="notebook-print-title">${escapeHTML(title)}</div>` : ''}
+          <div class="notebook-print-content">${content}</div>
+        </div>
+      `;
+
+      document.body.classList.add('print-notebook');
+      window.print();
+      setTimeout(() => {
+        document.body.classList.remove('print-notebook');
+      }, 1200);
+    }
+
+    if (btnPrintNotebook) {
+      btnPrintNotebook.addEventListener('click', (e) => {
+        e.preventDefault();
+        handlePrintNotebook();
+      });
+    }
+    if (btnFullscreenPrintNotebook) {
+      btnFullscreenPrintNotebook.addEventListener('click', (e) => {
+        e.preventDefault();
+        handlePrintNotebook();
+      });
+    }
+
+    // Punto Seçici Elemanları
+    notebookFontSizeSelect = document.getElementById('notebook-font-size-select');
+    btnFontDecrease = document.getElementById('btn-font-decrease');
+    btnFontIncrease = document.getElementById('btn-font-increase');
+    notebookFullscreenFontSizeSelect = document.getElementById('notebook-fullscreen-font-size-select');
+    btnFullscreenFontDecrease = document.getElementById('btn-fullscreen-font-decrease');
+    btnFullscreenFontIncrease = document.getElementById('btn-fullscreen-font-increase');
+
+    if (notebookFontSizeSelect) {
+      notebookFontSizeSelect.addEventListener('change', (e) => {
+        applyNotebookFontSize(e.target.value);
+      });
+    }
+    if (notebookFullscreenFontSizeSelect) {
+      notebookFullscreenFontSizeSelect.addEventListener('change', (e) => {
+        applyNotebookFontSize(e.target.value);
+      });
+    }
+    if (btnFontDecrease) {
+      btnFontDecrease.addEventListener('click', (e) => {
+        e.preventDefault();
+        changeNotebookFontSizeStep(-1);
+      });
+    }
+    if (btnFontIncrease) {
+      btnFontIncrease.addEventListener('click', (e) => {
+        e.preventDefault();
+        changeNotebookFontSizeStep(1);
+      });
+    }
+    if (btnFullscreenFontDecrease) {
+      btnFullscreenFontDecrease.addEventListener('click', (e) => {
+        e.preventDefault();
+        changeNotebookFontSizeStep(-1);
+      });
+    }
+    if (btnFullscreenFontIncrease) {
+      btnFullscreenFontIncrease.addEventListener('click', (e) => {
+        e.preventDefault();
+        changeNotebookFontSizeStep(1);
+      });
+    }
 
     // Güvenlik Kontrolü: Kritik DOM elemanları mevcut değilse kurulumu atla
     if (!notebookGrid || !modalNotebook || !formNotebook) {
@@ -387,85 +574,6 @@
     if (formStickyNote) {
       formStickyNote.addEventListener('submit', handleAddStickyNoteSubmit);
     }
-
-    // Numaralı Liste Sürekliliği (Akıllı Liste Devamlılığı ve Yeniden Başlatma)
-    // 1. Eğer bir <ol> üzerinde data-list-mode="restart" varsa, daima 1'den başlar.
-    // 2. Eğer data-list-mode="continue" varsa, önceki <ol>'nin son numarasından devam eder.
-    // 3. Otomatik Mod: İki <ol> arasında YALNIZCA <ul> (madde imi listesi) varsa ve araya anlamlı metin
-    //    girmemişse, liste madde imiyle kesilmiş kabul edilir ve kaldığı yerden devam eder.
-    //    Aksi halde (arada metin/paragraf varsa veya <ul> yoksa), yeni bir liste grubu kabul edilir ve 1'den başlar.
-    const syncOrderedListContinuity = () => {
-      if (!notebookTextarea) return;
-
-      const topOls = Array.from(notebookTextarea.querySelectorAll('ol')).filter(ol => {
-        return !ol.parentElement.closest('li') && !ol.parentElement.closest('ol') && !ol.parentElement.closest('ul');
-      });
-
-      if (topOls.length === 0) return;
-
-      let currentGroupRunningCount = 0;
-
-      for (let i = 0; i < topOls.length; i++) {
-        const ol = topOls[i];
-        const directItems = Array.from(ol.children).filter(child => child.tagName === 'LI');
-        const itemCount = directItems.length;
-        const listMode = ol.getAttribute('data-list-mode'); // 'restart' | 'continue' | null
-
-        if (i === 0) {
-          ol.removeAttribute('start');
-          currentGroupRunningCount = itemCount;
-          continue;
-        }
-
-        const prevOl = topOls[i - 1];
-        let shouldContinue = false;
-
-        if (listMode === 'restart') {
-          shouldContinue = false;
-        } else if (listMode === 'continue') {
-          shouldContinue = true;
-        } else {
-          // Otomatik mod: prevOl ile ol arasındaki kardeş düğümleri incele
-          let node = prevOl.nextSibling;
-          let foundUl = false;
-          let hasSignificantContent = false;
-
-          while (node && node !== ol) {
-            if (node.nodeType === Node.ELEMENT_NODE) {
-              if (node.tagName === 'UL') {
-                foundUl = true;
-              } else if (node.tagName === 'BR' || (node.tagName === 'DIV' && node.innerHTML.trim() === '<br>')) {
-                // Boş satır / boş div
-              } else {
-                const text = node.textContent ? node.textContent.trim() : '';
-                if (text.length > 0) {
-                  hasSignificantContent = true;
-                }
-              }
-            } else if (node.nodeType === Node.TEXT_NODE) {
-              if (node.textContent && node.textContent.trim().length > 0) {
-                hasSignificantContent = true;
-              }
-            }
-            node = node.nextSibling;
-          }
-
-          if (foundUl && !hasSignificantContent) {
-            shouldContinue = true;
-          } else {
-            shouldContinue = false;
-          }
-        }
-
-        if (shouldContinue && currentGroupRunningCount > 0) {
-          ol.setAttribute('start', currentGroupRunningCount + 1);
-          currentGroupRunningCount += itemCount;
-        } else {
-          ol.removeAttribute('start');
-          currentGroupRunningCount = itemCount;
-        }
-      }
-    };
 
     // Madde İmi ve Numaralandırma Fonksiyonları
     const insertNotebookListItem = (type, val) => {
@@ -1469,6 +1577,10 @@
         notebookTextarea.classList.add(notebook.type);
         notebookTextarea.style.fontSize = '';
         notebookTextarea.style.backgroundPosition = '';
+        
+        const savedFontSize = localStorage.getItem('sinif_asistani_notebook_fontsize') || 'normal';
+        applyNotebookFontSize(savedFontSize);
+
         syncOrderedListContinuity();
       }
 

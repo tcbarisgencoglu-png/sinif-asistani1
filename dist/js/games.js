@@ -402,6 +402,37 @@
         questions = [...questions, ...fibQuestions];
         saveQuestions();
       }
+
+      // Sanitize existing fib questions (repair single-option or string-answer questions)
+      let questionsChanged = false;
+      questions.forEach(q => {
+        if (q && q.type === "fib") {
+          let opts = Array.isArray(q.options) ? q.options.map(o => String(o).trim()).filter(Boolean) : [];
+          if (opts.length < 4) {
+            const correctWord = opts[0] || (typeof q.answer === "string" ? q.answer.trim() : "") || "Cevap";
+            if (!opts.includes(correctWord)) {
+              opts.unshift(correctWord);
+            }
+            const defaultDistractors = ["Kayaç", "Fosil", "Toprak", "Mineral", "Tabaka", "Madde"];
+            for (const d of defaultDistractors) {
+              if (opts.length >= 4) break;
+              if (!opts.some(o => o.toLowerCase() === d.toLowerCase())) {
+                opts.push(d);
+              }
+            }
+            q.options = opts;
+            q.answer = opts.indexOf(correctWord) !== -1 ? opts.indexOf(correctWord) : 0;
+            questionsChanged = true;
+          } else if (typeof q.answer === "string") {
+            const foundIdx = opts.findIndex(o => o.toLowerCase() === q.answer.trim().toLowerCase());
+            if (foundIdx !== -1) {
+              q.answer = foundIdx;
+              questionsChanged = true;
+            }
+          }
+        }
+      });
+      if (questionsChanged) saveQuestions();
     } else {
       questions = [...defaultQuestions];
       saveQuestions();
@@ -661,19 +692,34 @@
     const modeCards = {
       tf: document.getElementById("setup-mode-tf"),
       mc: document.getElementById("setup-mode-mc"),
-      fib: document.getElementById("setup-mode-fib")
+      fib: document.getElementById("setup-mode-fib"),
+      all: document.getElementById("setup-mode-all")
+    };
+
+    window._setSetupMode = function(key) {
+      setupSelectedMode = key;
+      for (let m in modeCards) {
+        if (modeCards[m]) modeCards[m].classList.remove("active");
+      }
+      if (modeCards[key]) modeCards[key].classList.add("active");
+      if (typeof updateSetupCategoryInfo === "function") {
+        updateSetupCategoryInfo();
+      }
     };
 
     for (let key in modeCards) {
       if (modeCards[key]) {
         modeCards[key].addEventListener("click", () => {
-          setupSelectedMode = key;
-          for (let m in modeCards) {
-            if (modeCards[m]) modeCards[m].classList.remove("active");
-          }
-          modeCards[key].classList.add("active");
+          window._setSetupMode(key);
         });
       }
+    }
+
+    const setupCategorySelect = document.getElementById("setup-category");
+    if (setupCategorySelect) {
+      setupCategorySelect.addEventListener("change", () => {
+        handleSetupCategoryChange();
+      });
     }
 
     // 4. Start Game Button
@@ -1272,6 +1318,74 @@
         datalist.innerHTML += `<option value="${escapeHTML(cat)}">`;
       });
     }
+
+    handleSetupCategoryChange();
+  }
+
+  function handleSetupCategoryChange() {
+    const setupCategorySelect = document.getElementById("setup-category");
+    if (!setupCategorySelect) return;
+    const selCat = setupCategorySelect.value || "all";
+    const catQuestions = questions.filter(q => (selCat === "all") || (q.category === selCat));
+    const types = new Set(catQuestions.map(q => q.type || "tf"));
+
+    // If category has multiple types, auto-select "all" (Karışık) mode
+    if (types.size > 1) {
+      if (window._setSetupMode) window._setSetupMode("all");
+    } else if (types.size === 1) {
+      const onlyType = Array.from(types)[0];
+      if (["tf", "mc", "fib"].includes(onlyType)) {
+        if (window._setSetupMode) window._setSetupMode(onlyType);
+      }
+    }
+    updateSetupCategoryInfo();
+  }
+
+  function updateSetupCategoryInfo() {
+    const setupCategorySelect = document.getElementById("setup-category");
+    const infoEl = document.getElementById("setup-category-stats");
+    if (!setupCategorySelect || !infoEl) return;
+
+    const selCat = setupCategorySelect.value || "all";
+    const catQuestions = questions.filter(q => (selCat === "all") || (q.category === selCat));
+    const totalCount = catQuestions.length;
+
+    if (totalCount === 0) {
+      infoEl.innerHTML = `<span style="color: var(--danger);">Bu kategoride henüz soru bulunmuyor.</span>`;
+      return;
+    }
+
+    const tfCount = catQuestions.filter(q => (q.type || "tf") === "tf").length;
+    const mcCount = catQuestions.filter(q => q.type === "mc").length;
+    const fibCount = catQuestions.filter(q => q.type === "fib").length;
+
+    let badgeParts = [];
+    if (tfCount > 0) badgeParts.push(`<span class="badge" style="background: rgba(79, 70, 229, 0.12); color: #818cf8; border: 1px solid rgba(79, 70, 229, 0.25);">${tfCount} D/Y</span>`);
+    if (mcCount > 0) badgeParts.push(`<span class="badge" style="background: rgba(16, 185, 129, 0.12); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.25);">${mcCount} Çoktan Seçmeli</span>`);
+    if (fibCount > 0) badgeParts.push(`<span class="badge" style="background: rgba(245, 158, 11, 0.12); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.25);">${fibCount} Boşluk Doldurma</span>`);
+
+    let msg = "";
+    if (setupSelectedMode === "all") {
+      msg = `<span style="color: #10b981; font-weight: 600;">✓ Toplam ${totalCount} Soru</span> (Karışık modda paketteki tüm soru türleri sırayla oynatılır)`;
+    } else {
+      const modeNames = { tf: "Doğru/Yanlış", mc: "Çoktan Seçmeli", fib: "Boşluk Doldurma" };
+      const currentModeCount = catQuestions.filter(q => (q.type || "tf") === setupSelectedMode).length;
+      if (currentModeCount === totalCount) {
+        msg = `<span style="color: #10b981; font-weight: 600;">✓ Toplam ${totalCount} Soru</span> (${modeNames[setupSelectedMode]} olarak hazır)`;
+      } else if (currentModeCount > 0) {
+        const excluded = totalCount - currentModeCount;
+        msg = `<span style="color: #f59e0b; font-weight: 600;">⚠️ ${currentModeCount} Soru dahil</span> (${excluded} farklı türdeki soru elendi. Hepsini oynamak için <strong>'Karışık (Tümü)'</strong> seçin)`;
+      } else {
+        msg = `<span style="color: #ef4444; font-weight: 600;">⚠️ Bu pakette seçilen '${modeNames[setupSelectedMode]}' türünde soru yok!</span> Lütfen 'Karışık (Tümü)' modunu seçin.`;
+      }
+    }
+
+    infoEl.innerHTML = `
+      <div style="display: flex; flex-direction: column; gap: 0.35rem;">
+        <div style="display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap;">${badgeParts.join(" ")}</div>
+        <div style="line-height: 1.4;">${msg}</div>
+      </div>
+    `;
   }
 
   // Global bridge: AI soru üretici modülünün yeni soruları kaydetmesinin ardından
@@ -1283,6 +1397,7 @@
     }
     populateCategorySelectors();
     renderQuestionLibrary();
+    handleSetupCategoryChange();
   };
 
   // ─── Skor Uyarısı ve Yarışma Başlatma Mantığı ──────────────────────────────
@@ -1426,7 +1541,7 @@
     activeCategory = selectedCat;
     
     activeGameQuestions = questions.filter(q => {
-      const modeMatch = (q.type || "tf") === activeGameMode;
+      const modeMatch = (activeGameMode === "all") || ((q.type || "tf") === activeGameMode);
       const catMatch = (selectedCat === "all") || (q.category === selectedCat);
       return modeMatch && catMatch;
     });
@@ -1488,6 +1603,11 @@
         modeBadge.style.background = "rgba(245, 158, 11, 0.15)";
         modeBadge.style.color = "#f59e0b";
         modeBadge.style.borderColor = "rgba(245, 158, 11, 0.3)";
+      } else if (activeGameMode === "all") {
+        modeBadge.textContent = "Karışık (Tümü)";
+        modeBadge.style.background = "rgba(139, 92, 246, 0.15)";
+        modeBadge.style.color = "#a78bfa";
+        modeBadge.style.borderColor = "rgba(139, 92, 246, 0.3)";
       }
     }
     
@@ -1778,6 +1898,28 @@
     const question = questionPool[currentQuestionIndex];
     document.getElementById("question-index").textContent = `Soru: ${currentQuestionIndex + 1} / ${questionPool.length}`;
 
+    // Update active question mode badge dynamically
+    const modeBadge = document.getElementById("game-active-mode-badge");
+    if (modeBadge) {
+      const qType = question.type || "tf";
+      if (qType === "tf") {
+        modeBadge.textContent = "Doğru / Yanlış";
+        modeBadge.style.background = "rgba(79, 70, 229, 0.15)";
+        modeBadge.style.color = "#818cf8";
+        modeBadge.style.borderColor = "rgba(79, 70, 229, 0.3)";
+      } else if (qType === "mc") {
+        modeBadge.textContent = "Çoktan Seçmeli";
+        modeBadge.style.background = "rgba(16, 185, 129, 0.15)";
+        modeBadge.style.color = "#34d399";
+        modeBadge.style.borderColor = "rgba(16, 185, 129, 0.3)";
+      } else if (qType === "fib") {
+        modeBadge.textContent = "Boşluk Doldurma";
+        modeBadge.style.background = "rgba(245, 158, 11, 0.15)";
+        modeBadge.style.color = "#f59e0b";
+        modeBadge.style.borderColor = "rgba(245, 158, 11, 0.3)";
+      }
+    }
+
     // Handle question text based on type (for FIB render drop slot)
     const textContainer = document.getElementById("question-text");
     if (question.type === "fib") {
@@ -1876,7 +2018,17 @@
         document.getElementById(`btn-mc-${idx}`).addEventListener("click", () => submitAnswer(idx));
       });
     } else if (question.type === "fib") {
-      const opts = question.options || [];
+      let opts = Array.isArray(question.options) ? [...question.options] : [];
+      if (opts.length < 4) {
+        const fallbacks = ["Kayaç", "Fosil", "Toprak", "Mineral", "Tabaka"];
+        for (const f of fallbacks) {
+          if (opts.length >= 4) break;
+          if (!opts.some(o => String(o).trim().toLowerCase() === f.toLowerCase())) {
+            opts.push(f);
+          }
+        }
+      }
+      question.options = opts;
       const isDraggable = !!activeStudent;
       const disabledClass = isDraggable ? "" : "disabled";
       const dragAttr = isDraggable ? 'draggable="true"' : 'draggable="false"';
@@ -1983,9 +2135,19 @@
       correctValStr = currentQuestion.answer ? "DOĞRU" : "YANLIŞ";
     } else if (currentQuestion.type === "mc" || currentQuestion.type === "fib") {
       const letters = ["A", "B", "C", "D", "E"];
-      const correctIdx = parseInt(currentQuestion.answer);
-      const correctValOpt = currentQuestion.options[correctIdx] || "";
-      correctValStr = currentQuestion.type === "mc" ? `${letters[correctIdx]}) ${correctValOpt}` : correctValOpt;
+      const rawAns = currentQuestion.answer;
+      let correctIdx = parseInt(rawAns);
+      if (isNaN(correctIdx) && typeof rawAns === "string" && Array.isArray(currentQuestion.options)) {
+        correctIdx = currentQuestion.options.findIndex(
+          o => String(o).trim().toLowerCase() === rawAns.trim().toLowerCase()
+        );
+      }
+      const correctValOpt = (!isNaN(correctIdx) && correctIdx >= 0 && currentQuestion.options)
+        ? (currentQuestion.options[correctIdx] || "")
+        : (String(rawAns || ""));
+      correctValStr = currentQuestion.type === "mc" && !isNaN(correctIdx) && correctIdx >= 0
+        ? `${letters[correctIdx]}) ${correctValOpt}`
+        : correctValOpt;
     }
     
     showFeedback(
@@ -2022,11 +2184,26 @@
       isCorrect = (studentAnswer === currentQuestion.answer);
       correctValStr = currentQuestion.answer ? "DOĞRU" : "YANLIŞ";
     } else if (currentQuestion.type === "mc" || currentQuestion.type === "fib") {
-      isCorrect = (parseInt(studentAnswer) === parseInt(currentQuestion.answer));
       const letters = ["A", "B", "C", "D", "E"];
-      const correctIdx = parseInt(currentQuestion.answer);
-      const correctValOpt = currentQuestion.options[correctIdx] || "";
-      correctValStr = currentQuestion.type === "mc" ? `${letters[correctIdx]}) ${correctValOpt}` : correctValOpt;
+      const rawAns = currentQuestion.answer;
+      let correctIdx = parseInt(rawAns);
+      if (isNaN(correctIdx) && typeof rawAns === "string" && Array.isArray(currentQuestion.options)) {
+        correctIdx = currentQuestion.options.findIndex(
+          o => String(o).trim().toLowerCase() === rawAns.trim().toLowerCase()
+        );
+      }
+      if (!isNaN(correctIdx) && correctIdx >= 0) {
+        isCorrect = (parseInt(studentAnswer) === correctIdx);
+      } else if (typeof rawAns === "string" && Array.isArray(currentQuestion.options)) {
+        const studentOptText = String(currentQuestion.options[studentAnswer] || "").trim().toLowerCase();
+        isCorrect = (studentOptText === rawAns.trim().toLowerCase());
+      }
+      const correctValOpt = (!isNaN(correctIdx) && correctIdx >= 0 && currentQuestion.options)
+        ? (currentQuestion.options[correctIdx] || "")
+        : (String(rawAns || ""));
+      correctValStr = currentQuestion.type === "mc" && !isNaN(correctIdx) && correctIdx >= 0
+        ? `${letters[correctIdx]}) ${correctValOpt}`
+        : correctValOpt;
     }
     
     const gameCard = document.querySelector("#games .game-card");

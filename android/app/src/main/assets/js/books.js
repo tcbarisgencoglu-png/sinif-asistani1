@@ -1709,7 +1709,8 @@ SADECE VE SADECE GEÇERLİ BİR JSON DİZİSİ DÖNDÜR. Markdown (örneğin \`\
     e.preventDefault();
     const studentId = borrowStudentSelect.value;
     const bookId = borrowBookSelect.value;
-    const date = borrowDateInput.value;
+    const dateRaw = borrowDateInput.value;
+    const date = window.toISODate ? window.toISODate(dateRaw) : dateRaw;
 
     const result = stateManager.borrowBook(studentId, bookId, date);
     
@@ -2258,7 +2259,7 @@ SADECE VE SADECE GEÇERLİ BİR JSON DİZİSİ DÖNDÜR. Markdown (örneğin \`\
       }
 
       const state = stateManager.loadState();
-      const library = state.books.library || [];
+      const library = (state.books.library || []).filter(b => !b.isDeleted);
       if (library.length === 0) {
         if (toastCallback) toastCallback('Kütüphanede henüz kitap bulunmuyor.', 'info');
         return;

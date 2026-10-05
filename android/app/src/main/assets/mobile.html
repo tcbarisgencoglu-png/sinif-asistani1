@@ -1543,13 +1543,19 @@
         
         <!-- 5.1 Kayıtlı Öğrenci Listesi -->
         <div class="m-form-card">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; flex-wrap: wrap; gap: 8px;">
             <div style="font-weight: 800; font-size: 0.95rem; color: var(--m-text);">
               Kayıtlı Öğrenciler (<span id="m-cfg-st-total">0</span>)
             </div>
-            <select class="m-form-select" id="m-cfg-st-branch-filter" onchange="window.renderConfigStudentsList()" style="width: auto; padding: 4px 8px; font-size: 0.78rem;">
-              <!-- Şube filtreleri -->
-            </select>
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <select class="m-form-select" id="m-cfg-st-branch-filter" onchange="window.renderConfigStudentsList()" style="width: auto; padding: 4px 8px; font-size: 0.78rem;">
+                <!-- Şube filtreleri -->
+              </select>
+              <button type="button" id="m-btn-delete-all-students" class="m-btn-sm danger" style="padding: 5px 10px; font-size: 0.75rem; font-weight: 800; border-radius: var(--m-radius-sm); display: inline-flex; align-items: center; gap: 4px;" onclick="window.openDeleteAllStudentsModal()" title="Sınıfı veya Seçili Şubeyi Boşalt">
+                <i data-lucide="trash-2" style="width: 13px; height: 13px;"></i>
+                <span id="m-btn-delete-all-label">Tümünü Sil</span>
+              </button>
+            </div>
           </div>
 
           <!-- Arama Kutusu -->
@@ -4503,7 +4509,55 @@
     </div>
   </div>
 
-  <!-- 10.1 Manuel Öğrenci Ekleme Modalı -->
+  <!-- 10.3 Toplu Öğrenci Silme Modalı (Sınıf / Şube Boşaltma) -->
+  <div class="bottom-sheet" id="modal-delete-all-students" style="max-height: 85vh; z-index: 1250;">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header" style="margin-bottom: 0.85rem;">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <div style="width: 36px; height: 36px; border-radius: 50%; background: rgba(239, 68, 68, 0.12); color: var(--m-danger); display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">
+          <i data-lucide="alert-triangle" style="width: 20px; height: 20px;"></i>
+        </div>
+        <div>
+          <div class="sheet-title" style="color: var(--m-danger);">Toplu Öğrenci Silme</div>
+          <span id="m-delete-all-target-badge" class="m-badge" style="background: rgba(239, 68, 68, 0.1); color: var(--m-danger); font-size: 0.72rem; font-weight: 800; margin-top: 2px;">
+            Tüm Sınıf / Şube
+          </span>
+        </div>
+      </div>
+      <button class="sheet-close-btn" onclick="window.closeBottomSheet()">&times;</button>
+    </div>
+    <div style="padding: 0 1.25rem 1.75rem 1.25rem;">
+      <div style="background: rgba(239, 68, 68, 0.06); border: 1.5px solid rgba(239, 68, 68, 0.25); border-radius: var(--m-radius-md); padding: 0.9rem; margin-bottom: 1.15rem;">
+        <div style="font-weight: 800; font-size: 0.88rem; color: var(--m-danger); margin-bottom: 0.35rem; display: flex; align-items: center; gap: 6px;">
+          <i data-lucide="alert-circle" style="width: 16px; height: 16px;"></i>
+          <span>Dikkat: Bu işlem geri alınamaz!</span>
+        </div>
+        <div id="m-delete-all-description" style="font-size: 0.76rem; color: var(--m-text); line-height: 1.45;">
+          Seçili gruptaki tüm öğrenciler silinecek. Öğrencilere ait tüm puan, ödev ve değerlendirme verileri de kalıcı olarak temizlenecektir.
+        </div>
+      </div>
+
+      <!-- Onaylama Kutusu (Checkbox) -->
+      <label style="display: flex; align-items: flex-start; gap: 10px; background: var(--m-surface); border: 1.5px solid var(--m-border); border-radius: var(--m-radius-md); padding: 0.9rem; cursor: pointer; margin-bottom: 1.25rem; user-select: none;">
+        <input type="checkbox" id="m-delete-all-checkbox" onchange="window.toggleDeleteAllStudentsConfirm(this.checked)" style="width: 20px; height: 20px; margin-top: 2px; accent-color: var(--m-danger); cursor: pointer; flex-shrink: 0;">
+        <span style="font-size: 0.8rem; font-weight: 700; color: var(--m-text); line-height: 1.4;">
+          Bu sınıftaki / şubedeki tüm öğrencileri ve bunlara ait geçmiş kayıtları kalıcı olarak silmek istediğimi onaylıyorum.
+        </span>
+      </label>
+
+      <!-- Aksiyon Butonları -->
+      <div style="display: flex; gap: 10px;">
+        <button type="button" class="m-btn-sm" style="flex: 1; padding: 12px; font-size: 0.85rem; font-weight: 700; border-radius: var(--m-radius-md);" onclick="window.closeBottomSheet()">
+          Vazgeç
+        </button>
+        <button type="button" id="m-btn-execute-delete-all" class="m-btn-sm danger" style="flex: 1.3; padding: 12px; font-size: 0.85rem; font-weight: 800; border-radius: var(--m-radius-md); opacity: 0.45; pointer-events: none; transition: all 0.2s;" onclick="window.executeDeleteAllStudents()">
+          <i data-lucide="trash-2" style="width: 16px; height: 16px; margin-right: 4px;"></i>
+          <span>Tümünü Sil</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- 10.1 Manuel Öğrenci Ekleme Modalı -->
   <div class="bottom-sheet" id="modal-add-student-manual" style="max-height: 85vh; z-index: 1200;">
     <div class="sheet-handle"></div>
@@ -4933,6 +4987,23 @@
     </div>
   </div>
 
+  <!-- ==========================================
+       ÖZEL ONAY & UYARI PENCERESİ (CONFIRM / ALERT)
+       ========================================== -->
+  <div class="custom-confirm-overlay" id="custom-confirm-modal" style="display: none;">
+    <div class="custom-confirm-box">
+      <div class="custom-confirm-icon-wrap danger" id="custom-confirm-icon-wrap">
+        <i data-lucide="alert-triangle" id="custom-confirm-icon" style="width: 32px; height: 32px;"></i>
+      </div>
+      <div class="custom-confirm-title" id="custom-confirm-title">İşlemi Onaylayın</div>
+      <div class="custom-confirm-message" id="custom-confirm-message">Bu işlemi gerçekleştirmek istediğinize emin misiniz?</div>
+      <div class="custom-confirm-actions" id="custom-confirm-actions">
+        <button type="button" class="custom-confirm-btn cancel" id="custom-confirm-cancel-btn" onclick="window.handleCustomConfirmCancel()">Vazgeç</button>
+        <button type="button" class="custom-confirm-btn confirm danger" id="custom-confirm-ok-btn" onclick="window.handleCustomConfirmOk()">Evet, Onayla</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Yazdırma Şablonu (Yalnızca Yazıcı/PDF çıktısında görünür) -->
   <div class="roster-report-print"></div>
   <div class="seating-report-print"></div>
@@ -4946,6 +5017,7 @@
   <script src="js/mammoth.browser.min.js"></script>
   <script src="js/data/meb-curriculum-data.js"></script>
   <!-- Veri Motoru ve Mobil Kontrolcü -->
+  <script src="js/supabase-config.js?v=34"></script>
   <script src="js/license-config.js?v=34"></script>
   <script src="js/state.js?v=34"></script>
   <script src="js/ai-helper.js?v=1"></script>

@@ -415,16 +415,19 @@
   margin: 0;
 }
 
-/* Defter Metin Düzenleyicisi */
+/* Defter Metin Düzenleyicisi - Dinamik Punto ve Çizgi Hizalama Sistemi */
 .notebook-editor-textarea {
+  --nb-font-size: 26pt;
+  --nb-line-height: 48px;
+  --nb-padding-top: 14px;
   flex: 1;
   border: none;
   outline: none;
   resize: none;
-  padding: 20px 20px 44px 65px !important;
+  padding: var(--nb-padding-top, 14px) 20px 48px 65px !important;
   font-family: 'Comic Sans MS', 'Chalkboard SE', 'Comic Neue', sans-serif;
-  font-size: 27pt !important;
-  line-height: 44px !important;
+  font-size: var(--nb-font-size) !important;
+  line-height: var(--nb-line-height) !important;
   color: #1e293b;
   box-sizing: border-box;
   background-color: #ffffff;
@@ -435,6 +438,37 @@
   position: relative;
 }
 
+/* Punto Kademeleri (Harf tabanının satır çizgisine tam oturmasını sağlayan kalibrasyon) */
+.notebook-editor-textarea[data-font-size="small"] {
+  --nb-font-size: 22pt;
+  --nb-line-height: 42px;
+  --nb-padding-top: 13px;
+}
+
+.notebook-editor-textarea[data-font-size="normal"] {
+  --nb-font-size: 26pt;
+  --nb-line-height: 48px;
+  --nb-padding-top: 14px;
+}
+
+.notebook-editor-textarea[data-font-size="medium"] {
+  --nb-font-size: 30pt;
+  --nb-line-height: 54px;
+  --nb-padding-top: 16px;
+}
+
+.notebook-editor-textarea[data-font-size="large"] {
+  --nb-font-size: 34pt;
+  --nb-line-height: 60px;
+  --nb-padding-top: 17px;
+}
+
+.notebook-editor-textarea[data-font-size="xlarge"] {
+  --nb-font-size: 40pt;
+  --nb-line-height: 70px;
+  --nb-padding-top: 20px;
+}
+
 /* Poster sayfası gibi aşağıya doğru genişleyen ferah defter alanı */
 .notebook-editor-textarea::after {
   content: '';
@@ -443,33 +477,35 @@
   pointer-events: none;
 }
 
-/* Editör içindeki HTML elemanlarının satırlara hizalanma sıfırlaması */
+/* Editör içindeki HTML elemanlarının satırlara hizalanma sıfırlaması - Satır kaymasını kesin olarak engeller */
+.notebook-editor-textarea > *,
 .notebook-editor-textarea div,
 .notebook-editor-textarea p {
-  margin: 0;
-  padding: 0;
-  line-height: 44px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  line-height: var(--nb-line-height) !important;
   font-family: inherit;
   font-size: inherit;
-  min-height: 44px;
+  min-height: var(--nb-line-height) !important;
+  box-sizing: border-box !important;
 }
 
-/* Çizgili Defter Stili - WebKitGTK / Pardus Akıllı Tahta & Tüm Tarayıcılar */
+/* Çizgili Defter Stili - Dinamik Satır Yüksekliği ile Tam Oturma */
 .notebook-editor-textarea.lined,
 .notebook-page-body .notebook-editor-textarea.lined {
   background-color: #ffffff;
   background-image: 
     /* Sol Dikey Kırmızı Kenar Çizgisi */
     linear-gradient(to right, transparent 50px, #ef4444 50px, #ef4444 52px, transparent 52px),
-    /* Yatay Açık Mavi Satır Çizgileri */
-    repeating-linear-gradient(to bottom, transparent 0px, transparent 42px, #93c5fd 42px, #93c5fd 44px);
-  background-size: 100% 100%, 100% 44px;
-  background-position: 0 0, 0 14px;
-  background-repeat: no-repeat, repeat;
+    /* Yatay Açık Mavi Satır Çizgileri - Her karoda tam satır altına oturur */
+    linear-gradient(to bottom, transparent calc(var(--nb-line-height) - 2px), #93c5fd calc(var(--nb-line-height) - 2px));
+  background-size: 100% 100%, 100% var(--nb-line-height);
+  background-position: 0 0, 0 0;
+  background-repeat: no-repeat, repeat-y;
   background-attachment: local, local !important;
 }
 
-/* Kareli Defter Stili - WebKitGTK / Pardus Akıllı Tahta & Tüm Tarayıcılar */
+/* Kareli Defter Stili - Dinamik Satır Yüksekliği ile Tam Oturma */
 .notebook-editor-textarea.grid,
 .notebook-page-body .notebook-editor-textarea.grid {
   background-color: #ffffff;
@@ -477,11 +513,11 @@
     /* Sol Dikey Kırmızı Kenar Çizgisi */
     linear-gradient(to right, transparent 50px, #ef4444 50px, #ef4444 52px, transparent 52px),
     /* Yatay Kare Izgara Çizgileri */
-    repeating-linear-gradient(to bottom, transparent 0px, transparent 42px, #cbd5e1 42px, #cbd5e1 44px),
+    linear-gradient(to bottom, transparent calc(var(--nb-line-height) - 2px), #cbd5e1 calc(var(--nb-line-height) - 2px)),
     /* Dikey Kare Izgara Çizgileri */
-    repeating-linear-gradient(to right, transparent 0px, transparent 42px, #cbd5e1 42px, #cbd5e1 44px);
-  background-size: 100% 100%, 100% 44px, 44px 100%;
-  background-position: 0 0, 0 14px, 65px 0;
+    linear-gradient(to right, transparent calc(var(--nb-line-height) - 2px), #cbd5e1 calc(var(--nb-line-height) - 2px));
+  background-size: 100% 100%, 100% var(--nb-line-height), var(--nb-line-height) 100%;
+  background-position: 0 0, 0 0, 65px 0;
   background-repeat: no-repeat, repeat-y, repeat-x;
   background-attachment: local, local, local !important;
 }
@@ -746,23 +782,23 @@
 /* Defter Madde İmi ve Madde Numarası Satır Stilleri */
 .notebook-editor-textarea .notebook-numbered-line {
   padding-left: 0px !important;
-  margin: 0;
-  min-height: 44px;
-  line-height: inherit;
+  margin: 0 !important;
+  min-height: var(--nb-line-height) !important;
+  line-height: var(--nb-line-height) !important;
 }
 
 .notebook-editor-textarea .notebook-bullet-line {
   padding-left: 32px !important; /* Madde imi satıra madde numarasından biraz daha içeri girerek eklenir */
-  margin: 0;
-  min-height: 44px;
-  line-height: inherit;
+  margin: 0 !important;
+  min-height: var(--nb-line-height) !important;
+  line-height: var(--nb-line-height) !important;
 }
 
 .notebook-editor-textarea .notebook-item-marker {
   font-weight: bold;
   display: inline-block;
   margin-right: 6px;
-  line-height: inherit;
+  line-height: var(--nb-line-height) !important;
 }
 
 /* Yapışkan Not Seçenekleri */
@@ -791,13 +827,13 @@
   width: 100%;
   box-sizing: border-box !important;
   margin: 0 !important;
-  padding: 22px 36px 22px 54px !important;
-  min-height: 88px !important; /* Tam 2 satır: 2 x 44px */
+  padding: calc(var(--nb-line-height, 48px) * 0.4) 36px calc(var(--nb-line-height, 48px) * 0.4) 54px !important;
+  min-height: calc(var(--nb-line-height, 48px) * 2) !important;
   border-radius: 4px;
   position: relative;
   font-family: inherit;
-  font-size: 21pt !important; /* Ana editörün 27pt puntosuna oranla dengeli */
-  line-height: 44px !important;
+  font-size: calc(var(--nb-font-size, 26pt) * 0.8) !important;
+  line-height: var(--nb-line-height, 48px) !important;
   box-shadow: var(--shadow-sm);
   transition: box-shadow var(--transition-fast);
 }
@@ -809,7 +845,7 @@
 .sticky-note-icon-container {
   position: absolute;
   left: 18px;
-  top: 32px; /* 44px ilk satır yüksekliğinin tam dikey orta noktası (22px + 10px) */
+  top: calc(var(--nb-line-height, 48px) * 0.65);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -819,9 +855,9 @@
 
 .sticky-note-content {
   outline: none;
-  min-height: 44px;
+  min-height: var(--nb-line-height, 48px);
   width: 100%;
-  line-height: 44px !important;
+  line-height: var(--nb-line-height, 48px) !important;
   font-family: inherit;
   font-size: inherit;
   word-break: break-word;
@@ -831,8 +867,8 @@
 .sticky-note-content p {
   margin: 0 !important;
   padding: 0 !important;
-  line-height: 44px !important;
-  min-height: 44px !important;
+  line-height: var(--nb-line-height, 48px) !important;
+  min-height: var(--nb-line-height, 48px) !important;
 }
 
 /* Yapışkan Not Renk Temaları */
@@ -884,20 +920,20 @@
 /* Defter Editöründeki Liste Öğeleri Hizalaması */
 .notebook-editor-textarea ul,
 .notebook-editor-textarea ol {
-  margin: 0;
-  padding-left: 45px; /* Sol kenar boşluğu ile uyumlu girinti */
-  line-height: inherit;
+  margin: 0 !important;
+  padding: 0 0 0 45px !important; /* Sol kenar boşluğu ile uyumlu girinti */
+  line-height: var(--nb-line-height) !important;
   font-family: inherit;
   font-size: inherit;
 }
 
 .notebook-editor-textarea li {
-  margin: 0;
-  padding: 0;
-  line-height: 44px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  line-height: var(--nb-line-height) !important;
   font-family: inherit;
   font-size: inherit;
-  min-height: 44px;
+  min-height: var(--nb-line-height) !important;
 }
 
 /* Görsel Sildiğimiz Butonlu Wrapper */
@@ -1163,6 +1199,68 @@
     color: #000000 !important;
   }
 }
+
+/* ==========================================================================
+   Tam Ekran Defter Modalları Z-Index Düzeltmesi
+   (Tam ekran kartı z-index: 1050 olduğu için modalların üzerinde açılması sağlanır)
+   ========================================================================== */
+#modal-table,
+#modal-sticky-note,
+#modal-notebook,
+#modal-timer,
+#modal-quick-caller,
+#modal-flow-info,
+#modal-quick-give-point,
+#modal-custom-alert,
+#modal-custom-confirm {
+  z-index: 2500 !important;
+}
+
+/* ==========================================================================
+   Defter Yazı Puntosu Seçici Stilleri (Hem Normal Hem Tam Ekran Araç Çubuğu)
+   ========================================================================== */
+.notebook-font-size-wrapper {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  background: var(--bg-primary, #f8fafc);
+  border: 1px solid var(--border-color, #e2e8f0);
+  border-radius: var(--radius-sm, 6px);
+  padding: 2px;
+}
+
+.notebook-font-size-select {
+  height: 28px;
+  border: none;
+  background: transparent;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-primary, #1e293b);
+  padding: 0 4px;
+  border-radius: 4px;
+  cursor: pointer;
+  outline: none;
+}
+
+.notebook-font-size-select:focus {
+  background: var(--bg-secondary, #ffffff);
+}
+
+.notebook-font-size-wrapper button {
+  height: 28px;
+  min-width: 28px;
+  padding: 0 4px;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fullscreen-font-wrapper {
+  background: rgba(255, 255, 255, 0.9);
+  border-color: var(--border-color, #cbd5e1);
+}
+
 
 
 

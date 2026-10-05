@@ -700,7 +700,8 @@
     const type = contribTypeMoney.checked ? 'money' : 'material';
     const targetAmount = Number(contribInputAmount.value) || 0;
     const materialUnit = (contribInputMaterial.value || '').trim() || '1 Adet';
-    const dueDate = contribInputDueDate.value || '';
+    const dueDateRaw = contribInputDueDate.value || '';
+    const dueDate = window.toISODate ? window.toISODate(dueDateRaw) : dueDateRaw;
     const description = (contribInputDescription.value || '').trim();
     const editId = contribEditId.value;
 

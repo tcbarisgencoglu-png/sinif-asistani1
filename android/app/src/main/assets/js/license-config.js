@@ -188,8 +188,10 @@
   // Supabase API istek yardımcı fonksiyonu
   async function supabaseRequest(method, path, body = null) {
     if (!window.SupabaseConfig) {
-      console.error("Supabase Config is missing.");
-      return null;
+      window.SupabaseConfig = {
+        url: 'https://tzwewboqhjsmoezriadg.supabase.co',
+        anonKey: 'sb_publishable_FVth3wbbG-2XZiJmpO0-rw_mNiU0_Ci'
+      };
     }
     const url = `${window.SupabaseConfig.url}/rest/v1/${path}`;
     const headers = {
@@ -765,11 +767,14 @@
   function checkLicenseStatus() {
     const savedKey = localStorage.getItem(STORAGE_KEY);
     const verification = verifyLicenseKey(savedKey);
+    const devIdSync = localStorage.getItem('sinif_asistani_device_uuid') || '';
     
     window.LicenseConfig = {
       isDemo: !verification.isValid,
+      isLicensed: !!verification.isValid,
       licensee: verification.isValid ? verification.licensee : '',
       expiryDate: verification.isValid ? verification.expiryDate : '',
+      deviceId: devIdSync,
       studentLimit: 5,
       planLimit: 2,
       bookLimit: 10,
@@ -779,6 +784,10 @@
       verifyLicenseKey: verifyLicenseKey,
       generateSignature: generateSignature,
       encodeUtf8Base64: encodeUtf8Base64,
+      checkLicenseStatus: checkLicenseStatus,
+      activateLicense: async (key) => {
+        return await window.LicenseConfig.saveLicense(key);
+      },
       saveLicense: async (key) => {
         // 1. Yerel imza doğrulaması
         const localCheck = verifyLicenseKey(key);
@@ -788,30 +797,22 @@
         
         // 2. Cihaz ID ve Supabase doğrulaması
         const devId = await getDeviceId();
-        const data = await supabaseRequest('GET', `licenses?license_key=eq.${encodeURIComponent(key)}&select=*`);
-        
-        if (!data) {
-          return { success: false, reason: 'Aktivasyon için internet bağlantısı gereklidir!' };
-        }
-        if (data.length === 0) {
-          return { success: false, reason: 'Geçersiz ürün anahtarı! (Bulut veritabanında bulunamadı)' };
-        }
-        
-        const dbLicense = data[0];
-        
-        // Cihaz eşleştirme mantığı
-        if (!dbLicense.device_id) {
-          // İlk aktivasyon: Cihazı kilitle
-          const update = await supabaseRequest('PATCH', `licenses?license_key=eq.${encodeURIComponent(key)}`, {
-            device_id: devId,
-            activated_at: new Date().toISOString()
-          });
-          if (!update) {
-            return { success: false, reason: 'Cihaz kilitleme işlemi veritabanına kaydedilemedi!' };
+        try {
+          const data = await supabaseRequest('GET', `licenses?license_key=eq.${encodeURIComponent(key)}&select=*`);
+          if (data && data.length > 0) {
+            const dbLicense = data[0];
+            // Cihaz eşleştirme mantığı
+            if (!dbLicense.device_id) {
+              await supabaseRequest('PATCH', `licenses?license_key=eq.${encodeURIComponent(key)}`, {
+                device_id: devId,
+                activated_at: new Date().toISOString()
+              });
+            } else if (dbLicense.device_id !== devId) {
+              return { success: false, reason: 'Bu ürün anahtarı zaten başka bir cihazda aktif edilmiştir!' };
+            }
           }
-        } else if (dbLicense.device_id !== devId) {
-          // Zaten başka bir cihaza kilitli!
-          return { success: false, reason: 'Bu ürün anahtarı zaten başka bir bilgisayarda aktif edilmiştir!' };
+        } catch (cloudErr) {
+          console.warn("Supabase lisans doğrulama ağ uyarısı, yerel imza ile devam ediliyor:", cloudErr);
         }
         
         // 3. Başarılı: Yerel depolamaya kaydet ve durumu güncelle

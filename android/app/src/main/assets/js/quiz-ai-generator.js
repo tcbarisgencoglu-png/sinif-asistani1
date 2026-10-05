@@ -660,23 +660,23 @@
     let tipAciklama = "";
     if (_activeGameMode === "treasure") {
       if (soruTipi === "karisik") {
-        tipAciklama = `Soruların yaklaşık üçte biri Çoktan Seçmeli (mc - 4 şık), üçte biri Boşluk Doldurma (fib - [___] boşluklu), üçte biri Açık Uçlu (open - düşünmeye sevk eden soru ve model cevap) türünde olsun. Doğru/Yanlış sorusu kesinlikle üretme.`;
+        tipAciklama = `Soruların yaklaşık üçte biri Çoktan Seçmeli (mc - 4 şık), üçte biri Boşluk Doldurma (fib - [___] boşluklu ve 4 seçenekli), üçte biri Açık Uçlu (open - düşünmeye sevk eden soru ve model cevap) türünde olsun. Doğru/Yanlış sorusu kesinlikle üretme.`;
       } else if (soruTipi === "mc") {
         tipAciklama = `Tüm sorular Çoktan Seçmeli (mc), 4 şık olsun.`;
       } else if (soruTipi === "fib") {
-        tipAciklama = `Tüm sorular Boşluk Doldurma (fib) türünde olsun. Cümle içindeki boşluğu [___] ile göster.`;
+        tipAciklama = `Tüm sorular Boşluk Doldurma (fib) türünde olsun. Cümle içindeki boşluğu [___] ile göster ve seçeneklerde 1 doğru kelime ile 3 mantıklı çeldirici olmak üzere tam 4 seçenek sun.`;
       } else if (soruTipi === "open") {
         tipAciklama = `Tüm sorular Açık Uçlu (open) türünde olsun. Düşünmeye, kavramları açıklamaya yönelik açık uçlu sorular ve beklenen doğru/örnek cevaplar olsun.`;
       }
     } else {
       if (soruTipi === "karisik") {
-        tipAciklama = `Soruların yaklaşık üçte biri Doğru/Yanlış (tf), üçte biri Çoktan Seçmeli (mc), üçte biri Boşluk Doldurma (fib) türünde olsun.`;
+        tipAciklama = `Soruların yaklaşık üçte biri Doğru/Yanlış (tf), üçte biri Çoktan Seçmeli (mc - 4 şık), üçte biri Boşluk Doldurma (fib - [___] boşluklu ve 4 seçenekli) türünde olsun.`;
       } else if (soruTipi === "tf") {
         tipAciklama = `Tüm sorular Doğru/Yanlış (tf) türünde olsun.`;
       } else if (soruTipi === "mc") {
         tipAciklama = `Tüm sorular Çoktan Seçmeli (mc), 4 şık olsun.`;
       } else if (soruTipi === "fib") {
-        tipAciklama = `Tüm sorular Boşluk Doldurma (fib) türünde olsun. Cümle içindeki boşluğu [___] ile göster.`;
+        tipAciklama = `Tüm sorular Boşluk Doldurma (fib) türünde olsun. Cümle içindeki boşluğu [___] ile göster ve seçeneklerde 1 doğru kelime ile 3 mantıklı çeldirici olmak üzere tam 4 seçenek sun.`;
       }
     }
 
@@ -728,7 +728,8 @@ Doğru/Yanlış (tf):
 (answer: doğru şıkkın 0 tabanlı indeksi)
 
 Boşluk Doldurma (fib):
-{ "type": "fib", "text": "Cümlede [___] var.", "options": ["doğru kelime"], "answer": "doğru kelime", "explanation": "..." }
+{ "type": "fib", "text": "Cümledeki boşluk [___] olarak yazılmalı (örn: Ekonomik değer taşıyan ve kayaçların içinden çıkarılan minerallere [___] denir).", "options": ["Kayaç", "Maden", "Fosil", "Toprak"], "answer": 1, "explanation": "Kısa açıklama" }
+(ÖNEMLİ: Boşluk doldurma (fib) soruları için "options" dizisinde 1 adet doğru kelime ve 3 adet mantıklı çeldirici kelime olmak üzere MUTLAKA 4 SEÇENEK bulunmalıdır. "answer" ise doğru kelimenin seçenekler dizisindeki 0 tabanlı indeks numarası (0, 1, 2 veya 3) olmalıdır.)
 
 Açık Uçlu (open):
 { "type": "open", "text": "Soru metni?", "answer": "Model/örnek doğru cevap", "explanation": "İpucu veya açıklama" }
@@ -756,6 +757,7 @@ Açık Uçlu (open):
         temperature: 0.5,
       });
       rawText = typeof response === "string" ? response : (response?.text || "");
+    } catch (err) {
       if (err.message === "NO_API_KEY") {
         if (typeof window.showGeminiKeyRequiredModal === "function") {
           window.showGeminiKeyRequiredModal({
@@ -763,8 +765,8 @@ Açık Uçlu (open):
             description: "Müfredat ve kazanımlara uygun soruları yapay zekaya hazırlatabilmek için Google Gemini bağlantısı gereklidir.",
             confirmText: "Kaydet ve Soru Üret",
             onSuccess: () => {
-              if (window.generateQuestionsFromModal) {
-                window.generateQuestionsFromModal();
+              if (window.startQuizAIGeneration) {
+                window.startQuizAIGeneration();
               }
             }
           });
@@ -818,8 +820,38 @@ Açık Uçlu (open):
           base.options = Array.isArray(q.options) ? q.options : ["", "", "", ""];
           base.answer = typeof q.answer === "number" ? q.answer : 0;
         } else if (q.type === "fib") {
-          base.options = Array.isArray(q.options) ? q.options : (typeof q.answer === "string" ? [q.answer] : [""]);
-          base.answer = typeof q.answer === "string" ? q.answer : (base.options[0] || "");
+          let opts = Array.isArray(q.options)
+            ? q.options.map(o => String(o).trim()).filter(Boolean)
+            : [];
+          let ansIdx = 0;
+
+          if (typeof q.answer === "number" && q.answer >= 0 && q.answer < opts.length) {
+            ansIdx = q.answer;
+          } else if (typeof q.answer === "string" && q.answer.trim()) {
+            const cleanAns = q.answer.trim();
+            const foundIdx = opts.findIndex(o => o.toLowerCase() === cleanAns.toLowerCase());
+            if (foundIdx !== -1) {
+              ansIdx = foundIdx;
+            } else {
+              opts.unshift(cleanAns);
+              ansIdx = 0;
+            }
+          }
+
+          // Eğer yapay zeka 4'ten az seçenek ürettiyse (örneğin sadece 1 seçenek verdiyse)
+          // sorunun oyunda tek şıklı kalmaması için mantıklı çeldiriciler ekle
+          if (opts.length < 4) {
+            const defaultDistractors = ["Diğer", "Hiçbiri", "Farklı", "Belirsiz"];
+            for (const d of defaultDistractors) {
+              if (opts.length >= 4) break;
+              if (!opts.some(o => o.toLowerCase() === d.toLowerCase())) {
+                opts.push(d);
+              }
+            }
+          }
+
+          base.options = opts;
+          base.answer = ansIdx;
         } else if (q.type === "open") {
           base.answer = typeof q.answer === "string" ? q.answer : (typeof q.answer === "object" ? JSON.stringify(q.answer) : String(q.answer || ""));
         }
@@ -863,7 +895,13 @@ Açık Uçlu (open):
           })
           .join("");
       } else if (q.type === "fib" && Array.isArray(q.options)) {
-        answerHtml = `<span class="ai-answer-badge ai-answer-fib">✓ ${escH(q.options[0] || q.answer || "")}</span>`;
+        const correctIdx = typeof q.answer === "number" ? q.answer : 0;
+        answerHtml = q.options
+          .map((opt, i) => {
+            const correct = i === correctIdx;
+            return `<span class="ai-option ${correct ? "ai-option-correct" : ""}">${correct ? "✓ " : ""}${escH(opt)}</span>`;
+          })
+          .join("");
       } else if (q.type === "open") {
         answerHtml = `<span class="ai-answer-badge" style="background: rgba(245, 158, 11, 0.15); color: #d97706; border-color: rgba(245, 158, 11, 0.3);">💬 Model Cevap: ${escH(q.answer || "")}</span>`;
       }
@@ -931,7 +969,7 @@ Açık Uçlu (open):
       return;
     }
 
-    const btn = document.getElementById("btn-ai-generate");
+    const btn = document.getElementById("btn-ai-generate-form") || document.getElementById("btn-ai-generate");
     const btnSave = document.getElementById("btn-ai-save-to-pool");
     const spinner = document.getElementById("ai-gen-spinner");
 
@@ -961,7 +999,11 @@ Açık Uçlu (open):
     } catch (err) {
       alert("Soru üretilirken hata oluştu:\n" + err.message);
     } finally {
-      if (btn) { btn.disabled = false; btn.textContent = "✨ Soruları Üret"; }
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = '<i data-lucide="sparkles" style="width:16px;height:16px;"></i> Soruları Üret';
+        if (window.safeCreateIcons) window.safeCreateIcons();
+      }
       if (spinner) spinner.style.display = "none";
     }
   };

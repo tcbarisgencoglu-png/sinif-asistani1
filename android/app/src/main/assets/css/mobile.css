@@ -6606,6 +6606,378 @@ body {
   transition: width 0.4s ease;
 }
 
+/* ==========================================================================
+   ÖZELLEŞTİRİLMİŞ MODERN UYARI & ONAY PENCERESİ (CONFIRM MODAL)
+   ========================================================================== */
+.custom-confirm-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 999999;
+  background: rgba(15, 23, 42, 0.72);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.25rem;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.22s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.22s;
+}
+
+.custom-confirm-overlay.active {
+  opacity: 1;
+  visibility: visible;
+}
+
+.custom-confirm-box {
+  background: var(--m-surface, #ffffff);
+  border: 1px solid var(--m-border, rgba(226, 232, 240, 0.8));
+  border-radius: 24px;
+  width: 100%;
+  max-width: 400px;
+  padding: 1.75rem 1.4rem 1.35rem 1.4rem;
+  text-align: center;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.38), 0 0 0 1px rgba(255, 255, 255, 0.08);
+  transform: scale(0.9) translateY(12px);
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  box-sizing: border-box;
+}
+
+.custom-confirm-overlay.active .custom-confirm-box {
+  transform: scale(1) translateY(0);
+}
+
+.custom-confirm-icon-wrap {
+  width: 68px;
+  height: 68px;
+  margin: 0 auto 1.15rem auto;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.custom-confirm-icon-wrap.danger {
+  background: rgba(239, 68, 68, 0.12);
+  color: #ef4444;
+  border: 2px solid rgba(239, 68, 68, 0.32);
+  box-shadow: 0 0 24px rgba(239, 68, 68, 0.22);
+}
+
+.custom-confirm-icon-wrap.warning {
+  background: rgba(245, 158, 11, 0.12);
+  color: #f59e0b;
+  border: 2px solid rgba(245, 158, 11, 0.32);
+  box-shadow: 0 0 24px rgba(245, 158, 11, 0.22);
+}
+
+.custom-confirm-icon-wrap.info {
+  background: rgba(99, 102, 241, 0.12);
+  color: #6366f1;
+  border: 2px solid rgba(99, 102, 241, 0.32);
+  box-shadow: 0 0 24px rgba(99, 102, 241, 0.22);
+}
+
+.custom-confirm-icon-wrap.success {
+  background: rgba(16, 185, 129, 0.12);
+  color: #10b981;
+  border: 2px solid rgba(16, 185, 129, 0.32);
+  box-shadow: 0 0 24px rgba(16, 185, 129, 0.22);
+}
+
+.custom-confirm-title {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--m-text, #0f172a);
+  margin-bottom: 0.55rem;
+  line-height: 1.35;
+}
+
+.custom-confirm-message {
+  font-size: 0.92rem;
+  color: var(--m-text-muted, #64748b);
+  line-height: 1.55;
+  margin-bottom: 1.45rem;
+  white-space: pre-line;
+  word-break: break-word;
+}
+
+.custom-confirm-actions {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+}
+
+.custom-confirm-btn {
+  flex: 1;
+  height: 44px;
+  border-radius: 13px;
+  font-size: 0.92rem;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+  border: none;
+}
+
+.custom-confirm-btn.cancel {
+  background: var(--m-bg, #f1f5f9);
+  color: var(--m-text, #334155);
+  border: 1px solid var(--m-border, #cbd5e1);
+}
+
+.custom-confirm-btn.cancel:active {
+  background: var(--m-border, #cbd5e1);
+  transform: scale(0.97);
+}
+
+.custom-confirm-btn.confirm.danger {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  color: #ffffff;
+  box-shadow: 0 4px 14px rgba(239, 68, 68, 0.35);
+}
+
+.custom-confirm-btn.confirm.danger:active {
+  transform: scale(0.97);
+  box-shadow: 0 2px 6px rgba(239, 68, 68, 0.25);
+}
+
+.custom-confirm-btn.confirm.primary {
+  background: linear-gradient(135deg, #4f46e5, #6366f1);
+  color: #ffffff;
+  box-shadow: 0 4px 14px rgba(79, 70, 229, 0.35);
+}
+
+.custom-confirm-btn.confirm.primary:active {
+  transform: scale(0.97);
+}
+
+/* ==========================================================================
+   AYLIK VE YILLIK PERFORMANS SIRALAMA LİSTESİ (LEADERBOARD)
+   ========================================================================== */
+.perf-rank-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.perf-leaderboard-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--m-surface);
+  border: 1px solid var(--m-border);
+  border-radius: 14px;
+  padding: 10px 14px;
+  margin-bottom: 4px;
+  box-shadow: var(--m-shadow-sm);
+}
+
+.perf-leaderboard-summary-title {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.88rem;
+  font-weight: 800;
+  color: var(--m-text);
+}
+
+.perf-leaderboard-summary-badges {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.perf-summary-chip {
+  padding: 3px 8px;
+  border-radius: 8px;
+  background: var(--m-bg);
+  border: 1px solid var(--m-border);
+  color: var(--m-text-muted);
+}
+
+.perf-summary-chip strong {
+  color: var(--m-primary);
+}
+
+.perf-rank-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--m-surface);
+  border: 1px solid var(--m-border);
+  border-radius: 14px;
+  padding: 9px 12px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  position: relative;
+  box-shadow: var(--m-shadow-sm);
+}
+
+.perf-rank-item:active {
+  transform: scale(0.985);
+  border-color: var(--m-primary);
+}
+
+/* İlk 3 Podyum Stilleri */
+.perf-rank-item.top-1 {
+  border: 1.5px solid rgba(245, 158, 11, 0.5);
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.08), var(--m-surface) 60%);
+}
+
+.perf-rank-item.top-2 {
+  border: 1.5px solid rgba(148, 163, 184, 0.55);
+  background: linear-gradient(135deg, rgba(148, 163, 184, 0.08), var(--m-surface) 60%);
+}
+
+.perf-rank-item.top-3 {
+  border: 1.5px solid rgba(217, 119, 6, 0.45);
+  background: linear-gradient(135deg, rgba(217, 119, 6, 0.07), var(--m-surface) 60%);
+}
+
+.perf-rank-pos-col {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 38px;
+  flex-shrink: 0;
+}
+
+.perf-rank-medal-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 0.95rem;
+  padding: 3px 6px;
+  border-radius: 10px;
+  line-height: 1;
+}
+
+.perf-rank-num-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: var(--m-text-muted);
+  background: var(--m-bg);
+  border: 1px solid var(--m-border);
+  min-width: 30px;
+  height: 26px;
+  padding: 0 4px;
+  border-radius: 8px;
+}
+
+.perf-rank-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 0.95rem;
+  flex-shrink: 0;
+  color: #fff;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+  overflow: hidden;
+}
+
+.perf-rank-avatar.crown-1 {
+  border: 2px solid #f59e0b;
+  box-shadow: 0 0 10px rgba(245, 158, 11, 0.35);
+}
+
+.perf-rank-avatar.crown-2 {
+  border: 2px solid #94a3b8;
+  box-shadow: 0 0 8px rgba(148, 163, 184, 0.3);
+}
+
+.perf-rank-avatar.crown-3 {
+  border: 2px solid #d97706;
+  box-shadow: 0 0 8px rgba(217, 119, 6, 0.25);
+}
+
+.perf-rank-info-col {
+  flex: 1;
+  min-width: 0;
+}
+
+.perf-rank-name {
+  font-size: 0.92rem;
+  font-weight: 800;
+  color: var(--m-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.25;
+}
+
+.perf-rank-sub {
+  font-size: 0.73rem;
+  color: var(--m-text-muted);
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.perf-rank-score-col {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.perf-rank-score-badge {
+  font-size: 0.88rem;
+  font-weight: 800;
+  padding: 5px 11px;
+  border-radius: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  letter-spacing: -0.2px;
+}
+
+.perf-rank-score-badge.positive {
+  background: rgba(16, 185, 129, 0.12);
+  color: var(--m-success);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.perf-rank-score-badge.negative {
+  background: rgba(239, 68, 68, 0.12);
+  color: var(--m-danger);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.perf-rank-score-badge.zero {
+  background: var(--m-bg);
+  color: var(--m-text-muted);
+  border: 1px solid var(--m-border);
+}
+
+.perf-rank-arrow {
+  color: var(--m-text-muted);
+  opacity: 0.45;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+
 
 
 

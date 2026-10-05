@@ -137,7 +137,8 @@ function sendToWhatsApp(hw, dayName) {
 function updateSendPreview() {
   const title = hwSendTitleInput ? hwSendTitleInput.value.trim() : '';
   const desc = hwSendDescInput ? hwSendDescInput.value.trim() : '';
-  const due = hwSendDueInput ? hwSendDueInput.value : '';
+  const dueRaw = hwSendDueInput ? hwSendDueInput.value : '';
+  const due = window.toISODate ? window.toISODate(dueRaw) : dueRaw;
   const dayName = hwSendDaynameInput ? hwSendDaynameInput.value : '';
 
   if (!title || !due) {
@@ -187,7 +188,8 @@ function saveHomeworkFromSendModal(sendToWA) {
   const dayName = hwSendDaynameInput ? hwSendDaynameInput.value : '';
   const title = hwSendTitleInput ? hwSendTitleInput.value.trim() : '';
   const desc = hwSendDescInput ? hwSendDescInput.value.trim() : '';
-  const due = hwSendDueInput ? hwSendDueInput.value : '';
+  const dueRaw = hwSendDueInput ? hwSendDueInput.value : '';
+  const due = window.toISODate ? window.toISODate(dueRaw) : dueRaw;
 
   if (!title || !due) {
     if (toastCallback) toastCallback('Lütfen ödev konusu ve son teslim tarihini girin.', 'warning');
@@ -426,7 +428,10 @@ function setupHomeworkTab(showToast) {
       return;
     }
 
-    if (startVal > endVal) {
+    const startIso = window.toISODate ? window.toISODate(startVal) : startVal;
+    const endIso = window.toISODate ? window.toISODate(endVal) : endVal;
+
+    if (startIso > endIso) {
       if (toastCallback) toastCallback('Başlangıç tarihi bitiş tarihinden sonra olamaz!', 'warning');
       return;
     }
@@ -436,7 +441,7 @@ function setupHomeworkTab(showToast) {
     const branchFilter = selectBranch ? selectBranch.value : 'all';
 
     const filteredHws = state.homeworks.filter(hw => {
-      const matchDate = hw.dueDate >= startVal && hw.dueDate <= endVal;
+      const matchDate = hw.dueDate >= startIso && hw.dueDate <= endIso;
       const matchBranch = state.educationLevel === 'primary' || branchFilter === 'all' || hw.branch === branchFilter;
       return matchDate && matchBranch;
     });
@@ -617,7 +622,7 @@ function setupHomeworkTab(showToast) {
     const hwData = {
       title: homeworkTitleInput.value.trim(),
       description: homeworkDescInput.value.trim(),
-      dueDate: homeworkDueInput.value
+      dueDate: window.toISODate ? window.toISODate(homeworkDueInput.value) : homeworkDueInput.value
     };
 
     if (id) {

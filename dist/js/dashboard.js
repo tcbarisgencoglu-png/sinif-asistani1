@@ -2965,7 +2965,7 @@ function updateFlowContent(syncWithRealTime = true) {
     const dateInput = document.getElementById('attendance-date');
     if (!listContainer || !dateInput) return;
     
-    const selectedDate = dateInput.value;
+    const selectedDate = window.toISODate ? window.toISODate(dateInput.value) : dateInput.value;
     listContainer.innerHTML = '';
     
     const state = stateManager.loadState();

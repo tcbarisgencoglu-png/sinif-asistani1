@@ -24,6 +24,7 @@
   <link rel="stylesheet" href="css/tools.css?v=30">
   <link rel="stylesheet" href="css/exam-analysis.css?v=30">
   <link rel="stylesheet" href="css/notebooks.css?v=30">
+  <link rel="stylesheet" href="css/datepicker.css?v=1">
   
   <!-- Lucide İkon Kütüphanesi -->
   <script src="js/lucide.min.js"></script>
@@ -660,9 +661,9 @@
           <div class="hw-report-container" style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
             <span style="font-size: 0.85rem; font-weight: 600; color: var(--text-secondary);">Tarih Aralığı Ödev Raporu:</span>
             <div class="hw-report-dates-wrapper" style="display: flex; align-items: center; gap: 0.5rem;">
-              <input type="date" class="form-control" id="hw-report-start" style="width: 140px; padding: 0.35rem 0.75rem; font-size: 0.85rem; height: 35px;">
+              <input type="text" class="form-control" id="hw-report-start" data-datepicker="true" placeholder="GG.AA.YYYY" style="width: 140px; padding: 0.35rem 0.75rem; font-size: 0.85rem; height: 35px;">
               <span style="color: var(--text-muted); font-size: 0.85rem;">-</span>
-              <input type="date" class="form-control" id="hw-report-end" style="width: 140px; padding: 0.35rem 0.75rem; font-size: 0.85rem; height: 35px;">
+              <input type="text" class="form-control" id="hw-report-end" data-datepicker="true" placeholder="GG.AA.YYYY" style="width: 140px; padding: 0.35rem 0.75rem; font-size: 0.85rem; height: 35px;">
             </div>
             <button class="btn btn-secondary" id="btn-generate-hw-report" style="padding: 0.35rem 0.75rem; font-size: 0.85rem; height: 35px; display: flex; align-items: center; gap: 0.25rem;">
               <i data-lucide="file-text" style="width: 14px; height: 14px;"></i> Rapor Oluştur
@@ -909,6 +910,11 @@
                       <div class="mode-card-title">Boşluk Doldurma</div>
                       <div class="mode-card-desc">Seçenekleri sürükleyip boşluğa yerleştirerek cümleyi tamamlama oyunu.</div>
                     </div>
+                    <div class="mode-card" id="setup-mode-all">
+                      <div class="mode-card-icon">🎲</div>
+                      <div class="mode-card-title">Karışık (Tümü)</div>
+                      <div class="mode-card-desc">Paketteki tüm soru türlerini (D/Y, Ç.S., Boşluk Doldurma) sırayla oynatır.</div>
+                    </div>
                   </div>
                 </div>
                 
@@ -918,6 +924,7 @@
                   <select id="setup-category" class="form-control" style="width: 100%; max-width: 300px;">
                     <option value="all">Tüm Kategoriler</option>
                   </select>
+                  <div id="setup-category-stats" style="margin-top: 0.6rem; font-size: 0.84rem; color: var(--text-secondary);"></div>
                 </div>
 
                 <!-- Active Class / Student Roster Info -->
@@ -3572,11 +3579,11 @@
               <!-- Tarih Aralığı -->
               <div class="form-group">
                 <label style="font-weight: 600; font-size: 0.85rem;">Nöbet Başlangıç Tarihi</label>
-                <input type="date" id="roster-start-date" class="form-control" style="width: 100%;">
+                <input type="text" id="roster-start-date" class="form-control" data-datepicker="true" placeholder="GG.AA.YYYY" style="width: 100%;">
               </div>
               <div class="form-group">
                 <label style="font-weight: 600; font-size: 0.85rem;">Nöbet Bitiş Tarihi</label>
-                <input type="date" id="roster-end-date" class="form-control" style="width: 100%;">
+                <input type="text" id="roster-end-date" class="form-control" data-datepicker="true" placeholder="GG.AA.YYYY" style="width: 100%;">
               </div>
 
               <!-- Hafta Sonu Ayarı -->
@@ -3605,7 +3612,7 @@
               <div class="form-group" style="display: flex; flex-direction: column; gap: 0.5rem;">
                 <label style="font-weight: 600; font-size: 0.85rem;">Tatil / İdari İzinli Günler</label>
                 <div style="display: flex; gap: 0.5rem;">
-                  <input type="date" id="roster-holiday-input" class="form-control" style="flex: 1; padding: 0.35rem 0.5rem; font-size: 0.85rem; height: 35px;">
+                  <input type="text" id="roster-holiday-input" class="form-control" data-datepicker="true" placeholder="GG.AA.YYYY" style="flex: 1; padding: 0.35rem 0.5rem; font-size: 0.85rem; height: 35px;">
                   <button type="button" class="btn btn-secondary" id="btn-add-holiday" style="padding: 0.35rem 0.75rem; font-size: 0.85rem; height: 35px; white-space: nowrap;">Ekle</button>
                 </div>
                 <div id="roster-holidays-list" style="display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.25rem; max-height: 120px; overflow-y: auto;">
@@ -4663,6 +4670,23 @@
                 </div>
               </div>
 
+              <!-- Punto Seçici (Font Size Selector) -->
+              <div class="notebook-font-size-wrapper" title="Yazı Puntosu">
+                <button type="button" class="btn btn-sm btn-outline-secondary" id="btn-font-decrease" title="Puntoyu Küçült (A-)">
+                  <span style="font-weight: 700; font-size: 0.8rem;">A−</span>
+                </button>
+                <select id="notebook-font-size-select" class="notebook-font-size-select" title="Yazı Boyutu">
+                  <option value="small">22 pt (Küçük)</option>
+                  <option value="normal" selected>26 pt (Standart)</option>
+                  <option value="medium">30 pt (Orta)</option>
+                  <option value="large">34 pt (Büyük)</option>
+                  <option value="xlarge">40 pt (Çok Büyük)</option>
+                </select>
+                <button type="button" class="btn btn-sm btn-outline-secondary" id="btn-font-increase" title="Puntoyu Büyüt (A+)">
+                  <span style="font-weight: 700; font-size: 0.8rem;">A+</span>
+                </button>
+              </div>
+
               <button class="btn btn-sm btn-outline-primary" id="btn-fullscreen-notebook" style="display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; padding: 0;" title="Tam Ekran Modu">
                 <i data-lucide="maximize" style="width: 16px; height: 16px;"></i>
               </button>
@@ -4713,7 +4737,24 @@
                       </span>
                     </div>
                   </div>
-                  <div class="fullscreen-actions" style="display: flex; gap: 0.5rem; position: relative; z-index: 60;">
+                  <div class="fullscreen-actions" style="display: flex; gap: 0.5rem; position: relative; z-index: 60; align-items: center;">
+                    <!-- Punto Seçici (Tam Ekran) -->
+                    <div class="notebook-font-size-wrapper fullscreen-font-wrapper" title="Yazı Puntosu" style="display: inline-flex; align-items: center; gap: 2px;">
+                      <button type="button" class="btn btn-sm btn-outline-secondary" id="btn-fullscreen-font-decrease" style="display: flex; align-items: center; justify-content: center; width: 30px; height: 32px; padding: 0;" title="Puntoyu Küçült (A-)">
+                        <span style="font-weight: 700; font-size: 0.8rem;">A−</span>
+                      </button>
+                      <select id="notebook-fullscreen-font-size-select" class="notebook-font-size-select" title="Yazı Boyutu" style="height: 32px; font-size: 0.82rem; padding: 2px 6px;">
+                        <option value="small">22 pt (Küçük)</option>
+                        <option value="normal" selected>26 pt (Standart)</option>
+                        <option value="medium">30 pt (Orta)</option>
+                        <option value="large">34 pt (Büyük)</option>
+                        <option value="xlarge">40 pt (Çok Büyük)</option>
+                      </select>
+                      <button type="button" class="btn btn-sm btn-outline-secondary" id="btn-fullscreen-font-increase" style="display: flex; align-items: center; justify-content: center; width: 30px; height: 32px; padding: 0;" title="Puntoyu Büyüt (A+)">
+                        <span style="font-weight: 700; font-size: 0.8rem;">A+</span>
+                      </button>
+                    </div>
+
                     <button class="btn btn-sm btn-outline-danger" id="btn-fullscreen-red-title" style="display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; padding: 0; position: relative;" title="Yazı Rengi Değiştir">
                       <i data-lucide="palette" style="width: 16px; height: 16px;"></i>
                       <span id="notebook-fullscreen-color-indicator" style="position: absolute; bottom: 4px; right: 4px; display: inline-block; width: 8px; height: 8px; border-radius: 50%; background-color: #1e293b; border: 1px solid rgba(255,255,255,0.8);"></span>
@@ -5081,11 +5122,11 @@
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
             <div>
               <label style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.5rem; color: var(--text-secondary);">Başlangıç Tarihi</label>
-              <input type="date" id="report-start-date" class="form-control" required style="width: 100%; height: 38px;">
+              <input type="text" id="report-start-date" class="form-control" data-datepicker="true" placeholder="GG.AA.YYYY" required style="width: 100%; height: 38px;">
             </div>
             <div>
               <label style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.5rem; color: var(--text-secondary);">Bitiş Tarihi</label>
-              <input type="date" id="report-end-date" class="form-control" required style="width: 100%; height: 38px;">
+              <input type="text" id="report-end-date" class="form-control" data-datepicker="true" placeholder="GG.AA.YYYY" required style="width: 100%; height: 38px;">
             </div>
           </div>
 
@@ -6272,7 +6313,7 @@
           </div>
           <div class="form-group">
             <label for="borrow-date-input">Ödünç Verilme Tarihi</label>
-            <input type="date" class="form-control" id="borrow-date-input" required>
+            <input type="text" class="form-control" id="borrow-date-input" data-datepicker="true" placeholder="GG.AA.YYYY" required>
           </div>
         </div>
         <div class="modal-footer">
@@ -6303,7 +6344,7 @@
           </div>
           <div class="form-group">
             <label for="homework-due-input">Son Teslim Tarihi</label>
-            <input type="date" class="form-control" id="homework-due-input" required>
+            <input type="text" class="form-control" id="homework-due-input" data-datepicker="true" placeholder="GG.AA.YYYY" required>
           </div>
         </div>
         <div class="modal-footer">
@@ -6339,7 +6380,7 @@
           </div>
           <div class="form-group">
             <label for="hw-send-due-input" style="font-weight: 600;">📅 Son Teslim Tarihi</label>
-            <input type="date" class="form-control" id="hw-send-due-input" required>
+            <input type="text" class="form-control" id="hw-send-due-input" data-datepicker="true" placeholder="GG.AA.YYYY" required>
           </div>
 
           <!-- Mesaj Önizleme -->
@@ -7952,7 +7993,7 @@
             </div>
             <div class="form-group" style="flex: 1;">
               <label for="assign-task-due-date" style="font-weight: 600;">Son Teslim Tarihi</label>
-              <input type="date" class="form-control" id="assign-task-due-date" required style="width: 100%; height: 38px; padding: 0.35rem 0.75rem;">
+              <input type="text" class="form-control" id="assign-task-due-date" data-datepicker="true" placeholder="GG.AA.YYYY" required style="width: 100%; height: 38px; padding: 0.35rem 0.75rem;">
             </div>
           </div>
         </div>
@@ -7978,7 +8019,7 @@
         <div class="modal-body" style="padding: 1.5rem;">
           <div class="form-group" style="margin-bottom: 1rem;">
             <label for="complete-task-date" style="font-weight: 600;">Teslim Edilme Tarihi</label>
-            <input type="date" class="form-control" id="complete-task-date" required style="width: 100%; height: 38px; padding: 0.35rem 0.75rem;">
+            <input type="text" class="form-control" id="complete-task-date" data-datepicker="true" placeholder="GG.AA.YYYY" required style="width: 100%; height: 38px; padding: 0.35rem 0.75rem;">
             <span style="font-size: 0.75rem; color: var(--text-muted); display: block; margin-top: 0.4rem;">
               Görev puanı seçtiğiniz tarihin ait olduğu haftaya eklenecektir.
             </span>
@@ -8157,7 +8198,7 @@
 
         <div class="form-group" style="margin-bottom: 1.25rem;">
           <label for="contrib-input-due-date" style="font-weight: 600; font-size: 0.85rem; margin-bottom: 0.5rem; display: block;">Son Teslim / Toplama Tarihi (İsteğe Bağlı)</label>
-          <input type="date" id="contrib-input-due-date" class="form-control" style="width: 100%;">
+          <input type="text" id="contrib-input-due-date" class="form-control" data-datepicker="true" placeholder="GG.AA.YYYY" style="width: 100%;">
         </div>
 
         <div class="form-group" style="margin-bottom: 0.5rem;">
@@ -8186,7 +8227,7 @@
         <!-- Tarih Seçici -->
         <div class="form-group" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem; border-bottom: 1px solid var(--border-color); padding-bottom: 1rem;">
           <label for="attendance-date" style="margin-bottom: 0; font-weight: 600; color: var(--text-primary);">Yoklama Tarihi:</label>
-          <input type="date" id="attendance-date" class="form-control" style="width: auto; height: 38px; padding: 0.25rem 0.5rem; font-size: 0.9rem;">
+          <input type="text" id="attendance-date" class="form-control" data-datepicker="true" placeholder="GG.AA.YYYY" style="width: auto; height: 38px; padding: 0.25rem 0.5rem; font-size: 0.9rem;">
         </div>
 
         <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.5rem;">
@@ -9069,6 +9110,7 @@
   </script>
 
   <!-- Uygulama Javascript Dosyaları -->
+  <script src="js/datepicker.js?v=1"></script>
   <script src="js/supabase-config.js?v=32"></script>
   <script src="js/license-config.js?v=32"></script>
   <script src="js/state.js?v=37"></script>
@@ -9081,8 +9123,8 @@
   <script src="js/dashboard.js?v=35"></script>
   <script src="js/timer.js?v=35"></script>
   <script src="js/quick-caller.js?v=35"></script>
-  <script src="js/games.js?v=36"></script>
-  <script src="js/quiz-ai-generator.js?v=1"></script>
+  <script src="js/games.js?v=38"></script>
+  <script src="js/quiz-ai-generator.js?v=3"></script>
   <script src="js/config.js?v=35"></script>
   <script src="js/tasks.js?v=35"></script>
   <script src="js/treasure.js?v=35"></script>

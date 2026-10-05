@@ -267,8 +267,11 @@
       return;
     }
 
-    const startDate = new Date(startVal + 'T00:00:00');
-    const endDate = new Date(endVal + 'T23:59:59');
+    const parseFn = window.parseAnyDate || (s => new Date(s + 'T00:00:00'));
+    const startDate = parseFn(startVal);
+    const endDate = parseFn(endVal);
+    if (startDate) startDate.setHours(0,0,0,0);
+    if (endDate) endDate.setHours(23,59,59,999);
 
     if (startDate > endDate) {
       if (window.showToast) window.showToast('Başlangıç tarihi bitiş tarihinden sonra olamaz!', 'warning');

@@ -427,6 +427,33 @@ public class MainActivity extends AppCompatActivity {
                 }
                 return true;
             }
+
+            @Override
+            public boolean onJsConfirm(WebView view, String url, String message, final android.webkit.JsResult result) {
+                new androidx.appcompat.app.AlertDialog.Builder(MainActivity.this)
+                    .setTitle("Sınıf Asistanı")
+                    .setIcon(android.R.drawable.ic_dialog_alert)
+                    .setMessage(message)
+                    .setPositiveButton("Tamam", (dialog, which) -> result.confirm())
+                    .setNegativeButton("İptal", (dialog, which) -> result.cancel())
+                    .setOnCancelListener(dialog -> result.cancel())
+                    .setCancelable(false)
+                    .show();
+                return true;
+            }
+
+            @Override
+            public boolean onJsAlert(WebView view, String url, String message, final android.webkit.JsResult result) {
+                new androidx.appcompat.app.AlertDialog.Builder(MainActivity.this)
+                    .setTitle("Sınıf Asistanı")
+                    .setIcon(android.R.drawable.ic_dialog_info)
+                    .setMessage(message)
+                    .setPositiveButton("Tamam", (dialog, which) -> result.confirm())
+                    .setOnCancelListener(dialog -> result.cancel())
+                    .setCancelable(false)
+                    .show();
+                return true;
+            }
         });
 
         // Load the mobile app

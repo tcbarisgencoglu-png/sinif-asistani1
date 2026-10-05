@@ -187,8 +187,11 @@ function renderHolidaysList() {
   
   // Tarihe göre sırala
   holidaysList.sort().forEach(hStr => {
-    const d = new Date(hStr);
-    const formatted = d.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' });
+    const parseFn = window.parseAnyDate || (s => new Date(s));
+    const d = parseFn(hStr);
+    const formatted = d && !isNaN(d.getTime())
+      ? d.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', year: 'numeric' })
+      : hStr;
     
     const badge = document.createElement('div');
     badge.className = 'holiday-badge';
@@ -219,8 +222,14 @@ function generateDutyRoster() {
     return;
   }
 
-  const start = new Date(startStr);
-  const end = new Date(endStr);
+  const parseFn = window.parseAnyDate || (s => new Date(s));
+  const start = parseFn(startStr);
+  const end = parseFn(endStr);
+
+  if (!start || isNaN(start.getTime()) || !end || isNaN(end.getTime())) {
+    if (toastCallbackFn) toastCallbackFn('Lütfen geçerli başlangıç ve bitiş tarihleri girin.', 'danger');
+    return;
+  }
   start.setHours(0,0,0,0);
   end.setHours(0,0,0,0);
 
@@ -335,8 +344,15 @@ function drawRosterPreview(rosterData) {
   renderHolidaysList();
 
   // Kağıt Tasarımını Çiz
-  const dStart = new Date(rosterData.startDate).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' });
-  const dEnd = new Date(rosterData.endDate).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' });
+  const parseFn = window.parseAnyDate || (s => new Date(s));
+  const dStartObj = parseFn(rosterData.startDate);
+  const dEndObj = parseFn(rosterData.endDate);
+  const dStart = dStartObj && !isNaN(dStartObj.getTime())
+    ? dStartObj.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })
+    : rosterData.startDate;
+  const dEnd = dEndObj && !isNaN(dEndObj.getTime())
+    ? dEndObj.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })
+    : rosterData.endDate;
 
   rosterPreviewContent.innerHTML = `
     <div class="roster-print-header">

@@ -114,7 +114,8 @@
         const studentId = assignTaskStudent.value;
         const description = assignTaskDescription.value.trim();
         const points = parseInt(assignTaskPoints.value) || 5;
-        const dueDate = assignTaskDueDate.value;
+        const dueDateRaw = assignTaskDueDate.value;
+        const dueDate = window.toISODate ? window.toISODate(dueDateRaw) : dueDateRaw;
 
         if (!studentId || !description || !dueDate) {
           if (toastCallback) toastCallback('Lütfen tüm zorunlu alanları doldurun!', 'warning');
@@ -139,7 +140,8 @@
       formCompleteTask.addEventListener('submit', (e) => {
         e.preventDefault();
         const id = completeTaskId.value;
-        const date = completeTaskDate.value;
+        const dateRaw = completeTaskDate.value;
+        const date = window.toISODate ? window.toISODate(dateRaw) : dateRaw;
 
         if (!id || !date) {
           if (toastCallback) toastCallback('Lütfen teslim tarihini belirtin!', 'warning');

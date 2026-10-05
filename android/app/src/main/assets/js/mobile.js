@@ -30,6 +30,126 @@
     } catch (e) {}
   };
 
+  // ==========================================================================
+  // ÖZEL ASENKRON ONAY VE UYARI PENCERESİ (CONFIRM / ALERT ASYNC)
+  // ==========================================================================
+  let _confirmResolve = null;
+
+  window.confirmAsync = function(messageOrOptions, title, type = 'danger') {
+    return new Promise((resolve) => {
+      _confirmResolve = resolve;
+      const modal = document.getElementById('custom-confirm-modal');
+      if (!modal) {
+        const msg = typeof messageOrOptions === 'object' ? messageOrOptions.message : messageOrOptions;
+        return resolve(window.confirm(msg));
+      }
+
+      let msg = typeof messageOrOptions === 'object' ? messageOrOptions.message : messageOrOptions;
+      let ttl = typeof messageOrOptions === 'object' ? (messageOrOptions.title || 'İşlemi Onaylayın') : (title || 'İşlemi Onaylayın');
+      let tp = typeof messageOrOptions === 'object' ? (messageOrOptions.type || 'danger') : type;
+      let okText = typeof messageOrOptions === 'object' ? (messageOrOptions.okText || 'Evet, Onayla') : 'Evet, Onayla';
+      let cancelText = typeof messageOrOptions === 'object' ? (messageOrOptions.cancelText || 'Vazgeç') : 'Vazgeç';
+
+      const titleEl = document.getElementById('custom-confirm-title');
+      const msgEl = document.getElementById('custom-confirm-message');
+      const iconWrap = document.getElementById('custom-confirm-icon-wrap');
+      const okBtn = document.getElementById('custom-confirm-ok-btn');
+      const cancelBtn = document.getElementById('custom-confirm-cancel-btn');
+
+      if (titleEl) titleEl.textContent = ttl;
+      if (msgEl) msgEl.innerHTML = msg;
+      if (cancelBtn) {
+        cancelBtn.style.display = 'block';
+        cancelBtn.textContent = cancelText;
+      }
+      if (okBtn) {
+        okBtn.textContent = okText;
+        okBtn.className = `custom-confirm-btn confirm ${tp === 'primary' ? 'primary' : 'danger'}`;
+      }
+
+      if (iconWrap) {
+        iconWrap.className = `custom-confirm-icon-wrap ${tp}`;
+        const icon = document.getElementById('custom-confirm-icon');
+        if (icon) {
+          if (tp === 'danger') icon.setAttribute('data-lucide', 'alert-triangle');
+          else if (tp === 'warning') icon.setAttribute('data-lucide', 'alert-circle');
+          else if (tp === 'success') icon.setAttribute('data-lucide', 'check-circle-2');
+          else icon.setAttribute('data-lucide', 'info');
+        }
+      }
+
+      if (window.lucide) window.lucide.createIcons();
+
+      modal.style.display = 'flex';
+      requestAnimationFrame(() => modal.classList.add('active'));
+      window.vibrate(30);
+    });
+  };
+
+  window.alertAsync = function(message, title = 'Bilgilendirme', type = 'info') {
+    return new Promise((resolve) => {
+      _confirmResolve = resolve;
+      const modal = document.getElementById('custom-confirm-modal');
+      if (!modal) {
+        window.alert(message);
+        return resolve(true);
+      }
+      const titleEl = document.getElementById('custom-confirm-title');
+      const msgEl = document.getElementById('custom-confirm-message');
+      const iconWrap = document.getElementById('custom-confirm-icon-wrap');
+      const okBtn = document.getElementById('custom-confirm-ok-btn');
+      const cancelBtn = document.getElementById('custom-confirm-cancel-btn');
+
+      if (titleEl) titleEl.textContent = title;
+      if (msgEl) msgEl.innerHTML = message;
+      if (cancelBtn) cancelBtn.style.display = 'none';
+      if (okBtn) {
+        okBtn.textContent = 'Tamam';
+        okBtn.className = 'custom-confirm-btn confirm primary';
+      }
+      if (iconWrap) {
+        iconWrap.className = `custom-confirm-icon-wrap ${type}`;
+        const icon = document.getElementById('custom-confirm-icon');
+        if (icon) {
+          if (type === 'danger') icon.setAttribute('data-lucide', 'alert-triangle');
+          else if (type === 'warning') icon.setAttribute('data-lucide', 'alert-circle');
+          else if (type === 'success') icon.setAttribute('data-lucide', 'check-circle-2');
+          else icon.setAttribute('data-lucide', 'info');
+        }
+      }
+      if (window.lucide) window.lucide.createIcons();
+
+      modal.style.display = 'flex';
+      requestAnimationFrame(() => modal.classList.add('active'));
+    });
+  };
+
+  window.handleCustomConfirmOk = function() {
+    const modal = document.getElementById('custom-confirm-modal');
+    if (modal) {
+      modal.classList.remove('active');
+      setTimeout(() => { modal.style.display = 'none'; }, 200);
+    }
+    if (_confirmResolve) {
+      const res = _confirmResolve;
+      _confirmResolve = null;
+      res(true);
+    }
+  };
+
+  window.handleCustomConfirmCancel = function() {
+    const modal = document.getElementById('custom-confirm-modal');
+    if (modal) {
+      modal.classList.remove('active');
+      setTimeout(() => { modal.style.display = 'none'; }, 200);
+    }
+    if (_confirmResolve) {
+      const res = _confirmResolve;
+      _confirmResolve = null;
+      res(false);
+    }
+  };
+
   function getTodayDateStr() {
     if (typeof window.formatLocalDate === 'function') {
       return window.formatLocalDate();
@@ -1506,6 +1626,118 @@
       }
       return (a.name || '').localeCompare(b.name || '', 'tr');
     });
+
+    // Aylık ve Yıllık modunda puan üstünlüğüne göre liste (Leaderboard List) görünümü
+    if (currentPerfScope === 'monthly' || currentPerfScope === 'yearly') {
+      const isMonthly = (currentPerfScope === 'monthly');
+      const highestScore = sortedStudents.length > 0 ? (studentScoresMap[sortedStudents[0].id]?.activeScore || 0) : 0;
+      const totalScoreSum = sortedStudents.reduce((acc, st) => acc + (studentScoresMap[st.id]?.activeScore || 0), 0);
+      const avgScore = sortedStudents.length > 0 ? (totalScoreSum / sortedStudents.length).toFixed(1) : 0;
+
+      let summaryTitle = isMonthly ? '🗓️ Aylık Performans Sıralaması' : '🏆 Yıllık Performans Sıralaması';
+
+      let listHtml = `
+        <div class="perf-rank-list">
+          <div class="perf-leaderboard-summary">
+            <div class="perf-leaderboard-summary-title">
+              <span>${summaryTitle}</span>
+            </div>
+            <div class="perf-leaderboard-summary-badges">
+              <div class="perf-summary-chip">
+                <span>En Yüksek: </span><strong>${highestScore >= 0 ? '+' : ''}${highestScore}</strong>
+              </div>
+              <div class="perf-summary-chip">
+                <span>Ort: </span><strong>${avgScore}</strong>
+              </div>
+            </div>
+          </div>
+      `;
+
+      sortedStudents.forEach((st, idx) => {
+        const sData = studentScoresMap[st.id] || {};
+        const score = sData.activeScore || 0;
+        const weeklySc = sData.weeklyScore || 0;
+        const monthlySc = sData.monthlyScore || 0;
+        const totalSc = sData.totalScore || 0;
+        const avatarColor = getAvatarColor(st.id || st.name);
+
+        let rankClass = '';
+        let posBadge = '';
+        let crownClass = '';
+
+        if (idx === 0 && score > 0) {
+          rankClass = 'top-1';
+          posBadge = '<span class="perf-rank-medal-badge">🥇</span>';
+          crownClass = 'crown-1';
+        } else if (idx === 1 && score > 0) {
+          rankClass = 'top-2';
+          posBadge = '<span class="perf-rank-medal-badge">🥈</span>';
+          crownClass = 'crown-2';
+        } else if (idx === 2 && score > 0) {
+          rankClass = 'top-3';
+          posBadge = '<span class="perf-rank-medal-badge">🥉</span>';
+          crownClass = 'crown-3';
+        } else {
+          posBadge = `<span class="perf-rank-num-badge">#${idx + 1}</span>`;
+        }
+
+        let scoreBadgeStyle = '';
+        if (score > 0) {
+          scoreBadgeStyle = 'background: rgba(16, 185, 129, 0.12); color: var(--m-success); border: 1px solid rgba(16, 185, 129, 0.3);';
+        } else if (score < 0) {
+          scoreBadgeStyle = 'background: rgba(239, 68, 68, 0.12); color: var(--m-danger); border: 1px solid rgba(239, 68, 68, 0.3);';
+        } else {
+          scoreBadgeStyle = 'background: var(--m-bg); color: var(--m-text-muted); border: 1px solid var(--m-border);';
+        }
+
+        // Okuduğu kitap sayısı
+        const readBookCount = transactions.filter(t => String(t.studentId) === String(st.id) && t.status === 'returned').length;
+        // Ödev sayısı
+        let hwDone = 0;
+        homeworks.forEach(hw => {
+          if (!hw.status) return;
+          const s = hw.status[st.id] !== undefined ? hw.status[st.id] : hw.status[String(st.id)];
+          if (s === 'completed') hwDone++;
+        });
+
+        const subDetailParts = [];
+        if (st.number) subDetailParts.push(`No: ${escapeHTML(st.number)}`);
+        if (st.branch && isMiddleSchool()) subDetailParts.push(escapeHTML(st.branch));
+        if (readBookCount > 0) subDetailParts.push(`📚 ${readBookCount}`);
+        if (hwDone > 0) subDetailParts.push(`📝 ${hwDone}`);
+        if (isMonthly) {
+          subDetailParts.push(`Genel: ${totalSc >= 0 ? '+' : ''}${totalSc}`);
+        } else {
+          subDetailParts.push(`Bu Ay: ${monthlySc >= 0 ? '+' : ''}${monthlySc}`);
+        }
+
+        listHtml += `
+          <div class="perf-rank-item ${rankClass}" onclick="window.openStudentQuickAction('${st.id}')">
+            <div class="perf-rank-pos-col">
+              ${posBadge}
+            </div>
+            <div class="perf-rank-avatar ${crownClass}" style="background-color: ${avatarColor};">
+              ${st.photo ? `<img src="${st.photo}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">` : escapeHTML((st.name || '?').charAt(0).toUpperCase())}
+            </div>
+            <div class="perf-rank-info-col">
+              <div class="perf-rank-name">${escapeHTML(st.name)} ${escapeHTML(st.surname || '')}</div>
+              <div class="perf-rank-sub">${subDetailParts.join(' • ')}</div>
+            </div>
+            <div class="perf-rank-score-col">
+              <span class="perf-rank-score-badge" style="${scoreBadgeStyle}">
+                ${score >= 0 ? '+' : ''}${score} Puan
+              </span>
+              <i data-lucide="chevron-right" style="width: 16px; height: 16px; color: var(--m-text-muted); opacity: 0.6;"></i>
+            </div>
+          </div>
+        `;
+      });
+
+      listHtml += `</div>`;
+      container.innerHTML = listHtml;
+      if (window.lucide) window.lucide.createIcons();
+      return;
+    }
 
     sortedStudents.forEach((st, idx) => {
       const sData = studentScoresMap[st.id];
@@ -3864,6 +4096,20 @@
       return false; // Uygulamadan çıkışa izin ver, kilidi aşma
     }
 
+    // -0.5 Özel onay penceresi açıksa iptal et / kapat
+    const confirmModal = document.getElementById('custom-confirm-modal');
+    if (confirmModal && confirmModal.classList.contains('active')) {
+      window.handleCustomConfirmCancel();
+      return true;
+    }
+
+    // -0.4 Toplu öğrenci silme modalı açıksa kapat
+    const delAllModal = document.getElementById('modal-delete-all-students');
+    if (delAllModal && delAllModal.classList.contains('active')) {
+      window.closeBottomSheet();
+      return true;
+    }
+
     // 0.0 Diğer yukarı açılan liste menüsü açıksa kapat
     const moreMenu = document.getElementById('m-more-popup-menu');
     if (moreMenu && moreMenu.classList.contains('show')) {
@@ -4408,6 +4654,10 @@
     const btnRemove = document.getElementById('btn-m-cfg-remove-license');
     if (!badge || !details) return;
 
+    if (window.LicenseConfig && typeof window.LicenseConfig.checkLicenseStatus === 'function') {
+      window.LicenseConfig.checkLicenseStatus();
+    }
+
     const licenseConfig = window.LicenseConfig;
     const isLicensed = licenseConfig ? licenseConfig.isLicensed : false;
     const isDemo = licenseConfig ? licenseConfig.isDemo : true;
@@ -4441,16 +4691,21 @@
       return;
     }
 
-    if (window.LicenseConfig && typeof window.LicenseConfig.activateLicense === 'function') {
+    if (window.LicenseConfig && (typeof window.LicenseConfig.activateLicense === 'function' || typeof window.LicenseConfig.saveLicense === 'function')) {
+      const activateFn = window.LicenseConfig.activateLicense || window.LicenseConfig.saveLicense;
       showMobileToast('🔄 Lisans doğrulanıyor...');
       try {
-        const res = await window.LicenseConfig.activateLicense(key);
+        const res = await activateFn(key);
         if (res && res.success) {
           window.vibrate(50);
           playSynthChime('correct');
           showMobileToast('🎉 Lisans başarıyla aktifleştirildi!');
           if (keyInput) keyInput.value = '';
+          if (typeof window.LicenseConfig.checkLicenseStatus === 'function') {
+            window.LicenseConfig.checkLicenseStatus();
+          }
           renderMobileLicenseInfo();
+          renderActiveTab();
         } else {
           window.vibrate(100);
           showMobileToast('❌ ' + (res.reason || 'Geçersiz ürün anahtarı!'));
@@ -4460,13 +4715,25 @@
       }
     } else {
       localStorage.setItem('sinif_asistani_license_key', key);
+      if (window.LicenseConfig && typeof window.LicenseConfig.checkLicenseStatus === 'function') {
+        window.LicenseConfig.checkLicenseStatus();
+      }
       showMobileToast('✅ Lisans anahtarı kaydedildi');
       renderMobileLicenseInfo();
     }
   };
 
-  window.removeMobileLicense = () => {
-    if (!confirm('Lisansı bu cihazdan kaldırmak istediğinize emin misiniz?')) return;
+  window.removeMobileLicense = async () => {
+    const confirmed = await (window.confirmAsync
+      ? window.confirmAsync({
+          title: 'Lisansı Kaldır',
+          message: 'Lisansı bu cihazdan kaldırmak istediğinize emin misiniz? Uygulama tekrar deneme sürümüne dönecektir.',
+          type: 'warning',
+          okText: 'Evet, Kaldır',
+          cancelText: 'Vazgeç'
+        })
+      : Promise.resolve(confirm('Lisansı bu cihazdan kaldırmak istediğinize emin misiniz?')));
+    if (!confirmed) return;
     if (window.LicenseConfig && typeof window.LicenseConfig.removeLicense === 'function') {
       window.LicenseConfig.removeLicense();
     } else {
@@ -5029,6 +5296,23 @@
 
     if (totalEl) totalEl.textContent = students.length;
 
+    const delAllBtn = document.getElementById('m-btn-delete-all-students');
+    const delAllLbl = document.getElementById('m-btn-delete-all-label');
+    if (delAllBtn) {
+      if (students.length === 0) {
+        delAllBtn.style.display = 'none';
+      } else {
+        delAllBtn.style.display = 'inline-flex';
+        if (delAllLbl) {
+          if (isMiddle && branchFilter !== 'all') {
+            delAllLbl.textContent = `${branchFilter} Sil`;
+          } else {
+            delAllLbl.textContent = 'Tümünü Sil';
+          }
+        }
+      }
+    }
+
     if (students.length === 0) {
       container.innerHTML = `
         <div style="text-align: center; padding: 2rem 1rem; color: var(--m-text-muted);">
@@ -5194,6 +5478,24 @@
       return;
     }
 
+    // Demo Öğrenci Sınırı Kontrolü (Maksimum 5 Öğrenci)
+    const isDemo = window.LicenseConfig ? window.LicenseConfig.isDemo : true;
+    const currentStudents = window.stateManager?.state?.students || [];
+    const limit = (window.LicenseConfig && window.LicenseConfig.studentLimit) || 5;
+    if (isDemo && currentStudents.length >= limit) {
+      if (typeof removeDemoStudentsIfOnlyDemoExist === 'function') {
+        removeDemoStudentsIfOnlyDemoExist();
+      }
+      if (window.stateManager.state.students.length >= limit) {
+        window.vibrate(100);
+        showMobileToast(`⚠️ Demo sürümünde en fazla ${limit} öğrenci ekleyebilirsiniz!`, 'danger');
+        if (window.LicenseConfig && typeof window.LicenseConfig.showPrompt === 'function') {
+          window.LicenseConfig.showPrompt('Öğrenci Sınırı');
+        }
+        return;
+      }
+    }
+
     const isMiddle = isMiddleSchool();
     const branch = isMiddle ? ((brEl && brEl.value !== 'all') ? brEl.value : (activeBranch !== 'all' ? activeBranch : '5/A')) : '';
 
@@ -5322,12 +5624,160 @@
     }
   };
 
-  window.deleteConfigStudent = (studentId) => {
-    if (!confirm('Bu öğrenciyi silmek istediğinize emin misiniz?')) return;
+  window.deleteConfigStudent = async (studentId) => {
+    const student = (window.stateManager?.state?.students || []).find(s => s.id === studentId);
+    const stName = student ? `${student.name} ${student.surname || ''}`.trim() : 'Bu öğrenciyi';
+    const confirmed = await (window.confirmAsync
+      ? window.confirmAsync({
+          title: 'Öğrenciyi Sil',
+          message: `<strong>${escapeHTML(stName)}</strong> öğrencisini ve ilişkili tüm kayıtlarını silmek istediğinize emin misiniz?`,
+          type: 'danger',
+          okText: 'Evet, Sil',
+          cancelText: 'Vazgeç'
+        })
+      : Promise.resolve(confirm(`${stName} öğrencisini silmek istediğinize emin misiniz?`)));
+
+    if (!confirmed) return;
     window.stateManager.state.students = (window.stateManager.state.students || []).filter(s => s.id !== studentId);
+    if (window.stateManager.state.homeworks) {
+      window.stateManager.state.homeworks.forEach(hw => {
+        if (hw.status && hw.status[studentId]) delete hw.status[studentId];
+      });
+    }
+    if (window.stateManager.state.performance) {
+      window.stateManager.state.performance = window.stateManager.state.performance.filter(p => p.studentId !== studentId);
+    }
     window.stateManager.saveState();
     window.vibrate(20);
     showMobileToast('Öğrenci silindi');
+    renderConfigStudentsList();
+    renderActiveTab();
+  };
+
+  // --- TOPLU ÖĞRENCİ SİLME (SINIF / ŞUBE BOŞALTMA) ---
+  window.openDeleteAllStudentsModal = () => {
+    const isMiddle = isMiddleSchool();
+    const branchFilter = document.getElementById('m-cfg-st-branch-filter')?.value || 'all';
+    const allStudents = window.stateManager?.state?.students || [];
+    let targetStudents = allStudents.filter(s => isStudentInCurrentLevel(s));
+    let targetTitle = 'Tüm Sınıf';
+
+    if (isMiddle && branchFilter !== 'all') {
+      targetStudents = targetStudents.filter(s => s.branch === branchFilter);
+      targetTitle = `${branchFilter} Şubesi`;
+    }
+
+    if (targetStudents.length === 0) {
+      showMobileToast('Silinecek öğrenci bulunamadı', 'warning');
+      return;
+    }
+
+    const badgeEl = document.getElementById('m-delete-all-target-badge');
+    const descEl = document.getElementById('m-delete-all-description');
+    const chkEl = document.getElementById('m-delete-all-checkbox');
+    const btnEl = document.getElementById('m-btn-execute-delete-all');
+
+    if (badgeEl) badgeEl.textContent = `${targetTitle} (${targetStudents.length} Öğrenci)`;
+    if (descEl) {
+      descEl.innerHTML = `<strong>${escapeHTML(targetTitle)}</strong> kapsamındaki <strong>${targetStudents.length} öğrencinin</strong> tümü kalıcı olarak silinecektir. Bu öğrencilere ait tüm ödev, puan ve değerlendirme kayıtları da sistemden kaldırılacaktır.`;
+    }
+    if (chkEl) chkEl.checked = false;
+    if (btnEl) {
+      btnEl.style.opacity = '0.45';
+      btnEl.style.pointerEvents = 'none';
+    }
+
+    window.vibrate(25);
+    openBottomSheet('modal-delete-all-students');
+  };
+
+  window.toggleDeleteAllStudentsConfirm = (checked) => {
+    const btnEl = document.getElementById('m-btn-execute-delete-all');
+    if (!btnEl) return;
+    if (checked) {
+      btnEl.style.opacity = '1';
+      btnEl.style.pointerEvents = 'auto';
+      window.vibrate(15);
+    } else {
+      btnEl.style.opacity = '0.45';
+      btnEl.style.pointerEvents = 'none';
+    }
+  };
+
+  window.executeDeleteAllStudents = () => {
+    const chkEl = document.getElementById('m-delete-all-checkbox');
+    if (!chkEl || !chkEl.checked) {
+      showMobileToast('Lütfen önce onay kutusunu işaretleyin', 'warning');
+      return;
+    }
+
+    const isMiddle = isMiddleSchool();
+    const branchFilter = document.getElementById('m-cfg-st-branch-filter')?.value || 'all';
+    let allStudents = window.stateManager?.state?.students || [];
+
+    let toDeleteIds = new Set();
+    allStudents.forEach(s => {
+      if (!isStudentInCurrentLevel(s)) return;
+      if (isMiddle && branchFilter !== 'all') {
+        if (s.branch === branchFilter) toDeleteIds.add(s.id);
+      } else {
+        toDeleteIds.add(s.id);
+      }
+    });
+
+    if (toDeleteIds.size === 0) {
+      showMobileToast('Silinecek öğrenci bulunamadı', 'warning');
+      window.closeBottomSheet();
+      return;
+    }
+
+    const count = toDeleteIds.size;
+    window.stateManager.state.students = allStudents.filter(s => !toDeleteIds.has(s.id));
+
+    if (window.stateManager.state.homeworks) {
+      window.stateManager.state.homeworks.forEach(hw => {
+        if (hw.status) {
+          toDeleteIds.forEach(id => {
+            if (hw.status[id] !== undefined) delete hw.status[id];
+          });
+        }
+      });
+    }
+    if (window.stateManager.state.performance) {
+      window.stateManager.state.performance = window.stateManager.state.performance.filter(p => !toDeleteIds.has(p.studentId));
+    }
+    if (window.stateManager.state.weeklyEvaluations) {
+      window.stateManager.state.weeklyEvaluations.forEach(we => {
+        if (we.examScores) {
+          toDeleteIds.forEach(id => {
+            if (we.examScores[id] !== undefined) delete we.examScores[id];
+          });
+        }
+        if (we.studentResults) {
+          toDeleteIds.forEach(id => {
+            if (we.studentResults[id] !== undefined) delete we.studentResults[id];
+          });
+        }
+      });
+    }
+    if (window.stateManager.state.exams) {
+      window.stateManager.state.exams.forEach(ex => {
+        if (ex.examScores) {
+          toDeleteIds.forEach(id => {
+            if (ex.examScores[id] !== undefined) delete ex.examScores[id];
+          });
+        }
+        if (ex.studentResults && Array.isArray(ex.studentResults)) {
+          ex.studentResults = ex.studentResults.filter(sr => !toDeleteIds.has(sr.studentId));
+        }
+      });
+    }
+
+    window.stateManager.saveState();
+    window.closeBottomSheet();
+    window.vibrate([40, 60, 40]);
+    showMobileToast(`🗑️ ${count} öğrenci ve verileri başarıyla silindi!`, 'success');
+
     renderConfigStudentsList();
     renderActiveTab();
   };
@@ -5336,6 +5786,22 @@
   // YAPAY ZEKA (AI) İLE ÖĞRENCİ EKLEME & YÖNTEM SEÇİMİ
   // ==========================================================================
   window.openAddStudentMethodModal = () => {
+    const isDemo = window.LicenseConfig ? window.LicenseConfig.isDemo : true;
+    const currentStudents = window.stateManager?.state?.students || [];
+    const limit = (window.LicenseConfig && window.LicenseConfig.studentLimit) || 5;
+    if (isDemo && currentStudents.length >= limit) {
+      if (typeof removeDemoStudentsIfOnlyDemoExist === 'function') {
+        removeDemoStudentsIfOnlyDemoExist();
+      }
+      if (window.stateManager.state.students.length >= limit) {
+        window.vibrate(100);
+        showMobileToast(`⚠️ Demo sürümünde en fazla ${limit} öğrenci ekleyebilirsiniz!`, 'danger');
+        if (window.LicenseConfig && typeof window.LicenseConfig.showPrompt === 'function') {
+          window.LicenseConfig.showPrompt('Öğrenci Sınırı');
+        }
+        return;
+      }
+    }
     window.vibrate(20);
     openBottomSheet('modal-add-student-method');
   };

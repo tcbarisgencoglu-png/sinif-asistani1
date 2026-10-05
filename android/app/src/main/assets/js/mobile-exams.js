@@ -1022,8 +1022,17 @@
     window.renderManualEntryOpticalSheet();
   };
 
-  window.clearManualEntryForm = () => {
-    if (!confirm('Tüm işaretlemeleri temizlemek istediğinize emin misiniz?')) return;
+  window.clearManualEntryForm = async () => {
+    const confirmed = await (window.confirmAsync
+      ? window.confirmAsync({
+          title: 'İşaretlemeleri Temizle',
+          message: 'Tüm işaretlemeleri temizlemek istediğinize emin misiniz?',
+          type: 'warning',
+          okText: 'Evet, Temizle',
+          cancelText: 'Vazgeç'
+        })
+      : Promise.resolve(confirm('Tüm işaretlemeleri temizlemek istediğinize emin misiniz?')));
+    if (!confirmed) return;
     window._tempManualAnswers = {};
     window.renderManualEntryOpticalSheet();
   };
@@ -1604,8 +1613,18 @@
     }, 250);
   };
 
-  window.deleteAnalysisExam = (examId) => {
-    if (confirm('Bu sınavı ve kayıtlı tüm notlarını kalıcı olarak silmek istediğinize emin misiniz?')) {
+  window.deleteAnalysisExam = async (examId) => {
+    const confirmed = await (window.confirmAsync
+      ? window.confirmAsync({
+          title: 'Sınavı Sil',
+          message: 'Bu sınavı ve kayıtlı tüm notlarını kalıcı olarak silmek istediğinize emin misiniz?',
+          type: 'danger',
+          okText: 'Evet, Sil',
+          cancelText: 'Vazgeç'
+        })
+      : Promise.resolve(confirm('Bu sınavı ve kayıtlı tüm notlarını kalıcı olarak silmek istediğinize emin misiniz?')));
+
+    if (confirmed) {
       const state = (window.stateManager && window.stateManager.state) || {};
       state.examAnalysisExams = (state.examAnalysisExams || []).filter(e => e.id !== examId);
       state.examAnalysisGrades = (state.examAnalysisGrades || []).filter(g => g.examId !== examId);
@@ -2698,15 +2717,34 @@
 
     showMobileToast('🔗 Sınav Analizi modülüne aktarıldı!', 'success');
 
-    setTimeout(() => {
-      if (confirm('Sınav analizi modülüne aktarıldı. Şimdi bu sınav için not girişi yapmak ister misiniz?')) {
+    setTimeout(async () => {
+      const wantGrades = await (window.confirmAsync
+        ? window.confirmAsync({
+            title: 'Not Girişi Yapılsın mı?',
+            message: 'Sınav başarıyla analiz modülüne aktarıldı. Şimdi bu sınav için not girişi yapmak ister misiniz?',
+            type: 'primary',
+            okText: 'Evet, Not Gir',
+            cancelText: 'Daha Sonra'
+          })
+        : Promise.resolve(confirm('Sınav analizi modülüne aktarıldı. Şimdi bu sınav için not girişi yapmak ister misiniz?')));
+      if (wantGrades) {
         window.openGradeEntryModal(newAnalysisExam.id);
       }
     }, 300);
   };
 
-  window.deleteWrittenExam = (examId) => {
-    if (confirm('Bu sınav kağıdını silmek istediğinize emin misiniz?')) {
+  window.deleteWrittenExam = async (examId) => {
+    const confirmed = await (window.confirmAsync
+      ? window.confirmAsync({
+          title: 'Sınav Kağıdını Sil',
+          message: 'Bu sınav kağıdını silmek istediğinize emin misiniz?',
+          type: 'danger',
+          okText: 'Evet, Sil',
+          cancelText: 'Vazgeç'
+        })
+      : Promise.resolve(confirm('Bu sınav kağıdını silmek istediğinize emin misiniz?')));
+
+    if (confirmed) {
       let exams = getWrittenExamsSafe();
       exams = exams.filter(e => e.id !== examId);
       saveWrittenExamsSafe(exams);
