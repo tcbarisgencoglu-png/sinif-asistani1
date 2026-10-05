@@ -1,16 +1,15 @@
 {
-  "version": "1.0.46",
-  "releaseDate": "2026-10-04",
+  "version": "1.0.47",
+  "releaseDate": "2026-10-05",
   "minRequiredVersion": "1.0.0",
-  "title": "Sınıf Asistanı v1.0.46 Yayında!",
-  "description": "Şanslı Öğrenci Resimli Kura, AI Soru Üretimi Bildirimleri, Haftalık/Aylık/Yıllık Puanlama ve Mobil Kullanılabilirlik Güncellemeleri",
+  "title": "Sınıf Asistanı v1.0.47 Yayında!",
+  "description": "Android Puan Sıralaması, Modern Uyarı/Onay Pencereleri, Toplu Öğrenci Silme ve Lisans/Demo Düzeltmeleri",
   "features": [
-    "Şanslı Öğrenci (Kura) Fotoğraf Entegrasyonu: Kura çekiminde ve sonuç ekranında öğrenci fotoğrafları, animasyonlar ve doğrudan puan verme butonu eklendi",
-    "Yapay Zeka Soru Üretim Süreci Göstergesi: AI ile soru hazırlarken aşamaları (hazırlık, istek, ayrıştırma, tamamlama) anlık bildiren bildirim sistemi",
-    "Puanlama Modülü: Haftalık (Pazartesi sıfırlanan aktif hafta), Aylık ve Yıllık performans sekmeleri ve detaylı listeleme",
-    "Kitap Modülü: Android okunanlar işlem menüsüne doğrudan 'Kitap Soru Sorma' butonu eklendi",
-    "Oturma Planı İyileştirmesi: Koltuk ataması yapıldığında ekrandan çıkma sorunu giderildi, istikrarlı plan düzeni sağlandı",
-    "Diğer Menüsü: Yüzen menü (Floating Action Menu) tasarımına geçildi ve yinelenen menü öğeleri sadeleştirildi"
+    "Android Puan Liderlik Tablosu: Aylık ve yıllık performans görünümleri puan üstünlüğüne göre madalyalı sıralama listesine dönüştürüldü",
+    "Modern Uyarı & Onay Pencereleri: Sınav silme ve genel işlemlerde tarayıcı varsayılanı yerine uyarı ikonlu şık arayüz pencereleri",
+    "Öğrenci Yönetimi Toplu Silme: Sınıf/şubedeki tüm öğrencileri onay kutusu ile güvenli silme imkanı",
+    "Lisans Aktivasyonu: Android sürümünde lisans anahtarı kaydedildiğinde anında tam sürüme geçiş desteği",
+    "Demo Sürüm İyileştirmesi: Demo sürümdeki 5 öğrenci kuralı ve veri tutarlılığı tam olarak güvenceye alındı"
   ],
   "release_url": "https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/latest"
 }
