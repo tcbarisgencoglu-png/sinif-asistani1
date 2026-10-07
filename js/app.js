@@ -3046,6 +3046,8 @@ function switchTab(tabId, animate = true) {
         if (toolsWrittenExamView) toolsWrittenExamView.style.display = 'none';
         if (toolsExamAnalysisView) toolsExamAnalysisView.style.display = 'none';
         if (toolsContributionsView) toolsContributionsView.style.display = 'none';
+        const toolsPlanningView = document.getElementById('tools-planning-view');
+        if (toolsPlanningView) toolsPlanningView.style.display = 'none';
         if (toolsLandingView) toolsLandingView.style.display = 'block';
       }
       break;

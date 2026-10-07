@@ -3469,14 +3469,14 @@
               </button>
             </div>
 
-            <!-- Araç 2: Ders Planı Takibi -->
+            <!-- Araç 2: Planlama (Günlük / Haftalık / Yıllık) -->
             <div class="game-landing-card glass-card" style="padding: 1.5rem; border-radius: 12px; background: var(--bg-secondary); border: 1px solid var(--border-color); display: flex; flex-direction: column; justify-content: space-between; min-height: 220px; transition: transform 0.2s ease;">
               <div>
-                <div style="font-size: 2rem; margin-bottom: 0.5rem;">📚</div>
-                <h3 style="font-size: 1.15rem; font-weight: 700; margin-bottom: 0.5rem;">Ders Planı Takibi</h3>
-                <p style="font-size: 0.85rem; color: var(--text-secondary); line-height: 1.4; margin-bottom: 1rem;">Excel şablonu ile ders planınızı takip edin.</p>
+                <div style="font-size: 2rem; margin-bottom: 0.5rem;">🗂️</div>
+                <h3 style="font-size: 1.15rem; font-weight: 700; margin-bottom: 0.5rem;">Planlama</h3>
+                <p style="font-size: 0.85rem; color: var(--text-secondary); line-height: 1.4; margin-bottom: 1rem;">Günlük plan, haftalık ders programı ve yıllık plan takibini tek yerden yönetin.</p>
               </div>
-              <button class="btn btn-primary btn-full" id="btn-launch-plans" style="width: 100%; display: flex; justify-content: center; gap: 0.5rem;">
+              <button class="btn btn-primary btn-full" id="btn-launch-planning" style="width: 100%; display: flex; justify-content: center; gap: 0.5rem;">
                 <i data-lucide="play" style="width: 16px; height: 16px;"></i> Aracı Başlat
               </button>
             </div>
@@ -3489,18 +3489,6 @@
                 <p style="font-size: 0.85rem; color: var(--text-secondary); line-height: 1.4; margin-bottom: 1rem;">Toplantı tutanakları ve doküman yönetimi.</p>
               </div>
               <button class="btn btn-primary btn-full" id="btn-launch-documents" style="width: 100%; display: flex; justify-content: center; gap: 0.5rem;">
-                <i data-lucide="play" style="width: 16px; height: 16px;"></i> Aracı Başlat
-              </button>
-            </div>
-
-            <!-- Araç 4: Haftalık Ders Programı -->
-            <div class="game-landing-card glass-card" style="padding: 1.5rem; border-radius: 12px; background: var(--bg-secondary); border: 1px solid var(--border-color); display: flex; flex-direction: column; justify-content: space-between; min-height: 220px; transition: transform 0.2s ease;">
-              <div>
-                <div style="font-size: 2rem; margin-bottom: 0.5rem;">🗓️</div>
-                <h3 style="font-size: 1.15rem; font-weight: 700; margin-bottom: 0.5rem;">Haftalık Ders Programı</h3>
-                <p style="font-size: 0.85rem; color: var(--text-secondary); line-height: 1.4; margin-bottom: 1rem;">Sınıfınız için haftalık ders programı ve ders saatleri tablosu hazırlama aracı.</p>
-              </div>
-              <button class="btn btn-primary btn-full" id="btn-launch-schedule" style="width: 100%; display: flex; justify-content: center; gap: 0.5rem;">
                 <i data-lucide="play" style="width: 16px; height: 16px;"></i> Aracı Başlat
               </button>
             </div>
@@ -3659,84 +3647,196 @@
           </div>
         </div>
 
-        <!-- Plan Takip Paneli (Başlangıçta Gizli) -->
-        <div id="tools-plans-view" style="display: none;">
+        <!-- Planlama Paneli (Günlük / Haftalık / Yıllık) (Başlangıçta Gizli) -->
+        <div id="tools-planning-view" style="display: none;">
           <div class="page-header" style="margin-bottom: 1.5rem;">
             <div class="header-title" style="display: flex; align-items: center; gap: 1rem;">
-              <button class="btn btn-secondary btn-sm" id="btn-back-to-tools-from-plans" style="padding: 0.35rem 0.75rem; font-size: 0.85rem; height: 35px;">
+              <button class="btn btn-secondary btn-sm" id="btn-back-to-tools-from-planning" style="padding: 0.35rem 0.75rem; font-size: 0.85rem; height: 35px;">
                 <i data-lucide="arrow-left" style="width: 16px; height: 16px;"></i> Geri Dön
               </button>
               <div>
-                <h2 style="font-size: 1.5rem; margin-bottom: 0;">Haftalık Ders Planı Takibi</h2>
-                <p style="margin-top: 0;">Yıllık plandan üretilen haftalık konuların takibi</p>
+                <h2 style="font-size: 1.5rem; margin-bottom: 0;">Planlama</h2>
+                <p style="margin-top: 0;" id="planning-subtitle">Günlük, haftalık ve yıllık planlarınızı tek yerden yönetin</p>
               </div>
             </div>
           </div>
 
-          <!-- Ana Sekmeler (Haftalık Görünüm / Genel Görünüm) -->
-          <div class="sub-tab-menu" style="margin-bottom: 1.5rem;">
-            <button class="sub-tab-btn active" id="btn-plans-tab-weekly" data-plans-main-tab="weekly">
-              <i data-lucide="calendar" style="width: 16px; height: 16px;"></i> Haftalık Görünüm
+          <!-- Planlama Ana Sekmeleri -->
+          <div class="sub-tab-menu" id="planning-tab-menu" style="margin-bottom: 1.5rem;">
+            <button class="sub-tab-btn" data-planning-tab="daily">
+              <i data-lucide="sun" style="width: 16px; height: 16px;"></i> Günlük Plan
             </button>
-            <button class="sub-tab-btn" id="btn-plans-tab-general" data-plans-main-tab="general">
-              <i data-lucide="layers" style="width: 16px; height: 16px;"></i> Genel Görünüm
+            <button class="sub-tab-btn" data-planning-tab="weekly">
+              <i data-lucide="calendar-days" style="width: 16px; height: 16px;"></i> Haftalık Plan
+            </button>
+            <button class="sub-tab-btn" data-planning-tab="yearly">
+              <i data-lucide="calendar-range" style="width: 16px; height: 16px;"></i> Yıllık Plan
             </button>
           </div>
 
-          <!-- SEKME 1: HAFTALIK GÖRÜNÜM -->
-          <div id="plans-tab-content-weekly" class="plans-main-tab-content active">
-            <div style="display: flex; justify-content: flex-end; margin-bottom: 1.5rem;" id="weekly-plan-upload-btn-container">
-              <button class="btn btn-primary" id="btn-show-import-modal-weekly" style="display: flex; align-items: center; gap: 0.25rem;">
-                <i data-lucide="plus-circle"></i> Yıllık Plan Ekle
-              </button>
+          <!-- SEKME: GÜNLÜK PLAN (Tasarım aşamasında) -->
+          <div id="tools-daily-plan-view" style="display: none;">
+            <div class="glass-card" style="padding: 3rem 2rem; text-align: center; border-radius: 12px; background: var(--bg-secondary); border: 1px dashed var(--border-color);">
+              <i data-lucide="sparkles" style="width: 56px; height: 56px; color: var(--primary); opacity: 0.8; margin-bottom: 1rem;"></i>
+              <h3 style="font-size: 1.25rem; font-weight: 700; margin-bottom: 0.5rem;">Günlük Plan — Tasarım Aşamasında</h3>
+              <p style="font-size: 0.95rem; color: var(--text-secondary); max-width: 560px; margin: 0 auto 1.25rem; line-height: 1.5;">
+                Bu bölüm şu anda geliştirme aşamasındadır. Yakında yıllık planınızdan bir kazanım seçerek,
+                haftalık ders programınızdaki ders saatine göre yapay zeka destekli günlük ders planını
+                adınıza otomatik olarak oluşturabileceksiniz.
+              </p>
+              <span class="badge" style="background: rgba(99,102,241,0.15); color: var(--primary); font-size: 0.8rem; padding: 0.3rem 0.75rem; border-radius: 12px; font-weight: 600;">Çok Yakında</span>
+            </div>
+          </div>
+
+          <!-- Yıllık Plan (Plan Takip Paneli) -->
+          <div id="tools-plans-view" style="display: none;">
+            <!-- Görünüm Seçimi (Haftalık Görünüm / Genel Görünüm) - Açılır Menü -->
+            <div class="glass-card" style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; padding: 0.75rem 1rem; margin-bottom: 1.5rem; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px;">
+              <label for="plans-view-mode-select" style="display: inline-flex; align-items: center; gap: 0.35rem; font-weight: 600; font-size: 0.9rem; margin: 0;">
+                <i data-lucide="eye" style="width: 16px; height: 16px;"></i> Görünüm:
+              </label>
+              <select id="plans-view-mode-select" class="form-control" style="width: auto; min-width: 220px;">
+                <option value="weekly">📅 Haftalık Görünüm</option>
+                <option value="general">🗂️ Genel Görünüm</option>
+              </select>
             </div>
 
-            <!-- Hafta Navigasyon Barı -->
-            <div class="glass-card" id="plans-weekly-nav-bar" style="display: flex; align-items: center; justify-content: space-between; padding: 1rem; margin-bottom: 1.5rem; background: var(--bg-secondary); border: 1px solid var(--border-color); flex-wrap: wrap; gap: 1rem;">
-              <button class="btn btn-secondary btn-sm" id="btn-plans-prev-week" style="display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; padding: 0; border-radius: var(--radius-md);">
-                <i data-lucide="chevron-left" style="width: 20px; height: 20px;"></i>
-              </button>
-              <div style="text-align: center; flex: 1; min-width: 150px;">
-                <span id="plans-current-week-label" style="font-weight: 800; font-size: 1.1rem; color: var(--primary); display: block;">Seçili Hafta</span>
-                <span id="plans-current-week-dates" style="font-size: 0.8rem; color: var(--text-muted); font-weight: 500;">Tarih Aralığı</span>
+            <!-- SEKME 1: HAFTALIK GÖRÜNÜM -->
+            <div id="plans-tab-content-weekly" class="plans-main-tab-content active">
+              <div style="display: flex; justify-content: flex-end; margin-bottom: 1.5rem;" id="weekly-plan-upload-btn-container">
+                <button class="btn btn-primary" id="btn-show-import-modal-weekly" style="display: flex; align-items: center; gap: 0.25rem;">
+                  <i data-lucide="plus-circle"></i> Yıllık Plan Ekle
+                </button>
               </div>
-              <button class="btn btn-secondary btn-sm" id="btn-plans-next-week" style="display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; padding: 0; border-radius: var(--radius-md);">
-                <i data-lucide="chevron-right" style="width: 20px; height: 20px;"></i>
-              </button>
-            </div>
 
-            <!-- Derslere Ait Haftalık Plan Kartları (Alt Alta) -->
-            <div id="plans-weekly-view-cards" style="display: flex; flex-direction: column; gap: 1.5rem;">
-              <!-- JS ile yüklenecek -->
-            </div>
+              <!-- Hafta Navigasyon Barı -->
+              <div class="glass-card" id="plans-weekly-nav-bar" style="display: flex; align-items: center; justify-content: space-between; padding: 1rem; margin-bottom: 1.5rem; background: var(--bg-secondary); border: 1px solid var(--border-color); flex-wrap: wrap; gap: 1rem;">
+                <button class="btn btn-secondary btn-sm" id="btn-plans-prev-week" style="display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; padding: 0; border-radius: var(--radius-md);">
+                  <i data-lucide="chevron-left" style="width: 20px; height: 20px;"></i>
+                </button>
+                <div style="text-align: center; flex: 1; min-width: 150px;">
+                  <span id="plans-current-week-label" style="font-weight: 800; font-size: 1.1rem; color: var(--primary); display: block;">Seçili Hafta</span>
+                  <span id="plans-current-week-dates" style="font-size: 0.8rem; color: var(--text-muted); font-weight: 500;">Tarih Aralığı</span>
+                </div>
+                <button class="btn btn-secondary btn-sm" id="btn-plans-next-week" style="display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; padding: 0; border-radius: var(--radius-md);">
+                  <i data-lucide="chevron-right" style="width: 20px; height: 20px;"></i>
+                </button>
+              </div>
+
+              <!-- Derslere Ait Haftalık Plan Kartları (Alt Alta) -->
+              <div id="plans-weekly-view-cards" style="display: flex; flex-direction: column; gap: 1.5rem;">
+                <!-- JS ile yüklenecek -->
+              </div>
             
-            <div id="plans-weekly-empty-state" class="empty-state" style="display: none; text-align: center; padding: 4rem; color: var(--text-muted);">
-              <i data-lucide="calendar-off" style="width: 56px; height: 56px; margin-bottom: 1.5rem; opacity: 0.5;"></i>
-              <p style="font-size: 1.1rem; margin-bottom: 1.5rem;">Henüz yüklenmiş bir ders planı bulunmuyor.</p>
-              <button class="btn btn-primary" id="btn-import-first-plan-weekly" style="margin: 0 auto; display: inline-flex; align-items: center; gap: 0.25rem;">
-                <i data-lucide="plus-circle"></i> Yıllık Plan Ekle
-              </button>
+              <div id="plans-weekly-empty-state" class="empty-state" style="display: none; text-align: center; padding: 4rem; color: var(--text-muted);">
+                <i data-lucide="calendar-off" style="width: 56px; height: 56px; margin-bottom: 1.5rem; opacity: 0.5;"></i>
+                <p style="font-size: 1.1rem; margin-bottom: 1.5rem;">Henüz yüklenmiş bir ders planı bulunmuyor.</p>
+                <button class="btn btn-primary" id="btn-import-first-plan-weekly" style="margin: 0 auto; display: inline-flex; align-items: center; gap: 0.25rem;">
+                  <i data-lucide="plus-circle"></i> Yıllık Plan Ekle
+                </button>
+              </div>
+            </div>
+
+            <!-- SEKME 2: GENEL GÖRÜNÜM -->
+            <div id="plans-tab-content-general" class="plans-main-tab-content" style="display: none;">
+              <div style="display: flex; justify-content: flex-end; margin-bottom: 1.5rem;">
+                <button class="btn btn-primary" id="btn-show-import-modal-general" style="display: flex; align-items: center; gap: 0.25rem;">
+                  <i data-lucide="plus-circle"></i> Yıllık Plan Ekle
+                </button>
+              </div>
+
+              <div class="plans-grid" id="plans-general-list-container" style="display: flex; flex-direction: column; gap: 1.5rem; width: 100%;">
+                <!-- JS ile yüklenecek -->
+              </div>
+
+              <div class="empty-state" id="plans-general-empty-state" style="display: none; text-align: center; padding: 4rem; color: var(--text-muted);">
+                <i data-lucide="book-open" style="width: 56px; height: 56px; margin-bottom: 1.5rem; opacity: 0.5;"></i>
+                <p style="font-size: 1.1rem; margin-bottom: 1.5rem;">Henüz yüklenmiş bir ders planı bulunmuyor.</p>
+                <button class="btn btn-primary" id="btn-import-first-plan-general" style="margin: 0 auto; display: inline-flex; align-items: center; gap: 0.25rem;">
+                  <i data-lucide="plus-circle"></i> Yıllık Plan Ekle
+                </button>
+              </div>
             </div>
           </div>
 
-          <!-- SEKME 2: GENEL GÖRÜNÜM -->
-          <div id="plans-tab-content-general" class="plans-main-tab-content" style="display: none;">
-            <div style="display: flex; justify-content: flex-end; margin-bottom: 1.5rem;">
-              <button class="btn btn-primary" id="btn-show-import-modal-general" style="display: flex; align-items: center; gap: 0.25rem;">
-                <i data-lucide="plus-circle"></i> Yıllık Plan Ekle
-              </button>
-            </div>
+          <!-- Haftalık Plan (Haftalık Ders Programı Paneli) -->
+          <div id="tools-schedule-view" style="display: none;">
 
-            <div class="plans-grid" id="plans-general-list-container" style="display: flex; flex-direction: column; gap: 1.5rem; width: 100%;">
-              <!-- JS ile yüklenecek -->
-            </div>
+            <div class="tools-layout schedule-layout">
+              <!-- Sol Panel: Kağıt Önizleme (Şimdi solda) -->
+              <div style="flex-grow: 1; display: flex; flex-direction: column; justify-content: flex-start; overflow-x: auto;" id="schedule-preview-container">
+                <div id="schedule-preview-content" class="preview-paper-container">
+                  <!-- Dinamik tablo eklenecektir -->
+                </div>
+              </div>
 
-            <div class="empty-state" id="plans-general-empty-state" style="display: none; text-align: center; padding: 4rem; color: var(--text-muted);">
-              <i data-lucide="book-open" style="width: 56px; height: 56px; margin-bottom: 1.5rem; opacity: 0.5;"></i>
-              <p style="font-size: 1.1rem; margin-bottom: 1.5rem;">Henüz yüklenmiş bir ders planı bulunmuyor.</p>
-              <button class="btn btn-primary" id="btn-import-first-plan-general" style="margin: 0 auto; display: inline-flex; align-items: center; gap: 0.25rem;">
-                <i data-lucide="plus-circle"></i> Yıllık Plan Ekle
-              </button>
+              <!-- Sağ Panel: Ayarlar ve Ders Tanımları (Şimdi sağda) -->
+              <div class="glass-card" style="padding: 1.5rem; border-radius: 12px; background: var(--bg-secondary); border: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 1.25rem;">
+              
+                <!-- Sol Sütun Alt Sekmeleri -->
+                <div class="sub-tab-menu" style="display: flex; gap: 0.25rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.75rem; margin-bottom: 0.25rem;">
+                  <button class="sub-tab-btn active" id="btn-schedule-tab-lessons" style="flex: 1; font-size: 0.75rem; padding: 0.35rem 0.5rem; text-align: center; justify-content: center; height: 32px;">
+                    Dersleri Tanımla
+                  </button>
+                  <button class="sub-tab-btn" id="btn-schedule-tab-times" style="flex: 1; font-size: 0.75rem; padding: 0.35rem 0.5rem; text-align: center; justify-content: center; height: 32px;">
+                    Saat Ayarları
+                  </button>
+                </div>
+
+                <!-- Bölüm 1: Ders Tanımla -->
+                <div id="schedule-panel-lessons">
+                  <h3 style="font-size: 0.95rem; font-weight: 700; margin-bottom: 0.75rem; color: var(--text-primary);">Yeni Ders Tanımla</h3>
+                  <div style="display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 1.25rem;">
+                    <div class="form-group" style="margin-bottom: 0;">
+                      <label style="font-size: 0.75rem; font-weight: 600; margin-bottom: 0.25rem; display: block; color: var(--text-secondary);">Ders Adı</label>
+                      <input type="text" id="schedule-lesson-name" class="form-control" placeholder="Örn: Drama, Kodlama vb." style="font-size: 0.85rem; height: 36px; width: 100%; border-radius: var(--radius-sm); border: 1px solid var(--border-color); padding: 0.5rem; background: var(--bg-primary); color: var(--text-primary);">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                      <label style="font-size: 0.75rem; font-weight: 600; margin-bottom: 0.25rem; display: block; color: var(--text-secondary);">Ders Rengi</label>
+                      <div style="display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.25rem;" id="schedule-color-picker-container">
+                        <button type="button" class="color-dot active" data-color="#ef4444" style="background-color: #ef4444; width: 22px; height: 22px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; transition: all 0.2s;"></button>
+                        <button type="button" class="color-dot" data-color="#f97316" style="background-color: #f97316; width: 22px; height: 22px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; transition: all 0.2s;"></button>
+                        <button type="button" class="color-dot" data-color="#f59e0b" style="background-color: #f59e0b; width: 22px; height: 22px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; transition: all 0.2s;"></button>
+                        <button type="button" class="color-dot" data-color="#10b981" style="background-color: #10b981; width: 22px; height: 22px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; transition: all 0.2s;"></button>
+                        <button type="button" class="color-dot" data-color="#14b8a6" style="background-color: #14b8a6; width: 22px; height: 22px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; transition: all 0.2s;"></button>
+                        <button type="button" class="color-dot" data-color="#3b82f6" style="background-color: #3b82f6; width: 22px; height: 22px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; transition: all 0.2s;"></button>
+                        <button type="button" class="color-dot" data-color="#6366f1" style="background-color: #6366f1; width: 22px; height: 22px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; transition: all 0.2s;"></button>
+                        <button type="button" class="color-dot" data-color="#8b5cf6" style="background-color: #8b5cf6; width: 22px; height: 22px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; transition: all 0.2s;"></button>
+                        <button type="button" class="color-dot" data-color="#ec4899" style="background-color: #ec4899; width: 22px; height: 22px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; transition: all 0.2s;"></button>
+                        <button type="button" class="color-dot" data-color="#64748b" style="background-color: #64748b; width: 22px; height: 22px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; transition: all 0.2s;"></button>
+                      </div>
+                    </div>
+                    <button class="btn btn-primary btn-sm" id="btn-add-schedule-lesson" style="height: 36px; display: flex; align-items: center; justify-content: center; gap: 0.25rem; width: 100%;">
+                      <i data-lucide="plus" style="width: 14px; height: 14px;"></i> Ders Ekle
+                    </button>
+                  </div>
+
+                  <h4 style="font-size: 0.85rem; font-weight: 700; margin-bottom: 0.5rem; border-top: 1px solid var(--border-color); padding-top: 0.75rem; color: var(--text-primary);">Tanımlı Dersler</h4>
+                  <div id="schedule-lessons-list" style="display: flex; flex-direction: column; gap: 0.5rem; max-height: 220px; overflow-y: auto; padding-right: 0.25rem;">
+                    <!-- Dinamik eklenecektir -->
+                  </div>
+                </div>
+
+                <!-- Bölüm 2: Saat Ayarları -->
+                <div id="schedule-panel-times" style="display: none;">
+                  <h3 style="font-size: 0.95rem; font-weight: 700; margin-bottom: 0.75rem; color: var(--text-primary);">Ders Saatlerini Düzenle</h3>
+                  <div style="display: flex; flex-direction: column; gap: 0.75rem; max-height: 380px; overflow-y: auto; padding-right: 0.25rem;" id="schedule-times-form-container">
+                    <!-- Dinamik saat giriş alanları eklenecektir -->
+                  </div>
+                </div>
+
+                <!-- Aksiyon Butonları -->
+                <div style="display: flex; flex-direction: column; gap: 0.5rem; border-top: 1px solid var(--border-color); padding-top: 1rem;">
+                  <button class="btn btn-primary" id="btn-print-schedule" style="width: 100%; display: flex; justify-content: center; align-items: center; gap: 0.5rem; height: 40px;">
+                    <i data-lucide="printer" style="width: 16px; height: 16px;"></i> Programı Yazdır
+                  </button>
+                  <button class="btn btn-secondary" id="btn-clear-schedule" style="width: 100%; display: flex; justify-content: center; align-items: center; gap: 0.5rem; height: 40px; border: 1px solid rgba(239, 68, 68, 0.3); color: var(--danger); background: transparent;">
+                    <i data-lucide="trash-2" style="width: 16px; height: 16px;"></i> Programı Temizle
+                  </button>
+                </div>
+
+              </div>
+
             </div>
           </div>
         </div>
@@ -3797,98 +3897,6 @@
             <button class="btn btn-primary" id="btn-upload-first-document">
               <i data-lucide="upload"></i> İlk Evrağı Yükle
             </button>
-          </div>
-        </div>
-
-        <!-- 4. Haftalık Ders Programı Paneli (Başlangıçta Gizli) -->
-        <div id="tools-schedule-view" style="display: none;">
-          <div class="page-header" style="margin-bottom: 1.5rem;">
-            <div class="header-title" style="display: flex; align-items: center; gap: 1rem;">
-              <button class="btn btn-secondary btn-sm" id="btn-back-to-tools-from-schedule" style="padding: 0.35rem 0.75rem; font-size: 0.85rem; height: 35px;">
-                <i data-lucide="arrow-left" style="width: 16px; height: 16px;"></i> Geri Dön
-              </button>
-              <div>
-                <h2 style="font-size: 1.5rem; margin-bottom: 0;">Haftalık Ders Programı Hazırlama</h2>
-                <p style="margin-top: 0;">Sınıf ders programını oluşturun, ders saatlerini ayarlayın ve çıktı alın</p>
-              </div>
-            </div>
-          </div>
-
-          <div class="tools-layout schedule-layout">
-            <!-- Sol Panel: Kağıt Önizleme (Şimdi solda) -->
-            <div style="flex-grow: 1; display: flex; flex-direction: column; justify-content: flex-start; overflow-x: auto;" id="schedule-preview-container">
-              <div id="schedule-preview-content" class="preview-paper-container">
-                <!-- Dinamik tablo eklenecektir -->
-              </div>
-            </div>
-
-            <!-- Sağ Panel: Ayarlar ve Ders Tanımları (Şimdi sağda) -->
-            <div class="glass-card" style="padding: 1.5rem; border-radius: 12px; background: var(--bg-secondary); border: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 1.25rem;">
-              
-              <!-- Sol Sütun Alt Sekmeleri -->
-              <div class="sub-tab-menu" style="display: flex; gap: 0.25rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.75rem; margin-bottom: 0.25rem;">
-                <button class="sub-tab-btn active" id="btn-schedule-tab-lessons" style="flex: 1; font-size: 0.75rem; padding: 0.35rem 0.5rem; text-align: center; justify-content: center; height: 32px;">
-                  Dersleri Tanımla
-                </button>
-                <button class="sub-tab-btn" id="btn-schedule-tab-times" style="flex: 1; font-size: 0.75rem; padding: 0.35rem 0.5rem; text-align: center; justify-content: center; height: 32px;">
-                  Saat Ayarları
-                </button>
-              </div>
-
-              <!-- Bölüm 1: Ders Tanımla -->
-              <div id="schedule-panel-lessons">
-                <h3 style="font-size: 0.95rem; font-weight: 700; margin-bottom: 0.75rem; color: var(--text-primary);">Yeni Ders Tanımla</h3>
-                <div style="display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 1.25rem;">
-                  <div class="form-group" style="margin-bottom: 0;">
-                    <label style="font-size: 0.75rem; font-weight: 600; margin-bottom: 0.25rem; display: block; color: var(--text-secondary);">Ders Adı</label>
-                    <input type="text" id="schedule-lesson-name" class="form-control" placeholder="Örn: Drama, Kodlama vb." style="font-size: 0.85rem; height: 36px; width: 100%; border-radius: var(--radius-sm); border: 1px solid var(--border-color); padding: 0.5rem; background: var(--bg-primary); color: var(--text-primary);">
-                  </div>
-                  <div class="form-group" style="margin-bottom: 0;">
-                    <label style="font-size: 0.75rem; font-weight: 600; margin-bottom: 0.25rem; display: block; color: var(--text-secondary);">Ders Rengi</label>
-                    <div style="display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.25rem;" id="schedule-color-picker-container">
-                      <button type="button" class="color-dot active" data-color="#ef4444" style="background-color: #ef4444; width: 22px; height: 22px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; transition: all 0.2s;"></button>
-                      <button type="button" class="color-dot" data-color="#f97316" style="background-color: #f97316; width: 22px; height: 22px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; transition: all 0.2s;"></button>
-                      <button type="button" class="color-dot" data-color="#f59e0b" style="background-color: #f59e0b; width: 22px; height: 22px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; transition: all 0.2s;"></button>
-                      <button type="button" class="color-dot" data-color="#10b981" style="background-color: #10b981; width: 22px; height: 22px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; transition: all 0.2s;"></button>
-                      <button type="button" class="color-dot" data-color="#14b8a6" style="background-color: #14b8a6; width: 22px; height: 22px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; transition: all 0.2s;"></button>
-                      <button type="button" class="color-dot" data-color="#3b82f6" style="background-color: #3b82f6; width: 22px; height: 22px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; transition: all 0.2s;"></button>
-                      <button type="button" class="color-dot" data-color="#6366f1" style="background-color: #6366f1; width: 22px; height: 22px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; transition: all 0.2s;"></button>
-                      <button type="button" class="color-dot" data-color="#8b5cf6" style="background-color: #8b5cf6; width: 22px; height: 22px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; transition: all 0.2s;"></button>
-                      <button type="button" class="color-dot" data-color="#ec4899" style="background-color: #ec4899; width: 22px; height: 22px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; transition: all 0.2s;"></button>
-                      <button type="button" class="color-dot" data-color="#64748b" style="background-color: #64748b; width: 22px; height: 22px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; transition: all 0.2s;"></button>
-                    </div>
-                  </div>
-                  <button class="btn btn-primary btn-sm" id="btn-add-schedule-lesson" style="height: 36px; display: flex; align-items: center; justify-content: center; gap: 0.25rem; width: 100%;">
-                    <i data-lucide="plus" style="width: 14px; height: 14px;"></i> Ders Ekle
-                  </button>
-                </div>
-
-                <h4 style="font-size: 0.85rem; font-weight: 700; margin-bottom: 0.5rem; border-top: 1px solid var(--border-color); padding-top: 0.75rem; color: var(--text-primary);">Tanımlı Dersler</h4>
-                <div id="schedule-lessons-list" style="display: flex; flex-direction: column; gap: 0.5rem; max-height: 220px; overflow-y: auto; padding-right: 0.25rem;">
-                  <!-- Dinamik eklenecektir -->
-                </div>
-              </div>
-
-              <!-- Bölüm 2: Saat Ayarları -->
-              <div id="schedule-panel-times" style="display: none;">
-                <h3 style="font-size: 0.95rem; font-weight: 700; margin-bottom: 0.75rem; color: var(--text-primary);">Ders Saatlerini Düzenle</h3>
-                <div style="display: flex; flex-direction: column; gap: 0.75rem; max-height: 380px; overflow-y: auto; padding-right: 0.25rem;" id="schedule-times-form-container">
-                  <!-- Dinamik saat giriş alanları eklenecektir -->
-                </div>
-              </div>
-
-              <!-- Aksiyon Butonları -->
-              <div style="display: flex; flex-direction: column; gap: 0.5rem; border-top: 1px solid var(--border-color); padding-top: 1rem;">
-                <button class="btn btn-primary" id="btn-print-schedule" style="width: 100%; display: flex; justify-content: center; align-items: center; gap: 0.5rem; height: 40px;">
-                  <i data-lucide="printer" style="width: 16px; height: 16px;"></i> Programı Yazdır
-                </button>
-                <button class="btn btn-secondary" id="btn-clear-schedule" style="width: 100%; display: flex; justify-content: center; align-items: center; gap: 0.5rem; height: 40px; border: 1px solid rgba(239, 68, 68, 0.3); color: var(--danger); background: transparent;">
-                  <i data-lucide="trash-2" style="width: 16px; height: 16px;"></i> Programı Temizle
-                </button>
-              </div>
-
-            </div>
-
           </div>
         </div>
 

@@ -543,5 +543,11 @@
 
   window.setupScheduleTool = setupScheduleTool;
   window.renderScheduleTool = renderScheduleTool;
+  // Planlama > Haftalık Plan sekmesinden açılır
+  window.openScheduleView = function () {
+    const view = document.getElementById('tools-schedule-view');
+    if (view) view.style.display = 'block';
+    renderScheduleTool();
+  };
 
 })();
