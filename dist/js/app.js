@@ -2674,7 +2674,7 @@ async function initApp() {
 }
 
 // Mevcut uygulama sürümü (her güncellemede değişir)
-const APP_VERSION = '1.0.48';
+const APP_VERSION = '1.0.49';
 
 // GitHub & Tauri Auto-Updater kontrolü
 async function checkForUpdates() {

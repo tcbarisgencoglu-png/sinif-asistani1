@@ -26,7 +26,8 @@
   let btnRenameCurrentCategory;
   let btnDeleteCurrentCategory;
   let currentActiveCategoryId = 'all'; // 'all' | 'uncategorized' | categoryId
-
+  let dailyPlansFolderCourseFilter = 'all'; // 'all' | courseName
+  let dailyPlansViewMode = 'folders'; // 'folders' | 'list'
   // Upload Modal DOM
   let modalUploadDocument;
   let docUploadTitle;
@@ -388,6 +389,9 @@
 
   // Sekme Seçimi
   function selectCategoryTab(catId) {
+    if (currentActiveCategoryId !== catId) {
+      dailyPlansFolderCourseFilter = 'all';
+    }
     currentActiveCategoryId = catId;
     renderCategoryTabs();
     renderDocumentsList();
@@ -403,7 +407,11 @@
       if (documentsCategoryControls) documentsCategoryControls.style.display = 'none';
     } else if (currentActiveCategoryId === 'cat_daily_plans') {
       const count = allDocs.filter(d => d.categoryId === 'cat_daily_plans' || d.isDailyPlan).length;
-      documentsActiveCategoryTitle.textContent = 'Günlük Planlar';
+      if (dailyPlansFolderCourseFilter !== 'all') {
+        documentsActiveCategoryTitle.textContent = `Günlük Planlar > ${dailyPlansFolderCourseFilter}`;
+      } else {
+        documentsActiveCategoryTitle.textContent = dailyPlansViewMode === 'folders' ? 'Günlük Planlar (Ders Klasörleri)' : 'Günlük Planlar (Tüm Liste)';
+      }
       documentsActiveCategoryCountBadge.textContent = `${count} Plan`;
       if (documentsCategoryControls) documentsCategoryControls.style.display = 'none';
     } else if (currentActiveCategoryId === 'uncategorized') {
@@ -725,6 +733,179 @@
     documentsEmptyState.style.display = 'none';
     documentsListContainer.style.display = 'grid';
 
+    // ==========================================
+    // GÜNLÜK PLANLAR SEKME VE KLASÖR YÖNETİMİ
+    // ==========================================
+    if (currentActiveCategoryId === 'cat_daily_plans') {
+      // 1. Ders gruplarını hesapla
+      const courseGroups = {};
+      docs.forEach(doc => {
+        const cName = (doc.courseName && doc.courseName.trim()) || 'Genel / Belirtilmemiş Ders';
+        if (!courseGroups[cName]) {
+          courseGroups[cName] = [];
+        }
+        courseGroups[cName].push(doc);
+      });
+
+      const courseNames = Object.keys(courseGroups).sort();
+
+      // Üst Araç Çubuğu (Toolbar) Oluştur
+      const toolbarDiv = document.createElement('div');
+      toolbarDiv.className = 'daily-plans-toolbar';
+      toolbarDiv.style.gridColumn = '1 / -1';
+      toolbarDiv.style.display = 'flex';
+      toolbarDiv.style.justifyContent = 'space-between';
+      toolbarDiv.style.alignItems = 'center';
+      toolbarDiv.style.flexWrap = 'wrap';
+      toolbarDiv.style.gap = '0.75rem';
+      toolbarDiv.style.marginBottom = '0.5rem';
+      toolbarDiv.style.padding = '0.75rem 1rem';
+      toolbarDiv.style.background = 'rgba(255, 255, 255, 0.03)';
+      toolbarDiv.style.border = '1px solid var(--border-color)';
+      toolbarDiv.style.borderRadius = 'var(--radius-md)';
+
+      // Sol: Gezinme / Breadcrumb
+      const navLeft = document.createElement('div');
+      navLeft.style.display = 'flex';
+      navLeft.style.alignItems = 'center';
+      navLeft.style.gap = '0.6rem';
+
+      if (dailyPlansFolderCourseFilter !== 'all') {
+        const btnBackFolders = document.createElement('button');
+        btnBackFolders.className = 'btn btn-secondary btn-sm';
+        btnBackFolders.style.display = 'inline-flex';
+        btnBackFolders.style.alignItems = 'center';
+        btnBackFolders.style.gap = '0.4rem';
+        btnBackFolders.innerHTML = `<i data-lucide="arrow-left" style="width: 14px; height: 14px;"></i> Tüm Ders Klasörlerine Dön`;
+        btnBackFolders.addEventListener('click', () => {
+          dailyPlansFolderCourseFilter = 'all';
+          updateCategoryHeaderInfo(categories, allDocs);
+          renderDocumentsList();
+        });
+        navLeft.appendChild(btnBackFolders);
+
+        const activeCourseBadge = document.createElement('span');
+        activeCourseBadge.className = 'badge';
+        activeCourseBadge.style.fontSize = '0.85rem';
+        activeCourseBadge.style.padding = '0.35rem 0.75rem';
+        activeCourseBadge.style.borderRadius = '8px';
+        activeCourseBadge.style.background = 'rgba(245, 158, 11, 0.15)';
+        activeCourseBadge.style.color = '#f59e0b';
+        activeCourseBadge.style.fontWeight = '600';
+        activeCourseBadge.textContent = `📁 ${dailyPlansFolderCourseFilter} (${courseGroups[dailyPlansFolderCourseFilter] ? courseGroups[dailyPlansFolderCourseFilter].length : 0} Plan)`;
+        navLeft.appendChild(activeCourseBadge);
+      } else {
+        navLeft.innerHTML = `
+          <span style="font-size: 0.88rem; color: var(--text-muted); display: flex; align-items: center; gap: 0.4rem;">
+            <i data-lucide="folder-tree" style="width: 16px; height: 16px; color: #f59e0b;"></i>
+            Toplam <strong>${courseNames.length}</strong> ders klasöründe <strong>${docs.length}</strong> haftalık plan depolanıyor
+          </span>
+        `;
+      }
+      toolbarDiv.appendChild(navLeft);
+
+      // Sağ: Görünüm Geçiş Düğmeleri (Klasör / Liste)
+      const viewControls = document.createElement('div');
+      viewControls.style.display = 'flex';
+      viewControls.style.gap = '0.4rem';
+
+      const btnFolderMode = document.createElement('button');
+      btnFolderMode.className = `btn btn-sm ${dailyPlansViewMode === 'folders' && dailyPlansFolderCourseFilter === 'all' ? 'btn-primary' : 'btn-secondary'}`;
+      btnFolderMode.title = 'Ders Klasörleri Görünümü';
+      btnFolderMode.innerHTML = `<i data-lucide="folder" style="width: 14px; height: 14px;"></i> Klasörler`;
+      btnFolderMode.addEventListener('click', () => {
+        dailyPlansViewMode = 'folders';
+        dailyPlansFolderCourseFilter = 'all';
+        updateCategoryHeaderInfo(categories, allDocs);
+        renderDocumentsList();
+      });
+
+      const btnListMode = document.createElement('button');
+      btnListMode.className = `btn btn-sm ${dailyPlansViewMode === 'list' && dailyPlansFolderCourseFilter === 'all' ? 'btn-primary' : 'btn-secondary'}`;
+      btnListMode.title = 'Tüm Planları Kronolojik Listele';
+      btnListMode.innerHTML = `<i data-lucide="list" style="width: 14px; height: 14px;"></i> Tüm Liste`;
+      btnListMode.addEventListener('click', () => {
+        dailyPlansViewMode = 'list';
+        dailyPlansFolderCourseFilter = 'all';
+        updateCategoryHeaderInfo(categories, allDocs);
+        renderDocumentsList();
+      });
+
+      viewControls.appendChild(btnFolderMode);
+      viewControls.appendChild(btnListMode);
+      toolbarDiv.appendChild(viewControls);
+
+      documentsListContainer.appendChild(toolbarDiv);
+
+      // 2. MOD A: KLASÖR GÖRÜNÜMÜ (Ana Ekran)
+      if (dailyPlansViewMode === 'folders' && dailyPlansFolderCourseFilter === 'all') {
+        courseNames.forEach(cName => {
+          const plansInCourse = courseGroups[cName] || [];
+          // En son eklenen plan
+          const sorted = [...plansInCourse].sort((a, b) => (b.academicWeekNo || 0) - (a.academicWeekNo || 0));
+          const latestPlan = sorted[0];
+          const classNames = Array.from(new Set(plansInCourse.map(p => p.className).filter(Boolean)));
+          const classLabel = classNames.length > 0 ? classNames.join(', ') : 'Sınıf Belirtilmemiş';
+
+          const folderCard = document.createElement('div');
+          folderCard.className = 'game-landing-card glass-card document-card daily-course-folder-card';
+          folderCard.style.cursor = 'pointer';
+          folderCard.style.border = '1px solid rgba(245, 158, 11, 0.25)';
+          folderCard.style.background = 'linear-gradient(145deg, rgba(245, 158, 11, 0.05) 0%, rgba(30, 41, 59, 0.4) 100%)';
+          folderCard.style.transition = 'all 0.2s ease';
+
+          folderCard.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; width: 100%;">
+              <div class="game-card-icon" style="font-size: 2.3rem; margin-bottom: 0.5rem; color: #f59e0b;">📁</div>
+              <span class="badge" style="background: rgba(245, 158, 11, 0.2); color: #fbbf24; font-weight: 700; font-size: 0.78rem; padding: 0.2rem 0.6rem; border-radius: 8px;">
+                ${plansInCourse.length} Plan
+              </span>
+            </div>
+            <div class="game-card-info" style="width: 100%; display: flex; flex-direction: column; flex-grow: 1;">
+              <h3 style="color: var(--text-primary); font-size: 1.15rem; margin-bottom: 0.35rem;" title="${escapeHtml(cName)}">
+                ${escapeHtml(cName)}
+              </h3>
+              <div class="doc-meta" style="flex-direction: column; align-items: flex-start; gap: 0.25rem;">
+                <span style="color: var(--text-muted); font-size: 0.8rem;">
+                  <i data-lucide="users" style="width: 12px; height: 12px;"></i> Sınıf: <strong>${escapeHtml(classLabel)}</strong>
+                </span>
+                ${latestPlan && latestPlan.weekLabel ? `
+                  <span style="color: var(--text-muted); font-size: 0.8rem;">
+                    <i data-lucide="calendar" style="width: 12px; height: 12px;"></i> Son Plan: <strong>${escapeHtml(latestPlan.weekLabel)}</strong>
+                  </span>
+                ` : ''}
+              </div>
+              <div style="margin-top: 1rem; display: flex; justify-content: flex-end;">
+                <button class="btn btn-primary btn-sm btn-open-course-folder" style="width: 100%; justify-content: center; gap: 0.4rem; background: linear-gradient(135deg, #d97706, #b45309); border: none;">
+                  <i data-lucide="folder-open" style="width: 15px; height: 15px;"></i> Planları Aç (${plansInCourse.length})
+                </button>
+              </div>
+            </div>
+          `;
+
+          // Tıklanınca o ders klasörüne gir
+          folderCard.addEventListener('click', (e) => {
+            dailyPlansFolderCourseFilter = cName;
+            updateCategoryHeaderInfo(categories, allDocs);
+            renderDocumentsList();
+          });
+
+          documentsListContainer.appendChild(folderCard);
+        });
+
+        if (window.safeCreateIcons) window.safeCreateIcons();
+        return;
+      }
+
+      // 3. MOD B: SEÇİLİ DERS KLASÖRÜNÜN İÇİ
+      if (dailyPlansFolderCourseFilter !== 'all') {
+        docs = (courseGroups[dailyPlansFolderCourseFilter] || []).sort((a, b) => {
+          return (b.academicWeekNo || 0) - (a.academicWeekNo || 0);
+        });
+      }
+    }
+
+    // Normal Evrak Kartlarını (veya Filtrelenmiş / Tüm Liste Günlük Planlarını) Listele
     docs.forEach(doc => {
       const card = document.createElement('div');
       card.className = 'game-landing-card glass-card document-card';
@@ -740,7 +921,7 @@
       const matchedCat = categories.find(c => c.id === doc.categoryId);
       const categoryBadgeHtml = isDailyPlanDoc ?
         `<span class="badge" style="background: rgba(245, 158, 11, 0.15); color: #d97706; font-size: 0.72rem; padding: 0.15rem 0.5rem; border-radius: 6px; display: inline-flex; align-items: center; gap: 0.25rem;">
-          <i data-lucide="sun" style="width: 11px; height: 11px;"></i> Günlük Plan
+          <i data-lucide="sun" style="width: 11px; height: 11px;"></i> ${doc.weekLabel ? escapeHtml(doc.weekLabel) : 'Günlük Plan'}
         </span>` :
         (matchedCat ? 
         `<span class="badge" style="background: rgba(99,102,241,0.15); color: var(--primary); font-size: 0.72rem; padding: 0.15rem 0.5rem; border-radius: 6px; display: inline-flex; align-items: center; gap: 0.25rem;">
@@ -758,6 +939,11 @@
         <div class="game-card-info" style="width: 100%; display: flex; flex-direction: column; flex-grow: 1;">
           <h3 title="${escapeHtml(doc.title)}">${escapeHtml(doc.title)}</h3>
           <div class="doc-meta">
+            ${isDailyPlanDoc && doc.courseName ? `
+              <span style="color: #f59e0b; font-weight: 600;">
+                <i data-lucide="book-open" style="width: 12px; height: 12px;"></i> ${escapeHtml(doc.courseName)} ${doc.className ? `(${escapeHtml(doc.className)})` : ''}
+              </span>
+            ` : ''}
             <span class="file-name" title="${escapeHtml(doc.fileName)}">
               <i data-lucide="file" style="width: 12px; height: 12px;"></i> ${escapeHtml(truncateString(doc.fileName, 28))}
             </span>
