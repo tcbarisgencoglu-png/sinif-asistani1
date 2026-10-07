@@ -1703,16 +1703,23 @@ Sınav Bilgileri:
 - Toplam Soru Sayısı: ${qCount}
 - Olası Seçenekler: ${letters.join(', ')}
 
-Görevlerin:
-1. Kağıdın üst başlığındaki öğrenci bilgilerini oku:
-   - "Öğrenci:" yanındaki tam isim
-   - "No:" yanındaki öğrenci numarası
-2. 1'den ${qCount}'e kadar olan TÜM soruları sırayla incele.
-3. Her bir soru için kurşun kalem veya tükenmez kalemle DOLDURULMUŞ / KARALANMIŞ şıkkı tespit et:
-   - Öğrencinin doldurduğu seçeneğin harfini ('A', 'B', 'C', 'D' vb.) yaz.
-   - Soru hiç işaretlenmemişse veya boş bırakılmışsa "" (boş dize) yaz.
-   - Bir soruda birden fazla şık karalanmışsa "MULTIPLE" yaz.
-   - Eğer bir şık karalanıp sonra üzeri çizilmişse ve başka bir şık doldurulmuşsa geçerli olanı al.
+FORM DÜZENİ VE OKUMA KURALLARI (ÇOK ÖNEMLİ):
+1. ÖĞRENCİ BİLGİLERİ:
+   - "Öğrenci:" yanındaki tam isim ("studentName")
+   - "No:" yanındaki öğrenci numarası ("studentNo")
+2. HER SORU SATIRINDA SOLDAN SAĞA ŞIK ÇEMBERLERİ BULUNUR:
+   - 1. Çember = 'A'
+   - 2. Çember = 'B'
+   - 3. Çember = 'C'
+   - 4. Çember = 'D' (varsa 5. Çember = 'E')
+3. OPTİK İŞARETLEME TESPİTİ (EN KRİTİK KURAL):
+   - Her çemberin içinde basılı harf (A, B, C, D) bulunur.
+   - ÖĞRENCİNİN SEÇTİĞİ ŞIK: İÇİ KURŞUN KALEM VEYA TÜKENMEZ KALEMLE KARALANMIŞ / DOLDURULMUŞ / KOYU GRİ VEYA SİYAH OLAN ÇEMBERDİR.
+   - İçi beyaz kalan ve sadece basılı harfi görünen çemberler BOŞTUR / SEÇİLMEMİŞTİR! Beyaz çemberdeki harf net okunuyor diye onu kesinlikle işaretli sayma!
+   - Karalanmış çemberin içindeki harf kurşun kalemden dolayı örtülmüş olabilir; çemberin konumuna göre harfi belirle (1. çember A, 2. çember B, 3. çember C, 4. çember D).
+   - Soru hiç işaretlenmemişse veya tüm çemberler boşsa "" (boş dize) yaz.
+   - Bir soruda birden fazla çember karalanmışsa "MULTIPLE" yaz.
+   - Eğer bir şık karalanıp sonra üzeri çizilmiş/silinmiş ve başka bir şık doldurulmuşsa geçerli doldurulanı al.
 
 Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi veya ek metin ekleme):
 {
@@ -1725,7 +1732,7 @@ Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi ve
   }
 }`;
 
-      const base64Data = canvas.toDataURL('image/jpeg', 0.88);
+      const base64Data = canvas.toDataURL('image/jpeg', 0.93);
       const rawRes = await window.callGeminiAPI(prompt, {
         imageBase64: base64Data,
         json: true,

@@ -4145,6 +4145,48 @@ class StateManager {
     return false;
   }
 
+  // GÜNLÜK PLAN İŞLEMLERİ (DAILY PLANS)
+  getDailyPlans() {
+    if (!this.state.dailyPlans) this.state.dailyPlans = [];
+    return this.state.dailyPlans;
+  }
+
+  saveDailyPlan(planData) {
+    if (!this.state.dailyPlans) this.state.dailyPlans = [];
+    if (planData.id) {
+      const idx = this.state.dailyPlans.findIndex(p => p.id === planData.id);
+      if (idx !== -1) {
+        this.state.dailyPlans[idx] = {
+          ...this.state.dailyPlans[idx],
+          ...planData,
+          updatedAt: new Date().toISOString()
+        };
+        this.saveState();
+        return this.state.dailyPlans[idx];
+      }
+    }
+    const newPlan = {
+      ...planData,
+      id: planData.id || ('dp_' + Date.now() + '_' + Math.random().toString(36).substr(2, 7)),
+      createdAt: planData.createdAt || new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    this.state.dailyPlans.unshift(newPlan);
+    this.saveState();
+    return newPlan;
+  }
+
+  deleteDailyPlan(planId) {
+    if (!this.state.dailyPlans) this.state.dailyPlans = [];
+    this.state.dailyPlans = this.state.dailyPlans.filter(p => p.id !== planId);
+    this.saveState();
+  }
+
+  getDailyPlanById(planId) {
+    if (!this.state.dailyPlans) this.state.dailyPlans = [];
+    return this.state.dailyPlans.find(p => p.id === planId) || null;
+  }
+
   // EVRAK İŞLEMLERİ (DOCUMENTS)
   getDocumentCategories() {
     if (!this.state.documentCategories) this.state.documentCategories = [];

@@ -19,6 +19,7 @@
   // Tab Menu Elements
   let btnPlansTabWeekly;
   let btnPlansTabGeneral;
+  let plansViewModeSelect;
   let plansTabContentWeekly;
   let plansTabContentGeneral;
 
@@ -224,21 +225,12 @@
     }
 
     // Event Listeners
+    // Not: Yıllık plan görünümü artık Planlama aracının "Yıllık Plan" sekmesinden
+    // window.openPlansView() ile açılır (bkz. tools.js).
     if (btnLaunchPlans) {
       btnLaunchPlans.addEventListener('click', () => {
-        toolsLandingView.style.display = 'none';
-        toolsPlansView.style.display = 'block';
-        
-        // Reset state
-        plansSelectedWeekCode = stateManager.getSelectedWeek();
-        activePlansMainTab = 'weekly';
-        
-        if (btnPlansTabWeekly) btnPlansTabWeekly.classList.add('active');
-        if (btnPlansTabGeneral) btnPlansTabGeneral.classList.remove('active');
-        if (plansTabContentWeekly) plansTabContentWeekly.style.display = 'block';
-        if (plansTabContentGeneral) plansTabContentGeneral.style.display = 'none';
-        
-        renderPlansList();
+        if (toolsLandingView) toolsLandingView.style.display = 'none';
+        openPlansView();
       });
     }
 
@@ -249,23 +241,24 @@
       });
     }
 
-    // Main Tab Switching
+    // Main Tab Switching (Açılır menü: Haftalık Görünüm / Genel Görünüm)
+    plansViewModeSelect = document.getElementById('plans-view-mode-select');
+    if (plansViewModeSelect) {
+      plansViewModeSelect.addEventListener('change', () => {
+        setPlansMainTab(plansViewModeSelect.value === 'general' ? 'general' : 'weekly');
+        renderPlansList();
+      });
+    }
+
+    // Eski sekme butonları (varsa) geriye dönük uyumluluk için
     if (btnPlansTabWeekly && btnPlansTabGeneral) {
       btnPlansTabWeekly.addEventListener('click', () => {
-        activePlansMainTab = 'weekly';
-        btnPlansTabWeekly.classList.add('active');
-        btnPlansTabGeneral.classList.remove('active');
-        plansTabContentWeekly.style.display = 'block';
-        plansTabContentGeneral.style.display = 'none';
+        setPlansMainTab('weekly');
         renderPlansList();
       });
 
       btnPlansTabGeneral.addEventListener('click', () => {
-        activePlansMainTab = 'general';
-        btnPlansTabGeneral.classList.add('active');
-        btnPlansTabWeekly.classList.remove('active');
-        plansTabContentGeneral.style.display = 'block';
-        plansTabContentWeekly.style.display = 'none';
+        setPlansMainTab('general');
         renderPlansList();
       });
     }
@@ -3080,7 +3073,27 @@ Yanıtını YALNIZCA geçerli ve hatasız bir JSON objesi formatında ver. Kesin
     return `${dStart} – ${dEnd}`;
   }
 
+  // Haftalık / Genel görünüm durumunu tek noktadan ayarlar
+  function setPlansMainTab(tab) {
+    activePlansMainTab = tab === 'general' ? 'general' : 'weekly';
+    const isWeekly = activePlansMainTab === 'weekly';
+    if (btnPlansTabWeekly) btnPlansTabWeekly.classList.toggle('active', isWeekly);
+    if (btnPlansTabGeneral) btnPlansTabGeneral.classList.toggle('active', !isWeekly);
+    if (plansTabContentWeekly) plansTabContentWeekly.style.display = isWeekly ? 'block' : 'none';
+    if (plansTabContentGeneral) plansTabContentGeneral.style.display = isWeekly ? 'none' : 'block';
+    if (plansViewModeSelect) plansViewModeSelect.value = activePlansMainTab;
+  }
+
+  // Yıllık plan görünümünü açar (Planlama > Yıllık Plan sekmesi)
+  function openPlansView() {
+    if (toolsPlansView) toolsPlansView.style.display = 'block';
+    plansSelectedWeekCode = stateManager.getSelectedWeek();
+    setPlansMainTab('weekly');
+    renderPlansList();
+  }
+
   function renderPlansList() {
+    if (plansViewModeSelect) plansViewModeSelect.value = activePlansMainTab;
     const state = stateManager.loadState();
     const plans = state.plans || [];
 
@@ -4017,5 +4030,6 @@ Yanıtını YALNIZCA geçerli ve hatasız bir JSON objesi formatında ver. Kesin
   window.setupPlans = setupPlans;
   window.renderPlansList = renderPlansList;
   window.showPlanDetail = showPlanDetail;
+  window.openPlansView = openPlansView;
 
 })();

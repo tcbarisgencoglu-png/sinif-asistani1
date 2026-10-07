@@ -239,8 +239,14 @@ window.promptAsync = function(message, defaultValue = '', placeholder = '') {
 
 // Global Hata Yakalayıcı ve Arayüz Bildirimi
 window.onerror = function(message, source, lineno, colno, error) {
-  const errorMsg = `JS Hatası: ${message} (Satır: ${lineno})`;
-  console.error("Global Error:", message, "at", source, ":", lineno, error);
+  const realMsg = (error && error.message) ? error.message : message;
+  console.error("Global Error:", realMsg, "at", source, ":", lineno, error);
+  // WebKit / Tauri cross-origin genel script hatasını arayüz toast bildiriminde sustur (konsola bas)
+  if ((realMsg === 'Script error.' || message === 'Script error.') && (!source || !lineno)) {
+    console.warn("Cross-origin or internal WebKit script error suppressed from UI toast.");
+    return true;
+  }
+  const errorMsg = `JS Hatası: ${realMsg}${lineno ? ` (Satır: ${lineno})` : ''}`;
   if (window.showToast) {
     window.showToast(errorMsg, 'danger');
   } else {
@@ -3046,6 +3052,8 @@ function switchTab(tabId, animate = true) {
         if (toolsWrittenExamView) toolsWrittenExamView.style.display = 'none';
         if (toolsExamAnalysisView) toolsExamAnalysisView.style.display = 'none';
         if (toolsContributionsView) toolsContributionsView.style.display = 'none';
+        const toolsPlanningView = document.getElementById('tools-planning-view');
+        if (toolsPlanningView) toolsPlanningView.style.display = 'none';
         if (toolsLandingView) toolsLandingView.style.display = 'block';
       }
       break;

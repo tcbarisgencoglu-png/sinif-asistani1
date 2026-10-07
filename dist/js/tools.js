@@ -87,20 +87,8 @@ function setupToolsTab(toastCallback) {
     });
   }
 
-  // Ders Planı Navigasyonu
-  if (btnLaunchPlans && toolsPlansView && toolsLandingView) {
-    btnLaunchPlans.addEventListener('click', () => {
-      toolsLandingView.style.display = 'none';
-      toolsPlansView.style.display = 'block';
-    });
-  }
-
-  if (btnBackToToolsFromPlans && toolsPlansView && toolsLandingView) {
-    btnBackToToolsFromPlans.addEventListener('click', () => {
-      toolsPlansView.style.display = 'none';
-      toolsLandingView.style.display = 'block';
-    });
-  }
+  // Planlama Aracı Navigasyonu (Günlük / Haftalık / Yıllık Plan sekmeleri)
+  setupPlanningTool();
 
   // Evrak Deposu Navigasyonu
   if (btnLaunchDocuments && toolsDocumentsView && toolsLandingView) {
@@ -159,6 +147,70 @@ function setupToolsTab(toastCallback) {
       }, 10000);
     });
   }
+}
+
+// ===== Planlama Aracı (Günlük / Haftalık / Yıllık Plan) =====
+const PLANNING_TAB_STORAGE_KEY = 'sinif_asistani_planning_active_tab';
+
+function setupPlanningTool() {
+  const planningView = document.getElementById('tools-planning-view');
+  const btnLaunchPlanning = document.getElementById('btn-launch-planning');
+  const btnBackFromPlanning = document.getElementById('btn-back-to-tools-from-planning');
+  if (!planningView) return;
+
+  if (typeof window.setupDailyPlansTool === 'function') {
+    window.setupDailyPlansTool(toastCallbackFn);
+  }
+
+  if (btnLaunchPlanning) {
+    btnLaunchPlanning.addEventListener('click', () => {
+      if (toolsLandingView) toolsLandingView.style.display = 'none';
+      planningView.style.display = 'block';
+      let tab = 'yearly';
+      try { tab = localStorage.getItem(PLANNING_TAB_STORAGE_KEY) || 'yearly'; } catch (e) {}
+      switchPlanningTab(tab);
+    });
+  }
+
+  if (btnBackFromPlanning) {
+    btnBackFromPlanning.addEventListener('click', () => {
+      planningView.style.display = 'none';
+      if (toolsLandingView) toolsLandingView.style.display = 'block';
+    });
+  }
+
+  planningView.querySelectorAll('[data-planning-tab]').forEach(btn => {
+    btn.addEventListener('click', () => switchPlanningTab(btn.dataset.planningTab));
+  });
+}
+
+function switchPlanningTab(tab) {
+  if (!['daily', 'weekly', 'yearly'].includes(tab)) tab = 'yearly';
+  try { localStorage.setItem(PLANNING_TAB_STORAGE_KEY, tab); } catch (e) {}
+
+  document.querySelectorAll('#planning-tab-menu [data-planning-tab]').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.planningTab === tab);
+  });
+
+  const dailyView = document.getElementById('tools-daily-plan-view');
+  const scheduleView = document.getElementById('tools-schedule-view');
+  const plansView = document.getElementById('tools-plans-view');
+  if (dailyView) dailyView.style.display = 'none';
+  if (scheduleView) scheduleView.style.display = 'none';
+  if (plansView) plansView.style.display = 'none';
+
+  if (tab === 'daily') {
+    if (typeof window.openDailyPlanView === 'function') window.openDailyPlanView();
+    else if (dailyView) dailyView.style.display = 'block';
+  } else if (tab === 'weekly') {
+    if (typeof window.openScheduleView === 'function') window.openScheduleView();
+    else if (scheduleView) scheduleView.style.display = 'block';
+  } else {
+    if (typeof window.openPlansView === 'function') window.openPlansView();
+    else if (plansView) plansView.style.display = 'block';
+  }
+
+  if (window.safeCreateIcons) window.safeCreateIcons();
 }
 
 // Tatil günü ekleme

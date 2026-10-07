@@ -4505,8 +4505,8 @@ th:hover .hw-col-actions {
   
   /* Outputs/Results group: Net, Puan, Değişim */
   #active-exam-table-body td:nth-child(6),
-  #active-exam-table-body td:nth-child(7),
-  #active-exam-table-body td:nth-child(8) {
+  #active-exam-table-body td:nth-child(8),
+  #active-exam-table-body td:nth-child(10) {
     display: inline-block !important;
     width: 31% !important;
     margin-right: 2% !important;
@@ -4517,7 +4517,7 @@ th:hover .hw-col-actions {
     border-bottom: none !important;
   }
   
-  #active-exam-table-body td:nth-child(8) {
+  #active-exam-table-body td:nth-child(10) {
     margin-right: 0 !important;
   }
   
@@ -4531,7 +4531,7 @@ th:hover .hw-col-actions {
     font-weight: 600 !important;
   }
   
-  #active-exam-table-body td:nth-child(7)::before {
+  #active-exam-table-body td:nth-child(8)::before {
     content: 'Puan' !important;
     display: block !important;
     font-size: 0.75rem !important;
@@ -4540,13 +4540,41 @@ th:hover .hw-col-actions {
     font-weight: 600 !important;
   }
   
-  #active-exam-table-body td:nth-child(8)::before {
+  #active-exam-table-body td:nth-child(10)::before {
     content: 'Değişim' !important;
     display: block !important;
     font-size: 0.75rem !important;
     color: var(--text-muted) !important;
     margin-bottom: 0.25rem !important;
     font-weight: 600 !important;
+  }
+
+  /* Ders Dağılımı (Sütun 7) */
+  #active-exam-table-body td:nth-child(7) {
+    display: block !important;
+    width: 100% !important;
+    margin-top: 0.75rem !important;
+    padding: 0.5rem 0 0 0 !important;
+    border-top: 1px dashed var(--border-color) !important;
+    text-align: left !important;
+  }
+
+  #active-exam-table-body td:nth-child(7)::before {
+    content: 'Ders Dağılımı (D-Y-B):' !important;
+    display: block !important;
+    font-size: 0.75rem !important;
+    color: var(--text-muted) !important;
+    margin-bottom: 0.3rem !important;
+    font-weight: 600 !important;
+  }
+
+  /* Optik Form Butonu (Sütun 9) */
+  #active-exam-table-body td:nth-child(9) {
+    display: block !important;
+    width: 100% !important;
+    margin-top: 0.5rem !important;
+    padding: 0 !important;
+    text-align: center !important;
   }
   
   /* Input fields override */
@@ -7987,6 +8015,22 @@ input:checked + .slider:before {
   font-weight: 600;
   padding: 0.2rem 0.45rem;
   border-radius: 4px;
+  transition: all 0.15s ease;
+}
+
+.optical-answer-chip.opt-clickable-chip {
+  cursor: pointer;
+  user-select: none;
+}
+
+.optical-answer-chip.opt-clickable-chip:hover {
+  transform: translateY(-1px) scale(1.05);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+  filter: brightness(0.95);
+}
+
+.optical-answer-chip.opt-clickable-chip:active {
+  transform: translateY(0) scale(0.98);
 }
 
 .optical-answer-chip.correct {
@@ -8045,5 +8089,255 @@ input:checked + .slider:before {
   background: rgba(99, 102, 241, 0.08) !important;
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.07);
 }
+
+/* Student Optical Edit Modal Styles */
+.stu-opt-question-row {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 6px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.stu-opt-question-row:hover {
+  border-color: rgba(99, 102, 241, 0.4);
+}
+
+.stu-opt-choice-btn {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  font-size: 0.74rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.12s ease;
+  user-select: none;
+}
+
+.stu-opt-choice-btn:hover {
+  border-color: #4f46e5;
+  color: #4f46e5;
+  transform: scale(1.08);
+}
+
+.stu-opt-choice-btn.selected-correct {
+  background: #10b981 !important;
+  color: #ffffff !important;
+  border-color: #059669 !important;
+  box-shadow: 0 2px 6px rgba(16, 185, 129, 0.35);
+}
+
+.stu-opt-choice-btn.selected-wrong {
+  background: #ef4444 !important;
+  color: #ffffff !important;
+  border-color: #dc2626 !important;
+  box-shadow: 0 2px 6px rgba(239, 68, 68, 0.35);
+}
+
+.stu-opt-clear-btn {
+  border: none;
+  background: none;
+  font-size: 15px;
+  line-height: 1;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 0 3px;
+  opacity: 0.6;
+  transition: opacity 0.15s ease, color 0.15s ease;
+}
+
+.stu-opt-clear-btn:hover {
+  opacity: 1;
+  color: var(--danger);
+}
+
+.stu-opt-subj-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-primary);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.stu-opt-subj-tab:hover {
+  border-color: #4f46e5;
+  color: #4f46e5;
+}
+
+.stu-opt-subj-tab.active {
+  background: #4f46e5;
+  color: #ffffff;
+  border-color: #4f46e5;
+  box-shadow: 0 2px 6px rgba(79, 70, 229, 0.25);
+}
+
+/* ===== GÜNLÜK PLAN & A4 BASKI STİLLERİ ===== */
+.btn-daily-schedule-chip:hover {
+  border-color: var(--primary) !important;
+  background-color: rgba(79, 70, 229, 0.08) !important;
+}
+
+.daily-archive-item-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.daily-archive-item-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.daily-plan-print-page {
+  font-family: 'Times New Roman', Times, serif;
+  color: #000000;
+  background: #ffffff;
+  line-height: 1.4;
+  font-size: 10pt;
+}
+
+.dp-meta-table,
+.dp-content-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 8px;
+}
+
+.dp-meta-table td,
+.dp-content-table td {
+  border: 1px solid #334155;
+  padding: 5px 8px;
+  vertical-align: top;
+  font-size: 9.5pt;
+}
+
+.dp-section {
+  margin-bottom: 10px;
+}
+
+.dp-section-title {
+  font-weight: 800;
+  font-size: 10pt;
+  background-color: #f1f5f9;
+  border: 1px solid #334155;
+  border-bottom: none;
+  padding: 4px 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  color: #0f172a;
+}
+
+.dp-substep {
+  border: 1px solid #334155;
+  border-top: none;
+  padding: 6px 8px;
+  margin-bottom: -1px;
+}
+
+.dp-substep-title {
+  font-weight: 700;
+  font-size: 9pt;
+  color: #1e293b;
+  margin-bottom: 4px;
+}
+
+.dp-editable-cell,
+.dp-editable-block {
+  min-height: 20px;
+  outline: none;
+  transition: background-color 0.15s ease;
+}
+
+.dp-editable-cell:focus,
+.dp-editable-block:focus {
+  background-color: #fef3c7 !important;
+  box-shadow: inset 0 0 0 1px #d97706;
+}
+
+.dp-signatures {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 20px;
+  padding: 0 20px;
+}
+
+.dp-sign-box {
+  width: 220px;
+  text-align: center;
+}
+
+/* Print View Styles for Daily Plan */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 10mm 12mm 10mm 12mm;
+  }
+
+  body.print-daily-plan {
+    background: #ffffff !important;
+    color: #000000 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Hide everything except daily plan sheet */
+  body.print-daily-plan > *:not(.app-container) {
+    display: none !important;
+  }
+  body.print-daily-plan .sidebar,
+  body.print-daily-plan .main-header,
+  body.print-daily-plan .content-section:not(#tools),
+  body.print-daily-plan #tools > *:not(#tools-planning-view),
+  body.print-daily-plan #tools-planning-view > *:not(#tools-daily-plan-view),
+  body.print-daily-plan #tools-daily-plan-view > *:not(#daily-plan-create-section),
+  body.print-daily-plan #daily-plan-create-section > *:not(#daily-plan-result-card),
+  body.print-daily-plan #daily-plan-result-card > *:not(#daily-plan-active-editor),
+  body.print-daily-plan #daily-plan-active-editor > *:not(#daily-plan-sheet) {
+    display: none !important;
+  }
+
+  body.print-daily-plan .app-container,
+  body.print-daily-plan .main-content,
+  body.print-daily-plan #tools,
+  body.print-daily-plan #tools-planning-view,
+  body.print-daily-plan #tools-daily-plan-view,
+  body.print-daily-plan #daily-plan-create-section,
+  body.print-daily-plan #daily-plan-result-card,
+  body.print-daily-plan #daily-plan-active-editor,
+  body.print-daily-plan #daily-plan-sheet {
+    padding: 0 !important;
+    margin: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+    background: transparent !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    display: block !important;
+  }
+
+  .daily-plan-print-page {
+    font-size: 9.5pt !important;
+    page-break-after: avoid;
+    break-after: avoid;
+  }
+}
+
+
 
 

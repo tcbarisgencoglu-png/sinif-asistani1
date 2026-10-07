@@ -98,10 +98,32 @@ const btnDesktopAkClearAll = document.getElementById('btn-desktop-ak-clear-all')
 const desktopAkRescoreContainer = document.getElementById('desktop-ak-rescore-container');
 const desktopAkRescoreCheckbox = document.getElementById('desktop-ak-rescore-checkbox');
 
+// Öğrenci Optik Form Düzenleme Elemanları
+const modalStudentOpticalEdit = document.getElementById('modal-student-optical-edit');
+const stuOptModalSubtitle = document.getElementById('stu-opt-modal-subtitle');
+const stuOptStatsBar = document.getElementById('stu-opt-stats-bar');
+const stuOptStatCorrect = document.getElementById('stu-opt-stat-correct');
+const stuOptStatWrong = document.getElementById('stu-opt-stat-wrong');
+const stuOptStatBlank = document.getElementById('stu-opt-stat-blank');
+const stuOptStatNet = document.getElementById('stu-opt-stat-net');
+const stuOptStatScore = document.getElementById('stu-opt-stat-score');
+const btnStuOptViewPaper = document.getElementById('btn-stu-opt-view-paper');
+const btnStuOptClearAll = document.getElementById('btn-stu-opt-clear-all');
+const stuOptSubjectTabs = document.getElementById('stu-opt-subject-tabs');
+const stuOptQuestionsContainer = document.getElementById('stu-opt-questions-container');
+const btnCloseStudentOpticalModal = document.getElementById('btn-close-student-optical-modal');
+const btnCancelStudentOptical = document.getElementById('btn-cancel-student-optical');
+const btnSaveStudentOptical = document.getElementById('btn-save-student-optical');
+
+let activeOpticalStudentId = null;
+let activeOpticalStudentAnswers = {};
+let activeOpticalStudentSubjTab = 'ALL';
+
 let opticalSelectedFiles = [];
 let opticalScannedResults = [];
 let opticalTempExamKey = {};
 let allOpticalDetailsVisible = false;
+let activeOpticalKeySubjId = '';
 
 let editAnswerKeyTemp = {};
 let editAnswerKeyChoices = 4;
@@ -329,7 +351,7 @@ function renderDesktopAnswerKeyGrid() {
     if (multiTabs) {
       multiTabs.style.display = 'flex';
       multiTabs.innerHTML = tempCreateExamSubjects.map(s => {
-        const marked = Object.keys(tempCreateExamKey).filter(k => k.startsWith(s.id + '_') && tempCreateExamKey[k]).length;
+        const marked = Object.keys(tempCreateExamKey).filter(k => (k.startsWith(s.id + '_') || k.startsWith(s.name + '_')) && tempCreateExamKey[k]).length;
         const isActive = s.id === activeCreateExamSubjId;
         return `
           <button type="button" class="desktop-ak-subj-tab ${isActive ? 'active' : ''}" onclick="window.selectCreateExamSubjTab('${s.id}')">
@@ -354,15 +376,15 @@ function renderDesktopAnswerKeyGrid() {
       else if (sel && !letters.includes(sel)) delete tempCreateExamKey[key];
 
       html += `
-        <div class="desktop-opt-bubble-row" data-subj="${currentSubj.id}" data-q="${q}">
+        <div class="desktop-opt-bubble-row" data-key="${key}" data-subj="${currentSubj.id}" data-q="${q}">
           <span class="desktop-opt-bubble-qnum">${q}.</span>
           <div class="desktop-opt-bubbles-wrap">
             ${letters.map(l => `
-              <button type="button" class="desktop-opt-bubble-btn ${sel === l ? 'active' : ''}" onclick="window.selectDesktopCreateExamKeyChoice('${key}', '${l}')">
+              <button type="button" class="desktop-opt-bubble-btn ${sel === l ? 'active' : ''}" data-key="${key}" data-opt="${l}" onclick="window.selectDesktopCreateExamKeyChoice('${key}', '${l}')">
                 ${l}
               </button>
             `).join('')}
-            <button type="button" class="desktop-opt-clear-btn ${sel ? 'visible' : ''}" id="desk-opt-clear-${key}" title="Boş Bırak" onclick="window.clearDesktopCreateExamKeyChoice('${key}')">
+            <button type="button" class="desktop-opt-clear-btn ${sel ? 'visible' : ''}" id="desk-opt-clear-${key}" data-key="${key}" title="Boş Bırak" onclick="window.clearDesktopCreateExamKeyChoice('${key}')">
               &times;
             </button>
           </div>
@@ -385,20 +407,21 @@ function renderDesktopAnswerKeyGrid() {
     let markedCount = 0;
 
     for (let q = 1; q <= totalQ; q++) {
-      const sel = tempCreateExamKey[q] || '';
+      const key = String(q);
+      const sel = tempCreateExamKey[key] || '';
       if (sel && letters.includes(sel)) markedCount++;
-      else if (sel && !letters.includes(sel)) delete tempCreateExamKey[q];
+      else if (sel && !letters.includes(sel)) delete tempCreateExamKey[key];
 
       html += `
-        <div class="desktop-opt-bubble-row" data-q="${q}">
+        <div class="desktop-opt-bubble-row" data-key="${key}" data-q="${q}">
           <span class="desktop-opt-bubble-qnum">${q}.</span>
           <div class="desktop-opt-bubbles-wrap">
             ${letters.map(l => `
-              <button type="button" class="desktop-opt-bubble-btn ${sel === l ? 'active' : ''}" onclick="window.selectDesktopCreateExamKeyChoice(${q}, '${l}')">
+              <button type="button" class="desktop-opt-bubble-btn ${sel === l ? 'active' : ''}" data-key="${key}" data-opt="${l}" onclick="window.selectDesktopCreateExamKeyChoice('${key}', '${l}')">
                 ${l}
               </button>
             `).join('')}
-            <button type="button" class="desktop-opt-clear-btn ${sel ? 'visible' : ''}" id="desk-opt-clear-${q}" title="Boş Bırak" onclick="window.clearDesktopCreateExamKeyChoice(${q})">
+            <button type="button" class="desktop-opt-clear-btn ${sel ? 'visible' : ''}" id="desk-opt-clear-${key}" data-key="${key}" title="Boş Bırak" onclick="window.clearDesktopCreateExamKeyChoice('${key}')">
               &times;
             </button>
           </div>
@@ -410,39 +433,44 @@ function renderDesktopAnswerKeyGrid() {
     if (counter) counter.textContent = `${markedCount} / ${totalQ} Soru İşaretlendi`;
   }
 }
+window.renderDesktopAnswerKeyGrid = renderDesktopAnswerKeyGrid;
 
 window.selectDesktopCreateExamKeyChoice = (keyOrQ, opt) => {
   const key = String(keyOrQ);
-  if (tempCreateExamKey[key] === opt) {
+  if (!opt || tempCreateExamKey[key] === opt) {
     delete tempCreateExamKey[key];
   } else {
     tempCreateExamKey[key] = opt;
   }
 
-  const row = document.querySelector(`#exam-optical-key-grid .desktop-opt-bubble-row[data-q="${key.includes('_') ? key.split('_')[1] : key}"]`);
+  const currentSel = tempCreateExamKey[key] || '';
+  const row = document.querySelector(`#exam-optical-key-grid .desktop-opt-bubble-row[data-key="${key}"]`);
   if (row) {
-    const currentSel = tempCreateExamKey[key] || '';
     row.querySelectorAll('.desktop-opt-bubble-btn').forEach(btn => {
-      if (btn.textContent.trim() === currentSel) btn.classList.add('active');
+      const bOpt = btn.getAttribute('data-opt') || btn.textContent.trim();
+      if (bOpt === currentSel) btn.classList.add('active');
       else btn.classList.remove('active');
     });
-    const clr = document.getElementById(`desk-opt-clear-${key}`);
-    if (clr) clr.className = `desktop-opt-clear-btn ${currentSel ? 'visible' : ''}`;
+    const clr = row.querySelector('.desktop-opt-clear-btn') || document.getElementById(`desk-opt-clear-${key}`);
+    if (clr) {
+      if (currentSel) clr.classList.add('visible');
+      else clr.classList.remove('visible');
+    }
   }
 
   if (tempCreateExamType === 'multi') {
     const multiTabs = document.getElementById('exam-optical-multi-tabs');
     if (multiTabs) {
       tempCreateExamSubjects.forEach(s => {
-        const marked = Object.keys(tempCreateExamKey).filter(k => k.startsWith(s.id + '_') && tempCreateExamKey[k]).length;
-        const tab = multiTabs.querySelector(`button[onclick*="'${s.id}'"] .badge`);
-        if (tab) tab.textContent = `${marked}/${s.questionCount}`;
+        const marked = Object.keys(tempCreateExamKey).filter(k => (k.startsWith(s.id + '_') || k.startsWith(s.name + '_')) && tempCreateExamKey[k]).length;
+        const tabBadge = multiTabs.querySelector(`button[onclick*="'${s.id}'"] .badge`);
+        if (tabBadge) tabBadge.textContent = `${marked}/${s.questionCount}`;
       });
     }
-    const currentSubj = tempCreateExamSubjects.find(s => s.id === activeCreateExamSubjId) || tempCreateExamSubjects[0];
+    const currentSubj = tempCreateExamSubjects.find(s => s.id === activeCreateExamSubjId) || tempCreateExamSubjects[0] || { name: 'Ders', questionCount: 10 };
     const totalQ = tempCreateExamSubjects.reduce((sum, s) => sum + s.questionCount, 0);
     const totalMarked = Object.keys(tempCreateExamKey).filter(k => tempCreateExamKey[k]).length;
-    const subjMarked = Object.keys(tempCreateExamKey).filter(k => k.startsWith(currentSubj.id + '_') && tempCreateExamKey[k]).length;
+    const subjMarked = Object.keys(tempCreateExamKey).filter(k => (k.startsWith(currentSubj.id + '_') || k.startsWith(currentSubj.name + '_')) && tempCreateExamKey[k]).length;
     const counter = document.getElementById('exam-opt-counter');
     if (counter) counter.textContent = `Toplam ${totalMarked} / ${totalQ} Soru İşaretlendi (${currentSubj.name}: ${subjMarked}/${currentSubj.questionCount})`;
   } else {
@@ -476,7 +504,7 @@ window.fillSampleDesktopExamKey = () => {
     const qInput = document.getElementById('exam-questions-input');
     const totalQ = Math.max(1, Math.min(100, parseInt(qInput ? qInput.value : 20, 10) || 20));
     for (let q = 1; q <= totalQ; q++) {
-      tempCreateExamKey[q] = letters[(q - 1) % letters.length];
+      tempCreateExamKey[String(q)] = letters[(q - 1) % letters.length];
     }
   }
   renderDesktopAnswerKeyGrid();
@@ -486,6 +514,126 @@ window.clearDesktopExamKey = () => {
   tempCreateExamKey = {};
   renderDesktopAnswerKeyGrid();
 };
+
+// ==========================================================================
+// OMR VE ÇOKLU BRANŞ EŞLEME & PUANLAMA GENEL YARDIMCI MOTORU
+// ==========================================================================
+
+function normalizeOmrSubject(str) {
+  if (!str) return '';
+  let s = String(str).toLocaleLowerCase('tr').replace(/[^a-zçğıöşü0-9]/g, '');
+  // Tekrarlanan sesli harf yazım hatalarını normalize et (örn: sosyaal -> sosyal)
+  s = s.replace(/([aeıioöuü])\1+/g, '$1');
+  return s;
+}
+
+function getOmrSubjectBaseKeywords(str) {
+  const norm = normalizeOmrSubject(str);
+  const keywords = [];
+  if (norm.includes('sosyal')) keywords.push('sosyal');
+  if (norm.includes('turk') || norm.includes('türk')) keywords.push('turk', 'türk');
+  if (norm.includes('mat')) keywords.push('mat');
+  if (norm.includes('fen')) keywords.push('fen');
+  if (norm.includes('inkilap') || norm.includes('tarih')) keywords.push('inkilap', 'tarih');
+  if (norm.includes('din')) keywords.push('din');
+  if (norm.includes('ingiliz') || norm.includes('dil')) keywords.push('ingiliz', 'dil');
+  return { norm, keywords };
+}
+
+function extractAnswerForSubj(cardAnswers, card, subj, subjIndex, q, cumulativeOffset) {
+  if (!cardAnswers && !card) return '';
+  const answersObj = cardAnswers || (card && card.answers) || {};
+
+  // 1. Doğrudan id_q eşleşmesi (örn: sub_0_1, sub_3_1)
+  const key1 = `${subj.id}_${q}`;
+  if (answersObj[key1] !== undefined && answersObj[key1] !== '') {
+    return String(answersObj[key1]);
+  }
+
+  // 2. Doğrudan name_q eşleşmesi (örn: Türkçe_1, Sosyal Bilgiler_1, Sosyaal Bilgiler_1)
+  const key2 = `${subj.name}_${q}`;
+  if (answersObj[key2] !== undefined && answersObj[key2] !== '') {
+    return String(answersObj[key2]);
+  }
+
+  // 3. İç içe nesne eşleşmesi (card.answers[subj.id] veya card.subjectAnswers)
+  const nested = (card && card.subjectAnswers) || (card && typeof card.answers === 'object' ? card.answers : null);
+  if (nested && typeof nested === 'object') {
+    for (const candidateKey of [subj.id, subj.name]) {
+      if (nested[candidateKey] && typeof nested[candidateKey] === 'object') {
+        if (nested[candidateKey][q] !== undefined) return String(nested[candidateKey][q]);
+        if (nested[candidateKey][String(q)] !== undefined) return String(nested[candidateKey][String(q)]);
+      }
+    }
+    // İç içe nesne anahtarlarında fuzzy arama
+    const { norm: subjNorm, keywords } = getOmrSubjectBaseKeywords(subj.name);
+    for (const nestedKey of Object.keys(nested)) {
+      const nNorm = normalizeOmrSubject(nestedKey);
+      if (nNorm === subjNorm || nNorm.includes(subjNorm) || subjNorm.includes(nNorm) || keywords.some(kw => nNorm.includes(kw))) {
+        const subObj = nested[nestedKey];
+        if (subObj && typeof subObj === 'object') {
+          if (subObj[q] !== undefined) return String(subObj[q]);
+          if (subObj[String(q)] !== undefined) return String(subObj[String(q)]);
+        }
+      }
+    }
+  }
+
+  // 4. Anahtarlar üzerinde sütun sırası veya fuzzy ders adı eşleme
+  const { norm: subjNorm, keywords } = getOmrSubjectBaseKeywords(subj.name);
+  const colNum = subjIndex + 1;
+  const colPrefixes = [`ders_${colNum}`, `ders${colNum}`, `sutun_${colNum}`, `sutun${colNum}`, `col_${colNum}`, `column_${colNum}`];
+
+  for (const k of Object.keys(answersObj)) {
+    const match = k.match(/(?:_|-|\s|:|^)(\d+)$/);
+    if (!match || parseInt(match[1], 10) !== q) continue;
+
+    const prefix = k.slice(0, match.index);
+    const prefixNorm = normalizeOmrSubject(prefix);
+
+    if (colPrefixes.some(cp => prefixNorm === cp || prefixNorm.startsWith(cp))) {
+      return String(answersObj[k]);
+    }
+    if (prefixNorm === subjNorm || prefixNorm.includes(subjNorm) || subjNorm.includes(prefixNorm)) {
+      return String(answersObj[k]);
+    }
+    if (keywords.some(kw => prefixNorm.includes(kw))) {
+      return String(answersObj[k]);
+    }
+  }
+
+  // 5. Sıralı / Düzleştirilmiş Soru Numarası Fallback (örn: 1..24)
+  const globalQ = cumulativeOffset + q;
+  if (answersObj[globalQ] !== undefined && answersObj[globalQ] !== '') {
+    return String(answersObj[globalQ]);
+  }
+  if (answersObj[String(globalQ)] !== undefined && answersObj[String(globalQ)] !== '') {
+    return String(answersObj[String(globalQ)]);
+  }
+
+  return '';
+}
+
+function findCorrectAnswerForKey(answerKey, subj, subjIndex, q, cumulativeOffset) {
+  if (!answerKey || typeof answerKey !== 'object') return '';
+  const key1 = `${subj.id}_${q}`;
+  if (answerKey[key1]) return String(answerKey[key1]).trim().toUpperCase();
+
+  const key2 = `${subj.name}_${q}`;
+  if (answerKey[key2]) return String(answerKey[key2]).trim().toUpperCase();
+
+  const globalQ = cumulativeOffset + q;
+  if (answerKey[globalQ]) return String(answerKey[globalQ]).trim().toUpperCase();
+  if (answerKey[String(globalQ)]) return String(answerKey[String(globalQ)]).trim().toUpperCase();
+
+  const found = extractAnswerForSubj(answerKey, null, subj, subjIndex, q, cumulativeOffset);
+  return found ? String(found).trim().toUpperCase() : '';
+}
+
+window.normalizeOmrSubject = normalizeOmrSubject;
+window.getOmrSubjectBaseKeywords = getOmrSubjectBaseKeywords;
+window.extractAnswerForSubj = extractAnswerForSubj;
+window.findCorrectAnswerForKey = findCorrectAnswerForKey;
 
 function setupWeeklyTab(showToast) {
   toastCallback = showToast;
@@ -717,8 +865,10 @@ function setupWeeklyTab(showToast) {
           const net = parseFloat(netSpan.textContent) || 0;
           const score = parseFloat(scoreSpan.textContent) || 0;
 
+          const existingRes = (activeExam.studentResults && activeExam.studentResults[studentId]) || {};
           examScores[studentId] = score;
           studentResults[studentId] = {
+            ...existingRes,
             correct,
             blank,
             wrong,
@@ -728,8 +878,8 @@ function setupWeeklyTab(showToast) {
         }
       });
 
-      activeExam.examScores = examScores;
-      activeExam.studentResults = studentResults;
+      activeExam.examScores = { ...(activeExam.examScores || {}), ...examScores };
+      activeExam.studentResults = { ...(activeExam.studentResults || {}), ...studentResults };
       activeExam.notes = notes;
       activeExam.updatedAt = new Date().toISOString();
 
@@ -1093,6 +1243,11 @@ function setupWeeklyTab(showToast) {
 
     // Cevap Anahtarını Yükle & Durumu Güncelle
     opticalTempExamKey = { ...(activeExam.answerKey || {}) };
+    if (activeExam.isMultiSubject && Array.isArray(activeExam.subjects) && activeExam.subjects.length > 0) {
+      activeOpticalKeySubjId = activeExam.subjects[0].id;
+    } else {
+      activeOpticalKeySubjId = '';
+    }
     updateOpticalKeyStatusDisplay();
     renderOpticalKeyEditor();
 
@@ -1194,7 +1349,25 @@ function setupWeeklyTab(showToast) {
   function updateOpticalKeyStatusDisplay() {
     if (!opticalEvalKeyStatus || !activeExam) return;
     const qCount = parseInt(activeExam.totalQuestions, 10) || 20;
-    const answeredCount = Object.keys(opticalTempExamKey || {}).filter(k => parseInt(k, 10) <= qCount && opticalTempExamKey[k]).length;
+    const isMulti = activeExam.isMultiSubject && Array.isArray(activeExam.subjects) && activeExam.subjects.length > 0;
+
+    let answeredCount = 0;
+    if (isMulti) {
+      let cumulative = 0;
+      activeExam.subjects.forEach(s => {
+        for (let q = 1; q <= s.questionCount; q++) {
+          const globalQ = cumulative + q;
+          const k1 = `${s.id}_${q}`;
+          const k2 = `${s.name}_${q}`;
+          if (opticalTempExamKey[k1] || opticalTempExamKey[k2] || opticalTempExamKey[globalQ] || opticalTempExamKey[String(globalQ)]) {
+            answeredCount++;
+          }
+        }
+        cumulative += s.questionCount;
+      });
+    } else {
+      answeredCount = Object.keys(opticalTempExamKey || {}).filter(k => parseInt(k, 10) <= qCount && opticalTempExamKey[k]).length;
+    }
 
     if (answeredCount === qCount) {
       opticalEvalKeyStatus.innerHTML = `<span style="color: #10b981; font-weight: 700;">${answeredCount} / ${qCount} Soru Tamamlandı ✓</span>`;
@@ -1215,44 +1388,116 @@ function setupWeeklyTab(showToast) {
     });
   }
 
-  // Cevap Anahtarı Editörü Grid Çizimi
+  // Cevap Anahtarı Editörü Grid Çizimi (Tek ve Çoklu Ders Uyumlu)
   function renderOpticalKeyEditor() {
     if (!opticalEvalKeyGrid || !activeExam) return;
     opticalEvalKeyGrid.innerHTML = '';
 
-    const qCount = parseInt(activeExam.totalQuestions, 10) || 20;
+    const isMulti = activeExam.isMultiSubject && Array.isArray(activeExam.subjects) && activeExam.subjects.length > 0;
     const cCount = parseInt(activeExam.choicesCount, 10) || 4;
     const letters = ['A', 'B', 'C', 'D', 'E'].slice(0, cCount);
 
-    for (let q = 1; q <= qCount; q++) {
-      const row = document.createElement('div');
-      row.style.cssText = 'display: inline-flex; align-items: center; gap: 4px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 6px; padding: 2px 6px;';
+    if (isMulti) {
+      const subjects = activeExam.subjects;
+      activeOpticalKeySubjId = activeOpticalKeySubjId || subjects[0].id;
+      const currentSubj = subjects.find(s => s.id === activeOpticalKeySubjId) || subjects[0];
 
-      const label = document.createElement('span');
-      label.textContent = `${q}:`;
-      label.style.cssText = 'font-size: 0.75rem; font-weight: 700; color: var(--text-muted); min-width: 22px; text-align: right;';
-      row.appendChild(label);
+      // Tab çubuğu
+      const tabsWrap = document.createElement('div');
+      tabsWrap.style.cssText = 'display: flex; gap: 4px; margin-bottom: 8px; flex-wrap: wrap; width: 100%; border-bottom: 1px solid var(--border-color); padding-bottom: 6px;';
 
-      letters.forEach(letter => {
-        const btn = document.createElement('button');
-        btn.type = 'button';
-        btn.textContent = letter;
-        btn.className = `optical-key-pill-btn ${opticalTempExamKey[q] === letter ? 'active' : ''}`;
-        btn.addEventListener('click', () => {
-          if (opticalTempExamKey[q] === letter) {
-            delete opticalTempExamKey[q];
-          } else {
-            opticalTempExamKey[q] = letter;
-          }
-          activeExam.answerKey = { ...opticalTempExamKey };
-          stateManager.saveExam(activeExam);
-          updateOpticalKeyStatusDisplay();
+      subjects.forEach(s => {
+        let marked = 0;
+        for (let q = 1; q <= s.questionCount; q++) {
+          if (opticalTempExamKey[`${s.id}_${q}`] || opticalTempExamKey[`${s.name}_${q}`]) marked++;
+        }
+        const tabBtn = document.createElement('button');
+        tabBtn.type = 'button';
+        const isActive = s.id === currentSubj.id;
+        tabBtn.className = `btn btn-sm ${isActive ? 'btn-primary' : 'btn-secondary'}`;
+        tabBtn.style.cssText = `font-size: 0.73rem; padding: 0.2rem 0.55rem; height: auto; border-radius: 4px; ${isActive ? 'font-weight: 700;' : ''}`;
+        tabBtn.textContent = `${s.name} (${marked}/${s.questionCount})`;
+        tabBtn.addEventListener('click', () => {
+          activeOpticalKeySubjId = s.id;
           renderOpticalKeyEditor();
         });
-        row.appendChild(btn);
+        tabsWrap.appendChild(tabBtn);
       });
+      opticalEvalKeyGrid.appendChild(tabsWrap);
 
-      opticalEvalKeyGrid.appendChild(row);
+      const gridWrap = document.createElement('div');
+      gridWrap.style.cssText = 'display: flex; flex-wrap: wrap; gap: 6px; width: 100%;';
+
+      for (let q = 1; q <= currentSubj.questionCount; q++) {
+        const key = `${currentSubj.id}_${q}`;
+        const row = document.createElement('div');
+        row.style.cssText = 'display: inline-flex; align-items: center; gap: 4px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 6px; padding: 2px 6px;';
+
+        const label = document.createElement('span');
+        label.textContent = `${q}:`;
+        label.style.cssText = 'font-size: 0.75rem; font-weight: 700; color: var(--text-muted); min-width: 22px; text-align: right;';
+        row.appendChild(label);
+
+        const currentVal = opticalTempExamKey[key] || opticalTempExamKey[`${currentSubj.name}_${q}`] || '';
+
+        letters.forEach(letter => {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.textContent = letter;
+          btn.className = `optical-key-pill-btn ${currentVal === letter ? 'active' : ''}`;
+          btn.addEventListener('click', () => {
+            if (opticalTempExamKey[key] === letter || opticalTempExamKey[`${currentSubj.name}_${q}`] === letter) {
+              delete opticalTempExamKey[key];
+              delete opticalTempExamKey[`${currentSubj.name}_${q}`];
+            } else {
+              opticalTempExamKey[key] = letter;
+              delete opticalTempExamKey[`${currentSubj.name}_${q}`];
+            }
+            activeExam.answerKey = { ...opticalTempExamKey };
+            stateManager.saveExam(activeExam);
+            updateOpticalKeyStatusDisplay();
+            renderOpticalKeyEditor();
+          });
+          row.appendChild(btn);
+        });
+
+        gridWrap.appendChild(row);
+      }
+      opticalEvalKeyGrid.appendChild(gridWrap);
+
+    } else {
+      // Tek ders modu
+      const qCount = parseInt(activeExam.totalQuestions, 10) || 20;
+      for (let q = 1; q <= qCount; q++) {
+        const row = document.createElement('div');
+        row.style.cssText = 'display: inline-flex; align-items: center; gap: 4px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 6px; padding: 2px 6px;';
+
+        const label = document.createElement('span');
+        label.textContent = `${q}:`;
+        label.style.cssText = 'font-size: 0.75rem; font-weight: 700; color: var(--text-muted); min-width: 22px; text-align: right;';
+        row.appendChild(label);
+
+        letters.forEach(letter => {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.textContent = letter;
+          btn.className = `optical-key-pill-btn ${opticalTempExamKey[q] === letter ? 'active' : ''}`;
+          btn.addEventListener('click', () => {
+            if (opticalTempExamKey[q] === letter) {
+              delete opticalTempExamKey[q];
+            } else {
+              opticalTempExamKey[q] = letter;
+            }
+            activeExam.answerKey = { ...opticalTempExamKey };
+            stateManager.saveExam(activeExam);
+            updateOpticalKeyStatusDisplay();
+            renderOpticalKeyEditor();
+          });
+          row.appendChild(btn);
+        });
+
+        opticalEvalKeyGrid.appendChild(row);
+      }
     }
   }
 
@@ -1260,11 +1505,21 @@ function setupWeeklyTab(showToast) {
   if (btnOpticalFillSampleKey) {
     btnOpticalFillSampleKey.addEventListener('click', () => {
       if (!activeExam) return;
-      const qCount = parseInt(activeExam.totalQuestions, 10) || 20;
       const cCount = parseInt(activeExam.choicesCount, 10) || 4;
       const letters = ['A', 'B', 'C', 'D', 'E'].slice(0, cCount);
-      for (let q = 1; q <= qCount; q++) {
-        opticalTempExamKey[q] = letters[(q - 1) % letters.length];
+      const isMulti = activeExam.isMultiSubject && Array.isArray(activeExam.subjects) && activeExam.subjects.length > 0;
+
+      if (isMulti) {
+        activeExam.subjects.forEach(s => {
+          for (let q = 1; q <= s.questionCount; q++) {
+            opticalTempExamKey[`${s.id}_${q}`] = letters[(q - 1) % letters.length];
+          }
+        });
+      } else {
+        const qCount = parseInt(activeExam.totalQuestions, 10) || 20;
+        for (let q = 1; q <= qCount; q++) {
+          opticalTempExamKey[q] = letters[(q - 1) % letters.length];
+        }
       }
       activeExam.answerKey = { ...opticalTempExamKey };
       stateManager.saveExam(activeExam);
@@ -1325,6 +1580,27 @@ function setupWeeklyTab(showToast) {
     });
   }
 
+  // JPEG Boyut Bilgisi Okuyucu (SOF0/SOF2 marker)
+  function getJpegDimensions(bytes) {
+    let i = 2;
+    while (i < bytes.length - 8) {
+      if (bytes[i] === 0xFF) {
+        const marker = bytes[i + 1];
+        if (marker === 0xC0 || marker === 0xC2) {
+          const h = (bytes[i + 5] << 8) | bytes[i + 6];
+          const w = (bytes[i + 7] << 8) | bytes[i + 8];
+          return { w, h };
+        }
+        const len = (bytes[i + 2] << 8) | bytes[i + 3];
+        if (len <= 0) break;
+        i += 2 + len;
+      } else {
+        i++;
+      }
+    }
+    return { w: 0, h: 0 };
+  }
+
   // JPEG Akışı Çıkarıcı (CamScanner ve taranmış PDF'ler için saf JS, bağımsız ve çevrimdışı)
   function extractJpegsFromUint8Array(bytes) {
     const jpegs = [];
@@ -1370,8 +1646,10 @@ function setupWeeklyTab(showToast) {
         }
         if (foundEnd !== -1) {
           const jpegBytes = bytes.subarray(start, foundEnd);
-          // 8KB'den büyükse geçerli bir sayfa taramasıdır (küçük simgeleri filtreler)
-          if (jpegBytes.length > 8192) {
+          // CamScanner watermark / simgelerini filtrele (en az 500x500 veya >80KB)
+          const dims = getJpegDimensions(jpegBytes);
+          const isFullPage = (dims.w >= 500 && dims.h >= 500) || jpegBytes.length > 80000;
+          if (isFullPage) {
             jpegs.push(jpegBytes);
           }
           i = foundEnd;
@@ -1419,7 +1697,8 @@ function setupWeeklyTab(showToast) {
             const page = await pdfDoc.getPage(p);
             const initialVp = page.getViewport({ scale: 1.0 });
             const maxDim = Math.max(initialVp.width, initialVp.height);
-            const scale = Math.max(1.0, Math.min(2.5, 1400 / maxDim));
+            // Optik form baloncuklarının net okunabilmesi için yüksek çözünürlükte (2200px) render et
+            const scale = Math.max(1.8, Math.min(3.0, 2200 / maxDim));
             const viewport = page.getViewport({ scale });
 
             const canvas = document.createElement('canvas');
@@ -1428,7 +1707,7 @@ function setupWeeklyTab(showToast) {
             const ctx = canvas.getContext('2d');
             await page.render({ canvasContext: ctx, viewport }).promise;
 
-            const pageDataUrl = canvas.toDataURL('image/jpeg', 0.90);
+            const pageDataUrl = canvas.toDataURL('image/jpeg', 0.94);
             pages.push({
               id: 'file_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6) + '_p' + p,
               file: file,
@@ -1648,6 +1927,106 @@ function setupWeeklyTab(showToast) {
   }
 
   // ==========================================================================
+  // OMR SONUÇ KARTI YENİDEN HESAPLAMA MOTORU
+  // ==========================================================================
+
+  function recalculateResultCard(res) {
+    if (!res || !activeExam) return;
+    const isMulti = activeExam.isMultiSubject && Array.isArray(activeExam.subjects) && activeExam.subjects.length > 0;
+    const penaltyRate = activeExam.wrongAffects ? (parseFloat(activeExam.penaltyRate) || 4) : 0;
+    const qCount = parseInt(activeExam.totalQuestions, 10) || 20;
+
+    let correctCount = 0;
+    let wrongCount = 0;
+    let blankCount = 0;
+
+    if (isMulti) {
+      const subjectBreakdown = {};
+      activeExam.subjects.forEach(subj => {
+        let subjCorrect = 0;
+        let subjWrong = 0;
+        let subjBlank = 0;
+
+        const qds = (res.questionDetails || []).filter(qd => qd.subjId === subj.id);
+        qds.forEach(qd => {
+          if (!qd.marked) {
+            blankCount++;
+            subjBlank++;
+            qd.isCorrect = false;
+            qd.isBlank = true;
+          } else if (qd.keyAnswer && qd.marked === qd.keyAnswer) {
+            correctCount++;
+            subjCorrect++;
+            qd.isCorrect = true;
+            qd.isBlank = false;
+          } else {
+            wrongCount++;
+            subjWrong++;
+            qd.isCorrect = false;
+            qd.isBlank = false;
+          }
+          if (res.answers) res.answers[qd.key] = qd.marked;
+        });
+
+        let subjNet = penaltyRate > 0 ? (subjCorrect - (subjWrong / penaltyRate)) : subjCorrect;
+        subjNet = Math.max(0, parseFloat(subjNet.toFixed(2)));
+        const subjScore = subj.questionCount > 0 ? parseFloat(((subjNet / subj.questionCount) * 100).toFixed(1)) : 0;
+
+        subjectBreakdown[subj.id] = {
+          id: subj.id,
+          name: subj.name,
+          subjectName: subj.name,
+          correct: subjCorrect,
+          wrong: subjWrong,
+          blank: subjBlank,
+          net: subjNet,
+          score: subjScore,
+          total: subj.questionCount
+        };
+      });
+
+      let net = penaltyRate > 0 ? (correctCount - (wrongCount / penaltyRate)) : correctCount;
+      net = Math.max(0, parseFloat(net.toFixed(2)));
+      const score = qCount > 0 ? parseFloat(((net / qCount) * 100).toFixed(1)) : 0;
+
+      res.correctCount = correctCount;
+      res.wrongCount = wrongCount;
+      res.blankCount = blankCount;
+      res.net = net;
+      res.score = score;
+      res.subjectBreakdown = subjectBreakdown;
+
+    } else {
+      (res.questionDetails || []).forEach(qd => {
+        if (!qd.marked) {
+          blankCount++;
+          qd.isCorrect = false;
+          qd.isBlank = true;
+        } else if (qd.keyAnswer && qd.marked === qd.keyAnswer) {
+          correctCount++;
+          qd.isCorrect = true;
+          qd.isBlank = false;
+        } else {
+          wrongCount++;
+          qd.isCorrect = false;
+          qd.isBlank = false;
+        }
+        if (res.answers) res.answers[qd.q] = qd.marked;
+      });
+
+      let net = penaltyRate > 0 ? (correctCount - (wrongCount / penaltyRate)) : correctCount;
+      net = Math.max(0, parseFloat(net.toFixed(2)));
+      const score = qCount > 0 ? parseFloat(((net / qCount) * 100).toFixed(1)) : 0;
+
+      res.correctCount = correctCount;
+      res.wrongCount = wrongCount;
+      res.blankCount = blankCount;
+      res.net = net;
+      res.score = score;
+    }
+  }
+
+  // ==========================================================================
   // YAPAY ZEKA DEĞERLENDİRME ÇALIŞTIRMA MOTORU
   // ==========================================================================
   if (btnStartOpticalAiEval) {
@@ -1715,8 +2094,8 @@ function setupWeeklyTab(showToast) {
         if (fileItem.isPdf) {
           sendingMime = 'application/pdf';
         } else {
-          // Görseli canvas üzerinden optimize et (maks 1400px)
-          sendingData = await resizeImageForOmr(fileItem.dataUrl, 1400);
+          // Görseli canvas üzerinden yüksek kalitede optimize et (baloncuk netliği için 2200px)
+          sendingData = await resizeImageForOmr(fileItem.dataUrl, 2200);
         }
 
         const isMulti = activeExam && !!activeExam.isMultiSubject;
@@ -1724,37 +2103,62 @@ function setupWeeklyTab(showToast) {
 
         let prompt = '';
         if (isMulti && examSubjects.length > 0) {
-          const subjectsDesc = examSubjects.map(s => `- ${s.name}: ${s.questionCount} soru (1'den ${s.questionCount}'e kadar)`).join('\n');
+          const subjectsDesc = examSubjects.map((s, idx) => {
+            return `${idx + 1}. SÜTUN -> Ders Adı: "${s.name}", Soru Sayısı: ${s.questionCount} (Sorular 1'den ${s.questionCount}'e kadar), Kod: "${s.id}"`;
+          }).join('\n');
+
+          const exampleAnswerLines = [];
+          examSubjects.forEach(s => {
+            exampleAnswerLines.push(`"${s.id}_1": "A"`);
+            if (s.questionCount >= 2) {
+              exampleAnswerLines.push(`"${s.id}_2": "B"`);
+            }
+          });
+
           prompt = `Görseldeki veya PDF belgesindeki ÇOKLU DERS (deneme/branşlı) sınav optik formunu dikkatlice incele.
 Sınav Bilgileri:
 - Sınav Adı: ${examTitle}
 - Sınav Türü: Çoklu Ders / Branşlı Deneme Sınavı
-- Dersler ve Soru Sayıları:
+- Sütun Sıralaması ve Dersler:
 ${subjectsDesc}
 - Toplam Soru Sayısı: ${qCount}
 - Olası Seçenekler: ${letters.join(', ')}
 
-ÖNEMLİ TALİMATLAR:
-1. Bu form ÇOKLU DERS optik formudur. Her derste soru numaraları 1'den başlar (Örn: ${examSubjects[0]?.name} 1..${examSubjects[0]?.questionCount}, ${examSubjects[1]?.name || 'Diğer'} 1..${examSubjects[1]?.questionCount || 10} gibi).
-2. Belgede veya görselde 1 veya birden fazla öğrencinin optik formu bulunabilir (örneğin CamScanner ile taranmış çok sayfalı bir PDF veya sayfada altlı üstlü 2 form). Algılanan BÜTÜN optik formları ayrı bir nesne olarak "cards" dizisi içine ekle.
-3. Her bir form için:
-   - "Öğrenci:" yanındaki tam isim ve soyismi ("studentName").
-   - "No:" yanındaki öğrenci okul numarasını ("studentNo").
-4. Her dersin altındaki sorular için öğrencinin doldurduğu/karaladığı şıkları tespit et:
-   - "answers" nesnesinde her dersin soru cevaplarını "${examSubjects[0]?.id || 'sub_0'}_1" formatında (örneğin: "${examSubjects[0]?.id || 'sub_0'}_1": "A", "${examSubjects[0]?.id || 'sub_0'}_2": "B") ya da "${examSubjects[0]?.name}_1" şeklinde belirt.
-   - Doldurulan seçeneğin harfini ('A', 'B', 'C', 'D' vb.) yaz.
-   - Soru boş bırakılmışsa "" (boş dize) yaz.
-   - Birden fazla şık karalanmışsa "MULTIPLE" yaz.
-   - Eğer bir şık karalanıp sonra üzeri çizilmiş ve başka bir şık doldurulmuşsa geçerli olanı al.
+FORM DÜZENİ VE OKUMA KURALLARI (ÇOK ÖNEMLİ):
+1. BU BİR ÇOKLU DERS OPTİK FORMUDUR:
+   - Sayfa üzerinde dersler soldan sağa sütunlar halinde yer alır:
+${examSubjects.map((s, idx) => `     * ${idx + 1}. Sütun: ${s.name} (${s.questionCount} soru)`).join('\n')}
+   - DİKKAT: Formun üzerindeki ders başlığında harf hatası veya küçük yazım farkları olsa dahi (örneğin "SOSYAAL BİLGİLER" yazsa dahi) soldan sağa sütun sırasına göre ilgili derstir. Bütün sütunlardaki işaretlemeleri eksiksiz oku.
+2. HER DERSTE SORU NUMARALARI 1'DEN BAŞLAR (1, 2, 3..).
+3. HER SORU SATIRINDA SOLDAN SAĞA ŞIK ÇEMBERLERİ BULUNUR:
+   - 1. Çember = 'A'
+   - 2. Çember = 'B'
+   - 3. Çember = 'C'
+   - 4. Çember = 'D' (varsa 5. Çember = 'E')
+4. OPTİK İŞARETLEME VE HASSASİYET KURALLARI (EN KRİTİK KURAL):
+   - Her soru satırında soldan sağa şık çemberleri yer alır (1. A, 2. B, 3. C, 4. D).
+   - SATIR İÇİ GÖRECELİ (RÖLATİF) KONTRAST KIYASLAMASI (HASSASİYET İLKESİ):
+     * Öğrencilerin işaretlemeleri bazen açık kurşun kalem tonunda, hafif taranmış, yarım doldurulmuş veya X/tik şeklinde olabilir.
+     * Bir soru satırındaki 4 çemberi birbiriyle kıyasla: Eğer bir çember, aynı satırdaki diğer çemberlere göre daha koyuysa veya içinde kurşun kalem izi/karalama/gölgeleme varsa, o çemberi KESİNLİKLE İŞARETLENMİŞ olarak tanı!
+     * Silik veya açık tonlu kurşun kalem işaretlemesini ASLA "boş" olarak atlama! Satırda diğer 3 çemberden belirgin şekilde koyu olan çember öğrencinin işaretidir.
+   - BOŞ BIRAKMA KURALI: Sadece ve sadece satırdaki tüm çemberler tamamen eşit derecede bembeyaz, tertemiz ve el değmemişse soruyu boş ("") kabul et.
+   - Harf kurşun kalemden dolayı örtülmüş olsa bile çemberin sırasından (1. A, 2. B, 3. C, 4. D) harfi belirle.
+   - Bir soruda birden fazla çember belirgin şekilde karalanmışsa "MULTIPLE" yaz.
+   - Bir şık karalanıp sonra üzeri silinmiş/çizilmiş ve başka bir şık doldurulmuşsa en belirgin ve koyu olan geçerli şıkkı al.
+5. ÖĞRENCİ BİLGİLERİ:
+   - "Öğrenci:" başlığının yanındaki tam isim ve soyismi ("studentName").
+   - "No:" başlığının yanındaki okul numarasını ("studentNo").
+6. CEVAP KODLARI:
+   - "answers" nesnesinde her dersin soru cevaplarını "${examSubjects[0]?.id || 'sub_0'}_1" formatında, ders kodu ve soru numarasıyla ver (Örn: ${exampleAnswerLines.slice(0, 4).join(', ')}).
 
 Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi veya ek metin ekleme):
 {
   "cards": [
     {
-      "studentName": "Öğrenci Adı",
+      "studentName": "Öğrenci Adı Soyadı",
       "studentNo": "123",
       "answers": {
-        "${examSubjects[0]?.id || 'sub_0'}_1": "A"
+        ${exampleAnswerLines.join(',\n        ')}
       }
     }
   ]
@@ -1766,22 +2170,33 @@ Sınav Bilgileri:
 - Toplam Soru Sayısı: ${qCount}
 - Olası Seçenekler: ${letters.join(', ')}
 
-ÖNEMLİ TALİMATLAR:
-1. Belgede veya görselde 1 veya birden fazla öğrencinin optik formu bulunabilir (örneğin CamScanner ile taranmış çok sayfalı bir PDF veya tek bir A4 sayfasında altlı üstlü 2 öğrencinin formu basılmış olabilir). Algılanan BÜTÜN optik formları ayrı bir nesne olarak "cards" dizisi içine ekle. Tek form varsa 1 elemanlı dizi döndür.
+FORM DÜZENİ VE OKUMA KURALLARI (ÇOK ÖNEMLİ):
+1. Belgede veya görselde 1 veya birden fazla öğrencinin optik formu bulunabilir (örneğin çok sayfalı bir PDF veya tek sayfada altlı üstlü 2 form). Algılanan BÜTÜN optik formları "cards" dizisi içine ekle. Tek form varsa 1 elemanlı dizi döndür.
 2. Her bir form için:
    - "Öğrenci:" yanındaki tam isim ve soyismi ("studentName").
    - "No:" yanındaki öğrenci okul numarasını ("studentNo").
-3. 1'den ${qCount}'e kadar olan sorular için öğrencinin kurşun veya tükenmez kalemle DOLDURDUĞU / KARALADIĞI şıkkı tespit et:
-   - Doldurulan seçeneğin harfini ('A', 'B', 'C', 'D' vb.) yaz.
-   - Soru hiç işaretlenmemişse veya boş bırakılmışsa "" (boş dize) yaz.
-   - Bir soruda birden fazla şık karalanmışsa "MULTIPLE" yaz.
-   - Eğer bir şık karalanıp sonra üzeri çizilmiş ve başka bir şık doldurulmuşsa geçerli olanı al.
+3. HER SORU SATIRINDA SOLDAN SAĞA ŞIK ÇEMBERLERİ BULUNUR:
+   - 1. Çember = 'A'
+   - 2. Çember = 'B'
+   - 3. Çember = 'C'
+   - 4. Çember = 'D' (varsa 5. Çember = 'E')
+4. OPTİK İŞARETLEME VE HASSASİYET KURALLARI (EN KRİTİK KURAL):
+   - Her soru satırında soldan sağa şık çemberleri yer alır (1. A, 2. B, 3. C, 4. D).
+   - SATIR İÇİ GÖRECELİ (RÖLATİF) KONTRAST KIYASLAMASI (HASSASİYET İLKESİ):
+     * Öğrencilerin işaretlemeleri bazen açık kurşun kalem tonunda, hafif taranmış, yarım doldurulmuş veya X/tik şeklinde olabilir.
+     * Bir soru satırındaki çemberleri birbiriyle kıyasla: Eğer bir çember, aynı satırdaki diğer çemberlere göre daha koyuysa veya içinde kurşun kalem izi/karalama/gölgeleme varsa, o çemberi KESİNLİKLE İŞARETLENMİŞ olarak tanı!
+     * Silik veya açık tonlu kurşun kalem işaretlemesini ASLA "boş" olarak atlama! Satırda diğer çemberlerden belirgin şekilde koyu olan çember öğrencinin işaretidir.
+   - BOŞ BIRAKMA KURALI: Sadece ve sadece satırdaki tüm çemberler tamamen eşit derecede bembeyaz, tertemiz ve el değmemişse soruyu boş ("") kabul et.
+   - Karalanmış çemberin içindeki harf kurşun kalemden dolayı örtülmüş olabilir; çemberin konumuna göre harfi belirle (1. çember A, 2. çember B, 3. çember C, 4. çember D).
+   - Soru hiç işaretlenmemişse veya tüm çemberler boşsa "" (boş dize) yaz.
+   - Bir soruda birden fazla çember karalanmışsa "MULTIPLE" yaz.
+   - Bir şık karalanıp sonra üzeri çizilmiş/silinmiş ve başka bir şık doldurulmuşsa geçerli doldurulanı al.
 
 Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi veya ek metin ekleme):
 {
   "cards": [
     {
-      "studentName": "Öğrenci Adı",
+      "studentName": "Öğrenci Adı Soyadı",
       "studentNo": "123",
       "answers": {
         "1": "A",
@@ -1796,7 +2211,7 @@ Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi ve
           imageBase64: sendingData,
           imageMimeType: sendingMime,
           json: true,
-          temperature: 0.1
+          temperature: 0.0
         });
 
         let parsed = null;
@@ -1853,45 +2268,30 @@ Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi ve
           if (isMulti && examSubjects.length > 0) {
             subjectBreakdown = {};
             const penaltyRate = activeExam.wrongAffects ? (parseFloat(activeExam.penaltyRate) || 4) : 0;
+            let cumulativeOffset = 0;
 
-            examSubjects.forEach(subj => {
+            examSubjects.forEach((subj, subjIdx) => {
               let subjCorrect = 0;
               let subjWrong = 0;
               let subjBlank = 0;
 
               for (let q = 1; q <= subj.questionCount; q++) {
                 const key = `${subj.id}_${q}`;
-                let val = '';
-                if (cardAnswers[key] !== undefined) {
-                  val = cardAnswers[key];
-                } else if (cardAnswers[`${subj.name}_${q}`] !== undefined) {
-                  val = cardAnswers[`${subj.name}_${q}`];
-                } else if (card.subjectAnswers && card.subjectAnswers[subj.id] && card.subjectAnswers[subj.id][q] !== undefined) {
-                  val = card.subjectAnswers[subj.id][q];
-                } else if (card.subjectAnswers && card.subjectAnswers[subj.name] && card.subjectAnswers[subj.name][q] !== undefined) {
-                  val = card.subjectAnswers[subj.name][q];
-                } else {
-                  const normSubj = subj.name.toLocaleLowerCase('tr').replace(/[^a-zçğıöşü0-9]/g, '');
-                  const matchedKey = Object.keys(cardAnswers).find(k => {
-                    const kNorm = k.toLocaleLowerCase('tr').replace(/[^a-zçğıöşü0-9]/g, '');
-                    return kNorm.startsWith(normSubj) && k.endsWith(`_${q}`);
-                  });
-                  if (matchedKey) val = cardAnswers[matchedKey];
+                let rawVal = extractAnswerForSubj(cardAnswers, card, subj, subjIdx, q, cumulativeOffset);
+                rawVal = String(rawVal || '').trim().toUpperCase();
+
+                if (!letters.includes(rawVal) && rawVal !== 'MULTIPLE') {
+                  rawVal = '';
                 }
 
-                val = String(val || '').trim().toUpperCase();
-                if (!letters.includes(val) && val !== 'MULTIPLE') {
-                  val = '';
-                }
-
-                const correctAns = answerKey[key] || '';
+                const correctAns = findCorrectAnswerForKey(answerKey, subj, subjIdx, q, cumulativeOffset);
                 const qd = {
                   subjId: subj.id,
                   subjName: subj.name,
                   q,
                   key,
-                  marked: val === 'MULTIPLE' ? '' : val,
-                  status: val === 'MULTIPLE' ? 'multiple' : (val ? 'marked' : 'blank'),
+                  marked: rawVal === 'MULTIPLE' ? '' : rawVal,
+                  status: rawVal === 'MULTIPLE' ? 'multiple' : (rawVal ? 'marked' : 'blank'),
                   keyAnswer: correctAns
                 };
 
@@ -1921,7 +2321,9 @@ Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi ve
               const subjScore = subj.questionCount > 0 ? parseFloat(((subjNet / subj.questionCount) * 100).toFixed(1)) : 0;
 
               subjectBreakdown[subj.id] = {
+                id: subj.id,
                 name: subj.name,
+                subjectName: subj.name,
                 correct: subjCorrect,
                 wrong: subjWrong,
                 blank: subjBlank,
@@ -1929,6 +2331,8 @@ Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi ve
                 score: subjScore,
                 total: subj.questionCount
               };
+
+              cumulativeOffset += subj.questionCount;
             });
 
             let net = penaltyRate > 0 ? (correctCount - (wrongCount / penaltyRate)) : correctCount;
@@ -1958,7 +2362,7 @@ Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi ve
             appendOpticalLog(`  → Form ${cardIndex + 1}: ${cardStudentName || 'İsimsiz'} (No: ${cardStudentNo || '-'}) ➔ ${matchedLabel} | Doğru: ${correctCount}, Yanlış: ${wrongCount}, Puan: ${score}`);
 
           } else {
-            // Tek Ders Puanlama (Mevcut Mantık)
+            // Tek Ders Puanlama
             for (let q = 1; q <= qCount; q++) {
               let val = cardAnswers[q] || cardAnswers[String(q)] || '';
               val = String(val).trim().toUpperCase();
@@ -1966,7 +2370,7 @@ Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi ve
                 val = '';
               }
 
-              const correctAns = answerKey[q] || answerKey[String(q)] || '';
+              const correctAns = String(answerKey[q] || answerKey[String(q)] || '').trim().toUpperCase();
               const qd = {
                 q,
                 marked: val === 'MULTIPLE' ? '' : val,
@@ -2037,8 +2441,8 @@ Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi ve
     }, 600);
   }
 
-  // Canvas ile Görsel Boyutlandırma
-  function resizeImageForOmr(dataUrl, maxDim = 1400) {
+  // Canvas ile Görsel Boyutlandırma (Optik netliği korumak için 2200px tavan ve 0.93 kalite)
+  function resizeImageForOmr(dataUrl, maxDim = 2200) {
     return new Promise((resolve) => {
       const img = new Image();
       img.onload = () => {
@@ -2057,8 +2461,10 @@ Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi ve
         canvas.width = w;
         canvas.height = h;
         const ctx = canvas.getContext('2d');
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
         ctx.drawImage(img, 0, 0, w, h);
-        resolve(canvas.toDataURL('image/jpeg', 0.88));
+        resolve(canvas.toDataURL('image/jpeg', 0.95));
       };
       img.onerror = () => resolve(dataUrl);
       img.src = dataUrl;
@@ -2079,13 +2485,26 @@ Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi ve
     const classStudents = (state.students || []).filter(s => !isMiddle || !examBranch || s.branch === examBranch);
     const sortedStudents = [...classStudents].sort((a, b) => a.name.localeCompare(b.name, 'tr'));
 
-    // İstatistikler
+    // İstatistikler ve Mükerrer Kontrolü
     const totalCount = opticalScannedResults.length;
-    const matchedCount = opticalScannedResults.filter(r => r.matchedStudentId).length;
+    const studentMatchCounts = {};
+    opticalScannedResults.forEach(r => {
+      if (r.matchedStudentId) {
+        studentMatchCounts[r.matchedStudentId] = (studentMatchCounts[r.matchedStudentId] || 0) + 1;
+      }
+    });
+    const uniqueMatchedCount = Object.keys(studentMatchCounts).length;
+    const duplicateCount = opticalScannedResults.filter(r => r.matchedStudentId && studentMatchCounts[r.matchedStudentId] > 1).length;
     const avgScore = totalCount > 0 ? (opticalScannedResults.reduce((sum, r) => sum + r.score, 0) / totalCount).toFixed(1) : 0;
 
     if (opticalResStatTotal) opticalResStatTotal.textContent = totalCount;
-    if (opticalResStatMatched) opticalResStatMatched.textContent = `${matchedCount} / ${totalCount}`;
+    if (opticalResStatMatched) {
+      if (duplicateCount > 0) {
+        opticalResStatMatched.innerHTML = `${uniqueMatchedCount} Tekil <small style="font-size: 0.72rem; color: #d97706; font-weight: 700;">(${duplicateCount} Mükerrer)</small>`;
+      } else {
+        opticalResStatMatched.textContent = `${uniqueMatchedCount} / ${totalCount}`;
+      }
+    }
     if (opticalResStatAvg) opticalResStatAvg.textContent = `${avgScore} Puan`;
 
     if (!opticalEvalResultsContainer) return;
@@ -2100,9 +2519,27 @@ Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi ve
       return;
     }
 
+    // Mükerrer form uyarısı bildirim kutusu
+    if (duplicateCount > 0) {
+      const banner = document.createElement('div');
+      banner.style.cssText = 'background: rgba(245, 158, 11, 0.12); border: 1.5px solid #f59e0b; border-radius: var(--radius-md); padding: 0.65rem 1rem; margin-bottom: 0.85rem; font-size: 0.82rem; color: #92400e; display: flex; align-items: center; gap: 8px;';
+      banner.innerHTML = `
+        <span style="font-size: 1.25rem; line-height: 1;">⚠️</span>
+        <div>
+          <strong>Mükerrer Form Okuması Algılandı:</strong> Bazı öğrenciler için birden fazla optik form taranmış (${duplicateCount} form). İstemediğiniz formu sağdaki <strong>"× Çıkar"</strong> butonuyla silebilirsiniz. Kaydederken sistem her öğrenci için otomatik olarak en yüksek puanlı okumayı seçecektir.
+        </div>
+      `;
+      opticalEvalResultsContainer.appendChild(banner);
+    }
+
     opticalScannedResults.forEach((res, index) => {
+      const isDuplicate = res.matchedStudentId && studentMatchCounts[res.matchedStudentId] > 1;
       const card = document.createElement('div');
-      card.className = `optical-eval-card ${!res.matchedStudentId ? 'unmatched' : ''}`;
+      card.className = `optical-eval-card ${!res.matchedStudentId ? 'unmatched' : ''} ${isDuplicate ? 'duplicate-match' : ''}`;
+      if (isDuplicate) {
+        card.style.borderColor = '#f59e0b';
+        card.style.boxShadow = '0 0 0 1px rgba(245, 158, 11, 0.3)';
+      }
 
       // Öğrenci Seçenekleri
       let optionsHtml = `<option value="">-- Öğrenci Seçilmedi --</option>`;
@@ -2111,23 +2548,27 @@ Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi ve
         optionsHtml += `<option value="${st.id}" ${isSelected ? 'selected' : ''}>${st.number} - ${st.name} ${st.surname}</option>`;
       });
 
-      const matchBadge = res.matchedStudentId
+      let matchBadge = res.matchedStudentId
         ? `<span class="badge" style="background: rgba(16, 185, 129, 0.15); color: #059669; font-size: 0.75rem;">✓ Eşleşti</span>`
         : `<span class="badge" style="background: rgba(245, 158, 11, 0.2); color: #b45309; font-size: 0.75rem;">⚠️ Eşleşmedi (Lütfen Seçin)</span>`;
+
+      if (isDuplicate) {
+        matchBadge += ` <span class="badge" style="background: rgba(245, 158, 11, 0.2); color: #b45309; font-size: 0.75rem; font-weight: 700;" title="Bu öğrenci birden fazla optik formda eşleşti">⚠️ Mükerrer Okuma</span>`;
+      }
 
       // Şıklar HTML'i
       let answersHtml = '';
       if (res.subjectBreakdown) {
         const subjectsMap = {};
-        res.questionDetails.forEach(qd => {
+        res.questionDetails.forEach((qd, qdIdx) => {
           const sName = qd.subjName || 'Ders';
           if (!subjectsMap[sName]) subjectsMap[sName] = [];
-          subjectsMap[sName].push(qd);
+          subjectsMap[sName].push({ qd, qdIdx });
         });
 
         for (const sName in subjectsMap) {
           answersHtml += `<div style="width: 100%; font-size: 0.74rem; font-weight: 800; color: #4f46e5; margin-top: 6px; border-bottom: 1px dashed var(--border-color); padding-bottom: 2px;">📚 ${sName}</div>`;
-          subjectsMap[sName].forEach(qd => {
+          subjectsMap[sName].forEach(({ qd, qdIdx }) => {
             let chipClass = 'blank';
             let icon = '⚪';
             let detailText = qd.keyAnswer ? `(D:${qd.keyAnswer})` : '';
@@ -2142,7 +2583,10 @@ Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi ve
             }
 
             answersHtml += `
-              <div class="optical-answer-chip ${chipClass}" title="${sName} Soru ${qd.q}: İşaretlenen '${qd.marked || 'Boş'}' - Doğru '${qd.keyAnswer || '-'}'">
+              <div class="optical-answer-chip ${chipClass} opt-clickable-chip" 
+                   data-res-index="${index}" 
+                   data-qd-idx="${qdIdx}" 
+                   title="${sName} Soru ${qd.q}: İşaretlenen '${qd.marked || 'Boş'}' - Doğru '${qd.keyAnswer || '-'}'. (Tıklayarak şıkkı değiştirin)">
                 <span>S${qd.q}:</span>
                 <strong>${qd.marked || '-'}</strong>
                 <small>${icon}</small>
@@ -2152,7 +2596,7 @@ Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi ve
           });
         }
       } else {
-        res.questionDetails.forEach(qd => {
+        res.questionDetails.forEach((qd, qdIdx) => {
           let chipClass = 'blank';
           let icon = '⚪';
           let detailText = qd.keyAnswer ? `(D:${qd.keyAnswer})` : '';
@@ -2167,7 +2611,10 @@ Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi ve
           }
 
           answersHtml += `
-            <div class="optical-answer-chip ${chipClass}" title="Soru ${qd.q}: İşaretlenen '${qd.marked || 'Boş'}' - Doğru '${qd.keyAnswer || '-'}'">
+            <div class="optical-answer-chip ${chipClass} opt-clickable-chip" 
+                 data-res-index="${index}" 
+                 data-qd-idx="${qdIdx}" 
+                 title="Soru ${qd.q}: İşaretlenen '${qd.marked || 'Boş'}' - Doğru '${qd.keyAnswer || '-'}'. (Tıklayarak şıkkı değiştirin)">
               <span>S${qd.q}:</span>
               <strong>${qd.marked || '-'}</strong>
               <small>${icon}</small>
@@ -2181,7 +2628,7 @@ Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi ve
       if (res.subjectBreakdown) {
         const items = Object.values(res.subjectBreakdown).map(sb => `
           <span style="font-size: 0.72rem; background: var(--bg-primary); padding: 2px 7px; border-radius: 4px; border: 1px solid var(--border-color); color: var(--text-primary);">
-            <strong>${sb.name}:</strong> ${sb.correct}D ${sb.wrong}Y <span style="color: #4f46e5; font-weight: 700;">(${sb.net} Net)</span>
+            <strong>${sb.name || sb.subjectName}:</strong> ${sb.correct}D ${sb.wrong}Y <span style="color: #4f46e5; font-weight: 700;">(${sb.net} Net)</span>
           </span>
         `).join('');
         breakdownHtml = `<div style="display: flex; gap: 6px; flex-wrap: wrap; margin-top: 5px;">${items}</div>`;
@@ -2227,14 +2674,37 @@ Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi ve
 
         <!-- Şık Detayları Butonu & Konteyneri -->
         <div>
-          <button type="button" class="btn btn-secondary btn-sm res-toggle-answers-btn" style="font-size: 0.72rem; padding: 0.2rem 0.5rem; height: auto;">
-            <span>Şıkları İncele</span>
-          </button>
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+            <button type="button" class="btn btn-secondary btn-sm res-toggle-answers-btn" style="font-size: 0.72rem; padding: 0.2rem 0.5rem; height: auto;">
+              <span>Şıkları İncele</span>
+            </button>
+            <span style="font-size: 0.7rem; color: var(--text-muted); font-style: italic;">(Şıkları değiştirmek için üzerlerine tıklayabilirsiniz)</span>
+          </div>
           <div class="res-answers-box" style="display: ${allOpticalDetailsVisible ? 'flex' : 'none'}; flex-wrap: wrap; gap: 4px; margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px dashed var(--border-color);">
             ${answersHtml}
           </div>
         </div>
       `;
+
+      // Tıklanabilir şıklar ile manuel düzeltme dinleyicisi
+      card.querySelectorAll('.opt-clickable-chip').forEach(chip => {
+        chip.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const qdIdx = parseInt(chip.getAttribute('data-qd-idx'), 10);
+          const qd = res.questionDetails[qdIdx];
+          if (!qd) return;
+
+          const cCount = parseInt(activeExam.choicesCount, 10) || 4;
+          const choiceCycle = [...['A', 'B', 'C', 'D', 'E'].slice(0, cCount), ''];
+          const curIndex = choiceCycle.indexOf(qd.marked || '');
+          const nextIndex = (curIndex + 1) % choiceCycle.length;
+          qd.marked = choiceCycle[nextIndex];
+          qd.status = qd.marked ? 'marked' : 'blank';
+
+          recalculateResultCard(res);
+          renderOpticalEvaluationResults();
+        });
+      });
 
       // Öğrenci değiştirme dinleyicisi
       const sel = card.querySelector('.res-student-select');
@@ -2316,15 +2786,36 @@ Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi ve
         }
       }
 
+      // Mükerrer okuma tespiti ve tekilleştirme (aynı öğrenci birden fazla taranmışsa)
+      const studentMap = new Map();
+      const duplicateStudents = new Set();
+      opticalScannedResults.forEach(res => {
+        if (!res.matchedStudentId) return;
+        if (studentMap.has(res.matchedStudentId)) {
+          duplicateStudents.add(res.matchedStudentId);
+          // Birden fazla okuma varsa, daha yüksek puanlı olanı veya en son okunanı seç
+          const prevRes = studentMap.get(res.matchedStudentId);
+          if ((res.score || 0) >= (prevRes.score || 0)) {
+            studentMap.set(res.matchedStudentId, res);
+          }
+        } else {
+          studentMap.set(res.matchedStudentId, res);
+        }
+      });
+
+      if (duplicateStudents.size > 0) {
+        if (!confirm(`⚠️ ${duplicateStudents.size} öğrenci için mükerrer (birden fazla) optik form okuması bulundu.\n\nHer öğrenci için en yüksek puanlı optik sonuç otomatik olarak seçilip kaydedilecektir.\n(Farklı bir formu seçmek isterseniz 'İptal'e basıp listeden istemediğiniz formu '× Çıkar' butonu ile silebilirsiniz).\n\nDevam etmek istiyor musunuz?`)) {
+          return;
+        }
+      }
+
       if (!activeExam.examScores) activeExam.examScores = {};
       if (!activeExam.studentResults) activeExam.studentResults = {};
 
       let savedCount = 0;
-      opticalScannedResults.forEach(res => {
-        if (!res.matchedStudentId) return;
-
-        activeExam.examScores[res.matchedStudentId] = res.score;
-        activeExam.studentResults[res.matchedStudentId] = {
+      studentMap.forEach((res, studentId) => {
+        activeExam.examScores[studentId] = res.score;
+        activeExam.studentResults[studentId] = {
           correct: res.correctCount,
           wrong: res.wrongCount,
           blank: res.blankCount,
@@ -2332,6 +2823,12 @@ Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi ve
           score: res.score,
           answers: { ...res.answers },
           subjectBreakdown: res.subjectBreakdown || null,
+          thumbUrl: res.thumbUrl || '',
+          pdfDataUrl: res.pdfDataUrl || '',
+          isPdf: !!res.isPdf,
+          fileName: res.fileName || '',
+          rawStudentName: res.rawStudentName || '',
+          rawStudentNo: res.rawStudentNo || '',
           source: 'ai_optical_upload',
           scannedAt: new Date().toISOString()
         };
@@ -2344,9 +2841,13 @@ Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi ve
       // Modalı kapat
       if (modalUploadOpticalEval) modalUploadOpticalEval.classList.remove('active');
 
-      // Tabloyu ve listeyi güncelle
-      renderExamsList();
-      openActiveExam(activeExam);
+      // Tabloyu ve listeyi güvenli şekilde güncelle
+      try {
+        renderExamsList();
+        openActiveExam(activeExam);
+      } catch (renderErr) {
+        console.error('Sınav tablosu güncellenirken hata:', renderErr);
+      }
 
       if (toastCallback) {
         toastCallback(`🎉 ${savedCount} öğrencinin sınav notları başarıyla aktarıldı ve kaydedildi!`, 'success');
@@ -2652,15 +3153,19 @@ Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi ve
 
             if (isMulti) {
               const subjectBreakdown = {};
-              activeExam.subjects.forEach(subj => {
+              let cumulativeOffset = 0;
+              activeExam.subjects.forEach((subj, subjIdx) => {
                 let subjCorrect = 0;
                 let subjWrong = 0;
                 let subjBlank = 0;
 
                 for (let q = 1; q <= subj.questionCount; q++) {
                   const key = `${subj.id}_${q}`;
-                  const ans = String(res.answers[key] || res.answers[`${subj.name}_${q}`] || '').trim().toUpperCase();
-                  const correctAns = String(activeExam.answerKey[key] || '').trim().toUpperCase();
+                  let ans = extractAnswerForSubj(res.answers, null, subj, subjIdx, q, cumulativeOffset);
+                  ans = String(ans || '').trim().toUpperCase();
+                  if (ans === 'MULTIPLE') ans = '';
+
+                  const correctAns = findCorrectAnswerForKey(activeExam.answerKey, subj, subjIdx, q, cumulativeOffset);
 
                   if (!ans) {
                     blankCount++;
@@ -2672,6 +3177,7 @@ Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi ve
                     wrongCount++;
                     subjWrong++;
                   }
+                  res.answers[key] = ans;
                 }
 
                 let subjNet = penaltyRate > 0 ? (subjCorrect - (subjWrong / penaltyRate)) : subjCorrect;
@@ -2679,7 +3185,9 @@ Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi ve
                 const subjScore = subj.questionCount > 0 ? parseFloat(((subjNet / subj.questionCount) * 100).toFixed(1)) : 0;
 
                 subjectBreakdown[subj.id] = {
+                  id: subj.id,
                   name: subj.name,
+                  subjectName: subj.name,
                   correct: subjCorrect,
                   wrong: subjWrong,
                   blank: subjBlank,
@@ -2687,6 +3195,7 @@ Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi ve
                   score: subjScore,
                   total: subj.questionCount
                 };
+                cumulativeOffset += subj.questionCount;
               });
 
               let net = penaltyRate > 0 ? (correctCount - (wrongCount / penaltyRate)) : correctCount;
@@ -2749,6 +3258,424 @@ Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi ve
 
       const event = new CustomEvent('stateChanged');
       document.dispatchEvent(event);
+    });
+  }
+
+  // ==========================================================================
+  // ÖĞRENCİ OPTİK FORM İNCELEME VE DÜZENLEME MODALI
+  // ==========================================================================
+  function openStudentOpticalEditModal(studentId) {
+    if (!activeExam) return;
+    const state = stateManager.loadState();
+    const student = (state.students || []).find(s => String(s.id) === String(studentId));
+    if (!student) {
+      if (toastCallback) toastCallback('Öğrenci bulunamadı!', 'error');
+      return;
+    }
+
+    activeOpticalStudentId = studentId;
+    const res = (activeExam.studentResults && activeExam.studentResults[studentId]) || {};
+    activeOpticalStudentAnswers = { ...(res.answers || {}) };
+
+    const isMulti = activeExam.isMultiSubject && Array.isArray(activeExam.subjects) && activeExam.subjects.length > 0;
+    activeOpticalStudentSubjTab = isMulti ? 'ALL' : '';
+
+    if (stuOptModalSubtitle) {
+      const bText = student.branch ? ` • Şube: <strong>${student.branch}</strong>` : '';
+      stuOptModalSubtitle.innerHTML = `Öğrenci: <strong>${student.name} ${student.surname}</strong> (No: <strong>${student.number || '-'}</strong>)${bText} • Sınav: <strong>${activeExam.examName}</strong>`;
+    }
+
+    // Taranan kağıt görseli kontrolü
+    if (btnStuOptViewPaper) {
+      const paperUrl = res.thumbUrl || res.pdfDataUrl;
+      if (paperUrl) {
+        btnStuOptViewPaper.style.display = 'inline-flex';
+        btnStuOptViewPaper.onclick = () => {
+          openOpticalImagePreview(paperUrl, res.isPdf, `${student.name} ${student.surname}`);
+        };
+      } else {
+        btnStuOptViewPaper.style.display = 'none';
+        btnStuOptViewPaper.onclick = null;
+      }
+    }
+
+    renderStudentOpticalSubjectTabs();
+    renderStudentOpticalModalGrid();
+    updateStudentOpticalModalStats();
+
+    if (modalStudentOpticalEdit) {
+      modalStudentOpticalEdit.classList.add('active');
+    }
+    if (window.safeCreateIcons) window.safeCreateIcons();
+  }
+  window.openStudentOpticalEditModal = openStudentOpticalEditModal;
+
+  function renderStudentOpticalSubjectTabs() {
+    if (!stuOptSubjectTabs || !activeExam) return;
+    const isMulti = activeExam.isMultiSubject && Array.isArray(activeExam.subjects) && activeExam.subjects.length > 0;
+
+    if (!isMulti) {
+      stuOptSubjectTabs.style.display = 'none';
+      return;
+    }
+
+    stuOptSubjectTabs.style.display = 'flex';
+    const subjects = activeExam.subjects;
+    let html = `
+      <button type="button" class="stu-opt-subj-tab ${activeOpticalStudentSubjTab === 'ALL' ? 'active' : ''}" onclick="window.selectStuOptSubjTab('ALL')">
+        <span>Tüm Dersler</span>
+        <span class="badge" style="background: rgba(0,0,0,0.1); font-size: 0.7rem; padding: 1px 5px; border-radius: 4px;">${activeExam.totalQuestions}</span>
+      </button>
+    `;
+
+    subjects.forEach(subj => {
+      const isActive = activeOpticalStudentSubjTab === subj.id;
+      html += `
+        <button type="button" class="stu-opt-subj-tab ${isActive ? 'active' : ''}" onclick="window.selectStuOptSubjTab('${subj.id}')">
+          <span>${subj.name}</span>
+          <span class="badge" style="background: rgba(0,0,0,0.1); font-size: 0.7rem; padding: 1px 5px; border-radius: 4px;">${subj.questionCount}</span>
+        </button>
+      `;
+    });
+
+    stuOptSubjectTabs.innerHTML = html;
+  }
+
+  window.selectStuOptSubjTab = (subjId) => {
+    activeOpticalStudentSubjTab = subjId;
+    renderStudentOpticalSubjectTabs();
+    renderStudentOpticalModalGrid();
+  };
+
+  function renderStudentOpticalModalGrid() {
+    if (!stuOptQuestionsContainer || !activeExam) return;
+    stuOptQuestionsContainer.innerHTML = '';
+
+    const isMulti = activeExam.isMultiSubject && Array.isArray(activeExam.subjects) && activeExam.subjects.length > 0;
+    const answerKey = activeExam.answerKey || {};
+    const choicesCount = parseInt(activeExam.choicesCount, 10) || 4;
+    const letters = ['A', 'B', 'C', 'D', 'E'].slice(0, choicesCount);
+
+    if (isMulti) {
+      const subjectsToRender = activeOpticalStudentSubjTab === 'ALL'
+        ? activeExam.subjects
+        : activeExam.subjects.filter(s => s.id === activeOpticalStudentSubjTab);
+
+      let cumulativeOffset = 0;
+      activeExam.subjects.forEach((subj, sIdx) => {
+        const isCurrentSubj = subjectsToRender.some(s => s.id === subj.id);
+        if (isCurrentSubj) {
+          if (activeOpticalStudentSubjTab === 'ALL') {
+            const headerDiv = document.createElement('div');
+            headerDiv.style.cssText = 'grid-column: 1 / -1; font-weight: 800; font-size: 0.84rem; color: #4f46e5; border-bottom: 2px solid rgba(79, 70, 229, 0.2); padding-bottom: 4px; margin-top: 8px; display: flex; align-items: center; justify-content: space-between;';
+            headerDiv.innerHTML = `
+              <span>📚 ${subj.name} (${subj.questionCount} Soru)</span>
+            `;
+            stuOptQuestionsContainer.appendChild(headerDiv);
+          }
+
+          for (let q = 1; q <= subj.questionCount; q++) {
+            const key = `${subj.id}_${q}`;
+            let currentVal = extractAnswerForSubj(activeOpticalStudentAnswers, null, subj, sIdx, q, cumulativeOffset);
+            currentVal = String(currentVal || '').trim().toUpperCase();
+            if (currentVal === 'MULTIPLE') currentVal = '';
+
+            const correctAns = findCorrectAnswerForKey(answerKey, subj, sIdx, q, cumulativeOffset);
+
+            const row = createStudentQuestionRow(q, key, currentVal, correctAns, letters, subj.name);
+            stuOptQuestionsContainer.appendChild(row);
+          }
+        }
+        cumulativeOffset += subj.questionCount;
+      });
+    } else {
+      const qCount = parseInt(activeExam.totalQuestions, 10) || 20;
+      for (let q = 1; q <= qCount; q++) {
+        const key = String(q);
+        const currentVal = String(activeOpticalStudentAnswers[q] || activeOpticalStudentAnswers[String(q)] || '').trim().toUpperCase();
+        const correctAns = String(answerKey[q] || answerKey[String(q)] || '').trim().toUpperCase();
+
+        const row = createStudentQuestionRow(q, key, currentVal, correctAns, letters, activeExam.subject || 'Ders');
+        stuOptQuestionsContainer.appendChild(row);
+      }
+    }
+  }
+
+  function createStudentQuestionRow(q, key, currentVal, correctAns, letters, subjName) {
+    const row = document.createElement('div');
+    row.className = 'stu-opt-question-row';
+
+    // Sol taraf: Soru no ve Cevap Anahtarı
+    const leftBox = document.createElement('div');
+    leftBox.style.cssText = 'display: flex; align-items: center; gap: 6px; min-width: 65px;';
+
+    const qNum = document.createElement('span');
+    qNum.style.cssText = 'font-weight: 700; font-size: 0.8rem; min-width: 20px; color: var(--text-muted); text-align: right;';
+    qNum.textContent = `${q}.`;
+    leftBox.appendChild(qNum);
+
+    if (correctAns) {
+      const keyBadge = document.createElement('span');
+      keyBadge.style.cssText = 'font-size: 0.68rem; font-weight: 700; background: rgba(16, 185, 129, 0.12); color: #059669; padding: 1px 5px; border-radius: 4px;';
+      keyBadge.title = `${subjName} Soru ${q} Cevap Anahtarı: ${correctAns}`;
+      keyBadge.textContent = `D:${correctAns}`;
+      leftBox.appendChild(keyBadge);
+    }
+    row.appendChild(leftBox);
+
+    // Orta taraf: Şık Butonları
+    const choicesBox = document.createElement('div');
+    choicesBox.style.cssText = 'display: flex; gap: 4px; align-items: center; justify-content: center; flex: 1;';
+
+    letters.forEach(letter => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.textContent = letter;
+      btn.className = 'stu-opt-choice-btn';
+
+      if (currentVal === letter) {
+        if (correctAns && currentVal === correctAns) {
+          btn.classList.add('selected-correct');
+          btn.title = `İşaretlenen: ${letter} (Doğru ✓)`;
+        } else if (correctAns) {
+          btn.classList.add('selected-wrong');
+          btn.title = `İşaretlenen: ${letter} (Yanlış ✗ - Doğru: ${correctAns})`;
+        } else {
+          btn.classList.add('selected-correct');
+          btn.title = `İşaretlenen: ${letter}`;
+        }
+      }
+
+      btn.addEventListener('click', () => {
+        if (currentVal === letter) {
+          delete activeOpticalStudentAnswers[key];
+        } else {
+          activeOpticalStudentAnswers[key] = letter;
+        }
+        renderStudentOpticalModalGrid();
+        updateStudentOpticalModalStats();
+      });
+
+      choicesBox.appendChild(btn);
+    });
+    row.appendChild(choicesBox);
+
+    // Sağ taraf: Boş Butonu
+    const clearBtn = document.createElement('button');
+    clearBtn.type = 'button';
+    clearBtn.innerHTML = '&times;';
+    clearBtn.className = 'stu-opt-clear-btn';
+    clearBtn.title = 'Bu Soruyu Boş Bırak';
+    clearBtn.style.visibility = currentVal ? 'visible' : 'hidden';
+    clearBtn.addEventListener('click', () => {
+      delete activeOpticalStudentAnswers[key];
+      renderStudentOpticalModalGrid();
+      updateStudentOpticalModalStats();
+    });
+    row.appendChild(clearBtn);
+
+    return row;
+  }
+
+  function updateStudentOpticalModalStats() {
+    if (!activeExam) return;
+    const isMulti = activeExam.isMultiSubject && Array.isArray(activeExam.subjects) && activeExam.subjects.length > 0;
+    const qCount = parseInt(activeExam.totalQuestions, 10) || 20;
+    const penaltyRate = activeExam.wrongAffects ? (parseFloat(activeExam.penaltyRate) || 4) : 0;
+    const answerKey = activeExam.answerKey || {};
+
+    let correctCount = 0;
+    let wrongCount = 0;
+    let blankCount = 0;
+
+    if (isMulti) {
+      let cumulativeOffset = 0;
+      activeExam.subjects.forEach((subj, sIdx) => {
+        for (let q = 1; q <= subj.questionCount; q++) {
+          let ans = extractAnswerForSubj(activeOpticalStudentAnswers, null, subj, sIdx, q, cumulativeOffset);
+          ans = String(ans || '').trim().toUpperCase();
+          if (ans === 'MULTIPLE') ans = '';
+
+          const correctAns = findCorrectAnswerForKey(answerKey, subj, sIdx, q, cumulativeOffset);
+
+          if (!ans) {
+            blankCount++;
+          } else if (correctAns && ans === correctAns) {
+            correctCount++;
+          } else {
+            wrongCount++;
+          }
+        }
+        cumulativeOffset += subj.questionCount;
+      });
+    } else {
+      for (let q = 1; q <= qCount; q++) {
+        const ans = String(activeOpticalStudentAnswers[q] || activeOpticalStudentAnswers[String(q)] || '').trim().toUpperCase();
+        const correctAns = String(answerKey[q] || answerKey[String(q)] || '').trim().toUpperCase();
+
+        if (!ans) {
+          blankCount++;
+        } else if (correctAns && ans === correctAns) {
+          correctCount++;
+        } else {
+          wrongCount++;
+        }
+      }
+    }
+
+    let net = penaltyRate > 0 ? (correctCount - (wrongCount / penaltyRate)) : correctCount;
+    net = Math.max(0, parseFloat(net.toFixed(2)));
+    const score = qCount > 0 ? parseFloat(((net / qCount) * 100).toFixed(1)) : 0;
+
+    if (stuOptStatCorrect) stuOptStatCorrect.textContent = correctCount;
+    if (stuOptStatWrong) stuOptStatWrong.textContent = wrongCount;
+    if (stuOptStatBlank) stuOptStatBlank.textContent = blankCount;
+    if (stuOptStatNet) stuOptStatNet.textContent = net;
+    if (stuOptStatScore) stuOptStatScore.textContent = score;
+  }
+
+  function saveStudentOpticalChanges() {
+    if (!activeExam || !activeOpticalStudentId) return;
+
+    const isMulti = activeExam.isMultiSubject && Array.isArray(activeExam.subjects) && activeExam.subjects.length > 0;
+    const qCount = parseInt(activeExam.totalQuestions, 10) || 20;
+    const penaltyRate = activeExam.wrongAffects ? (parseFloat(activeExam.penaltyRate) || 4) : 0;
+    const answerKey = activeExam.answerKey || {};
+
+    let correctCount = 0;
+    let wrongCount = 0;
+    let blankCount = 0;
+    let subjectBreakdown = null;
+
+    if (isMulti) {
+      subjectBreakdown = {};
+      let cumulativeOffset = 0;
+      activeExam.subjects.forEach((subj, sIdx) => {
+        let subjCorrect = 0;
+        let subjWrong = 0;
+        let subjBlank = 0;
+
+        for (let q = 1; q <= subj.questionCount; q++) {
+          const key = `${subj.id}_${q}`;
+          let ans = extractAnswerForSubj(activeOpticalStudentAnswers, null, subj, sIdx, q, cumulativeOffset);
+          ans = String(ans || '').trim().toUpperCase();
+          if (ans === 'MULTIPLE') ans = '';
+
+          const correctAns = findCorrectAnswerForKey(answerKey, subj, sIdx, q, cumulativeOffset);
+
+          if (!ans) {
+            blankCount++;
+            subjBlank++;
+          } else if (correctAns && ans === correctAns) {
+            correctCount++;
+            subjCorrect++;
+          } else {
+            wrongCount++;
+            subjWrong++;
+          }
+          activeOpticalStudentAnswers[key] = ans;
+        }
+
+        let subjNet = penaltyRate > 0 ? (subjCorrect - (subjWrong / penaltyRate)) : subjCorrect;
+        subjNet = Math.max(0, parseFloat(subjNet.toFixed(2)));
+        const subjScore = subj.questionCount > 0 ? parseFloat(((subjNet / subj.questionCount) * 100).toFixed(1)) : 0;
+
+        subjectBreakdown[subj.id] = {
+          id: subj.id,
+          name: subj.name,
+          subjectName: subj.name,
+          correct: subjCorrect,
+          wrong: subjWrong,
+          blank: subjBlank,
+          net: subjNet,
+          score: subjScore,
+          total: subj.questionCount
+        };
+
+        cumulativeOffset += subj.questionCount;
+      });
+    } else {
+      for (let q = 1; q <= qCount; q++) {
+        const ans = String(activeOpticalStudentAnswers[q] || activeOpticalStudentAnswers[String(q)] || '').trim().toUpperCase();
+        const correctAns = String(answerKey[q] || answerKey[String(q)] || '').trim().toUpperCase();
+
+        if (!ans) {
+          blankCount++;
+        } else if (correctAns && ans === correctAns) {
+          correctCount++;
+        } else {
+          wrongCount++;
+        }
+        activeOpticalStudentAnswers[q] = ans;
+      }
+    }
+
+    let net = penaltyRate > 0 ? (correctCount - (wrongCount / penaltyRate)) : correctCount;
+    net = Math.max(0, parseFloat(net.toFixed(2)));
+    const score = qCount > 0 ? parseFloat(((net / qCount) * 100).toFixed(1)) : 0;
+
+    if (!activeExam.studentResults) activeExam.studentResults = {};
+    if (!activeExam.examScores) activeExam.examScores = {};
+
+    const existingRes = activeExam.studentResults[activeOpticalStudentId] || {};
+    activeExam.studentResults[activeOpticalStudentId] = {
+      ...existingRes,
+      correct: correctCount,
+      wrong: wrongCount,
+      blank: blankCount,
+      net,
+      score,
+      answers: { ...activeOpticalStudentAnswers },
+      subjectBreakdown: subjectBreakdown || existingRes.subjectBreakdown || null,
+      updatedAt: new Date().toISOString()
+    };
+
+    activeExam.examScores[activeOpticalStudentId] = score;
+    activeExam.updatedAt = new Date().toISOString();
+
+    stateManager.saveExam(activeExam);
+
+    if (modalStudentOpticalEdit) {
+      modalStudentOpticalEdit.classList.remove('active');
+    }
+
+    renderActiveExamTable();
+    renderExamsList();
+
+    const state = stateManager.loadState();
+    const student = (state.students || []).find(s => String(s.id) === String(activeOpticalStudentId));
+    const studentLabel = student ? `${student.name} ${student.surname}` : 'Öğrencinin';
+
+    if (toastCallback) {
+      toastCallback(`✓ ${studentLabel} optik form işaretlemeleri ve puanı (${score} Puan) başarıyla güncellendi!`, 'success');
+    }
+
+    const event = new CustomEvent('stateChanged');
+    document.dispatchEvent(event);
+  }
+
+  // Modal buton dinleyicileri
+  if (btnCloseStudentOpticalModal) {
+    btnCloseStudentOpticalModal.addEventListener('click', () => {
+      if (modalStudentOpticalEdit) modalStudentOpticalEdit.classList.remove('active');
+    });
+  }
+  if (btnCancelStudentOptical) {
+    btnCancelStudentOptical.addEventListener('click', () => {
+      if (modalStudentOpticalEdit) modalStudentOpticalEdit.classList.remove('active');
+    });
+  }
+  if (btnStuOptClearAll) {
+    btnStuOptClearAll.addEventListener('click', () => {
+      if (!confirm('Tüm işaretlemeleri temizlemek istediğinize emin misiniz?')) return;
+      activeOpticalStudentAnswers = {};
+      renderStudentOpticalModalGrid();
+      updateStudentOpticalModalStats();
+    });
+  }
+  if (btnSaveStudentOptical) {
+    btnSaveStudentOptical.addEventListener('click', () => {
+      saveStudentOpticalChanges();
     });
   }
 
@@ -3088,9 +4015,9 @@ function renderExamsList() {
   examsList.innerHTML = '';
 
   // id'si olan sınavları al (yeni format) ve oluşturulma tarihine göre azalan sırada sırala
-  let exams = state.weeklyEvaluations.filter(e => e.id);
+  let exams = (state.weeklyEvaluations || []).filter(e => e && e.id);
 
-  if (exams.length === 0 && state.students.length > 0) {
+  if (exams.length === 0 && state.students && state.students.length > 0) {
     const dummyExam = {
       id: 'exam_dummy',
       weekId: stateManager.getSelectedWeek(),
@@ -3107,10 +4034,10 @@ function renderExamsList() {
     };
     stateManager.saveExam(dummyExam);
     state = stateManager.loadState();
-    exams = state.weeklyEvaluations.filter(e => e.id);
+    exams = (state.weeklyEvaluations || []).filter(e => e && e.id);
   }
 
-  exams.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  exams.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
 
   if (exams.length === 0) {
     if (emptyState) emptyState.style.display = 'block';
@@ -3141,8 +4068,9 @@ function renderExamsList() {
       topStudentsHTML += '<span style="color: var(--text-muted); font-size: 0.75rem;">Henüz puan girişi yapılmamış.</span>';
     } else {
       topThree.forEach((item, index) => {
-        const student = state.students.find(s => s.id === item.studentId);
-        const name = student ? `${student.name} ${student.surname[0]}.` : 'Öğrenci';
+        const student = (state.students || []).find(s => s && s.id === item.studentId);
+        const sSurname = (student && student.surname) ? String(student.surname) : '';
+        const name = student ? `${student.name || ''} ${sSurname ? sSurname[0] + '.' : ''}`.trim() : 'Öğrenci';
         let medal = '';
         if (index === 0) medal = '🥇';
         else if (index === 1) medal = '🥈';
@@ -3157,7 +4085,7 @@ function renderExamsList() {
     }
     topStudentsHTML += '</div>';
 
-    const formattedWeek = window.formatWeekTR ? window.formatWeekTR(exam.weekId, 'full') : exam.weekId;
+    const formattedWeek = window.formatWeekTR ? window.formatWeekTR(exam.weekId, 'full') : (exam.weekId || '');
     const penaltyText = exam.wrongAffects ? `${exam.penaltyRate} Yanlış 1 Doğruyu Götürür` : 'Yanlışlar Doğruları Etkilemez';
     const opticalBadge = exam.hasOpticalForm ? `<span class="badge" style="background: rgba(99, 102, 241, 0.15); color: var(--primary); font-size: 0.72rem; padding: 0.1rem 0.35rem; font-weight: 700;">📝 ${exam.choicesCount || 4} Şıklı Optik</span>` : '';
     const multiBadge = exam.isMultiSubject && exam.subjects ? `<span class="badge" style="background: rgba(16, 185, 129, 0.15); color: #059669; font-size: 0.72rem; padding: 0.1rem 0.35rem; font-weight: 700;">📚 ${exam.subjects.length} Ders</span>` : '';
@@ -3166,7 +4094,7 @@ function renderExamsList() {
     card.className = `exam-card ${activeExam && activeExam.id === exam.id ? 'active-card' : ''}`;
     card.innerHTML = `
       <div class="exam-card-title">
-        <span style="font-weight: 700; color: var(--text-primary);">${exam.examName}${exam.branch ? ` <span class="badge" style="background: rgba(255, 255, 255, 0.1); color: var(--text-primary); font-size: 0.7rem; padding: 0.1rem 0.3rem; margin-left: 0.25rem;">${exam.branch}</span>` : ''}</span>
+        <span style="font-weight: 700; color: var(--text-primary);">${exam.examName || 'Sınav'}${exam.branch ? ` <span class="badge" style="background: rgba(255, 255, 255, 0.1); color: var(--text-primary); font-size: 0.7rem; padding: 0.1rem 0.3rem; margin-left: 0.25rem;">${exam.branch}</span>` : ''}</span>
         <span class="exam-card-average" title="Sınıf Ortalaması" style="font-size: 0.8rem; font-weight: 700; color: var(--primary); display: flex; align-items: center; gap: 0.15rem;">
           <i data-lucide="trending-up" style="width: 14px; height: 14px;"></i> Ort: ${avgScore}
         </span>
@@ -3192,161 +4120,367 @@ function renderExamsList() {
     examsList.appendChild(card);
   });
 
-  window.safeCreateIcons();
+  if (window.safeCreateIcons) window.safeCreateIcons();
+  else if (window.lucide) window.lucide.createIcons();
 }
 
 function openActiveExam(exam) {
-  activeExam = exam;
+  try {
+    if (!exam) return;
+    activeExam = exam;
 
-  if (activeExamCard) activeExamCard.style.display = 'block';
-  if (btnPrintReport) btnPrintReport.style.display = 'inline-flex';
+    if (activeExamCard) activeExamCard.style.display = 'block';
+    if (btnPrintReport) btnPrintReport.style.display = 'inline-flex';
 
-  if (activeExamTitle) activeExamTitle.textContent = exam.examName;
+    if (activeExamTitle) activeExamTitle.textContent = exam.examName || 'Sınav';
 
-  const formattedWeek = window.formatWeekTR ? window.formatWeekTR(exam.weekId, 'full') : exam.weekId;
-  const keyCount = Object.keys(exam.answerKey || {}).filter(k => exam.answerKey[k]).length;
-  const opticalBadge = exam.hasOpticalForm ? `<span class="badge" style="background: rgba(99, 102, 241, 0.15); color: var(--primary); font-weight: 700; cursor: pointer;" title="Cevap anahtarını düzenlemek için tıklayın" onclick="window.openDesktopAnswerKeyModal ? window.openDesktopAnswerKeyModal() : null">📝 ${exam.choicesCount || 4} Şıklı Optik Form (${keyCount}/${exam.totalQuestions} Cevap 🔑)</span>` : '';
-  const multiSubjBadge = exam.isMultiSubject && exam.subjects ? `<span class="badge" style="background: rgba(16, 185, 129, 0.15); color: #059669; font-weight: 700;" title="${exam.subjects.map(s => `${s.name}: ${s.questionCount} Soru`).join(' • ')}">📚 Çoklu Ders (${exam.subjects.length} Branş - ${exam.totalQuestions} Soru)</span>` : '';
-  const penaltyText = exam.wrongAffects ? `${exam.penaltyRate} Yanlış 1 Doğruyu Götürür` : 'Yanlışlar Doğruları Etkilemez';
+    const formattedWeek = window.formatWeekTR ? window.formatWeekTR(exam.weekId, 'full') : (exam.weekId || '');
+    const keyCount = Object.keys(exam.answerKey || {}).filter(k => exam.answerKey[k]).length;
+    const opticalBadge = exam.hasOpticalForm ? `<span class="badge" style="background: rgba(99, 102, 241, 0.15); color: var(--primary); font-weight: 700; cursor: pointer;" title="Cevap anahtarını düzenlemek için tıklayın" onclick="window.openDesktopAnswerKeyModal ? window.openDesktopAnswerKeyModal() : null">📝 ${exam.choicesCount || 4} Şıklı Optik Form (${keyCount}/${exam.totalQuestions || 0} Cevap 🔑)</span>` : '';
+    const multiSubjBadge = exam.isMultiSubject && exam.subjects ? `<span class="badge" style="background: rgba(16, 185, 129, 0.15); color: #059669; font-weight: 700;" title="${exam.subjects.map(s => `${s.name}: ${s.questionCount} Soru`).join(' • ')}">📚 Çoklu Ders (${exam.subjects.length} Branş - ${exam.totalQuestions} Soru)</span>` : '';
+    const penaltyText = exam.wrongAffects ? `${exam.penaltyRate} Yanlış 1 Doğruyu Götürür` : 'Yanlışlar Doğruları Etkilemez';
 
-  if (activeExamInfoBar) {
-    activeExamInfoBar.innerHTML = `
-      <span><strong>Hafta:</strong> ${formattedWeek}</span>
-      <span>•</span>
-      <span><strong>Soru Sayısı:</strong> ${exam.totalQuestions}</span>
-      <span>•</span>
-      <span><strong>Süre:</strong> ${exam.duration} Dk</span>
-      ${multiSubjBadge ? `<span>•</span>${multiSubjBadge}` : ''}
-      ${opticalBadge ? `<span>•</span>${opticalBadge}` : ''}
-      <span>•</span>
-      <span><strong>Değerlendirme:</strong> ${penaltyText}</span>
-      ${exam.branch ? `<span>•</span><span><strong>Şube:</strong> <span class="badge" style="background: rgba(255, 255, 255, 0.1); color: var(--text-primary);">${exam.branch}</span></span>` : ''}
-    `;
+    if (activeExamInfoBar) {
+      activeExamInfoBar.innerHTML = `
+        <span><strong>Hafta:</strong> ${formattedWeek}</span>
+        <span>•</span>
+        <span><strong>Soru Sayısı:</strong> ${exam.totalQuestions || 0}</span>
+        <span>•</span>
+        <span><strong>Süre:</strong> ${exam.duration || 0} Dk</span>
+        ${multiSubjBadge ? `<span>•</span>${multiSubjBadge}` : ''}
+        ${opticalBadge ? `<span>•</span>${opticalBadge}` : ''}
+        <span>•</span>
+        <span><strong>Değerlendirme:</strong> ${penaltyText}</span>
+        ${exam.branch ? `<span>•</span><span><strong>Şube:</strong> <span class="badge" style="background: rgba(255, 255, 255, 0.1); color: var(--text-primary);">${exam.branch}</span></span>` : ''}
+      `;
+    }
+
+    if (activeExamNotes) activeExamNotes.value = exam.notes || '';
+
+    // Tabloyu çiz
+    renderActiveExamTable();
+
+    // Liste kartlarında seçili olanı güncellemek için
+    document.querySelectorAll('.exam-card').forEach(card => {
+      card.classList.remove('active-card');
+    });
+    // Yeniden çizim yapmadan DOM'dan ekleme
+    const examsListEl = document.getElementById('weekly-exams-list');
+    if (examsListEl) {
+      const listItems = examsListEl.querySelectorAll('.exam-card');
+      const state = stateManager.loadState();
+      const exams = (state.weeklyEvaluations || []).filter(e => e && e.id);
+      exams.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+      const activeIdx = exams.findIndex(e => e.id === exam.id);
+      if (activeIdx !== -1 && listItems[activeIdx]) {
+        listItems[activeIdx].classList.add('active-card');
+      }
+    }
+  } catch (err) {
+    console.error('openActiveExam hatası:', err);
+    if (window.showToast) {
+      window.showToast('Sınav detayları açılırken bir hata oluştu: ' + (err.message || err), 'danger');
+    }
+  }
+}
+
+// ==========================================================================
+// ÖĞRENCİ DERS DAĞILIMI (D-Y-B / NET) HESAPLAMA VE GÖSTERİM YARDIMCILARI
+// ==========================================================================
+function getOrComputeSubjectBreakdown(result, exam) {
+  if (!result) return {};
+  if (!exam || !exam.isMultiSubject || !Array.isArray(exam.subjects) || exam.subjects.length === 0) {
+    return result.subjectBreakdown || {};
   }
 
-  if (activeExamNotes) activeExamNotes.value = exam.notes || '';
+  const penaltyRate = exam.wrongAffects ? (parseFloat(exam.penaltyRate) || 4) : 0;
+  const existingSb = (result.subjectBreakdown && typeof result.subjectBreakdown === 'object') ? result.subjectBreakdown : {};
+  const answers = result.answers || {};
+  const answerKey = exam.answerKey || {};
+  const hasAnswers = Object.keys(answers).length > 0;
+  const hasKey = Object.keys(answerKey).length > 0;
 
-  // Tabloyu çiz
-  renderActiveExamTable();
+  const finalBreakdown = {};
+  let cumulativeOffset = 0;
 
-  // Liste kartlarında seçili olanı güncellemek için
-  document.querySelectorAll('.exam-card').forEach(card => {
-    card.classList.remove('active-card');
+  exam.subjects.forEach((subj, subjIdx) => {
+    // Mevcut breakdown kaydını bul (id, isim veya normalize edilmiş isimle)
+    let existingEntry = existingSb[subj.id] || existingSb[subj.name];
+    if (!existingEntry) {
+      const normTarget = normalizeOmrSubject(subj.name);
+      for (const k in existingSb) {
+        if (normalizeOmrSubject(k) === normTarget) {
+          existingEntry = existingSb[k];
+          break;
+        }
+      }
+    }
+    if (!existingEntry && Object.values(existingSb)[subjIdx]) {
+      existingEntry = Object.values(existingSb)[subjIdx];
+    }
+
+    // Eğer öğrencinin cevapları ve cevap anahtarı varsa, cevaplardan doğrula/hesapla
+    if (hasAnswers && hasKey) {
+      let subjCorrect = 0;
+      let subjWrong = 0;
+      let subjBlank = 0;
+
+      for (let q = 1; q <= subj.questionCount; q++) {
+        let ans = extractAnswerForSubj(answers, null, subj, subjIdx, q, cumulativeOffset);
+        ans = String(ans || '').trim().toUpperCase();
+        if (ans === 'MULTIPLE') ans = '';
+
+        const correctAns = findCorrectAnswerForKey(answerKey, subj, subjIdx, q, cumulativeOffset);
+
+        if (!ans) {
+          subjBlank++;
+        } else if (correctAns && ans === correctAns) {
+          subjCorrect++;
+        } else {
+          subjWrong++;
+        }
+      }
+
+      let subjNet = penaltyRate > 0 ? (subjCorrect - (subjWrong / penaltyRate)) : subjCorrect;
+      subjNet = Math.max(0, parseFloat(subjNet.toFixed(2)));
+      const subjScore = subj.questionCount > 0 ? parseFloat(((subjNet / subj.questionCount) * 100).toFixed(1)) : 0;
+
+      finalBreakdown[subj.id] = {
+        id: subj.id,
+        name: subj.name,
+        subjectName: subj.name,
+        correct: subjCorrect,
+        wrong: subjWrong,
+        blank: subjBlank,
+        net: subjNet,
+        score: subjScore,
+        total: subj.questionCount
+      };
+    } else if (existingEntry) {
+      const correct = existingEntry.correct !== undefined ? existingEntry.correct : 0;
+      const wrong = existingEntry.wrong !== undefined ? existingEntry.wrong : 0;
+      const blank = existingEntry.blank !== undefined ? existingEntry.blank : Math.max(0, (subj.questionCount || 0) - correct - wrong);
+      const net = existingEntry.net !== undefined ? existingEntry.net : correct;
+      const score = existingEntry.score !== undefined ? existingEntry.score : 0;
+
+      finalBreakdown[subj.id] = {
+        id: subj.id,
+        name: subj.name,
+        subjectName: subj.name,
+        correct,
+        wrong,
+        blank,
+        net,
+        score,
+        total: subj.questionCount
+      };
+    } else {
+      finalBreakdown[subj.id] = {
+        id: subj.id,
+        name: subj.name,
+        subjectName: subj.name,
+        correct: 0,
+        wrong: 0,
+        blank: subj.questionCount || 0,
+        net: 0,
+        score: 0,
+        total: subj.questionCount || 0
+      };
+    }
+
+    cumulativeOffset += subj.questionCount;
   });
-  // Yeniden çizim yapmadan DOM'dan ekleme
-  const listItems = document.getElementById('weekly-exams-list').querySelectorAll('.exam-card');
-  const state = stateManager.loadState();
-  const exams = state.weeklyEvaluations.filter(e => e.id);
-  exams.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-  const activeIdx = exams.findIndex(e => e.id === exam.id);
-  if (activeIdx !== -1 && listItems[activeIdx]) {
-    listItems[activeIdx].classList.add('active-card');
+
+  return finalBreakdown;
+}
+
+function renderStudentSubjectBreakdown(result, exam) {
+  if (!result) return '<span style="color: var(--text-muted); font-size: 0.75rem;">-</span>';
+
+  const isMulti = exam && exam.isMultiSubject && Array.isArray(exam.subjects) && exam.subjects.length > 0;
+
+  if (isMulti) {
+    const breakdown = getOrComputeSubjectBreakdown(result, exam);
+    const items = exam.subjects.map(subj => {
+      const sb = breakdown[subj.id];
+      const sName = subj.name;
+      if (sb) {
+        return `
+          <div style="display: inline-flex; align-items: center; gap: 4px; font-size: 0.73rem; background: var(--bg-primary); border: 1px solid var(--border-color); padding: 2px 7px; border-radius: 4px; margin: 1px 0; white-space: nowrap;" title="${sName}: ${sb.correct} Doğru, ${sb.wrong} Yanlış, ${sb.blank} Boş (${sb.net} Net)">
+            <strong style="color: #4f46e5;">${sName}:</strong>
+            <span style="color: #059669; font-weight: 600;">${sb.correct}D</span>
+            <span style="color: #dc2626; font-weight: 600;">${sb.wrong}Y</span>
+            <span style="color: #64748b; font-weight: 600;">${sb.blank}B</span>
+            <span style="color: #4f46e5; font-weight: 700; margin-left: 2px;">(${sb.net}N)</span>
+          </div>
+        `;
+      } else {
+        return `
+          <div style="display: inline-flex; align-items: center; gap: 4px; font-size: 0.73rem; background: var(--bg-primary); border: 1px dashed var(--border-color); padding: 2px 7px; border-radius: 4px; opacity: 0.6; margin: 1px 0; white-space: nowrap;">
+            <strong style="color: var(--text-muted);">${sName}:</strong>
+            <span style="color: var(--text-muted);">-</span>
+          </div>
+        `;
+      }
+    });
+
+    return `<div style="display: flex; flex-direction: column; gap: 2px; align-items: flex-start;">${items.join('')}</div>`;
+  } else {
+    if (result.correct !== '' && result.correct !== undefined) {
+      const correct = parseInt(result.correct, 10) || 0;
+      const wrong = parseInt(result.wrong, 10) || 0;
+      const blank = parseInt(result.blank, 10) || 0;
+      const net = result.net !== undefined && result.net !== '' ? result.net : correct;
+      const examSubj = exam.subject || exam.examName || 'Ders';
+      return `
+        <div style="display: inline-flex; align-items: center; gap: 4px; font-size: 0.74rem; background: var(--bg-primary); border: 1px solid var(--border-color); padding: 3px 8px; border-radius: 4px; white-space: nowrap;">
+          <strong style="color: #4f46e5;">${examSubj}:</strong>
+          <span style="color: #059669; font-weight: 600;">${correct}D</span>
+          <span style="color: #dc2626; font-weight: 600;">${wrong}Y</span>
+          <span style="color: #64748b; font-weight: 600;">${blank}B</span>
+          <span style="color: #4f46e5; font-weight: 700; margin-left: 2px;">(${net}N)</span>
+        </div>
+      `;
+    }
+    return '<span style="color: var(--text-muted); font-size: 0.75rem;">-</span>';
   }
 }
 
 function renderActiveExamTable() {
-  const state = stateManager.loadState();
-  if (!activeExamTableBody) return;
-  activeExamTableBody.innerHTML = '';
+  try {
+    if (!activeExam) return;
+    const state = stateManager.loadState();
+    if (!activeExamTableBody) return;
+    activeExamTableBody.innerHTML = '';
 
-  const isMiddle = state.educationLevel === 'middle';
-  const examBranch = activeExam.branch || '';
+    const isMiddle = state.educationLevel === 'middle';
+    const examBranch = activeExam.branch || '';
 
-  const activeStudents = state.students.filter(student => {
-    return !isMiddle || !examBranch || student.branch === examBranch;
-  });
+    const activeStudents = (state.students || []).filter(student => {
+      return !isMiddle || !examBranch || student.branch === examBranch;
+    });
 
-  if (activeStudents.length === 0) {
-    activeExamTableBody.innerHTML = `
-      <tr>
-        <td colspan="8" style="text-align: center; color: var(--text-muted); padding: 2rem;">
-          ${isMiddle && examBranch ? `Bu sınavın uygulanacağı "${examBranch}" şubesinde kayıtlı öğrenci yok.` : 'Sınıfta kayıtlı öğrenci yok.'}
+    if (activeStudents.length === 0) {
+      activeExamTableBody.innerHTML = `
+        <tr>
+          <td colspan="10" style="text-align: center; color: var(--text-muted); padding: 2rem;">
+            ${isMiddle && examBranch ? `Bu sınavın uygulanacağı "${examBranch}" şubesinde kayıtlı öğrenci yok.` : 'Sınıfta kayıtlı öğrenci yok.'}
+          </td>
+        </tr>
+      `;
+      return;
+    }
+
+    // Öğrencileri alfabetik sıraya göre sırala
+    const sortedStudents = [...activeStudents].sort((a, b) => {
+      const nameA = (a && a.name) ? String(a.name) : '';
+      const nameB = (b && b.name) ? String(b.name) : '';
+      return nameA.localeCompare(nameB, 'tr');
+    });
+
+    sortedStudents.forEach(student => {
+      const result = (activeExam.studentResults && activeExam.studentResults[student.id]) || {
+        correct: '',
+        blank: '',
+        wrong: '',
+        net: '',
+        score: ''
+      };
+
+      const row = document.createElement('tr');
+      const isAbsentToday = stateManager.isStudentAbsent ? stateManager.isStudentAbsent(student.id) : false;
+      if (isAbsentToday) {
+        row.classList.add('absent-row');
+      }
+      const sName = (student && student.name) ? String(student.name) : '';
+      const sSurname = (student && student.surname) ? String(student.surname) : '';
+      const initials = `${sName[0] || ''}${sSurname[0] || ''}`;
+      const avatarHtml = (student && student.photo)
+        ? `<img src="${student.photo}" class="avatar-sm" style="width: 32px; height: 32px; object-fit: cover; border-radius: 50%; margin: 0;">`
+        : `<div class="avatar-sm" style="width: 32px; height: 32px; font-size: 0.8rem; margin: 0; background-color: var(--primary-light); color: var(--primary); text-transform: uppercase; display: flex; align-items: center; justify-content: center; border-radius: 50%;">${initials}</div>`;
+
+      const hasAnswers = result.answers && Object.keys(result.answers).length > 0;
+
+      row.innerHTML = `
+        <td style="text-align: center; vertical-align: middle; font-weight: 600;">${student.number || ''}</td>
+        <td style="vertical-align: middle;">
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            ${avatarHtml}
+            <strong>${sName} ${sSurname}</strong>
+          </div>
         </td>
-      </tr>
-    `;
-    return;
-  }
+        <td style="text-align: center; vertical-align: middle;">
+          <input type="number" class="form-control exam-table-input exam-correct-input" data-student-id="${student.id}" min="0" max="${activeExam.totalQuestions || 100}" value="${result.correct !== undefined ? result.correct : ''}" placeholder="-">
+        </td>
+        <td style="text-align: center; vertical-align: middle;">
+          <input type="number" class="form-control exam-table-input exam-blank-input" data-student-id="${student.id}" min="0" max="${activeExam.totalQuestions || 100}" value="${result.blank !== undefined ? result.blank : ''}" placeholder="-">
+        </td>
+        <td style="text-align: center; vertical-align: middle;">
+          <input type="number" class="form-control exam-table-input exam-wrong-input" readonly value="${result.wrong !== undefined ? result.wrong : ''}" style="background-color: var(--bg-primary); opacity: 0.85;" placeholder="-">
+        </td>
+        <td style="text-align: center; vertical-align: middle; font-weight: 700; color: var(--primary);">
+          <span class="exam-net-span" style="font-size: 0.95rem;">${result.net !== undefined && result.net !== '' ? result.net : '-'}</span>
+        </td>
+        <td style="vertical-align: middle;">
+          ${renderStudentSubjectBreakdown(result, activeExam)}
+        </td>
+        <td style="text-align: center; vertical-align: middle; font-weight: 700;">
+          <span class="exam-score-span">${result.score !== undefined && result.score !== '' ? result.score : '-'}</span>
+        </td>
+        <td style="text-align: center; vertical-align: middle;">
+          <button type="button" class="btn btn-secondary btn-sm btn-open-student-optical" data-student-id="${student.id}" style="font-size: 0.74rem; padding: 0.28rem 0.6rem; height: auto; display: inline-flex; align-items: center; gap: 4px; border-radius: 6px; cursor: pointer; border-color: rgba(99, 102, 241, 0.25); color: var(--primary);" title="${sName} ${sSurname} - Optik form işaretlemelerini incele ve düzenle">
+            <i data-lucide="edit" style="width: 14px; height: 14px;"></i>
+            <span>${hasAnswers ? 'Optik İncele' : 'Optik Gir'}</span>
+          </button>
+        </td>
+        <td style="text-align: center; vertical-align: middle;" class="change-indicator-td">
+          <!-- İlerleme rozeti -->
+        </td>
+      `;
 
-  // Öğrencileri alfabetik sıraya göre sırala
-  const sortedStudents = [...activeStudents].sort((a, b) => a.name.localeCompare(b.name, 'tr'));
+      const correctInput = row.querySelector('.exam-correct-input');
+      const blankInput = row.querySelector('.exam-blank-input');
 
-  sortedStudents.forEach(student => {
-    const result = (activeExam.studentResults && activeExam.studentResults[student.id]) || {
-      correct: '',
-      blank: '',
-      wrong: '',
-      net: '',
-      score: ''
-    };
+      const updateHandler = () => {
+        handleInputUpdate(student.id, row, activeExam.totalQuestions);
+      };
 
-    const row = document.createElement('tr');
-    const isAbsentToday = stateManager.isStudentAbsent(student.id);
-    if (isAbsentToday) {
-      row.classList.add('absent-row');
-    }
-    const initials = `${student.name[0] || ''}${student.surname[0] || ''}`;
-    const avatarHtml = student.photo
-      ? `<img src="${student.photo}" class="avatar-sm" style="width: 32px; height: 32px; object-fit: cover; border-radius: 50%; margin: 0;">`
-      : `<div class="avatar-sm" style="width: 32px; height: 32px; font-size: 0.8rem; margin: 0; background-color: var(--primary-light); color: var(--primary); text-transform: uppercase; display: flex; align-items: center; justify-content: center; border-radius: 50%;">${initials}</div>`;
+      if (correctInput) correctInput.addEventListener('input', updateHandler);
+      if (blankInput) blankInput.addEventListener('input', updateHandler);
 
-    row.innerHTML = `
-      <td style="text-align: center; vertical-align: middle; font-weight: 600;">${student.number}</td>
-      <td style="vertical-align: middle;">
-        <div style="display: flex; align-items: center; gap: 0.5rem;">
-          ${avatarHtml}
-          <strong>${student.name} ${student.surname}</strong>
-        </div>
-      </td>
-      <td style="text-align: center; vertical-align: middle;">
-        <input type="number" class="form-control exam-table-input exam-correct-input" data-student-id="${student.id}" min="0" max="${activeExam.totalQuestions}" value="${result.correct}" placeholder="-">
-      </td>
-      <td style="text-align: center; vertical-align: middle;">
-        <input type="number" class="form-control exam-table-input exam-blank-input" data-student-id="${student.id}" min="0" max="${activeExam.totalQuestions}" value="${result.blank}" placeholder="-">
-      </td>
-      <td style="text-align: center; vertical-align: middle;">
-        <input type="number" class="form-control exam-table-input exam-wrong-input" readonly value="${result.wrong !== undefined ? result.wrong : ''}" style="background-color: var(--bg-primary); opacity: 0.85;" placeholder="-">
-      </td>
-      <td style="text-align: center; vertical-align: middle; font-weight: 700; color: var(--primary);">
-        <span class="exam-net-span">${result.net !== undefined && result.net !== '' ? result.net : '-'}</span>
-        ${(() => {
-          if (result.subjectBreakdown && typeof result.subjectBreakdown === 'object') {
-            const parts = Object.values(result.subjectBreakdown).map(b => `${b.subjectName || 'Ders'}: ${b.net !== undefined ? b.net : b.correct}N`);
-            if (parts.length > 0) {
-              return `<div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 2px; font-weight: normal; white-space: nowrap;" title="${Object.values(result.subjectBreakdown).map(b => `${b.subjectName}: ${b.correct}D ${b.wrong}Y ${b.blank}B (${b.net} Net)`).join(' | ')}">${parts.join(' • ')}</div>`;
-            }
+      const optBtn = row.querySelector('.btn-open-student-optical');
+      if (optBtn) {
+        optBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (typeof window.openStudentOpticalEditModal === 'function') {
+            window.openStudentOpticalEditModal(student.id);
+          } else if (typeof openStudentOpticalEditModal === 'function') {
+            openStudentOpticalEditModal(student.id);
+          } else {
+            console.warn('openStudentOpticalEditModal bulunamadı.');
           }
-          return '';
-        })()}
-      </td>
-      <td style="text-align: center; vertical-align: middle; font-weight: 700;">
-        <span class="exam-score-span">${result.score !== undefined && result.score !== '' ? result.score : '-'}</span>
-      </td>
-      <td style="text-align: center; vertical-align: middle;" class="change-indicator-td">
-        <!-- İlerleme rozeti -->
-      </td>
-    `;
+        });
+      }
 
-    const correctInput = row.querySelector('.exam-correct-input');
-    const blankInput = row.querySelector('.exam-blank-input');
+      // İlk yüklemedeki değişim okları
+      if (result.score !== undefined && result.score !== '') {
+        updateChangeIndicator(student.id, parseFloat(result.score), row);
+      } else {
+        const ciTd = row.querySelector('.change-indicator-td');
+        if (ciTd) ciTd.innerHTML = `<span class="score-change-badge score-stable">-</span>`;
+      }
 
-    const updateHandler = () => {
-      handleInputUpdate(student.id, row, activeExam.totalQuestions);
-    };
+      activeExamTableBody.appendChild(row);
+    });
 
-    correctInput.addEventListener('input', updateHandler);
-    blankInput.addEventListener('input', updateHandler);
-
-    // İlk yüklemedeki değişim okları
-    if (result.score !== undefined && result.score !== '') {
-      updateChangeIndicator(student.id, parseFloat(result.score), row);
-    } else {
-      row.querySelector('.change-indicator-td').innerHTML = `<span class="score-change-badge score-stable">-</span>`;
+    if (window.safeCreateIcons) window.safeCreateIcons();
+    else if (window.lucide) window.lucide.createIcons();
+  } catch (err) {
+    console.error('renderActiveExamTable hatası:', err);
+    if (window.showToast) {
+      window.showToast('Öğrenci tablosu oluşturulurken hata: ' + (err.message || err), 'danger');
     }
-
-    activeExamTableBody.appendChild(row);
-  });
-
-  window.safeCreateIcons();
+  }
 }
 
 function handleInputUpdate(studentId, rowEl, totalQuestions) {
@@ -3395,6 +4529,21 @@ function handleInputUpdate(studentId, rowEl, totalQuestions) {
   const score = parseFloat(((net / totalQuestions) * 100).toFixed(1));
   scoreSpan.textContent = score;
 
+  // Tek dersli sınavlarda Ders Dağılımı sütununu canlı güncelle
+  const breakdownCell = rowEl.children[6];
+  if (breakdownCell && (!activeExam.isMultiSubject || !activeExam.subjects || activeExam.subjects.length <= 1)) {
+    const examSubj = activeExam.subject || activeExam.examName || 'Ders';
+    breakdownCell.innerHTML = `
+      <div style="display: inline-flex; align-items: center; gap: 4px; font-size: 0.74rem; background: var(--bg-primary); border: 1px solid var(--border-color); padding: 3px 8px; border-radius: 4px; white-space: nowrap;">
+        <strong style="color: #4f46e5;">${examSubj}:</strong>
+        <span style="color: #059669; font-weight: 600;">${correct}D</span>
+        <span style="color: #dc2626; font-weight: 600;">${wrong}Y</span>
+        <span style="color: #64748b; font-weight: 600;">${blank}B</span>
+        <span style="color: #4f46e5; font-weight: 700; margin-left: 2px;">(${netSpan.textContent}N)</span>
+      </div>
+    `;
+  }
+
   // Karşılaştırma göstergesini güncelle
   updateChangeIndicator(studentId, score, rowEl);
 }
@@ -3403,8 +4552,13 @@ function updateChangeIndicator(studentId, currentScore, rowEl) {
   const td = rowEl.querySelector('.change-indicator-td');
   if (!td) return;
 
+  if (currentScore === undefined || currentScore === null || isNaN(currentScore)) {
+    td.innerHTML = `<span class="score-change-badge score-stable">-</span>`;
+    return;
+  }
+
   const prevScore = getPreviousExamScore(studentId);
-  if (prevScore === null) {
+  if (prevScore === null || isNaN(prevScore)) {
     td.innerHTML = `<span class="score-change-badge score-stable" title="İlk Sınav">-</span>`;
     return;
   }
@@ -3420,23 +4574,26 @@ function updateChangeIndicator(studentId, currentScore, rowEl) {
     td.innerHTML = `<span class="score-change-badge score-stable" title="Önceki Sınav: ${prevScore}">→ 0</span>`;
   }
 
-  window.safeCreateIcons();
+  if (window.safeCreateIcons) window.safeCreateIcons();
+  else if (window.lucide) window.lucide.createIcons();
 }
 
 function getPreviousExamScore(studentId) {
   const state = stateManager.loadState();
-  const exams = state.weeklyEvaluations.filter(e => e.id);
+  const exams = (state.weeklyEvaluations || []).filter(e => e && e.id);
   
   // Oluşturulma tarihine göre azalan sırada sırala (yeni en üstte)
-  exams.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  exams.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
 
+  if (!activeExam) return null;
   const activeIndex = exams.findIndex(e => e.id === activeExam.id);
   
   // Bu sınavdan daha önce oluşturulmuş olan ilk sınavı (descending listesinde bir sonraki elemanı) bulalım
   const prevExam = (activeIndex !== -1 && activeIndex + 1 < exams.length) ? exams[activeIndex + 1] : null;
 
   if (prevExam && prevExam.examScores && prevExam.examScores[studentId] !== undefined) {
-    return parseFloat(prevExam.examScores[studentId]);
+    const val = parseFloat(prevExam.examScores[studentId]);
+    return isNaN(val) ? null : val;
   }
   return null;
 }
@@ -3693,7 +4850,7 @@ function prepareAdvancedPrintLayout(reportTitle, reportSubtitle, examDetailText,
   participants.forEach(p => {
     let breakdownPrintHtml = '';
     if (p.subjectBreakdown && typeof p.subjectBreakdown === 'object') {
-      const parts = Object.values(p.subjectBreakdown).map(b => `${b.subjectName || 'Ders'}: ${b.net !== undefined ? b.net : b.correct}N`);
+      const parts = Object.values(p.subjectBreakdown).map(b => `${b.subjectName || b.name || 'Ders'}: ${b.net !== undefined ? b.net : b.correct}N`);
       if (parts.length > 0) {
         breakdownPrintHtml = `<div style="font-size: 0.68rem; color: #64748b; font-weight: normal; margin-top: 2px;">${parts.join(' • ')}</div>`;
       }

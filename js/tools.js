@@ -158,6 +158,10 @@ function setupPlanningTool() {
   const btnBackFromPlanning = document.getElementById('btn-back-to-tools-from-planning');
   if (!planningView) return;
 
+  if (typeof window.setupDailyPlansTool === 'function') {
+    window.setupDailyPlansTool(toastCallbackFn);
+  }
+
   if (btnLaunchPlanning) {
     btnLaunchPlanning.addEventListener('click', () => {
       if (toolsLandingView) toolsLandingView.style.display = 'none';
@@ -196,7 +200,8 @@ function switchPlanningTab(tab) {
   if (plansView) plansView.style.display = 'none';
 
   if (tab === 'daily') {
-    if (dailyView) dailyView.style.display = 'block';
+    if (typeof window.openDailyPlanView === 'function') window.openDailyPlanView();
+    else if (dailyView) dailyView.style.display = 'block';
   } else if (tab === 'weekly') {
     if (typeof window.openScheduleView === 'function') window.openScheduleView();
     else if (scheduleView) scheduleView.style.display = 'block';
