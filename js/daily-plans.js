@@ -611,6 +611,11 @@ Lütfen yanıtını SADECE aşağıdaki JSON şemasına uygun geçerli bir JSON 
       if (window.stateManager && typeof window.stateManager.saveDailyPlan === 'function') {
         window.stateManager.saveDailyPlan(currentDailyPlan);
         updateArchiveBadgeCount();
+        try {
+          await syncDailyPlanToDocumentsStorage(currentDailyPlan);
+        } catch (e) {
+          console.warn('Evrak deposuna senkronizasyon uyarısı:', e);
+        }
       }
 
     } catch (err) {
@@ -798,8 +803,11 @@ Lütfen yanıtını SADECE aşağıdaki JSON şemasına uygun geçerli bir JSON 
       </div>
     `;
 
-    // Düzenlenebilir alanları dinle
+    // Düzenlenebilir alanları dinle (anlık yazma ve odak kaybı)
     dom.planSheet.querySelectorAll('[contenteditable="true"]').forEach(elem => {
+      elem.addEventListener('input', () => {
+        syncEditedField(elem.dataset.field, elem.innerText.trim());
+      });
       elem.addEventListener('blur', () => {
         syncEditedField(elem.dataset.field, elem.innerText.trim());
       });
@@ -821,6 +829,121 @@ Lütfen yanıtını SADECE aşağıdaki JSON şemasına uygun geçerli bir JSON 
     }
 
     currentDailyPlan.updatedAt = new Date().toISOString();
+  }
+
+  // DOM'daki Tüm Alanları (Form ve Kağıt Hücreleri) Eksiksiz Topla
+  function collectPlanDataFromDOM() {
+    if (!currentDailyPlan) return;
+    dom = getDOM();
+
+    // 1. Sol Form Alanlarından Senkronize Et
+    if (dom.selectCourse && dom.selectCourse.value) currentDailyPlan.courseName = dom.selectCourse.value.trim();
+    if (dom.inputClass && dom.inputClass.value) currentDailyPlan.className = dom.inputClass.value.trim();
+    if (dom.inputDate && dom.inputDate.value) currentDailyPlan.date = dom.inputDate.value;
+    if (dom.selectHours && dom.selectHours.value) {
+      const h = dom.selectHours.value;
+      const mins = parseInt(h, 10) * 40;
+      currentDailyPlan.lessonHours = `${h} Ders Saati (${mins} Dakika)`;
+    }
+    if (dom.inputTeacher && dom.inputTeacher.value) currentDailyPlan.teacherName = dom.inputTeacher.value.trim();
+    if (dom.inputSchool && dom.inputSchool.value) currentDailyPlan.schoolName = dom.inputSchool.value.trim();
+    if (dom.inputUnit) currentDailyPlan.unitName = dom.inputUnit.value.trim();
+    if (dom.inputTopic) currentDailyPlan.topic = dom.inputTopic.value.trim();
+    if (dom.inputOutcomes) currentDailyPlan.learningOutcomes = dom.inputOutcomes.value.trim();
+    if (dom.selectMethodStyle && dom.selectMethodStyle.value) currentDailyPlan.methodStyle = dom.selectMethodStyle.value;
+
+    // 2. Kağıt Üzerindeki contenteditable Alanlardan Senkronize Et
+    if (dom.planSheet) {
+      if (!currentDailyPlan.planData) currentDailyPlan.planData = {};
+      dom.planSheet.querySelectorAll('[contenteditable="true"]').forEach(elem => {
+        const field = elem.dataset.field;
+        if (!field) return;
+        const val = elem.innerText.trim();
+        if (field.startsWith('planData.')) {
+          const subKey = field.split('.')[1];
+          currentDailyPlan.planData[subKey] = val;
+        } else {
+          currentDailyPlan[field] = val;
+        }
+      });
+    }
+
+    currentDailyPlan.updatedAt = new Date().toISOString();
+  }
+
+  // Kişisel Evrak Deposu ile Senkronizasyon (Kalıcı Günlük Planlar Sekmesi)
+  async function syncDailyPlanToDocumentsStorage(plan) {
+    if (!plan || !window.stateManager) return;
+
+    const formattedDate = formatTurkishDate(plan.date);
+    const docId = 'doc_' + plan.id;
+    const docTitle = `${plan.className || ''} ${plan.courseName} - Günlük Ders Planı (${formattedDate})`;
+    const fileName = `${plan.courseName}_Gunluk_Plan_${plan.date}.html`;
+
+    // Kağıt HTML'ini oluştur
+    const printContent = dom.planSheet ? dom.planSheet.innerHTML : '';
+    const fullHtml = `<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <title>${escapeHtml(docTitle)}</title>
+  <style>
+    body { font-family: 'Times New Roman', Times, serif; color: #000; padding: 20px; line-height: 1.4; font-size: 11pt; }
+    .dp-meta-table, .dp-content-table { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
+    .dp-meta-table td, .dp-content-table td { border: 1px solid #334155; padding: 5px 8px; vertical-align: top; font-size: 10pt; }
+    .dp-section { margin-bottom: 12px; }
+    .dp-section-title { font-weight: bold; font-size: 10.5pt; background: #f1f5f9; border: 1px solid #334155; border-bottom: none; padding: 4px 8px; }
+    .dp-substep { border: 1px solid #334155; border-top: none; padding: 6px 8px; margin-bottom: -1px; }
+    .dp-substep-title { font-weight: bold; font-size: 9.5pt; margin-bottom: 4px; }
+    .dp-signatures { display: flex; justify-content: space-between; margin-top: 24px; padding: 0 20px; }
+    .dp-sign-box { width: 220px; text-align: center; }
+    @media print { @page { size: A4 portrait; margin: 10mm 12mm; } }
+  </style>
+</head>
+<body>
+  ${printContent}
+</body>
+</html>`;
+
+    let base64Html = '';
+    try {
+      base64Html = 'data:text/html;charset=utf-8;base64,' + btoa(unescape(encodeURIComponent(fullHtml)));
+    } catch (e) {
+      base64Html = 'data:text/html;charset=utf-8,' + encodeURIComponent(fullHtml);
+    }
+
+    const docData = {
+      id: docId,
+      title: docTitle,
+      fileName: fileName,
+      fileSize: formatBytes(fullHtml.length),
+      fileType: 'html',
+      categoryId: 'cat_daily_plans',
+      createdAt: plan.createdAt || new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      isDailyPlan: true,
+      dailyPlanId: plan.id
+    };
+
+    // 1. IndexedDB'ye tam dosya içeriğini yaz
+    if (typeof window.saveDocumentFileToIndexedDB === 'function') {
+      try {
+        await window.saveDocumentFileToIndexedDB(docId, base64Html, printContent);
+      } catch (err) {
+        console.warn('saveDocumentFileToIndexedDB error:', err);
+      }
+    }
+
+    // 2. StateManager meta verilerini güncelle
+    const state = window.stateManager.state;
+    if (!state.documents) state.documents = [];
+    const existingIdx = state.documents.findIndex(d => d.id === docId || d.dailyPlanId === plan.id);
+    if (existingIdx !== -1) {
+      state.documents[existingIdx] = { ...state.documents[existingIdx], ...docData };
+    } else {
+      state.documents.unshift(docData);
+    }
+    window.stateManager.saveState();
   }
 
   // Hızlı Revizyon (AI Prompt Tetikleyici)
@@ -887,6 +1010,7 @@ Lütfen bu talebe göre planı yeniden düzenle ve SADECE geçerli JSON formatı
       if (window.stateManager && typeof window.stateManager.saveDailyPlan === 'function') {
         window.stateManager.saveDailyPlan(currentDailyPlan);
         updateArchiveBadgeCount();
+        await syncDailyPlanToDocumentsStorage(currentDailyPlan);
       }
 
       if (toastCallbackFn) toastCallbackFn('Plan başarıyla revize edildi!', 'success');
@@ -899,16 +1023,33 @@ Lütfen bu talebe göre planı yeniden düzenle ve SADECE geçerli JSON formatı
   }
 
   // Planı Kaydet
-  function saveCurrentDailyPlan() {
+  async function saveCurrentDailyPlan() {
     if (!currentDailyPlan) {
       if (toastCallbackFn) toastCallbackFn('Kaydedilecek bir plan bulunmuyor.', 'warning');
       return;
     }
 
+    // 1. Önce kağıt ve formdaki tüm güncel değişiklikleri topla
+    collectPlanDataFromDOM();
+
+    // 2. Yerel veritabanına kaydet
     if (window.stateManager && typeof window.stateManager.saveDailyPlan === 'function') {
       window.stateManager.saveDailyPlan(currentDailyPlan);
       updateArchiveBadgeCount();
-      if (toastCallbackFn) toastCallbackFn('Günlük plan arşive kaydedildi.', 'success');
+    }
+
+    // 3. Kişisel Evrak Deposu'ndaki "Günlük Planlar" sekmesine kaydet / senkronize et
+    try {
+      await syncDailyPlanToDocumentsStorage(currentDailyPlan);
+    } catch (e) {
+      console.warn('Evrak deposu senkronizasyon uyarısı:', e);
+    }
+
+    // 4. Kağıdı güncel verilerle tazele (üst başlık bilgileri vb. yenilensin)
+    renderDailyPlanSheet(currentDailyPlan);
+
+    if (toastCallbackFn) {
+      toastCallbackFn('Günlük plan başarıyla kaydedildi ve Kişisel Evrak Deposu\'na aktarıldı.', 'success');
     }
   }
 
@@ -1078,6 +1219,16 @@ Farklılaştırma: ${p.differentiation || ''}
         if (confirmed) {
           if (window.stateManager && typeof window.stateManager.deleteDailyPlan === 'function') {
             window.stateManager.deleteDailyPlan(id);
+
+            // Kişisel Evrak Deposu ile senkronize sil
+            if (window.stateManager.state && Array.isArray(window.stateManager.state.documents)) {
+              window.stateManager.state.documents = window.stateManager.state.documents.filter(d => d.id !== ('doc_' + id) && d.dailyPlanId !== id);
+              window.stateManager.saveState();
+            }
+            if (typeof window.deleteDocumentFileFromIndexedDB === 'function') {
+              window.deleteDocumentFileFromIndexedDB('doc_' + id);
+            }
+
             if (currentDailyPlan && currentDailyPlan.id === id) {
               currentDailyPlan = null;
               renderDailyPlanSheet(null);
@@ -1168,5 +1319,6 @@ Farklılaştırma: ${p.differentiation || ''}
   // Genel pencereye dışa aktar
   window.setupDailyPlansTool = setupDailyPlansTool;
   window.openDailyPlanView = openDailyPlanView;
+  window.loadDailyPlanById = loadPlanFromArchive;
 
 })();

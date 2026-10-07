@@ -342,7 +342,19 @@
     allTabBtn.addEventListener('click', () => selectCategoryTab('all'));
     documentsCategoriesTabBar.appendChild(allTabBtn);
 
-    // 2. Genel / Kategorisiz Sekmesi
+    // 2. Kalıcı "Günlük Planlar" Sekmesi
+    const dailyPlansCount = allDocs.filter(d => d.categoryId === 'cat_daily_plans' || d.isDailyPlan).length;
+    const dailyTabBtn = document.createElement('button');
+    dailyTabBtn.className = `sub-tab-btn ${currentActiveCategoryId === 'cat_daily_plans' ? 'active' : ''}`;
+    dailyTabBtn.innerHTML = `
+      <i data-lucide="sun" style="width: 16px; height: 16px; color: #f59e0b;"></i>
+      <span>Günlük Planlar</span>
+      <span class="badge" style="background: rgba(255,255,255,0.15); font-size: 0.72rem; padding: 0.1rem 0.45rem; border-radius: 10px;">${dailyPlansCount}</span>
+    `;
+    dailyTabBtn.addEventListener('click', () => selectCategoryTab('cat_daily_plans'));
+    documentsCategoriesTabBar.appendChild(dailyTabBtn);
+
+    // 3. Genel / Kategorisiz Sekmesi
     const uncatTabBtn = document.createElement('button');
     uncatTabBtn.className = `sub-tab-btn ${currentActiveCategoryId === 'uncategorized' ? 'active' : ''}`;
     uncatTabBtn.innerHTML = `
@@ -353,8 +365,9 @@
     uncatTabBtn.addEventListener('click', () => selectCategoryTab('uncategorized'));
     documentsCategoriesTabBar.appendChild(uncatTabBtn);
 
-    // 3. Kullanıcının Eklediği Özel Sekmeler
+    // 4. Kullanıcının Eklediği Özel Sekmeler
     categories.forEach(cat => {
+      if (cat.id === 'cat_daily_plans') return; // Sistem sekmesi zaten yukarıda eklendi
       const catCount = allDocs.filter(d => d.categoryId === cat.id).length;
       const catBtn = document.createElement('button');
       catBtn.className = `sub-tab-btn ${currentActiveCategoryId === cat.id ? 'active' : ''}`;
@@ -388,8 +401,13 @@
       documentsActiveCategoryTitle.textContent = 'Tüm Evraklar';
       documentsActiveCategoryCountBadge.textContent = `${allDocs.length} Evrak`;
       if (documentsCategoryControls) documentsCategoryControls.style.display = 'none';
+    } else if (currentActiveCategoryId === 'cat_daily_plans') {
+      const count = allDocs.filter(d => d.categoryId === 'cat_daily_plans' || d.isDailyPlan).length;
+      documentsActiveCategoryTitle.textContent = 'Günlük Planlar';
+      documentsActiveCategoryCountBadge.textContent = `${count} Plan`;
+      if (documentsCategoryControls) documentsCategoryControls.style.display = 'none';
     } else if (currentActiveCategoryId === 'uncategorized') {
-      const count = allDocs.filter(d => !d.categoryId).length;
+      const count = allDocs.filter(d => !d.categoryId && !d.isDailyPlan).length;
       documentsActiveCategoryTitle.textContent = 'Genel / Kategorisiz Evraklar';
       documentsActiveCategoryCountBadge.textContent = `${count} Evrak`;
       if (documentsCategoryControls) documentsCategoryControls.style.display = 'none';
@@ -675,8 +693,10 @@
     let docs = [];
     if (currentActiveCategoryId === 'all') {
       docs = allDocs;
+    } else if (currentActiveCategoryId === 'cat_daily_plans') {
+      docs = allDocs.filter(d => d.categoryId === 'cat_daily_plans' || d.isDailyPlan);
     } else if (currentActiveCategoryId === 'uncategorized') {
-      docs = allDocs.filter(d => !d.categoryId);
+      docs = allDocs.filter(d => !d.categoryId && !d.isDailyPlan);
     } else {
       docs = allDocs.filter(d => d.categoryId === currentActiveCategoryId);
     }
@@ -690,6 +710,8 @@
       if (emptyP) {
         if (currentActiveCategoryId === 'all') {
           emptyP.textContent = 'Henüz yüklenmiş bir kişisel evrak bulunmuyor.';
+        } else if (currentActiveCategoryId === 'cat_daily_plans') {
+          emptyP.textContent = 'Henüz kaydedilmiş bir günlük ders planı bulunmuyor. Planlama aracından günlük plan hazırlayıp kaydedebilirsiniz.';
         } else if (currentActiveCategoryId === 'uncategorized') {
           emptyP.textContent = 'Bu sekmede henüz genel / kategorisiz bir evrak bulunmuyor.';
         } else {
@@ -711,16 +733,22 @@
       let icon = '📄';
       if (doc.fileType === 'docx') icon = '📝';
       else if (doc.fileType === 'pdf') icon = '📕';
+      else if (doc.fileType === 'html' || doc.isDailyPlan || doc.categoryId === 'cat_daily_plans') icon = '📅';
 
       // Evrağın sekme bilgisi (Rozet)
+      const isDailyPlanDoc = doc.categoryId === 'cat_daily_plans' || doc.isDailyPlan;
       const matchedCat = categories.find(c => c.id === doc.categoryId);
-      const categoryBadgeHtml = matchedCat ? 
+      const categoryBadgeHtml = isDailyPlanDoc ?
+        `<span class="badge" style="background: rgba(245, 158, 11, 0.15); color: #d97706; font-size: 0.72rem; padding: 0.15rem 0.5rem; border-radius: 6px; display: inline-flex; align-items: center; gap: 0.25rem;">
+          <i data-lucide="sun" style="width: 11px; height: 11px;"></i> Günlük Plan
+        </span>` :
+        (matchedCat ? 
         `<span class="badge" style="background: rgba(99,102,241,0.15); color: var(--primary); font-size: 0.72rem; padding: 0.15rem 0.5rem; border-radius: 6px; display: inline-flex; align-items: center; gap: 0.25rem;">
           <i data-lucide="folder" style="width: 11px; height: 11px;"></i> ${escapeHtml(matchedCat.name)}
         </span>` : 
         `<span class="badge" style="background: rgba(255,255,255,0.06); color: var(--text-muted); font-size: 0.72rem; padding: 0.15rem 0.5rem; border-radius: 6px; display: inline-flex; align-items: center; gap: 0.25rem;">
           <i data-lucide="inbox" style="width: 11px; height: 11px;"></i> Genel
-        </span>`;
+        </span>`);
 
       card.innerHTML = `
         <div style="display: flex; justify-content: space-between; align-items: flex-start; width: 100%;">
@@ -741,6 +769,11 @@
             </span>
           </div>
           <div class="doc-actions" style="flex-wrap: wrap;">
+            ${doc.dailyPlanId ? `
+              <button class="btn btn-primary btn-sm btn-edit-daily-doc" title="Planlama Aracında Aç & Düzenle" style="padding: 0.35rem 0.65rem; font-size: 0.8rem; background: linear-gradient(135deg, #4f46e5, #7c3aed); border: none; font-weight: 600;">
+                <i data-lucide="edit-3" style="width: 14px; height: 14px;"></i> Düzenle
+              </button>
+            ` : ''}
             <button class="btn btn-secondary btn-sm btn-view-doc" title="Evrağı Aç" style="padding: 0.35rem 0.6rem; font-size: 0.8rem;">
               <i data-lucide="eye" style="width: 14px; height: 14px;"></i> Görüntüle
             </button>
@@ -759,6 +792,22 @@
           </div>
         </div>
       `;
+
+      // Günlük planı düzenleme butonu
+      const btnEditDaily = card.querySelector('.btn-edit-daily-doc');
+      if (btnEditDaily) {
+        btnEditDaily.addEventListener('click', () => {
+          if (toolsDocumentsView) toolsDocumentsView.style.display = 'none';
+          const planningView = document.getElementById('tools-planning-view');
+          if (planningView) planningView.style.display = 'block';
+          if (typeof window.switchPlanningTab === 'function') {
+            window.switchPlanningTab('daily');
+          }
+          if (typeof window.loadDailyPlanById === 'function') {
+            window.loadDailyPlanById(doc.dailyPlanId);
+          }
+        });
+      }
 
       // Event listenerları bağla
       card.querySelector('.btn-view-doc').addEventListener('click', () => openDocumentViewer(doc));
@@ -895,6 +944,7 @@
       let ext = 'docx';
       if (doc.fileType === 'pdf') ext = 'pdf';
       else if (doc.fileType === 'txt') ext = 'txt';
+      else if (doc.fileType === 'html') ext = 'html';
       link.download = doc.fileName || `doküman.${ext}`;
       document.body.appendChild(link);
       link.click();
@@ -996,6 +1046,12 @@
 
       // 2. State'ten meta veriyi sil
       stateManager.deleteDocument(doc.id);
+
+      // 3. Günlük plan ile senkronize ise oradan da sil
+      if (doc.dailyPlanId && stateManager.deleteDailyPlan) {
+        stateManager.deleteDailyPlan(doc.dailyPlanId);
+      }
+
       renderCategoryTabs();
       renderDocumentsList();
       if (toastCallbackFn) toastCallbackFn('Evrak silindi.', 'info');
@@ -1068,6 +1124,7 @@
   window.renderDocumentsList = renderDocumentsList;
   window.saveDocumentFileToIndexedDB = saveDocumentFile;
   window.getDocumentFileFromIndexedDB = getDocumentFile;
+  window.deleteDocumentFileFromIndexedDB = deleteDocumentFile;
   window.migrateExistingDocumentsToIndexedDB = migrateExistingDocumentsToIndexedDB;
 
 })();
