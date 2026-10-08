@@ -5939,14 +5939,7 @@ body {
   }
 
   .omr-row-tick {
-    width: 5px;
-    height: 2px;
-    background-color: #000000 !important;
-    display: inline-block;
-    margin-right: 2px;
-    flex-shrink: 0;
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
+    display: none !important;
   }
 
   .omr-qr-wrapper {

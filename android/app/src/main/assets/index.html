@@ -182,7 +182,7 @@
       <div id="sidebar-demo-container"></div>
       
       <div class="sidebar-footer" style="padding: 1rem; text-align: center; font-size: 0.8rem; color: var(--text-muted); border-top: 1px solid var(--border-color);">
-        <span id="app-sidebar-version-text">Sınıf Asistanı v1.0.50</span>
+        <span id="app-sidebar-version-text">Sınıf Asistanı v1.0.51</span>
       </div>
     </aside>
 
@@ -734,7 +734,7 @@
                   <!-- JS ile dynamic doldurulacak -->
                 </div>
                 <div style="display: flex; gap: 0.75rem; margin-top: 0.75rem; flex-wrap: wrap; align-items: center;">
-                  <button class="btn btn-secondary btn-sm" id="btn-print-optical-forms" style="display: flex; align-items: center; gap: 0.25rem; font-size: 0.8rem; padding: 0.4rem 0.8rem; height: auto;">
+                  <button class="btn btn-secondary btn-sm" id="btn-print-optical-forms" onclick="window.openDesktopOpticalPrintModal ? window.openDesktopOpticalPrintModal() : null" style="display: flex; align-items: center; gap: 0.25rem; font-size: 0.8rem; padding: 0.4rem 0.8rem; height: auto;">
                     <i data-lucide="printer" style="width: 14px; height: 14px;"></i> Optik Form Bas
                   </button>
                   <button class="btn btn-primary btn-sm" id="btn-upload-optical-forms" style="display: flex; align-items: center; gap: 0.35rem; font-size: 0.8rem; padding: 0.4rem 0.9rem; height: auto; background: linear-gradient(135deg, #4f46e5, #7c3aed); border: none; color: #fff; font-weight: 600; box-shadow: 0 2px 8px rgba(79, 70, 229, 0.25); cursor: pointer;">
@@ -745,6 +745,12 @@
                   </button>
                   <button class="btn btn-secondary btn-sm" id="btn-print-student-exam-slips" style="display: flex; align-items: center; gap: 0.35rem; font-size: 0.8rem; padding: 0.4rem 0.85rem; height: auto; cursor: pointer; border-color: rgba(16, 185, 129, 0.4); background: rgba(16, 185, 129, 0.08); color: #047857; font-weight: 600;">
                     <i data-lucide="scissors" style="width: 14px; height: 14px; color: #10b981;"></i> ✂️ Öğrenci Raporu Al (Kes-Dağıt)
+                  </button>
+                  <button class="btn btn-secondary btn-sm" id="btn-board-question-analysis" style="display: flex; align-items: center; gap: 0.35rem; font-size: 0.8rem; padding: 0.4rem 0.85rem; height: auto; cursor: pointer; border-color: rgba(99, 102, 241, 0.4); background: rgba(99, 102, 241, 0.08); color: #4338ca; font-weight: 600;" title="Öğretmen tahtada soru çözerken o soruyu kimlerin yanlış yaptığını veya boş bıraktığını anında inceleyin">
+                    <i data-lucide="presentation" style="width: 14px; height: 14px; color: #6366f1;"></i> 👨‍🏫 Tahtada Soru Analizi
+                  </button>
+                  <button class="btn btn-secondary btn-sm" id="btn-board-qa-direct-pip" style="display: flex; align-items: center; gap: 0.35rem; font-size: 0.8rem; padding: 0.4rem 0.85rem; height: auto; cursor: pointer; border-color: rgba(245, 158, 11, 0.4); background: rgba(245, 158, 11, 0.08); color: #b45309; font-weight: 600;" title="Soruları Adobe Reader veya Z-Kitap'ta çözerken pencerelerin üzerinde her zaman en üstte kalan mini analiz penceresini açar">
+                    <i data-lucide="pin" style="width: 14px; height: 14px; color: #f59e0b;"></i> 📌 Yüzen Mini Analiz (Always-on-Top)
                   </button>
                 </div>
               </div>
@@ -6110,17 +6116,61 @@
   </div>
 
   <!-- MODAL: DESKTOP AI ÖĞRENCİ TARAMA YÜKLENİYOR -->
-  <div class="modal" id="modal-desktop-ai-student-loading" style="--max-width: 440px;">
-    <div class="modal-content" style="max-width: 440px; text-align: center; padding: 2.5rem 1.5rem;">
-      <div style="width: 64px; height: 64px; margin: 0 auto 1.25rem auto; border-radius: 50%; background: linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(99, 102, 241, 0.2)); display: flex; align-items: center; justify-content: center; color: #8b5cf6;">
-        <i data-lucide="sparkles" class="spin" style="width: 32px; height: 32px;"></i>
+  <div class="modal" id="modal-desktop-ai-student-loading" style="--max-width: 480px;">
+    <div class="modal-content" style="max-width: 480px; text-align: center; padding: 2.25rem 1.75rem;">
+      <!-- İkon & Pulse Animasyonu -->
+      <div style="position: relative; width: 72px; height: 72px; margin: 0 auto 1.25rem auto; display: flex; align-items: center; justify-content: center;">
+        <div style="width: 64px; height: 64px; border-radius: 50%; background: linear-gradient(135deg, #8b5cf6, #6366f1); display: flex; align-items: center; justify-content: center; color: #fff; box-shadow: 0 8px 24px rgba(139, 92, 246, 0.35); position: relative; z-index: 2;">
+          <i data-lucide="sparkles" class="spin" style="width: 30px; height: 30px;"></i>
+        </div>
+        <div class="dp-pulse-ring" style="border-color: #8b5cf6;"></div>
+        <div class="dp-pulse-ring delay-1" style="border-color: #6366f1;"></div>
       </div>
-      <h3 style="font-size: 1.15rem; font-weight: 800; margin-bottom: 0.5rem; color: var(--text-primary);">
-        Yapay Zeka Listeyi İnceliyor...
+
+      <h3 style="font-size: 1.2rem; font-weight: 800; margin-bottom: 0.35rem; color: var(--text-primary); letter-spacing: -0.2px;" id="desktop-ai-loading-title">
+        Yapay Zeka Sınıf Listesini İnceliyor
       </h3>
-      <p style="font-size: 0.82rem; color: var(--text-muted); line-height: 1.45; margin: 0 auto; max-width: 340px;" id="desktop-ai-loading-desc">
-        Yüklediğiniz görsel / PDF taranıyor. Öğrenci adları, soyadları, numaraları ve cinsiyetleri satır satır tespit ediliyor...
+
+      <p style="font-size: 0.85rem; color: #8b5cf6; font-weight: 600; line-height: 1.4; margin: 0 auto 1.2rem auto; min-height: 22px;" id="desktop-ai-loading-desc">
+        Belge hazırlanıyor ve yapay zeka analizine alınıyor...
       </p>
+
+      <!-- İlerleme Çubuğu & Yüzde -->
+      <div style="margin-bottom: 1.25rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-size: 0.78rem; font-weight: 700;">
+          <span style="color: var(--text-secondary);" id="desktop-ai-loading-step-counter">Adım 1 / 4</span>
+          <span style="color: #8b5cf6;" id="desktop-ai-loading-percentage">%15</span>
+        </div>
+        <div style="width: 100%; height: 7px; background: rgba(255, 255, 255, 0.08); border-radius: 10px; overflow: hidden; position: relative;">
+          <div id="desktop-ai-loading-progress-bar" style="height: 100%; width: 15%; background: linear-gradient(90deg, #8b5cf6, #6366f1, #ec4899); background-size: 200% 100%; border-radius: 10px; transition: width 0.4s ease; animation: dp-shimmer 2s linear infinite;"></div>
+        </div>
+      </div>
+
+      <!-- Adım Listesi (Checklist) -->
+      <div style="display: flex; flex-direction: column; gap: 0.55rem; text-align: left; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 10px; padding: 0.9rem 1.1rem; margin-bottom: 1.1rem;">
+        <div class="ai-student-step-row" id="desktop-ai-step-1" style="display: flex; align-items: center; gap: 0.65rem; font-size: 0.8rem; color: var(--text-primary); font-weight: 600;">
+          <span class="step-icon"><div class="spinner" style="width: 13px; height: 13px; border-width: 2px;"></div></span>
+          <span class="step-text">1. Belge ve Sayfa Formatı Hazırlanıyor</span>
+        </div>
+        <div class="ai-student-step-row" id="desktop-ai-step-2" style="display: flex; align-items: center; gap: 0.65rem; font-size: 0.8rem; color: var(--text-muted);">
+          <span class="step-icon"><i data-lucide="circle" style="width: 14px; height: 14px; opacity: 0.35;"></i></span>
+          <span class="step-text">2. Google Gemini Güvenli Bağlantısı</span>
+        </div>
+        <div class="ai-student-step-row" id="desktop-ai-step-3" style="display: flex; align-items: center; gap: 0.65rem; font-size: 0.8rem; color: var(--text-muted);">
+          <span class="step-icon"><i data-lucide="circle" style="width: 14px; height: 14px; opacity: 0.35;"></i></span>
+          <span class="step-text">3. Satır Satır OCR ve İsim/Numara Analizi</span>
+        </div>
+        <div class="ai-student-step-row" id="desktop-ai-step-4" style="display: flex; align-items: center; gap: 0.65rem; font-size: 0.8rem; color: var(--text-muted);">
+          <span class="step-icon"><i data-lucide="circle" style="width: 14px; height: 14px; opacity: 0.35;"></i></span>
+          <span class="step-text">4. Bilgilerin Doğrulanması ve Tablo Hazırlığı</span>
+        </div>
+      </div>
+
+      <!-- Bilgi Notu -->
+      <div style="font-size: 0.76rem; color: var(--text-muted); line-height: 1.45; display: flex; align-items: center; justify-content: center; gap: 6px;">
+        <i data-lucide="info" style="width: 14px; height: 14px; flex-shrink: 0; color: #8b5cf6;"></i>
+        <span>Yapay zeka tüm listeyi detaylı incelediği için işlem 10-20 saniye sürebilir.</span>
+      </div>
     </div>
   </div>
 
@@ -7363,6 +7413,180 @@
           </button>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- MODAL: TAHTADA SORU ÇÖZÜMÜ & HATA ANALİZİ MODÜLÜ -->
+  <div class="modal" id="modal-board-question-analysis" style="--max-width: 1100px; z-index: 1070;">
+    <div class="modal-content board-analysis-modal-content" style="max-width: 1100px; width: 95vw; max-height: 94vh; display: flex; flex-direction: column; border-radius: 14px; overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,0.3); background: var(--bg-surface, #ffffff);">
+      
+      <!-- Modal Başlığı -->
+      <div class="modal-header" style="background: linear-gradient(135deg, #1e1b4b, #312e81); color: #ffffff; padding: 1rem 1.5rem; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.1);">
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+          <div style="background: rgba(255,255,255,0.15); width: 42px; height: 42px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.35rem; flex-shrink: 0;">
+            👨‍🏫
+          </div>
+          <div>
+            <h3 style="margin: 0; font-size: 1.25rem; font-weight: 800; color: #ffffff; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+              <span>Tahtada Soru Çözümü & Hata Analizi</span>
+              <span class="badge" style="background: #4f46e5; color: #fff; font-size: 0.72rem; font-weight: 700; padding: 2px 8px; border-radius: 999px;">Akıllı Tahta Modu</span>
+            </h3>
+            <div id="board-qa-subtitle" style="font-size: 0.82rem; color: #c7d2fe; margin-top: 2px;">
+              Sınav yükleniyor...
+            </div>
+          </div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+          <button type="button" class="btn btn-sm" id="btn-board-qa-pip" style="background: rgba(245, 158, 11, 0.25); color: #fef08a; border: 1px solid rgba(245, 158, 11, 0.5); border-radius: 6px; padding: 0.4rem 0.8rem; font-size: 0.8rem; display: flex; align-items: center; gap: 0.35rem; cursor: pointer; font-weight: 700;" title="Soruları Adobe Reader veya Z-Kitap'ta çözerken pencerelerin üzerinde her zaman en üstte kalan mini analiz penceresini açar">
+            <i data-lucide="pin" style="width: 14px; height: 14px; color: #facc15;"></i>
+            <span>📌 Yüzen Mini Mod (Always-on-Top)</span>
+          </button>
+          <button type="button" class="btn btn-sm" id="btn-board-qa-fullscreen" style="background: rgba(255,255,255,0.15); color: #ffffff; border: 1px solid rgba(255,255,255,0.25); border-radius: 6px; padding: 0.4rem 0.8rem; font-size: 0.8rem; display: flex; align-items: center; gap: 0.35rem; cursor: pointer;" title="Tam Ekran Modunu Aç/Kapat">
+            <i data-lucide="maximize" style="width: 14px; height: 14px;"></i>
+            <span id="btn-board-qa-fullscreen-text">Tam Ekran</span>
+          </button>
+          <button type="button" class="close-btn" id="btn-close-board-qa-modal" style="color: #ffffff; font-size: 1.75rem; line-height: 1; opacity: 0.85; background: none; border: none; cursor: pointer; padding: 0 4px;">&times;</button>
+        </div>
+      </div>
+
+      <!-- Çoklu Ders Sekmeleri Çubuğu (Sabit Başlık Altı) -->
+      <div id="board-qa-subject-tabs" style="display: none; background: var(--bg-surface, #ffffff); border-bottom: 1px solid var(--border-color); padding: 0.65rem 1.5rem; gap: 6px 8px; align-items: center; flex-wrap: wrap; z-index: 5;">
+        <!-- JS ile doldurulacak -->
+      </div>
+
+      <!-- Modal Gövdesi -->
+      <div class="modal-body" id="board-qa-modal-body" style="padding: 1.1rem 1.5rem; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 1rem; background: var(--bg-primary, #f8fafc);">
+
+        <!-- Soru Gezinme ve Seçim Çubuğu -->
+        <div style="background: var(--bg-surface, #ffffff); border: 1px solid var(--border-color); border-radius: 12px; padding: 0.85rem 1rem; box-shadow: 0 1px 3px rgba(0,0,0,0.05); display: flex; flex-direction: column; gap: 0.75rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+            <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+              <button type="button" class="btn btn-secondary btn-sm" id="btn-board-qa-prev-q" style="font-weight: 700; display: flex; align-items: center; gap: 0.35rem; padding: 0.45rem 0.85rem;">
+                <i data-lucide="chevron-left" style="width: 16px; height: 16px;"></i>
+                <span>Önceki Soru (←)</span>
+              </button>
+              <button type="button" class="btn btn-primary btn-sm" id="btn-board-qa-next-q" style="font-weight: 700; display: flex; align-items: center; gap: 0.35rem; padding: 0.45rem 0.85rem; background: linear-gradient(135deg, #4f46e5, #6366f1); border: none;">
+                <span>Sonraki Soru (→)</span>
+                <i data-lucide="chevron-right" style="width: 16px; height: 16px;"></i>
+              </button>
+            </div>
+
+            <!-- Hızlı Soru Atlama Seçicisi -->
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <label for="board-qa-question-select" style="font-size: 0.82rem; font-weight: 700; color: var(--text-muted); margin: 0; white-space: nowrap;">Soruya Git:</label>
+              <select id="board-qa-question-select" class="form-control" style="width: auto; min-width: 200px; padding: 0.35rem 0.75rem; font-size: 0.85rem; font-weight: 600; border-radius: 6px;">
+                <!-- JS ile dynamic doldurulacak -->
+              </select>
+            </div>
+          </div>
+
+          <!-- Soru Numaraları Rozet Şeridi -->
+          <div id="board-qa-question-pills" style="display: flex; flex-wrap: wrap; gap: 6px; align-items: center; max-height: 120px; overflow-y: auto; padding-top: 2px;">
+            <!-- JS ile doldurulacak -->
+          </div>
+        </div>
+
+        <!-- Seçili Soru Detay ve İstatistik Kartı -->
+        <div id="board-qa-selected-card" style="background: var(--bg-surface, #ffffff); border: 1px solid var(--border-color); border-radius: 12px; padding: 1.15rem; box-shadow: 0 1px 4px rgba(0,0,0,0.06);">
+          <!-- Soru Başlığı & Doğru Şık Rozeti -->
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.85rem; margin-bottom: 1rem;">
+            <div>
+              <span id="board-qa-q-subject-badge" class="badge" style="background: rgba(99, 102, 241, 0.1); color: #4338ca; font-weight: 700; font-size: 0.8rem; margin-bottom: 0.35rem; display: inline-block;">Ders</span>
+              <h2 id="board-qa-q-title" style="margin: 0; font-size: 1.55rem; font-weight: 800; color: var(--text-primary); display: flex; align-items: center; gap: 0.5rem;">
+                Soru 1
+              </h2>
+            </div>
+            <div style="display: flex; align-items: center; gap: 0.75rem;">
+              <div id="board-qa-correct-badge-container" style="background: linear-gradient(135deg, #10b981, #059669); color: #ffffff; padding: 0.5rem 1.25rem; border-radius: 10px; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25); text-align: center; min-width: 95px;">
+                <div style="font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.95; font-weight: 700;">Doğru Cevap</div>
+                <div id="board-qa-correct-letter" style="font-size: 1.65rem; font-weight: 900; line-height: 1.1;">C</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- İstatistik Kartları (KPI) -->
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 0.65rem; margin-bottom: 0.85rem;">
+            <div style="background: rgba(15, 23, 42, 0.03); border: 1px solid var(--border-color); border-radius: 8px; padding: 0.65rem; text-align: center;">
+              <div style="font-size: 0.72rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">Katılan</div>
+              <div id="board-qa-stat-participants" style="font-size: 1.3rem; font-weight: 800; color: var(--text-primary); margin-top: 2px;">0</div>
+            </div>
+            <div style="background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.25); border-radius: 8px; padding: 0.65rem; text-align: center;">
+              <div style="font-size: 0.72rem; color: #dc2626; font-weight: 700; text-transform: uppercase;">❌ Yanlış Yapan</div>
+              <div id="board-qa-stat-wrong" style="font-size: 1.3rem; font-weight: 800; color: #dc2626; margin-top: 2px;">0 <span style="font-size: 0.75rem; font-weight: 600;">(%0)</span></div>
+            </div>
+            <div style="background: rgba(100, 116, 139, 0.08); border: 1px solid rgba(100, 116, 139, 0.25); border-radius: 8px; padding: 0.65rem; text-align: center;">
+              <div style="font-size: 0.72rem; color: #475569; font-weight: 700; text-transform: uppercase;">⚪ Boş Bırakan</div>
+              <div id="board-qa-stat-blank" style="font-size: 1.3rem; font-weight: 800; color: #475569; margin-top: 2px;">0 <span style="font-size: 0.75rem; font-weight: 600;">(%0)</span></div>
+            </div>
+            <div style="background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.25); border-radius: 8px; padding: 0.65rem; text-align: center;">
+              <div style="font-size: 0.72rem; color: #d97706; font-weight: 700; text-transform: uppercase;">⚠️ Toplam Hata</div>
+              <div id="board-qa-stat-total-errors" style="font-size: 1.3rem; font-weight: 800; color: #d97706; margin-top: 2px;">0 <span style="font-size: 0.75rem; font-weight: 600;">(%0)</span></div>
+            </div>
+            <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 8px; padding: 0.65rem; text-align: center;">
+              <div style="font-size: 0.72rem; color: #15803d; font-weight: 700; text-transform: uppercase;">🟢 Doğru Yapan</div>
+              <div id="board-qa-stat-correct" style="font-size: 1.3rem; font-weight: 800; color: #15803d; margin-top: 2px;">0 <span style="font-size: 0.75rem; font-weight: 600;">(%0)</span></div>
+            </div>
+          </div>
+
+          <!-- Şık Dağılımı ve Çeldirici Analiz Barı -->
+          <div id="board-qa-choices-breakdown-container" style="background: var(--bg-primary, #f8fafc); border: 1px solid var(--border-color); border-radius: 8px; padding: 0.75rem 1rem;">
+            <!-- JS ile doldurulacak -->
+          </div>
+        </div>
+
+        <!-- Öğrenci Listesi Bölümü (Yanlış & Boş Yapanlar) -->
+        <div style="background: var(--bg-surface, #ffffff); border: 1px solid var(--border-color); border-radius: 12px; padding: 1.15rem; box-shadow: 0 1px 4px rgba(0,0,0,0.06); display: flex; flex-direction: column; gap: 0.85rem; flex: 1;">
+          
+          <!-- Filtre Sekmeleri & Arama -->
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.75rem;">
+            <div style="display: flex; gap: 6px; flex-wrap: wrap;" id="board-qa-filter-tabs">
+              <button type="button" class="btn btn-sm board-filter-btn active" data-filter="all_errors" style="font-weight: 700;">
+                🔴 Hata Yapanlar (Yanlış + Boş) <span class="badge" id="board-qa-badge-errors" style="background: #ef4444; color: #fff; margin-left: 4px;">0</span>
+              </button>
+              <button type="button" class="btn btn-sm board-filter-btn" data-filter="wrong" style="font-weight: 600;">
+                ❌ Sadece Yanlış Yapanlar <span class="badge" id="board-qa-badge-wrong" style="background: rgba(239, 68, 68, 0.2); color: #dc2626; margin-left: 4px;">0</span>
+              </button>
+              <button type="button" class="btn btn-sm board-filter-btn" data-filter="blank" style="font-weight: 600;">
+                ⚪ Sadece Boş Bırakanlar <span class="badge" id="board-qa-badge-blank" style="background: rgba(100, 116, 139, 0.2); color: #475569; margin-left: 4px;">0</span>
+              </button>
+              <button type="button" class="btn btn-sm board-filter-btn" data-filter="correct" style="font-weight: 600;">
+                🟢 Doğru Yapanlar <span class="badge" id="board-qa-badge-correct" style="background: rgba(16, 185, 129, 0.2); color: #15803d; margin-left: 4px;">0</span>
+              </button>
+              <button type="button" class="btn btn-sm board-filter-btn" data-filter="all" style="font-weight: 600;">
+                👥 Tüm Sınıf <span class="badge" id="board-qa-badge-all" style="background: rgba(99, 102, 241, 0.2); color: #4338ca; margin-left: 4px;">0</span>
+              </button>
+            </div>
+
+            <!-- Hızlı Arama & Kopyalama -->
+            <div style="display: flex; gap: 0.5rem; align-items: center;">
+              <div style="position: relative; min-width: 180px;">
+                <input type="text" id="board-qa-search-input" class="form-control" placeholder="Öğrenci ara..." style="font-size: 0.82rem; padding: 0.35rem 0.65rem; border-radius: 6px;">
+              </div>
+              <button type="button" class="btn btn-secondary btn-sm" id="btn-board-qa-copy-list" style="font-size: 0.78rem; padding: 0.35rem 0.65rem; height: auto;" title="Hata yapan öğrencileri metin olarak panoya kopyala">
+                <i data-lucide="copy" style="width: 13px; height: 13px;"></i>
+                <span>Kopyala</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Öğrenci Kartları Izgarası -->
+          <div id="board-qa-students-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 0.75rem; max-height: 420px; overflow-y: auto; padding: 4px;">
+            <!-- JS ile doldurulacak -->
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Modal Altbilgi -->
+      <div class="modal-footer" style="padding: 0.75rem 1.5rem; background: var(--bg-surface, #ffffff); border-top: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+        <div style="font-size: 0.8rem; color: var(--text-muted); display: flex; align-items: center; gap: 6px;">
+          <span>💡 <strong>İpucu:</strong> Soruları tahtada çözerken klavyedeki <strong>Sol (←)</strong> ve <strong>Sağ (→)</strong> ok tuşlarıyla sorular arasında geçiş yapabilirsiniz.</span>
+        </div>
+        <div style="display: flex; gap: 0.5rem; align-items: center;">
+          <button type="button" class="btn btn-secondary btn-sm" id="btn-board-qa-close-footer" style="font-weight: 600; padding: 0.4rem 1rem;">Kapat</button>
+        </div>
+      </div>
+
     </div>
   </div>
 
@@ -8866,12 +9090,12 @@
         <div style="display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 1rem; background: var(--bg-secondary); border-radius: 10px; border: 1px solid var(--border-color);">
           <div style="display: flex; align-items: center; gap: 0.4rem;">
             <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600;">Mevcut:</span>
-            <span id="update-current-version" class="badge" style="font-size: 0.8rem; font-weight: 700; background: var(--border-color); color: var(--text-secondary); padding: 0.2rem 0.5rem; border-radius: 6px;">v1.0.50</span>
+            <span id="update-current-version" class="badge" style="font-size: 0.8rem; font-weight: 700; background: var(--border-color); color: var(--text-secondary); padding: 0.2rem 0.5rem; border-radius: 6px;">v1.0.51</span>
           </div>
           <i data-lucide="arrow-right" style="width: 16px; height: 16px; color: #6366f1;"></i>
           <div style="display: flex; align-items: center; gap: 0.4rem;">
             <span style="font-size: 0.75rem; color: #6366f1; font-weight: 600;">Yeni Sürüm:</span>
-            <span id="update-latest-version" class="badge" style="font-size: 0.8rem; font-weight: 700; background: #6366f1; color: white; padding: 0.2rem 0.5rem; border-radius: 6px;">v1.0.50</span>
+            <span id="update-latest-version" class="badge" style="font-size: 0.8rem; font-weight: 700; background: #6366f1; color: white; padding: 0.2rem 0.5rem; border-radius: 6px;">v1.0.51</span>
           </div>
         </div>
 
@@ -9091,7 +9315,7 @@
           <div>
             <h3 style="margin: 0; font-size: 1.2rem; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
               Sınıf Asistanı Masaüstü Uygulaması
-              <span id="download-app-version-badge" class="badge" style="font-size: 0.75rem; background: var(--primary); color: white; padding: 0.2rem 0.5rem; border-radius: 6px; font-weight: 600;">v1.0.50 (En Son)</span>
+              <span id="download-app-version-badge" class="badge" style="font-size: 0.75rem; background: var(--primary); color: white; padding: 0.2rem 0.5rem; border-radius: 6px; font-weight: 600;">v1.0.51 (En Son)</span>
             </h3>
             <p style="margin: 0; font-size: 0.85rem; color: var(--text-secondary);">Akıllı tahta ve bilgisayarınızda internet olmadan da tam performans çalışın.</p>
           </div>
@@ -9119,7 +9343,7 @@
               </p>
             </div>
             <div>
-              <a id="btn-download-deb" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/download/v1.0.50/sinif-asistani_1.0.50_amd64.deb" target="_blank" class="btn btn-primary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem; background: #ef4444; border-color: #ef4444; font-weight: 600;">
+              <a id="btn-download-deb" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/download/v1.0.51/sinif-asistani_1.0.51_amd64.deb" target="_blank" class="btn btn-primary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem; background: #ef4444; border-color: #ef4444; font-weight: 600;">
                 <i data-lucide="download" style="width: 16px; height: 16px;"></i> Pardus (.deb) İndir
               </a>
               <button type="button" onclick="window.openPardusInstallHelpModal()" style="width: 100%; margin-top: 0.5rem; background: rgba(239, 68, 68, 0.12); border: 1px dashed rgba(239, 68, 68, 0.5); color: #f87171; border-radius: var(--radius-sm, 8px); padding: 0.45rem 0.5rem; font-size: 0.78rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.35rem; transition: all 0.2s ease;">
@@ -9146,7 +9370,7 @@
               </p>
             </div>
             <div>
-              <a id="btn-download-exe" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/download/v1.0.50/sinif-asistani_1.0.50_x64-setup.exe" target="_blank" class="btn btn-primary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem; background: #0284c7; border-color: #0284c7; font-weight: 600;">
+              <a id="btn-download-exe" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/download/v1.0.51/sinif-asistani_1.0.51_x64-setup.exe" target="_blank" class="btn btn-primary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem; background: #0284c7; border-color: #0284c7; font-weight: 600;">
                 <i data-lucide="download" style="width: 16px; height: 16px;"></i> Windows (.exe) İndir
               </a>
               <button type="button" onclick="window.openWinInstallHelpModal()" style="width: 100%; margin-top: 0.5rem; background: rgba(2, 132, 199, 0.12); border: 1px dashed rgba(2, 132, 199, 0.5); color: #38bdf8; border-radius: var(--radius-sm, 8px); padding: 0.45rem 0.5rem; font-size: 0.78rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.35rem; transition: all 0.2s ease;">
@@ -9174,13 +9398,13 @@
             </div>
             <div>
               <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem;">
-                <a id="btn-download-dmg" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/download/v1.0.50/sinif-asistani_1.0.50_aarch64.dmg" target="_blank" class="btn btn-primary" style="flex: 1.1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.15rem; background: #8b5cf6; border-color: #8b5cf6; font-weight: 600; padding: 0.5rem 0.35rem; font-size: 0.78rem; text-align: center; text-decoration: none;">
+                <a id="btn-download-dmg" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/download/v1.0.51/sinif-asistani_1.0.51_aarch64.dmg" target="_blank" class="btn btn-primary" style="flex: 1.1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.15rem; background: #8b5cf6; border-color: #8b5cf6; font-weight: 600; padding: 0.5rem 0.35rem; font-size: 0.78rem; text-align: center; text-decoration: none;">
                   <span style="display: flex; align-items: center; gap: 0.25rem; font-weight: 700;">
                     <i data-lucide="download" style="width: 14px; height: 14px;"></i> Apple Silicon
                   </span>
                   <span style="font-size: 0.67rem; opacity: 0.92; font-weight: 500;">(M1 / M2 / M3 / M4)</span>
                 </a>
-                <a id="btn-download-dmg-intel" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/download/v1.0.50/sinif-asistani_1.0.50_x64.dmg" target="_blank" class="btn btn-secondary" style="flex: 0.9; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.15rem; font-weight: 600; padding: 0.5rem 0.35rem; font-size: 0.78rem; text-align: center; text-decoration: none; border: 1px solid rgba(139, 92, 246, 0.45); color: var(--text-primary);">
+                <a id="btn-download-dmg-intel" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/download/v1.0.51/sinif-asistani_1.0.51_x64.dmg" target="_blank" class="btn btn-secondary" style="flex: 0.9; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.15rem; font-weight: 600; padding: 0.5rem 0.35rem; font-size: 0.78rem; text-align: center; text-decoration: none; border: 1px solid rgba(139, 92, 246, 0.45); color: var(--text-primary);">
                   <span style="display: flex; align-items: center; gap: 0.25rem; font-weight: 700;">
                     <i data-lucide="download" style="width: 14px; height: 14px;"></i> Intel Mac
                   </span>
@@ -9210,7 +9434,7 @@
                 Derste masaları gezerken tek dokunuşla ödev kontrolü, ders akışı ve hızlı yoklama için mobil uygulama paketi.
               </p>
             </div>
-            <a id="btn-download-apk" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/download/v1.0.50/sinif-asistani.apk" target="_blank" class="btn btn-primary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem; background: #16a34a; border-color: #16a34a; font-weight: 600;">
+            <a id="btn-download-apk" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/download/v1.0.51/sinif-asistani.apk" target="_blank" class="btn btn-primary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem; background: #16a34a; border-color: #16a34a; font-weight: 600;">
               <i data-lucide="download" style="width: 16px; height: 16px;"></i> Android (.apk) İndir
             </a>
           </div>
@@ -9232,7 +9456,7 @@
                 <strong>Kurulum gerektirmez!</strong> Özellikle ortaokul modunda sınıf sınıf gezen branş öğretmenleri, uygulamayı Flash diskine (USB) yükleyerek tüm sınıflardaki akıllı tahtalarda doğrudan flash bellek üzerinden tak-çalıştır şeklinde kullanabilir.
               </p>
             </div>
-            <a id="btn-download-appimage" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/download/v1.0.50/sinif-asistani_1.0.50_amd64.AppImage" target="_blank" class="btn btn-primary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem; background: #10b981; border-color: #10b981; font-weight: 600;">
+            <a id="btn-download-appimage" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/download/v1.0.51/sinif-asistani_1.0.51_amd64.AppImage" target="_blank" class="btn btn-primary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem; background: #10b981; border-color: #10b981; font-weight: 600;">
               <i data-lucide="download" style="width: 16px; height: 16px;"></i> AppImage (USB Uyumlu) İndir
             </a>
           </div>

@@ -1618,7 +1618,7 @@
             📱 Sınıf Asistanı Kullanım Kılavuzu
           </div>
           <div style="font-size: 0.75rem; color: var(--m-text-muted); margin-bottom: 1rem;">
-            Versiyon: <strong>v1.0.50</strong> — Geliştirici: <strong>Barış Gençoğlu</strong>
+            Versiyon: <strong>v1.0.51</strong> — Geliştirici: <strong>Barış Gençoğlu</strong>
           </div>
 
           <div style="display: flex; flex-direction: column;">
@@ -2017,7 +2017,7 @@
     <!-- 3 ANA BUTON (Optik Form Bas, Optik Form Oku, Manuel Giriş Yap) -->
     <div class="m-exam-actions-grid">
       <!-- 1. Optik Form Bas Butonu -->
-      <div class="m-exam-action-card" onclick="if(window.activeWeeklyExam) window.openMobileOpticalPrintModal(window.activeWeeklyExam.id)">
+      <div class="m-exam-action-card" onclick="window.openMobileOpticalPrintModal ? window.openMobileOpticalPrintModal(window.activeWeeklyExam ? window.activeWeeklyExam.id : null) : null">
         <div class="m-exam-action-icon" style="background: rgba(2, 132, 199, 0.12); color: #0284c7;">
           <i data-lucide="printer" style="width: 18px; height: 18px;"></i>
         </div>
@@ -4673,21 +4673,52 @@
   </div>
 
   <!-- 11. AI Görsel Analiz Bekleme Modalı -->
-  <div class="bottom-sheet" id="modal-ai-student-loading" style="max-height: 60vh; text-align: center;">
+  <div class="bottom-sheet" id="modal-ai-student-loading" style="max-height: 80vh; text-align: center;">
     <div class="sheet-handle"></div>
-    <div style="padding: 2.25rem 1.5rem; display: flex; flex-direction: column; align-items: center;">
-      <div style="width: 64px; height: 64px; border-radius: 20px; background: linear-gradient(135deg, #6366f1, #a855f7); display: flex; align-items: center; justify-content: center; color: white; margin-bottom: 1.25rem; animation: mPulse 1.5s infinite; box-shadow: 0 8px 24px rgba(139, 92, 246, 0.35);">
-        <i data-lucide="sparkles" style="width: 32px; height: 32px;"></i>
+    <div style="padding: 1.75rem 1.25rem 2rem 1.25rem; display: flex; flex-direction: column; align-items: center;">
+      <div style="width: 60px; height: 60px; border-radius: 20px; background: linear-gradient(135deg, #6366f1, #a855f7); display: flex; align-items: center; justify-content: center; color: white; margin-bottom: 1rem; animation: mPulse 1.5s infinite; box-shadow: 0 8px 24px rgba(139, 92, 246, 0.35);">
+        <i data-lucide="sparkles" class="spin" style="width: 30px; height: 30px;"></i>
       </div>
-      <div style="font-weight: 800; font-size: 1.1rem; color: var(--m-text); margin-bottom: 0.5rem;" id="m-ai-loading-title">
-        Görsel Analiz Ediliyor...
+      <div style="font-weight: 800; font-size: 1.15rem; color: var(--m-text); margin-bottom: 0.35rem;" id="m-ai-loading-title">
+        Yapay Zeka Sınıf Listesini İnceliyor
       </div>
-      <div style="font-size: 0.8rem; color: var(--m-text-muted); line-height: 1.45; max-width: 280px;" id="m-ai-loading-desc">
-        Google Gemini yapay zekası sınıf listenizdeki öğrencileri ve numaraları inceliyor. Lütfen bekleyin...
+      <div style="font-size: 0.82rem; color: var(--m-primary); font-weight: 600; line-height: 1.4; max-width: 320px; margin-bottom: 1.15rem; min-height: 22px;" id="m-ai-loading-desc">
+        Belge hazırlanıyor ve yapay zeka analizine alınıyor...
       </div>
-      <div style="margin-top: 1.5rem; display: flex; align-items: center; gap: 8px; color: var(--m-primary); font-size: 0.78rem; font-weight: 700;">
-        <span class="m-spinner" style="width: 16px; height: 16px; border: 2px solid var(--m-primary); border-top-color: transparent; border-radius: 50%; display: inline-block;"></span>
-        <span>Yapay zeka yanıtı bekleniyor...</span>
+
+      <!-- İlerleme Çubuğu & Yüzde -->
+      <div style="width: 100%; max-width: 340px; margin-bottom: 1.15rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; font-size: 0.74rem; font-weight: 700;">
+          <span style="color: var(--m-text-muted);" id="m-ai-loading-step-counter">Adım 1 / 4</span>
+          <span style="color: var(--m-primary);" id="m-ai-loading-percentage">%15</span>
+        </div>
+        <div style="width: 100%; height: 6px; background: rgba(255, 255, 255, 0.08); border-radius: 10px; overflow: hidden;">
+          <div id="m-ai-loading-progress-bar" style="height: 100%; width: 15%; background: linear-gradient(90deg, #6366f1, #a855f7); border-radius: 10px; transition: width 0.4s ease;"></div>
+        </div>
+      </div>
+
+      <!-- Adım Listesi (Checklist) -->
+      <div style="width: 100%; max-width: 340px; display: flex; flex-direction: column; gap: 0.5rem; text-align: left; background: var(--m-surface-subtle); border: 1px solid var(--m-border); border-radius: 12px; padding: 0.85rem 1rem; margin-bottom: 1rem;">
+        <div class="m-ai-step-row" id="m-ai-step-1" style="display: flex; align-items: center; gap: 0.6rem; font-size: 0.78rem; color: var(--m-text); font-weight: 600;">
+          <span class="m-step-icon"><span class="m-spinner" style="width: 12px; height: 12px; border: 2px solid var(--m-primary); border-top-color: transparent; border-radius: 50%; display: inline-block;"></span></span>
+          <span class="m-step-text">1. Belge ve Sayfa Formatı Hazırlanıyor</span>
+        </div>
+        <div class="m-ai-step-row" id="m-ai-step-2" style="display: flex; align-items: center; gap: 0.6rem; font-size: 0.78rem; color: var(--m-text-muted);">
+          <span class="m-step-icon"><i data-lucide="circle" style="width: 13px; height: 13px; opacity: 0.35;"></i></span>
+          <span class="m-step-text">2. Google Gemini Güvenli Bağlantısı</span>
+        </div>
+        <div class="m-ai-step-row" id="m-ai-step-3" style="display: flex; align-items: center; gap: 0.6rem; font-size: 0.78rem; color: var(--m-text-muted);">
+          <span class="m-step-icon"><i data-lucide="circle" style="width: 13px; height: 13px; opacity: 0.35;"></i></span>
+          <span class="step-text">3. Satır Satır OCR ve İsim/Numara Analizi</span>
+        </div>
+        <div class="m-ai-step-row" id="m-ai-step-4" style="display: flex; align-items: center; gap: 0.6rem; font-size: 0.78rem; color: var(--m-text-muted);">
+          <span class="m-step-icon"><i data-lucide="circle" style="width: 13px; height: 13px; opacity: 0.35;"></i></span>
+          <span class="m-step-text">4. Bilgilerin Doğrulanması ve Liste Kaydı</span>
+        </div>
+      </div>
+
+      <div style="font-size: 0.73rem; color: var(--m-text-muted); line-height: 1.4;">
+        💡 <em>Analiz 10-20 saniye sürebilir, lütfen uygulamayı kapatmayın.</em>
       </div>
     </div>
   </div>

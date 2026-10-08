@@ -804,7 +804,7 @@
     }
 
     // Gemini İle Öğrenci Listesini Ayrıştırma
-    async function analyzeStudentListWithDesktopGemini(base64Data, mimeType) {
+    async function analyzeStudentListWithDesktopGemini(base64Data, mimeType, onProgress) {
       const apiKey = (localStorage.getItem('sinif_asistani_gemini_api_key') || '').trim();
       if (!apiKey) throw new Error('API anahtarı bulunamadı.');
 
@@ -877,6 +877,8 @@ SADECE VE SADECE GEÇERLİ BİR JSON DİZİSİ DÖNDÜR. Markdown (örneğin \`\
   {"number": "101", "name": "Ahmet", "surname": "Yılmaz", "gender": "male"},
   {"number": "105", "name": "Zeynep", "surname": "Kaya", "gender": "female"}
 ]`;
+
+      if (typeof onProgress === 'function') onProgress('generating');
 
       let lastError = null;
 
@@ -966,6 +968,84 @@ SADECE VE SADECE GEÇERLİ BİR JSON DİZİSİ DÖNDÜR. Markdown (örneğin \`\
       throw lastError || new Error('Yapay zeka belgeyi okuyamadı');
     }
 
+    // ==========================================================================
+    // YAPAY ZEKA İLE ÖĞRENCİ EKLEME ADIMLI İLERLEME KONTROLCÜSÜ
+    // ==========================================================================
+    let desktopAiProgressTimer = null;
+
+    function setDesktopAiProgress(stepNumber, percent, title, desc) {
+      const titleEl = document.getElementById('desktop-ai-loading-title');
+      const descEl = document.getElementById('desktop-ai-loading-desc');
+      const stepCounterEl = document.getElementById('desktop-ai-loading-step-counter');
+      const percentageEl = document.getElementById('desktop-ai-loading-percentage');
+      const progressBarEl = document.getElementById('desktop-ai-loading-progress-bar');
+
+      if (title && titleEl) titleEl.textContent = title;
+      if (desc && descEl) descEl.textContent = desc;
+      if (stepCounterEl) stepCounterEl.textContent = `Adım ${Math.min(4, stepNumber)} / 4`;
+      if (percentageEl) percentageEl.textContent = `%${percent}`;
+      if (progressBarEl) progressBarEl.style.width = `${percent}%`;
+
+      // 4 adım satırının görsel durumunu güncelle
+      for (let s = 1; s <= 4; s++) {
+        const rowEl = document.getElementById(`desktop-ai-step-${s}`);
+        if (!rowEl) continue;
+        const iconSpan = rowEl.querySelector('.step-icon');
+        if (s < stepNumber) {
+          // Tamamlandı
+          rowEl.style.color = 'var(--text-secondary)';
+          rowEl.style.fontWeight = '500';
+          if (iconSpan) iconSpan.innerHTML = `<i data-lucide="check-circle-2" style="width: 14px; height: 14px; color: #10b981;"></i>`;
+        } else if (s === stepNumber) {
+          // Aktif
+          rowEl.style.color = '#8b5cf6';
+          rowEl.style.fontWeight = '700';
+          if (iconSpan) iconSpan.innerHTML = `<div class="spinner" style="width: 13px; height: 13px; border-width: 2px; border-color: #8b5cf6; border-top-color: transparent;"></div>`;
+        } else {
+          // Beklemede
+          rowEl.style.color = 'var(--text-muted)';
+          rowEl.style.fontWeight = '400';
+          if (iconSpan) iconSpan.innerHTML = `<i data-lucide="circle" style="width: 14px; height: 14px; opacity: 0.35;"></i>`;
+        }
+      }
+
+      if (window.safeCreateIcons) window.safeCreateIcons();
+      else if (window.lucide) window.lucide.createIcons();
+    }
+
+    function startDesktopAiHeartbeat() {
+      stopDesktopAiHeartbeat();
+      let curPct = 52;
+      const messages = [
+        'Google Gemini yapay zekası öğrenci listesini satır satır inceliyor...',
+        'Okul numaraları ve ad-soyad sütunları çözümleniyor...',
+        'Türkçe isim yapısı ve cinsiyet bilgileri kontrol ediliyor...',
+        'Öğrenci kayıtları doğrulanıyor ve tablo için düzenleniyor...'
+      ];
+      let msgIdx = 0;
+      desktopAiProgressTimer = setInterval(() => {
+        if (curPct < 88) {
+          curPct += 2;
+          const descEl = document.getElementById('desktop-ai-loading-desc');
+          const percentageEl = document.getElementById('desktop-ai-loading-percentage');
+          const progressBarEl = document.getElementById('desktop-ai-loading-progress-bar');
+          if (percentageEl) percentageEl.textContent = `%${curPct}`;
+          if (progressBarEl) progressBarEl.style.width = `${curPct}%`;
+          if (curPct % 8 === 0 && descEl) {
+            msgIdx = (msgIdx + 1) % messages.length;
+            descEl.textContent = messages[msgIdx];
+          }
+        }
+      }, 750);
+    }
+
+    function stopDesktopAiHeartbeat() {
+      if (desktopAiProgressTimer) {
+        clearInterval(desktopAiProgressTimer);
+        desktopAiProgressTimer = null;
+      }
+    }
+
     // Dosya Seçildiğinde Tetiklenir
     if (desktopAiStudentFileInput) {
       desktopAiStudentFileInput.addEventListener('change', async (e) => {
@@ -973,10 +1053,53 @@ SADECE VE SADECE GEÇERLİ BİR JSON DİZİSİ DÖNDÜR. Markdown (örneğin \`\
         if (!file) return;
 
         if (modalDesktopAiLoading) modalDesktopAiLoading.classList.add('active');
+        const isPdf = file.name.toLowerCase().endsWith('.pdf') || file.type === 'application/pdf';
+        
+        // 1. Adım: Belge Hazırlanıyor
+        setDesktopAiProgress(
+          1, 
+          18, 
+          'Belge Hazırlanıyor...', 
+          isPdf ? 'PDF belgesi taranıyor ve yüksek kalitede hazırlanıyor...' : 'Görsel çözünürlüğü ve kalitesi optimize ediliyor...'
+        );
 
         try {
           const processed = await processFileForDesktopGemini(file);
-          const students = await analyzeStudentListWithDesktopGemini(processed.base64, processed.mimeType);
+
+          // 2. Adım: Yapay Zeka Bağlantısı
+          setDesktopAiProgress(
+            2, 
+            40, 
+            'Yapay Zeka Bağlantısı Kuruluyor...', 
+            'Google Gemini Vision servisine güvenli veri aktarımı yapılıyor...'
+          );
+
+          // 3. Adım: Analiz Başlatılıyor
+          const students = await analyzeStudentListWithDesktopGemini(
+            processed.base64, 
+            processed.mimeType, 
+            (status) => {
+              if (status === 'generating') {
+                setDesktopAiProgress(
+                  3, 
+                  52, 
+                  'Liste Satır Satır Taranıyor...', 
+                  'Google Gemini yapay zekası öğrenci listesini satır satır inceliyor...'
+                );
+                startDesktopAiHeartbeat();
+              } else if (status === 'parsing') {
+                stopDesktopAiHeartbeat();
+                setDesktopAiProgress(
+                  4, 
+                  92, 
+                  'Bilgiler Ayrıştırılıyor...', 
+                  'Tespit edilen ad, soyad ve numaralar kontrol ediliyor...'
+                );
+              }
+            }
+          );
+
+          stopDesktopAiHeartbeat();
 
           if (!students || students.length === 0) {
             if (modalDesktopAiLoading) modalDesktopAiLoading.classList.remove('active');
@@ -1000,6 +1123,16 @@ SADECE VE SADECE GEÇERLİ BİR JSON DİZİSİ DÖNDÜR. Markdown (örneğin \`\
           }
 
           window.tempDesktopAiStudents = scanned;
+
+          // 4. Adım: Tamamlandı
+          setDesktopAiProgress(
+            4, 
+            100, 
+            'İşlem Tamamlandı!', 
+            `🎉 ${scanned.length} öğrenci başarıyla tespit edildi. Liste açılıyor...`
+          );
+
+          await new Promise(r => setTimeout(r, 450));
           if (modalDesktopAiLoading) modalDesktopAiLoading.classList.remove('active');
 
           if (modalDesktopAiPreview) {
@@ -1007,6 +1140,7 @@ SADECE VE SADECE GEÇERLİ BİR JSON DİZİSİ DÖNDÜR. Markdown (örneğin \`\
             modalDesktopAiPreview.classList.add('active');
           }
         } catch (err) {
+          stopDesktopAiHeartbeat();
           if (modalDesktopAiLoading) modalDesktopAiLoading.classList.remove('active');
           console.error('Desktop AI student scan error:', err);
           if (toastCallback) toastCallback(`❌ Hata: ${err.message || 'Belge işlenirken bir sorun oluştu.'}`, 'danger');

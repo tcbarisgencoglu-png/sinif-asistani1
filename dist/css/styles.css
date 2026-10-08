@@ -4044,12 +4044,7 @@ th:hover .hw-col-actions {
 .omr-anchor-br { bottom: 6px; right: 6px; }
 
 .omr-row-tick {
-  width: 5px;
-  height: 2px;
-  background-color: #000000 !important;
-  display: inline-block;
-  margin-right: 2px;
-  flex-shrink: 0;
+  display: none !important;
 }
 
 .omr-card-header {
@@ -8489,5 +8484,181 @@ input:checked + .slider:before {
 
 .dp-progress-bar-animated {
   animation: dp-shimmer 2s linear infinite;
+}
+
+/* ==========================================================================
+   TAHTADA SORU ÇÖZÜMÜ & HATA ANALİZİ MODÜLÜ (AKILLI TAHTA UYUMLU)
+   ========================================================================== */
+#modal-board-question-analysis.board-fullscreen {
+  padding: 0 !important;
+}
+
+#modal-board-question-analysis.board-fullscreen .board-analysis-modal-content {
+  max-width: 100vw !important;
+  width: 100vw !important;
+  max-height: 100vh !important;
+  height: 100vh !important;
+  border-radius: 0 !important;
+}
+
+#board-qa-subject-tabs {
+  background: var(--bg-surface, #ffffff);
+  border-bottom: 1px solid var(--border-color);
+  padding: 0.65rem 1.25rem;
+  gap: 6px 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  z-index: 5;
+}
+
+.board-subj-tab {
+  padding: 0.38rem 0.8rem;
+  border-radius: 8px;
+  border: 1.5px solid var(--border-color);
+  background: var(--bg-surface, #fff);
+  color: var(--text-primary);
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.board-subj-tab:hover {
+  border-color: var(--primary);
+  transform: translateY(-1px);
+}
+
+.board-subj-tab.active {
+  background: linear-gradient(135deg, #312e81, #4338ca);
+  color: #ffffff;
+  border-color: #312e81;
+  box-shadow: 0 3px 10px rgba(49, 46, 129, 0.3);
+}
+
+.board-q-pill {
+  min-width: 42px;
+  height: 42px;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9px;
+  font-size: 0.9rem;
+  font-weight: 800;
+  cursor: pointer;
+  border: 2px solid var(--border-color);
+  background: var(--bg-surface, #fff);
+  color: var(--text-primary);
+  transition: all 0.15s ease;
+  user-select: none;
+  position: relative;
+  padding: 2px 4px;
+}
+
+.board-q-pill:hover {
+  transform: translateY(-2px);
+  border-color: var(--primary);
+  box-shadow: 0 4px 10px rgba(99, 102, 241, 0.2);
+}
+
+.board-q-pill.active {
+  background: linear-gradient(135deg, #4f46e5, #6366f1) !important;
+  color: #ffffff !important;
+  border-color: #4338ca !important;
+  box-shadow: 0 4px 14px rgba(79, 70, 229, 0.45);
+  transform: scale(1.08);
+  z-index: 2;
+}
+
+.board-q-pill.error-high {
+  border-color: #ef4444;
+  background: rgba(239, 68, 68, 0.08);
+  color: #dc2626;
+}
+
+.board-q-pill.error-mid {
+  border-color: #f59e0b;
+  background: rgba(245, 158, 11, 0.08);
+  color: #d97706;
+}
+
+.board-q-pill.error-low {
+  border-color: #10b981;
+  background: rgba(16, 185, 129, 0.08);
+  color: #15803d;
+}
+
+.board-filter-btn {
+  border: 1px solid var(--border-color);
+  background: var(--bg-surface, #fff);
+  color: var(--text-secondary);
+  border-radius: 8px;
+  padding: 0.4rem 0.85rem;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+}
+
+.board-filter-btn:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.board-filter-btn.active {
+  background: #1e1b4b;
+  color: #ffffff;
+  border-color: #1e1b4b;
+  box-shadow: 0 2px 6px rgba(30, 27, 75, 0.25);
+}
+
+.board-student-card {
+  background: var(--bg-surface, #ffffff);
+  border: 1.5px solid var(--border-color);
+  border-radius: 10px;
+  padding: 0.75rem 0.85rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.board-student-card:hover {
+  border-color: var(--primary);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+  transform: translateY(-1px);
+}
+
+.board-student-card.is-wrong {
+  border-color: rgba(239, 68, 68, 0.4);
+  background: linear-gradient(135deg, rgba(254, 242, 242, 0.8), #ffffff);
+}
+
+.board-student-card.is-blank {
+  border-color: rgba(100, 116, 139, 0.35);
+  background: linear-gradient(135deg, rgba(248, 250, 252, 0.9), #ffffff);
+}
+
+.board-student-card.is-correct {
+  border-color: rgba(16, 185, 129, 0.4);
+  background: linear-gradient(135deg, rgba(240, 253, 244, 0.8), #ffffff);
+}
+
+.board-choice-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  border: 1px solid var(--border-color);
+  background: var(--bg-surface, #fff);
 }
 

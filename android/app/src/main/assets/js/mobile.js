@@ -6185,6 +6185,80 @@ SADECE VE SADECE GEÇERLİ BİR JSON DİZİSİ DÖNDÜR. Markdown (örneğin \`\
     })).filter(s => !!s.name);
   }
 
+  // ==========================================================================
+  // MOBİL YAPAY ZEKA İLE ÖĞRENCİ EKLEME ADIMLI İLERLEME KONTROLCÜSÜ
+  // ==========================================================================
+  let mobileAiProgressTimer = null;
+
+  function setMobileAiProgress(stepNumber, percent, title, desc) {
+    const titleEl = document.getElementById('m-ai-loading-title');
+    const descEl = document.getElementById('m-ai-loading-desc');
+    const stepCounterEl = document.getElementById('m-ai-loading-step-counter');
+    const percentageEl = document.getElementById('m-ai-loading-percentage');
+    const progressBarEl = document.getElementById('m-ai-loading-progress-bar');
+
+    if (title && titleEl) titleEl.textContent = title;
+    if (desc && descEl) descEl.textContent = desc;
+    if (stepCounterEl) stepCounterEl.textContent = `Adım ${Math.min(4, stepNumber)} / 4`;
+    if (percentageEl) percentageEl.textContent = `%${percent}`;
+    if (progressBarEl) progressBarEl.style.width = `${percent}%`;
+
+    for (let s = 1; s <= 4; s++) {
+      const rowEl = document.getElementById(`m-ai-step-${s}`);
+      if (!rowEl) continue;
+      const iconSpan = rowEl.querySelector('.m-step-icon');
+      if (s < stepNumber) {
+        rowEl.style.color = 'var(--m-text-muted)';
+        rowEl.style.fontWeight = '500';
+        if (iconSpan) iconSpan.innerHTML = `<i data-lucide="check-circle-2" style="width: 13px; height: 13px; color: #10b981;"></i>`;
+      } else if (s === stepNumber) {
+        rowEl.style.color = 'var(--m-text)';
+        rowEl.style.fontWeight = '700';
+        if (iconSpan) iconSpan.innerHTML = `<span class="m-spinner" style="width: 12px; height: 12px; border: 2px solid var(--m-primary); border-top-color: transparent; border-radius: 50%; display: inline-block;"></span>`;
+      } else {
+        rowEl.style.color = 'var(--m-text-muted)';
+        rowEl.style.fontWeight = '400';
+        if (iconSpan) iconSpan.innerHTML = `<i data-lucide="circle" style="width: 13px; height: 13px; opacity: 0.35;"></i>`;
+      }
+    }
+
+    if (window.safeCreateIcons) window.safeCreateIcons();
+    else if (window.lucide) window.lucide.createIcons();
+  }
+
+  function startMobileAiHeartbeat() {
+    stopMobileAiHeartbeat();
+    let curPct = 52;
+    const messages = [
+      'Google Gemini yapay zekası sınıf listenizi satır satır inceliyor...',
+      'Okul numaraları ve ad-soyad sütunları çözümleniyor...',
+      'Türkçe isim yapısı ve cinsiyet bilgileri kontrol ediliyor...',
+      'Öğrenci verileri doğrulanıyor ve kaydedilmek üzere hazırlanıyor...'
+    ];
+    let msgIdx = 0;
+    mobileAiProgressTimer = setInterval(() => {
+      if (curPct < 88) {
+        curPct += 2;
+        const descEl = document.getElementById('m-ai-loading-desc');
+        const percentageEl = document.getElementById('m-ai-loading-percentage');
+        const progressBarEl = document.getElementById('m-ai-loading-progress-bar');
+        if (percentageEl) percentageEl.textContent = `%${curPct}`;
+        if (progressBarEl) progressBarEl.style.width = `${curPct}%`;
+        if (curPct % 8 === 0 && descEl) {
+          msgIdx = (msgIdx + 1) % messages.length;
+          descEl.textContent = messages[msgIdx];
+        }
+      }
+    }, 750);
+  }
+
+  function stopMobileAiHeartbeat() {
+    if (mobileAiProgressTimer) {
+      clearInterval(mobileAiProgressTimer);
+      mobileAiProgressTimer = null;
+    }
+  }
+
   window.handleAiStudentImageSelected = async (event) => {
     const file = event.target.files && event.target.files[0];
     if (!file) return;
@@ -6196,41 +6270,56 @@ SADECE VE SADECE GEÇERLİ BİR JSON DİZİSİ DÖNDÜR. Markdown (örneğin \`\
     const isPdf = fileName.endsWith('.pdf') || fileType === 'application/pdf';
 
     openBottomSheet('modal-ai-student-loading');
-    const loadingTitle = document.getElementById('m-ai-loading-title');
-    const loadingDesc = document.getElementById('m-ai-loading-desc');
+    setMobileAiProgress(
+      1, 
+      18, 
+      isExcelOrCsv ? 'Tablo Okunuyor...' : 'Belge Hazırlanıyor...', 
+      isExcelOrCsv ? 'Excel/CSV dosyası işleniyor...' : (isPdf ? 'PDF sayfası taranıyor ve optimize ediliyor...' : 'Görsel çözünürlüğü ve kalitesi hazırlanıyor...')
+    );
 
     try {
       let scanned = [];
 
       // 1. Excel / CSV Doğrudan Çevrimdışı Ayrıştırma
       if (isExcelOrCsv) {
-        if (loadingTitle) loadingTitle.textContent = 'Excel Dosyası Okunuyor...';
-        if (loadingDesc) loadingDesc.textContent = 'Sınıf listesindeki öğrenci ad ve numaraları ayrıştırılıyor...';
-
+        setMobileAiProgress(2, 50, 'Tablo Ayrıştırılıyor...', 'Öğrenci satırları taranıyor...');
         scanned = await parseStudentExcelFile(file);
+        setMobileAiProgress(4, 95, 'Kayıtlar Hazırlanıyor...', 'Öğrenci bilgileri düzenleniyor...');
       }
       // 2. PDF Dosyası (Gemini Vision)
       else if (isPdf) {
-        if (loadingTitle) loadingTitle.textContent = 'PDF İnceleniyor...';
-        if (loadingDesc) loadingDesc.textContent = 'Google Gemini yapay zekası PDF sınıf listesini çözümlüyor... Lütfen bekleyin...';
-
+        setMobileAiProgress(2, 42, 'Yapay Zeka Bağlantısı...', 'Google Gemini Vision servisine aktarılıyor...');
         const base64Data = await readFileAsBase64(file);
+
+        setMobileAiProgress(3, 54, 'Liste Satır Satır Taranıyor...', 'Yapay zeka PDF listesini çözümlüyor...');
+        startMobileAiHeartbeat();
+
         scanned = await analyzeStudentDocumentWithGemini(base64Data, 'application/pdf');
+        stopMobileAiHeartbeat();
+        setMobileAiProgress(4, 95, 'Kayıtlar Düzenleniyor...', 'Öğrenci listesi ayrıştırılıyor...');
       }
       // 3. Kamera veya Görsel Dosyası (Gemini Vision)
       else {
-        if (loadingTitle) loadingTitle.textContent = 'Görsel Analiz Ediliyor...';
-        if (loadingDesc) loadingDesc.textContent = 'Google Gemini yapay zekası sınıf listenizdeki öğrencileri inceliyor... Lütfen bekleyin...';
-
         const processed = await processImageFileForGemini(file);
+        setMobileAiProgress(2, 42, 'Yapay Zeka Bağlantısı...', 'Google Gemini Vision servisine aktarılıyor...');
+
+        setMobileAiProgress(3, 54, 'Liste Satır Satır Taranıyor...', 'Yapay zeka tüm öğrenci adlarını ve numaralarını inceliyor...');
+        startMobileAiHeartbeat();
+
         scanned = await analyzeStudentDocumentWithGemini(processed.base64, processed.mimeType);
+        stopMobileAiHeartbeat();
+        setMobileAiProgress(4, 95, 'Kayıtlar Düzenleniyor...', 'Öğrenci listesi ayrıştırılıyor...');
       }
 
       if (!scanned || scanned.length === 0) {
+        stopMobileAiHeartbeat();
         window.closeBottomSheet();
         showMobileToast('❌ Listede öğrenci bulunamadı. Lütfen daha net bir fotoğraf veya dosya seçin.');
         return;
       }
+
+      setMobileAiProgress(4, 100, 'Tamamlandı!', `🎉 ${scanned.length} öğrenci tespit edildi.`);
+      await new Promise(r => setTimeout(r, 400));
 
       // Demo Sürüm Kontrolü
       const isDemo = window.LicenseConfig ? window.LicenseConfig.isDemo : true;
@@ -6299,6 +6388,7 @@ SADECE VE SADECE GEÇERLİ BİR JSON DİZİSİ DÖNDÜR. Markdown (örneğin \`\
       window.closeBottomSheet();
       window.openAiAskBranchModal();
     } catch (err) {
+      stopMobileAiHeartbeat();
       window.closeBottomSheet();
       console.error('Öğrenci listesi aktarma hatası:', err);
       showMobileToast(`❌ Hata: ${err.message || 'Dosya işlenirken bir sorun oluştu'}`, 'danger', 5000);

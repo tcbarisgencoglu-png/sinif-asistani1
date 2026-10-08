@@ -307,34 +307,46 @@
   // ==========================================================================
 
   window.openMobileOpticalPrintModal = function(examId) {
-    if (!window.stateManager) return;
-    const state = window.stateManager.loadState ? window.stateManager.loadState() : (window.stateManager.state || {});
-    const exam = (state.weeklyEvaluations || []).find(e => String(e.id) === String(examId)) || window.activeWeeklyExam;
-    if (!exam) {
-      if (window.showMobileToast) window.showMobileToast('Sınav verisi bulunamadı!', 'error');
-      return;
+    try {
+      if (!window.stateManager) return;
+      const state = window.stateManager.loadState ? window.stateManager.loadState() : (window.stateManager.state || {});
+      const exam = (state.weeklyEvaluations || []).find(e => String(e.id) === String(examId)) 
+        || window.activeWeeklyExam 
+        || (Array.isArray(state.weeklyEvaluations) && state.weeklyEvaluations.length > 0 ? state.weeklyEvaluations[0] : null);
+      if (!exam) {
+        if (window.showMobileToast) window.showMobileToast('Lütfen önce bir sınav seçin!', 'warning');
+        return;
+      }
+
+      activeExam = exam;
+      window.activeWeeklyExam = exam;
+      const modal = document.getElementById('modal-mobile-optical-print');
+      if (!modal) return;
+
+      const qInput = document.getElementById('m-opt-qcount');
+      const cInput = document.getElementById('m-opt-choices');
+      const typeSelect = document.getElementById('m-opt-type');
+      const perPageSelect = document.getElementById('m-opt-perpage');
+
+      if (qInput) qInput.value = exam.totalQuestions || 20;
+      if (cInput) cInput.value = exam.choicesCount || 4;
+      if (typeSelect) typeSelect.value = 'named';
+      if (perPageSelect) perPageSelect.value = (exam.isMultiSubject || (exam.totalQuestions > 35)) ? '1' : '2';
+
+      try {
+        renderOpticalPrintPreview();
+      } catch (err) {
+        console.warn('renderOpticalPrintPreview hatası:', err);
+      }
+      const backdrop = document.getElementById('sheet-backdrop');
+      if (backdrop) backdrop.classList.add('active');
+      modal.classList.add('active');
+      if (window.vibrate) window.vibrate(20);
+      if (window.lucide) window.lucide.createIcons();
+    } catch (err) {
+      console.error('openMobileOpticalPrintModal hatası:', err);
+      if (window.showMobileToast) window.showMobileToast('Optik form açılırken hata: ' + (err.message || err), 'error');
     }
-
-    activeExam = exam;
-    const modal = document.getElementById('modal-mobile-optical-print');
-    if (!modal) return;
-
-    const qInput = document.getElementById('m-opt-qcount');
-    const cInput = document.getElementById('m-opt-choices');
-    const typeSelect = document.getElementById('m-opt-type');
-    const perPageSelect = document.getElementById('m-opt-perpage');
-
-    if (qInput) qInput.value = exam.totalQuestions || 20;
-    if (cInput) cInput.value = exam.choicesCount || 4;
-    if (typeSelect) typeSelect.value = 'named';
-    if (perPageSelect) perPageSelect.value = '2';
-
-    renderOpticalPrintPreview();
-    const backdrop = document.getElementById('sheet-backdrop');
-    if (backdrop) backdrop.classList.add('active');
-    modal.classList.add('active');
-    if (window.vibrate) window.vibrate(20);
-    if (window.lucide) window.lucide.createIcons();
   };
 
   window.closeMobileOpticalPrintModal = function() {
@@ -488,48 +500,57 @@
   }
 
   window.renderOpticalPrintPreview = function() {
-    const previewBox = document.getElementById('m-opt-preview-box');
-    if (!previewBox || !activeExam) return;
+    try {
+      const previewBox = document.getElementById('m-opt-preview-box');
+      if (!previewBox || !activeExam) return;
 
-    const qCount = parseInt(document.getElementById('m-opt-qcount').value, 10) || 20;
-    const choicesCount = parseInt(document.getElementById('m-opt-choices').value, 10) || 4;
-    const formType = document.getElementById('m-opt-type').value;
-    const perPage = parseInt(document.getElementById('m-opt-perpage')?.value, 10) || 2;
+      const qInput = document.getElementById('m-opt-qcount');
+      const cInput = document.getElementById('m-opt-choices');
+      const tInput = document.getElementById('m-opt-type');
+      const pInput = document.getElementById('m-opt-perpage');
 
-    const letters = ['A', 'B', 'C', 'D', 'E'].slice(0, choicesCount);
-    const sampleStudents = [
-      { id: 'sample_1', name: 'Ahmet YILMAZ', no: '105' },
-      { id: 'sample_2', name: 'Ayşe DEMİR', no: '108' },
-      { id: 'sample_3', name: 'Mehmet ÇELİK', no: '112' },
-      { id: 'sample_4', name: 'Zeynep KAYA', no: '119' }
-    ];
+      const qCount = parseInt(qInput ? qInput.value : (activeExam.totalQuestions || 20), 10) || 20;
+      const choicesCount = parseInt(cInput ? cInput.value : (activeExam.choicesCount || 4), 10) || 4;
+      const formType = tInput ? tInput.value : 'named';
+      const perPage = parseInt(pInput ? pInput.value : '2', 10) || 2;
 
-    let cardsHtml = '';
-    for (let i = 0; i < perPage; i++) {
-      const isNamed = formType === 'named';
-      const sample = sampleStudents[i] || sampleStudents[0];
-      const studentName = isNamed ? sample.name : '................................';
-      const studentNo = isNamed ? sample.no : '......';
+      const letters = ['A', 'B', 'C', 'D', 'E'].slice(0, choicesCount);
+      const sampleStudents = [
+        { id: 'sample_1', name: 'Ahmet YILMAZ', no: '105' },
+        { id: 'sample_2', name: 'Ayşe DEMİR', no: '108' },
+        { id: 'sample_3', name: 'Mehmet ÇELİK', no: '112' },
+        { id: 'sample_4', name: 'Zeynep KAYA', no: '119' }
+      ];
 
-      cardsHtml += generateSingleOpticalCardHTML({
-        examName: activeExam.examName || 'Haftalık Değerlendirme',
-        studentName: studentName,
-        studentNo: studentNo,
-        studentId: isNamed ? sample.id : '',
-        examId: activeExam.id || '',
-        totalQuestions: qCount,
-        letters: letters,
-        studentIndex: isNamed ? (i + 1) : 0,
-        isSample: true,
-        perPage: perPage
-      });
+      let cardsHtml = '';
+      for (let i = 0; i < perPage; i++) {
+        const isNamed = formType === 'named';
+        const sample = sampleStudents[i] || sampleStudents[0];
+        const studentName = isNamed ? sample.name : '................................';
+        const studentNo = isNamed ? sample.no : '......';
+
+        cardsHtml += generateSingleOpticalCardHTML({
+          examName: activeExam.examName || 'Haftalık Değerlendirme',
+          studentName: studentName,
+          studentNo: studentNo,
+          studentId: isNamed ? sample.id : '',
+          examId: activeExam.id || '',
+          totalQuestions: qCount,
+          letters: letters,
+          studentIndex: isNamed ? (i + 1) : 0,
+          isSample: true,
+          perPage: perPage
+        });
+      }
+
+      previewBox.innerHTML = `
+        <div class="omr-preview-sheet omr-preview-per-page-${perPage}">
+          ${cardsHtml}
+        </div>
+      `;
+    } catch (err) {
+      console.warn('renderOpticalPrintPreview error:', err);
     }
-
-    previewBox.innerHTML = `
-      <div class="omr-preview-sheet omr-preview-per-page-${perPage}">
-        ${cardsHtml}
-      </div>
-    `;
   };
 
   function generateSingleOpticalCardHTML(options) {
@@ -547,7 +568,6 @@
       for (let q = startQ; q <= endQ; q++) {
         colRows += `
           <div class="omr-q-row" data-q="${q}">
-            <span class="omr-row-tick"></span>
             <span class="omr-q-num">${q}</span>
             <div class="omr-q-bubbles">
               ${letters.map(l => `<span class="omr-bubble" data-opt="${l}">${l}</span>`).join('')}
@@ -1697,37 +1717,59 @@
       const letters = ['A', 'B', 'C', 'D', 'E'].slice(0, choicesCount);
       const examTitle = activeExam.examName || 'Optik Sınav';
 
+      const studentsRosterText = Array.isArray(students) && students.length > 0
+        ? students.map(s => `- No: "${s.number || '-'}", Ad Soyad: "${s.name} ${s.surname || ''}"`).join('\n')
+        : '';
+
       const prompt = `Görseldeki sınav optik formunu dikkatlice incele.
 Sınav Bilgileri:
 - Sınav Adı: ${examTitle}
 - Toplam Soru Sayısı: ${qCount}
 - Olası Seçenekler: ${letters.join(', ')}
 
-FORM DÜZENİ VE OKUMA KURALLARI (ÇOK ÖNEMLİ):
+${studentsRosterText ? `SINIFTAKİ KAYITLI ÖĞRENCİ LİSTESİ (İSİM VE NUMARAYI BU LİSTEYLE EŞLEŞTİR):
+${studentsRosterText}
+` : ''}
+FORM DÜZENİ VE OKUMA KURALLARI (EN KRİTİK BÖLÜM):
 1. ÖĞRENCİ BİLGİLERİ:
-   - "Öğrenci:" yanındaki tam isim ("studentName")
-   - "No:" yanındaki öğrenci numarası ("studentNo")
-2. HER SORU SATIRINDA SOLDAN SAĞA ŞIK ÇEMBERLERİ BULUNUR:
-   - 1. Çember = 'A'
-   - 2. Çember = 'B'
-   - 3. Çember = 'C'
-   - 4. Çember = 'D' (varsa 5. Çember = 'E')
-3. OPTİK İŞARETLEME TESPİTİ (EN KRİTİK KURAL):
-   - Her çemberin içinde basılı harf (A, B, C, D) bulunur.
-   - ÖĞRENCİNİN SEÇTİĞİ ŞIK: İÇİ KURŞUN KALEM VEYA TÜKENMEZ KALEMLE KARALANMIŞ / DOLDURULMUŞ / KOYU GRİ VEYA SİYAH OLAN ÇEMBERDİR.
-   - İçi beyaz kalan ve sadece basılı harfi görünen çemberler BOŞTUR / SEÇİLMEMİŞTİR! Beyaz çemberdeki harf net okunuyor diye onu kesinlikle işaretli sayma!
-   - Karalanmış çemberin içindeki harf kurşun kalemden dolayı örtülmüş olabilir; çemberin konumuna göre harfi belirle (1. çember A, 2. çember B, 3. çember C, 4. çember D).
+   - "Öğrenci:" yanındaki tam isim ("studentName"). Yukarıdaki listeden eşleşen resmi öğrenci adını yaz.
+   - "No:" yanındaki öğrenci numarası ("studentNo").
+2. BALONCUKLARIN SABİT YATAY SIRASI (KESİN REFERANS KURALI):
+   Her soru satırında soldan sağa her zaman tam 4 adet şık çemberi bulunur:
+   * 1. Çember (en soldaki ilk daire)  = 'A'
+   * 2. Çember (soldan 2. daire)       = 'B'
+   * 3. Çember (soldan 3. daire)       = 'C'
+   * 4. Çember (en sağdaki son daire)   = 'D' ${choicesCount >= 5 ? "\n   * 5. Çember (en sağdaki 5. daire) = 'E'" : ''}
+
+3. ⚠️ "KOMŞU BOŞ HARF YANILGISI" VE ÖRTÜLEN HARF KURALI (HAYATİ ÖNEMDE):
+   - Bir öğrenci şıkkı doldurduğunda o çember kurşun kalemle kapkara olur ve İÇİNDEKİ HARF ÖRTÜLÜR / GÖRÜNMEZ HALE GELİR.
+   - İşaretlenmemiş BOŞ çemberler ise BEYAZ zemin üzerinde kalır ve içlerindeki harfler (A, B, C veya D) ÇOK NET OKUNUR.
+   - SAKIN DİKKATİNİ KARALANMIŞ ÇEMBERİN HEMEN YANINDAKİ OKUNABİLEN BOŞ BEYAZ HARFE VERME!
+   - ÖRNEK 1: Eğer 3. çember karalanmışsa (içi kapkara) ve hemen sağındaki 4. çember bembeyaz durup içinde 'D' harfi açıkça okunuyorsa; SAKIN 'D' YAZMA! 4. çember boştur! Karalanmış olan çember 3. sıradaki çemberdir ve onun değeri KESİNLİKLE "C"dir!
+   - ÖRNEK 2: Eğer 1. çember karalanmışsa (içi kapkara) ve hemen sağındaki 2. çember bembeyaz durup içinde 'B' harfi açıkça okunuyorsa; SAKIN 'B' YAZMA! 2. çember boştur! Karalanmış olan çember 1. sıradaki çemberdir ve onun değeri KESİNLİKLE "A"dır!
+   - HER SORUDA DİKKATİNİ HARFE DEĞİL, SOLDAN SAĞA DOLU OLAN ÇEMBERİN SIRASINA (1., 2., 3., 4.) VER!
+
+4. HER SATIRDA SOLDAN SAĞA 4 ÇEMBERİ SAYARAK TESPİT ET:
+   - 1. çember koyu/karalanmışsa -> "A"
+   - 2. çember koyu/karalanmışsa -> "B"
+   - 3. çember koyu/karalanmışsa -> "C"
+   - 4. çember koyu/karalanmışsa -> "D"
+   - Satırdaki 4 çemberin dördü de eşit derecede boş, el değmemiş ve beyazsa -> "" (boş)
    - Soru hiç işaretlenmemişse veya tüm çemberler boşsa "" (boş dize) yaz.
    - Bir soruda birden fazla çember karalanmışsa "MULTIPLE" yaz.
    - Eğer bir şık karalanıp sonra üzeri çizilmiş/silinmiş ve başka bir şık doldurulmuşsa geçerli doldurulanı al.
+
+5. DOĞRULAMA (BUBBLECHECK):
+   - "bubbleCheck" alanında satır satır dolu çember sırasını (1., 2., 3., 4.) kısaca listele. Bu doğrulama sonrasında "answers" nesnesini doldur.
 
 Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi veya ek metin ekleme):
 {
   "studentName": "...",
   "studentNo": "...",
+  "bubbleCheck": "1=1.cember(A), 2=3.cember(C)...",
   "answers": {
-    "1": "B",
-    "2": "A",
+    "1": "A",
+    "2": "C",
     "3": "B"
   }
 }`;
@@ -1755,14 +1797,23 @@ Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi ve
       let identifiedStudent = localStudent;
       if (!identifiedStudent && parsed) {
         const aiNo = String(parsed.studentNo || '').trim();
-        const aiName = String(parsed.studentName || '').trim().toLowerCase();
-        if (aiNo) {
+        const aiName = String(parsed.studentName || '').trim();
+
+        if (typeof window.findBestStudentMatch === 'function') {
+          const matchResult = window.findBestStudentMatch(aiNo, aiName, students);
+          if (matchResult && matchResult.matched) {
+            identifiedStudent = matchResult.matched;
+          }
+        }
+
+        if (!identifiedStudent && aiNo) {
           identifiedStudent = students.find(s => String(s.number).trim() === aiNo);
         }
         if (!identifiedStudent && aiName && aiName.length > 2) {
+          const cleanName = aiName.toLowerCase();
           identifiedStudent = students.find(s => {
             const fullName = `${s.name} ${s.surname || ''}`.trim().toLowerCase();
-            return fullName.includes(aiName) || aiName.includes(fullName);
+            return fullName.includes(cleanName) || cleanName.includes(fullName);
           });
         }
       }
