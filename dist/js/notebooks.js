@@ -1185,27 +1185,42 @@
     // Tam Ekran Hızlı Araçlar Olay Dinleyicileri (Kitap & Defter)
     const openCaller = (e) => {
       if (e) { e.preventDefault(); e.stopPropagation(); }
-      const callerModal = document.getElementById('modal-quick-caller');
-      if (callerModal) {
-        callerModal.classList.add('active');
-        if (window.initQuickCallerModal) window.initQuickCallerModal();
+      if (typeof window.openQuickCallerModal === 'function') {
+        window.openQuickCallerModal();
+      } else {
+        const callerModal = document.getElementById('modal-quick-caller');
+        if (callerModal) {
+          callerModal.style.display = 'flex';
+          callerModal.classList.add('active');
+          if (window.initQuickCallerModal) window.initQuickCallerModal();
+        }
       }
     };
 
     const openQuickPoint = (e) => {
       if (e) { e.preventDefault(); e.stopPropagation(); }
-      if (window.openQuickGivePointModal) {
+      if (typeof window.openQuickGivePointModal === 'function') {
         window.openQuickGivePointModal();
+      } else {
+        const pointModal = document.getElementById('modal-quick-give-point');
+        if (pointModal) {
+          pointModal.style.display = 'flex';
+          pointModal.classList.add('active');
+        }
       }
     };
 
     const openTimer = (e) => {
       if (e) { e.preventDefault(); e.stopPropagation(); }
-      const timerModal = document.getElementById('modal-timer');
-      if (timerModal) {
-        timerModal.style.display = '';
-        timerModal.classList.add('active');
-        if (window.initTimerModal) window.initTimerModal();
+      if (typeof window.openTimerModal === 'function') {
+        window.openTimerModal();
+      } else {
+        const timerModal = document.getElementById('modal-timer');
+        if (timerModal) {
+          timerModal.style.display = '';
+          timerModal.classList.add('active');
+          if (window.initTimerModal) window.initTimerModal();
+        }
       }
     };
 

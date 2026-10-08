@@ -173,16 +173,31 @@
   }
 
   function syncDashboardBtn() {
-    const activeTimerBtn = document.getElementById('btn-dash-timer');
-    if (activeTimerBtn) {
+    const timeText = formatTime(remainingSeconds);
+    const btns = [
+      { el: document.getElementById('btn-dash-timer'), defaultText: null },
+      { el: document.getElementById('btn-pdf-quick-timer'), defaultText: 'Süre Tut' },
+      { el: document.getElementById('btn-notebook-quick-timer'), defaultText: null }
+    ];
+
+    btns.forEach(item => {
+      const btn = item.el;
+      if (!btn) return;
+      const span = btn.querySelector('span');
       if (isRunning) {
-        activeTimerBtn.classList.add('active-running');
-        activeTimerBtn.setAttribute('title', `Süre Tutuluyor: ${formatTime(remainingSeconds)}`);
+        btn.classList.add('active-running');
+        btn.setAttribute('title', `Süre Tutuluyor: ${timeText}`);
+        if (span && item.defaultText) {
+          span.textContent = timeText;
+        }
       } else {
-        activeTimerBtn.classList.remove('active-running');
-        activeTimerBtn.setAttribute('title', 'Süre Tut');
+        btn.classList.remove('active-running');
+        btn.setAttribute('title', 'Süre Tut / Kronometre');
+        if (span && item.defaultText) {
+          span.textContent = item.defaultText;
+        }
       }
-    }
+    });
   }
 
   let tickTockTimeout = null;
@@ -463,6 +478,14 @@
   }
 
   window.closeTimerModal = closeTimerModal;
+  
+  window.openTimerModal = function() {
+    initDOMElements();
+    if (!modal) return;
+    modal.style.display = '';
+    modal.classList.add('active');
+    window.initTimerModal();
+  };
 
   window.initTimerModal = function() {
     initDOMElements();

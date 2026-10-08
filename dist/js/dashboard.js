@@ -973,12 +973,16 @@ function renderDashboardHeaderActions() {
     if (btnDashTimer) {
       btnDashTimer.addEventListener('click', (e) => {
         e.preventDefault();
-        const timerModal = document.getElementById('modal-timer');
-        if (timerModal) {
-          timerModal.style.display = '';
-          timerModal.classList.add('active');
-          if (window.initTimerModal) {
-            window.initTimerModal();
+        if (typeof window.openTimerModal === 'function') {
+          window.openTimerModal();
+        } else {
+          const timerModal = document.getElementById('modal-timer');
+          if (timerModal) {
+            timerModal.style.display = '';
+            timerModal.classList.add('active');
+            if (window.initTimerModal) {
+              window.initTimerModal();
+            }
           }
         }
       });
@@ -1000,11 +1004,16 @@ function renderDashboardHeaderActions() {
     if (btnDashCaller) {
       btnDashCaller.addEventListener('click', (e) => {
         e.preventDefault();
-        const callerModal = document.getElementById('modal-quick-caller');
-        if (callerModal) {
-          callerModal.classList.add('active');
-          if (window.initQuickCallerModal) {
-            window.initQuickCallerModal();
+        if (typeof window.openQuickCallerModal === 'function') {
+          window.openQuickCallerModal();
+        } else {
+          const callerModal = document.getElementById('modal-quick-caller');
+          if (callerModal) {
+            callerModal.style.display = 'flex';
+            callerModal.classList.add('active');
+            if (window.initQuickCallerModal) {
+              window.initQuickCallerModal();
+            }
           }
         }
       });
@@ -3450,7 +3459,7 @@ function updateFlowContent(syncWithRealTime = true) {
         const releases = await response.json();
         if (Array.isArray(releases) && releases.length > 0) {
           const latestRelease = releases[0];
-          const tagName = latestRelease.tag_name || 'v1.0.49';
+          const tagName = latestRelease.tag_name || 'v1.0.50';
           
           const badge = document.getElementById('download-app-version-badge');
           if (badge) badge.textContent = `${tagName} (En Son)`;

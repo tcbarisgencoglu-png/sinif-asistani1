@@ -1,8 +1,8 @@
 {
-  "version": "1.0.49",
-  "releaseDate": "2026-10-07",
+  "version": "1.0.50",
+  "releaseDate": "2026-10-08",
   "minRequiredVersion": "1.0.0",
-  "title": "Sınıf Asistanı v1.0.49 Yayında!",
+  "title": "Sınıf Asistanı v1.0.50 Yayında!",
   "description": "Android Puan Sıralaması, Modern Uyarı/Onay Pencereleri, Toplu Öğrenci Silme ve Lisans/Demo Düzeltmeleri",
   "features": [
     "Android Puan Liderlik Tablosu: Aylık ve yıllık performans görünümleri puan üstünlüğüne göre madalyalı sıralama listesine dönüştürüldü",

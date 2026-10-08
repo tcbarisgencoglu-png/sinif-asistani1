@@ -2021,6 +2021,11 @@ select option {
   body.print-performance .performance-report-print {
     display: block !important;
   }
+  body.print-student-slips .student-exam-slips-print {
+    display: block !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
 }
 
 .print-only {
@@ -3158,24 +3163,27 @@ th:hover .hw-col-actions {
 }
 
 .exam-table-input {
-  width: 66px;
-  max-width: 100%;
-  text-align: center;
-  margin: 0 auto;
-  padding: 0.2rem 0.35rem;
-  font-size: 0.95rem;
-  font-weight: 600;
-  height: 32px;
-  border-radius: var(--radius-sm);
-  box-sizing: border-box;
-  -moz-appearance: textfield;
-  appearance: textfield;
+  width: 58px !important;
+  max-width: 100% !important;
+  text-align: center !important;
+  margin: 0 auto !important;
+  padding: 0.25rem 0.2rem !important;
+  font-size: 0.95rem !important;
+  font-weight: 700 !important;
+  height: 34px !important;
+  line-height: 1.2 !important;
+  border-radius: var(--radius-sm) !important;
+  box-sizing: border-box !important;
+  -moz-appearance: textfield !important;
+  appearance: textfield !important;
+  display: block !important;
 }
 
 .exam-table-input::-webkit-outer-spin-button,
 .exam-table-input::-webkit-inner-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
+  -webkit-appearance: none !important;
+  margin: 0 !important;
+  display: none !important;
 }
 
 .score-change-badge {
@@ -3307,7 +3315,8 @@ th:hover .hw-col-actions {
   body.print-weekly .app-container,
   body.print-homework .app-container,
   body.print-performance .app-container,
-  body.print-reports .app-container {
+  body.print-reports .app-container,
+  body.print-student-slips .app-container {
     display: none !important;
   }
   body.print-schedule > *:not(#schedule-print-area) {
@@ -3394,6 +3403,69 @@ th:hover .hw-col-actions {
     max-height: 129mm !important;
     padding: 5px 7px !important;
   }
+
+  body.print-student-slips .student-exam-slips-print {
+    display: block !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  body.print-student-slips .student-slip-item {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+}
+
+/* ==========================================================================
+   ÖĞRENCİ SINAV KES-DAĞIT FİŞLERİ STİLLERİ (ÖĞRETMEN DAĞITIM FİŞİ)
+   ========================================================================== */
+.student-exam-slips-print {
+  display: none;
+  background-color: #fff;
+  width: 100%;
+  color: #0f172a;
+}
+
+.student-slip-page {
+  background-color: #fff;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.student-slip-item {
+  box-sizing: border-box;
+  background-color: #fff;
+  border: 1.5px dashed #475569;
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin-bottom: 12px;
+  page-break-inside: avoid;
+  break-inside: avoid;
+  position: relative;
+  font-family: inherit;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.student-slip-cut-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 10px;
+  margin-bottom: -4px;
+  font-size: 10px;
+  color: #64748b;
+  font-weight: 500;
+  user-select: none;
+}
+
+.student-slip-cut-line::before,
+.student-slip-cut-line::after {
+  content: '';
+  flex: 1;
+  border-bottom: 1px dashed #94a3b8;
 }
 
 .optical-forms-print {
@@ -5310,13 +5382,19 @@ th:hover .hw-col-actions {
   filter: brightness(0.95);
 }
 
-/* Pulsing badge on dashboard timer button */
-#btn-dash-timer.active-running {
+/* Pulsing badge on dashboard, pdf and notebook timer buttons */
+#btn-dash-timer.active-running,
+#btn-pdf-quick-timer.active-running,
+#btn-notebook-quick-timer.active-running {
   animation: button-pulse 1.5s infinite alternate;
   background-color: rgba(99, 102, 241, 0.15) !important;
   border-color: var(--primary) !important;
+  color: var(--primary) !important;
+  font-weight: 700 !important;
 }
-#btn-dash-timer.active-running i {
+#btn-dash-timer.active-running i,
+#btn-pdf-quick-timer.active-running i,
+#btn-notebook-quick-timer.active-running i {
   color: var(--primary) !important;
 }
 
@@ -5614,6 +5692,7 @@ th:hover .hw-col-actions {
 #modal-quick-caller,
 #modal-timer,
 #modal-quick-point,
+#modal-quick-give-point,
 #modal-flow-info {
   z-index: 10005 !important;
 }

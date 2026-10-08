@@ -1228,14 +1228,17 @@
    ========================================================================== */
 #modal-table,
 #modal-sticky-note,
-#modal-notebook,
+#modal-notebook {
+  z-index: 2500 !important;
+}
+
 #modal-timer,
 #modal-quick-caller,
 #modal-flow-info,
 #modal-quick-give-point,
 #modal-custom-alert,
 #modal-custom-confirm {
-  z-index: 2500 !important;
+  z-index: 10005 !important;
 }
 
 /* ==========================================================================

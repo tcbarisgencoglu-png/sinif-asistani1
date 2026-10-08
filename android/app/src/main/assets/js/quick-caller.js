@@ -204,6 +204,16 @@
     }
   }
 
+  window.openQuickCallerModal = function() {
+    initDOMElements();
+    if (!modal) modal = document.getElementById('modal-quick-caller');
+    if (!modal) return;
+    modal.style.display = 'flex';
+    modal.classList.add('active');
+    window.initQuickCallerModal();
+    if (window.safeCreateIcons) window.safeCreateIcons();
+  };
+
   window.initQuickCallerModal = function() {
     initDOMElements();
     updatePoolIndicator();
@@ -356,6 +366,13 @@
           modal.classList.remove('active');
         }
       });
+    });
+
+    // Backdrop click closer
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal && !isDrawing) {
+        modal.classList.remove('active');
+      }
     });
 
     // Reset pool button

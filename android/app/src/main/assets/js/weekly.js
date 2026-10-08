@@ -34,6 +34,7 @@ const printExamSelect = document.getElementById('print-exam-select');
 
 // Optik Form Elemanları
 const btnPrintOpticalForms = document.getElementById('btn-print-optical-forms');
+const btnPrintStudentExamSlips = document.getElementById('btn-print-student-exam-slips');
 const modalPrintOptical = document.getElementById('modal-print-optical');
 const formPrintOptical = document.getElementById('form-print-optical');
 const btnOpticalSelectAll = document.getElementById('btn-optical-select-all');
@@ -1090,6 +1091,15 @@ function setupWeeklyTab(showToast) {
       populateOpticalStudentsList();
       updateOpticalLivePreview();
       if (modalPrintOptical) modalPrintOptical.classList.add('active');
+    });
+  }
+
+  // ==========================================================================
+  // ÖĞRENCİ SINAV RAPORU / KES-DAĞIT FİŞLERİ BASMA
+  // ==========================================================================
+  if (btnPrintStudentExamSlips) {
+    btnPrintStudentExamSlips.addEventListener('click', () => {
+      printStudentExamSlips();
     });
   }
 
@@ -4893,7 +4903,336 @@ function prepareAdvancedPrintLayout(reportTitle, reportSubtitle, examDetailText,
   });
 }
 
+// ==========================================================================
+// ÖĞRENCİ SINAV RAPORU / KES-DAĞIT FİŞLERİ OLUŞTURMA VE YAZDIRMA
+// ==========================================================================
+function printStudentExamSlips() {
+  if (!activeExam) {
+    if (toastCallback) toastCallback('Lütfen önce bir sınav seçin!', 'warning');
+    else if (window.showToast) window.showToast('Lütfen önce bir sınav seçin!', 'warning');
+    return;
+  }
 
+  const printArea = document.getElementById('student-exam-slips-print-area');
+  if (!printArea) {
+    console.error('student-exam-slips-print-area bulunamadı.');
+    return;
+  }
+
+  const state = stateManager.loadState();
+  const isMiddle = state.educationLevel === 'middle';
+  const examBranch = activeExam.branch || '';
+
+  const activeStudents = (state.students || []).filter(student => {
+    return !isMiddle || !examBranch || student.branch === examBranch;
+  });
+
+  // Alfabetik sırala
+  const sortedStudents = [...activeStudents].sort((a, b) => {
+    const numA = parseInt(a.number, 10) || 9999;
+    const numB = parseInt(b.number, 10) || 9999;
+    if (numA !== numB && numA !== 9999 && numB !== 9999) return numA - numB;
+    const nameA = (a && a.name) ? String(a.name) : '';
+    const nameB = (b && b.name) ? String(b.name) : '';
+    return nameA.localeCompare(nameB, 'tr');
+  });
+
+  const studentResults = activeExam.studentResults || {};
+  const answerKey = activeExam.answerKey || {};
+  const isMulti = !!(activeExam.isMultiSubject && Array.isArray(activeExam.subjects) && activeExam.subjects.length > 0);
+  const qCount = parseInt(activeExam.totalQuestions, 10) || 20;
+
+  // Sınava katılan öğrencileri ve sonuçlarını topla
+  const studentReports = [];
+
+  sortedStudents.forEach(student => {
+    const res = studentResults[student.id];
+    if (!res) return;
+
+    // Öğrencinin sonuç bilgisi veya cevapları var mı?
+    const hasAnswers = res.answers && Object.keys(res.answers).length > 0;
+    const hasScores = res.score !== undefined && res.score !== '' && res.score !== null;
+    const hasCounts = (res.correct !== undefined && res.correct !== '') || (res.wrong !== undefined && res.wrong !== '');
+
+    if (!hasAnswers && !hasScores && !hasCounts) return;
+
+    const studentAnswers = res.answers || {};
+
+    // Ders bazlı döküm analizi
+    const subjectList = [];
+
+    if (isMulti) {
+      let cumulativeOffset = 0;
+      const computedBreakdown = getOrComputeSubjectBreakdown(res, activeExam);
+
+      activeExam.subjects.forEach((subj, subjIdx) => {
+        const sb = computedBreakdown[subj.id] || {
+          correct: 0,
+          wrong: 0,
+          blank: subj.questionCount,
+          net: 0,
+          score: 0,
+          total: subj.questionCount
+        };
+
+        const wrongs = [];
+        const blanks = [];
+
+        for (let q = 1; q <= subj.questionCount; q++) {
+          let ans = extractAnswerForSubj(studentAnswers, null, subj, subjIdx, q, cumulativeOffset);
+          ans = String(ans || '').trim().toUpperCase();
+          if (ans === 'MULTIPLE') ans = '';
+
+          const correctAns = findCorrectAnswerForKey(answerKey, subj, subjIdx, q, cumulativeOffset);
+
+          if (!ans) {
+            blanks.push({ qNum: q, correct: correctAns || '-' });
+          } else if (correctAns && ans !== correctAns) {
+            wrongs.push({ qNum: q, student: ans, correct: correctAns });
+          }
+        }
+
+        subjectList.push({
+          id: subj.id,
+          name: subj.name,
+          correct: sb.correct !== undefined ? sb.correct : 0,
+          wrong: sb.wrong !== undefined ? sb.wrong : 0,
+          blank: sb.blank !== undefined ? sb.blank : 0,
+          net: sb.net !== undefined ? sb.net : 0,
+          total: subj.questionCount,
+          wrongs,
+          blanks
+        });
+
+        cumulativeOffset += subj.questionCount;
+      });
+    } else {
+      // Tek dersli sınav
+      const subjName = activeExam.subject || activeExam.examName || 'Ders';
+      const wrongs = [];
+      const blanks = [];
+
+      for (let q = 1; q <= qCount; q++) {
+        const ans = String(studentAnswers[q] || studentAnswers[String(q)] || '').trim().toUpperCase();
+        const correctAns = String(answerKey[q] || answerKey[String(q)] || '').trim().toUpperCase();
+
+        if (!ans) {
+          blanks.push({ qNum: q, correct: correctAns || '-' });
+        } else if (correctAns && ans !== correctAns) {
+          wrongs.push({ qNum: q, student: ans, correct: correctAns });
+        }
+      }
+
+      const totalCorrect = res.correct !== undefined && res.correct !== '' ? parseInt(res.correct, 10) : (qCount - wrongs.length - blanks.length);
+      const totalWrong = res.wrong !== undefined && res.wrong !== '' ? parseInt(res.wrong, 10) : wrongs.length;
+      const totalBlank = res.blank !== undefined && res.blank !== '' ? parseInt(res.blank, 10) : blanks.length;
+      const totalNet = res.net !== undefined && res.net !== '' ? res.net : totalCorrect;
+
+      subjectList.push({
+        id: 'single',
+        name: subjName,
+        correct: totalCorrect,
+        wrong: totalWrong,
+        blank: totalBlank,
+        net: totalNet,
+        total: qCount,
+        wrongs,
+        blanks
+      });
+    }
+
+    const totalC = res.correct !== undefined && res.correct !== '' ? res.correct : subjectList.reduce((s, x) => s + (parseInt(x.correct, 10) || 0), 0);
+    const totalW = res.wrong !== undefined && res.wrong !== '' ? res.wrong : subjectList.reduce((s, x) => s + (parseInt(x.wrong, 10) || 0), 0);
+    const totalB = res.blank !== undefined && res.blank !== '' ? res.blank : subjectList.reduce((s, x) => s + (parseInt(x.blank, 10) || 0), 0);
+    const totalN = res.net !== undefined && res.net !== '' ? res.net : (parseFloat(totalC) || 0);
+    const scoreVal = res.score !== undefined && res.score !== '' ? res.score : '-';
+
+    studentReports.push({
+      student,
+      totalCorrect: totalC,
+      totalWrong: totalW,
+      totalBlank: totalB,
+      totalNet: totalN,
+      score: scoreVal,
+      subjects: subjectList
+    });
+  });
+
+  if (studentReports.length === 0) {
+    const msg = 'Bu sınavda henüz optik okuma sonucu veya öğrenci verisi bulunmuyor!';
+    if (toastCallback) toastCallback(msg, 'warning');
+    else if (window.showToast) window.showToast(msg, 'warning');
+    return;
+  }
+
+  // ==========================================================================
+  // BAŞARI SIRALAMASI HESAPLAMA (Eşit Netlerde Aynı Sıra, Sonraki Sıra Atlar: 1, 2, 3, 3, 5)
+  // ==========================================================================
+  const totalParticipants = studentReports.length;
+
+  // Sıralama için geçici kopya oluştur ve azalan net/puana göre diz
+  const sortedByPerformance = [...studentReports].sort((a, b) => {
+    const netA = parseFloat(a.totalNet) || 0;
+    const netB = parseFloat(b.totalNet) || 0;
+    if (Math.abs(netB - netA) > 0.001) {
+      return netB - netA;
+    }
+    const scoreA = parseFloat(a.score) || 0;
+    const scoreB = parseFloat(b.score) || 0;
+    return scoreB - scoreA;
+  });
+
+  // Standard competition ranking (1224 sıralaması)
+  let currentRank = 1;
+  sortedByPerformance.forEach((rep, i) => {
+    if (i > 0) {
+      const prev = sortedByPerformance[i - 1];
+      const prevNet = parseFloat(prev.totalNet) || 0;
+      const currNet = parseFloat(rep.totalNet) || 0;
+      const prevScore = parseFloat(prev.score) || 0;
+      const currScore = parseFloat(rep.score) || 0;
+
+      // Netler (ve puanlar) eşit ise aynı sırayı paylaşırlar
+      const isTie = Math.abs(prevNet - currNet) < 0.001 && Math.abs(prevScore - currScore) < 0.001;
+      if (!isTie) {
+        currentRank = i + 1;
+      }
+    } else {
+      currentRank = 1;
+    }
+    rep.rank = currentRank;
+  });
+
+  // HTML Üretimi
+  let examDateFormatted = '';
+  try {
+    const dt = activeExam.createdAt ? new Date(activeExam.createdAt) : new Date();
+    examDateFormatted = dt.toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  } catch (e) {
+    examDateFormatted = '-';
+  }
+
+  const schoolTitle = state.schoolName || 'SINIF ASİSTANI';
+  const classBranch = state.className || (isMiddle ? `Şube: ${examBranch || '-'}` : '');
+
+  let slipsHtml = '';
+
+  studentReports.forEach((rep, idx) => {
+    const st = rep.student;
+    const stFullName = `${st.name || ''} ${st.surname || ''}`.trim();
+    const stNo = st.number ? `No: ${st.number}` : '';
+    const studentRank = rep.rank || (idx + 1);
+
+    // Her ders için satır / kart üretimi
+    let subjectRowsHtml = '';
+
+    rep.subjects.forEach(sub => {
+      const wrongsHtml = sub.wrongs.length > 0
+        ? `<div style="margin-top: 3px; font-size: 10.5px; color: #b91c1c; line-height: 1.4;">
+            <strong style="color: #991b1b; display: inline-flex; align-items: center; gap: 3px;">❌ Yanlış Yapılanlar:</strong>
+            <span style="font-weight: 500;"> ${sub.wrongs.map(w => `<span style="background: #fee2e2; border: 1px solid #fca5a5; padding: 1px 5px; border-radius: 4px; display: inline-block; margin: 1px 2px;">S.${w.qNum}: <b>${w.student}</b> <span style="color: #15803d; font-weight: 700;">(D: ${w.correct})</span></span>`).join(' ')}</span>
+           </div>`
+        : '';
+
+      const blanksHtml = sub.blanks.length > 0
+        ? `<div style="margin-top: 3px; font-size: 10.5px; color: #475569; line-height: 1.4;">
+            <strong style="color: #334155; display: inline-flex; align-items: center; gap: 3px;">⚪ Boş Bırakılanlar:</strong>
+            <span style="font-weight: 500;"> ${sub.blanks.map(b => `<span style="background: #f1f5f9; border: 1px solid #cbd5e1; padding: 1px 5px; border-radius: 4px; display: inline-block; margin: 1px 2px;">S.${b.qNum} <span style="color: #15803d; font-weight: 700;">(D: ${b.correct})</span></span>`).join(' ')}</span>
+           </div>`
+        : '';
+
+      const allSuccessHtml = (sub.wrongs.length === 0 && sub.blanks.length === 0)
+        ? `<div style="margin-top: 2px; font-size: 10.5px; color: #15803d; font-weight: 600; display: flex; align-items: center; gap: 4px;">
+            <span>✨ Bu derste tüm sorular tam ve doğru yanıtlandı!</span>
+           </div>`
+        : '';
+
+      subjectRowsHtml += `
+        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 6px 10px; margin-top: 5px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 4px; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px;">
+            <span style="font-weight: 700; color: #1e293b; font-size: 11.5px;">📘 ${sub.name} <span style="font-size: 10px; font-weight: 500; color: #64748b;">(${sub.total} Soru)</span></span>
+            <div style="display: inline-flex; gap: 8px; font-size: 11px; font-weight: 600;">
+              <span style="color: #15803d;">Doğru: ${sub.correct}</span>
+              <span style="color: #dc2626;">Yanlış: ${sub.wrong}</span>
+              <span style="color: #475569;">Boş: ${sub.blank}</span>
+              <span style="color: #4338ca; background: #e0e7ff; padding: 0 5px; border-radius: 3px;">Net: ${sub.net}</span>
+            </div>
+          </div>
+          ${wrongsHtml}
+          ${blanksHtml}
+          ${allSuccessHtml}
+        </div>
+      `;
+    });
+
+    slipsHtml += `
+      <div class="student-slip-item" style="box-sizing: border-box; background: #fff; border: 1.5px dashed #475569; border-radius: 8px; padding: 9px 12px; margin-bottom: 10px; page-break-inside: avoid; break-inside: avoid;">
+        <!-- Fiş Üst Başlığı -->
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #0f172a; padding-bottom: 4px;">
+          <div>
+            <div style="font-size: 9px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px;">${schoolTitle} ${classBranch ? '• ' + classBranch : ''}</div>
+            <div style="font-size: 13px; font-weight: 800; color: #0f172a; margin-top: 1px;">📝 ${activeExam.examName || 'Haftalık Değerlendirme Sınavı'}</div>
+          </div>
+          <div style="text-align: right;">
+            <div style="font-size: 10px; font-weight: 600; color: #475569;">📅 ${examDateFormatted}</div>
+            <div style="font-size: 10px; font-weight: 700; color: #4338ca; margin-top: 1px;">Öğrenci Sınav Sonuç Fişi</div>
+          </div>
+        </div>
+
+        <!-- Öğrenci Bilgisi ve Genel Özet Barı -->
+        <div style="display: flex; justify-content: space-between; align-items: center; background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 6px; padding: 5px 8px; margin-top: 6px; flex-wrap: wrap; gap: 6px;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span style="font-size: 12px; font-weight: 800; color: #0f172a;">👤 ${stFullName}</span>
+            ${stNo ? `<span style="font-size: 11px; font-weight: 600; color: #475569; background: #e2e8f0; padding: 1px 6px; border-radius: 4px;">${stNo}</span>` : ''}
+            <span style="font-size: 11px; font-weight: 800; color: #1e1b4b; background: linear-gradient(135deg, #e0e7ff, #c7d2fe); border: 1px solid #a5b4fc; padding: 1px 8px; border-radius: 999px; display: inline-flex; align-items: center; gap: 3px;" title="Sınıf Başarı Sırası">
+              🏆 Sıra: ${studentRank} / ${totalParticipants}
+            </span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 8px; font-size: 11px; font-weight: 700;">
+            <span style="color: #15803d;">Toplam D: ${rep.totalCorrect}</span>
+            <span style="color: #dc2626;">Toplam Y: ${rep.totalWrong}</span>
+            <span style="color: #475569;">Toplam B: ${rep.totalBlank}</span>
+            <span style="color: #4338ca; background: #e0e7ff; padding: 1px 6px; border-radius: 4px;">Toplam Net: ${rep.totalNet}</span>
+            <span style="color: #0f172a; background: #fef08a; padding: 1px 6px; border-radius: 4px; border: 1px solid #fde047;">Puan: ${rep.score}</span>
+          </div>
+        </div>
+
+        <!-- Ders Bazlı Detaylar -->
+        <div style="margin-top: 4px;">
+          ${subjectRowsHtml}
+        </div>
+
+        <!-- Kesme Çizgisi Notu -->
+        <div class="student-slip-cut-line" style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 8px; font-size: 9.5px; color: #64748b; font-weight: 500;">
+          <span style="display: flex; align-items: center; gap: 4px;">✂️ Buradan Kesiniz</span>
+          <span style="font-size: 9px; color: #94a3b8; font-style: italic;">* Doğru cevaplanan sorular sadece sayısal olarak özetlenmiştir.</span>
+        </div>
+      </div>
+    `;
+  });
+
+  printArea.innerHTML = slipsHtml;
+
+  // Sayfa kenar boşluğu ve yazdırma ayarları
+  const printStyle = document.createElement('style');
+  printStyle.id = 'student-slips-page-style';
+  printStyle.textContent = `@page { size: A4 portrait; margin: 6mm 6mm; }`;
+  document.head.appendChild(printStyle);
+
+  document.body.classList.add('print-student-slips');
+  window.print();
+
+  const cleanupSlipsPrint = () => {
+    document.body.classList.remove('print-student-slips');
+    const s = document.getElementById('student-slips-page-style');
+    if (s) s.remove();
+  };
+
+  window.addEventListener('afterprint', cleanupSlipsPrint, { once: true });
+  setTimeout(cleanupSlipsPrint, 1000);
+}
+
+window.printStudentExamSlips = printStudentExamSlips;
 
   window.setupWeeklyTab = setupWeeklyTab;
 })();

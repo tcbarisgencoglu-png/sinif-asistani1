@@ -168,7 +168,25 @@
   // Globally exposed trigger
   window.openQuickGivePointModal = function() {
     initAudio();
+    if (!modal || !studentsGrid) {
+      modal = document.getElementById('modal-quick-give-point');
+      stepStudents = document.getElementById('quick-point-step-students');
+      stepBehaviors = document.getElementById('quick-point-step-behaviors');
+      studentSearchInput = document.getElementById('quick-point-student-search');
+      btnAllClass = document.getElementById('btn-quick-point-all-class');
+      studentsGrid = document.getElementById('quick-point-students-grid');
+      btnBack = document.getElementById('btn-quick-point-back');
+      targetNameDisplay = document.getElementById('quick-point-target-name');
+      tabPositive = document.getElementById('quick-point-tab-positive');
+      tabDevelopment = document.getElementById('quick-point-tab-development');
+      behaviorGrid = document.getElementById('quick-point-behavior-grid');
+      btnCloseHeader = document.getElementById('btn-close-quick-point-modal');
+      btnCloseFooter = document.getElementById('btn-close-quick-point-modal-footer');
+    }
     if (!modal) return;
+
+    modal.style.display = 'flex';
+    modal.classList.add('active');
 
     // Reset views
     if (stepStudents) stepStudents.style.display = 'block';
@@ -179,8 +197,7 @@
     activeStudentId = null;
 
     renderQuickPointStudents();
-    modal.classList.add('active');
-    window.safeCreateIcons();
+    if (window.safeCreateIcons) window.safeCreateIcons();
   };
 
   function renderQuickPointStudents() {

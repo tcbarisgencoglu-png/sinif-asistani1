@@ -162,6 +162,7 @@
           dom.inputClass.value = `${gVal}/${branch}`;
         }
         updateCurriculumModelBadge();
+        populateCoursesFromSchedule();
         syncCourseAndYearlyPlan();
       });
     }
@@ -173,14 +174,30 @@
           dom.selectGrade.value = match[1];
         }
         updateCurriculumModelBadge();
+        populateCoursesFromSchedule();
         syncCourseAndYearlyPlan();
       });
     }
 
-    // Öğretmen ve Müdür Girişi Kaydı
+    // Öğretmen ve Müdür Girişi Kaydı (Tıklanınca otomatik temizleme ve otomatik kaydetme)
     if (dom.inputTeacher) {
+      const clearTeacherIfDefault = function() {
+        const val = this.value.trim().toLowerCase();
+        if (val === 'öğretmen' || val === 'ogretmen' || val === '') {
+          this.value = '';
+        }
+      };
+      dom.inputTeacher.addEventListener('focus', clearTeacherIfDefault);
+      dom.inputTeacher.addEventListener('click', clearTeacherIfDefault);
+
+      dom.inputTeacher.addEventListener('input', () => {
+        if (window.stateManager && window.stateManager.state) {
+          window.stateManager.state.teacherName = dom.inputTeacher.value.trim();
+          window.stateManager.saveState();
+        }
+      });
       dom.inputTeacher.addEventListener('change', () => {
-        if (window.stateManager) {
+        if (window.stateManager && window.stateManager.state) {
           window.stateManager.state.teacherName = dom.inputTeacher.value.trim();
           window.stateManager.saveState();
         }
@@ -188,8 +205,23 @@
     }
 
     if (dom.inputPrincipal) {
+      const clearPrincipalIfDefault = function() {
+        const val = this.value.trim().toLowerCase();
+        if (val === 'okul müdürü' || val === 'okul muduru' || val === 'müdür' || val === 'mudur' || val === '') {
+          this.value = '';
+        }
+      };
+      dom.inputPrincipal.addEventListener('focus', clearPrincipalIfDefault);
+      dom.inputPrincipal.addEventListener('click', clearPrincipalIfDefault);
+
+      dom.inputPrincipal.addEventListener('input', () => {
+        if (window.stateManager && window.stateManager.state) {
+          window.stateManager.state.principalName = dom.inputPrincipal.value.trim();
+          window.stateManager.saveState();
+        }
+      });
       dom.inputPrincipal.addEventListener('change', () => {
-        if (window.stateManager) {
+        if (window.stateManager && window.stateManager.state) {
           window.stateManager.state.principalName = dom.inputPrincipal.value.trim();
           window.stateManager.saveState();
         }
@@ -338,9 +370,11 @@
 
     // 1. Öğretmen, Okul Müdürü ve Okul Bilgisi
     if (dom.inputTeacher) {
+      dom.inputTeacher.placeholder = 'Öğretmen Adı Soyadı';
       dom.inputTeacher.value = state.teacherName || (state.teachers && state.teachers[0]?.name) || 'Öğretmen';
     }
     if (dom.inputPrincipal) {
+      dom.inputPrincipal.placeholder = 'Okul Müdürü Adı Soyadı';
       dom.inputPrincipal.value = state.principalName || 'Okul Müdürü';
     }
     if (dom.inputSchool) {
@@ -519,6 +553,15 @@
     syncCourseAndYearlyPlan();
   }
 
+  // Haftalık Programda Aktif Ders Saatlerini (Periyotları) Tespit Et
+  function getActiveSchedulePeriods(state, grade) {
+    const gradeNum = parseInt(grade, 10);
+    const isMiddle = (!isNaN(gradeNum) && gradeNum >= 5) || (state && state.educationLevel === 'middle');
+    return isMiddle
+      ? ['p1', 'p2', 'p3', 'p4', 'p5', 'p6', 'p7']
+      : ['p1', 'p2', 'p3', 'p4', 'p5', 'p6'];
+  }
+
   // Haftalık Programdan Dersleri Çek ve Dropdown'a Doldur
   function populateCoursesFromSchedule() {
     dom = getDOM();
@@ -532,12 +575,17 @@
 
     const coursesMap = new Map();
 
-    // 1. Haftalık ders programında gerçekten yer alan dersler
+    // 1. Haftalık ders programında gerçekten yer alan dersler (Sadece aktif kademe saatleri)
+    const currentGrade = dom.selectGrade ? dom.selectGrade.value : (state.grade || '4');
+    const activePeriods = getActiveSchedulePeriods(state, currentGrade);
     const lessonsInSchedule = new Set();
-    Object.keys(scheduleGrid).forEach(k => {
-      const lessonId = scheduleGrid[k];
-      if (lessonId) lessonsInSchedule.add(lessonId);
-    });
+    for (let d = 1; d <= 5; d++) {
+      for (const p of activePeriods) {
+        const key = `${d}-${p}`;
+        const lessonId = scheduleGrid[key];
+        if (lessonId) lessonsInSchedule.add(lessonId);
+      }
+    }
 
     definedLessons.forEach(l => {
       if (l.name) {
@@ -622,9 +670,11 @@
     const state = window.stateManager ? window.stateManager.loadState() : {};
     const scheduleGrid = state.scheduleGrid || {};
     const definedLessons = state.definedLessons || [];
+    const currentGrade = dom.selectGrade ? dom.selectGrade.value : (state.grade || '4');
+    const activePeriods = getActiveSchedulePeriods(state, currentGrade);
 
     // Ders ID'sini bul
-    const foundLesson = definedLessons.find(l => l.name.trim().toLowerCase() === courseName.toLowerCase());
+    const foundLesson = definedLessons.find(l => l.name && l.name.trim().toLowerCase() === courseName.toLowerCase());
     const targetId = foundLesson ? foundLesson.id : null;
 
     let totalHours = 0;
@@ -634,12 +684,16 @@
     for (let d = 1; d <= 5; d++) {
       const dayName = DAYS_TR[d];
       let dayCount = 0;
-      for (let p = 1; p <= 8; p++) {
-        const key = `${d}-p${p}`;
+      for (const p of activePeriods) {
+        const key = `${d}-${p}`;
         const cellVal = scheduleGrid[key];
-        if (cellVal && ((targetId && cellVal === targetId) || cellVal === courseName)) {
-          dayCount++;
-          totalHours++;
+        if (cellVal) {
+          const isMatch = (targetId && cellVal === targetId) ||
+                          (typeof cellVal === 'string' && cellVal.trim().toLowerCase() === courseName.toLowerCase());
+          if (isMatch) {
+            dayCount++;
+            totalHours++;
+          }
         }
       }
       if (dayCount > 0) {
