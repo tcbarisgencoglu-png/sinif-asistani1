@@ -611,6 +611,32 @@ function extractAnswerForSubj(cardAnswers, card, subj, subjIndex, q, cumulativeO
   if (!cardAnswers && !card) return '';
   const answersObj = cardAnswers || (card && card.answers) || {};
 
+  // 0. card.subjects nesnesi üzerinden ders adı ile doğrudan erişim
+  if (card && card.subjects && typeof card.subjects === 'object') {
+    // Doğrudan subj.name (Türkçe, Matematik, Fen Bilimleri vb.)
+    if (card.subjects[subj.name] && typeof card.subjects[subj.name] === 'object') {
+      const v = card.subjects[subj.name][q] ?? card.subjects[subj.name][String(q)];
+      if (v !== undefined && v !== '') return String(v);
+    }
+    // Doğrudan subj.id (sub_0, sub_1, vb.)
+    if (card.subjects[subj.id] && typeof card.subjects[subj.id] === 'object') {
+      const v = card.subjects[subj.id][q] ?? card.subjects[subj.id][String(q)];
+      if (v !== undefined && v !== '') return String(v);
+    }
+    // Fuzzy ders adı eşleşmesi
+    const { norm: subjNorm, keywords } = getOmrSubjectBaseKeywords(subj.name);
+    for (const sKey of Object.keys(card.subjects)) {
+      const sNorm = normalizeOmrSubject(sKey);
+      if (sNorm === subjNorm || sNorm.includes(subjNorm) || subjNorm.includes(sNorm) || keywords.some(kw => sNorm.includes(kw))) {
+        const subObj = card.subjects[sKey];
+        if (subObj && typeof subObj === 'object') {
+          const v = subObj[q] ?? subObj[String(q)];
+          if (v !== undefined && v !== '') return String(v);
+        }
+      }
+    }
+  }
+
   // 1. Doğrudan id_q eşleşmesi (örn: sub_0_1, sub_3_1)
   const key1 = `${subj.id}_${q}`;
   if (answersObj[key1] !== undefined && answersObj[key1] !== '') {
@@ -623,8 +649,8 @@ function extractAnswerForSubj(cardAnswers, card, subj, subjIndex, q, cumulativeO
     return String(answersObj[key2]);
   }
 
-  // 3. İç içe nesne eşleşmesi (card.answers[subj.id] veya card.subjectAnswers)
-  const nested = (card && card.subjectAnswers) || (card && typeof card.answers === 'object' ? card.answers : null);
+  // 3. İç içe nesne eşleşmesi (card.subjects, card.subjectAnswers veya card.answers[subj.id])
+  const nested = (card && card.subjects) || (card && card.subjectAnswers) || (card && typeof card.answers === 'object' ? card.answers : null);
   if (nested && typeof nested === 'object') {
     for (const candidateKey of [subj.id, subj.name]) {
       if (nested[candidateKey] && typeof nested[candidateKey] === 'object') {
@@ -1877,12 +1903,12 @@ function setupWeeklyTab(showToast) {
             const initialVp = page.getViewport({ scale: 1.0 });
             const maxDim = Math.max(initialVp.width, initialVp.height) || 1000;
             
-            // HEDEF: 1300 piksel maksimum kenar çözünürlüğü.
-            // Bu ölçekleme hem WebKitGTK / Safari 4096px tuval ve bellek sınırını asla aşmaz,
-            // hem de Gemini Vision OMR motorunun şıkları ve baloncukları okuması için ideal netliktedir.
-            let scale = 1300 / maxDim;
-            if (scale > 2.0) scale = 2.0;
-            if (scale < 0.20) scale = 0.20;
+            // HEDEF: 2400 piksel maksimum kenar çözünürlüğü.
+            // Bu çözünürlük ile her bir şık baloncuk dairesi 18-22 piksel netliğe ulaşır,
+            // kurşun kalem izleri, silintiler ve harfler kristal netlikte görünür.
+            let scale = 2400 / maxDim;
+            if (scale > 3.5) scale = 3.5;
+            if (scale < 0.50) scale = 0.50;
 
             const viewport = page.getViewport({ scale });
             const canvas = document.createElement('canvas');
@@ -1895,7 +1921,7 @@ function setupWeeklyTab(showToast) {
 
             await page.render({ canvasContext: ctx, viewport }).promise;
 
-            const pageDataUrl = canvas.toDataURL('image/jpeg', 0.90);
+            const pageDataUrl = canvas.toDataURL('image/jpeg', 0.95);
 
             if (typeof page.cleanup === 'function') page.cleanup();
             canvas.width = 0;
@@ -2425,9 +2451,12 @@ function setupWeeklyTab(showToast) {
 
         if (fileItem.isPdf) {
           sendingMime = 'application/pdf';
+        } else if (fileItem.isPdfPage) {
+          // PDF.js zaten 2400px yüksek kalitede render etti; çift sıkıştırmadan koru
+          sendingData = fileItem.dataUrl;
         } else {
-          // Görseli canvas üzerinden yüksek kalitede optimize et (baloncuk netliği için 2200px)
-          sendingData = await resizeImageForOmr(fileItem.dataUrl, 2200);
+          // Görseli canvas üzerinden yüksek kalitede optimize et (baloncuk netliği için 2400px)
+          sendingData = await resizeImageForOmr(fileItem.dataUrl, 2400);
         }
 
         const isMulti = activeExam && !!activeExam.isMultiSubject;
@@ -2438,15 +2467,17 @@ function setupWeeklyTab(showToast) {
         if (activeExam && activeExam.answerKey && Object.keys(activeExam.answerKey).length > 0) {
           if (isMulti && examSubjects.length > 0) {
             const lines = [];
+            let cumulativeOffset = 0;
             examSubjects.forEach((s, idx) => {
               const qList = [];
               for (let q = 1; q <= s.questionCount; q++) {
-                const kAns = findCorrectAnswerForKey(activeExam.answerKey, s, idx, q, 0);
+                const kAns = findCorrectAnswerForKey(activeExam.answerKey, s, idx, q, cumulativeOffset);
                 if (kAns) qList.push(`${q}: ${kAns}`);
               }
               if (qList.length > 0) {
                 lines.push(`  * ${s.name}: ${qList.join(', ')}`);
               }
+              cumulativeOffset += s.questionCount;
             });
             if (lines.length > 0) {
               answerKeyPromptSection = `\nSINAVIN RESMİ CEVAP ANAHTARI (GÖRSEL REFERANS İÇİN):\n${lines.join('\n')}\n`;
@@ -2495,14 +2526,14 @@ FORM DÜZENİ VE OKUMA KURALLARI (EN KRİTİK BÖLÜM):
 1. ÇOKLU DERS SÜTUNLARI:
    - Sayfa üzerinde dersler soldan sağa dikey sütunlar halinde yer alır:
 ${examSubjects.map((s, idx) => `     * ${idx + 1}. Sütun: ${s.name} (${s.questionCount} soru, 1'den ${s.questionCount}'e kadar)`).join('\n')}
-   - DİKKAT: Formun üzerindeki ders başlığı yazımında küçük farklar olsa dahi soldan sağa sütun sırasına göre ilgili derstir. Her sütundaki sorular 1'den başlar (1, 2, 3..).
+   - DİKKAT: Formun üzerindeki ders başlığı yazımında küçük farklar olsa dahi (örn: "Fen Bilimleri" vs "Fen Bilgisi") soldan sağa sütun sırasına göre ilgili derstir. Her sütundaki sorular 1'den başlar (1, 2, 3..).
 
 2. BALONCUKLARIN SABİT YATAY SIRASI (KESİN REFERANS KURALI):
    Her soru satırında soldan sağa her zaman tam 4 adet şık çemberi bulunur:
    * 1. Çember (en soldaki ilk daire)  = 'A'
    * 2. Çember (soldan 2. daire)       = 'B'
    * 3. Çember (soldan 3. daire)       = 'C'
-   * 4. Çember (en sağdaki son daire)   = 'D'
+   * 4. Çember (en sağdaki son daire)  = 'D'
 
 3. ⚠️ "KOMŞU BOŞ HARF YANILGISI" VE ÖRTÜLEN HARF KURALI (HAYATİ ÖNEMDE):
    - Bir öğrenci şıkkı doldurduğunda o çember kurşun kalemle kapkara olur ve İÇİNDEKİ HARF ÖRTÜLÜR / GÖRÜNMEZ HALE GELİR.
@@ -2533,7 +2564,7 @@ ${examSubjects.map((s, idx) => `     * ${idx + 1}. Sütun: ${s.name} (${s.questi
    - "studentName" alanına listedeki tam adı yaz, "studentNo" alanına okul numarasını yaz.
 
 7. DOĞRULAMA (BUBBLECHECK):
-   - "bubbleCheck" alanında her ders için satır satır dolu çember sırasını (1., 2., 3., 4.) kısaca listele. Bu doğrulama sonrasında "answers" nesnesini doldur.
+   - "bubbleCheck" alanında her ders için satır satır dolu çember sırasını (1., 2., 3., 4.) kısaca listele.
 
 Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi ekleme):
 {
@@ -2542,6 +2573,9 @@ Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi ek
       "studentName": "Öğrenci Adı Soyadı",
       "studentNo": "123",
       "bubbleCheck": "Ders bazında karalanmış çember sıraları doğrulaması (Örn: Turkce: 1=1.cember(A), 2=2.cember(B)...)",
+      "subjects": {
+        ${examSubjects.map(s => `"${s.name}": { "1": "A", "2": "B" }`).join(',\n        ')}
+      },
       "answers": {
         ${exampleAnswerLines.join(',\n        ')}
       }
@@ -2621,7 +2655,7 @@ Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi ve
           imageBase64: sendingData,
           imageMimeType: sendingMime,
           json: true,
-          temperature: 0.0
+          temperature: 0.1
         });
 
         let parsed = null;
@@ -2638,7 +2672,7 @@ Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi ve
         let detectedCards = [];
         if (Array.isArray(parsed.cards) && parsed.cards.length > 0) {
           detectedCards = parsed.cards;
-        } else if (parsed.answers) {
+        } else if (parsed.answers || parsed.subjects) {
           detectedCards = [parsed];
         }
 
