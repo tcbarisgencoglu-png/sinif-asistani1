@@ -168,11 +168,11 @@ jobs:
           name: "Sınıf Asistanı ${{ github.ref_name }}"
           body: |
             ### 🚀 Bu Sürümdeki Yenilikler (${{ github.ref_name }}):
-            - 📱 **Mobil Modüler Mimari & Optik Okuma:** Çevrim dışı kamera tabanlı OMR optik form okuyucu ve modüler mobil motor.
-            - 🚶‍♂️ **Seri Sıra Gezme (Ödev Takibi):** Masaları gezerken tek dokunuşla ödev kontrolü ve otomatik sonraki öğrenciye geçiş.
-            - ⚡ **Hızlı Dojo & Yoklama:** Mobil ekranda titreşimli geri bildirimle tek dokunuşla puan verme ve yoklama tamamlama.
-            - 🤖 **Android Uygulaması (.apk):** Telefonlara doğrudan indirilip kurulabilen Android paket desteği (`sinif-asistani.apk`).
-            - 🎨 **Masaüstü Arayüz İyileştirmeleri:** Hazine sandığı akıllı tahta tam ekran modu ve canlı ders başlığı düzeltmeleri.
+            - 📄 **Optik Form Canlı İlerleme Çubuğu:** Çok sayfalı CamScanner PDF belgeleri yüklenirken anlık sayfa numarası ve yüzdelik ilerleme çubuğu ile görsel bilgilendirme.
+            - 🛡️ **Bellek Güvenli Sayfa Ayrıştırma:** Canvas bellek taşması ve beyaz/boş sayfa aktarımını kökten önleyen optimize edilmiş OMR motoru.
+            - 🧩 **Akıllı Sonuç Birleştirme (Smart Merge):** Yeni taramalarda mevcut kayıtlı öğrenci notlarını koruyarak eksik formları eski sonuçların üzerine ekleme.
+            - ⚡ **Donmasız Özel Onay Pencereleri:** Linux/Pardus ve masaüstü sistemlerde donmalara yol açan yerel diyalogların yerine modern asenkron onay pencereleri.
+            - 🤖 **Android Uygulaması (.apk):** Telefon ve tabletlere doğrudan kurulabilen güncel Android paket desteği (`sinif-asistani.apk`).
 
             ---
             🛡️ **Veri Güvenliği:** Güncelleme yaptığınızda mevcut sınıflarınız, öğrencileriniz, ders programınız ve tüm verileriniz **kesinlikle silinmez, korunur**.
@@ -261,11 +261,11 @@ jobs:
           name: "Sınıf Asistanı ${{ github.ref_name }}"
           body: |
             ### 🚀 Bu Sürümdeki Yenilikler (${{ github.ref_name }}):
-            - 📱 **Mobil Modüler Mimari & Optik Okuma:** Çevrim dışı kamera tabanlı OMR optik form okuyucu ve modüler mobil motor.
-            - 🚶‍♂️ **Seri Sıra Gezme (Ödev Takibi):** Masaları gezerken tek dokunuşla ödev kontrolü ve otomatik sonraki öğrenciye geçiş.
-            - ⚡ **Hızlı Dojo & Yoklama:** Mobil ekranda titreşimli geri bildirimle tek dokunuşla puan verme ve yoklama tamamlama.
-            - 🤖 **Android Uygulaması (.apk):** Telefonlara doğrudan indirilip kurulabilen Android paket desteği (`sinif-asistani.apk`).
-            - 🎨 **Masaüstü Arayüz İyileştirmeleri:** Hazine sandığı akıllı tahta tam ekran modu ve canlı ders başlığı düzeltmeleri.
+            - 📄 **Optik Form Canlı İlerleme Çubuğu:** Çok sayfalı CamScanner PDF belgeleri yüklenirken anlık sayfa numarası ve yüzdelik ilerleme çubuğu ile görsel bilgilendirme.
+            - 🛡️ **Bellek Güvenli Sayfa Ayrıştırma:** Canvas bellek taşması ve beyaz/boş sayfa aktarımını kökten önleyen optimize edilmiş OMR motoru.
+            - 🧩 **Akıllı Sonuç Birleştirme (Smart Merge):** Yeni taramalarda mevcut kayıtlı öğrenci notlarını koruyarak eksik formları eski sonuçların üzerine ekleme.
+            - ⚡ **Donmasız Özel Onay Pencereleri:** Linux/Pardus ve masaüstü sistemlerde donmalara yol açan yerel diyalogların yerine modern asenkron onay pencereleri.
+            - 🤖 **Android Uygulaması (.apk):** Telefon ve tabletlere doğrudan kurulabilen güncel Android paket desteği (`sinif-asistani.apk`).
 
             ---
             🛡️ **Veri Güvenliği:** Güncelleme yaptığınızda mevcut sınıflarınız, öğrencileriniz, ders programınız ve tüm verileriniz **kesinlikle silinmez, korunur**.

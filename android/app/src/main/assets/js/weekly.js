@@ -85,6 +85,71 @@ const modalOpticalImagePreview = document.getElementById('modal-optical-image-pr
 const opticalPreviewImg = document.getElementById('optical-preview-img');
 const btnCloseOpticalPreview = document.getElementById('btn-close-optical-preview');
 
+// PDF İlerleme & Bilgilendirme Elemanları
+const opticalPdfLoadingOverlay = document.getElementById('optical-pdf-loading-overlay');
+const opticalPdfLoadingTitle = document.getElementById('optical-pdf-loading-title');
+const opticalPdfLoadingDesc = document.getElementById('optical-pdf-loading-desc');
+const opticalPdfProgressBar = document.getElementById('optical-pdf-progress-bar');
+const opticalPdfProgressText = document.getElementById('optical-pdf-progress-text');
+
+// Güvenli, Non-Blocking Özel Onay Penceresi (WebKitGTK/Tauri donmalarını önler)
+window.showConfirmDialog = function({ title = 'İşlemi Onaylayın', message, confirmText = 'Evet, Onayla', cancelText = 'Vazgeç', type = 'danger' }) {
+  return new Promise((resolve) => {
+    const modal = document.getElementById('modal-app-custom-confirm');
+    if (!modal) {
+      return resolve(window.confirm(message ? message.replace(/<[^>]+>/g, '') : 'Onaylıyor musunuz?'));
+    }
+    const titleEl = document.getElementById('app-confirm-title');
+    const msgEl = document.getElementById('app-confirm-message');
+    const okBtn = document.getElementById('app-confirm-btn-ok');
+    const cancelBtn = document.getElementById('app-confirm-btn-cancel');
+    const iconBox = document.getElementById('app-confirm-icon-box');
+
+    if (titleEl) titleEl.textContent = title;
+    if (msgEl) msgEl.innerHTML = message;
+    if (okBtn) {
+      okBtn.textContent = confirmText;
+      okBtn.className = `btn ${type === 'danger' ? 'btn-danger' : 'btn-primary'}`;
+    }
+    if (cancelBtn) cancelBtn.textContent = cancelText;
+    if (iconBox) {
+      if (type === 'danger') {
+        iconBox.style.background = 'rgba(239, 68, 68, 0.12)';
+        iconBox.style.color = '#ef4444';
+        iconBox.textContent = '⚠️';
+      } else if (type === 'warning') {
+        iconBox.style.background = 'rgba(245, 158, 11, 0.12)';
+        iconBox.style.color = '#f59e0b';
+        iconBox.textContent = '⚠️';
+      } else {
+        iconBox.style.background = 'rgba(79, 70, 229, 0.12)';
+        iconBox.style.color = '#4f46e5';
+        iconBox.textContent = 'ℹ️';
+      }
+    }
+
+    modal.style.display = 'flex';
+    requestAnimationFrame(() => modal.classList.add('active'));
+
+    const cleanUp = () => {
+      modal.classList.remove('active');
+      setTimeout(() => { modal.style.display = 'none'; }, 150);
+      okBtn.onclick = null;
+      cancelBtn.onclick = null;
+    };
+
+    okBtn.onclick = () => {
+      cleanUp();
+      resolve(true);
+    };
+
+    cancelBtn.onclick = () => {
+      cleanUp();
+      resolve(false);
+    };
+  });
+};
+
 // Kayıtlı Sınav Cevap Anahtarı Düzenleme Elemanları
 const btnEditActiveExamKey = document.getElementById('btn-edit-active-exam-key');
 const modalEditExamAnswerKey = document.getElementById('modal-edit-exam-answer-key');
@@ -900,25 +965,32 @@ function setupWeeklyTab(showToast) {
 
   // Sınav Silme Butonu
   if (btnDeleteActiveExam) {
-    btnDeleteActiveExam.addEventListener('click', () => {
+    btnDeleteActiveExam.addEventListener('click', async () => {
       if (!activeExam) return;
 
-      if (confirm(`"${activeExam.examName}" sınavını tamamen silmek istediğinize emin misiniz?`)) {
-        stateManager.deleteExam(activeExam.id);
-        
-        if (toastCallback) {
-          toastCallback('Sınav başarıyla silindi.', 'success');
-        }
+      const confirmed = await window.showConfirmDialog({
+        title: 'Sınavı Sil',
+        message: `<strong>"${activeExam.examName}"</strong> sınavını ve bu sınava ait tüm öğrenci değerlendirme sonuçlarını tamamen silmek istediğinize emin misiniz?<br><span style="color:#ef4444; font-weight:700;">Bu işlem geri alınamaz!</span>`,
+        confirmText: 'Sınavı Sil',
+        cancelText: 'Vazgeç',
+        type: 'danger'
+      });
+      if (!confirmed) return;
 
-        activeExam = null;
-        if (activeExamCard) activeExamCard.style.display = 'none';
-        if (btnPrintReport) btnPrintReport.style.display = 'none';
-
-        renderExamsList();
-
-        const event = new CustomEvent('stateChanged');
-        document.dispatchEvent(event);
+      stateManager.deleteExam(activeExam.id);
+      
+      if (toastCallback) {
+        toastCallback('Sınav başarıyla silindi.', 'success');
       }
+
+      activeExam = null;
+      if (activeExamCard) activeExamCard.style.display = 'none';
+      if (btnPrintReport) btnPrintReport.style.display = 'none';
+
+      renderExamsList();
+
+      const event = new CustomEvent('stateChanged');
+      document.dispatchEvent(event);
     });
   }
 
@@ -1356,14 +1428,25 @@ function setupWeeklyTab(showToast) {
       return;
     }
 
+    // State'ten sınavın en güncel verisini tazele (önceki sonuçların korunmasını garantile)
+    const state = stateManager.loadState();
+    const freshExam = (state.weeklyEvaluations || []).find(e => e && e.id === activeExam.id);
+    if (freshExam) {
+      activeExam = freshExam;
+    }
+
     if (!modalUploadOpticalEval) return;
 
-    // Sınav Bilgilerini Başlığa Yaz
+    // Sınav Bilgilerini ve Mevcut Kayıtlı Öğrenci Koruma Rozetini Başlığa Yaz
     if (opticalEvalSubtitle) {
       const qCount = activeExam.totalQuestions || 20;
       const cCount = activeExam.choicesCount || 4;
       const bText = activeExam.branch ? ` • Şube: <strong>${activeExam.branch}</strong>` : '';
-      opticalEvalSubtitle.innerHTML = `Sınav: <strong>${activeExam.examName}</strong> • Soru Sayısı: <strong>${qCount}</strong> • Seçenekler: <strong>${cCount} Şıklı</strong>${bText}`;
+      const existingCount = Object.keys(activeExam.studentResults || {}).length;
+      const existingBadge = existingCount > 0
+        ? `<div style="margin-top: 5px;"><span class="badge" style="background: rgba(16, 185, 129, 0.15); color: #059669; font-weight: 700; font-size: 0.76rem; padding: 2px 8px; border-radius: 4px; display: inline-flex; align-items: center; gap: 4px;">🛡️ Bu sınavda ${existingCount} kayıtlı öğrenci sonucu var — Yeni tarama mevcutların üzerine eklenecektir</span></div>`
+        : '';
+      opticalEvalSubtitle.innerHTML = `Sınav: <strong>${activeExam.examName}</strong> • Soru Sayısı: <strong>${qCount}</strong> • Seçenekler: <strong>${cCount} Şıklı</strong>${bText}${existingBadge}`;
     }
 
     // Ekranları Sıfırla
@@ -1394,16 +1477,28 @@ function setupWeeklyTab(showToast) {
     if (window.safeCreateIcons) window.safeCreateIcons();
   }
 
-  // Modalı Kapatma Butonları
+  // Modalı Kapatma Butonları (Güvenli ve onaylı)
+  const handleCloseOpticalUploadModal = async () => {
+    if (!modalUploadOpticalEval) return;
+    const hasUnsavedResults = opticalScannedResults && opticalScannedResults.length > 0 && opticalEvalStepResults && opticalEvalStepResults.style.display !== 'none';
+    if (hasUnsavedResults) {
+      const ok = await window.showConfirmDialog({
+        title: 'Tarama İptali',
+        message: 'Taranan öğrenci sonuçları henüz sınav tablosuna aktarılmadı.<br>Çıkmak istediğinize emin misiniz?<br><small style="color:var(--text-muted);">Mevcut kayıtlı tüm sınav notlarınız aynen korunacaktır.</small>',
+        confirmText: 'Çık',
+        cancelText: 'Devam Et',
+        type: 'warning'
+      });
+      if (!ok) return;
+    }
+    modalUploadOpticalEval.classList.remove('active');
+  };
+
   if (btnCloseOpticalUploadModal) {
-    btnCloseOpticalUploadModal.addEventListener('click', () => {
-      if (modalUploadOpticalEval) modalUploadOpticalEval.classList.remove('active');
-    });
+    btnCloseOpticalUploadModal.addEventListener('click', handleCloseOpticalUploadModal);
   }
   if (btnCancelOpticalUpload) {
-    btnCancelOpticalUpload.addEventListener('click', () => {
-      if (modalUploadOpticalEval) modalUploadOpticalEval.classList.remove('active');
-    });
+    btnCancelOpticalUpload.addEventListener('click', handleCloseOpticalUploadModal);
   }
 
   // API Anahtarı Durum Göstergesi
@@ -1665,7 +1760,16 @@ function setupWeeklyTab(showToast) {
 
   // Cevap Anahtarı Temizle
   if (btnOpticalClearKey) {
-    btnOpticalClearKey.addEventListener('click', () => {
+    btnOpticalClearKey.addEventListener('click', async () => {
+      const confirmed = await window.showConfirmDialog({
+        title: 'Cevap Anahtarını Temizle',
+        message: 'Sınav cevap anahtarını temizlemek istediğinize emin misiniz?',
+        confirmText: 'Temizle',
+        cancelText: 'Vazgeç',
+        type: 'danger'
+      });
+      if (!confirmed) return;
+
       opticalTempExamKey = {};
       if (activeExam) {
         activeExam.answerKey = {};
@@ -1796,8 +1900,8 @@ function setupWeeklyTab(showToast) {
     return jpegs;
   }
 
-  // Tekil Dosya veya Çok Sayfalı PDF İşleme Motoru
-  async function processOpticalFile(file) {
+  // Tekil Dosya veya Çok Sayfalı PDF İşleme Motoru (Bellek Güvenli & Canlı İlerleme Bildirimli)
+  async function processOpticalFile(file, onProgress) {
     const isPdf = file.type === 'application/pdf' || /\.pdf$/i.test(file.name);
 
     if (!isPdf) {
@@ -1828,31 +1932,56 @@ function setupWeeklyTab(showToast) {
           const loadingTask = window.pdfjsLib.getDocument({ data: arrayBuffer });
           const pdfDoc = await loadingTask.promise;
           const pages = [];
-          for (let p = 1; p <= pdfDoc.numPages; p++) {
+          const totalP = pdfDoc.numPages || 1;
+
+          for (let p = 1; p <= totalP; p++) {
+            if (typeof onProgress === 'function') {
+              onProgress(p, totalP, file.name);
+            }
+
             const page = await pdfDoc.getPage(p);
             const initialVp = page.getViewport({ scale: 1.0 });
-            const maxDim = Math.max(initialVp.width, initialVp.height);
-            // Optik form baloncuklarının net okunabilmesi için yüksek çözünürlükte (2200px) render et
-            const scale = Math.max(1.8, Math.min(3.0, 2200 / maxDim));
+            const maxDim = Math.max(initialVp.width, initialVp.height) || 1000;
+            // Çözünürlüğü güvenli ve net 1600px seviyesine ayarla (WebKit bellek taşmasını ve boş beyaz canvas hatasını önler)
+            const scale = Math.max(1.2, Math.min(2.2, 1600 / maxDim));
             const viewport = page.getViewport({ scale });
 
             const canvas = document.createElement('canvas');
-            canvas.width = viewport.width;
-            canvas.height = viewport.height;
-            const ctx = canvas.getContext('2d');
+            canvas.width = Math.round(viewport.width);
+            canvas.height = Math.round(viewport.height);
+            const ctx = canvas.getContext('2d', { willReadFrequently: false });
+
+            // Şeffaf arka plan nedeniyle beyaz/boş çıkmasını önlemek için opak beyaz zemin çiz
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
             await page.render({ canvasContext: ctx, viewport }).promise;
 
-            const pageDataUrl = canvas.toDataURL('image/jpeg', 0.94);
+            const pageDataUrl = canvas.toDataURL('image/jpeg', 0.90);
+
+            // PDF sayfa nesnesinin önbelleğini derhal serbest bırak
+            if (typeof page.cleanup === 'function') page.cleanup();
+
+            // Canvas belleğini derhal sıfırlayarak GPU/RAM tükenmesini engelle
+            canvas.width = 0;
+            canvas.height = 0;
+
             pages.push({
               id: 'file_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6) + '_p' + p,
               file: file,
-              name: `${file.name} (Sayfa ${p}/${pdfDoc.numPages})`,
-              sizeText: `Sayfa ${p} / ${pdfDoc.numPages}`,
+              name: `${file.name} (Sayfa ${p}/${totalP})`,
+              sizeText: `Sayfa ${p} / ${totalP}`,
               dataUrl: pageDataUrl,
               isPdf: false,
               isPdfPage: true
             });
+
+            // Tarayıcının GC ve arayüz çizimini yapabilmesi için mikro bekleme
+            await new Promise(r => setTimeout(r, 35));
           }
+
+          if (typeof pdfDoc.destroy === 'function') pdfDoc.destroy();
+
           if (pages.length > 0) return pages;
         } catch (pdfErr) {
           console.warn('PDF.js render hatası, alternatif deneniyor:', pdfErr);
@@ -1864,6 +1993,9 @@ function setupWeeklyTab(showToast) {
       if (extractedJpegs.length > 0) {
         const pages = [];
         for (let i = 0; i < extractedJpegs.length; i++) {
+          if (typeof onProgress === 'function') {
+            onProgress(i + 1, extractedJpegs.length, file.name);
+          }
           const jpegBytes = extractedJpegs[i];
           const blob = new Blob([jpegBytes], { type: 'image/jpeg' });
           const pageDataUrl = await new Promise(res => {
@@ -1880,6 +2012,7 @@ function setupWeeklyTab(showToast) {
             isPdf: false,
             isPdfPage: true
           });
+          await new Promise(r => setTimeout(r, 20));
         }
         return pages;
       }
@@ -1928,22 +2061,45 @@ function setupWeeklyTab(showToast) {
     }
 
     const hasPdf = filesArray.some(f => f.type === 'application/pdf' || /\.pdf$/i.test(f.name));
-    if (hasPdf && toastCallback) {
-      toastCallback('PDF belgeleri ve sayfalar taranıyor, lütfen bekleyin...', 'info');
+
+    if (hasPdf && opticalPdfLoadingOverlay) {
+      opticalPdfLoadingOverlay.style.display = 'block';
+      if (opticalDropzone) opticalDropzone.style.display = 'none';
+      if (opticalPdfProgressBar) opticalPdfProgressBar.style.width = '0%';
+      if (opticalPdfProgressText) opticalPdfProgressText.textContent = '%0 Hazırlandı';
+      if (opticalPdfLoadingDesc) opticalPdfLoadingDesc.textContent = 'PDF sayfaları taranıyor ve optimize ediliyor...';
     }
 
     let newlyAdded = 0;
-    for (const file of filesArray) {
-      const items = await processOpticalFile(file);
-      items.forEach(item => {
-        opticalSelectedFiles.push(item);
-        newlyAdded++;
-      });
+    try {
+      for (let fIdx = 0; fIdx < filesArray.length; fIdx++) {
+        const file = filesArray[fIdx];
+        const items = await processOpticalFile(file, (p, totalP, fName) => {
+          if (opticalPdfLoadingOverlay) {
+            const pct = Math.round((p / totalP) * 100);
+            if (opticalPdfProgressBar) opticalPdfProgressBar.style.width = `${pct}%`;
+            if (opticalPdfProgressText) opticalPdfProgressText.textContent = `%${pct} (${p}/${totalP} Sayfa)`;
+            if (opticalPdfLoadingTitle) opticalPdfLoadingTitle.textContent = `"${fName}" Ayrıştırılıyor...`;
+            if (opticalPdfLoadingDesc) opticalPdfLoadingDesc.textContent = `Sayfa ${p} / ${totalP} taranıyor, optik formlar hazırlanıyor...`;
+          }
+        });
+
+        items.forEach(item => {
+          opticalSelectedFiles.push(item);
+          newlyAdded++;
+        });
+      }
+    } catch (procErr) {
+      console.error('Dosya işleme hatası:', procErr);
+      if (toastCallback) toastCallback('Dosyalar işlenirken bir sorun oluştu: ' + (procErr.message || procErr), 'error');
+    } finally {
+      if (opticalPdfLoadingOverlay) opticalPdfLoadingOverlay.style.display = 'none';
+      if (opticalDropzone) opticalDropzone.style.display = 'block';
     }
 
     renderOpticalFilesPreview();
-    if (hasPdf && toastCallback) {
-      toastCallback(`${newlyAdded} form sayfası başarıyla listeye eklendi.`, 'success');
+    if (newlyAdded > 0 && toastCallback) {
+      toastCallback(`✅ ${newlyAdded} form sayfası başarıyla listeye eklendi.`, 'success');
     }
   }
 
@@ -3146,16 +3302,21 @@ Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi ve
     });
   }
 
-  function commitOpticalResultsToExam() {
+  async function commitOpticalResultsToExam() {
     try {
       if (!activeExam || opticalScannedResults.length === 0) return;
 
       // Eşleşmeyen öğrenci kontrolü
       const unmatched = opticalScannedResults.filter(r => !r.matchedStudentId);
       if (unmatched.length > 0) {
-        if (!confirm(`⚠️ ${unmatched.length} adet optik form için öğrenci eşleştirmesi yapılmamış.\n\nEşleşmeyen formlar atlanacak, diğer öğrencilerin notları aktarılacaktır. Devam etmek istiyor musunuz?`)) {
-          return;
-        }
+        const proceed = await window.showConfirmDialog({
+          title: 'Eşleşmeyen Optik Formlar Var',
+          message: `⚠️ <strong>${unmatched.length} adet optik form</strong> için öğrenci eşleştirmesi yapılmamış.<br><br>Eşleşmeyen formlar atlanacak, eşleşen öğrencilerin notları aktarılacaktır. Devam etmek istiyor musunuz?`,
+          confirmText: 'Devam Et',
+          cancelText: 'Formları Kontrol Et',
+          type: 'warning'
+        });
+        if (!proceed) return;
       }
 
       // Mükerrer okuma tespiti ve tekilleştirme (aynı öğrenci birden fazla taranmışsa)
@@ -3176,18 +3337,37 @@ Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi ve
       });
 
       if (duplicateStudents.size > 0) {
-        if (!confirm(`⚠️ ${duplicateStudents.size} öğrenci için mükerrer (birden fazla) optik form okuması bulundu.\n\nHer öğrenci için en yüksek puanlı optik sonuç otomatik olarak seçilip kaydedilecektir.\n(Farklı bir formu seçmek isterseniz 'İptal'e basıp listeden istemediğiniz formu '× Çıkar' butonu ile silebilirsiniz).\n\nDevam etmek istiyor musunuz?`)) {
-          return;
-        }
+        const proceedDup = await window.showConfirmDialog({
+          title: 'Mükerrer Öğrenci Formları',
+          message: `⚠️ <strong>${duplicateStudents.size} öğrenci</strong> için birden fazla optik form okuması bulundu.<br><br>Sistem her öğrenci için otomatik olarak en yüksek puanlı okumayı aktaracaktır.<br><small style="color:var(--text-muted);">(İstemediğiniz formu listeden '× Çıkar' butonu ile silebilirsiniz).</small>`,
+          confirmText: 'En Yüksekleri Aktar',
+          cancelText: 'Listeyi İncele',
+          type: 'warning'
+        });
+        if (!proceedDup) return;
       }
 
-      if (!activeExam.examScores) activeExam.examScores = {};
-      if (!activeExam.studentResults) activeExam.studentResults = {};
+      // 1. Mevcut sınavı state'ten taze oku (kesinlikle eski kayıtlar kaybolmasın, akıllı birleştirme)
+      const state = stateManager.loadState();
+      const savedExam = (state.weeklyEvaluations || []).find(e => e && e.id === activeExam.id) || activeExam;
 
-      let savedCount = 0;
+      const mergedScores = { ...(savedExam.examScores || {}), ...(activeExam.examScores || {}) };
+      const mergedResults = { ...(savedExam.studentResults || {}), ...(activeExam.studentResults || {}) };
+
+      let newlyAddedStudents = 0;
+      let overwrittenStudents = 0;
+
       studentMap.forEach((res, studentId) => {
-        activeExam.examScores[studentId] = res.score;
-        activeExam.studentResults[studentId] = {
+        const isAlreadyPresent = mergedResults[studentId] && mergedResults[studentId].score !== undefined && mergedResults[studentId].score !== '';
+        if (isAlreadyPresent) {
+          overwrittenStudents++;
+        } else {
+          newlyAddedStudents++;
+        }
+
+        mergedScores[studentId] = res.score;
+        mergedResults[studentId] = {
+          ...(mergedResults[studentId] || {}),
           correct: res.correctCount,
           wrong: res.wrongCount,
           blank: res.blankCount,
@@ -3195,8 +3375,8 @@ Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi ve
           score: res.score,
           answers: { ...res.answers },
           subjectBreakdown: res.subjectBreakdown || null,
-          thumbUrl: res.thumbUrl || '',
-          pdfDataUrl: res.pdfDataUrl || '',
+          thumbUrl: res.thumbUrl || (mergedResults[studentId] && mergedResults[studentId].thumbUrl) || '',
+          pdfDataUrl: res.pdfDataUrl || (mergedResults[studentId] && mergedResults[studentId].pdfDataUrl) || '',
           isPdf: !!res.isPdf,
           fileName: res.fileName || '',
           rawStudentName: res.rawStudentName || '',
@@ -3204,9 +3384,10 @@ Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi ve
           source: 'ai_optical_upload',
           scannedAt: new Date().toISOString()
         };
-        savedCount++;
       });
 
+      activeExam.examScores = mergedScores;
+      activeExam.studentResults = mergedResults;
       activeExam.updatedAt = new Date().toISOString();
       stateManager.saveExam(activeExam);
 
@@ -3221,8 +3402,13 @@ Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi ve
         console.error('Sınav tablosu güncellenirken hata:', renderErr);
       }
 
+      const totalExamStudents = Object.keys(mergedScores).length;
       if (toastCallback) {
-        toastCallback(`🎉 ${savedCount} öğrencinin sınav notları başarıyla aktarıldı ve kaydedildi!`, 'success');
+        if (overwrittenStudents > 0) {
+          toastCallback(`🎉 ${newlyAddedStudents} yeni öğrenci eklendi, ${overwrittenStudents} kayıtlı öğrenci güncellendi! (Sınavda toplam ${totalExamStudents} öğrenci kayıtlı)`, 'success');
+        } else {
+          toastCallback(`🎉 ${newlyAddedStudents} öğrencinin sınav notları başarıyla eklendi! (Sınavda toplam ${totalExamStudents} öğrenci kayıtlı)`, 'success');
+        }
       }
 
       const event = new CustomEvent('stateChanged');
@@ -3491,8 +3677,15 @@ Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi ve
 
   // Tümünü Temizle
   if (btnDesktopAkClearAll) {
-    btnDesktopAkClearAll.addEventListener('click', () => {
-      if (!confirm('Tüm cevap anahtarını temizlemek istediğinize emin misiniz?')) return;
+    btnDesktopAkClearAll.addEventListener('click', async () => {
+      const confirmed = await window.showConfirmDialog({
+        title: 'Cevap Anahtarını Temizle',
+        message: 'Tüm cevap anahtarını temizlemek istediğinize emin misiniz?',
+        confirmText: 'Temizle',
+        cancelText: 'Vazgeç',
+        type: 'danger'
+      });
+      if (!confirmed) return;
       editAnswerKeyTemp = {};
       renderDesktopAnswerKeyModalGrid();
     });
@@ -4038,11 +4231,20 @@ Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi ve
     });
   }
   if (btnStuOptClearAll) {
-    btnStuOptClearAll.addEventListener('click', () => {
-      if (!confirm('Tüm işaretlemeleri temizlemek istediğinize emin misiniz?')) return;
+    btnStuOptClearAll.addEventListener('click', async () => {
+      const confirmed = await window.showConfirmDialog({
+        title: 'İşaretlemeleri Boşalt',
+        message: 'Bu öğrenciye ait tüm soru işaretlemelerini temizlemek istediğinize emin misiniz?<br><small style="color:var(--text-muted);">Değişikliklerin geçerli ve kalıcı olması için ardından "Değişiklikleri Kaydet" butonuna basmanız gerekmektedir.</small>',
+        confirmText: 'Tümünü Boşalt',
+        cancelText: 'Vazgeç',
+        type: 'danger'
+      });
+      if (!confirmed) return;
+
       activeOpticalStudentAnswers = {};
       renderStudentOpticalModalGrid();
       updateStudentOpticalModalStats();
+      if (toastCallback) toastCallback('Tüm işaretlemeler temizlendi. Kaydetmek için butona basabilirsiniz.', 'info');
     });
   }
   if (btnSaveStudentOptical) {

@@ -1,14 +1,14 @@
 {
-  "version": "1.0.51",
-  "releaseDate": "2026-10-08",
+  "version": "1.0.52",
+  "releaseDate": "2026-10-09",
   "minRequiredVersion": "1.0.0",
-  "title": "Sınıf Asistanı v1.0.51 Yayında!",
-  "description": "Tahtada Soru Analizi, Her Zaman En Üstte Yüzen Mini Pencere (PiP) ve A4 Başarı Sıralı Karne Basımı",
+  "title": "Sınıf Asistanı v1.0.52 Yayında!",
+  "description": "Haftalık Sınav Optik PDF Canlı İlerleme Çubuğu, Bellek Güvenli Sayfa Ayrıştırma, Akıllı Sonuç Birleştirme ve Donmasız Özel Onay Pencereleri",
   "features": [
-    "Tahtada Soru Analizi: Akıllı tahtada soru çözerken o soruyu yanlış yapan veya boş bırakan öğrencileri anlık görüntüleme",
-    "Her Zaman En Üstte (Always-on-Top) Yüzen Mini Pencere: PDF/Z-Kitap üzerinde soru çözerken ekranı kapatmadan soru ve öğrenci takibi",
-    "A4 Başarı Sıralaması: Sınav öğrenci karne raporları yazdırılırken genel başarı sırasına göre döküm desteği",
-    "Akıllı Tahta Klavye & Sekme Desteği: Çoklu derslerin ekrana tam sığması ve klavye yön tuşlarıyla hızlı soru geçişi"
+    "PDF Optik Form Canlı İlerleme: Çok sayfalı PDF yüklenirken anlık sayfa bilgisi ve yüzdelik ilerleme çubuğu ile görsel bilgilendirme",
+    "Bellek Güvenli Sayfa Ayrıştırma: Canvas bellek sızıntıları ve beyaz/boş sayfa aktarımını önleyen optimize edilmiş OMR motoru",
+    "Akıllı Sonuç Birleştirme (Smart Merge): Yeni taramalarda mevcut kayıtlı öğrenci notlarını koruyarak eksik formları eski sonuçların üzerine ekleme",
+    "Donmasız Özel Onay Pencereleri: Linux/Pardus ve masaüstü sistemlerde donmalara yol açan yerel diyalogların yerine modern asenkron onay pencereleri"
   ],
   "release_url": "https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/latest"
 }
