@@ -1,14 +1,13 @@
 {
-  "version": "1.0.53",
+  "version": "1.0.54",
   "releaseDate": "2026-10-09",
   "minRequiredVersion": "1.0.0",
-  "title": "Sınıf Asistanı v1.0.53 Yayında!",
-  "description": "Optik Form Korumalı Not Girişi, Kalıcı Not Silme, CamScanner Doğrudan JPEG Ayrıştırıcı ve Boş Sayfa Çözümü",
+  "title": "Sınıf Asistanı v1.0.54 Yayında!",
+  "description": "Yerel Çevrim Dışı PDF Motoru, CamScanner Optik Ayrıştırma ve Kırık Görsel Düzeltmesi",
   "features": [
-    "Optik / Elle Not Girişi Ayrımı: Optik formu taranmış öğrencilerin Doğru/Boş kutuları kilitlenerek otomatik korundu, optiksiz öğrenciler elle düzenlemeye açık bırakıldı.",
-    "Kalıcı Not Silme Düzeltmesi: Tablodan Doğru/Boş notları silinen öğrencilerin sınav kayıtları kalıcı olarak temizlenir, eski değerlerin geri gelmesi engellendi.",
-    "Optik Formu Silme Seçeneği: Optik İncele penceresinden dilediğiniz öğrencinin optik kaydını tek tıkla silip elle not girişine açabilme imkanı.",
-    "CamScanner Doğrudan JPEG Ayrıştırma: Yüksek çözünürlüklü (4000px+) taramalarda 7 nolu ve dikey sayfaların beyaz/boş çıkması orijinal JPEG akışı doğrudan ayıklanarak kökten çözüldü."
+    "Yerel PDF Motoru Entegrasyonu: PDF.js ve worker kütüphaneleri uygulamaya doğrudan dahil edildi; CDN bağımlılığı olmadan anında ve çevrim dışı çalışma sağlandı.",
+    "PDF Optik Form Aktarma Düzeltmesi: Çok sayfalı PDF'lerin 0 KB ve kırık görsel olarak algılanması sorunu resmi PDF ayrıştırıcı motor ile kökten düzeltildi.",
+    "Dengeli Tuval Ölçeklemesi: 1300px güvenli çözünürlük ölçeklemesiyle 30+ sayfalı CamScanner PDF'leri bellek aşımına uğramadan tüm sayfalar eksiksiz taranır."
   ],
   "release_url": "https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/latest"
 }

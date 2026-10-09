@@ -1831,126 +1831,7 @@ function setupWeeklyTab(showToast) {
     });
   }
 
-  // JPEG Boyut Bilgisi Okuyucu (SOF0/SOF1/SOF2 marker)
-  function getJpegDimensions(bytes) {
-    let i = 2;
-    while (i < bytes.length - 8) {
-      if (bytes[i] === 0xFF) {
-        const marker = bytes[i + 1];
-        if (marker >= 0xC0 && marker <= 0xC3 && marker !== 0xC4) {
-          const h = (bytes[i + 5] << 8) | bytes[i + 6];
-          const w = (bytes[i + 7] << 8) | bytes[i + 8];
-          return { w, h };
-        }
-        const len = (bytes[i + 2] << 8) | bytes[i + 3];
-        if (len <= 0) break;
-        i += 2 + len;
-      } else {
-        i++;
-      }
-    }
-    return { w: 0, h: 0 };
-  }
-
-  // JPEG Akışı Çıkarıcı (CamScanner ve taranmış PDF'ler için saf JS, bağımsız ve çevrimdışı)
-  function extractJpegsFromUint8Array(bytes) {
-    const jpegs = [];
-    const len = bytes.length;
-    let i = 0;
-    while (i < len - 3) {
-      if (bytes[i] === 0xFF && bytes[i + 1] === 0xD8 && bytes[i + 2] === 0xFF) {
-        const start = i;
-        let j = start + 2;
-        let foundEnd = -1;
-        let inSos = false;
-        while (j < len - 1) {
-          if (bytes[j] === 0xFF) {
-            const marker = bytes[j + 1];
-            if (marker === 0xD9) { // EOI marker
-              foundEnd = j + 2;
-              break;
-            }
-            if (marker === 0xDA) { // SOS (Start of Scan)
-              inSos = true;
-              if (j + 3 < len) {
-                const segLen = (bytes[j + 2] << 8) | bytes[j + 3];
-                j += 2 + segLen;
-                continue;
-              }
-            }
-            if (inSos) {
-              if (marker === 0x00 || (marker >= 0xD0 && marker <= 0xD7)) {
-                j += 2;
-                continue;
-              }
-            } else {
-              if (j + 3 < len && marker !== 0x00 && !(marker >= 0xD0 && marker <= 0xD7)) {
-                const segLen = (bytes[j + 2] << 8) | bytes[j + 3];
-                if (segLen >= 2) {
-                  j += 2 + segLen;
-                  continue;
-                }
-              }
-            }
-          }
-          j++;
-        }
-        if (foundEnd !== -1) {
-          const jpegBytes = bytes.subarray(start, foundEnd);
-          const dims = getJpegDimensions(jpegBytes);
-          // CamScanner watermark veya küçük simgeleri filtrele (en az 400x400 veya >25KB)
-          const isFullPage = (dims.w >= 400 && dims.h >= 400) || jpegBytes.length > 25000;
-          if (isFullPage) {
-            jpegs.push(jpegBytes);
-          }
-          i = foundEnd;
-          continue;
-        }
-      }
-      i++;
-    }
-    return jpegs;
-  }
-
-  // Tuvalin bembeyaz veya boş kalıp kalmadığını denetleyen koruma fonksiyonu
-  function isCanvasBlank(canvas) {
-    try {
-      const ctx = canvas.getContext('2d');
-      if (!ctx) return true;
-      const w = canvas.width;
-      const h = canvas.height;
-      if (w <= 0 || h <= 0) return true;
-
-      const samplePoints = [
-        [w * 0.15, h * 0.15], [w * 0.5, h * 0.15], [w * 0.85, h * 0.15],
-        [w * 0.2, h * 0.35], [w * 0.5, h * 0.35], [w * 0.8, h * 0.35],
-        [w * 0.15, h * 0.5], [w * 0.35, h * 0.5], [w * 0.5, h * 0.5], [w * 0.65, h * 0.5], [w * 0.85, h * 0.5],
-        [w * 0.2, h * 0.65], [w * 0.5, h * 0.65], [w * 0.8, h * 0.65],
-        [w * 0.15, h * 0.85], [w * 0.5, h * 0.85], [w * 0.85, h * 0.85]
-      ];
-
-      for (const [x, y] of samplePoints) {
-        const px = ctx.getImageData(Math.floor(x), Math.floor(y), 1, 1).data;
-        if (px[3] > 10 && (px[0] < 240 || px[1] < 240 || px[2] < 240)) {
-          return false; // Sayfada çizilmiş optik form içeriği var
-        }
-      }
-
-      // Yatay orta çizgi kontrolü
-      const midData = ctx.getImageData(Math.floor(w * 0.1), Math.floor(h * 0.5), Math.floor(w * 0.8), 1).data;
-      for (let i = 0; i < midData.length; i += 4) {
-        if (midData[i + 3] > 10 && (midData[i] < 240 || midData[i + 1] < 240 || midData[i + 2] < 240)) {
-          return false;
-        }
-      }
-
-      return true; // Bembeyaz / boş tuval
-    } catch (e) {
-      return false;
-    }
-  }
-
-  // Tekil Dosya veya Çok Sayfalı PDF İşleme Motoru (Bellek Güvenli, Boş Sayfa Korumalı & Canlı İlerleme Bildirimli)
+  // Tekil Dosya veya Çok Sayfalı PDF İşleme Motoru (Bellek Güvenli & Canlı İlerleme Bildirimli)
   async function processOpticalFile(file, onProgress) {
     const isPdf = file.type === 'application/pdf' || /\.pdf$/i.test(file.name);
 
@@ -1975,110 +1856,46 @@ function setupWeeklyTab(showToast) {
     // PDF Dosyası (CamScanner veya taranmış PDF belgesi)
     try {
       const arrayBuffer = await file.arrayBuffer();
-      const uint8 = new Uint8Array(arrayBuffer);
 
-      // 1. CamScanner Gömülü Orijinal JPEG'leri Kontrol Et (Saf JS, WebKit Canvas ve Bellek Kısıtlarından Bağımsız)
-      const extractedJpegs = extractJpegsFromUint8Array(uint8);
-
-      let pdfDoc = null;
-      let totalP = 0;
+      // 1. PDF.js ile Sayfaları Tek Tek Güvenli ve Bellek Korumalı Şekilde Render Et
       if (window.pdfjsLib) {
         try {
-          const loadingTask = window.pdfjsLib.getDocument({ data: arrayBuffer });
-          pdfDoc = await loadingTask.promise;
-          totalP = pdfDoc.numPages || 0;
-        } catch (e) {
-          console.warn('PDF.js sayfa sayısı okunamadı:', e);
-        }
-      }
-
-      // Eğer CamScanner gömülü JPEG'leri bulunduysa ve sayfa sayısıyla örtüşüyorsa:
-      // Tuval oluşturma bellek sınırlarına girmeden doğrudan orijinal kamera taramalarını kullan!
-      if (extractedJpegs.length > 0 && (totalP === 0 || extractedJpegs.length >= totalP)) {
-        const count = extractedJpegs.length;
-        const pages = [];
-        for (let i = 0; i < count; i++) {
-          if (typeof onProgress === 'function') {
-            onProgress(i + 1, count, file.name);
-          }
-          const jpegBytes = extractedJpegs[i];
-          const blob = new Blob([jpegBytes], { type: 'image/jpeg' });
-          const pageDataUrl = await new Promise(res => {
-            const fr = new FileReader();
-            fr.onload = () => res(fr.result);
-            fr.readAsDataURL(blob);
+          const loadingTask = window.pdfjsLib.getDocument({
+            data: arrayBuffer,
+            disableFontFace: false
           });
-          pages.push({
-            id: 'file_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6) + '_p' + (i + 1),
-            file: file,
-            name: `${file.name} (Sayfa ${i + 1}/${count})`,
-            sizeText: (jpegBytes.length / 1024).toFixed(0) + ' KB',
-            dataUrl: pageDataUrl,
-            isPdf: false,
-            isPdfPage: true
-          });
-          await new Promise(r => setTimeout(r, 15));
-        }
-        if (pdfDoc && typeof pdfDoc.destroy === 'function') pdfDoc.destroy();
-        return pages;
-      }
-
-      // 2. PDF.js ile Sayfaları Render Etme (Vektör/Dijital PDF veya hibrit belgeler)
-      if (pdfDoc) {
-        try {
+          const pdfDoc = await loadingTask.promise;
           const pages = [];
-          const numPages = totalP || 1;
+          const totalP = pdfDoc.numPages || 1;
 
-          for (let p = 1; p <= numPages; p++) {
+          for (let p = 1; p <= totalP; p++) {
             if (typeof onProgress === 'function') {
-              onProgress(p, numPages, file.name);
+              onProgress(p, totalP, file.name);
             }
 
             const page = await pdfDoc.getPage(p);
             const initialVp = page.getViewport({ scale: 1.0 });
             const maxDim = Math.max(initialVp.width, initialVp.height) || 1000;
             
-            // HEDEF: 1400 piksel (WebKitGTK 4096px donanım sınırını ve 16MP doku taşmasını asla aşmaz)
-            let scale = 1400 / maxDim;
+            // HEDEF: 1300 piksel maksimum kenar çözünürlüğü.
+            // Bu ölçekleme hem WebKitGTK / Safari 4096px tuval ve bellek sınırını asla aşmaz,
+            // hem de Gemini Vision OMR motorunun şıkları ve baloncukları okuması için ideal netliktedir.
+            let scale = 1300 / maxDim;
             if (scale > 2.0) scale = 2.0;
-            if (scale < 0.25) scale = 0.25;
+            if (scale < 0.20) scale = 0.20;
 
             const viewport = page.getViewport({ scale });
             const canvas = document.createElement('canvas');
-            canvas.width = Math.min(2048, Math.round(viewport.width));
-            canvas.height = Math.min(2048, Math.round(viewport.height));
-            const ctx = canvas.getContext('2d', { willReadFrequently: true });
+            canvas.width = Math.round(viewport.width);
+            canvas.height = Math.round(viewport.height);
+            const ctx = canvas.getContext('2d');
 
             ctx.fillStyle = '#ffffff';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
             await page.render({ canvasContext: ctx, viewport }).promise;
 
-            let pageDataUrl = '';
-            const isBlank = isCanvasBlank(canvas);
-
-            if (isBlank) {
-              console.warn(`[OMR PDF] Sayfa ${p} beyaz/boş render edildi! Alternatif kurtarma deneniyor...`);
-              if (extractedJpegs[p - 1]) {
-                const blob = new Blob([extractedJpegs[p - 1]], { type: 'image/jpeg' });
-                pageDataUrl = await new Promise(res => {
-                  const fr = new FileReader();
-                  fr.onload = () => res(fr.result);
-                  fr.readAsDataURL(blob);
-                });
-              } else {
-                // Güvenli düşük çözünürlüklü kurtarma denemesi
-                const retryScale = Math.min(1.0, 1000 / maxDim);
-                const retryVp = page.getViewport({ scale: retryScale });
-                canvas.width = Math.round(retryVp.width);
-                canvas.height = Math.round(retryVp.height);
-                const retryCtx = canvas.getContext('2d');
-                await page.render({ canvasContext: retryCtx, viewport: retryVp }).promise;
-                pageDataUrl = canvas.toDataURL('image/jpeg', 0.90);
-              }
-            } else {
-              pageDataUrl = canvas.toDataURL('image/jpeg', 0.90);
-            }
+            const pageDataUrl = canvas.toDataURL('image/jpeg', 0.90);
 
             if (typeof page.cleanup === 'function') page.cleanup();
             canvas.width = 0;
@@ -2087,48 +1904,26 @@ function setupWeeklyTab(showToast) {
             pages.push({
               id: 'file_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6) + '_p' + p,
               file: file,
-              name: `${file.name} (Sayfa ${p}/${numPages})`,
-              sizeText: `Sayfa ${p} / ${numPages}`,
+              name: `${file.name} (Sayfa ${p}/${totalP})`,
+              sizeText: `Sayfa ${p} / ${totalP}`,
               dataUrl: pageDataUrl,
               isPdf: false,
               isPdfPage: true
             });
 
-            await new Promise(r => setTimeout(r, 25));
+            // Tarayıcının GC ve arayüz çizimini yapabilmesi için mikro bekleme
+            await new Promise(r => setTimeout(r, 20));
           }
 
           if (typeof pdfDoc.destroy === 'function') pdfDoc.destroy();
+
           if (pages.length > 0) return pages;
         } catch (pdfErr) {
           console.warn('PDF.js render hatası:', pdfErr);
         }
       }
 
-      // 3. Eğer hiçbiri çalışmazsa ve elde JPEG'ler varsa onları döndür
-      if (extractedJpegs.length > 0) {
-        const pages = [];
-        for (let i = 0; i < extractedJpegs.length; i++) {
-          const jpegBytes = extractedJpegs[i];
-          const blob = new Blob([jpegBytes], { type: 'image/jpeg' });
-          const pageDataUrl = await new Promise(res => {
-            const fr = new FileReader();
-            fr.onload = () => res(fr.result);
-            fr.readAsDataURL(blob);
-          });
-          pages.push({
-            id: 'file_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6) + '_p' + (i + 1),
-            file: file,
-            name: `${file.name} (Sayfa ${i + 1}/${extractedJpegs.length})`,
-            sizeText: (jpegBytes.length / 1024).toFixed(0) + ' KB',
-            dataUrl: pageDataUrl,
-            isPdf: false,
-            isPdfPage: true
-          });
-        }
-        return pages;
-      }
-
-      // 4. Doğrudan PDF Dosyası (Gemini Vision API)
+      // 2. PDF.js kullanılamazsa: Doğrudan PDF Dosyasını Base64 olarak al (Gemini Vision yerel PDF okuma)
       const pdfDataUrl = await new Promise(res => {
         const fr = new FileReader();
         fr.onload = () => res(fr.result);

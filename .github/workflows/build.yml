@@ -168,10 +168,10 @@ jobs:
           name: "Sınıf Asistanı ${{ github.ref_name }}"
           body: |
             ### 🚀 Bu Sürümdeki Yenilikler (${{ github.ref_name }}):
+            - 📦 **Yerel PDF Motoru Entegrasyonu:** PDF.js ve worker kütüphaneleri uygulamaya doğrudan dahil edildi; CDN bağımlılığı olmadan anında ve çevrim dışı çalışma sağlandı.
+            - 📄 **PDF Optik Form Aktarma Düzeltmesi:** Çok sayfalı CamScanner PDF'lerinin 0 KB ve kırık görsel olarak algılanması sorunu resmi PDF ayrıştırıcı motor ile kökten düzeltildi.
+            - 🛡️ **Dengeli Tuval Ölçeklemesi:** 1300px güvenli çözünürlük ölçeklemesiyle 30+ sayfalı CamScanner PDF'leri bellek aşımına uğramadan tüm sayfalar eksiksiz taranır.
             - 🔒 **Optik / Elle Not Girişi Koruması:** Optik formu taranmış öğrencilerin Doğru/Yanlış/Boş kutuları kilitlenerek korumaya alındı; optiksiz öğrenciler elle düzenlemeye açık tutuldu.
-            - 🗑️ **Kalıcı Not Silme Düzeltmesi:** Tablodan notları silinen öğrencilerin sınav kayıtları kalıcı olarak temizlenir, eski değerlerin geri gelmesi engellendi.
-            - ❌ **Optik Formu Silme Seçeneği:** Öğrenci Optik İncele penceresinden istenen öğrencinin optik kaydı tek tıkla silinip öğrenci elle girişe açılabilir.
-            - 📄 **CamScanner Doğrudan JPEG Ayrıştırıcı:** Yüksek çözünürlüklü CamScanner PDF'lerinde 7 nolu ve dikey sayfaların WebKit tuval limitinden ötürü beyaz/boş çıkması orijinal JPEG akışı doğrudan ayıklanarak kökten çözüldü.
             - 🤖 **Android Uygulaması (.apk):** Telefon ve tabletlere doğrudan kurulabilen güncel Android paket desteği (`sinif-asistani.apk`).
 
             ---
@@ -261,10 +261,10 @@ jobs:
           name: "Sınıf Asistanı ${{ github.ref_name }}"
           body: |
             ### 🚀 Bu Sürümdeki Yenilikler (${{ github.ref_name }}):
+            - 📦 **Yerel PDF Motoru Entegrasyonu:** PDF.js ve worker kütüphaneleri uygulamaya doğrudan dahil edildi; CDN bağımlılığı olmadan anında ve çevrim dışı çalışma sağlandı.
+            - 📄 **PDF Optik Form Aktarma Düzeltmesi:** Çok sayfalı CamScanner PDF'lerinin 0 KB ve kırık görsel olarak algılanması sorunu resmi PDF ayrıştırıcı motor ile kökten düzeltildi.
+            - 🛡️ **Dengeli Tuval Ölçeklemesi:** 1300px güvenli çözünürlük ölçeklemesiyle 30+ sayfalı CamScanner PDF'leri bellek aşımına uğramadan tüm sayfalar eksiksiz taranır.
             - 🔒 **Optik / Elle Not Girişi Koruması:** Optik formu taranmış öğrencilerin Doğru/Yanlış/Boş kutuları kilitlenerek korumaya alındı; optiksiz öğrenciler elle düzenlemeye açık tutuldu.
-            - 🗑️ **Kalıcı Not Silme Düzeltmesi:** Tablodan notları silinen öğrencilerin sınav kayıtları kalıcı olarak temizlenir, eski değerlerin geri gelmesi engellendi.
-            - ❌ **Optik Formu Silme Seçeneği:** Öğrenci Optik İncele penceresinden istenen öğrencinin optik kaydı tek tıkla silinip öğrenci elle girişe açılabilir.
-            - 📄 **CamScanner Doğrudan JPEG Ayrıştırıcı:** Yüksek çözünürlüklü CamScanner PDF'lerinde 7 nolu ve dikey sayfaların WebKit tuval limitinden ötürü beyaz/boş çıkması orijinal JPEG akışı doğrudan ayıklanarak kökten çözüldü.
             - 🤖 **Android Uygulaması (.apk):** Telefon ve tabletlere doğrudan kurulabilen güncel Android paket desteği (`sinif-asistani.apk`).
 
             ---
