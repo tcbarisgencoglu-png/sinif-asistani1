@@ -168,10 +168,10 @@ jobs:
           name: "Sınıf Asistanı ${{ github.ref_name }}"
           body: |
             ### 🚀 Bu Sürümdeki Yenilikler (${{ github.ref_name }}):
-            - 📄 **Optik Form Canlı İlerleme Çubuğu:** Çok sayfalı CamScanner PDF belgeleri yüklenirken anlık sayfa numarası ve yüzdelik ilerleme çubuğu ile görsel bilgilendirme.
-            - 🛡️ **Bellek Güvenli Sayfa Ayrıştırma:** Canvas bellek taşması ve beyaz/boş sayfa aktarımını kökten önleyen optimize edilmiş OMR motoru.
-            - 🧩 **Akıllı Sonuç Birleştirme (Smart Merge):** Yeni taramalarda mevcut kayıtlı öğrenci notlarını koruyarak eksik formları eski sonuçların üzerine ekleme.
-            - ⚡ **Donmasız Özel Onay Pencereleri:** Linux/Pardus ve masaüstü sistemlerde donmalara yol açan yerel diyalogların yerine modern asenkron onay pencereleri.
+            - 🔒 **Optik / Elle Not Girişi Koruması:** Optik formu taranmış öğrencilerin Doğru/Yanlış/Boş kutuları kilitlenerek korumaya alındı; optiksiz öğrenciler elle düzenlemeye açık tutuldu.
+            - 🗑️ **Kalıcı Not Silme Düzeltmesi:** Tablodan notları silinen öğrencilerin sınav kayıtları kalıcı olarak temizlenir, eski değerlerin geri gelmesi engellendi.
+            - ❌ **Optik Formu Silme Seçeneği:** Öğrenci Optik İncele penceresinden istenen öğrencinin optik kaydı tek tıkla silinip öğrenci elle girişe açılabilir.
+            - 📄 **CamScanner Doğrudan JPEG Ayrıştırıcı:** Yüksek çözünürlüklü CamScanner PDF'lerinde 7 nolu ve dikey sayfaların WebKit tuval limitinden ötürü beyaz/boş çıkması orijinal JPEG akışı doğrudan ayıklanarak kökten çözüldü.
             - 🤖 **Android Uygulaması (.apk):** Telefon ve tabletlere doğrudan kurulabilen güncel Android paket desteği (`sinif-asistani.apk`).
 
             ---
@@ -261,10 +261,10 @@ jobs:
           name: "Sınıf Asistanı ${{ github.ref_name }}"
           body: |
             ### 🚀 Bu Sürümdeki Yenilikler (${{ github.ref_name }}):
-            - 📄 **Optik Form Canlı İlerleme Çubuğu:** Çok sayfalı CamScanner PDF belgeleri yüklenirken anlık sayfa numarası ve yüzdelik ilerleme çubuğu ile görsel bilgilendirme.
-            - 🛡️ **Bellek Güvenli Sayfa Ayrıştırma:** Canvas bellek taşması ve beyaz/boş sayfa aktarımını kökten önleyen optimize edilmiş OMR motoru.
-            - 🧩 **Akıllı Sonuç Birleştirme (Smart Merge):** Yeni taramalarda mevcut kayıtlı öğrenci notlarını koruyarak eksik formları eski sonuçların üzerine ekleme.
-            - ⚡ **Donmasız Özel Onay Pencereleri:** Linux/Pardus ve masaüstü sistemlerde donmalara yol açan yerel diyalogların yerine modern asenkron onay pencereleri.
+            - 🔒 **Optik / Elle Not Girişi Koruması:** Optik formu taranmış öğrencilerin Doğru/Yanlış/Boş kutuları kilitlenerek korumaya alındı; optiksiz öğrenciler elle düzenlemeye açık tutuldu.
+            - 🗑️ **Kalıcı Not Silme Düzeltmesi:** Tablodan notları silinen öğrencilerin sınav kayıtları kalıcı olarak temizlenir, eski değerlerin geri gelmesi engellendi.
+            - ❌ **Optik Formu Silme Seçeneği:** Öğrenci Optik İncele penceresinden istenen öğrencinin optik kaydı tek tıkla silinip öğrenci elle girişe açılabilir.
+            - 📄 **CamScanner Doğrudan JPEG Ayrıştırıcı:** Yüksek çözünürlüklü CamScanner PDF'lerinde 7 nolu ve dikey sayfaların WebKit tuval limitinden ötürü beyaz/boş çıkması orijinal JPEG akışı doğrudan ayıklanarak kökten çözüldü.
             - 🤖 **Android Uygulaması (.apk):** Telefon ve tabletlere doğrudan kurulabilen güncel Android paket desteği (`sinif-asistani.apk`).
 
             ---

@@ -1,14 +1,14 @@
 {
-  "version": "1.0.52",
+  "version": "1.0.53",
   "releaseDate": "2026-10-09",
   "minRequiredVersion": "1.0.0",
-  "title": "Sınıf Asistanı v1.0.52 Yayında!",
-  "description": "Haftalık Sınav Optik PDF Canlı İlerleme Çubuğu, Bellek Güvenli Sayfa Ayrıştırma, Akıllı Sonuç Birleştirme ve Donmasız Özel Onay Pencereleri",
+  "title": "Sınıf Asistanı v1.0.53 Yayında!",
+  "description": "Optik Form Korumalı Not Girişi, Kalıcı Not Silme, CamScanner Doğrudan JPEG Ayrıştırıcı ve Boş Sayfa Çözümü",
   "features": [
-    "PDF Optik Form Canlı İlerleme: Çok sayfalı PDF yüklenirken anlık sayfa bilgisi ve yüzdelik ilerleme çubuğu ile görsel bilgilendirme",
-    "Bellek Güvenli Sayfa Ayrıştırma: Canvas bellek sızıntıları ve beyaz/boş sayfa aktarımını önleyen optimize edilmiş OMR motoru",
-    "Akıllı Sonuç Birleştirme (Smart Merge): Yeni taramalarda mevcut kayıtlı öğrenci notlarını koruyarak eksik formları eski sonuçların üzerine ekleme",
-    "Donmasız Özel Onay Pencereleri: Linux/Pardus ve masaüstü sistemlerde donmalara yol açan yerel diyalogların yerine modern asenkron onay pencereleri"
+    "Optik / Elle Not Girişi Ayrımı: Optik formu taranmış öğrencilerin Doğru/Boş kutuları kilitlenerek otomatik korundu, optiksiz öğrenciler elle düzenlemeye açık bırakıldı.",
+    "Kalıcı Not Silme Düzeltmesi: Tablodan Doğru/Boş notları silinen öğrencilerin sınav kayıtları kalıcı olarak temizlenir, eski değerlerin geri gelmesi engellendi.",
+    "Optik Formu Silme Seçeneği: Optik İncele penceresinden dilediğiniz öğrencinin optik kaydını tek tıkla silip elle not girişine açabilme imkanı.",
+    "CamScanner Doğrudan JPEG Ayrıştırma: Yüksek çözünürlüklü (4000px+) taramalarda 7 nolu ve dikey sayfaların beyaz/boş çıkması orijinal JPEG akışı doğrudan ayıklanarak kökten çözüldü."
   ],
   "release_url": "https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/latest"
 }

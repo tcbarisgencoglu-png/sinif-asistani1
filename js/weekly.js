@@ -180,6 +180,7 @@ const stuOptQuestionsContainer = document.getElementById('stu-opt-questions-cont
 const btnCloseStudentOpticalModal = document.getElementById('btn-close-student-optical-modal');
 const btnCancelStudentOptical = document.getElementById('btn-cancel-student-optical');
 const btnSaveStudentOptical = document.getElementById('btn-save-student-optical');
+const btnDeleteStudentOptical = document.getElementById('btn-delete-student-optical');
 
 let activeOpticalStudentId = null;
 let activeOpticalStudentAnswers = {};
@@ -923,15 +924,23 @@ function setupWeeklyTab(showToast) {
         const studentId = correctInput.getAttribute('data-student-id');
         const correctVal = correctInput.value.trim();
         const blankVal = blankInput.value.trim();
+        const existingRes = (activeExam.studentResults && activeExam.studentResults[studentId]) || {};
+        const hasAnswers = existingRes.answers && Object.keys(existingRes.answers).length > 0;
 
-        if (correctVal !== '' && blankVal !== '') {
+        if (hasAnswers) {
+          // Optikli öğrenci: Değerleri optikten hesaplandığı şekliyle aynen korunur
+          if (existingRes.score !== undefined && existingRes.score !== '') {
+            examScores[studentId] = existingRes.score;
+            studentResults[studentId] = { ...existingRes };
+          }
+        } else if (correctVal !== '' && blankVal !== '') {
+          // Optiksiz öğrenci: Elle girilen değerler kaydedilir
           const correct = parseInt(correctVal) || 0;
           const blank = parseInt(blankVal) || 0;
           const wrong = parseInt(wrongInput.value) || 0;
           const net = parseFloat(netSpan.textContent) || 0;
           const score = parseFloat(scoreSpan.textContent) || 0;
 
-          const existingRes = (activeExam.studentResults && activeExam.studentResults[studentId]) || {};
           examScores[studentId] = score;
           studentResults[studentId] = {
             ...existingRes,
@@ -941,11 +950,14 @@ function setupWeeklyTab(showToast) {
             net,
             score
           };
+        } else {
+          // Kutucukları silinmiş/boşaltılmış öğrenci:
+          // examScores ve studentResults nesnelerine eklenmez, böylece eski değerler geri gelmez ve silinir.
         }
       });
 
-      activeExam.examScores = { ...(activeExam.examScores || {}), ...examScores };
-      activeExam.studentResults = { ...(activeExam.studentResults || {}), ...studentResults };
+      activeExam.examScores = examScores;
+      activeExam.studentResults = studentResults;
       activeExam.notes = notes;
       activeExam.updatedAt = new Date().toISOString();
 
@@ -1819,13 +1831,13 @@ function setupWeeklyTab(showToast) {
     });
   }
 
-  // JPEG Boyut Bilgisi Okuyucu (SOF0/SOF2 marker)
+  // JPEG Boyut Bilgisi Okuyucu (SOF0/SOF1/SOF2 marker)
   function getJpegDimensions(bytes) {
     let i = 2;
     while (i < bytes.length - 8) {
       if (bytes[i] === 0xFF) {
         const marker = bytes[i + 1];
-        if (marker === 0xC0 || marker === 0xC2) {
+        if (marker >= 0xC0 && marker <= 0xC3 && marker !== 0xC4) {
           const h = (bytes[i + 5] << 8) | bytes[i + 6];
           const w = (bytes[i + 7] << 8) | bytes[i + 8];
           return { w, h };
@@ -1885,9 +1897,9 @@ function setupWeeklyTab(showToast) {
         }
         if (foundEnd !== -1) {
           const jpegBytes = bytes.subarray(start, foundEnd);
-          // CamScanner watermark / simgelerini filtrele (en az 500x500 veya >80KB)
           const dims = getJpegDimensions(jpegBytes);
-          const isFullPage = (dims.w >= 500 && dims.h >= 500) || jpegBytes.length > 80000;
+          // CamScanner watermark veya küçük simgeleri filtrele (en az 400x400 veya >25KB)
+          const isFullPage = (dims.w >= 400 && dims.h >= 400) || jpegBytes.length > 25000;
           if (isFullPage) {
             jpegs.push(jpegBytes);
           }
@@ -1900,7 +1912,45 @@ function setupWeeklyTab(showToast) {
     return jpegs;
   }
 
-  // Tekil Dosya veya Çok Sayfalı PDF İşleme Motoru (Bellek Güvenli & Canlı İlerleme Bildirimli)
+  // Tuvalin bembeyaz veya boş kalıp kalmadığını denetleyen koruma fonksiyonu
+  function isCanvasBlank(canvas) {
+    try {
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return true;
+      const w = canvas.width;
+      const h = canvas.height;
+      if (w <= 0 || h <= 0) return true;
+
+      const samplePoints = [
+        [w * 0.15, h * 0.15], [w * 0.5, h * 0.15], [w * 0.85, h * 0.15],
+        [w * 0.2, h * 0.35], [w * 0.5, h * 0.35], [w * 0.8, h * 0.35],
+        [w * 0.15, h * 0.5], [w * 0.35, h * 0.5], [w * 0.5, h * 0.5], [w * 0.65, h * 0.5], [w * 0.85, h * 0.5],
+        [w * 0.2, h * 0.65], [w * 0.5, h * 0.65], [w * 0.8, h * 0.65],
+        [w * 0.15, h * 0.85], [w * 0.5, h * 0.85], [w * 0.85, h * 0.85]
+      ];
+
+      for (const [x, y] of samplePoints) {
+        const px = ctx.getImageData(Math.floor(x), Math.floor(y), 1, 1).data;
+        if (px[3] > 10 && (px[0] < 240 || px[1] < 240 || px[2] < 240)) {
+          return false; // Sayfada çizilmiş optik form içeriği var
+        }
+      }
+
+      // Yatay orta çizgi kontrolü
+      const midData = ctx.getImageData(Math.floor(w * 0.1), Math.floor(h * 0.5), Math.floor(w * 0.8), 1).data;
+      for (let i = 0; i < midData.length; i += 4) {
+        if (midData[i + 3] > 10 && (midData[i] < 240 || midData[i + 1] < 240 || midData[i + 2] < 240)) {
+          return false;
+        }
+      }
+
+      return true; // Bembeyaz / boş tuval
+    } catch (e) {
+      return false;
+    }
+  }
+
+  // Tekil Dosya veya Çok Sayfalı PDF İşleme Motoru (Bellek Güvenli, Boş Sayfa Korumalı & Canlı İlerleme Bildirimli)
   async function processOpticalFile(file, onProgress) {
     const isPdf = file.type === 'application/pdf' || /\.pdf$/i.test(file.name);
 
@@ -1925,77 +1975,139 @@ function setupWeeklyTab(showToast) {
     // PDF Dosyası (CamScanner veya taranmış PDF belgesi)
     try {
       const arrayBuffer = await file.arrayBuffer();
+      const uint8 = new Uint8Array(arrayBuffer);
 
-      // 1. PDF.js ile Sayfaları Render Etme (Kullanılabilirse)
+      // 1. CamScanner Gömülü Orijinal JPEG'leri Kontrol Et (Saf JS, WebKit Canvas ve Bellek Kısıtlarından Bağımsız)
+      const extractedJpegs = extractJpegsFromUint8Array(uint8);
+
+      let pdfDoc = null;
+      let totalP = 0;
       if (window.pdfjsLib) {
         try {
           const loadingTask = window.pdfjsLib.getDocument({ data: arrayBuffer });
-          const pdfDoc = await loadingTask.promise;
-          const pages = [];
-          const totalP = pdfDoc.numPages || 1;
+          pdfDoc = await loadingTask.promise;
+          totalP = pdfDoc.numPages || 0;
+        } catch (e) {
+          console.warn('PDF.js sayfa sayısı okunamadı:', e);
+        }
+      }
 
-          for (let p = 1; p <= totalP; p++) {
+      // Eğer CamScanner gömülü JPEG'leri bulunduysa ve sayfa sayısıyla örtüşüyorsa:
+      // Tuval oluşturma bellek sınırlarına girmeden doğrudan orijinal kamera taramalarını kullan!
+      if (extractedJpegs.length > 0 && (totalP === 0 || extractedJpegs.length >= totalP)) {
+        const count = extractedJpegs.length;
+        const pages = [];
+        for (let i = 0; i < count; i++) {
+          if (typeof onProgress === 'function') {
+            onProgress(i + 1, count, file.name);
+          }
+          const jpegBytes = extractedJpegs[i];
+          const blob = new Blob([jpegBytes], { type: 'image/jpeg' });
+          const pageDataUrl = await new Promise(res => {
+            const fr = new FileReader();
+            fr.onload = () => res(fr.result);
+            fr.readAsDataURL(blob);
+          });
+          pages.push({
+            id: 'file_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6) + '_p' + (i + 1),
+            file: file,
+            name: `${file.name} (Sayfa ${i + 1}/${count})`,
+            sizeText: (jpegBytes.length / 1024).toFixed(0) + ' KB',
+            dataUrl: pageDataUrl,
+            isPdf: false,
+            isPdfPage: true
+          });
+          await new Promise(r => setTimeout(r, 15));
+        }
+        if (pdfDoc && typeof pdfDoc.destroy === 'function') pdfDoc.destroy();
+        return pages;
+      }
+
+      // 2. PDF.js ile Sayfaları Render Etme (Vektör/Dijital PDF veya hibrit belgeler)
+      if (pdfDoc) {
+        try {
+          const pages = [];
+          const numPages = totalP || 1;
+
+          for (let p = 1; p <= numPages; p++) {
             if (typeof onProgress === 'function') {
-              onProgress(p, totalP, file.name);
+              onProgress(p, numPages, file.name);
             }
 
             const page = await pdfDoc.getPage(p);
             const initialVp = page.getViewport({ scale: 1.0 });
             const maxDim = Math.max(initialVp.width, initialVp.height) || 1000;
-            // Çözünürlüğü güvenli ve net 1600px seviyesine ayarla (WebKit bellek taşmasını ve boş beyaz canvas hatasını önler)
-            const scale = Math.max(1.2, Math.min(2.2, 1600 / maxDim));
+            
+            // HEDEF: 1400 piksel (WebKitGTK 4096px donanım sınırını ve 16MP doku taşmasını asla aşmaz)
+            let scale = 1400 / maxDim;
+            if (scale > 2.0) scale = 2.0;
+            if (scale < 0.25) scale = 0.25;
+
             const viewport = page.getViewport({ scale });
-
             const canvas = document.createElement('canvas');
-            canvas.width = Math.round(viewport.width);
-            canvas.height = Math.round(viewport.height);
-            const ctx = canvas.getContext('2d', { willReadFrequently: false });
+            canvas.width = Math.min(2048, Math.round(viewport.width));
+            canvas.height = Math.min(2048, Math.round(viewport.height));
+            const ctx = canvas.getContext('2d', { willReadFrequently: true });
 
-            // Şeffaf arka plan nedeniyle beyaz/boş çıkmasını önlemek için opak beyaz zemin çiz
             ctx.fillStyle = '#ffffff';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
             await page.render({ canvasContext: ctx, viewport }).promise;
 
-            const pageDataUrl = canvas.toDataURL('image/jpeg', 0.90);
+            let pageDataUrl = '';
+            const isBlank = isCanvasBlank(canvas);
 
-            // PDF sayfa nesnesinin önbelleğini derhal serbest bırak
+            if (isBlank) {
+              console.warn(`[OMR PDF] Sayfa ${p} beyaz/boş render edildi! Alternatif kurtarma deneniyor...`);
+              if (extractedJpegs[p - 1]) {
+                const blob = new Blob([extractedJpegs[p - 1]], { type: 'image/jpeg' });
+                pageDataUrl = await new Promise(res => {
+                  const fr = new FileReader();
+                  fr.onload = () => res(fr.result);
+                  fr.readAsDataURL(blob);
+                });
+              } else {
+                // Güvenli düşük çözünürlüklü kurtarma denemesi
+                const retryScale = Math.min(1.0, 1000 / maxDim);
+                const retryVp = page.getViewport({ scale: retryScale });
+                canvas.width = Math.round(retryVp.width);
+                canvas.height = Math.round(retryVp.height);
+                const retryCtx = canvas.getContext('2d');
+                await page.render({ canvasContext: retryCtx, viewport: retryVp }).promise;
+                pageDataUrl = canvas.toDataURL('image/jpeg', 0.90);
+              }
+            } else {
+              pageDataUrl = canvas.toDataURL('image/jpeg', 0.90);
+            }
+
             if (typeof page.cleanup === 'function') page.cleanup();
-
-            // Canvas belleğini derhal sıfırlayarak GPU/RAM tükenmesini engelle
             canvas.width = 0;
             canvas.height = 0;
 
             pages.push({
               id: 'file_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6) + '_p' + p,
               file: file,
-              name: `${file.name} (Sayfa ${p}/${totalP})`,
-              sizeText: `Sayfa ${p} / ${totalP}`,
+              name: `${file.name} (Sayfa ${p}/${numPages})`,
+              sizeText: `Sayfa ${p} / ${numPages}`,
               dataUrl: pageDataUrl,
               isPdf: false,
               isPdfPage: true
             });
 
-            // Tarayıcının GC ve arayüz çizimini yapabilmesi için mikro bekleme
-            await new Promise(r => setTimeout(r, 35));
+            await new Promise(r => setTimeout(r, 25));
           }
 
           if (typeof pdfDoc.destroy === 'function') pdfDoc.destroy();
-
           if (pages.length > 0) return pages;
         } catch (pdfErr) {
-          console.warn('PDF.js render hatası, alternatif deneniyor:', pdfErr);
+          console.warn('PDF.js render hatası:', pdfErr);
         }
       }
 
-      // 2. CamScanner Gömülü JPEG Ayrıştırıcı (Saf JS, Harici Kütüphanesiz)
-      const extractedJpegs = extractJpegsFromUint8Array(new Uint8Array(arrayBuffer));
+      // 3. Eğer hiçbiri çalışmazsa ve elde JPEG'ler varsa onları döndür
       if (extractedJpegs.length > 0) {
         const pages = [];
         for (let i = 0; i < extractedJpegs.length; i++) {
-          if (typeof onProgress === 'function') {
-            onProgress(i + 1, extractedJpegs.length, file.name);
-          }
           const jpegBytes = extractedJpegs[i];
           const blob = new Blob([jpegBytes], { type: 'image/jpeg' });
           const pageDataUrl = await new Promise(res => {
@@ -2012,12 +2124,11 @@ function setupWeeklyTab(showToast) {
             isPdf: false,
             isPdfPage: true
           });
-          await new Promise(r => setTimeout(r, 20));
         }
         return pages;
       }
 
-      // 3. Doğrudan PDF Dosyası (Gemini Vision API çok sayfalı PDF'leri yerel olarak inceler)
+      // 4. Doğrudan PDF Dosyası (Gemini Vision API)
       const pdfDataUrl = await new Promise(res => {
         const fr = new FileReader();
         fr.onload = () => res(fr.result);
@@ -3868,6 +3979,11 @@ Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi ve
     renderStudentOpticalModalGrid();
     updateStudentOpticalModalStats();
 
+    const hasSavedAnswers = res.answers && Object.keys(res.answers).length > 0;
+    if (btnDeleteStudentOptical) {
+      btnDeleteStudentOptical.style.display = hasSavedAnswers ? 'inline-flex' : 'none';
+    }
+
     if (modalStudentOpticalEdit) {
       modalStudentOpticalEdit.classList.add('active');
     }
@@ -4250,6 +4366,40 @@ Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi ve
   if (btnSaveStudentOptical) {
     btnSaveStudentOptical.addEventListener('click', () => {
       saveStudentOpticalChanges();
+    });
+  }
+
+  if (btnDeleteStudentOptical) {
+    btnDeleteStudentOptical.addEventListener('click', async () => {
+      if (!activeExam || !activeOpticalStudentId) return;
+      const state = stateManager.loadState();
+      const student = (state.students || []).find(s => String(s.id) === String(activeOpticalStudentId));
+      const sName = student ? `${student.name} ${student.surname || ''}`.trim() : 'Öğrencinin';
+
+      const confirmed = await window.showConfirmDialog({
+        title: 'Optik Form Kaydını Sil',
+        message: `<strong>${sName}</strong> isimli öğrencinin taranmış optik form kaydını ve sınav sonucunu tamamen silmek istediğinize emin misiniz?<br><br>Bu işlemden sonra optik form silinecek, öğrencinin sınav notu sıfırlanacak ve ana tabloda elle değer girmeye açık hale gelecektir.`,
+        confirmText: 'Evet, Optiği Sil',
+        cancelText: 'Vazgeç',
+        type: 'danger'
+      });
+      if (!confirmed) return;
+
+      if (activeExam.studentResults) delete activeExam.studentResults[activeOpticalStudentId];
+      if (activeExam.examScores) delete activeExam.examScores[activeOpticalStudentId];
+      activeExam.updatedAt = new Date().toISOString();
+      stateManager.saveExam(activeExam);
+
+      if (modalStudentOpticalEdit) modalStudentOpticalEdit.classList.remove('active');
+      renderActiveExamTable();
+      renderExamsList();
+
+      if (toastCallback) {
+        toastCallback(`✓ ${sName} optik form kaydı silindi ve elle not girişine açıldı.`, 'success');
+      }
+
+      const event = new CustomEvent('stateChanged');
+      document.dispatchEvent(event);
     });
   }
 
@@ -4996,6 +5146,7 @@ function renderActiveExamTable() {
         : `<div class="avatar-sm" style="width: 32px; height: 32px; font-size: 0.8rem; margin: 0; background-color: var(--primary-light); color: var(--primary); text-transform: uppercase; display: flex; align-items: center; justify-content: center; border-radius: 50%;">${initials}</div>`;
 
       const hasAnswers = result.answers && Object.keys(result.answers).length > 0;
+      const optLockTooltip = 'Değerler optik formdan otomatik hesaplanmaktadır. Değiştirmek için sağdaki "Optik İncele" butonunu kullanın.';
 
       row.innerHTML = `
         <td style="text-align: center; vertical-align: middle; font-weight: 600;">${student.number || ''}</td>
@@ -5006,13 +5157,13 @@ function renderActiveExamTable() {
           </div>
         </td>
         <td style="text-align: center; vertical-align: middle;">
-          <input type="number" class="form-control exam-table-input exam-correct-input" data-student-id="${student.id}" min="0" max="${activeExam.totalQuestions || 100}" value="${result.correct !== undefined ? result.correct : ''}" placeholder="-">
+          <input type="number" class="form-control exam-table-input exam-correct-input" data-student-id="${student.id}" min="0" max="${activeExam.totalQuestions || 100}" value="${result.correct !== undefined ? result.correct : ''}" placeholder="-" ${hasAnswers ? `readonly style="background-color: var(--bg-secondary); cursor: not-allowed; border: 1.5px dashed var(--border-color); font-weight: 700; color: #059669;" title="${optLockTooltip}"` : 'title="Doğru sayısını girin"'}>
         </td>
         <td style="text-align: center; vertical-align: middle;">
-          <input type="number" class="form-control exam-table-input exam-blank-input" data-student-id="${student.id}" min="0" max="${activeExam.totalQuestions || 100}" value="${result.blank !== undefined ? result.blank : ''}" placeholder="-">
+          <input type="number" class="form-control exam-table-input exam-blank-input" data-student-id="${student.id}" min="0" max="${activeExam.totalQuestions || 100}" value="${result.blank !== undefined ? result.blank : ''}" placeholder="-" ${hasAnswers ? `readonly style="background-color: var(--bg-secondary); cursor: not-allowed; border: 1.5px dashed var(--border-color); font-weight: 700; color: #64748b;" title="${optLockTooltip}"` : 'title="Boş sayısını girin"'}>
         </td>
         <td style="text-align: center; vertical-align: middle;">
-          <input type="number" class="form-control exam-table-input exam-wrong-input" readonly value="${result.wrong !== undefined ? result.wrong : ''}" style="background-color: var(--bg-primary); opacity: 0.85;" placeholder="-">
+          <input type="number" class="form-control exam-table-input exam-wrong-input" readonly value="${result.wrong !== undefined ? result.wrong : ''}" style="background-color: var(--bg-secondary); opacity: 0.85; ${hasAnswers ? 'cursor: not-allowed; font-weight: 700; color: #dc2626;' : ''}" placeholder="-" ${hasAnswers ? `title="${optLockTooltip}"` : ''}>
         </td>
         <td style="text-align: center; vertical-align: middle; font-weight: 700; color: var(--primary);">
           <span class="exam-net-span" style="font-size: 0.95rem;">${result.net !== undefined && result.net !== '' ? result.net : '-'}</span>
@@ -5024,8 +5175,8 @@ function renderActiveExamTable() {
           <span class="exam-score-span">${result.score !== undefined && result.score !== '' ? result.score : '-'}</span>
         </td>
         <td style="text-align: center; vertical-align: middle;">
-          <button type="button" class="btn btn-secondary btn-sm btn-open-student-optical" data-student-id="${student.id}" style="font-size: 0.74rem; padding: 0.28rem 0.6rem; height: auto; display: inline-flex; align-items: center; gap: 4px; border-radius: 6px; cursor: pointer; border-color: rgba(99, 102, 241, 0.25); color: var(--primary);" title="${sName} ${sSurname} - Optik form işaretlemelerini incele ve düzenle">
-            <i data-lucide="edit" style="width: 14px; height: 14px;"></i>
+          <button type="button" class="btn btn-sm btn-open-student-optical ${hasAnswers ? 'btn-secondary' : 'btn-outline-secondary'}" data-student-id="${student.id}" style="font-size: 0.74rem; padding: 0.28rem 0.6rem; height: auto; display: inline-flex; align-items: center; gap: 4px; border-radius: 6px; cursor: pointer; ${hasAnswers ? 'border-color: rgba(99, 102, 241, 0.4); color: var(--primary); font-weight: 600; background: rgba(99, 102, 241, 0.1);' : 'border: 1px dashed var(--border-color); color: var(--text-muted);'}" title="${sName} ${sSurname} - ${hasAnswers ? 'Optik form işaretlemelerini incele ve düzenle' : 'Bu öğrenci için optik form işaretlemelerini gir'}">
+            <i data-lucide="${hasAnswers ? 'scan-line' : 'edit'}" style="width: 14px; height: 14px;"></i>
             <span>${hasAnswers ? 'Optik İncele' : 'Optik Gir'}</span>
           </button>
         </td>
@@ -5041,8 +5192,10 @@ function renderActiveExamTable() {
         handleInputUpdate(student.id, row, activeExam.totalQuestions);
       };
 
-      if (correctInput) correctInput.addEventListener('input', updateHandler);
-      if (blankInput) blankInput.addEventListener('input', updateHandler);
+      if (!hasAnswers) {
+        if (correctInput) correctInput.addEventListener('input', updateHandler);
+        if (blankInput) blankInput.addEventListener('input', updateHandler);
+      }
 
       const optBtn = row.querySelector('.btn-open-student-optical');
       if (optBtn) {
