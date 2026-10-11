@@ -679,8 +679,8 @@
           const rowPaperLum = pCnt > 0 ? (pSum / pCnt) : 230;
 
           const choiceScores = [];
-          const searchYRange = Math.min(48, Math.round(rowStep * 0.42));
-          const searchXRange = Math.min(30, Math.round(choiceStep * 0.25));
+          const searchYRange = Math.min(18, Math.round(rowStep * 0.18));
+          const searchXRange = Math.min(16, Math.round(choiceStep * 0.14));
 
           for (let lIdx = 0; lIdx < letters.length; lIdx++) {
             const initX = Math.round(choiceStartX + lIdx * choiceStep);
@@ -706,7 +706,7 @@
             }
 
             let darkCount = 0, totalCount = 0, sumDark = 0;
-            const rSample = Math.max(2, Math.round(choiceStep * 0.16));
+            const rSample = Math.max(2, Math.round(choiceStep * 0.11));
             for (let dy = -rSample; dy <= rSample; dy++) {
               for (let dx = -rSample; dx <= rSample; dx++) {
                 if (dx * dx + dy * dy <= rSample * rSample) {
@@ -738,17 +738,16 @@
           let markedLetter = '';
           let status = 'blank';
 
-          const markThreshold = options.minScore || 0.22;
-          const fillThreshold = options.minFill || 0.25;
+          const diff = best.score - second.score;
+          const isFilled = best.score >= 0.58 && (diff >= 0.12 || best.score >= 0.70);
+          const isMultiple = isFilled && second.score >= 0.55 && diff < 0.10;
 
-          if (best.score >= markThreshold && best.fillRatio >= fillThreshold) {
-            if (second.score >= markThreshold && second.fillRatio >= fillThreshold && (best.score - second.score) < 0.08) {
-              status = 'multiple';
-              markedLetter = '';
-            } else {
-              status = 'marked';
-              markedLetter = best.letter;
-            }
+          if (isMultiple) {
+            status = 'multiple';
+            markedLetter = '';
+          } else if (isFilled) {
+            status = 'marked';
+            markedLetter = best.letter;
           }
 
           const correctAns = typeof window.findCorrectAnswerForKey === 'function'
@@ -858,14 +857,16 @@
           let markedLetter = '';
           let status = 'blank';
 
-          if (best.score >= minScore && best.fillRatio >= minFill) {
-            if (second.score >= minScore && second.fillRatio >= minFill && (best.score - second.score) < 0.08) {
-              status = 'multiple';
-              markedLetter = '';
-            } else {
-              status = 'marked';
-              markedLetter = best.letter;
-            }
+          const diff = best.score - second.score;
+          const isFilled = best.score >= 0.58 && (diff >= 0.12 || best.score >= 0.70);
+          const isMultiple = isFilled && second.score >= 0.55 && diff < 0.10;
+
+          if (isMultiple) {
+            status = 'multiple';
+            markedLetter = '';
+          } else if (isFilled) {
+            status = 'marked';
+            markedLetter = best.letter;
           }
 
           const correctAns = String(answerKey[q] || answerKey[String(q)] || '').trim().toUpperCase();
