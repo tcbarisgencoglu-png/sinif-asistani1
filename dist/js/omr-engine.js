@@ -646,7 +646,7 @@
         let headerLineY = null;
         for (let y = Math.round(boxTop + boxH * 0.04); y < Math.round(boxTop + boxH * 0.14); y++) {
           let dark = 0;
-          for (let x = bX1; x < bX2; x++) if (gray[y * w + x] < 115) dark++;
+          for (let x = bX1; x < bX2; x++) if (gray[y * w + x] < 125) dark++;
           if (dark > bSpan * 0.60) {
             headerLineY = y;
             break;
@@ -679,8 +679,8 @@
           const rowPaperLum = pCnt > 0 ? (pSum / pCnt) : 230;
 
           const choiceScores = [];
-          const searchYRange = Math.min(18, Math.round(rowStep * 0.18));
-          const searchXRange = Math.min(16, Math.round(choiceStep * 0.14));
+          const searchYRange = Math.min(32, Math.round(rowStep * 0.32));
+          const searchXRange = Math.min(22, Math.round(choiceStep * 0.18));
 
           for (let lIdx = 0; lIdx < letters.length; lIdx++) {
             const initX = Math.round(choiceStartX + lIdx * choiceStep);
