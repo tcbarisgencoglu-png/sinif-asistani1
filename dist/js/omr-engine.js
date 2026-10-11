@@ -189,6 +189,58 @@
     return bestScore > 0 ? { x: bestX, y: bestY } : null;
   }
 
+  // CamScanner, taranmış A4 ve baskı kartları için belirgin dış kart çerçevesi tespiti
+  function findCardBorderCorners(grayBuf, w, h, threshold, bounds) {
+    const minX = bounds ? bounds.minX : 0;
+    const maxX = bounds ? bounds.maxX : w;
+    const minY = bounds ? bounds.minY : 0;
+    const maxY = bounds ? bounds.maxY : h;
+    const subW = maxX - minX;
+    const subH = maxY - minY;
+    const thresh = threshold || 140;
+
+    let topY = null;
+    for (let y = Math.round(minY + subH * 0.01); y < Math.round(minY + subH * 0.22); y++) {
+      let dark = 0;
+      for (let x = Math.round(minX + subW * 0.2); x < Math.round(minX + subW * 0.8); x++) {
+        if (grayBuf[y * w + x] < thresh) dark++;
+      }
+      if (dark > (subW * 0.6) * 0.50) { topY = y; break; }
+    }
+    let botY = null;
+    for (let y = Math.round(maxY - subH * 0.01); y > Math.round(maxY - subH * 0.22); y--) {
+      let dark = 0;
+      for (let x = Math.round(minX + subW * 0.2); x < Math.round(minX + subW * 0.8); x++) {
+        if (grayBuf[y * w + x] < thresh) dark++;
+      }
+      if (dark > (subW * 0.6) * 0.50) { botY = y; break; }
+    }
+    let leftX = null;
+    for (let x = Math.round(minX + subW * 0.01); x < Math.round(minX + subW * 0.22); x++) {
+      let dark = 0;
+      for (let y = Math.round(minY + subH * 0.2); y < Math.round(minY + subH * 0.8); y++) {
+        if (grayBuf[y * w + x] < thresh) dark++;
+      }
+      if (dark > (subH * 0.6) * 0.50) { leftX = x; break; }
+    }
+    let rightX = null;
+    for (let x = Math.round(maxX - subW * 0.01); x > Math.round(maxX - subW * 0.22); x--) {
+      let dark = 0;
+      for (let y = Math.round(minY + subH * 0.2); y < Math.round(minY + subH * 0.8); y++) {
+        if (grayBuf[y * w + x] < thresh) dark++;
+      }
+      if (dark > (subH * 0.6) * 0.50) { rightX = x; break; }
+    }
+    if (!topY || !botY || !leftX || !rightX) return null;
+    if ((rightX - leftX) < subW * 0.65 || (botY - topY) < subH * 0.60) return null;
+    return {
+      tl: { x: leftX, y: topY },
+      tr: { x: rightX, y: topY },
+      br: { x: rightX, y: botY },
+      bl: { x: leftX, y: botY }
+    };
+  }
+
   function detectCornerAnchors(gray, w, h, threshold, bounds) {
     const minX = bounds ? bounds.minX : 0;
     const maxX = bounds ? bounds.maxX : w;
@@ -196,6 +248,12 @@
     const maxY = bounds ? bounds.maxY : h;
     const subW = maxX - minX;
     const subH = maxY - minY;
+
+    // 1. Önce formun belirgin dış kart çerçevesini kontrol et (CamScanner ve taranmış A4 için en hassas & kararlı)
+    const borderCorners = findCardBorderCorners(gray, w, h, threshold, bounds);
+    if (borderCorners) {
+      return borderCorners;
+    }
 
     const qW = Math.round(subW * 0.30);
     const qH = Math.round(subH * 0.28);
@@ -591,20 +649,21 @@
       const fbX1 = firstB.left + Math.round(fbW * 0.1);
       const fbX2 = firstB.right - Math.round(fbW * 0.1);
       const fbSpan = fbX2 - fbX1;
-      for (let y = Math.round(h * 0.98); y > Math.round(h * 0.70); y--) {
+      let foundBottoms = [];
+      for (let y = Math.round(h * 0.75); y < Math.round(h * 0.95); y++) {
         let dark = 0;
-        for (let x = fbX1; x < fbX2; x++) if (gray[y * w + x] < 115) dark++;
+        for (let x = fbX1; x < fbX2; x++) if (gray[y * w + x] < 125) dark++;
         if (dark >= fbSpan * 0.65) {
-          let whiteAbove = 0, whiteBelow = 0;
+          let whiteAbove = 0;
           const checkDist = Math.max(3, Math.round(h * 0.010));
           if (y - checkDist >= 0) for (let x = fbX1; x < fbX2; x++) if (gray[(y - checkDist) * w + x] > 160) whiteAbove++;
-          if (y + checkDist < h) for (let x = fbX1; x < fbX2; x++) if (gray[(y + checkDist) * w + x] > 160) whiteBelow++;
-          if (whiteAbove > fbSpan * 0.35 && whiteBelow > fbSpan * 0.35) {
-            commonBottom = y;
-            break;
+          if (whiteAbove > fbSpan * 0.35) {
+            foundBottoms.push(y);
+            y += 10;
           }
         }
       }
+      if (foundBottoms.length > 0) commonBottom = foundBottoms[0];
       commonBottom = commonBottom || Math.round(h * 0.90);
 
       corners.tl = { x: detectedBoxes[0].left, y: boxTop };
@@ -625,20 +684,21 @@
 
         // Kutunun alt çizgisini bu kutu içinde ara (CamScanner gölge ve filigranını filtreleyerek)
         let boxBottom = null;
-        for (let y = Math.round(h * 0.98); y > Math.round(h * 0.70); y--) {
+        let sBottoms = [];
+        for (let y = Math.round(h * 0.75); y < Math.round(h * 0.95); y++) {
           let dark = 0;
-          for (let x = bX1; x < bX2; x++) if (gray[y * w + x] < 115) dark++;
+          for (let x = bX1; x < bX2; x++) if (gray[y * w + x] < 125) dark++;
           if (dark >= bSpan * 0.65) {
-            let whiteAbove = 0, whiteBelow = 0;
+            let whiteAbove = 0;
             const checkDist = Math.max(3, Math.round(h * 0.010));
             if (y - checkDist >= 0) for (let x = bX1; x < bX2; x++) if (gray[(y - checkDist) * w + x] > 160) whiteAbove++;
-            if (y + checkDist < h) for (let x = bX1; x < bX2; x++) if (gray[(y + checkDist) * w + x] > 160) whiteBelow++;
-            if (whiteAbove > bSpan * 0.35 && whiteBelow > bSpan * 0.35) {
-              boxBottom = y;
-              break;
+            if (whiteAbove > bSpan * 0.35) {
+              sBottoms.push(y);
+              y += 10;
             }
           }
         }
+        if (sBottoms.length > 0) boxBottom = sBottoms[0];
         boxBottom = boxBottom || commonBottom;
         const boxH = boxBottom - boxTop;
 
@@ -679,7 +739,7 @@
           const rowPaperLum = pCnt > 0 ? (pSum / pCnt) : 230;
 
           const choiceScores = [];
-          const searchYRange = Math.min(32, Math.round(rowStep * 0.32));
+          const searchYRange = Math.min(22, Math.round(rowStep * 0.25));
           const searchXRange = Math.min(22, Math.round(choiceStep * 0.18));
 
           for (let lIdx = 0; lIdx < letters.length; lIdx++) {
@@ -739,7 +799,7 @@
           let status = 'blank';
 
           const diff = best.score - second.score;
-          const isFilled = best.score >= 0.58 && (diff >= 0.12 || best.score >= 0.70);
+          const isFilled = best.score >= 0.60 && (diff >= 0.12 || best.score >= 0.70);
           const isMultiple = isFilled && second.score >= 0.55 && diff < 0.10;
 
           if (isMultiple) {
@@ -1151,9 +1211,9 @@
       let best = null;
       // 3x3 OMR matrisi başlığın sağ tarafında, QR kodun solunda yer alır.
       // Soru baloncukları ve harici metinlerden etkilenmemesi için hassas pencere taranır.
-      const uScales = [0.030, 0.034, 0.038];
-      const uMin = 0.816, uMax = 0.840, uStep = 0.003;
-      const vMin = 0.098, vMax = 0.130, vStep = 0.003;
+      const uScales = [0.032, 0.036, 0.040];
+      const uMin = 0.810, uMax = 0.850, uStep = 0.003;
+      const vMin = 0.080, vMax = 0.135, vStep = 0.003;
 
       for (let u0 = uMin; u0 <= uMax; u0 += uStep) {
         for (let v0 = vMin; v0 <= vMax; v0 += vStep) {
@@ -1175,7 +1235,7 @@
         const dvStep = 0.0015 * cardAspect;
         for (let du = -duStep; du <= duStep; du += duStep) {
           for (let dv = -dvStep; dv <= dvStep; dv += dvStep) {
-            if (du === 0 && dv === 0) continue;
+            if (du === 0 && du === 0) continue;
             const res = evalCandidate(best.u0 + du, best.v0 + dv, best.su, best.sv);
             if (res && res.index > 0 && res.score > best.score) {
               best = { ...res, u0: best.u0 + du, v0: best.v0 + dv, su: best.su, sv: best.sv };
@@ -1191,12 +1251,14 @@
     }
 
     // Sayfada 2 form var mı? (Ortada çapa kontrolü)
+    const borderBounds = findCardBorderCorners(gray, targetW, targetH, threshold, null);
+    const isFullPageCard = borderBounds && (borderBounds.br.y - borderBounds.tl.y > targetH * 0.65);
     const midY = Math.round(targetH * 0.50);
     const midRadius = Math.max(8, Math.round(targetW * 0.018));
     const midAnchorL = findConcentricTargetAnchor(gray, targetW, targetH, 0, Math.round(targetW * 0.25), Math.round(targetH * 0.40), Math.round(targetH * 0.60), midRadius);
     const midAnchorR = findConcentricTargetAnchor(gray, targetW, targetH, Math.round(targetW * 0.75), targetW, Math.round(targetH * 0.40), Math.round(targetH * 0.60), midRadius);
 
-    const isDoubleForm = (midAnchorL && midAnchorR);
+    const isDoubleForm = !isFullPageCard && (midAnchorL && midAnchorR && Math.abs(midAnchorL.y - midAnchorR.y) < targetH * 0.05 && (midAnchorR.x - midAnchorL.x) > targetW * 0.65);
     const detectedCards = [];
 
     if (isDoubleForm) {
