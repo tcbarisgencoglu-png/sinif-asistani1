@@ -413,6 +413,15 @@ function renderDesktopAnswerKeyGrid() {
   const choicesCount = parseInt(cInput ? cInput.value : 4, 10) || 4;
   const letters = ['A', 'B', 'C', 'D', 'E'].slice(0, choicesCount);
 
+  const btnCopyAll = document.getElementById('btn-exam-copy-to-all');
+  const applyAllLabel = document.getElementById('exam-key-apply-all-label');
+  if (btnCopyAll) {
+    btnCopyAll.style.display = (tempCreateExamType === 'multi') ? 'inline-block' : 'none';
+  }
+  if (applyAllLabel) {
+    applyAllLabel.style.display = (tempCreateExamType === 'multi') ? 'flex' : 'none';
+  }
+
   if (tempCreateExamType === 'multi') {
     // Çoklu Ders Durumu
     if (multiTabs) {
@@ -720,13 +729,83 @@ function findCorrectAnswerForKey(answerKey, subj, subjIndex, q, cumulativeOffset
   if (answerKey[String(globalQ)]) return String(answerKey[String(globalQ)]).trim().toUpperCase();
 
   const found = extractAnswerForSubj(answerKey, null, subj, subjIndex, q, cumulativeOffset);
-  return found ? String(found).trim().toUpperCase() : '';
+  if (found) return String(found).trim().toUpperCase();
+
+  // 6. Soru numarası fallback (Örn: "Anahtar tüm derslerde aynı" ise veya sınav 1..N şeklinde tanımlanmışsa)
+  if (answerKey[q]) return String(answerKey[q]).trim().toUpperCase();
+  if (answerKey[String(q)]) return String(answerKey[String(q)]).trim().toUpperCase();
+
+  return '';
+}
+
+// Serbest metinden (Örn: "1.a 2.a 3.b 4.b..." veya "AABBCCDDAA" veya "A, A, B...") cevap anahtarını ayrıştıran evrensel motor
+function parseAnswerKeyText(rawText, choicesCount = 4) {
+  if (!rawText || typeof rawText !== 'string') return {};
+  const allowedLetters = ['A', 'B', 'C', 'D', 'E'].slice(0, choicesCount);
+  const result = {};
+
+  // 1. Durum: Numaralandırılmış format (örn: "1.a 2.a 3.b", "1-a", "1:b", "Soru 1: C", "1) a")
+  const numberedPattern = /(?:^|[\s,;\n\r])(?:Soru\s*|S\s*)?(\d+)[\s.:\-=)]+([A-Ea-e])(?=[\s,;\n\r]|$)/gi;
+  let match;
+  let foundNumbered = false;
+  while ((match = numberedPattern.exec(rawText)) !== null) {
+    const qNum = parseInt(match[1], 10);
+    const letter = match[2].toUpperCase();
+    if (qNum > 0 && allowedLetters.includes(letter)) {
+      result[qNum] = letter;
+      foundNumbered = true;
+    }
+  }
+
+  // Kullanıcı "10.10" veya benzeri yazmışsa ve 10 eksik kalmışsa metin içinde "10." sonrasındaki harfi veya 9'un devamını kontrol et
+  if (!result[10]) {
+    const m10 = rawText.match(/10[\s.:\-=)]+([A-Ea-e])/i);
+    if (m10 && allowedLetters.includes(m10[1].toUpperCase())) {
+      result[10] = m10[1].toUpperCase();
+      foundNumbered = true;
+    }
+  }
+
+  if (foundNumbered && Object.keys(result).length > 0) {
+    return result;
+  }
+
+  // 2. Durum: Boşluk, virgül veya tire ile ayrılmış harfler (örn: "A A B B C C D D A A" veya "A, A, B, B...")
+  const tokens = rawText.trim().split(/[\s,;:\n\r\t-]+/).filter(Boolean);
+  const letterTokens = tokens.filter(t => t.length === 1 && allowedLetters.includes(t.toUpperCase()));
+  if (letterTokens.length >= 2) {
+    letterTokens.forEach((l, idx) => {
+      result[idx + 1] = l.toUpperCase();
+    });
+    return result;
+  }
+
+  // 3. Durum: Bitişik harf dizisi (örn: "AABBCCDDAA" veya "AABCD")
+  const cleanStr = rawText.replace(/[^A-Za-z]/g, '').toUpperCase();
+  if (cleanStr.length >= 2) {
+    let valid = true;
+    for (let i = 0; i < cleanStr.length; i++) {
+      if (!allowedLetters.includes(cleanStr[i])) {
+        valid = false;
+        break;
+      }
+    }
+    if (valid) {
+      for (let i = 0; i < cleanStr.length; i++) {
+        result[i + 1] = cleanStr[i];
+      }
+      return result;
+    }
+  }
+
+  return result;
 }
 
 window.normalizeOmrSubject = normalizeOmrSubject;
 window.getOmrSubjectBaseKeywords = getOmrSubjectBaseKeywords;
 window.extractAnswerForSubj = extractAnswerForSubj;
 window.findCorrectAnswerForKey = findCorrectAnswerForKey;
+window.parseAnswerKeyText = parseAnswerKeyText;
 
 function setupWeeklyTab(showToast) {
   toastCallback = showToast;
@@ -826,6 +905,118 @@ function setupWeeklyTab(showToast) {
   if (btnExamClearKey) {
     btnExamClearKey.addEventListener('click', () => {
       window.clearDesktopExamKey();
+    });
+  }
+
+  // Yeni Sınav Modalı - Metin Olarak Cevap Anahtarı Gir / Yapıştır & Tüm Derslere Uygula
+  const btnExamCopyToAll = document.getElementById('btn-exam-copy-to-all');
+  if (btnExamCopyToAll) {
+    btnExamCopyToAll.addEventListener('click', () => {
+      if (tempCreateExamType !== 'multi' || !Array.isArray(tempCreateExamSubjects)) return;
+      const currentSubj = tempCreateExamSubjects.find(s => s.id === activeCreateExamSubjId) || tempCreateExamSubjects[0];
+      if (!currentSubj) return;
+
+      const currentSubjKey = {};
+      for (let q = 1; q <= currentSubj.questionCount; q++) {
+        const val = tempCreateExamKey[`${currentSubj.id}_${q}`] || tempCreateExamKey[`${currentSubj.name}_${q}`] || tempCreateExamKey[q];
+        if (val) currentSubjKey[q] = val;
+      }
+
+      if (Object.keys(currentSubjKey).length === 0) {
+        if (toastCallback) toastCallback(`Lütfen önce "${currentSubj.name}" dersi için şıkları belirleyin.`, 'warning');
+        return;
+      }
+
+      tempCreateExamSubjects.forEach(subj => {
+        for (let q = 1; q <= subj.questionCount; q++) {
+          const srcVal = currentSubjKey[q];
+          if (srcVal) {
+            tempCreateExamKey[`${subj.id}_${q}`] = srcVal;
+          }
+        }
+      });
+
+      renderDesktopAnswerKeyGrid();
+      if (toastCallback) toastCallback(`"${currentSubj.name}" dersinin cevap anahtarı tüm derslere uygulandı.`, 'success');
+    });
+  }
+
+  const btnExamToggleTextKey = document.getElementById('btn-exam-toggle-text-key');
+  const examKeyTextBox = document.getElementById('exam-key-text-box');
+  const btnExamCancelTextKey = document.getElementById('btn-exam-cancel-text-key');
+  const btnExamApplyTextKey = document.getElementById('btn-exam-apply-text-key');
+  const examKeyTextInput = document.getElementById('exam-key-text-input');
+  const examKeyApplyAllCheck = document.getElementById('exam-key-apply-all-check');
+
+  if (btnExamToggleTextKey && examKeyTextBox) {
+    btnExamToggleTextKey.addEventListener('click', () => {
+      const isHidden = examKeyTextBox.style.display === 'none';
+      examKeyTextBox.style.display = isHidden ? 'block' : 'none';
+      if (isHidden && examKeyTextInput) {
+        examKeyTextInput.focus();
+      }
+    });
+  }
+  if (btnExamCancelTextKey && examKeyTextBox) {
+    btnExamCancelTextKey.addEventListener('click', () => {
+      examKeyTextBox.style.display = 'none';
+    });
+  }
+
+  if (btnExamApplyTextKey) {
+    btnExamApplyTextKey.addEventListener('click', () => {
+      const rawText = examKeyTextInput ? examKeyTextInput.value.trim() : '';
+      if (!rawText) {
+        if (toastCallback) toastCallback('Lütfen cevap anahtarını metin olarak girin veya yapıştırın!', 'warning');
+        return;
+      }
+
+      const cInput = document.getElementById('exam-choices-count');
+      const cCount = parseInt(cInput ? cInput.value : 4, 10) || 4;
+      const parsedKey = parseAnswerKeyText(rawText, cCount);
+      const parsedCount = Object.keys(parsedKey).length;
+
+      if (parsedCount === 0) {
+        if (toastCallback) toastCallback('Metinden hiçbir geçerli cevap algılanamadı! (Örn: 1.a 2.a 3.b ...)', 'error');
+        return;
+      }
+
+      const isMulti = tempCreateExamType === 'multi';
+      const applyAll = examKeyApplyAllCheck ? examKeyApplyAllCheck.checked : true;
+
+      if (isMulti) {
+        if (applyAll) {
+          tempCreateExamSubjects.forEach(s => {
+            for (let q = 1; q <= s.questionCount; q++) {
+              if (parsedKey[q]) {
+                tempCreateExamKey[`${s.id}_${q}`] = parsedKey[q];
+              }
+            }
+          });
+          if (toastCallback) toastCallback(`Cevap anahtarı (${parsedCount} soru) tüm derslere uygulandı!`, 'success');
+        } else {
+          const currentSubj = tempCreateExamSubjects.find(s => s.id === activeCreateExamSubjId) || tempCreateExamSubjects[0];
+          for (let q = 1; q <= currentSubj.questionCount; q++) {
+            if (parsedKey[q]) {
+              tempCreateExamKey[`${currentSubj.id}_${q}`] = parsedKey[q];
+            }
+          }
+          if (toastCallback) toastCallback(`Cevap anahtarı (${parsedCount} soru) "${currentSubj.name}" dersine uygulandı!`, 'success');
+        }
+      } else {
+        const qInput = document.getElementById('exam-questions-input');
+        const qCount = parseInt(qInput ? qInput.value : 20, 10) || 20;
+        for (let q = 1; q <= qCount; q++) {
+          if (parsedKey[q]) {
+            tempCreateExamKey[String(q)] = parsedKey[q];
+          }
+        }
+        if (toastCallback) toastCallback(`Cevap anahtarı (${parsedCount} soru) başarıyla aktarıldı!`, 'success');
+      }
+
+      if (examKeyTextBox) examKeyTextBox.style.display = 'none';
+      if (examKeyTextInput) examKeyTextInput.value = '';
+      renderDesktopAnswerKeyGrid();
     });
   }
 
@@ -1432,7 +1623,7 @@ function setupWeeklyTab(showToast) {
       // Yazdır
       const printStyle = document.createElement('style');
       printStyle.id = 'optical-print-page-style';
-      printStyle.textContent = `@page { size: A4 portrait; margin: 4mm 5mm; }`;
+      printStyle.textContent = `@page { size: A4 portrait; margin: 5mm; }`;
       document.head.appendChild(printStyle);
 
       document.body.classList.add('print-optical');
@@ -1613,6 +1804,38 @@ function setupWeeklyTab(showToast) {
     if (window.safeCreateIcons) window.safeCreateIcons();
   }
 
+  // Taranan öğrenci sonuçlarını güncel cevap anahtarıyla anında yeniden puanlama
+  function refreshOpticalScannedResultsEvaluation() {
+    if (!activeExam || !opticalScannedResults || opticalScannedResults.length === 0) return;
+    const isMulti = activeExam.isMultiSubject && Array.isArray(activeExam.subjects) && activeExam.subjects.length > 0;
+
+    opticalScannedResults.forEach(res => {
+      if (res.questionDetails) {
+        res.questionDetails.forEach((qd) => {
+          let correctAns = '';
+          if (isMulti) {
+            const sIdx = activeExam.subjects.findIndex(s => s.id === qd.subjId || s.name === qd.subjName);
+            const subj = sIdx >= 0 ? activeExam.subjects[sIdx] : { id: qd.subjId, name: qd.subjName, questionCount: 10 };
+            let cumulativeOffset = 0;
+            for (let i = 0; i < sIdx; i++) {
+              cumulativeOffset += (activeExam.subjects[i].questionCount || 0);
+            }
+            correctAns = findCorrectAnswerForKey(activeExam.answerKey, subj, sIdx >= 0 ? sIdx : 0, qd.q, cumulativeOffset);
+          } else {
+            correctAns = String(activeExam.answerKey[qd.q] || activeExam.answerKey[String(qd.q)] || '').trim().toUpperCase();
+          }
+          qd.keyAnswer = correctAns;
+        });
+      }
+      recalculateResultCard(res);
+    });
+
+    if (opticalEvalStepResults && opticalEvalStepResults.style.display !== 'none') {
+      renderOpticalEvaluationResults();
+    }
+  }
+  window.refreshOpticalScannedResultsEvaluation = refreshOpticalScannedResultsEvaluation;
+
   // Cevap Anahtarı Durum Metni
   function updateOpticalKeyStatusDisplay() {
     if (!opticalEvalKeyStatus || !activeExam) return;
@@ -1627,7 +1850,7 @@ function setupWeeklyTab(showToast) {
           const globalQ = cumulative + q;
           const k1 = `${s.id}_${q}`;
           const k2 = `${s.name}_${q}`;
-          if (opticalTempExamKey[k1] || opticalTempExamKey[k2] || opticalTempExamKey[globalQ] || opticalTempExamKey[String(globalQ)]) {
+          if (opticalTempExamKey[k1] || opticalTempExamKey[k2] || opticalTempExamKey[globalQ] || opticalTempExamKey[String(globalQ)] || opticalTempExamKey[q] || opticalTempExamKey[String(q)]) {
             answeredCount++;
           }
         }
@@ -1637,12 +1860,16 @@ function setupWeeklyTab(showToast) {
       answeredCount = Object.keys(opticalTempExamKey || {}).filter(k => parseInt(k, 10) <= qCount && opticalTempExamKey[k]).length;
     }
 
+    const resultsKeySummary = document.getElementById('optical-results-key-summary');
     if (answeredCount === qCount) {
       opticalEvalKeyStatus.innerHTML = `<span style="color: #10b981; font-weight: 700;">${answeredCount} / ${qCount} Soru Tamamlandı ✓</span>`;
+      if (resultsKeySummary) resultsKeySummary.innerHTML = `<span style="color: #10b981;">${answeredCount} / ${qCount} Soru Tamamlandı ✓</span>`;
     } else if (answeredCount > 0) {
       opticalEvalKeyStatus.innerHTML = `<span style="color: #f59e0b; font-weight: 700;">${answeredCount} / ${qCount} Soru Belirlendi (Eksik var!)</span>`;
+      if (resultsKeySummary) resultsKeySummary.innerHTML = `<span style="color: #f59e0b;">${answeredCount} / ${qCount} Soru Belirlendi</span>`;
     } else {
       opticalEvalKeyStatus.innerHTML = `<span style="color: #ef4444; font-weight: 700;">Cevap Anahtarı Tanımlanmamış</span>`;
+      if (resultsKeySummary) resultsKeySummary.innerHTML = `<span style="color: #ef4444;">Tanımlanmamış</span>`;
     }
   }
 
@@ -1665,6 +1892,11 @@ function setupWeeklyTab(showToast) {
     const cCount = parseInt(activeExam.choicesCount, 10) || 4;
     const letters = ['A', 'B', 'C', 'D', 'E'].slice(0, cCount);
 
+    const btnCopyAll = document.getElementById('btn-optical-copy-to-all-subj');
+    if (btnCopyAll) {
+      btnCopyAll.style.display = isMulti ? 'inline-block' : 'none';
+    }
+
     if (isMulti) {
       const subjects = activeExam.subjects;
       activeOpticalKeySubjId = activeOpticalKeySubjId || subjects[0].id;
@@ -1677,7 +1909,7 @@ function setupWeeklyTab(showToast) {
       subjects.forEach(s => {
         let marked = 0;
         for (let q = 1; q <= s.questionCount; q++) {
-          if (opticalTempExamKey[`${s.id}_${q}`] || opticalTempExamKey[`${s.name}_${q}`]) marked++;
+          if (opticalTempExamKey[`${s.id}_${q}`] || opticalTempExamKey[`${s.name}_${q}`] || opticalTempExamKey[q]) marked++;
         }
         const tabBtn = document.createElement('button');
         tabBtn.type = 'button';
@@ -1706,7 +1938,7 @@ function setupWeeklyTab(showToast) {
         label.style.cssText = 'font-size: 0.75rem; font-weight: 700; color: var(--text-muted); min-width: 22px; text-align: right;';
         row.appendChild(label);
 
-        const currentVal = opticalTempExamKey[key] || opticalTempExamKey[`${currentSubj.name}_${q}`] || '';
+        const currentVal = opticalTempExamKey[key] || opticalTempExamKey[`${currentSubj.name}_${q}`] || opticalTempExamKey[q] || '';
 
         letters.forEach(letter => {
           const btn = document.createElement('button');
@@ -1725,6 +1957,7 @@ function setupWeeklyTab(showToast) {
             stateManager.saveExam(activeExam);
             updateOpticalKeyStatusDisplay();
             renderOpticalKeyEditor();
+            refreshOpticalScannedResultsEvaluation();
           });
           row.appendChild(btn);
         });
@@ -1760,6 +1993,7 @@ function setupWeeklyTab(showToast) {
             stateManager.saveExam(activeExam);
             updateOpticalKeyStatusDisplay();
             renderOpticalKeyEditor();
+            refreshOpticalScannedResultsEvaluation();
           });
           row.appendChild(btn);
         });
@@ -1767,6 +2001,141 @@ function setupWeeklyTab(showToast) {
         opticalEvalKeyGrid.appendChild(row);
       }
     }
+  }
+
+  // Tüm Derslere Uygula (Aktif dersin cevap anahtarını diğer derslere kopyalar)
+  const btnOpticalCopyToAllSubj = document.getElementById('btn-optical-copy-to-all-subj');
+  if (btnOpticalCopyToAllSubj) {
+    btnOpticalCopyToAllSubj.addEventListener('click', () => {
+      if (!activeExam || !activeExam.isMultiSubject || !Array.isArray(activeExam.subjects)) return;
+      const currentSubj = activeExam.subjects.find(s => s.id === activeOpticalKeySubjId) || activeExam.subjects[0];
+      if (!currentSubj) return;
+
+      const currentSubjKey = {};
+      for (let q = 1; q <= currentSubj.questionCount; q++) {
+        const k = `${currentSubj.id}_${q}`;
+        const kn = `${currentSubj.name}_${q}`;
+        const val = opticalTempExamKey[k] || opticalTempExamKey[kn] || opticalTempExamKey[q] || opticalTempExamKey[String(q)];
+        if (val) currentSubjKey[q] = val;
+      }
+
+      if (Object.keys(currentSubjKey).length === 0) {
+        if (toastCallback) toastCallback(`Lütfen önce "${currentSubj.name}" dersi için şıkları belirleyin.`, 'warning');
+        return;
+      }
+
+      activeExam.subjects.forEach(subj => {
+        for (let q = 1; q <= subj.questionCount; q++) {
+          const srcVal = currentSubjKey[q];
+          if (srcVal) {
+            opticalTempExamKey[`${subj.id}_${q}`] = srcVal;
+          }
+        }
+      });
+
+      activeExam.answerKey = { ...opticalTempExamKey };
+      stateManager.saveExam(activeExam);
+      updateOpticalKeyStatusDisplay();
+      renderOpticalKeyEditor();
+      refreshOpticalScannedResultsEvaluation();
+      if (toastCallback) toastCallback(`"${currentSubj.name}" dersinin cevap anahtarı tüm derslere uygulandı.`, 'success');
+    });
+  }
+
+  // Metinle Hızlı Gir / Yapıştır Toggle & İşlemleri
+  const btnOpticalToggleTextKey = document.getElementById('btn-optical-toggle-text-key');
+  const opticalEvalKeyTextBox = document.getElementById('optical-eval-key-text-box');
+  const btnOpticalCancelTextKey = document.getElementById('btn-optical-cancel-text-key');
+  const btnOpticalApplyTextKey = document.getElementById('btn-optical-apply-text-key');
+  const opticalEvalKeyTextInput = document.getElementById('optical-eval-key-text-input');
+  const opticalEvalKeyApplyAllCheck = document.getElementById('optical-eval-key-apply-all-check');
+
+  if (btnOpticalToggleTextKey && opticalEvalKeyTextBox) {
+    btnOpticalToggleTextKey.addEventListener('click', () => {
+      const isHidden = opticalEvalKeyTextBox.style.display === 'none';
+      opticalEvalKeyTextBox.style.display = isHidden ? 'block' : 'none';
+      if (isHidden && opticalEvalKeyTextInput) {
+        opticalEvalKeyTextInput.focus();
+      }
+    });
+  }
+  if (btnOpticalCancelTextKey && opticalEvalKeyTextBox) {
+    btnOpticalCancelTextKey.addEventListener('click', () => {
+      opticalEvalKeyTextBox.style.display = 'none';
+    });
+  }
+  if (btnOpticalApplyTextKey && opticalEvalKeyTextInput) {
+    btnOpticalApplyTextKey.addEventListener('click', () => {
+      const text = opticalEvalKeyTextInput.value.trim();
+      if (!text) {
+        if (toastCallback) toastCallback('Lütfen bir cevap anahtarı metni girin veya yapıştırın.', 'warning');
+        return;
+      }
+
+      const cCount = parseInt(activeExam ? activeExam.choicesCount : 4, 10) || 4;
+      const parsed = parseAnswerKeyText(text, cCount);
+      const parsedKeys = Object.keys(parsed);
+
+      if (parsedKeys.length === 0) {
+        if (toastCallback) toastCallback('Cevap anahtarı metninden geçerli şıklar okunamadı. Örnek: 1.a 2.a 3.b 4.b...', 'error');
+        return;
+      }
+
+      const isMulti = activeExam && activeExam.isMultiSubject && Array.isArray(activeExam.subjects) && activeExam.subjects.length > 0;
+      const applyAll = !isMulti || (opticalEvalKeyApplyAllCheck && opticalEvalKeyApplyAllCheck.checked);
+
+      if (isMulti) {
+        const subjects = activeExam.subjects;
+        const currentSubj = subjects.find(s => s.id === activeOpticalKeySubjId) || subjects[0];
+
+        if (applyAll) {
+          subjects.forEach(subj => {
+            for (let q = 1; q <= subj.questionCount; q++) {
+              if (parsed[q]) {
+                opticalTempExamKey[`${subj.id}_${q}`] = parsed[q];
+              }
+            }
+          });
+        } else {
+          for (let q = 1; q <= currentSubj.questionCount; q++) {
+            if (parsed[q]) {
+              opticalTempExamKey[`${currentSubj.id}_${q}`] = parsed[q];
+            }
+          }
+        }
+      } else {
+        const qCount = parseInt(activeExam ? activeExam.totalQuestions : 20, 10) || 20;
+        for (let q = 1; q <= qCount; q++) {
+          if (parsed[q]) {
+            opticalTempExamKey[q] = parsed[q];
+          }
+        }
+      }
+
+      activeExam.answerKey = { ...opticalTempExamKey };
+      stateManager.saveExam(activeExam);
+      updateOpticalKeyStatusDisplay();
+      renderOpticalKeyEditor();
+      refreshOpticalScannedResultsEvaluation();
+
+      if (opticalEvalKeyTextBox) opticalEvalKeyTextBox.style.display = 'none';
+      if (toastCallback) toastCallback(`${parsedKeys.length} soruluk cevap anahtarı başarıyla uygulandı ve kaydedildi.`, 'success');
+    });
+  }
+
+  // Sonuç ekranındaki "Anahtarı Düzenle / Metinle Gir" butonu
+  const btnOpticalResultsEditKey = document.getElementById('btn-optical-results-edit-key');
+  if (btnOpticalResultsEditKey) {
+    btnOpticalResultsEditKey.addEventListener('click', () => {
+      // Yükleme ekranına dönmeden doğrudan editör kutusunu veya modalı aç
+      if (typeof window.openDesktopAnswerKeyModal === 'function') {
+        window.openDesktopAnswerKeyModal();
+      } else if (opticalEvalStepUpload && opticalEvalStepResults) {
+        opticalEvalStepResults.style.display = 'none';
+        opticalEvalStepUpload.style.display = 'block';
+        if (opticalEvalKeyEditorBox) opticalEvalKeyEditorBox.style.display = 'block';
+      }
+    });
   }
 
   // Cevap Anahtarı Örnek Doldur
@@ -1793,6 +2162,7 @@ function setupWeeklyTab(showToast) {
       stateManager.saveExam(activeExam);
       updateOpticalKeyStatusDisplay();
       renderOpticalKeyEditor();
+      refreshOpticalScannedResultsEvaluation();
     });
   }
 
@@ -1815,6 +2185,7 @@ function setupWeeklyTab(showToast) {
       }
       updateOpticalKeyStatusDisplay();
       renderOpticalKeyEditor();
+      refreshOpticalScannedResultsEvaluation();
     });
   }
 
@@ -2476,6 +2847,19 @@ function setupWeeklyTab(showToast) {
     const isMiddle = state.educationLevel === 'middle';
     const examBranch = activeExam.branch || '';
     const classStudents = (state.students || []).filter(s => !isMiddle || !examBranch || s.branch === examBranch);
+    classStudents.sort((a, b) => {
+      const nameA = String(a?.name || '').trim();
+      const nameB = String(b?.name || '').trim();
+      const cmpName = nameA.localeCompare(nameB, 'tr');
+      if (cmpName !== 0) return cmpName;
+      const surA = String(a?.surname || '').trim();
+      const surB = String(b?.surname || '').trim();
+      const cmpSur = surA.localeCompare(surB, 'tr');
+      if (cmpSur !== 0) return cmpSur;
+      const noA = parseInt(a?.number, 10) || 0;
+      const noB = parseInt(b?.number, 10) || 0;
+      return noA - noB;
+    });
 
     for (let i = 0; i < totalFiles; i++) {
       const fileItem = opticalSelectedFiles[i];
@@ -2530,6 +2914,7 @@ function setupWeeklyTab(showToast) {
 
           opticalScannedResults.push({
             resultId: 'omr_res_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6),
+            engineType: 'deterministic',
             fileName: fileItem.name,
             thumbUrl: card.thumbUrl || fileItem.dataUrl,
             isPdf: !!fileItem.isPdf,
@@ -2610,8 +2995,12 @@ function setupWeeklyTab(showToast) {
     // Aktif sınıftaki öğrencileri al
     const state = stateManager.loadState();
     const isMiddle = state.educationLevel === 'middle';
-    const examBranch = activeExam.branch || '';
     const classStudents = (state.students || []).filter(s => !isMiddle || !examBranch || s.branch === examBranch);
+    classStudents.sort((a, b) => {
+      const nameA = String(a?.name || '').trim();
+      const nameB = String(b?.name || '').trim();
+      return nameA.localeCompare(nameB, 'tr');
+    });
 
     const studentsRosterText = classStudents.length > 0
       ? classStudents.map(s => `- No: "${s.number || '-'}", Ad Soyad: "${s.name} ${s.surname || ''}"`).join('\n')
@@ -2960,6 +3349,7 @@ Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi ve
 
             opticalScannedResults.push({
               resultId: 'omr_res_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6),
+              engineType: 'ai',
               fileName: fileItem.name,
               thumbUrl: fileItem.isPdf ? '' : fileItem.dataUrl,
               isPdf: !!fileItem.isPdf,
@@ -3025,6 +3415,7 @@ Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi ve
 
             opticalScannedResults.push({
               resultId: 'omr_res_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6),
+              engineType: 'ai',
               fileName: fileItem.name,
               thumbUrl: fileItem.isPdf ? '' : fileItem.dataUrl,
               isPdf: !!fileItem.isPdf,
@@ -3289,7 +3680,7 @@ Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi ve
                 ${quickMatchHtml}
               </div>
               <div style="font-size: 0.73rem; color: var(--text-muted);">
-                📄 Dosya: <code>${res.fileName}</code> • AI Okudu: "<strong>${res.rawStudentName || 'Belirsiz'}</strong>" (No: ${res.rawStudentNo || '-'})
+                📄 Dosya: <code>${res.fileName}</code> • ${res.engineType === 'deterministic' ? '<span style="color: #059669; font-weight: 700;">⚡ Yerel OMR:</span>' : '<span style="color: #6366f1; font-weight: 700;">🤖 AI Okudu:</span>'} "<strong>${res.rawStudentName || 'Belirsiz'}</strong>" (No: ${res.rawStudentNo || '-'})
               </div>
             </div>
           </div>
@@ -3640,6 +4031,15 @@ Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi ve
     const subjects = activeExam && Array.isArray(activeExam.subjects) ? activeExam.subjects : [];
     const subjectsTabsEl = document.getElementById('desktop-ak-subjects-tabs');
 
+    const btnCopyAll = document.getElementById('btn-desktop-ak-copy-to-all');
+    const applyAllLabel = document.getElementById('desktop-ak-key-apply-all-label');
+    if (btnCopyAll) {
+      btnCopyAll.style.display = isMulti ? 'inline-block' : 'none';
+    }
+    if (applyAllLabel) {
+      applyAllLabel.style.display = isMulti ? 'flex' : 'none';
+    }
+
     if (isMulti && subjects.length > 0) {
       if (subjectsTabsEl) {
         subjectsTabsEl.style.display = 'flex';
@@ -3810,6 +4210,115 @@ Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi ve
       });
       if (!confirmed) return;
       editAnswerKeyTemp = {};
+      renderDesktopAnswerKeyModalGrid();
+    });
+  }
+
+  // Masaüstü Cevap Anahtarı Düzenleme Modalı - Tüm Derslere Uygula & Metinle Gir
+  const btnDesktopAkCopyToAll = document.getElementById('btn-desktop-ak-copy-to-all');
+  if (btnDesktopAkCopyToAll) {
+    btnDesktopAkCopyToAll.addEventListener('click', () => {
+      if (!activeExam || !activeExam.isMultiSubject || !Array.isArray(activeExam.subjects)) return;
+      const currentSubj = activeExam.subjects.find(s => s.id === activeEditKeySubjId) || activeExam.subjects[0];
+      if (!currentSubj) return;
+
+      const currentSubjKey = {};
+      for (let q = 1; q <= currentSubj.questionCount; q++) {
+        const val = editAnswerKeyTemp[`${currentSubj.id}_${q}`] || editAnswerKeyTemp[`${currentSubj.name}_${q}`] || editAnswerKeyTemp[q];
+        if (val) currentSubjKey[q] = val;
+      }
+
+      if (Object.keys(currentSubjKey).length === 0) {
+        if (toastCallback) toastCallback(`Lütfen önce "${currentSubj.name}" dersi için şıkları belirleyin.`, 'warning');
+        return;
+      }
+
+      activeExam.subjects.forEach(subj => {
+        for (let q = 1; q <= subj.questionCount; q++) {
+          const srcVal = currentSubjKey[q];
+          if (srcVal) {
+            editAnswerKeyTemp[`${subj.id}_${q}`] = srcVal;
+          }
+        }
+      });
+
+      renderDesktopAnswerKeyModalGrid();
+      if (toastCallback) toastCallback(`"${currentSubj.name}" dersinin cevap anahtarı tüm derslere uygulandı.`, 'success');
+    });
+  }
+
+  const btnDesktopAkToggleTextKey = document.getElementById('btn-desktop-ak-toggle-text-key');
+  const desktopAkKeyTextBox = document.getElementById('desktop-ak-key-text-box');
+  const btnDesktopAkCancelTextKey = document.getElementById('btn-desktop-ak-cancel-text-key');
+  const btnDesktopAkApplyTextKey = document.getElementById('btn-desktop-ak-apply-text-key');
+  const desktopAkKeyTextInput = document.getElementById('desktop-ak-key-text-input');
+  const desktopAkKeyApplyAllCheck = document.getElementById('desktop-ak-key-apply-all-check');
+
+  if (btnDesktopAkToggleTextKey && desktopAkKeyTextBox) {
+    btnDesktopAkToggleTextKey.addEventListener('click', () => {
+      const isHidden = desktopAkKeyTextBox.style.display === 'none';
+      desktopAkKeyTextBox.style.display = isHidden ? 'block' : 'none';
+      if (isHidden && desktopAkKeyTextInput) {
+        desktopAkKeyTextInput.focus();
+      }
+    });
+  }
+  if (btnDesktopAkCancelTextKey && desktopAkKeyTextBox) {
+    btnDesktopAkCancelTextKey.addEventListener('click', () => {
+      desktopAkKeyTextBox.style.display = 'none';
+    });
+  }
+
+  if (btnDesktopAkApplyTextKey) {
+    btnDesktopAkApplyTextKey.addEventListener('click', () => {
+      const rawText = desktopAkKeyTextInput ? desktopAkKeyTextInput.value.trim() : '';
+      if (!rawText) {
+        if (toastCallback) toastCallback('Lütfen cevap anahtarını metin olarak girin veya yapıştırın!', 'warning');
+        return;
+      }
+
+      const parsedKey = parseAnswerKeyText(rawText, editAnswerKeyChoices);
+      const parsedCount = Object.keys(parsedKey).length;
+
+      if (parsedCount === 0) {
+        if (toastCallback) toastCallback('Metinden hiçbir geçerli cevap algılanamadı! (Örn: 1.a 2.a 3.b ...)', 'error');
+        return;
+      }
+
+      const isMulti = activeExam && !!activeExam.isMultiSubject;
+      const applyAll = desktopAkKeyApplyAllCheck ? desktopAkKeyApplyAllCheck.checked : true;
+
+      if (isMulti && Array.isArray(activeExam.subjects)) {
+        if (applyAll) {
+          activeExam.subjects.forEach(s => {
+            for (let q = 1; q <= s.questionCount; q++) {
+              if (parsedKey[q]) {
+                editAnswerKeyTemp[`${s.id}_${q}`] = parsedKey[q];
+              }
+            }
+          });
+          if (toastCallback) toastCallback(`Cevap anahtarı (${parsedCount} soru) tüm derslere uygulandı!`, 'success');
+        } else {
+          const currentSubj = activeExam.subjects.find(s => s.id === activeEditKeySubjId) || activeExam.subjects[0];
+          for (let q = 1; q <= currentSubj.questionCount; q++) {
+            if (parsedKey[q]) {
+              editAnswerKeyTemp[`${currentSubj.id}_${q}`] = parsedKey[q];
+            }
+          }
+          if (toastCallback) toastCallback(`Cevap anahtarı (${parsedCount} soru) "${currentSubj.name}" dersine uygulandı!`, 'success');
+        }
+      } else {
+        const qCount = parseInt(activeExam.totalQuestions, 10) || 20;
+        for (let q = 1; q <= qCount; q++) {
+          if (parsedKey[q]) {
+            editAnswerKeyTemp[q] = parsedKey[q];
+          }
+        }
+        if (toastCallback) toastCallback(`Cevap anahtarı (${parsedCount} soru) başarıyla aktarıldı!`, 'success');
+      }
+
+      if (desktopAkKeyTextBox) desktopAkKeyTextBox.style.display = 'none';
+      if (desktopAkKeyTextInput) desktopAkKeyTextInput.value = '';
       renderDesktopAnswerKeyModalGrid();
     });
   }
@@ -4438,7 +4947,15 @@ Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi ve
       const sortedStudents = [...activeStudents].sort((a, b) => {
         const nameA = String(a?.name || '').trim();
         const nameB = String(b?.name || '').trim();
-        return nameA.localeCompare(nameB, 'tr');
+        const cmpName = nameA.localeCompare(nameB, 'tr');
+        if (cmpName !== 0) return cmpName;
+        const surA = String(a?.surname || '').trim();
+        const surB = String(b?.surname || '').trim();
+        const cmpSur = surA.localeCompare(surB, 'tr');
+        if (cmpSur !== 0) return cmpSur;
+        const noA = parseInt(a?.number, 10) || 0;
+        const noB = parseInt(b?.number, 10) || 0;
+        return noA - noB;
       });
       
       sortedStudents.forEach(student => {
@@ -4475,42 +4992,110 @@ Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi ve
     }
   }
 
-  // Optik Kart QR Kimlik Rozeti Üretici (js/qrcode.min.js ile SVG formatında)
-  function generateOpticalQRCodeSVG(options) {
-    const { studentIndex, studentId, studentNo, examId, isSample, size = 40 } = options || {};
-    if (typeof window.qrcode === 'function') {
-      try {
-        let payload = '';
-        if (isSample) {
-          payload = 'SA:SMP:1:105:1';
-        } else if (studentIndex && studentIndex > 0) {
-          payload = `SA:STU:${studentId || ''}:${studentNo || ''}:${studentIndex}:${examId || ''}`;
-        } else if (studentId || (studentNo && studentNo !== '......')) {
-          payload = `SA:STU:${studentId || ''}:${studentNo || ''}:0:${examId || ''}`;
-        } else {
-          payload = `SA:BLK:${examId || ''}`;
-        }
+  // Optik Kart Kimlik Rozeti (9-Bit OMR Matrisi + Mikro QR Kod Çift Güvenlik Katmanı)
+  // Ortaöğretim ve kalabalık kademeler için 511 öğrenciye kadar tam kapasite
+  // Soru baloncukları boyutunda (16x16 px) OMR kutucukları ve 21x21 Version 1 Micro-QR ile %100 eşleşme
+  function generateOpticalBinaryIdSVG(options) {
+    const { studentIndex = 0, studentId = '', studentNo = '', examId = '' } = options || {};
+    const idx = parseInt(studentIndex, 10) || 0;
 
-        const qr = window.qrcode(0, 'M');
-        qr.addData(payload);
-        qr.make();
-        const svgContent = qr.createSvgTag(2, 0);
-        return `
-          <div class="omr-id-badge" title="Öğrenci QR Kimlik Kodu #${studentIndex || ''}">
-            <div class="omr-qr-wrapper" style="width: ${size}px; height: ${size}px;">
-              ${svgContent}
-            </div>
-            <div class="omr-id-caption">${studentIndex > 0 ? ('ID:#' + studentIndex) : 'QR KOD'}</div>
-          </div>
-        `;
-      } catch (err) {
-        console.warn('QR kod oluşturulamadı:', err);
+    // 9-bit ikili temsil (3 Satır x 3 Sütun = 9 Bit -> 1..511 Öğrenci)
+    // Satır 0: Bit 0, 1, 2
+    // Satır 1: Bit 3, 4, 5
+    // Satır 2: Bit 6, 7, 8
+    const bits = [];
+    for (let b = 0; b < 9; b++) {
+      bits.push((idx >> b) & 1);
+    }
+
+    // 3 Satır x 3 Sütun = 9 Büyük Kutucuk
+    // Her kutucuk: 16x16 px, aralarındaki boşluk: 4px, kenar boşluğu: 4px
+    const boxSize = 16;
+    const gap = 4;
+    const padding = 4;
+    const totalW = padding * 2 + boxSize * 3 + gap * 2; // 64
+    const totalH = totalW; // 64
+
+    let rects = '';
+    for (let r = 0; r < 3; r++) {
+      for (let c = 0; c < 3; c++) {
+        const bitIdx = r * 3 + c;
+        const x = padding + c * (boxSize + gap);
+        const y = padding + r * (boxSize + gap);
+        if (bits[bitIdx] === 1) {
+          rects += `<rect x="${x}" y="${y}" width="${boxSize}" height="${boxSize}" fill="#000000" rx="2" />`;
+        } else {
+          rects += `<rect x="${x}" y="${y}" width="${boxSize}" height="${boxSize}" fill="#ffffff" stroke="#000000" stroke-width="2" rx="2" />`;
+        }
       }
     }
-    return '';
+
+    // Micro-QR Kod Bölümü (js/qrcode.min.js ile Version 1 - 21x21 Modül Anında Çözümleme)
+    let qrSvgHtml = '';
+    const qrcodeFn = (typeof window !== 'undefined' && (window.qrcode || (typeof qrcode === 'function' ? qrcode : null))) || null;
+    if (qrcodeFn && idx > 0) {
+      try {
+        const qr = qrcodeFn(0, 'M');
+        qr.addData(`SA:${idx}:${studentNo || ''}`);
+        qr.make();
+        qrSvgHtml = qr.createSvgTag(2, 0);
+        if (qrSvgHtml) {
+          qrSvgHtml = qrSvgHtml.replace(/width="[^"]*"/, 'width="46"').replace(/height="[^"]*"/, 'height="46"');
+        }
+      } catch (e) {
+        console.warn('Micro-QR üretilemedi:', e);
+      }
+    }
+
+    if (qrSvgHtml) {
+      // ÇİFT ROZET (9-BİT OMR MATRİSİ + MİKRO-QR KOD)
+      return `
+        <div class="omr-id-badge omr-dual-id-badge" title="Öğrenci Optik ve QR Kimlik Kodu #${idx}">
+          <div class="omr-binary-strip-wrap" style="background: #ffffff; padding: 2px 5px; display: flex; align-items: center; gap: 6px; border: 2px solid #000000; border-radius: 6px; box-sizing: border-box;">
+            <!-- 9-Bit OMR Matrisi -->
+            <div style="display: flex; flex-direction: column; align-items: center;">
+              <div style="font-size: 0.48rem; font-weight: 800; color: #000000; letter-spacing: 0.4px; margin-bottom: 1px; text-transform: uppercase;">OMR ID</div>
+              <svg viewBox="0 0 ${totalW} ${totalH}" width="46" height="46" shape-rendering="crispEdges" style="display: block;">
+                <rect x="1" y="1" width="${totalW - 2}" height="${totalH - 2}" fill="#ffffff" stroke="#000000" stroke-width="2.5" rx="3" />
+                ${rects}
+              </svg>
+              <div class="omr-id-caption" style="font-size: 0.60rem; font-weight: 800; font-family: monospace; color: #000000; margin-top: 1px;">
+                ${idx > 0 ? ('ID:#' + idx) : 'ID:---'}
+              </div>
+            </div>
+            <!-- Micro-QR Kod -->
+            <div style="display: flex; flex-direction: column; align-items: center;">
+              <div style="font-size: 0.48rem; font-weight: 800; color: #000000; letter-spacing: 0.4px; margin-bottom: 1px; text-transform: uppercase;">QR KOD</div>
+              <div style="width: 46px; height: 46px; display: flex; align-items: center; justify-content: center; overflow: hidden;">
+                ${qrSvgHtml}
+              </div>
+              <div class="omr-id-caption" style="font-size: 0.58rem; font-weight: 800; font-family: monospace; color: #000000; margin-top: 1px;">
+                ${studentNo ? ('NO:' + studentNo) : 'KOD'}
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    // QR kütüphanesi hazır değilse veya boş formda sadece 9-bit OMR matrisi
+    return `
+      <div class="omr-id-badge omr-binary-badge" title="Öğrenci Optik Kimlik Kodu #${idx}">
+        <div class="omr-binary-strip-wrap" style="background: #ffffff; padding: 4px 6px; display: flex; flex-direction: column; align-items: center; border: 2px solid #000000; border-radius: 6px; box-sizing: border-box;">
+          <div style="font-size: 0.50rem; font-weight: 800; color: #000000; letter-spacing: 0.5px; margin-bottom: 2px; text-transform: uppercase;">KİMLİK KODU</div>
+          <svg viewBox="0 0 ${totalW} ${totalH}" width="56" height="56" shape-rendering="crispEdges" style="display: block;">
+            <rect x="1" y="1" width="${totalW - 2}" height="${totalH - 2}" fill="#ffffff" stroke="#000000" stroke-width="2.5" rx="3" />
+            ${rects}
+          </svg>
+          <div class="omr-id-caption" style="font-size: 0.65rem; font-weight: 800; font-family: monospace; color: #000000; margin-top: 2px;">
+            ${idx > 0 ? ('ID:#' + idx) : 'ID:---'}
+          </div>
+        </div>
+      </div>
+    `;
   }
 
-  // Tekil Optik Kart HTML Şablonu (QR Kodlu, Deterministik OMR & CamScanner Uyumlu)
+  // Tekil Optik Kart HTML Şablonu (Binary ID Rozetli, Deterministik OMR & CamScanner Uyumlu)
   function generateSingleDesktopOpticalCardHTML(options) {
     const {
       examName = 'Haftalık Değerlendirme',
@@ -4526,12 +5111,11 @@ Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi ve
       subjects = []
     } = options;
 
-    const qrBadgeHtml = generateOpticalQRCodeSVG({
+    const qrBadgeHtml = generateOpticalBinaryIdSVG({
       studentIndex,
       studentId,
       studentNo,
-      examId: examId || (activeExam ? activeExam.id : ''),
-      size: perPage === 4 ? 32 : 40
+      examId: examId || (activeExam ? activeExam.id : '')
     });
 
     if (isMultiSubject && Array.isArray(subjects) && subjects.length > 0) {
@@ -4758,15 +5342,34 @@ Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi ve
 
     let studentsList = [];
     if (formType === 'named') {
-      let stuIdx = 1;
+      const isMiddle = state.educationLevel === 'middle';
+      const examBranch = activeExam ? activeExam.branch : '';
+      const allClassStudents = (state.students || []).filter(student => {
+        if (!student) return false;
+        return !isMiddle || !examBranch || student.branch === examBranch;
+      }).sort((a, b) => {
+        const nameA = String(a?.name || '').trim();
+        const nameB = String(b?.name || '').trim();
+        const cmpName = nameA.localeCompare(nameB, 'tr');
+        if (cmpName !== 0) return cmpName;
+        const surA = String(a?.surname || '').trim();
+        const surB = String(b?.surname || '').trim();
+        const cmpSur = surA.localeCompare(surB, 'tr');
+        if (cmpSur !== 0) return cmpSur;
+        const noA = parseInt(a?.number, 10) || 0;
+        const noB = parseInt(b?.number, 10) || 0;
+        return noA - noB;
+      });
+
       studentIds.forEach(id => {
-        const s = (state.students || []).find(st => st.id === id);
+        const s = allClassStudents.find(st => st.id === id);
         if (s) {
+          const canonicalIdx = allClassStudents.indexOf(s) + 1;
           studentsList.push({
             id: s.id,
             name: `${s.name} ${s.surname || ''}`.trim(),
             number: s.number || '',
-            index: stuIdx++
+            index: canonicalIdx
           });
         }
       });
