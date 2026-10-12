@@ -2253,8 +2253,67 @@ function setupWeeklyTab(showToast) {
     // PDF Dosyası (CamScanner veya taranmış PDF belgesi)
     try {
       const arrayBuffer = await file.arrayBuffer();
+      const uint8 = new Uint8Array(arrayBuffer);
 
-      // 1. PDF.js ile Sayfaları Tek Tek Güvenli ve Bellek Korumalı Şekilde Render Et
+      // YÖNTEM A: Taranmış Belgelerde Doğrudan Kayıpsız JPEG Çıkarımı (CamScanner & Tarayıcılar İçin)
+      // CamScanner ve benzeri tarayıcı uygulamaları her sayfayı PDF içine gömülü saf JPEG olarak kaydeder.
+      // Bu JPEG akışlarını doğrudan bellekten çıkarmak;
+      // 1) Linux / Pardus Chromium grafik motorunda bellek aşımını (canvas context loss ve boş beyaz sayfa) %100 önler.
+      // 2) Skia/Pixman rasterizer'ın stride/pitch bozulmalarından (çapraz çizgili kayma artefaktları) korur.
+      // 3) Milisaniyeler içinde sıfır CPU kaybıyla orijinal kamera sensörü çözünürlüğünde sayfaları elde eder.
+      const extractedImages = [];
+      const len = uint8.length;
+      let i = 0;
+      while (i < len - 3) {
+        if (uint8[i] === 0xFF && uint8[i + 1] === 0xD8 && uint8[i + 2] === 0xFF) {
+          const start = i;
+          let j = start + 3;
+          while (j < len - 1) {
+            if (uint8[j] === 0xFF && uint8[j + 1] === 0xD9) {
+              const imgLen = (j + 2) - start;
+              if (imgLen > 50000) { // Küçük simge ve thumbnail'leri ele, yalnızca optik form sayfalarını al (>50KB)
+                extractedImages.push(uint8.subarray(start, j + 2));
+              }
+              i = j + 2;
+              break;
+            }
+            j++;
+          }
+          if (j >= len - 1) break;
+        } else {
+          i++;
+        }
+      }
+
+      if (extractedImages.length > 0) {
+        const pages = [];
+        const totalP = extractedImages.length;
+        for (let p = 0; p < totalP; p++) {
+          if (typeof onProgress === 'function') {
+            onProgress(p + 1, totalP, file.name);
+          }
+          const blob = new Blob([extractedImages[p]], { type: 'image/jpeg' });
+          const pageDataUrl = await new Promise((res, rej) => {
+            const fr = new FileReader();
+            fr.onload = () => res(fr.result);
+            fr.onerror = rej;
+            fr.readAsDataURL(blob);
+          });
+
+          pages.push({
+            id: 'file_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6) + '_p' + (p + 1),
+            file: file,
+            name: `${file.name} (Sayfa ${p + 1}/${totalP})`,
+            sizeText: `${(extractedImages[p].length / 1024).toFixed(0)} KB (Sayfa ${p + 1}/${totalP})`,
+            dataUrl: pageDataUrl,
+            isPdf: false,
+            isPdfPage: true
+          });
+        }
+        return pages;
+      }
+
+      // YÖNTEM B: Vektörel veya ham JPEG içermeyen PDF'ler için PDF.js Güvenli Render (1600px Max)
       if (window.pdfjsLib) {
         try {
           const loadingTask = window.pdfjsLib.getDocument({
@@ -2274,12 +2333,10 @@ function setupWeeklyTab(showToast) {
             const initialVp = page.getViewport({ scale: 1.0 });
             const maxDim = Math.max(initialVp.width, initialVp.height) || 1000;
             
-            // HEDEF: 2400 piksel maksimum kenar çözünürlüğü.
-            // Bu çözünürlük ile her bir şık baloncuk dairesi 18-22 piksel netliğe ulaşır,
-            // kurşun kalem izleri, silintiler ve harfler kristal netlikte görünür.
-            let scale = 2400 / maxDim;
-            if (scale > 3.5) scale = 3.5;
-            if (scale < 0.50) scale = 0.50;
+            // Güvenli çözünürlük ölçeği (Linux Chromium bellek aşımını önlemek için max 1600px)
+            let scale = 1600 / maxDim;
+            if (scale > 2.5) scale = 2.5;
+            if (scale < 0.40) scale = 0.40;
 
             const viewport = page.getViewport({ scale });
             const canvas = document.createElement('canvas');
@@ -2292,7 +2349,7 @@ function setupWeeklyTab(showToast) {
 
             await page.render({ canvasContext: ctx, viewport }).promise;
 
-            const pageDataUrl = canvas.toDataURL('image/jpeg', 0.95);
+            const pageDataUrl = canvas.toDataURL('image/jpeg', 0.92);
 
             if (typeof page.cleanup === 'function') page.cleanup();
             canvas.width = 0;
@@ -2861,6 +2918,8 @@ function setupWeeklyTab(showToast) {
       return noA - noB;
     });
 
+    const usedMatchedStudentIds = new Set();
+
     for (let i = 0; i < totalFiles; i++) {
       const fileItem = opticalSelectedFiles[i];
       const pct = Math.round(((i + 1) / totalFiles) * 100);
@@ -2903,12 +2962,18 @@ function setupWeeklyTab(showToast) {
             candidate = mRes.candidate;
           }
 
-          if (!matched && !candidate && classStudents.length > 0) {
-            const fallbackIdx = (i * scanRes.cards.length) + cIdx;
-            if (fallbackIdx < classStudents.length) {
-              candidate = classStudents[fallbackIdx];
-              cardStudentName = `${candidate.name} ${candidate.surname || ''}`.trim();
-              cardStudentNo = candidate.number || '';
+          // DİKKAT: Rastgele / sıradan aday tahmini (fallbackIdx) yapılmaz!
+          // Kart QR veya OMR ID ile doğrulanmadıysa eşleşmemiş olarak bırakılır ki
+          // öğretmen listeden kendisi seçebilsin ve mükerrer atama oluşmasın.
+
+          // Mükerrer Eşleşme Kontrolü: Aynı öğrenci daha önce başka bir sayfada eşleştirildiyse
+          if (matched) {
+            if (usedMatchedStudentIds.has(matched.id)) {
+              appendOpticalLog(`⚠️ Uyarı: "${matched.name} ${matched.surname || ''}" daha önce başka bir formda eşleştirildi. Mükerrerliği önlemek için aday olarak bırakıldı.`);
+              candidate = matched;
+              matched = null;
+            } else {
+              usedMatchedStudentIds.add(matched.id);
             }
           }
 
@@ -3005,6 +3070,8 @@ function setupWeeklyTab(showToast) {
     const studentsRosterText = classStudents.length > 0
       ? classStudents.map(s => `- No: "${s.number || '-'}", Ad Soyad: "${s.name} ${s.surname || ''}"`).join('\n')
       : '(Sınıf listesi boş)';
+
+    const usedAiMatchedStudentIds = new Set();
 
     for (let i = 0; i < totalFiles; i++) {
       const fileItem = opticalSelectedFiles[i];
@@ -3258,9 +3325,20 @@ Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi ve
 
           // Gelişmiş Öğrenci Eşleme (Numara, Normalize Türkçe İsim, Token Sırası ve Fuzzy Similarity)
           const matchResult = findBestStudentMatch(cardStudentNo, cardStudentName, classStudents);
-          const matched = matchResult.matched;
-          const candidate = matchResult.candidate;
+          let matched = matchResult.matched;
+          let candidate = matchResult.candidate;
           const candidateScore = matchResult.candidateScore;
+
+          // Mükerrer Eşleşme Kontrolü
+          if (matched) {
+            if (usedAiMatchedStudentIds.has(matched.id)) {
+              appendOpticalLog(`⚠️ Uyarı: "${matched.name} ${matched.surname || ''}" daha önce başka bir formda eşleştirildi. Mükerrerliği önlemek için aday olarak bırakıldı.`);
+              candidate = matched;
+              matched = null;
+            } else {
+              usedAiMatchedStudentIds.add(matched.id);
+            }
+          }
 
           // Cevapları Puanla
           const answerKey = activeExam.answerKey || {};

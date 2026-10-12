@@ -607,9 +607,25 @@
         }
       }
 
-      // N ders için sol ve sağ sütun sınırları
+      // N ders için sol ve sağ sütun sınırları (vLines üzerinden dinamik ve hassas eşleme)
       const detectedBoxes = [];
-      if (numSubjects === 3) {
+      if (vLines.length >= numSubjects * 2) {
+        // Çiftler halinde tespit edilen çizgiler (Sol ve Sağ sütun kenarları)
+        for (let sIdx = 0; sIdx < numSubjects; sIdx++) {
+          detectedBoxes.push({
+            left: vLines[sIdx * 2],
+            right: vLines[sIdx * 2 + 1]
+          });
+        }
+      } else if (vLines.length >= numSubjects + 1) {
+        // Tek çizgiler halinde tespit edilen ayırıcılar
+        for (let sIdx = 0; sIdx < numSubjects; sIdx++) {
+          detectedBoxes.push({
+            left: vLines[sIdx],
+            right: vLines[sIdx + 1]
+          });
+        }
+      } else if (numSubjects === 3) {
         const b1L = vLines.find(x => x > w * 0.04 && x < w * 0.12) || Math.round(w * 0.065);
         const b1R = vLines.find(x => x > w * 0.32 && x < w * 0.38) || Math.round(w * 0.35);
         const b2L = vLines.find(x => x > b1R && x < w * 0.42) || Math.round(w * 0.37);
@@ -618,13 +634,16 @@
         const b3R = vLines.find(x => x > w * 0.90 && x < w * 0.98) || Math.round(w * 0.95);
         detectedBoxes.push({ left: b1L, right: b1R }, { left: b2L, right: b2R }, { left: b3L, right: b3R });
       } else {
-        const spanW = w * 0.88;
+        const tableL = vLines.find(x => x < w * 0.15) || Math.round(w * 0.05);
+        const tableR = [...vLines].reverse().find(x => x > w * 0.85) || Math.round(w * 0.95);
+        const spanW = tableR - tableL;
         const boxStepW = spanW / numSubjects;
         for (let sIdx = 0; sIdx < numSubjects; sIdx++) {
-          detectedBoxes.push({
-            left: Math.round(w * 0.06 + sIdx * boxStepW),
-            right: Math.round(w * 0.06 + (sIdx + 1) * boxStepW - w * 0.02)
-          });
+          const expL = tableL + sIdx * boxStepW;
+          const expR = tableL + (sIdx + 1) * boxStepW;
+          const l = vLines.find(x => Math.abs(x - expL) < boxStepW * 0.25) || Math.round(expL);
+          const r = vLines.find(x => Math.abs(x - expR) < boxStepW * 0.25) || Math.round(expR - w * 0.01);
+          detectedBoxes.push({ left: l, right: r });
         }
       }
 
@@ -713,23 +732,26 @@
           }
         }
 
-        const pad = Math.max(3, Math.round(boxH * 0.007));
-        const contentTop = headerLineY ? (headerLineY + pad) : (boxTop + Math.round(boxH * 0.08));
-        const contentBottom = boxBottom - pad;
-        const contentH = contentBottom - contentTop;
-
         const numQuestions = subj.questionCount || 8;
-        const rowStep = contentH / numQuestions;
+        const baseTop = headerLineY || boxTop;
+        const availH = boxBottom - baseTop;
+        const firstRowY = headerLineY
+          ? (headerLineY + availH * (numQuestions <= 8 ? 0.090 : 0.065))
+          : (boxTop + Math.round(availH * 0.16));
+        const lastRowY = boxBottom - availH * (numQuestions <= 8 ? 0.026 : 0.020);
+        const rowStep = numQuestions > 1 ? (lastRowY - firstRowY) / (numQuestions - 1) : 0;
         const choiceStep = boxW * 0.222;
         const choiceStartX = bBox.left + boxW * 0.280;
 
         for (let q = 1; q <= numQuestions; q++) {
-          const rowY = Math.round(contentTop + (q - 0.5) * rowStep);
+          const rowY = numQuestions > 1
+            ? Math.round(firstRowY + (q - 1) * rowStep)
+            : Math.round((firstRowY + lastRowY) * 0.5);
           const key = `${subj.id}_${q}`;
 
           // Lokal kağıt aydınlığı
           let pSum = 0, pCnt = 0;
-          const pR = Math.max(2, Math.round(rowStep * 0.10));
+          const pR = Math.max(2, Math.round((rowStep || 40) * 0.10));
           for (let dy = -pR; dy <= pR; dy++) {
             for (let dx = -pR; dx <= pR; dx++) {
               pSum += gray[(rowY + dy) * w + (bBox.left + Math.round(boxW * 0.08) + dx)];
@@ -739,8 +761,8 @@
           const rowPaperLum = pCnt > 0 ? (pSum / pCnt) : 230;
 
           const choiceScores = [];
-          const searchYRange = Math.min(22, Math.round(rowStep * 0.25));
-          const searchXRange = Math.min(22, Math.round(choiceStep * 0.18));
+          const searchYRange = Math.max(26, Math.min(42, Math.round((rowStep || 40) * 0.30)));
+          const searchXRange = Math.max(22, Math.min(36, Math.round(choiceStep * 0.24)));
 
           for (let lIdx = 0; lIdx < letters.length; lIdx++) {
             const initX = Math.round(choiceStartX + lIdx * choiceStep);
@@ -1108,146 +1130,81 @@
     function detectBinaryIdInCard(grayBuf, imgW, imgH, cardCorners) {
       if (!cardCorners || !cardCorners.tl || !cardCorners.tr || !cardCorners.bl) return null;
 
-      const mapPoint = createProjectiveHomography(cardCorners);
-      if (!mapPoint || typeof mapPoint !== 'function') return null;
+      // 3x3 OMR matrisinin genel arama koridoru: Kartın sağ üst çeyreği
+      const minX = Math.round(imgW * 0.74);
+      const maxX = Math.round(imgW * 0.89);
+      const minY = Math.round(imgH * 0.04);
+      const maxY = Math.round(imgH * 0.18);
 
-      const cardW = Math.hypot(cardCorners.tr.x - cardCorners.tl.x, cardCorners.tr.y - cardCorners.tl.y);
-      const cardH = Math.hypot(cardCorners.bl.x - cardCorners.tl.x, cardCorners.bl.y - cardCorners.tl.y);
-      const cardAspect = cardH > 0 ? (cardW / cardH) : 1.0;
+      let bestBox = null;
+      let bestScore = -1;
 
-      function evalCandidate(u0, v0, su, sv) {
-        const cellStepU = su * 0.625;
-        const cellStepV = sv * 0.625;
-
-        // 1. Hücreler arası 4 boşluğun beyazlığını test et (Arka plan kontrolü)
-        const gapPts = [
-          mapPoint(u0, v0 - cellStepV * 0.5),
-          mapPoint(u0, v0 + cellStepV * 0.5),
-          mapPoint(u0 - cellStepU * 0.5, v0),
-          mapPoint(u0 + cellStepU * 0.5, v0)
-        ];
-        let gapSum = 0;
-        for (const gp of gapPts) {
-          if (gp.x < 2 || gp.x >= imgW - 2 || gp.y < 2 || gp.y >= imgH - 2) return null;
-          gapSum += grayBuf[gp.y * imgW + gp.x];
-        }
-        const avgGapLum = gapSum / 4;
-        if (avgGapLum < 115) return null; // Boşluklar açık renkli kağıt olmalıdır
-
-        // 2. 9 Hücreyi Örnekle
-        const cellLums = [];
-        const sampleR = Math.max(1, Math.min(5, Math.round(su * cardW * 0.05)));
-
-        for (let r = 0; r < 3; r++) {
-          const vCell = v0 + (r - 1) * cellStepV;
-          for (let c = 0; c < 3; c++) {
-            const uCell = u0 + (c - 1) * cellStepU;
-            const pt = mapPoint(uCell, vCell);
-            if (pt.x < sampleR || pt.x >= imgW - sampleR || pt.y < sampleR || pt.y >= imgH - sampleR) return null;
-
-            let sum = 0, cnt = 0;
-            for (let dy = -sampleR; dy <= sampleR; dy++) {
-              for (let dx = -sampleR; dx <= sampleR; dx++) {
-                if (dx * dx + dy * dy <= sampleR * sampleR) {
-                  sum += grayBuf[(pt.y + dy) * imgW + (pt.x + dx)];
-                  cnt++;
+      // 3x3 OMR matrisinin dış kare çerçevesini ara (kenar uzunluğu 75-125px)
+      for (let y = minY; y < maxY - 60; y += 2) {
+        for (let x = minX; x < maxX - 60; x += 2) {
+          let lLen = 0;
+          while (x + lLen < maxX && grayBuf[y * imgW + (x + lLen)] < 125) lLen++;
+          if (lLen >= 75 && lLen <= 125) {
+            const side = lLen;
+            for (let bDy = -12; bDy <= 12; bDy += 2) {
+              const by = y + side + bDy;
+              if (by < imgH) {
+                let bCnt = 0;
+                for (let dx = 0; dx < side; dx++) {
+                  if (grayBuf[by * imgW + (x + dx)] < 125) bCnt++;
+                }
+                if (bCnt > side * 0.60) {
+                  const sc = lLen + bCnt;
+                  if (sc > bestScore) {
+                    bestScore = sc;
+                    bestBox = { x, y, w: side, h: side + bDy };
+                  }
                 }
               }
             }
-            cellLums.push(cnt > 0 ? (sum / cnt) : grayBuf[pt.y * imgW + pt.x]);
           }
         }
-
-        let minL = 255, maxL = 0;
-        for (let i = 0; i < 9; i++) {
-          if (cellLums[i] < minL) minL = cellLums[i];
-          if (cellLums[i] > maxL) maxL = cellLums[i];
-        }
-
-        // En az 1 siyah kutu olmalı (1..511 öğrenci indeksi)
-        if (minL > 145 || (avgGapLum - minL) < 32) return null;
-
-        const midThresh = (minL + Math.max(maxL, avgGapLum)) * 0.5;
-        let separationSum = 0;
-        let minSeparation = 255;
-        for (let i = 0; i < 9; i++) {
-          const sep = Math.abs(cellLums[i] - midThresh);
-          separationSum += sep;
-          if (sep < minSeparation) minSeparation = sep;
-        }
-
-        // 3. 8 Noktalı Dış Çerçeve Doğrulaması (+/- 1px tolerans)
-        let borderDarkCount = 0;
-        const borderPts = [
-          mapPoint(u0 - su, v0), mapPoint(u0 + su, v0),
-          mapPoint(u0, v0 - sv), mapPoint(u0, v0 + sv),
-          mapPoint(u0 - su, v0 - sv), mapPoint(u0 + su, v0 - sv),
-          mapPoint(u0 - su, v0 + sv), mapPoint(u0 + su, v0 + sv)
-        ];
-        for (const bp of borderPts) {
-          let ptDark = false;
-          for (let dy = -1; dy <= 1; dy++) {
-            for (let dx = -1; dx <= 1; dx++) {
-              const bx = bp.x + dx;
-              const by = bp.y + dy;
-              if (bx >= 0 && bx < imgW && by >= 0 && by < imgH && grayBuf[by * imgW + bx] < midThresh) {
-                ptDark = true; break;
-              }
-            }
-            if (ptDark) break;
-          }
-          if (ptDark) borderDarkCount++;
-        }
-
-        const score = (separationSum / 9) + minSeparation * 0.8 + borderDarkCount * 8 + (avgGapLum - minL) * 0.3;
-        let decodedIdx = 0;
-        for (let i = 0; i < 9; i++) {
-          if (cellLums[i] < midThresh) decodedIdx |= (1 << i);
-        }
-
-        return { index: decodedIdx, score, borderDarkCount };
       }
 
-      let best = null;
-      // 3x3 OMR matrisi başlığın sağ tarafında, QR kodun solunda yer alır.
-      // Soru baloncukları ve harici metinlerden etkilenmemesi için hassas pencere taranır.
-      const uScales = [0.032, 0.036, 0.040];
-      const uMin = 0.810, uMax = 0.850, uStep = 0.003;
-      const vMin = 0.080, vMax = 0.135, vStep = 0.003;
+      if (!bestBox) return null;
 
-      for (let u0 = uMin; u0 <= uMax; u0 += uStep) {
-        for (let v0 = vMin; v0 <= vMax; v0 += vStep) {
-          for (const su of uScales) {
-            const sv = su * cardAspect;
-            const res = evalCandidate(u0, v0, su, sv);
-            if (res && res.index > 0 && res.borderDarkCount >= 2) {
-              if (!best || res.score > best.score) {
-                best = { ...res, u0, v0, su, sv };
+      // 3x3 hücreleri örnekle
+      const cw = bestBox.w / 3.0;
+      const ch = bestBox.h / 3.0;
+      const sR = Math.max(2, Math.round(cw * 0.18));
+      const lums = [];
+
+      for (let r = 0; r < 3; r++) {
+        const cy = bestBox.y + (r + 0.5) * ch;
+        for (let c = 0; c < 3; c++) {
+          const cx = bestBox.x + (c + 0.5) * cw;
+          let sum = 0, cnt = 0;
+          for (let dy = -sR; dy <= sR; dy++) {
+            for (let dx = -sR; dx <= sR; dx++) {
+              const px = Math.round(cx + dx);
+              const py = Math.round(cy + dy);
+              if (px >= 0 && px < imgW && py >= 0 && py < imgH) {
+                sum += grayBuf[py * imgW + px];
+                cnt++;
               }
             }
           }
+          lums.push(cnt > 0 ? (sum / cnt) : 255);
         }
       }
 
-      // Mikro Zirve Hassas Ayarı (Yerel merkez kaymalarını düzeltir)
-      if (best) {
-        const duStep = 0.0015;
-        const dvStep = 0.0015 * cardAspect;
-        for (let du = -duStep; du <= duStep; du += duStep) {
-          for (let dv = -dvStep; dv <= dvStep; dv += dvStep) {
-            if (du === 0 && du === 0) continue;
-            const res = evalCandidate(best.u0 + du, best.v0 + dv, best.su, best.sv);
-            if (res && res.index > 0 && res.score > best.score) {
-              best = { ...res, u0: best.u0 + du, v0: best.v0 + dv, su: best.su, sv: best.sv };
-            }
-          }
-        }
+      const minL = Math.min(...lums);
+      const maxL = Math.max(...lums);
+      // Kontrast ayrımı zayıfsa hatalı pozitif üretmemek için reddet
+      if (maxL - minL < 38) return null;
+
+      const thresh = (minL + maxL) * 0.5;
+      let decoded = 0;
+      for (let i = 0; i < 9; i++) {
+        if (lums[i] < thresh) decoded |= (1 << i);
       }
 
-      if (best && best.index > 0 && best.index <= 511 && best.score >= 12) {
-        return best.index;
-      }
-      return null;
+      return (decoded > 0 && decoded <= 511) ? decoded : null;
     }
 
     // Sayfada 2 form var mı? (Ortada çapa kontrolü)
@@ -1401,15 +1358,8 @@
       }
     }
 
-      // QR bulunamazsa sayfa sırasına göre yalnızca bir aday önerisi (kesin eşleme yapılmaz!)
-      const pageIndex = (options.pageNumber || 1) - 1;
-      const candidateIndex = (pageIndex * (isDoubleForm ? 2 : 1)) + idx;
-      const candidate = (!matched && sortedRoster && candidateIndex < sortedRoster.length) ? sortedRoster[candidateIndex] : null;
-
       card.matched = matched;
-      card.candidate = candidate;
-      // DİKKAT: rawStudentName ve rawStudentNo YALNIZCA gerçekten form üzerinden QR ile okunduysa doldurulur!
-      // Aksi halde boş bırakılır ki sahte eşleştirme yapılmasın ve öğretmen onayına sunulsun.
+      card.candidate = null;
       card.rawStudentName = rawStudentName;
       card.rawStudentNo = rawStudentNo;
     });

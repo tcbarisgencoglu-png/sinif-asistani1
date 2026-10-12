@@ -1799,4 +1799,570 @@ body.print-schedule #schedule-print-area .print-cell-text {
   border-radius: 4px;
 }
 
+/* ==========================================================================
+   ÖDEV VE ÇALIŞMA KAĞIDI HAZIRLAMA ROBOTU STİLLERİ
+   ========================================================================== */
+
+.hw-robot-layout {
+  display: grid;
+  grid-template-columns: 380px 1fr;
+  gap: 1.5rem;
+  align-items: flex-start;
+  margin-top: 1.5rem;
+}
+
+@media (max-width: 1024px) {
+  .hw-robot-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.hw-robot-control-panel {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+}
+
+.hw-robot-section-title {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.hw-robot-section-title span.step-num {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--primary-color, #4f46e5);
+  color: white;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+/* Şablon Kartları Izgarası */
+.hw-robot-template-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.6rem;
+}
+
+.hw-robot-template-card {
+  border: 1.5px solid var(--border-color);
+  background: var(--bg-primary);
+  border-radius: 10px;
+  padding: 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  text-align: left;
+}
+
+.hw-robot-template-card:hover {
+  border-color: var(--primary-color, #4f46e5);
+  transform: translateY(-2px);
+}
+
+.hw-robot-template-card.active {
+  border-color: var(--primary-color, #4f46e5);
+  background: rgba(99, 102, 241, 0.08);
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.25);
+}
+
+.hw-robot-tpl-icon {
+  font-size: 1.4rem;
+}
+
+.hw-robot-tpl-title {
+  font-size: 0.8rem;
+  font-weight: 750;
+  color: var(--text-primary);
+}
+
+.hw-robot-tpl-desc {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  line-height: 1.25;
+}
+
+/* Kazanım Listesi */
+.hw-robot-outcomes-box {
+  border: 1px solid var(--border-color);
+  background: var(--bg-primary);
+  border-radius: 10px;
+  padding: 0.5rem;
+  max-height: 200px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.hw-robot-outcome-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.45rem 0.6rem;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.hw-robot-outcome-item:hover {
+  background: var(--bg-secondary);
+}
+
+.hw-robot-outcome-item.selected {
+  background: rgba(99, 102, 241, 0.08);
+  border-color: rgba(99, 102, 241, 0.3);
+}
+
+.hw-robot-outcome-item input[type="checkbox"] {
+  margin-top: 3px;
+  cursor: pointer;
+}
+
+.hw-robot-outcome-text {
+  flex: 1;
+  font-size: 0.75rem;
+  line-height: 1.35;
+}
+
+.hw-robot-outcome-badge {
+  display: inline-block;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--primary-color, #4f46e5);
+  background: rgba(99, 102, 241, 0.1);
+  padding: 1px 6px;
+  border-radius: 4px;
+  margin-bottom: 2px;
+}
+
+.hw-robot-outcome-title {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.hw-robot-empty-hint {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  text-align: center;
+  padding: 1rem 0.5rem;
+  line-height: 1.4;
+}
+
+/* A4 Önizleme Alanı */
+.hw-robot-preview-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.hw-robot-preview-toolbar {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 0.65rem 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+#hw-robot-a4-sheet {
+  background: #ffffff !important;
+  color: #1e293b !important;
+  border: 1px solid #cbd5e1;
+  border-radius: 14px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  padding: 2.2rem;
+  min-height: 800px;
+  box-sizing: border-box;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  transition: all 0.2s ease;
+}
+
+#hw-robot-a4-sheet [contenteditable="true"]:hover {
+  outline: 1.5px dashed rgba(99, 102, 241, 0.5);
+  border-radius: 4px;
+  cursor: text;
+}
+
+#hw-robot-a4-sheet [contenteditable="true"]:focus {
+  outline: 2px solid #6366f1;
+  border-radius: 4px;
+  background: rgba(99, 102, 241, 0.04);
+}
+
+/* Fotokopi / Eco Modu */
+#hw-robot-a4-sheet.fotokopi-mode,
+.homework-robot-print-container.fotokopi-mode {
+  filter: grayscale(100%) contrast(135%) !important;
+}
+
+#hw-robot-a4-sheet.fotokopi-mode * {
+  border-color: #333333 !important;
+}
+
+/* ==========================================================================
+   A4 ÇALIŞMA KAĞIDI VE ETKİNLİK ŞABLON MİZANPAJ STİLLERİ
+   ========================================================================== */
+
+.hw-a4-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  margin-bottom: 0.85rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.hw-a4-header.theme-color {
+  background: #0f172a;
+  color: #ffffff;
+  border-bottom: 4px solid #6366f1;
+}
+
+.hw-a4-header.theme-eco {
+  background: #f8fafc;
+  color: #0f172a;
+  border: 2px solid #0f172a;
+}
+
+.hw-a4-header-sub {
+  font-size: 0.72rem;
+  font-weight: 750;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  opacity: 0.85;
+}
+
+.hw-a4-header-title {
+  font-size: 1.2rem;
+  font-weight: 900;
+  margin-top: 2px;
+  line-height: 1.25;
+}
+
+.hw-a4-header-meta {
+  text-align: right;
+  font-size: 0.75rem;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 0.35rem 0.75rem;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.hw-a4-student-strip {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 0.45rem 1rem;
+  margin-bottom: 1rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #334155;
+}
+
+.hw-a4-strip-line {
+  border-bottom: 1.5px dotted #94a3b8;
+  display: inline-block;
+  vertical-align: middle;
+  margin-left: 4px;
+}
+
+.hw-a4-rule-box {
+  background: #eef2ff;
+  border-left: 4px solid #6366f1;
+  padding: 0.65rem 0.9rem;
+  border-radius: 0 8px 8px 0;
+  font-size: 0.78rem;
+  color: #312e81;
+  margin-bottom: 1rem;
+  line-height: 1.45;
+  font-weight: 500;
+}
+
+.hw-a4-section {
+  margin-bottom: 1.2rem;
+}
+
+.hw-a4-section-title {
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: #1e293b;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.65rem;
+}
+
+.hw-a4-badge-circle {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #6366f1;
+  color: white;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.72rem;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.hw-a4-pill-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.hw-a4-num-pill {
+  width: 105px;
+  padding: 0.45rem 0.6rem;
+  background: #e2e8f0;
+  color: #0f172a;
+  font-weight: 800;
+  font-size: 0.82rem;
+  text-align: center;
+  border-radius: 8px;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.08);
+  flex-shrink: 0;
+}
+
+.hw-a4-write-box {
+  flex: 1;
+  min-height: 36px;
+  border: 1.5px solid #c7d2fe;
+  border-radius: 8px;
+  background: rgba(238, 242, 255, 0.25);
+  padding: 0.4rem 0.75rem;
+  display: flex;
+  align-items: center;
+  font-size: 0.8rem;
+  color: #64748b;
+  box-sizing: border-box;
+}
+
+.hw-a4-text-pill {
+  flex: 1;
+  min-height: 36px;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 0.4rem 0.75rem;
+  display: flex;
+  align-items: center;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #1e293b;
+  box-sizing: border-box;
+}
+
+.hw-a4-num-box {
+  width: 105px;
+  height: 36px;
+  border: 2px solid #818cf8;
+  border-radius: 8px;
+  background: #eef2ff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 0.85rem;
+  color: #4338ca;
+  letter-spacing: 2px;
+  flex-shrink: 0;
+}
+
+.hw-a4-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.hw-a4-abacus-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 0.65rem;
+  background: #f8fafc;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.hw-a4-abacus-answer {
+  width: 100%;
+  margin-top: 0.5rem;
+  height: 32px;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 8px;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.76rem;
+  color: #64748b;
+}
+
+.hw-a4-reading-box {
+  border: 1px solid #fcd34d;
+  background: #fffbeb;
+  border-radius: 12px;
+  padding: 0.85rem 1rem;
+  margin-bottom: 0.85rem;
+}
+
+.hw-a4-reading-title {
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: #78350f;
+  text-align: center;
+  text-transform: uppercase;
+  margin-bottom: 0.4rem;
+}
+
+.hw-a4-reading-text {
+  font-size: 0.8rem;
+  line-height: 1.55;
+  color: #334155;
+  font-style: italic;
+}
+
+.hw-a4-q-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 0.6rem 0.75rem;
+  background: #f8fafc;
+  font-size: 0.8rem;
+}
+
+.hw-a4-q-tag {
+  font-weight: 800;
+  color: #059669;
+  margin-right: 4px;
+}
+
+.hw-a4-answer-line {
+  margin-top: 0.5rem;
+  border-bottom: 1.5px dashed #cbd5e1;
+  height: 18px;
+}
+
+.hw-a4-tf-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.45rem;
+  font-size: 0.8rem;
+  color: #334155;
+}
+
+.hw-a4-tf-bubble {
+  width: 24px;
+  height: 24px;
+  border: 1.5px solid #94a3b8;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  color: #94a3b8;
+  font-size: 0.72rem;
+  flex-shrink: 0;
+}
+
+.hw-a4-word-bank {
+  background: #f1f5f9;
+  border-radius: 8px;
+  padding: 0.45rem 0.8rem;
+  text-align: center;
+  font-size: 0.8rem;
+  font-weight: 750;
+  color: #334155;
+  letter-spacing: 0.5px;
+  margin-bottom: 0.6rem;
+}
+
+.hw-a4-test-q {
+  border-bottom: 1px dashed #e2e8f0;
+  padding-bottom: 0.6rem;
+  margin-bottom: 0.6rem;
+  font-size: 0.8rem;
+}
+
+.hw-a4-opt {
+  padding-left: 0.75rem;
+  margin-top: 0.2rem;
+  color: #475569;
+}
+
+.hw-a4-opt strong {
+  color: #1e293b;
+  margin-right: 4px;
+}
+
+.hw-a4-footer {
+  border-top: 1.5px solid #cbd5e1;
+  padding-top: 0.65rem;
+  margin-top: 1.25rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.75rem;
+  color: #64748b;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+/* ==========================================================================
+   ÖDEV ROBOTU YAZDIRMA (@media print)
+   ========================================================================== */
+@media print {
+  body.print-homework-robot .app-container {
+    display: none !important;
+  }
+
+  body.print-homework-robot .homework-robot-print-container {
+    display: block !important;
+    width: 210mm !important;
+    min-height: 297mm !important;
+    padding: 1.2cm !important;
+    margin: 0 !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    box-sizing: border-box !important;
+    font-size: 11pt !important;
+  }
+
+  body.print-homework-robot .homework-robot-print-container [contenteditable="true"] {
+    outline: none !important;
+    background: transparent !important;
+  }
+}
+
+
 

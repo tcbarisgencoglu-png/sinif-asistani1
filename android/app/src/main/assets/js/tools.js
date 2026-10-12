@@ -9,6 +9,7 @@ let toolsLandingView;
 let toolsRosterView;
 let toolsPlansView;
 let toolsDocumentsView;
+let toolsHwRobotView;
 
 let btnLaunchRoster;
 let btnBackToTools;
@@ -16,6 +17,8 @@ let btnLaunchPlans;
 let btnBackToToolsFromPlans;
 let btnLaunchDocuments;
 let btnBackToToolsFromDocuments;
+let btnLaunchHwRobot;
+let btnBackToToolsFromHwRobot;
 
 let rosterStartDate;
 let rosterEndDate;
@@ -40,6 +43,7 @@ function setupToolsTab(toastCallback) {
   toolsRosterView = document.getElementById('tools-roster-view');
   toolsPlansView = document.getElementById('tools-plans-view');
   toolsDocumentsView = document.getElementById('tools-documents-view');
+  toolsHwRobotView = document.getElementById('tools-hw-robot-view');
 
   btnLaunchRoster = document.getElementById('btn-launch-roster');
   btnBackToTools = document.getElementById('btn-back-to-tools');
@@ -47,6 +51,8 @@ function setupToolsTab(toastCallback) {
   btnBackToToolsFromPlans = document.getElementById('btn-back-to-tools-from-plans');
   btnLaunchDocuments = document.getElementById('btn-launch-documents');
   btnBackToToolsFromDocuments = document.getElementById('btn-back-to-tools-from-documents');
+  btnLaunchHwRobot = document.getElementById('btn-launch-hw-robot');
+  btnBackToToolsFromHwRobot = document.getElementById('btn-back-to-tools-from-hw-robot');
 
   rosterStartDate = document.getElementById('roster-start-date');
   rosterEndDate = document.getElementById('roster-end-date');
@@ -101,6 +107,27 @@ function setupToolsTab(toastCallback) {
   if (btnBackToToolsFromDocuments && toolsDocumentsView && toolsLandingView) {
     btnBackToToolsFromDocuments.addEventListener('click', () => {
       toolsDocumentsView.style.display = 'none';
+      toolsLandingView.style.display = 'block';
+    });
+  }
+
+  // Ödev Hazırlama Robotu Navigasyonu
+  if (btnLaunchHwRobot) {
+    btnLaunchHwRobot.addEventListener('click', () => {
+      toolsLandingView.style.display = 'none';
+      if (toolsHwRobotView) toolsHwRobotView.style.display = 'block';
+      if (typeof window.initHomeworkGenerator === 'function') {
+        window.initHomeworkGenerator();
+      }
+      if (window.lucide && typeof window.lucide.createIcons === 'function') {
+        window.lucide.createIcons();
+      }
+    });
+  }
+
+  if (btnBackToToolsFromHwRobot) {
+    btnBackToToolsFromHwRobot.addEventListener('click', () => {
+      if (toolsHwRobotView) toolsHwRobotView.style.display = 'none';
       toolsLandingView.style.display = 'block';
     });
   }

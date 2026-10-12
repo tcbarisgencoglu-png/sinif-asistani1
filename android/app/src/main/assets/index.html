@@ -21,7 +21,7 @@
   <link rel="stylesheet" href="css/styles.css?v=36">
   <link rel="stylesheet" href="css/games.css?v=30">
   <link rel="stylesheet" href="css/treasure.css?v=30">
-  <link rel="stylesheet" href="css/tools.css?v=30">
+  <link rel="stylesheet" href="css/tools.css?v=31">
   <link rel="stylesheet" href="css/exam-analysis.css?v=30">
   <link rel="stylesheet" href="css/notebooks.css?v=30">
   <link rel="stylesheet" href="css/datepicker.css?v=1">
@@ -182,7 +182,7 @@
       <div id="sidebar-demo-container"></div>
       
       <div class="sidebar-footer" style="padding: 1rem; text-align: center; font-size: 0.8rem; color: var(--text-muted); border-top: 1px solid var(--border-color);">
-        <span id="app-sidebar-version-text">Sınıf Asistanı v1.0.58</span>
+        <span id="app-sidebar-version-text">Sınıf Asistanı v1.0.59</span>
       </div>
     </aside>
 
@@ -3551,6 +3551,21 @@
                 <i data-lucide="play" style="width: 16px; height: 16px;"></i> Aracı Başlat
               </button>
             </div>
+
+            <!-- Araç 9: Ödev Hazırlama Robotu -->
+            <div class="game-landing-card glass-card" style="padding: 1.5rem; border-radius: 12px; background: var(--bg-secondary); border: 1px solid var(--border-color); display: flex; flex-direction: column; justify-content: space-between; min-height: 220px; transition: transform 0.2s ease; border-top: 3px solid #6366f1;">
+              <div>
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
+                  <div style="font-size: 2rem;">🤖</div>
+                  <span style="font-size: 0.7rem; font-weight: 800; background: rgba(99, 102, 241, 0.15); color: #6366f1; padding: 2px 8px; border-radius: 20px;">YAPAY ZEKA</span>
+                </div>
+                <h3 style="font-size: 1.15rem; font-weight: 700; margin-bottom: 0.5rem;">Ödev Hazırlama Robotu</h3>
+                <p style="font-size: 0.85rem; color: var(--text-secondary); line-height: 1.4; margin-bottom: 1rem;">Yıllık plan kazanımları ve yapay zeka ile hazır şablonlu etkinlik, test ve çalışma kağıtları oluşturun.</p>
+              </div>
+              <button class="btn btn-primary btn-full" id="btn-launch-hw-robot" style="width: 100%; display: flex; justify-content: center; gap: 0.5rem; background: linear-gradient(135deg, #6366f1, #4f46e5);">
+                <i data-lucide="play" style="width: 16px; height: 16px;"></i> Aracı Başlat
+              </button>
+            </div>
           </div>
         </div>
 
@@ -4902,6 +4917,169 @@
                   <!-- JS ile doldurulacak -->
                 </tbody>
               </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Ödev Hazırlama Robotu Paneli (Başlangıçta Gizli) -->
+        <div id="tools-hw-robot-view" style="display: none;">
+          <div class="page-header" style="margin-bottom: 1.5rem;">
+            <div class="header-title" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; width: 100%;">
+              <div style="display: flex; align-items: center; gap: 1rem;">
+                <button class="btn btn-secondary btn-sm" id="btn-back-to-tools-from-hw-robot" style="padding: 0.35rem 0.75rem; font-size: 0.85rem; height: 35px;">
+                  <i data-lucide="arrow-left" style="width: 16px; height: 16px;"></i> Geri Dön
+                </button>
+                <div>
+                  <h2 style="font-size: 1.5rem; margin-bottom: 0;">Ödev ve Çalışma Kağıdı Hazırlama Robotu</h2>
+                  <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0;">Yıllık plan kazanımlarını seçin, şablonunuzu belirleyin ve tek tıkla yapay zeka ile A4 baskıya hazır ödevler üretin.</p>
+                </div>
+              </div>
+              <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <button class="btn btn-secondary btn-sm" onclick="window.showGeminiKeyRequiredModal && window.showGeminiKeyRequiredModal({ title: 'Yapay Zeka API Ayarları' })" title="Google Gemini API Anahtarını Yönet" style="font-size: 0.82rem; height: 35px;">
+                  <span>🔑</span> API Durumu
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Robot Ana Düzeni (Sol Panel: Ayarlar, Sağ Panel: A4 Önizleme) -->
+          <div class="hw-robot-layout">
+            <!-- Sol Panel: Parametreler & Seçimler -->
+            <div class="hw-robot-control-panel">
+              <!-- 1. Adım: Ders ve Kazanım -->
+              <div>
+                <div class="hw-robot-section-title">
+                  <span class="step-num">1</span>
+                  <span>Ders ve Kazanım Seçimi</span>
+                </div>
+                
+                <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                  <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 0.5rem;">
+                    <div>
+                      <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-secondary); margin-bottom: 4px; display: block;">Ders:</label>
+                      <select id="hw-robot-lesson-select" class="form-control" style="font-size: 0.82rem; padding: 0.45rem;">
+                        <option value="">Ders Seçiniz...</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-secondary); margin-bottom: 4px; display: block;">Sınıf:</label>
+                      <select id="hw-robot-grade-select" class="form-control" style="font-size: 0.82rem; padding: 0.45rem;">
+                        <option value="1">1. Sınıf</option>
+                        <option value="2">2. Sınıf</option>
+                        <option value="3" selected>3. Sınıf</option>
+                        <option value="4">4. Sınıf</option>
+                        <option value="5">5. Sınıf</option>
+                        <option value="6">6. Sınıf</option>
+                        <option value="7">7. Sınıf</option>
+                        <option value="8">8. Sınıf</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-secondary); margin-bottom: 4px; display: block;">Ünite / Dönem Filtresi:</label>
+                    <select id="hw-robot-unit-select" class="form-control" disabled style="font-size: 0.82rem; padding: 0.45rem;">
+                      <option value="">Önce ders seçiniz...</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                      <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-secondary);">Kazanımlar:</label>
+                      <span id="hw-robot-selected-count" style="display: none; font-size: 0.7rem; font-weight: 800; color: #6366f1; background: rgba(99, 102, 241, 0.12); padding: 1px 6px; border-radius: 10px;"></span>
+                    </div>
+                    <input type="text" id="hw-robot-outcome-search" class="form-control" placeholder="Kazanımlarda ara..." disabled style="font-size: 0.78rem; padding: 0.35rem 0.6rem; margin-bottom: 0.4rem;" />
+                    <div id="hw-robot-outcomes-list" class="hw-robot-outcomes-box">
+                      <div class="hw-robot-empty-hint">Kazanımları görmek için yukarıdan bir ders seçin.</div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-secondary); margin-bottom: 4px; display: block;">Özel Konu / Ek Talimat (Opsiyonel):</label>
+                    <input type="text" id="hw-robot-custom-topic" class="form-control" placeholder="Örn: Basamak değeri ve abaküs sorularına ağırlık ver..." style="font-size: 0.8rem; padding: 0.45rem;" />
+                  </div>
+                </div>
+              </div>
+
+              <!-- 2. Adım: Şablon ve Format -->
+              <div>
+                <div class="hw-robot-section-title">
+                  <span class="step-num">2</span>
+                  <span>Şablon ve Format Seçimi</span>
+                </div>
+
+                <div class="hw-robot-template-grid">
+                  <div class="hw-robot-template-card active" data-template="math_models">
+                    <span class="hw-robot-tpl-icon">🧮</span>
+                    <span class="hw-robot-tpl-title">Matematik & Abaküs</span>
+                    <span class="hw-robot-tpl-desc">Sayı okunuşları ve SVG abaküs modelleri</span>
+                  </div>
+
+                  <div class="hw-robot-template-card" data-template="mixed_worksheet">
+                    <span class="hw-robot-tpl-icon">📝</span>
+                    <span class="hw-robot-tpl-title">Karma Etkinlik</span>
+                    <span class="hw-robot-tpl-desc">Boşluk doldurma, D/Y ve açık uçlu</span>
+                  </div>
+
+                  <div class="hw-robot-template-card" data-template="outcome_test">
+                    <span class="hw-robot-tpl-icon">📊</span>
+                    <span class="hw-robot-tpl-title">2 Sütunlu Test</span>
+                    <span class="hw-robot-tpl-desc">Çoktan seçmeli test ve cevap anahtarı</span>
+                  </div>
+
+                  <div class="hw-robot-template-card" data-template="reading_comp">
+                    <span class="hw-robot-tpl-icon">📖</span>
+                    <span class="hw-robot-tpl-title">Okuma & 5N1K</span>
+                    <span class="hw-robot-tpl-desc">Özgün hikaye ve anlama soruları</span>
+                  </div>
+
+                  <div class="hw-robot-template-card" data-template="weekly_homework" style="grid-column: span 2;">
+                    <span class="hw-robot-tpl-icon">📅</span>
+                    <span class="hw-robot-tpl-title">Hafta Sonu Ödev Fasikülü</span>
+                    <span class="hw-robot-tpl-desc">Haftalık özet, pekiştirme, yıldız puanlama ve veli imzası</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Üretim Butonu -->
+              <div style="margin-top: 0.5rem;">
+                <button type="button" class="btn btn-primary btn-full" id="btn-hw-robot-generate" style="background: linear-gradient(135deg, #6366f1, #4f46e5); padding: 0.75rem; font-weight: 800; font-size: 0.95rem; display: flex; align-items: center; justify-content: center; gap: 0.5rem; box-shadow: 0 4px 12px rgba(99, 102, 241, 0.35);">
+                  <i data-lucide="sparkles" style="width: 18px; height: 18px;"></i>
+                  <span>Ödevi Hazırla (Yapay Zeka)</span>
+                </button>
+                <div id="hw-robot-loading-indicator" style="display: none; align-items: center; justify-content: center; gap: 8px; margin-top: 0.6rem; font-size: 0.8rem; color: #6366f1; font-weight: 600;">
+                  <span class="spinner" style="width: 14px; height: 14px; border-width: 2px;"></span>
+                  <span>Kazanımlara göre sorular hazırlanıyor, lütfen bekleyin...</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Sağ Panel: Canlı A4 Önizleme & Düzenleme -->
+            <div class="hw-robot-preview-panel">
+              <!-- Üst Araç Çubuğu -->
+              <div class="hw-robot-preview-toolbar">
+                <div style="font-size: 0.78rem; font-weight: 600; color: var(--text-secondary); display: flex; align-items: center; gap: 5px;">
+                  <span>✏️</span> <span>Yazılara tıklayarak anında düzenleyebilirsiniz</span>
+                </div>
+
+                <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                  <button type="button" class="btn btn-secondary btn-sm" id="btn-hw-robot-toggle-eco" style="font-size: 0.78rem; padding: 0.4rem 0.7rem; display: flex; align-items: center; gap: 4px;">
+                    <span>🖨️</span> <span>Fotokopi (Eco) Modu</span>
+                  </button>
+                  <button type="button" class="btn btn-secondary btn-sm" id="btn-hw-robot-transfer-hw" title="Ödev Takip Sistemine Aktar" style="font-size: 0.78rem; padding: 0.4rem 0.7rem; display: flex; align-items: center; gap: 4px;">
+                    <span>📥</span> <span>Ödeve Aktar</span>
+                  </button>
+                  <button type="button" class="btn btn-primary btn-sm" id="btn-hw-robot-print" style="font-size: 0.82rem; padding: 0.4rem 0.85rem; font-weight: 700; display: flex; align-items: center; gap: 5px;">
+                    <i data-lucide="printer" style="width: 15px; height: 15px;"></i>
+                    <span>A4 Yazdır / PDF</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- A4 Sayfası -->
+              <div id="hw-robot-a4-sheet">
+                <!-- JS tarafından doldurulacak -->
+              </div>
             </div>
           </div>
         </div>
@@ -9232,12 +9410,12 @@
         <div style="display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 1rem; background: var(--bg-secondary); border-radius: 10px; border: 1px solid var(--border-color);">
           <div style="display: flex; align-items: center; gap: 0.4rem;">
             <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600;">Mevcut:</span>
-            <span id="update-current-version" class="badge" style="font-size: 0.8rem; font-weight: 700; background: var(--border-color); color: var(--text-secondary); padding: 0.2rem 0.5rem; border-radius: 6px;">v1.0.58</span>
+            <span id="update-current-version" class="badge" style="font-size: 0.8rem; font-weight: 700; background: var(--border-color); color: var(--text-secondary); padding: 0.2rem 0.5rem; border-radius: 6px;">v1.0.59</span>
           </div>
           <i data-lucide="arrow-right" style="width: 16px; height: 16px; color: #6366f1;"></i>
           <div style="display: flex; align-items: center; gap: 0.4rem;">
             <span style="font-size: 0.75rem; color: #6366f1; font-weight: 600;">Yeni Sürüm:</span>
-            <span id="update-latest-version" class="badge" style="font-size: 0.8rem; font-weight: 700; background: #6366f1; color: white; padding: 0.2rem 0.5rem; border-radius: 6px;">v1.0.58</span>
+            <span id="update-latest-version" class="badge" style="font-size: 0.8rem; font-weight: 700; background: #6366f1; color: white; padding: 0.2rem 0.5rem; border-radius: 6px;">v1.0.59</span>
           </div>
         </div>
 
@@ -9457,7 +9635,7 @@
           <div>
             <h3 style="margin: 0; font-size: 1.2rem; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
               Sınıf Asistanı Masaüstü Uygulaması
-              <span id="download-app-version-badge" class="badge" style="font-size: 0.75rem; background: var(--primary); color: white; padding: 0.2rem 0.5rem; border-radius: 6px; font-weight: 600;">v1.0.58 (En Son)</span>
+              <span id="download-app-version-badge" class="badge" style="font-size: 0.75rem; background: var(--primary); color: white; padding: 0.2rem 0.5rem; border-radius: 6px; font-weight: 600;">v1.0.59 (En Son)</span>
             </h3>
             <p style="margin: 0; font-size: 0.85rem; color: var(--text-secondary);">Akıllı tahta ve bilgisayarınızda internet olmadan da tam performans çalışın.</p>
           </div>
@@ -9485,7 +9663,7 @@
               </p>
             </div>
             <div>
-              <a id="btn-download-deb" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/download/v1.0.58/sinif-asistani_1.0.58_amd64.deb" target="_blank" class="btn btn-primary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem; background: #ef4444; border-color: #ef4444; font-weight: 600;">
+              <a id="btn-download-deb" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/download/v1.0.59/sinif-asistani_1.0.59_amd64.deb" target="_blank" class="btn btn-primary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem; background: #ef4444; border-color: #ef4444; font-weight: 600;">
                 <i data-lucide="download" style="width: 16px; height: 16px;"></i> Pardus (.deb) İndir
               </a>
               <button type="button" onclick="window.openPardusInstallHelpModal()" style="width: 100%; margin-top: 0.5rem; background: rgba(239, 68, 68, 0.12); border: 1px dashed rgba(239, 68, 68, 0.5); color: #f87171; border-radius: var(--radius-sm, 8px); padding: 0.45rem 0.5rem; font-size: 0.78rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.35rem; transition: all 0.2s ease;">
@@ -9512,7 +9690,7 @@
               </p>
             </div>
             <div>
-              <a id="btn-download-exe" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/download/v1.0.58/sinif-asistani_1.0.58_x64-setup.exe" target="_blank" class="btn btn-primary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem; background: #0284c7; border-color: #0284c7; font-weight: 600;">
+              <a id="btn-download-exe" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/download/v1.0.59/sinif-asistani_1.0.59_x64-setup.exe" target="_blank" class="btn btn-primary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem; background: #0284c7; border-color: #0284c7; font-weight: 600;">
                 <i data-lucide="download" style="width: 16px; height: 16px;"></i> Windows (.exe) İndir
               </a>
               <button type="button" onclick="window.openWinInstallHelpModal()" style="width: 100%; margin-top: 0.5rem; background: rgba(2, 132, 199, 0.12); border: 1px dashed rgba(2, 132, 199, 0.5); color: #38bdf8; border-radius: var(--radius-sm, 8px); padding: 0.45rem 0.5rem; font-size: 0.78rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.35rem; transition: all 0.2s ease;">
@@ -9540,13 +9718,13 @@
             </div>
             <div>
               <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem;">
-                <a id="btn-download-dmg" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/download/v1.0.58/sinif-asistani_1.0.58_aarch64.dmg" target="_blank" class="btn btn-primary" style="flex: 1.1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.15rem; background: #8b5cf6; border-color: #8b5cf6; font-weight: 600; padding: 0.5rem 0.35rem; font-size: 0.78rem; text-align: center; text-decoration: none;">
+                <a id="btn-download-dmg" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/download/v1.0.59/sinif-asistani_1.0.59_aarch64.dmg" target="_blank" class="btn btn-primary" style="flex: 1.1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.15rem; background: #8b5cf6; border-color: #8b5cf6; font-weight: 600; padding: 0.5rem 0.35rem; font-size: 0.78rem; text-align: center; text-decoration: none;">
                   <span style="display: flex; align-items: center; gap: 0.25rem; font-weight: 700;">
                     <i data-lucide="download" style="width: 14px; height: 14px;"></i> Apple Silicon
                   </span>
                   <span style="font-size: 0.67rem; opacity: 0.92; font-weight: 500;">(M1 / M2 / M3 / M4)</span>
                 </a>
-                <a id="btn-download-dmg-intel" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/download/v1.0.58/sinif-asistani_1.0.58_x64.dmg" target="_blank" class="btn btn-secondary" style="flex: 0.9; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.15rem; font-weight: 600; padding: 0.5rem 0.35rem; font-size: 0.78rem; text-align: center; text-decoration: none; border: 1px solid rgba(139, 92, 246, 0.45); color: var(--text-primary);">
+                <a id="btn-download-dmg-intel" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/download/v1.0.59/sinif-asistani_1.0.59_x64.dmg" target="_blank" class="btn btn-secondary" style="flex: 0.9; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.15rem; font-weight: 600; padding: 0.5rem 0.35rem; font-size: 0.78rem; text-align: center; text-decoration: none; border: 1px solid rgba(139, 92, 246, 0.45); color: var(--text-primary);">
                   <span style="display: flex; align-items: center; gap: 0.25rem; font-weight: 700;">
                     <i data-lucide="download" style="width: 14px; height: 14px;"></i> Intel Mac
                   </span>
@@ -9576,7 +9754,7 @@
                 Derste masaları gezerken tek dokunuşla ödev kontrolü, ders akışı ve hızlı yoklama için mobil uygulama paketi.
               </p>
             </div>
-            <a id="btn-download-apk" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/download/v1.0.58/sinif-asistani.apk" target="_blank" class="btn btn-primary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem; background: #16a34a; border-color: #16a34a; font-weight: 600;">
+            <a id="btn-download-apk" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/download/v1.0.59/sinif-asistani.apk" target="_blank" class="btn btn-primary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem; background: #16a34a; border-color: #16a34a; font-weight: 600;">
               <i data-lucide="download" style="width: 16px; height: 16px;"></i> Android (.apk) İndir
             </a>
           </div>
@@ -9598,7 +9776,7 @@
                 <strong>Kurulum gerektirmez!</strong> Özellikle ortaokul modunda sınıf sınıf gezen branş öğretmenleri, uygulamayı Flash diskine (USB) yükleyerek tüm sınıflardaki akıllı tahtalarda doğrudan flash bellek üzerinden tak-çalıştır şeklinde kullanabilir.
               </p>
             </div>
-            <a id="btn-download-appimage" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/download/v1.0.58/sinif-asistani_1.0.58_amd64.AppImage" target="_blank" class="btn btn-primary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem; background: #10b981; border-color: #10b981; font-weight: 600;">
+            <a id="btn-download-appimage" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/download/v1.0.59/sinif-asistani_1.0.59_amd64.AppImage" target="_blank" class="btn btn-primary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem; background: #10b981; border-color: #10b981; font-weight: 600;">
               <i data-lucide="download" style="width: 16px; height: 16px;"></i> AppImage (USB Uyumlu) İndir
             </a>
           </div>
@@ -9869,8 +10047,8 @@
   <script src="js/homework.js?v=35"></script>
   <script src="js/qrcode.min.js"></script>
   <script src="js/jsqr.js"></script>
-  <script src="js/omr-engine.js?v=61"></script>
-  <script src="js/weekly.js?v=61"></script>
+  <script src="js/omr-engine.js?v=62"></script>
+  <script src="js/weekly.js?v=62"></script>
   <script src="js/dashboard.js?v=35"></script>
   <script src="js/timer.js?v=35"></script>
   <script src="js/quick-caller.js?v=35"></script>
@@ -9884,6 +10062,7 @@
   <script src="js/data/meb-curriculum-data.js"></script>
   <script src="js/plans.js?v=35"></script>
   <script src="js/tools.js?v=35"></script>
+  <script src="js/homework-generator.js?v=3"></script>
   <script src="js/schedule.js?v=35"></script>
   <script src="js/daily-plans.js?v=1"></script>
   <script src="js/written-exam.js?v=35"></script>
