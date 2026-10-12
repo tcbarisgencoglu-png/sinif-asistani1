@@ -2709,6 +2709,43 @@ class StateManager {
         });
       }
 
+      // Optik form taranması sonucu oluşabilecek ağır PDF/JPEG görsellerini doğrudan this.state ve localStorage kopyasından temizle (5MB kota koruması)
+      if (this.state.weeklyEvaluations && Array.isArray(this.state.weeklyEvaluations)) {
+        this.state.weeklyEvaluations.forEach(we => {
+          if (we && we.studentResults && typeof we.studentResults === 'object') {
+            for (const sId in we.studentResults) {
+              const sr = we.studentResults[sId];
+              if (sr) {
+                if (sr.pdfDataUrl) delete sr.pdfDataUrl;
+                if (sr.thumbUrl && typeof sr.thumbUrl === 'string' && sr.thumbUrl.length > 25000) {
+                  sr.thumbUrl = '';
+                }
+              }
+            }
+          }
+        });
+      }
+
+      if (toSave.weeklyEvaluations && Array.isArray(toSave.weeklyEvaluations)) {
+        toSave.weeklyEvaluations = toSave.weeklyEvaluations.map(we => {
+          if (we.studentResults && typeof we.studentResults === 'object') {
+            const cleanedSR = {};
+            for (const sId in we.studentResults) {
+              const sr = we.studentResults[sId];
+              if (sr) {
+                const { pdfDataUrl, ...restSr } = sr;
+                if (restSr.thumbUrl && typeof restSr.thumbUrl === 'string' && restSr.thumbUrl.length > 25000) {
+                  restSr.thumbUrl = '';
+                }
+                cleanedSR[sId] = restSr;
+              }
+            }
+            return { ...we, studentResults: cleanedSR };
+          }
+          return we;
+        });
+      }
+
       // Kullanıcının gerçek veritabanı olduğunu işaretle (ASLA otomatik demoya dönmeyi engeller)
       const hasRealData = (Array.isArray(toSave.students) && toSave.students.length > 0) || 
                           (toSave.books && toSave.books.library && toSave.books.library.length > 0);
@@ -2825,6 +2862,7 @@ class StateManager {
         }
         localStorage.setItem(STORAGE_KEY, jsonString);
         this.state = this.loadState(true);
+        this.saveState('Yedek yüklendi');
         this.notify();
         if (typeof window.syncPortableDataToFlash === 'function') {
           window.syncPortableDataToFlash();
@@ -3617,7 +3655,26 @@ class StateManager {
   }
 
   saveExam(examData) {
-    const index = this.state.weeklyEvaluations.findIndex(e => e.id === examData.id);
+    if (!examData || !examData.id) return null;
+
+    if (!Array.isArray(this.state.weeklyEvaluations)) {
+      this.state.weeklyEvaluations = [];
+    }
+
+    // Ağır optik form PDF/görsel verilerini temizle (hafızada ve depolamada 5MB kota koruması)
+    if (examData.studentResults && typeof examData.studentResults === 'object') {
+      for (const sId in examData.studentResults) {
+        const sr = examData.studentResults[sId];
+        if (sr) {
+          if (sr.pdfDataUrl) delete sr.pdfDataUrl;
+          if (sr.thumbUrl && typeof sr.thumbUrl === 'string' && sr.thumbUrl.length > 25000) {
+            sr.thumbUrl = '';
+          }
+        }
+      }
+    }
+
+    const index = this.state.weeklyEvaluations.findIndex(e => e && String(e.id) === String(examData.id));
     if (index !== -1) {
       this.state.weeklyEvaluations[index] = examData;
     } else {
@@ -3625,7 +3682,11 @@ class StateManager {
     }
 
     // Bu sınava ait eski derece ödüllerini Dojo performans akışından temizle
-    this.state.performance = this.state.performance.filter(p => p.examId !== examData.id);
+    if (Array.isArray(this.state.performance)) {
+      this.state.performance = this.state.performance.filter(p => !p || String(p.examId) !== String(examData.id));
+    } else {
+      this.state.performance = [];
+    }
 
     // Yeni derece ödüllerini hesapla ve ekle
     const settings = this.getWeeklyExamSettings();
@@ -3656,7 +3717,7 @@ class StateManager {
       
       if (currentRank <= settings.topCount) {
         rewardPoint = settings.rankPoints[currentRank] || 0;
-        reasonLabel = `"${examData.examName}" Sınavı ${currentRank}.liği`;
+        reasonLabel = `"${examData.examName || 'Haftalık Sınav'}" Sınavı ${currentRank}.liği`;
       }
       
       if (rewardPoint > 0) {
@@ -3673,15 +3734,21 @@ class StateManager {
       }
     });
 
-    this.saveState();
+    this.saveState('Sınav kaydedildi: ' + (examData.examName || examData.id));
     return examData;
   }
 
   deleteExam(examId) {
-    this.state.weeklyEvaluations = this.state.weeklyEvaluations.filter(e => e.id !== examId);
+    if (!examId) return;
+    if (!Array.isArray(this.state.weeklyEvaluations)) {
+      this.state.weeklyEvaluations = [];
+    }
+    this.state.weeklyEvaluations = this.state.weeklyEvaluations.filter(e => e && String(e.id) !== String(examId));
     // Bu sınava ait ödülleri Dojo performans akışından da sil
-    this.state.performance = this.state.performance.filter(p => p.examId !== examId);
-    this.saveState();
+    if (Array.isArray(this.state.performance)) {
+      this.state.performance = this.state.performance.filter(p => !p || String(p.examId) !== String(examId));
+    }
+    this.saveState('Sınav silindi: ' + examId);
   }
 
   getWeeklyEvaluation(weekId) {

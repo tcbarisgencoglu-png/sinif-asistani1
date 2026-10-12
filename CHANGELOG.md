@@ -2,6 +2,23 @@
 
 Bu dosya, Sınıf Asistanı uygulamasının tüm sürüm geçmişini içerir.
 
+## [v1.0.60] — 2026-10-12
+
+### 🚀 Yeni Özellikler & Hata Düzeltmeleri
+- **Haftalık Sınav Canlı Başarı Sıralaması (Derece):**
+  - Sınav tablosuna özel **Sıra** sütunu eklendi; öğrenciler puana ve nete göre dinamik olarak 🥇 1., 🥈 2., 🥉 3. madalyalarıyla listelenir.
+  - Optik formlar tarandığında ve elle net girildiğinde sıralama ve üst sınav kartı istatistikleri (ilk 3 ve sınıf ortalaması) canlı olarak anında hesaplanır.
+- **Sınav Kaydetme & Kota (LocalStorage) Koruması:**
+  - Taranan formların yüksek çözünürlüklü görselleri depolama öncesi ayıklanarak 5MB `QuotaExceededError` depolama hatası ve veri kaybı önlendi.
+  - Sınav değerlendirmesini kaydederken mevcut optik tarama sonuçlarının korunması garantilendi.
+- **Sınav Yönetimi Düzeltmeleri:**
+  - Sınav ekleme modalında süre alanı varsayılan olarak 40 dakika atanarak form gönderiminin sessizce engellenmesi sorunu çözüldü.
+  - Liste boşaldığında otomatik hayali sınav (`exam_dummy`) oluşturulması engellendi; silinen sınavların kalıcı olarak silinmesi sağlandı.
+- **Yedekleme Güvenliği:**
+  - Yedek geri yükleme işleminde sınav değerlendirme verilerinin diske ve IndexedDB'ye anında yazılması sağlandı.
+
+---
+
 ## [v1.0.31] — 2026-09-30
 
 ### 🚀 Yeni Özellikler & İyileştirmeler
