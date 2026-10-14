@@ -1171,6 +1171,46 @@
       if (btn) btn.classList.toggle('active', this.autoAdvance);
     },
 
+    // Vizör (Kılavuz Çerçeve) Bounding Box'ını Video Çözünürlüğüne Dönüştür
+    getGuideBoxVideoBounds(video, guideBox) {
+      if (!video || !guideBox || !video.videoWidth || !video.videoHeight) return null;
+      const vRect = video.getBoundingClientRect();
+      const gRect = guideBox.getBoundingClientRect();
+      if (vRect.width <= 0 || vRect.height <= 0) return null;
+
+      const vw = video.videoWidth;
+      const vh = video.videoHeight;
+      const elemW = vRect.width;
+      const elemH = vRect.height;
+
+      const scale = Math.max(elemW / vw, elemH / vh);
+      const dispW = vw * scale;
+      const dispH = vh * scale;
+
+      const offsetX = (elemW - dispW) / 2;
+      const offsetY = (elemH - dispH) / 2;
+
+      const gRelLeft = (gRect.left - vRect.left) - offsetX;
+      const gRelTop = (gRect.top - vRect.top) - offsetY;
+      const gRelRight = gRelLeft + gRect.width;
+      const gRelBottom = gRelTop + gRect.height;
+
+      const canvasMinX = gRelLeft / scale;
+      const canvasMaxX = gRelRight / scale;
+      const canvasMinY = gRelTop / scale;
+      const canvasMaxY = gRelBottom / scale;
+
+      const marginX = (canvasMaxX - canvasMinX) * 0.15;
+      const marginY = (canvasMaxY - canvasMinY) * 0.15;
+
+      return {
+        minX: Math.max(0, Math.round(canvasMinX - marginX)),
+        maxX: Math.min(vw, Math.round(canvasMaxX + marginX)),
+        minY: Math.max(0, Math.round(canvasMinY - marginY)),
+        maxY: Math.min(vh, Math.round(canvasMaxY + marginY))
+      };
+    },
+
     // Canlı Kamera Hafif Döngüsü (jsQR + OMR Otomatik Tetikleme)
     startLiveLoop() {
       const video = document.getElementById('omr-camera-video');
@@ -1179,8 +1219,8 @@
       const statusText = document.getElementById('omr-status-text');
 
       const fastCanvas = document.createElement('canvas');
-      fastCanvas.width = 400;
-      fastCanvas.height = 300;
+      fastCanvas.width = 640;
+      fastCanvas.height = 480;
       const fCtx = fastCanvas.getContext('2d', { willReadFrequently: true });
 
       const loop = async () => {
@@ -1194,13 +1234,13 @@
 
         if (video && video.readyState >= 2 && !video.paused) {
           try {
-            fCtx.drawImage(video, 0, 0, 400, 300);
-            const imgData = fCtx.getImageData(0, 0, 400, 300);
+            fCtx.drawImage(video, 0, 0, 640, 480);
+            const imgData = fCtx.getImageData(0, 0, 640, 480);
 
-            // QR Kod Doğrulaması (jsQR)
+            // QR Kod Doğrulaması (jsQR - attemptBoth)
             let detectedQr = null;
             if (typeof window.jsQR === 'function') {
-              detectedQr = window.jsQR(imgData.data, 400, 300, { inversionAttempts: 'dontInvert' });
+              detectedQr = window.jsQR(imgData.data, 640, 480, { inversionAttempts: 'attemptBoth' });
             }
 
             if (detectedQr && detectedQr.data) {
@@ -1212,7 +1252,7 @@
             } else {
               guideBox && guideBox.classList.remove('locked');
               statusPill && statusPill.classList.remove('success');
-              if (statusText) statusText.textContent = 'Optik formu veya QR kodu vizöre tutun';
+              if (statusText) statusText.textContent = 'Optik formu kılavuza oturtun';
             }
           } catch (err) {}
         }
@@ -1238,7 +1278,9 @@
         const ctx = fullCanvas.getContext('2d');
         ctx.drawImage(video, 0, 0, fullCanvas.width, fullCanvas.height);
 
-        await this.processImageCanvas(fullCanvas);
+        const guideBox = document.getElementById('omr-guide-box');
+        const bounds = this.getGuideBoxVideoBounds(video, guideBox);
+        await this.processImageCanvas(fullCanvas, bounds);
       } catch (e) {
         console.error('Tam tarama hatası:', e);
         this.isProcessingFrame = false;
@@ -1266,10 +1308,12 @@
         const ctx = fullCanvas.getContext('2d');
         ctx.drawImage(video, 0, 0, fullCanvas.width, fullCanvas.height);
 
-        await this.processImageCanvas(fullCanvas);
+        const bounds = this.getGuideBoxVideoBounds(video, guideBox);
+        await this.processImageCanvas(fullCanvas, bounds);
       } catch (e) {
+        console.error('Manuel çekim hatası:', e);
         this.isProcessingFrame = false;
-        if (window.Companion) window.Companion.showToast('Görüntü okunamadı, tekrar deneyin.');
+        if (window.Companion) window.Companion.showToast('Görüntü okunamadı: Formu kılavuza oturtup tekrar deneyin.');
       }
     },
 
@@ -1288,7 +1332,7 @@
           ctx.drawImage(img, 0, 0);
 
           if (window.Companion) window.Companion.showToast('Fotoğraf taranıyor...');
-          await this.processImageCanvas(c);
+          await this.processImageCanvas(c, null);
         };
         img.src = e.target.result;
       };
@@ -1296,7 +1340,7 @@
     },
 
     // Görüntü Analizi (OMREngine ve Doğrudan QR Kod Okuma)
-    async processImageCanvas(canvas) {
+    async processImageCanvas(canvas, bounds = null) {
       const students = this.getActiveStudents();
       const exam = this.activeExam;
 
@@ -1309,7 +1353,8 @@
       if (window.OmrEngine && typeof window.OmrEngine.scanDocumentPage === 'function') {
         scanResult = await window.OmrEngine.scanDocumentPage(canvas, exam, students, {
           isDoubleForm: false,
-          sensitivity: this.currentSensitivity
+          sensitivity: this.currentSensitivity,
+          bounds: bounds
         });
       }
 
