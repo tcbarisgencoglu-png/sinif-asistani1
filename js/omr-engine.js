@@ -647,8 +647,8 @@
         const colWidth = colUEnd - colUStart;
 
         const numQuestions = parseInt(subj.questionCount, 10) || 6;
-        const vFirstRow = 0.200;
-        const vLastRow = 0.910;
+        const vFirstRow = 0.113;
+        const vLastRow = 0.970;
         const availH = vLastRow - vFirstRow;
         const rowStep = numQuestions > 1 ? (availH / (numQuestions - 1)) : 0;
 
@@ -661,11 +661,15 @@
           const rowPaperLum = sampleLocalPaperLuminance(gray, w, h, rowSamplePt, sampleRadius);
 
           const choiceScores = [];
-          const bubbleSpan = colWidth * 0.72;
-          const bubbleStartU = colUStart + colWidth * 0.25;
+          const bubbleStartOffset = 0.30;
+          const bubbleSpanRatio = 0.64;
+          const bubbleStartU = colUStart + colWidth * bubbleStartOffset;
+          const bubbleSpan = colWidth * bubbleSpanRatio;
 
           for (let lIdx = 0; lIdx < letters.length; lIdx++) {
-            const choiceU = bubbleStartU + (lIdx + 0.5) * (bubbleSpan / letters.length);
+            const choiceU = letters.length > 1
+              ? (bubbleStartU + (lIdx / (letters.length - 1)) * bubbleSpan)
+              : (bubbleStartU + bubbleSpan * 0.5);
             const initialPt = mapPoint(choiceU, rowV);
             const snappedPt = refineBubbleCenter(gray, w, h, initialPt, sampleRadius, rowPaperLum);
 
@@ -686,8 +690,9 @@
           let status = 'blank';
 
           const diff = best.score - second.score;
-          const isFilled = best.score >= 0.45 && (diff >= 0.09 || best.score >= 0.65);
-          const isMultiple = isFilled && second.score >= 0.48 && diff < 0.08;
+          // Filigran ve gölgeleri filtrelemek için güvenilir ayrım eşiği
+          const isFilled = best.score >= 0.45 && (diff >= 0.12 || best.score >= 0.65);
+          const isMultiple = isFilled && second.score >= 0.45 && diff < 0.10;
 
           if (isMultiple) {
             status = 'multiple';
@@ -1003,39 +1008,83 @@
 
     // ── YENİ: OPTİK BINARY ID DEDEKTÖRÜ (BÜYÜK 3x3 OMR MATRİSİ - 9 BİT / 512 ÖĞRENCİ) ──
     // Ortaöğretim ve kalabalık kademeler için 511 öğrenciye kadar tam kapasite destekler.
-    // Dinamik kart en-boy oranı (cardAspect), aralık beyazlığı (gap test), 8 noktalı dış çerçeve doğrulaması
-    // ve mikro zirve optimizasyonu ile uzak çekim ve perspektif kaymalarında %100 çalışır.
+    // Kart başlığında (0.65 - 0.95 U, -0.03 - 0.12 V) 3x3 kutucuk rozetini dinamik tespit eder.
     function detectBinaryIdInCard(grayBuf, imgW, imgH, cardCorners) {
       if (!cardCorners || !cardCorners.tl || !cardCorners.tr || !cardCorners.bl) return null;
 
-      // 3x3 OMR matrisinin genel arama koridoru: Kartın sağ üst çeyreği
-      const minX = Math.round(imgW * 0.74);
-      const maxX = Math.round(imgW * 0.89);
-      const minY = Math.round(imgH * 0.04);
-      const maxY = Math.round(imgH * 0.18);
+      const cardW = Math.hypot(cardCorners.tr.x - cardCorners.tl.x, cardCorners.tr.y - cardCorners.tl.y);
+      const cardH = Math.hypot(cardCorners.bl.x - cardCorners.tl.x, cardCorners.bl.y - cardCorners.tl.y);
+      if (cardW < 50 || cardH < 50) return null;
 
-      let bestBox = null;
-      let bestScore = -1;
+      // 3x3 OMR matrisi başlık bölgesinde, sağ çeyrekte (0.65 - 0.95 U) ve üst kısımda (-0.03 - 0.12 V) bulunur
+      const minX = Math.max(0, Math.round(cardCorners.tl.x + cardW * 0.65));
+      const maxX = Math.min(imgW - 1, Math.round(cardCorners.tl.x + cardW * 0.95));
+      const minY = Math.max(0, Math.round(cardCorners.tl.y - cardH * 0.03));
+      const maxY = Math.min(imgH - 1, Math.round(cardCorners.tl.y + cardH * 0.12));
 
-      // 3x3 OMR matrisinin dış kare çerçevesini ara (kenar uzunluğu 75-125px)
-      for (let y = minY; y < maxY - 60; y += 2) {
-        for (let x = minX; x < maxX - 60; x += 2) {
-          let lLen = 0;
-          while (x + lLen < maxX && grayBuf[y * imgW + (x + lLen)] < 125) lLen++;
-          if (lLen >= 75 && lLen <= 125) {
-            const side = lLen;
-            for (let bDy = -12; bDy <= 12; bDy += 2) {
-              const by = y + side + bDy;
-              if (by < imgH) {
-                let bCnt = 0;
-                for (let dx = 0; dx < side; dx++) {
-                  if (grayBuf[by * imgW + (x + dx)] < 125) bCnt++;
+      // Boyut: cardW * 0.04 ile cardW * 0.10 arası
+      const minSide = Math.max(16, Math.round(cardW * 0.04));
+      const maxSide = Math.max(minSide + 6, Math.round(cardW * 0.10));
+
+      let bestCandidate = null;
+
+      for (let y = minY; y <= maxY - minSide; y += 1) {
+        for (let x = minX; x <= maxX - minSide; x += 1) {
+          for (let side = minSide; side <= maxSide; side += 2) {
+            if (x + side >= maxX || y + side >= maxY) continue;
+
+            let topD = 0, botD = 0, leftD = 0, rightD = 0;
+            for (let dx = 0; dx < side; dx++) {
+              if (grayBuf[y * imgW + (x + dx)] < 145) topD++;
+              if (grayBuf[(y + side) * imgW + (x + dx)] < 145) botD++;
+            }
+            for (let dy = 0; dy < side; dy++) {
+              if (grayBuf[(y + dy) * imgW + x] < 145) leftD++;
+              if (grayBuf[(y + dy) * imgW + (x + side)] < 145) rightD++;
+            }
+
+            const borderScore = (topD + botD + leftD + rightD) / (4 * side);
+            if (borderScore >= 0.50) {
+              // 3x3 hücreleri incele
+              const cw = side / 3.0;
+              const ch = side / 3.0;
+              const sR = Math.max(1, Math.round(cw * 0.20));
+              const cells = [];
+
+              for (let r = 0; r < 3; r++) {
+                for (let c = 0; c < 3; c++) {
+                  const cx = x + (c + 0.5) * cw;
+                  const cy = y + (r + 0.5) * ch;
+                  let sum = 0, cnt = 0;
+                  for (let ddy = -sR; ddy <= sR; ddy++) {
+                    for (let ddx = -sR; ddx <= sR; ddx++) {
+                      const px = Math.round(cx + ddx);
+                      const py = Math.round(cy + ddy);
+                      if (px >= 0 && px < imgW && py >= 0 && py < imgH) {
+                        sum += grayBuf[py * imgW + px];
+                        cnt++;
+                      }
+                    }
+                  }
+                  cells.push(cnt > 0 ? (sum / cnt) : 255);
                 }
-                if (bCnt > side * 0.60) {
-                  const sc = lLen + bCnt;
-                  if (sc > bestScore) {
-                    bestScore = sc;
-                    bestBox = { x, y, w: side, h: side + bDy };
+              }
+
+              const minL = Math.min(...cells);
+              const maxL = Math.max(...cells);
+              const contrast = maxL - minL;
+
+              if (contrast >= 35) {
+                const thresh = (minL + maxL) * 0.5;
+                let decoded = 0;
+                for (let i = 0; i < 9; i++) {
+                  if (cells[i] < thresh) decoded |= (1 << i);
+                }
+
+                if (decoded > 0 && decoded <= 511) {
+                  const totalScore = borderScore * 0.5 + (contrast / 255) * 0.5;
+                  if (!bestCandidate || totalScore > bestCandidate.totalScore) {
+                    bestCandidate = { x, y, side, decoded, totalScore, borderScore, contrast };
                   }
                 }
               }
@@ -1044,45 +1093,7 @@
         }
       }
 
-      if (!bestBox) return null;
-
-      // 3x3 hücreleri örnekle
-      const cw = bestBox.w / 3.0;
-      const ch = bestBox.h / 3.0;
-      const sR = Math.max(2, Math.round(cw * 0.18));
-      const lums = [];
-
-      for (let r = 0; r < 3; r++) {
-        const cy = bestBox.y + (r + 0.5) * ch;
-        for (let c = 0; c < 3; c++) {
-          const cx = bestBox.x + (c + 0.5) * cw;
-          let sum = 0, cnt = 0;
-          for (let dy = -sR; dy <= sR; dy++) {
-            for (let dx = -sR; dx <= sR; dx++) {
-              const px = Math.round(cx + dx);
-              const py = Math.round(cy + dy);
-              if (px >= 0 && px < imgW && py >= 0 && py < imgH) {
-                sum += grayBuf[py * imgW + px];
-                cnt++;
-              }
-            }
-          }
-          lums.push(cnt > 0 ? (sum / cnt) : 255);
-        }
-      }
-
-      const minL = Math.min(...lums);
-      const maxL = Math.max(...lums);
-      // Kontrast ayrımı zayıfsa hatalı pozitif üretmemek için reddet
-      if (maxL - minL < 38) return null;
-
-      const thresh = (minL + maxL) * 0.5;
-      let decoded = 0;
-      for (let i = 0; i < 9; i++) {
-        if (lums[i] < thresh) decoded |= (1 << i);
-      }
-
-      return (decoded > 0 && decoded <= 511) ? decoded : null;
+      return bestCandidate ? bestCandidate.decoded : null;
     }
 
     // Sayfada 2 form var mı? (Ortada çapa kontrolü)

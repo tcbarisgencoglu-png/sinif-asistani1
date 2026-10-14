@@ -2743,145 +2743,92 @@ Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi ve
   }
 
   // 9-Bit Öğrenci Optik Kimlik Rozetini Form Üzerinden Tara (3x3 Matris - 512 Öğrenci Desteği)
-  // Dinamik en-boy oranı (cardAspect), aralık beyazlığı (gap test), 8 noktalı dış çerçeve doğrulaması
-  // ve mikro zirve optimizasyonu ile uzak çekim ve perspektif kaymalarında %100 kararlı çalışır.
+  // Kart başlığında (0.65 - 0.95 U, -0.03 - 0.12 V) 3x3 kutucuk rozetini dinamik tespit eder.
   function scanStudentBinaryId9Bit(gray, w, h, threshold, mapPoint, corners) {
-    if (!gray || !mapPoint || typeof mapPoint !== 'function') return null;
+    if (!gray || !corners || !corners.tl || !corners.tr || !corners.bl) return null;
 
-    const cardW = (corners && corners.tl && corners.tr) ? Math.hypot(corners.tr.x - corners.tl.x, corners.tr.y - corners.tl.y) : w;
-    const cardH = (corners && corners.tl && corners.bl) ? Math.hypot(corners.bl.x - corners.tl.x, corners.bl.y - corners.tl.y) : h;
-    const cardAspect = cardH > 0 ? (cardW / cardH) : (w / h);
+    const cardW = Math.hypot(corners.tr.x - corners.tl.x, corners.tr.y - corners.tl.y);
+    const cardH = Math.hypot(corners.bl.x - corners.tl.x, corners.bl.y - corners.tl.y);
+    if (cardW < 50 || cardH < 50) return null;
 
-    function evalCandidate(u0, v0, su, sv) {
-      const cellStepU = su * 0.625;
-      const cellStepV = sv * 0.625;
+    // 3x3 OMR matrisi başlık bölgesinde, sağ çeyrekte (0.65 - 0.95 U) ve üst kısımda (-0.03 - 0.12 V) bulunur
+    const minX = Math.max(0, Math.round(corners.tl.x + cardW * 0.65));
+    const maxX = Math.min(w - 1, Math.round(corners.tl.x + cardW * 0.95));
+    const minY = Math.max(0, Math.round(corners.tl.y - cardH * 0.03));
+    const maxY = Math.min(h - 1, Math.round(corners.tl.y + cardH * 0.12));
 
-      // 1. Hücreler arası 4 boşluğun beyazlığını test et
-      const gapPts = [
-        mapPoint(u0, v0 - cellStepV * 0.5),
-        mapPoint(u0, v0 + cellStepV * 0.5),
-        mapPoint(u0 - cellStepU * 0.5, v0),
-        mapPoint(u0 + cellStepU * 0.5, v0)
-      ];
-      let gapSum = 0;
-      for (const gp of gapPts) {
-        if (gp.x < 2 || gp.x >= w - 2 || gp.y < 2 || gp.y >= h - 2) return null;
-        gapSum += gray[gp.y * w + gp.x];
-      }
-      const avgGapLum = gapSum / 4;
-      if (avgGapLum < 115) return null;
+    // Boyut: cardW * 0.04 ile cardW * 0.10 arası
+    const minSide = Math.max(16, Math.round(cardW * 0.04));
+    const maxSide = Math.max(minSide + 6, Math.round(cardW * 0.10));
 
-      // 2. 9 Hücreyi Örnekle
-      const cellLums = [];
-      const sampleR = Math.max(1, Math.min(5, Math.round(su * cardW * 0.05)));
+    let bestCandidate = null;
 
-      for (let r = 0; r < 3; r++) {
-        const vCell = v0 + (r - 1) * cellStepV;
-        for (let c = 0; c < 3; c++) {
-          const uCell = u0 + (c - 1) * cellStepU;
-          const pt = mapPoint(uCell, vCell);
-          if (pt.x < sampleR || pt.x >= w - sampleR || pt.y < sampleR || pt.y >= h - sampleR) return null;
+    for (let y = minY; y <= maxY - minSide; y += 1) {
+      for (let x = minX; x <= maxX - minSide; x += 1) {
+        for (let side = minSide; side <= maxSide; side += 2) {
+          if (x + side >= maxX || y + side >= maxY) continue;
 
-          let sum = 0, cnt = 0;
-          for (let dy = -sampleR; dy <= sampleR; dy++) {
-            for (let dx = -sampleR; dx <= sampleR; dx++) {
-              if (dx * dx + dy * dy <= sampleR * sampleR) {
-                sum += gray[(pt.y + dy) * w + (pt.x + dx)];
-                cnt++;
+          let topD = 0, botD = 0, leftD = 0, rightD = 0;
+          for (let dx = 0; dx < side; dx++) {
+            if (gray[y * w + (x + dx)] < 145) topD++;
+            if (gray[(y + side) * w + (x + dx)] < 145) botD++;
+          }
+          for (let dy = 0; dy < side; dy++) {
+            if (gray[(y + dy) * w + x] < 145) leftD++;
+            if (gray[(y + dy) * w + (x + side)] < 145) rightD++;
+          }
+
+          const borderScore = (topD + botD + leftD + rightD) / (4 * side);
+          if (borderScore >= 0.50) {
+            // 3x3 hücreleri incele
+            const cw = side / 3.0;
+            const ch = side / 3.0;
+            const sR = Math.max(1, Math.round(cw * 0.20));
+            const cells = [];
+
+            for (let r = 0; r < 3; r++) {
+              for (let c = 0; c < 3; c++) {
+                const cx = x + (c + 0.5) * cw;
+                const cy = y + (r + 0.5) * ch;
+                let sum = 0, cnt = 0;
+                for (let ddy = -sR; ddy <= sR; ddy++) {
+                  for (let ddx = -sR; ddx <= sR; ddx++) {
+                    const px = Math.round(cx + ddx);
+                    const py = Math.round(cy + ddy);
+                    if (px >= 0 && px < w && py >= 0 && py < h) {
+                      sum += gray[py * w + px];
+                      cnt++;
+                    }
+                  }
+                }
+                cells.push(cnt > 0 ? (sum / cnt) : 255);
+              }
+            }
+
+            const minL = Math.min(...cells);
+            const maxL = Math.max(...cells);
+            const contrast = maxL - minL;
+
+            if (contrast >= 35) {
+              const thresh = (minL + maxL) * 0.5;
+              let decoded = 0;
+              for (let i = 0; i < 9; i++) {
+                if (cells[i] < thresh) decoded |= (1 << i);
+              }
+
+              if (decoded > 0 && decoded <= 511) {
+                const totalScore = borderScore * 0.5 + (contrast / 255) * 0.5;
+                if (!bestCandidate || totalScore > bestCandidate.totalScore) {
+                  bestCandidate = { x, y, side, decoded, totalScore, borderScore, contrast };
+                }
               }
             }
           }
-          cellLums.push(cnt > 0 ? (sum / cnt) : gray[pt.y * w + pt.x]);
-        }
-      }
-
-      let minL = 255, maxL = 0;
-      for (let i = 0; i < 9; i++) {
-        if (cellLums[i] < minL) minL = cellLums[i];
-        if (cellLums[i] > maxL) maxL = cellLums[i];
-      }
-
-      if (minL > 145 || (avgGapLum - minL) < 32) return null;
-
-      const midThresh = (minL + Math.max(maxL, avgGapLum)) * 0.5;
-      let separationSum = 0;
-      let minSeparation = 255;
-      for (let i = 0; i < 9; i++) {
-        const sep = Math.abs(cellLums[i] - midThresh);
-        separationSum += sep;
-        if (sep < minSeparation) minSeparation = sep;
-      }
-
-      // 3. 8 Noktalı Dış Çerçeve Doğrulaması
-      let borderDarkCount = 0;
-      const borderPts = [
-        mapPoint(u0 - su, v0), mapPoint(u0 + su, v0),
-        mapPoint(u0, v0 - sv), mapPoint(u0, v0 + sv),
-        mapPoint(u0 - su, v0 - sv), mapPoint(u0 + su, v0 - sv),
-        mapPoint(u0 - su, v0 + sv), mapPoint(u0 + su, v0 + sv)
-      ];
-      for (const bp of borderPts) {
-        let ptDark = false;
-        for (let dy = -1; dy <= 1; dy++) {
-          for (let dx = -1; dx <= 1; dx++) {
-            const bx = bp.x + dx;
-            const by = bp.y + dy;
-            if (bx >= 0 && bx < w && by >= 0 && by < h && gray[by * w + bx] < midThresh) {
-              ptDark = true; break;
-            }
-          }
-          if (ptDark) break;
-        }
-        if (ptDark) borderDarkCount++;
-      }
-
-      const score = (separationSum / 9) + minSeparation * 0.8 + borderDarkCount * 8 + (avgGapLum - minL) * 0.3;
-      let decodedIdx = 0;
-      for (let i = 0; i < 9; i++) {
-        if (cellLums[i] < midThresh) decodedIdx |= (1 << i);
-      }
-
-      return { index: decodedIdx, score, borderDarkCount };
-    }
-
-    let best = null;
-    const uScales = [0.030, 0.034, 0.038];
-    const uMin = 0.816, uMax = 0.840, uStep = 0.003;
-    const vMin = 0.098, vMax = 0.130, vStep = 0.003;
-
-    for (let u0 = uMin; u0 <= uMax; u0 += uStep) {
-      for (let v0 = vMin; v0 <= vMax; v0 += vStep) {
-        for (const su of uScales) {
-          const sv = su * cardAspect;
-          const res = evalCandidate(u0, v0, su, sv);
-          if (res && res.index > 0 && res.borderDarkCount >= 2) {
-            if (!best || res.score > best.score) {
-              best = { ...res, u0, v0, su, sv };
-            }
-          }
         }
       }
     }
 
-    // Mikro Zirve Hassas Ayarı
-    if (best) {
-      const duStep = 0.0015;
-      const dvStep = 0.0015 * cardAspect;
-      for (let du = -duStep; du <= duStep; du += duStep) {
-        for (let dv = -dvStep; dv <= dvStep; dv += dvStep) {
-          if (du === 0 && dv === 0) continue;
-          const res = evalCandidate(best.u0 + du, best.v0 + dv, best.su, best.sv);
-          if (res && res.index > 0 && res.score > best.score) {
-            best = { ...res, u0: best.u0 + du, v0: best.v0 + dv, su: best.su, sv: best.sv };
-          }
-        }
-      }
-    }
-
-    if (best && best.index > 0 && best.index <= 511 && best.score >= 12) {
-      return best.index;
-    }
-    return null;
+    return bestCandidate ? bestCandidate.decoded : null;
   }
 
   // 5x5 Öğrenci Optik Kimlik Matrisini Form Üzerinden Tara (Ofset Arama Korumalı - Fallback)
