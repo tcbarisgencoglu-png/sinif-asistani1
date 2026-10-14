@@ -1117,6 +1117,18 @@
       if (modal) modal.style.display = 'flex';
       this.updateAutoAdvanceButtonUI();
 
+      // Kağıt boyutu açılır menüsünü sınav verisine veya varsayılan değere ayarla
+      const formatSelect = document.getElementById('omr-paper-format-select');
+      if (this.activeExam && this.activeExam.perPage) {
+        this.currentPaperFormat = parseInt(this.activeExam.perPage, 10) || 2;
+      } else if (!this.currentPaperFormat) {
+        this.currentPaperFormat = 2; // Varsayılan: A5 Yarım Sayfa (Kesilmiş)
+      }
+      if (formatSelect) {
+        formatSelect.value = String(this.currentPaperFormat);
+      }
+      this.applyGuideBoxFormat(this.currentPaperFormat);
+
       try {
         if (window.AndroidBridge && typeof window.AndroidBridge.requestCameraPermission === 'function') {
           window.AndroidBridge.requestCameraPermission();
@@ -1254,6 +1266,34 @@
         minY: Math.max(0, Math.round(canvasMinY - marginY)),
         maxY: Math.min(vh, Math.round(canvasMaxY + marginY))
       };
+    },
+
+    setPaperFormat(val) {
+      this.currentPaperFormat = parseInt(val, 10) || 2;
+      this.applyGuideBoxFormat(this.currentPaperFormat);
+      const label = this.currentPaperFormat === 1 ? 'A4 (Tam Sayfa)' : (this.currentPaperFormat === 4 ? 'A6 (Çeyrek Sayfa - Kesilmiş)' : 'A5 (Yarım Sayfa - Kesilmiş)');
+      if (window.Companion) window.Companion.showToast(`Kağıt Formatı: ${label}`);
+    },
+
+    applyGuideBoxFormat(format) {
+      const guideBox = document.getElementById('omr-guide-box');
+      if (!guideBox) return;
+      if (format === 1) {
+        guideBox.style.width = '82vw';
+        guideBox.style.height = '62vh';
+        guideBox.style.maxWidth = '460px';
+        guideBox.style.maxHeight = '560px';
+      } else if (format === 4) {
+        guideBox.style.width = '84vw';
+        guideBox.style.height = '42vh';
+        guideBox.style.maxWidth = '440px';
+        guideBox.style.maxHeight = '340px';
+      } else {
+        guideBox.style.width = '88vw';
+        guideBox.style.height = '50vh';
+        guideBox.style.maxWidth = '500px';
+        guideBox.style.maxHeight = '420px';
+      }
     },
 
     // Canlı Kamera Hafif Döngüsü (jsQR + OMR Otomatik Tetikleme)
@@ -1396,9 +1436,9 @@
 
       let scanResult = null;
       if (window.OmrEngine && typeof window.OmrEngine.scanDocumentPage === 'function') {
-        const allowDouble = (!bounds || (bounds.maxX - bounds.minX > canvas.width * 0.75 && bounds.maxY - bounds.minY > canvas.height * 0.75));
         scanResult = await window.OmrEngine.scanDocumentPage(canvas, exam, students, {
-          isDoubleForm: allowDouble ? undefined : false,
+          isDoubleForm: false,
+          perPage: this.currentPaperFormat || 2,
           sensitivity: this.currentSensitivity,
           bounds: bounds
         });
@@ -1443,7 +1483,9 @@
 
         this.showResultHud(this.activeCardResult);
 
-        if (this.autoAdvance) {
+        const isUnmatched = !this.activeCardResult.studentId || this.activeCardResult.studentId.startsWith('temp_') || this.activeCardResult.studentName === 'Öğrenci' || this.activeCardResult.studentNo === '-';
+
+        if (this.autoAdvance && !isUnmatched) {
           const nextBtnText = document.getElementById('omr-btn-next-text');
           let count = 2;
           if (nextBtnText) nextBtnText.textContent = `Sonraki Form (${count})`;
@@ -1493,6 +1535,13 @@
       if (net) net.textContent = Number(res.net || 0).toFixed(1);
       if (nextBtnText) nextBtnText.textContent = 'Kaydet & Sonraki Form';
 
+      // Eşleşmeyen Öğrenci Uyarısı
+      const isUnmatched = !res.studentId || res.studentId.startsWith('temp_') || res.studentName === 'Öğrenci' || res.studentNo === '-';
+      const unmatchedAlert = document.getElementById('omr-unmatched-alert');
+      if (unmatchedAlert) {
+        unmatchedAlert.style.display = isUnmatched ? 'flex' : 'none';
+      }
+
       // Çoklu Ders Kartları
       const subjGrid = document.getElementById('omr-hud-subjects-grid');
       if (subjGrid) {
@@ -1521,6 +1570,107 @@
     hideResultHud() {
       const hud = document.getElementById('omr-result-hud');
       if (hud) hud.classList.remove('show');
+    },
+
+    openStudentPickerModal() {
+      if (this.autoAdvanceTimer) {
+        clearInterval(this.autoAdvanceTimer);
+        this.autoAdvanceTimer = null;
+      }
+      const modal = document.getElementById('omr-student-picker-modal');
+      if (!modal) return;
+      const searchInput = document.getElementById('omr-student-search-input');
+      if (searchInput) searchInput.value = '';
+      this.renderStudentPickerList('');
+      modal.style.display = 'flex';
+      if (window.Companion) window.Companion.renderIcons();
+    },
+
+    closeStudentPickerModal() {
+      const modal = document.getElementById('omr-student-picker-modal');
+      if (modal) modal.style.display = 'none';
+    },
+
+    filterStudentPicker(searchTerm) {
+      this.renderStudentPickerList(searchTerm);
+    },
+
+    renderStudentPickerList(filter = '') {
+      const listEl = document.getElementById('omr-student-picker-list');
+      if (!listEl) return;
+
+      const students = this.getActiveStudents();
+      const term = (filter || '').trim().toLowerCase();
+
+      const filtered = students.filter(s => {
+        if (!term) return true;
+        const fullName = `${s.name} ${s.surname || ''}`.toLowerCase();
+        const no = String(s.number || '');
+        return fullName.includes(term) || no.includes(term);
+      }).sort((a, b) => {
+        const noA = parseInt(a.number, 10) || 0;
+        const noB = parseInt(b.number, 10) || 0;
+        return noA - noB;
+      });
+
+      if (filtered.length === 0) {
+        listEl.innerHTML = '<div style="text-align: center; padding: 24px 0; color: #94a3b8; font-size: 13px;">Eşleşen öğrenci bulunamadı</div>';
+        return;
+      }
+
+      listEl.innerHTML = filtered.map(s => {
+        const initials = ((s.name ? s.name[0] : '') + (s.surname ? s.surname[0] : '')).toUpperCase() || 'Ö';
+        const isCurrent = this.activeCardResult && String(this.activeCardResult.studentId) === String(s.id);
+        return `
+          <div class="c-student-scan-card ${isCurrent ? 'active' : ''}" style="cursor: pointer; padding: 10px 14px;" onclick="window.CompanionOmr.assignStudent('${s.id}')">
+            <div class="c-student-scan-info">
+              <div class="c-scan-card-avatar" style="${isCurrent ? 'background: #4f46e5; color: #fff;' : ''}">${initials}</div>
+              <div class="c-scan-card-details">
+                <div class="c-scan-card-name" style="font-size: 14px; font-weight: 800;">${s.name} ${s.surname || ''}</div>
+                <div class="c-scan-card-sub" style="font-size: 12px; color: #64748b;">No: ${s.number || '-'}</div>
+              </div>
+            </div>
+            <button type="button" class="c-btn-secondary" style="font-size: 11px; padding: 4px 10px; font-weight: 700; pointer-events: none;">
+              Seç
+            </button>
+          </div>
+        `;
+      }).join('');
+    },
+
+    assignStudent(studentId) {
+      if (!this.activeCardResult || !this.activeExam) return;
+      const students = this.getActiveStudents();
+      const stu = students.find(s => String(s.id) === String(studentId));
+      if (!stu) return;
+
+      const oldStudentId = this.activeCardResult.studentId;
+      const newStudentId = stu.id;
+
+      // Eski geçici kaydı temizle
+      if (oldStudentId && oldStudentId !== newStudentId) {
+        const data = this.getData();
+        const exam = (data.weeklyEvaluations || []).find(e => String(e.id) === String(this.activeExam.id));
+        if (exam && exam.studentResults) {
+          delete exam.studentResults[oldStudentId];
+          if (exam.examScores) delete exam.examScores[oldStudentId];
+          this.saveData(data);
+          this.activeExam = exam;
+        }
+      }
+
+      this.activeCardResult.studentId = newStudentId;
+      this.activeCardResult.studentName = `${stu.name} ${stu.surname || ''}`.trim();
+      this.activeCardResult.studentNo = stu.number || '-';
+
+      this.saveExamResult(this.activeExam.id, newStudentId, this.activeCardResult);
+      this.showResultHud(this.activeCardResult);
+      this.closeStudentPickerModal();
+
+      if (window.Companion) {
+        window.Companion.showToast(`✅ ${this.activeCardResult.studentName} başarıyla eşleştirildi!`, 'success');
+        window.Companion.vibrate(30);
+      }
     },
 
     acceptResultAndNext() {

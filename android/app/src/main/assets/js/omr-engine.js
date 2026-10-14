@@ -717,7 +717,7 @@
   }
 
   function refineBubbleCenter(gray, w, h, initialPt, radius, rowPaperLum, maxRangeX, maxRangeY) {
-    const defaultRange = Math.max(2, Math.round(radius * 0.5));
+    const defaultRange = Math.max(3, Math.round(radius * 0.75));
     const rangeX = maxRangeX !== undefined ? Math.max(2, maxRangeX) : defaultRange;
     const rangeY = maxRangeY !== undefined ? Math.max(2, maxRangeY) : defaultRange;
     const stepX = Math.max(1, Math.round(rangeX / 5));
@@ -725,8 +725,8 @@
 
     let bestX = initialPt.x;
     let bestY = initialPt.y;
-    let maxDarkSum = -1;
-    const rCheck = Math.max(2, Math.round(radius * 0.45));
+    let maxDarkSum = 0;
+    const rCheck = Math.max(2, Math.round(radius * 0.50));
     const rCheck2 = rCheck * rCheck;
 
     for (let dy = -rangeY; dy <= rangeY; dy += stepY) {
@@ -756,6 +756,30 @@
       }
     }
 
+    // Centroid Refinement: Eğer belirgin bir koyuluk bulunduysa ağırlık merkeziyle (Centroid of Darkness) ince kilitlenme yap
+    if (maxDarkSum > (rCheck2 * 12)) {
+      let weightSum = 0, weightX = 0, weightY = 0;
+      const fineRadius = Math.max(2, Math.round(rCheck * 0.85));
+      for (let dy = -fineRadius; dy <= fineRadius; dy++) {
+        const py = bestY + dy;
+        if (py < 0 || py >= h) continue;
+        for (let dx = -fineRadius; dx <= fineRadius; dx++) {
+          const px = bestX + dx;
+          if (px < 0 || px >= w) continue;
+          const d = Math.max(0, rowPaperLum - gray[py * w + px]);
+          if (d > 20) {
+            const weight = d * d;
+            weightSum += weight;
+            weightX += px * weight;
+            weightY += py * weight;
+          }
+        }
+      }
+      if (weightSum > 0) {
+        return { x: Math.round(weightX / weightSum), y: Math.round(weightY / weightSum) };
+      }
+    }
+
     return { x: bestX, y: bestY };
   }
 
@@ -771,6 +795,9 @@
     const letters = ['A', 'B', 'C', 'D', 'E'].slice(0, choicesCount);
     const answerKey = exam.answerKey || {};
     const penaltyRate = exam.wrongAffects ? (parseFloat(exam.penaltyRate) || 4) : 0;
+
+    // Kağıt Formatı (1: A4 Tam Boy, 2: A5 Kesilmiş Yarım Boy, 4: A6 Kesilmiş Çeyrek Boy)
+    const perPage = parseInt(options.perPage || exam.perPage, 10) || 2;
 
     const mapPoint = createProjectiveHomography(corners);
     const sampleRadius = Math.max(5, Math.min(16, Math.round(w * 0.013)));
@@ -799,6 +826,42 @@
       const slotW = totalGridW / numSubjects;
       const gapU = Math.min(0.012, slotW * 0.04);
 
+      // Kağıt formatına ve ders sayısına göre dinamik dikey aralık
+      let vFirstRow = 0.115;
+      let vLastRow = 0.965;
+
+      if (perPage === 2) {
+        // A5 Kesilmiş Yarım Sayfa
+        vFirstRow = numSubjects >= 5 ? 0.190 : (numSubjects >= 3 ? 0.175 : 0.165);
+        vLastRow = 0.940;
+      } else if (perPage === 4) {
+        // A6 Kesilmiş Çeyrek Sayfa
+        vFirstRow = 0.220;
+        vLastRow = 0.920;
+      } else {
+        // A4 Tam Sayfa
+        vFirstRow = numSubjects >= 5 ? 0.135 : 0.115;
+        vLastRow = 0.965;
+      }
+
+      // Ders sayısına göre şık başlangıç ve yayılım oranları
+      let bubbleStartOffset = 0.30;
+      let bubbleSpanRatio = 0.64;
+
+      if (numSubjects === 2) {
+        bubbleStartOffset = 0.22;
+        bubbleSpanRatio = 0.72;
+      } else if (numSubjects === 3) {
+        bubbleStartOffset = 0.26;
+        bubbleSpanRatio = 0.68;
+      } else if (numSubjects === 4) {
+        bubbleStartOffset = 0.30;
+        bubbleSpanRatio = 0.64;
+      } else if (numSubjects >= 5) {
+        bubbleStartOffset = 0.36;
+        bubbleSpanRatio = 0.58;
+      }
+
       examSubjects.forEach((subj, sIdx) => {
         let subjCorrect = 0;
         let subjWrong = 0;
@@ -809,8 +872,6 @@
         const colWidth = colUEnd - colUStart;
 
         const numQuestions = parseInt(subj.questionCount, 10) || 6;
-        const vFirstRow = 0.113;
-        const vLastRow = 0.970;
         const availH = vLastRow - vFirstRow;
         const rowStep = numQuestions > 1 ? (availH / (numQuestions - 1)) : 0;
 
@@ -823,8 +884,6 @@
           const rowPaperLum = sampleLocalPaperLuminance(gray, w, h, rowSamplePt, sampleRadius);
 
           const choiceScores = [];
-          const bubbleStartOffset = 0.30;
-          const bubbleSpanRatio = 0.64;
           const bubbleStartU = colUStart + colWidth * bubbleStartOffset;
           const bubbleSpan = colWidth * bubbleSpanRatio;
 
@@ -923,9 +982,23 @@
       const cols = qCount <= 15 ? 1 : (qCount <= 30 ? 2 : 3);
       const questionsPerCol = Math.ceil(qCount / cols);
 
-      const bodyTop = 0.17;
-      const actualRowStep = Math.min(0.050, Math.max(0.038, 0.74 / Math.max(16, questionsPerCol)));
-      const firstRowCenter = bodyTop + actualRowStep * 0.65;
+      let bodyTop = 0.16;
+      let bodyBottom = 0.95;
+
+      if (perPage === 2) {
+        bodyTop = 0.20;
+        bodyBottom = 0.93;
+      } else if (perPage === 4) {
+        bodyTop = 0.25;
+        bodyBottom = 0.90;
+      } else {
+        bodyTop = 0.15;
+        bodyBottom = 0.96;
+      }
+
+      const availH = bodyBottom - bodyTop;
+      const actualRowStep = Math.min(0.055, Math.max(0.034, availH / Math.max(12, questionsPerCol)));
+      const firstRowCenter = bodyTop + actualRowStep * 0.55;
 
       for (let c = 0; c < cols; c++) {
         const startQ = c * questionsPerCol + 1;
