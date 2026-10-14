@@ -1257,24 +1257,59 @@
       return bestCandidate ? bestCandidate.decoded : null;
     }
 
-    // Sayfada 2 form var mı? (Ortada çapa kontrolü)
+    // Sayfada 2 form var mı? (A4 Sayfa Başına 2 Form Tespiti)
     const canBeDouble = options.isDoubleForm !== false;
-    const borderBounds = findCardBorderCorners(gray, targetW, targetH, threshold, scaledBounds);
-    const isFullPageCard = borderBounds && (borderBounds.br.y - borderBounds.tl.y > targetH * 0.65);
-    const midY = Math.round(targetH * 0.50);
-    const midRadius = Math.max(8, Math.round(targetW * 0.018));
-    const midAnchorL = canBeDouble ? findConcentricTargetAnchor(gray, targetW, targetH, 0, Math.round(targetW * 0.25), Math.round(targetH * 0.40), Math.round(targetH * 0.60), midRadius) : null;
-    const midAnchorR = canBeDouble ? findConcentricTargetAnchor(gray, targetW, targetH, Math.round(targetW * 0.75), targetW, Math.round(targetH * 0.40), Math.round(targetH * 0.60), midRadius) : null;
+    let isDoubleForm = false;
+    let cornersTop = null;
+    let cornersBottom = null;
 
-    const isDoubleForm = canBeDouble && !isFullPageCard && (midAnchorL && midAnchorR && Math.abs(midAnchorL.y - midAnchorR.y) < targetH * 0.05 && (midAnchorR.x - midAnchorL.x) > targetW * 0.65);
+    function isSubFormGeometricallyValid(c, w, h) {
+      if (!c || !c.tl || !c.tr || !c.bl || !c.br) return false;
+      const cardW = Math.abs(c.tr.x - c.tl.x);
+      const cardH = Math.abs(c.bl.y - c.tl.y);
+      if (cardW < w * 0.35) return false;
+      if (cardH < h * 0.16 || cardH > h * 0.55) return false;
+      if (Math.abs(c.tl.y - c.tr.y) > h * 0.15) return false;
+      if (Math.abs(c.bl.y - c.br.y) > h * 0.15) return false;
+      return true;
+    }
+
+    if (options.isDoubleForm === true) {
+      isDoubleForm = true;
+    } else if (canBeDouble && (!scaledBounds || (scaledBounds.maxY - scaledBounds.minY > targetH * 0.70))) {
+      // Tam sayfada veya geniş kadrajda üst yarı ve alt yarıyı bağımsız tara
+      const boundsTopTest = { minX: 0, maxX: targetW, minY: 0, maxY: Math.round(targetH * 0.55) };
+      const boundsBottomTest = { minX: 0, maxX: targetW, minY: Math.round(targetH * 0.45), maxY: targetH };
+
+      cornersTop = detectCornerAnchors(gray, targetW, targetH, threshold, boundsTopTest);
+      cornersBottom = detectCornerAnchors(gray, targetW, targetH, threshold, boundsBottomTest);
+
+      const topOk = isSubFormGeometricallyValid(cornersTop, targetW, targetH);
+      const botOk = isSubFormGeometricallyValid(cornersBottom, targetW, targetH);
+
+      if (topOk && botOk) {
+        isDoubleForm = true;
+      } else {
+        // Ortada ortak çapa kontrolü (Fallback)
+        const midRadius = Math.max(8, Math.round(targetW * 0.018));
+        const midAnchorL = findConcentricTargetAnchor(gray, targetW, targetH, 0, Math.round(targetW * 0.25), Math.round(targetH * 0.40), Math.round(targetH * 0.60), midRadius);
+        const midAnchorR = findConcentricTargetAnchor(gray, targetW, targetH, Math.round(targetW * 0.75), targetW, Math.round(targetH * 0.40), Math.round(targetH * 0.60), midRadius);
+        if (midAnchorL && midAnchorR && Math.abs(midAnchorL.y - midAnchorR.y) < targetH * 0.06 && (midAnchorR.x - midAnchorL.x) > targetW * 0.60) {
+          isDoubleForm = true;
+        }
+      }
+    }
+
     const detectedCards = [];
 
     if (isDoubleForm) {
       // ── SAYFA BAŞINA 2 FORM (ÜST & ALT) ──
-      // 1. Üst Form (Bounds: Y = 0 ... midY + 50)
-      const cornersTop = detectCornerAnchors(gray, targetW, targetH, threshold, {
-        minX: 0, maxX: targetW, minY: 0, maxY: midY + 50
-      });
+      const midY = Math.round(targetH * 0.50);
+      if (!cornersTop || !isSubFormGeometricallyValid(cornersTop, targetW, targetH)) {
+        cornersTop = detectCornerAnchors(gray, targetW, targetH, threshold, {
+          minX: 0, maxX: targetW, minY: 0, maxY: Math.round(targetH * 0.55)
+        });
+      }
       const cornersTopOrig = {
         tl: { ...cornersTop.tl },
         tr: { ...cornersTop.tr },
@@ -1283,19 +1318,23 @@
       };
       const cardTop = scanSingleCard(canvas, gray, targetW, targetH, cornersTop, exam, classStudents, options);
       cardTop.binaryId = detectBinaryIdInCard(gray, targetW, targetH, cornersTopOrig);
-      cardTop.qrResult = scanQrInRegion(ctx, 0, 0, targetW, Math.min(targetH, midY + 60));
-      if (!cardTop.binaryId && !cardTop.qrResult && cornersTopOrig && cornersTopOrig.tr) {
-        const subW = Math.round(targetW * 0.35);
-        const subH = Math.round(midY * 0.45);
+      // Üst form QR arama: Önce rozet bölgesini geniş tara, sonra üst yarının tamamında ara
+      if (cornersTopOrig && cornersTopOrig.tr) {
+        const subW = Math.round(targetW * 0.45);
+        const subH = Math.round(targetH * 0.30);
         const subX = Math.max(0, cornersTopOrig.tr.x - subW + 80);
-        const subY = Math.max(0, cornersTopOrig.tr.y - Math.round(subH * 0.5));
+        const subY = Math.max(0, cornersTopOrig.tl.y - 20);
         cardTop.qrResult = scanQrInRegion(ctx, subX, subY, subW, subH);
       }
+      if (!cardTop.qrResult) {
+        cardTop.qrResult = scanQrInRegion(ctx, 0, 0, targetW, Math.min(targetH, midY + 60));
+      }
 
-      // 2. Alt Form (Bounds: Y = midY - 50 ... targetH)
-      const cornersBottom = detectCornerAnchors(gray, targetW, targetH, threshold, {
-        minX: 0, maxX: targetW, minY: midY - 50, maxY: targetH
-      });
+      if (!cornersBottom || !isSubFormGeometricallyValid(cornersBottom, targetW, targetH)) {
+        cornersBottom = detectCornerAnchors(gray, targetW, targetH, threshold, {
+          minX: 0, maxX: targetW, minY: Math.round(targetH * 0.45), maxY: targetH
+        });
+      }
       const cornersBottomOrig = {
         tl: { ...cornersBottom.tl },
         tr: { ...cornersBottom.tr },
@@ -1304,13 +1343,16 @@
       };
       const cardBottom = scanSingleCard(canvas, gray, targetW, targetH, cornersBottom, exam, classStudents, options);
       cardBottom.binaryId = detectBinaryIdInCard(gray, targetW, targetH, cornersBottomOrig);
-      cardBottom.qrResult = scanQrInRegion(ctx, 0, Math.max(0, midY - 60), targetW, targetH - Math.max(0, midY - 60));
-      if (!cardBottom.binaryId && !cardBottom.qrResult && cornersBottomOrig && cornersBottomOrig.tr) {
-        const subW = Math.round(targetW * 0.35);
-        const subH = Math.round((targetH - midY) * 0.45);
+      // Alt form QR arama: Önce rozet bölgesini geniş tara, sonra alt yarının tamamında ara
+      if (cornersBottomOrig && cornersBottomOrig.tr) {
+        const subW = Math.round(targetW * 0.45);
+        const subH = Math.round(targetH * 0.30);
         const subX = Math.max(0, cornersBottomOrig.tr.x - subW + 80);
-        const subY = Math.max(0, cornersBottomOrig.tr.y - Math.round(subH * 0.5));
+        const subY = Math.max(0, cornersBottomOrig.tl.y - 20);
         cardBottom.qrResult = scanQrInRegion(ctx, subX, subY, subW, subH);
+      }
+      if (!cardBottom.qrResult) {
+        cardBottom.qrResult = scanQrInRegion(ctx, 0, Math.max(0, midY - 60), targetW, targetH - Math.max(0, midY - 60));
       }
 
       detectedCards.push(cardTop, cardBottom);
@@ -1319,9 +1361,21 @@
       let cornersFull = detectCornerAnchors(gray, targetW, targetH, threshold, scaledBounds);
       const cornersSpanW = cornersFull ? Math.abs(cornersFull.tr.x - cornersFull.tl.x) : 0;
       if (scaledBounds && (!cornersFull || cornersSpanW < targetW * 0.40)) {
-        const fallbackCorners = detectCornerAnchors(gray, targetW, targetH, threshold, null);
+        // Mobil vizör sınırını kontrollü genişleterek ara
+        const expandedBounds = {
+          minX: Math.max(0, scaledBounds.minX - Math.round(targetW * 0.15)),
+          maxX: Math.min(targetW, scaledBounds.maxX + Math.round(targetW * 0.15)),
+          minY: Math.max(0, scaledBounds.minY - Math.round(targetH * 0.15)),
+          maxY: Math.min(targetH, scaledBounds.maxY + Math.round(targetH * 0.15))
+        };
+        const fallbackCorners = detectCornerAnchors(gray, targetW, targetH, threshold, expandedBounds);
         if (fallbackCorners && Math.abs(fallbackCorners.tr.x - fallbackCorners.tl.x) > cornersSpanW) {
           cornersFull = fallbackCorners;
+        } else {
+          const globalCorners = detectCornerAnchors(gray, targetW, targetH, threshold, null);
+          if (globalCorners && Math.abs(globalCorners.tr.x - globalCorners.tl.x) > cornersSpanW) {
+            cornersFull = globalCorners;
+          }
         }
       }
       const cornersFullOrig = {
@@ -1419,8 +1473,25 @@
       }
     }
 
+      // 3. ÜÇÜNCÜ ÖNCELİK: Sayfa ve Kart Sırası (Baskı Şablonuna Göre Fallback)
+      let candidate = null;
+      if (!matched && sortedRoster.length > 0) {
+        let expectedIdx = -1;
+        if (typeof options.pageNumber === 'number' && options.pageNumber > 0) {
+          const perPage = detectedCards.length > 1 ? 2 : 1;
+          expectedIdx = (options.pageNumber - 1) * perPage + idx;
+        } else if (detectedCards.length > 1 && idx < sortedRoster.length) {
+          expectedIdx = idx;
+        }
+        if (expectedIdx >= 0 && expectedIdx < sortedRoster.length) {
+          candidate = sortedRoster[expectedIdx];
+          if (!rawStudentName) rawStudentName = `${candidate.name} ${candidate.surname || ''}`.trim();
+          if (!rawStudentNo) rawStudentNo = candidate.number || '';
+        }
+      }
+
       card.matched = matched;
-      card.candidate = null;
+      card.candidate = candidate;
       card.rawStudentName = rawStudentName;
       card.rawStudentNo = rawStudentNo;
     });

@@ -1396,40 +1396,52 @@
 
       let scanResult = null;
       if (window.OmrEngine && typeof window.OmrEngine.scanDocumentPage === 'function') {
+        const allowDouble = (!bounds || (bounds.maxX - bounds.minX > canvas.width * 0.75 && bounds.maxY - bounds.minY > canvas.height * 0.75));
         scanResult = await window.OmrEngine.scanDocumentPage(canvas, exam, students, {
-          isDoubleForm: false,
+          isDoubleForm: allowDouble ? undefined : false,
           sensitivity: this.currentSensitivity,
           bounds: bounds
         });
       }
 
       if (scanResult && scanResult.success && Array.isArray(scanResult.cards) && scanResult.cards.length > 0) {
-        const card = scanResult.cards[0];
-        const matched = card.matched || (students.length === 1 ? students[0] : null);
-        const stuName = matched ? `${matched.name} ${matched.surname || ''}`.trim() : (card.rawStudentName || 'Öğrenci');
-        const stuNo = matched ? (matched.number || '-') : (card.rawStudentNo || '-');
-        const stuId = matched ? matched.id : ('temp_' + Date.now());
+        const savedResults = [];
 
-        this.activeCardResult = {
-          studentId: stuId,
-          studentName: stuName,
-          studentNo: stuNo,
-          correct: card.correctCount,
-          wrong: card.wrongCount,
-          blank: card.blankCount,
-          net: card.net,
-          score: card.score,
-          answers: card.answers,
-          questionDetails: card.questionDetails,
-          subjectBreakdown: card.subjectBreakdown || {},
-          thumbUrl: card.thumbUrl
-        };
+        scanResult.cards.forEach((card, cIdx) => {
+          const matched = card.matched || card.candidate || (students.length === 1 ? students[0] : null);
+          const stuName = matched ? `${matched.name} ${matched.surname || ''}`.trim() : (card.rawStudentName || (scanResult.cards.length > 1 ? `Form #${cIdx + 1}` : 'Öğrenci'));
+          const stuNo = matched ? (matched.number || '-') : (card.rawStudentNo || '-');
+          const stuId = matched ? matched.id : ('temp_' + Date.now() + '_' + cIdx);
 
+          const cardResult = {
+            studentId: stuId,
+            studentName: stuName,
+            studentNo: stuNo,
+            correct: card.correctCount,
+            wrong: card.wrongCount,
+            blank: card.blankCount,
+            net: card.net,
+            score: card.score,
+            answers: card.answers,
+            questionDetails: card.questionDetails,
+            subjectBreakdown: card.subjectBreakdown || {},
+            thumbUrl: card.thumbUrl
+          };
+
+          this.saveExamResult(exam.id, stuId, cardResult);
+          savedResults.push(cardResult);
+        });
+
+        this.activeCardResult = savedResults[0];
         playSuccessBeep();
         if (window.Companion) window.Companion.vibrate([40, 30, 40]);
 
+        if (savedResults.length > 1) {
+          const names = savedResults.map(r => r.studentName).join(', ');
+          if (window.Companion) window.Companion.showToast(`✅ ${savedResults.length} Öğrenci Formu Okundu: ${names}`, 'success');
+        }
+
         this.showResultHud(this.activeCardResult);
-        this.saveExamResult(exam.id, stuId, this.activeCardResult);
 
         if (this.autoAdvance) {
           const nextBtnText = document.getElementById('omr-btn-next-text');
