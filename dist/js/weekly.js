@@ -8407,5 +8407,27 @@ function renderPipContent(win) {
     }
   };
 
+  // Dışarıya sınav listesini ve aktif sınavı render etme API'sini sun
+  window.renderExamsList = renderExamsList;
+  window.renderWeeklyEvaluations = renderExamsList;
+  window.renderActiveExamTable = renderActiveExamTable;
+
+  // Global state değiştiğinde (örneğin terminalden canlı sınav veya sonuç geldiğinde) arayüzü anında tazele
+  document.addEventListener('stateChanged', () => {
+    try {
+      renderExamsList();
+      if (activeExam && activeExam.id) {
+        const state = (stateManager && stateManager.state) ? stateManager.state : stateManager.loadState();
+        const updated = (state.weeklyEvaluations || []).find(e => String(e.id) === String(activeExam.id));
+        if (updated) {
+          activeExam = updated;
+          renderActiveExamTable();
+        }
+      }
+    } catch (e) {
+      console.warn('[Weekly] stateChanged arayüz tazeleme hatası:', e);
+    }
+  });
+
   window.setupWeeklyTab = setupWeeklyTab;
 })();
