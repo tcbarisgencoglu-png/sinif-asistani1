@@ -19,6 +19,168 @@
   'use strict';
 
   // ==========================================================================
+  // 0. DERS VE CEVAP ANAHTARI ÇÖZÜMLEME MOTORU (ÇOKLU BRANŞ DESTEĞİ)
+  // ==========================================================================
+
+  function normalizeOmrSubject(str) {
+    if (!str) return '';
+    let s = String(str).toLocaleLowerCase('tr').replace(/[^a-zçğıöşü0-9]/g, '');
+    s = s.replace(/([aeıioöuü])\1+/g, '$1');
+    return s;
+  }
+
+  function getOmrSubjectBaseKeywords(str) {
+    const norm = normalizeOmrSubject(str);
+    const keywords = [];
+    if (norm.includes('sosyal')) keywords.push('sosyal');
+    if (norm.includes('turk') || norm.includes('türk')) keywords.push('turk', 'türk');
+    if (norm.includes('mat')) keywords.push('mat');
+    if (norm.includes('fen')) keywords.push('fen');
+    if (norm.includes('inkilap') || norm.includes('tarih')) keywords.push('inkilap', 'tarih');
+    if (norm.includes('din')) keywords.push('din');
+    if (norm.includes('ingiliz') || norm.includes('dil')) keywords.push('ingiliz', 'dil');
+    return { norm, keywords };
+  }
+
+  function extractAnswerForSubj(cardAnswers, card, subj, subjIndex, q, cumulativeOffset = 0) {
+    if (!cardAnswers && !card) return '';
+    const answersObj = cardAnswers || (card && card.answers) || {};
+
+    // 0. card.subjects nesnesi üzerinden ders adı veya ID'si ile doğrudan erişim
+    if (card && card.subjects && typeof card.subjects === 'object') {
+      if (card.subjects[subj.name] && typeof card.subjects[subj.name] === 'object') {
+        const v = card.subjects[subj.name][q] ?? card.subjects[subj.name][String(q)];
+        if (v !== undefined && v !== '') return String(v);
+      }
+      if (card.subjects[subj.id] && typeof card.subjects[subj.id] === 'object') {
+        const v = card.subjects[subj.id][q] ?? card.subjects[subj.id][String(q)];
+        if (v !== undefined && v !== '') return String(v);
+      }
+      const { norm: subjNorm, keywords } = getOmrSubjectBaseKeywords(subj.name);
+      for (const sKey of Object.keys(card.subjects)) {
+        const sNorm = normalizeOmrSubject(sKey);
+        if (sNorm === subjNorm || sNorm.includes(subjNorm) || subjNorm.includes(sNorm) || keywords.some(kw => sNorm.includes(kw))) {
+          const subObj = card.subjects[sKey];
+          if (subObj && typeof subObj === 'object') {
+            const v = subObj[q] ?? subObj[String(q)];
+            if (v !== undefined && v !== '') return String(v);
+          }
+        }
+      }
+    }
+
+    // 1. Doğrudan id_q eşleşmesi (örn: sub_0_1, sub_3_1)
+    const key1 = `${subj.id}_${q}`;
+    if (answersObj[key1] !== undefined && answersObj[key1] !== '') {
+      return String(answersObj[key1]);
+    }
+
+    // 2. Doğrudan name_q eşleşmesi (örn: Türkçe_1, Sosyal Bilgiler_1)
+    const key2 = `${subj.name}_${q}`;
+    if (answersObj[key2] !== undefined && answersObj[key2] !== '') {
+      return String(answersObj[key2]);
+    }
+
+    // 3. İç içe nesne eşleşmesi (card.subjects veya card.answers[subj.id])
+    const nested = (card && card.subjects) || (card && card.subjectAnswers) || (card && typeof card.answers === 'object' ? card.answers : null);
+    if (nested && typeof nested === 'object') {
+      for (const candidateKey of [subj.id, subj.name]) {
+        if (nested[candidateKey] && typeof nested[candidateKey] === 'object') {
+          if (nested[candidateKey][q] !== undefined) return String(nested[candidateKey][q]);
+          if (nested[candidateKey][String(q)] !== undefined) return String(nested[candidateKey][String(q)]);
+        }
+      }
+      const { norm: subjNorm, keywords } = getOmrSubjectBaseKeywords(subj.name);
+      for (const nestedKey of Object.keys(nested)) {
+        const nNorm = normalizeOmrSubject(nestedKey);
+        if (nNorm === subjNorm || nNorm.includes(subjNorm) || subjNorm.includes(nNorm) || keywords.some(kw => nNorm.includes(kw))) {
+          const subObj = nested[nestedKey];
+          if (subObj && typeof subObj === 'object') {
+            if (subObj[q] !== undefined) return String(subObj[q]);
+            if (subObj[String(q)] !== undefined) return String(subObj[String(q)]);
+          }
+        }
+      }
+    }
+
+    // 4. Anahtarlar üzerinde sütun sırası veya fuzzy ders adı eşleme
+    const { norm: subjNorm, keywords } = getOmrSubjectBaseKeywords(subj.name);
+    const colNum = subjIndex + 1;
+    const colPrefixes = [`ders_${colNum}`, `ders${colNum}`, `sutun_${colNum}`, `sutun${colNum}`, `col_${colNum}`, `column_${colNum}`];
+
+    for (const k of Object.keys(answersObj)) {
+      const match = k.match(/(?:_|-|\s|:|^)(\d+)$/);
+      if (!match || parseInt(match[1], 10) !== q) continue;
+
+      const prefix = k.slice(0, match.index);
+      const prefixNorm = normalizeOmrSubject(prefix);
+      if (!prefixNorm) continue;
+
+      if (colPrefixes.some(cp => prefixNorm === cp || prefixNorm.startsWith(cp))) {
+        return String(answersObj[k]);
+      }
+      if (prefixNorm === subjNorm || prefixNorm.includes(subjNorm) || subjNorm.includes(prefixNorm)) {
+        return String(answersObj[k]);
+      }
+      if (keywords.some(kw => prefixNorm.includes(kw))) {
+        return String(answersObj[k]);
+      }
+    }
+
+    // 5. Sıralı / Düzleştirilmiş Soru Numarası Fallback (1..24)
+    const globalQ = cumulativeOffset + q;
+    if (answersObj[globalQ] !== undefined && answersObj[globalQ] !== '') {
+      return String(answersObj[globalQ]);
+    }
+    if (answersObj[String(globalQ)] !== undefined && answersObj[String(globalQ)] !== '') {
+      return String(answersObj[String(globalQ)]);
+    }
+
+    return '';
+  }
+
+  function findCorrectAnswerForKey(answerKey, subj, subjIndex, q, cumulativeOffset = 0, totalSubjectsCount = 1) {
+    if (!answerKey || typeof answerKey !== 'object') return '';
+
+    // 0. subj.answerKey doğrudan ders nesnesi içinde varsa
+    if (subj && subj.answerKey && typeof subj.answerKey === 'object') {
+      if (subj.answerKey[q]) return String(subj.answerKey[q]).trim().toUpperCase();
+      if (subj.answerKey[String(q)]) return String(subj.answerKey[String(q)]).trim().toUpperCase();
+    }
+
+    // 1. Doğrudan id_q eşleşmesi (örn: sub_0_1, sub_3_1)
+    if (subj && subj.id) {
+      const key1 = `${subj.id}_${q}`;
+      if (answerKey[key1]) return String(answerKey[key1]).trim().toUpperCase();
+    }
+
+    // 2. Doğrudan name_q eşleşmesi (örn: Türkçe_1, Sosyal Bilgiler_1)
+    if (subj && subj.name) {
+      const key2 = `${subj.name}_${q}`;
+      if (answerKey[key2]) return String(answerKey[key2]).trim().toUpperCase();
+    }
+
+    // 3. Global soru sırası (cumulativeOffset + q, örn: 1..24)
+    const globalQ = cumulativeOffset + q;
+    if (answerKey[globalQ]) return String(answerKey[globalQ]).trim().toUpperCase();
+    if (answerKey[String(globalQ)]) return String(answerKey[String(globalQ)]).trim().toUpperCase();
+
+    // 4. Extract for subject (iç içe objeler, fuzzy isim eşleme vb.)
+    const found = extractAnswerForSubj(answerKey, null, subj, subjIndex, q, cumulativeOffset);
+    if (found) return String(found).trim().toUpperCase();
+
+    // 5. Tek dersli sınavlarda veya İLK derste (subjIndex === 0) soru numarası fallback'i
+    // ÇOKLU DERSLERDE 2., 3., 4. BRANŞLAR İLK BRANŞIN CEVAPLARINI ÇALMASIN!
+    const isFirstOrSingle = (subjIndex === 0) || (totalSubjectsCount <= 1);
+    if (isFirstOrSingle) {
+      if (answerKey[q]) return String(answerKey[q]).trim().toUpperCase();
+      if (answerKey[String(q)]) return String(answerKey[String(q)]).trim().toUpperCase();
+    }
+
+    return '';
+  }
+
+  // ==========================================================================
   // 1. PROJEKTİF HOMOGRAFİ (PERSPEKTİF VE EĞİM DÜZELTME)
   // ==========================================================================
 
@@ -702,9 +864,8 @@
             markedLetter = best.letter;
           }
 
-          const correctAns = typeof window.findCorrectAnswerForKey === 'function'
-            ? window.findCorrectAnswerForKey(answerKey, subj, sIdx, q, cumulativeOffset)
-            : (answerKey[key] || answerKey[q] || answerKey[String(q)] || '');
+          const totalSubjs = (examConfig && Array.isArray(examConfig.subjects)) ? examConfig.subjects.length : 1;
+          const correctAns = findCorrectAnswerForKey(answerKey, subj, sIdx, q, cumulativeOffset, totalSubjs);
 
           const qd = {
             subjId: subj.id,
@@ -1155,7 +1316,14 @@
       detectedCards.push(cardTop, cardBottom);
     } else {
       // ── SAYFA BAŞINA 1 FORM (TAM SAYFA A4 / MOBİL VİZÖR) ──
-      const cornersFull = detectCornerAnchors(gray, targetW, targetH, threshold, scaledBounds);
+      let cornersFull = detectCornerAnchors(gray, targetW, targetH, threshold, scaledBounds);
+      const cornersSpanW = cornersFull ? Math.abs(cornersFull.tr.x - cornersFull.tl.x) : 0;
+      if (scaledBounds && (!cornersFull || cornersSpanW < targetW * 0.40)) {
+        const fallbackCorners = detectCornerAnchors(gray, targetW, targetH, threshold, null);
+        if (fallbackCorners && Math.abs(fallbackCorners.tr.x - fallbackCorners.tl.x) > cornersSpanW) {
+          cornersFull = fallbackCorners;
+        }
+      }
       const cornersFullOrig = {
         tl: { ...cornersFull.tl },
         tr: { ...cornersFull.tr },
@@ -1267,6 +1435,11 @@
   // 6. GLOBAL DIŞA AKTARIM
   // ==========================================================================
 
+  window.normalizeOmrSubject = normalizeOmrSubject;
+  window.getOmrSubjectBaseKeywords = getOmrSubjectBaseKeywords;
+  window.extractAnswerForSubj = extractAnswerForSubj;
+  window.findCorrectAnswerForKey = findCorrectAnswerForKey;
+
   window.OmrEngine = {
     scanDocumentPage,
     scanSingleCard,
@@ -1274,7 +1447,11 @@
     createProjectiveHomography,
     analyzeBubble,
     refineBubbleCenter,
-    sampleLocalPaperLuminance
+    sampleLocalPaperLuminance,
+    normalizeOmrSubject,
+    getOmrSubjectBaseKeywords,
+    extractAnswerForSubj,
+    findCorrectAnswerForKey
   };
 
 })();

@@ -692,6 +692,7 @@ function extractAnswerForSubj(cardAnswers, card, subj, subjIndex, q, cumulativeO
 
     const prefix = k.slice(0, match.index);
     const prefixNorm = normalizeOmrSubject(prefix);
+    if (!prefixNorm) continue;
 
     if (colPrefixes.some(cp => prefixNorm === cp || prefixNorm.startsWith(cp))) {
       return String(answersObj[k]);
@@ -5947,29 +5948,43 @@ function renderActiveExamTable() {
     }
 
     // Öğrencilerin sınav puanlarını ve netlerini belirle
-    const getStudentScore = (studentId) => {
-      if (activeExam.examScores && activeExam.examScores[studentId] !== undefined && activeExam.examScores[studentId] !== null && activeExam.examScores[studentId] !== '') {
-        const val = parseFloat(activeExam.examScores[studentId]);
-        if (!isNaN(val)) return val;
+    const getStudentScore = (studentId, studentNo) => {
+      const stuNoStr = (studentNo !== undefined && studentNo !== null) ? String(studentNo) : '';
+      if (activeExam.examScores) {
+        if (activeExam.examScores[studentId] !== undefined && activeExam.examScores[studentId] !== null && activeExam.examScores[studentId] !== '') {
+          const val = parseFloat(activeExam.examScores[studentId]);
+          if (!isNaN(val)) return val;
+        }
+        if (stuNoStr && activeExam.examScores[stuNoStr] !== undefined && activeExam.examScores[stuNoStr] !== null && activeExam.examScores[stuNoStr] !== '') {
+          const val = parseFloat(activeExam.examScores[stuNoStr]);
+          if (!isNaN(val)) return val;
+        }
       }
-      if (activeExam.studentResults && activeExam.studentResults[studentId] && activeExam.studentResults[studentId].score !== undefined && activeExam.studentResults[studentId].score !== null && activeExam.studentResults[studentId].score !== '') {
-        const val = parseFloat(activeExam.studentResults[studentId].score);
-        if (!isNaN(val)) return val;
+      if (activeExam.studentResults) {
+        const res = activeExam.studentResults[studentId] || (stuNoStr ? activeExam.studentResults[stuNoStr] : null);
+        if (res && res.score !== undefined && res.score !== null && res.score !== '') {
+          const val = parseFloat(res.score);
+          if (!isNaN(val)) return val;
+        }
       }
       return null;
     };
 
-    const getStudentNet = (studentId) => {
-      if (activeExam.studentResults && activeExam.studentResults[studentId] && activeExam.studentResults[studentId].net !== undefined && activeExam.studentResults[studentId].net !== null && activeExam.studentResults[studentId].net !== '') {
-        const val = parseFloat(activeExam.studentResults[studentId].net);
-        if (!isNaN(val)) return val;
+    const getStudentNet = (studentId, studentNo) => {
+      const stuNoStr = (studentNo !== undefined && studentNo !== null) ? String(studentNo) : '';
+      if (activeExam.studentResults) {
+        const res = activeExam.studentResults[studentId] || (stuNoStr ? activeExam.studentResults[stuNoStr] : null);
+        if (res && res.net !== undefined && res.net !== null && res.net !== '') {
+          const val = parseFloat(res.net);
+          if (!isNaN(val)) return val;
+        }
       }
       return 0;
     };
 
     // Puanı olan öğrencileri başarı sıralamasına (puan azalan, sonra net azalan) göre sıralayıp derece oluştur
     const scoredList = activeStudents
-      .map(s => ({ student: s, score: getStudentScore(s.id), net: getStudentNet(s.id) }))
+      .map(s => ({ student: s, score: getStudentScore(s.id, s.number), net: getStudentNet(s.id, s.number) }))
       .filter(item => item.score !== null);
 
     scoredList.sort((a, b) => {
@@ -5996,11 +6011,11 @@ function renderActiveExamTable() {
       const rankB = rankMap[b.id];
       if (rankA !== undefined && rankB !== undefined) {
         if (rankA !== rankB) return rankA - rankB;
-        const scoreA = getStudentScore(a.id) || 0;
-        const scoreB = getStudentScore(b.id) || 0;
+        const scoreA = getStudentScore(a.id, a.number) || 0;
+        const scoreB = getStudentScore(b.id, b.number) || 0;
         if (scoreB !== scoreA) return scoreB - scoreA;
-        const netA = getStudentNet(a.id);
-        const netB = getStudentNet(b.id);
+        const netA = getStudentNet(a.id, a.number);
+        const netB = getStudentNet(b.id, b.number);
         if (netB !== netA) return netB - netA;
         return (parseInt(a.number) || 0) - (parseInt(b.number) || 0);
       }
@@ -6013,7 +6028,8 @@ function renderActiveExamTable() {
     });
 
     sortedStudents.forEach(student => {
-      const result = (activeExam.studentResults && activeExam.studentResults[student.id]) || {
+      const stuNoStr = (student.number !== undefined && student.number !== null) ? String(student.number) : '';
+      const result = (activeExam.studentResults && (activeExam.studentResults[student.id] || (stuNoStr ? activeExam.studentResults[stuNoStr] : null))) || {
         correct: '',
         blank: '',
         wrong: '',
@@ -8416,11 +8432,13 @@ function renderPipContent(win) {
   document.addEventListener('stateChanged', () => {
     try {
       renderExamsList();
-      if (activeExam && activeExam.id) {
+      const currentActiveId = (activeExam && activeExam.id) || (window.activeWeeklyExam && window.activeWeeklyExam.id);
+      if (currentActiveId) {
         const state = (stateManager && stateManager.state) ? stateManager.state : stateManager.loadState();
-        const updated = (state.weeklyEvaluations || []).find(e => String(e.id) === String(activeExam.id));
+        const updated = (state.weeklyEvaluations || []).find(e => String(e.id) === String(currentActiveId));
         if (updated) {
           activeExam = updated;
+          window.activeWeeklyExam = updated;
           renderActiveExamTable();
         }
       }

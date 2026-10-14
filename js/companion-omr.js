@@ -813,6 +813,30 @@
       } else {
         this.wizardKey[qKey] = letter;
       }
+
+      if (this.wizardType === 'multi') {
+        const currentSubj = (this.wizardSubjects || []).find(s => s.id === this.wizardActiveSubjId);
+        if (currentSubj) {
+          let cumulativeOffset = 0;
+          for (const s of (this.wizardSubjects || [])) {
+            if (s.id === this.wizardActiveSubjId) break;
+            cumulativeOffset += (s.questionCount || 0);
+          }
+          const m = String(qKey).match(/_(\d+)$/);
+          if (m) {
+            const qNum = parseInt(m[1], 10);
+            const globalQ = cumulativeOffset + qNum;
+            if (this.wizardKey[qKey]) {
+              this.wizardKey[`${currentSubj.name}_${qNum}`] = letter;
+              this.wizardKey[globalQ] = letter;
+            } else {
+              delete this.wizardKey[`${currentSubj.name}_${qNum}`];
+              delete this.wizardKey[globalQ];
+            }
+          }
+        }
+      }
+
       this.wizardRenderAnswerKeyGrid();
       if (window.Companion) window.Companion.vibrate(10);
     },
@@ -823,8 +847,10 @@
         let globalCursor = 1;
         this.wizardSubjects.forEach(s => {
           for (let q = 1; q <= s.questionCount; q++) {
-            this.wizardKey[`${s.id}_${q}`] = letters[(globalCursor * 3) % letters.length];
-            this.wizardKey[globalCursor] = letters[(globalCursor * 3) % letters.length];
+            const ans = letters[(globalCursor * 3) % letters.length];
+            this.wizardKey[`${s.id}_${q}`] = ans;
+            this.wizardKey[`${s.name}_${q}`] = ans;
+            this.wizardKey[globalCursor] = ans;
             globalCursor++;
           }
         });
@@ -863,9 +889,21 @@
             const q = parseInt(m[1], 10);
             const ans = m[2].toUpperCase();
             if (this.wizardType === 'multi') {
+              const activeSubj = (this.wizardSubjects || []).find(s => s.id === this.wizardActiveSubjId);
+              let cumulativeOffset = 0;
+              for (const s of (this.wizardSubjects || [])) {
+                if (s.id === this.wizardActiveSubjId) break;
+                cumulativeOffset += (s.questionCount || 0);
+              }
+              const globalQ = cumulativeOffset + q;
               this.wizardKey[`${this.wizardActiveSubjId}_${q}`] = ans;
+              if (activeSubj && activeSubj.name) {
+                this.wizardKey[`${activeSubj.name}_${q}`] = ans;
+              }
+              this.wizardKey[globalQ] = ans;
+            } else {
+              this.wizardKey[q] = ans;
             }
-            this.wizardKey[q] = ans;
           }
         });
       }
@@ -921,13 +959,20 @@
         totalQ = subjects.reduce((sum, s) => sum + s.questionCount, 0);
 
         // Ders içi cevap anahtarlarını da eşle
+        let cumulative = 0;
         subjects.forEach(s => {
           s.answerKey = {};
           for (let qi = 1; qi <= s.questionCount; qi++) {
-            if (this.wizardKey[`${s.id}_${qi}`]) {
-              s.answerKey[qi] = this.wizardKey[`${s.id}_${qi}`];
+            const globalQ = cumulative + qi;
+            const val = this.wizardKey[`${s.id}_${qi}`] || this.wizardKey[`${s.name}_${qi}`] || this.wizardKey[globalQ];
+            if (val) {
+              s.answerKey[qi] = val;
+              this.wizardKey[`${s.id}_${qi}`] = val;
+              this.wizardKey[`${s.name}_${qi}`] = val;
+              this.wizardKey[globalQ] = val;
             }
           }
+          cumulative += s.questionCount;
         });
       } else {
         const qInput = document.getElementById('wizard-exam-questions');
@@ -1664,10 +1709,34 @@
       if (!this.activeExam.answerKey) this.activeExam.answerKey = {};
 
       const current = this.activeExam.answerKey[q];
-      if (current === opt) {
-        delete this.activeExam.answerKey[q];
-      } else {
+      const isSetting = (current !== opt);
+      if (isSetting) {
         this.activeExam.answerKey[q] = opt;
+      } else {
+        delete this.activeExam.answerKey[q];
+      }
+
+      // Çoklu dersli ise ilgili branşın s.answerKey ve id_q / name_q anahtarlarını da güncelle
+      if (this.activeExam.isMultiSubject && Array.isArray(this.activeExam.subjects)) {
+        let cumulative = 0;
+        for (const s of this.activeExam.subjects) {
+          const count = s.questionCount || 0;
+          if (q > cumulative && q <= cumulative + count) {
+            const subjQ = q - cumulative;
+            if (!s.answerKey) s.answerKey = {};
+            if (isSetting) {
+              s.answerKey[subjQ] = opt;
+              this.activeExam.answerKey[`${s.id}_${subjQ}`] = opt;
+              this.activeExam.answerKey[`${s.name}_${subjQ}`] = opt;
+            } else {
+              delete s.answerKey[subjQ];
+              delete this.activeExam.answerKey[`${s.id}_${subjQ}`];
+              delete this.activeExam.answerKey[`${s.name}_${subjQ}`];
+            }
+            break;
+          }
+          cumulative += count;
+        }
       }
 
       const row = document.querySelector(`.c-key-opt-btn[data-q="${q}"][data-opt="${opt}"]`);
@@ -1685,6 +1754,9 @@
       const exam = (data.weeklyEvaluations || []).find(e => String(e.id) === String(this.activeExam.id));
       if (exam) {
         exam.answerKey = this.activeExam.answerKey;
+        if (this.activeExam.isMultiSubject && Array.isArray(this.activeExam.subjects)) {
+          exam.subjects = this.activeExam.subjects;
+        }
         exam.updatedAt = new Date().toISOString();
         this.saveData(data);
         if (window.CloudSync) window.CloudSync.pushExam(exam).catch(() => {});

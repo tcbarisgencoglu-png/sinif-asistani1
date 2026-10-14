@@ -1299,22 +1299,40 @@
 
             // Öğrenci ID eşleşmesi
             const allStudents = window.stateManager.state.students || [];
-            const matched = this.resolveDesktopStudent(studentId, studentName, scanRes ? scanRes.studentNumber : '', allStudents);
+            const studentNumRaw = scanRes ? (scanRes.studentNo || scanRes.studentNumber || '') : '';
+            const matched = this.resolveDesktopStudent(studentId, studentName, studentNumRaw, allStudents);
             if (matched) {
               studentId = matched.id;
               studentName = `${matched.name} ${matched.surname || ''}`.trim();
             }
 
             targetExam.studentResults[studentId] = scanRes;
+            if (matched && matched.number) {
+              targetExam.studentResults[String(matched.number)] = scanRes;
+            }
             if (scanRes && scanRes.score !== undefined) {
               targetExam.examScores[studentId] = scanRes.score;
+              if (matched && matched.number) {
+                targetExam.examScores[String(matched.number)] = scanRes.score;
+              }
             }
 
+            targetExam.updatedAt = new Date().toISOString();
             window.stateManager.saveState(`El Terminalinden Optik Sonuç: ${studentName}`);
             document.dispatchEvent(new CustomEvent('stateChanged'));
 
+            if (window.activeWeeklyExam && (String(window.activeWeeklyExam.id) === examId || String(window.activeWeeklyExam.id) === String(targetExam.id))) {
+              window.activeWeeklyExam = targetExam;
+              if (typeof window.renderActiveExamTable === 'function') {
+                window.renderActiveExamTable();
+              }
+            }
+
             if (typeof window.renderWeeklyEvaluations === 'function') {
               window.renderWeeklyEvaluations();
+            }
+            if (typeof window.renderExamsList === 'function') {
+              window.renderExamsList();
             }
 
             this.playDesktopLiveChime();
@@ -1348,6 +1366,9 @@
               const matched = this.resolveDesktopStudent(stuKey, res.studentName, res.studentNo || res.studentNumber, allStudents);
               const targetId = matched ? matched.id : stuKey;
               harmonizedResults[targetId] = res;
+              if (matched && matched.number) {
+                harmonizedResults[String(matched.number)] = res;
+              }
               if (examData.examScores && examData.examScores[stuKey] !== undefined) {
                 harmonizedScores[targetId] = examData.examScores[stuKey];
               } else if (res.score !== undefined) {
@@ -1373,8 +1394,18 @@
           window.stateManager.saveState(`El Terminalinden ${actionLabel}: ${examData.examName}`);
           document.dispatchEvent(new CustomEvent('stateChanged'));
 
+          if (window.activeWeeklyExam && String(window.activeWeeklyExam.id) === String(examData.id)) {
+            window.activeWeeklyExam = existingIdx >= 0 ? window.stateManager.state.weeklyEvaluations[existingIdx] : examData;
+            if (typeof window.renderActiveExamTable === 'function') {
+              window.renderActiveExamTable();
+            }
+          }
+
           if (typeof window.renderWeeklyEvaluations === 'function') {
             window.renderWeeklyEvaluations();
+          }
+          if (typeof window.renderExamsList === 'function') {
+            window.renderExamsList();
           }
 
           this.playDesktopLiveChime();
