@@ -182,7 +182,7 @@
       <div id="sidebar-demo-container"></div>
       
       <div class="sidebar-footer" style="padding: 1rem; text-align: center; font-size: 0.8rem; color: var(--text-muted); border-top: 1px solid var(--border-color);">
-        <span id="app-sidebar-version-text">Sınıf Asistanı v1.0.60</span>
+        <span id="app-sidebar-version-text">Sınıf Asistanı v1.0.61</span>
       </div>
     </aside>
 
@@ -748,6 +748,9 @@
                   </button>
                   <button class="btn btn-secondary btn-sm" id="btn-board-question-analysis" style="display: flex; align-items: center; gap: 0.35rem; font-size: 0.8rem; padding: 0.4rem 0.85rem; height: auto; cursor: pointer; border-color: rgba(99, 102, 241, 0.4); background: rgba(99, 102, 241, 0.08); color: #4338ca; font-weight: 600;" title="Öğretmen tahtada soru çözerken o soruyu kimlerin yanlış yaptığını veya boş bıraktığını anında inceleyin">
                     <i data-lucide="presentation" style="width: 14px; height: 14px; color: #6366f1;"></i> 👨‍🏫 Tahtada Soru Analizi
+                  </button>
+                  <button class="btn btn-secondary btn-sm" id="btn-sync-to-companion" onclick="window.syncActiveExamToCompanion ? window.syncActiveExamToCompanion() : null" style="display: flex; align-items: center; gap: 0.35rem; font-size: 0.8rem; padding: 0.4rem 0.85rem; height: auto; cursor: pointer; border-color: rgba(16, 185, 129, 0.4); background: rgba(16, 185, 129, 0.1); color: #059669; font-weight: 700;" title="Sınavı El Terminaline gönder ve sınıfta okunan sonuçları çek">
+                    <i data-lucide="cloud-lightning" style="width: 14px; height: 14px; color: #10b981;"></i> 📱 El Terminali Eşitle
                   </button>
                   <button class="btn btn-secondary btn-sm" id="btn-board-qa-direct-pip" style="display: flex; align-items: center; gap: 0.35rem; font-size: 0.8rem; padding: 0.4rem 0.85rem; height: auto; cursor: pointer; border-color: rgba(245, 158, 11, 0.4); background: rgba(245, 158, 11, 0.08); color: #b45309; font-weight: 600;" title="Soruları Adobe Reader veya Z-Kitap'ta çözerken pencerelerin üzerinde her zaman en üstte kalan mini analiz penceresini açar">
                     <i data-lucide="pin" style="width: 14px; height: 14px; color: #f59e0b;"></i> 📌 Yüzen Mini Analiz (Always-on-Top)
@@ -2323,30 +2326,38 @@
           </div>
         </div>
 
-        <!-- Alt Sekme Menüsü -->
-        <div class="sub-tab-menu" style="margin-bottom: 1.5rem;">
-          <button class="sub-tab-btn active" id="tab-btn-config-general" data-config-tab="config-general">
-            <i data-lucide="settings" style="width: 16px; height: 16px;"></i> Genel Ayarlar
-          </button>
-          <button class="sub-tab-btn" id="tab-btn-config-ai" data-config-tab="config-ai">
-            <i data-lucide="sparkles" style="width: 16px; height: 16px; color: #8b5cf6;"></i> Yapay Zeka (AI)
-          </button>
-          <button class="sub-tab-btn" id="tab-btn-config-points" data-config-tab="config-points">
-            <i data-lucide="award" style="width: 16px; height: 16px;"></i> Puan Ayarları
-          </button>
-          <button class="sub-tab-btn" id="tab-btn-config-week" data-config-tab="config-week">
-            <i data-lucide="calendar" style="width: 16px; height: 16px;"></i> Geçerli Hafta
-          </button>
-          <button class="sub-tab-btn" id="tab-btn-config-students" data-config-tab="config-students">
-            <i data-lucide="users" style="width: 16px; height: 16px;"></i> Öğrenci Yönetimi
-          </button>
-          <button class="sub-tab-btn" id="tab-btn-config-lock" data-config-tab="config-lock">
-            <i data-lucide="lock" style="width: 16px; height: 16px;"></i> Şifre Kontrolü
-          </button>
-          <button class="sub-tab-btn" id="tab-btn-config-manual" data-config-tab="config-manual">
-            <i data-lucide="help-circle" style="width: 16px; height: 16px;"></i> Kullanım Kılavuzu
-          </button>
-        </div>
+        <!-- Dikey Sekmeli Konfigürasyon Düzeni -->
+        <div class="config-layout-wrapper">
+          <!-- Sol Dikey Sekme Menüsü -->
+          <div class="config-sidebar-nav sub-tab-menu">
+            <button class="sub-tab-btn active" id="tab-btn-config-general" data-config-tab="config-general">
+              <i data-lucide="settings" style="width: 16px; height: 16px;"></i> <span>Genel Ayarlar</span>
+            </button>
+            <button class="sub-tab-btn" id="tab-btn-config-pairing" data-config-tab="config-pairing">
+              <i data-lucide="smartphone" style="width: 16px; height: 16px; color: #6366f1;"></i> <span>Eşleştirme Ayarları</span>
+            </button>
+            <button class="sub-tab-btn" id="tab-btn-config-ai" data-config-tab="config-ai">
+              <i data-lucide="sparkles" style="width: 16px; height: 16px; color: #8b5cf6;"></i> <span>Yapay Zeka (AI)</span>
+            </button>
+            <button class="sub-tab-btn" id="tab-btn-config-points" data-config-tab="config-points">
+              <i data-lucide="award" style="width: 16px; height: 16px;"></i> <span>Puan Ayarları</span>
+            </button>
+            <button class="sub-tab-btn" id="tab-btn-config-week" data-config-tab="config-week">
+              <i data-lucide="calendar" style="width: 16px; height: 16px;"></i> <span>Geçerli Hafta</span>
+            </button>
+            <button class="sub-tab-btn" id="tab-btn-config-students" data-config-tab="config-students">
+              <i data-lucide="users" style="width: 16px; height: 16px;"></i> <span>Öğrenci Yönetimi</span>
+            </button>
+            <button class="sub-tab-btn" id="tab-btn-config-lock" data-config-tab="config-lock">
+              <i data-lucide="lock" style="width: 16px; height: 16px;"></i> <span>Şifre Kontrolü</span>
+            </button>
+            <button class="sub-tab-btn" id="tab-btn-config-manual" data-config-tab="config-manual">
+              <i data-lucide="help-circle" style="width: 16px; height: 16px;"></i> <span>Kullanım Kılavuzu</span>
+            </button>
+          </div>
+
+          <!-- Sağ İçerik Alanı -->
+          <div class="config-contents-pane">
 
         <!-- 1. GENEL AYARLAR SEKMESİ -->
         <div class="config-tab-content active" id="config-general" style="display: block;">
@@ -2515,7 +2526,120 @@
           </div>
         </div>
 
-        <!-- 2. YAPAY ZEKA (AI) AYARLARI SEKMESİ (YENİ ÖZEL SEKME) -->
+        <!-- 2. EŞLEŞTİRME AYARLARI SEKMESİ (YENİ ÖZEL SEKME) -->
+        <div class="config-tab-content" id="config-pairing" style="display: none;">
+          <div style="display: flex; flex-direction: column; gap: 1.5rem; max-width: 680px;">
+            
+            <!-- Cihaz Eşleştirme & Bulut Köprüsü Ana Kartı -->
+            <div class="glass-card" style="padding: 1.5rem; display: flex; flex-direction: column; gap: 1.25rem; border: 1.5px solid rgba(99, 102, 241, 0.45); background: linear-gradient(135deg, rgba(79, 70, 229, 0.1), rgba(99, 102, 241, 0.04));">
+              <div class="section-title" style="margin-bottom: 0.25rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                  <div style="width: 40px; height: 40px; border-radius: 10px; background: rgba(99, 102, 241, 0.2); display: flex; align-items: center; justify-content: center; color: #818cf8;">
+                    <i data-lucide="smartphone" style="width: 22px; height: 22px;"></i>
+                  </div>
+                  <div>
+                    <h3 style="margin: 0; font-size: 1.2rem; color: #fff; font-weight: 800;">Öğretmen El Terminali Eşleştirme</h3>
+                    <span style="font-size: 0.8rem; color: var(--text-muted);">Masaüstü & Telefon Arasında Anlık ve Çevrimdışı Çift Yönlü Köprü</span>
+                  </div>
+                </div>
+                <span class="badge" style="background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.35); padding: 5px 12px; border-radius: 999px; font-size: 0.78rem; font-weight: 700; display: flex; align-items: center; gap: 5px;">
+                  <span style="width: 8px; height: 8px; border-radius: 50%; background: #10b981; display: inline-block;"></span> Canlı Eşzamanlı
+                </span>
+              </div>
+              
+              <p style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.55; margin: 0;">
+                Tüm sınıflarınızı, öğrencilerinizi, sınavlarınızı ve ders planlarınızı telefonunuzdaki El Terminaline aktarın. Sınıfta <strong>tamamen internetsiz</strong> çalışın; optik sınav okumaları, sınav ekleme/silme ve ders içi davranış puanları anında masaüstüyle eşzamanlı çalışır.
+              </p>
+
+              <!-- Eşleşme Kodu, QR ve Butonlar -->
+              <div style="display: flex; align-items: center; gap: 20px; padding: 1.25rem; background: rgba(0, 0, 0, 0.35); border: 1px solid rgba(99, 102, 241, 0.35); border-radius: 14px; flex-wrap: wrap;">
+                <!-- QR Kod Kutusu -->
+                <div style="background: #ffffff; padding: 8px; border-radius: 10px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 16px rgba(0,0,0,0.4); flex-shrink: 0;">
+                  <div id="desktop-sync-qrcode" style="width: 130px; height: 130px; display: flex; align-items: center; justify-content: center;"></div>
+                </div>
+
+                <!-- Bilgi ve Kod Alanı -->
+                <div style="flex: 1; min-width: 250px;">
+                  <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                    <span style="font-size: 0.72rem; color: #818cf8; text-transform: uppercase; font-weight: 800; letter-spacing: 0.8px;">Cihaz Eşleşme Kodu</span>
+                    <span style="font-size: 0.68rem; background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3); padding: 1px 6px; border-radius: 4px; font-weight: 700;">1 Milyar+ Kombinasyon</span>
+                  </div>
+                  <p style="font-size: 0.78rem; color: var(--text-muted); margin: 0 0 8px 0; line-height: 1.4;">
+                    Telefonunuzdaki El Terminali uygulamasına bu <strong>6 haneli kodu</strong> girerek veya kameranız varsa karekodu göstererek anında eşleşin.
+                  </p>
+                  <div style="background: rgba(15, 23, 42, 0.6); padding: 10px 16px; border-radius: 10px; border: 1px solid rgba(99, 102, 241, 0.3); margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between;">
+                    <span id="desktop-sync-code-display" style="font-family: monospace; font-size: 1.7rem; font-weight: 900; color: #a5b4fc; letter-spacing: 3px; display: block;">SA-......</span>
+                  </div>
+
+                  <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                    <button class="btn btn-secondary btn-sm" onclick="window.CloudSync.copySyncCode()" style="padding: 6px 12px; font-size: 0.8rem; border-color: rgba(255,255,255,0.2);" title="Kodu Kopyala">
+                      <i data-lucide="copy" style="width: 14px; height: 14px;"></i>
+                      <span>Kopyala</span>
+                    </button>
+                    <button class="btn btn-secondary btn-sm" onclick="window.CloudSync.regenerateSyncCode()" style="padding: 6px 12px; font-size: 0.8rem; border-color: rgba(99, 102, 241, 0.4); color: #c7d2fe;" title="Yeni Benzersiz UUID Üret">
+                      <i data-lucide="refresh-cw" style="width: 14px; height: 14px;"></i>
+                      <span>Yeni Kod Üret</span>
+                    </button>
+                    <button class="btn btn-secondary btn-sm" onclick="window.CloudSync.promptChangeSyncCode()" style="padding: 6px 12px; font-size: 0.8rem; border-color: rgba(255,255,255,0.2);" title="Manuel Kodu Gir">
+                      <i data-lucide="edit-3" style="width: 14px; height: 14px;"></i>
+                      <span>Elle Değiştir</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Öğretmen Görev / Kademe Türü Ayarı (Sınıf vs Branş) -->
+              <div style="display: flex; align-items: center; justify-content: space-between; padding: 1rem; background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 10px; flex-wrap: wrap; gap: 10px;">
+                <div style="max-width: 380px;">
+                  <span style="font-weight: 700; display: block; font-size: 0.9rem; color: var(--text-primary);">Öğretmenlik / Görev Türü</span>
+                  <span style="font-size: 0.78rem; color: var(--text-muted); line-height: 1.4; display: block; margin-top: 2px;">
+                    <strong>Sınıf Öğretmeni:</strong> İlkokul tek sınıf mantığı geçerlidir, terminalde sınav oluştururken şube sorulmaz.<br>
+                    <strong>Branş Öğretmeni:</strong> Ortaokul çoklu şube mantığı geçerlidir, sınav oluştururken şube seçilir.
+                  </span>
+                </div>
+                <select id="config-pairing-education-level" class="form-control" style="width: 200px; font-weight: 700; cursor: pointer;">
+                  <option value="primary">Sınıf Öğretmeni (İlkokul)</option>
+                  <option value="middle" selected>Branş Öğretmeni (Ortaokul)</option>
+                </select>
+              </div>
+
+              <!-- Durum İstatistiği Satırı -->
+              <div style="display: flex; align-items: center; justify-content: space-between; font-size: 0.82rem; color: var(--text-muted); padding: 0 4px;">
+                <span id="desktop-sync-stats-info" style="color: #94a3b8; font-weight: 600;">Hazır: Sınıf & Sınav Verileri Bekliyor</span>
+                <span style="color: #6366f1; cursor: pointer; text-decoration: underline; font-weight: 600;" onclick="window.CloudSync.updateSyncUI()">Durumu Yenile</span>
+              </div>
+
+              <!-- Aksiyon Butonları -->
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                <button class="btn btn-primary" id="btn-push-master-to-terminal" onclick="window.CloudSync.pushMasterDataToTerminal()" style="padding: 0.9rem; justify-content: center; gap: 8px; font-weight: 700; background: linear-gradient(135deg, #4f46e5, #6366f1); border: none; box-shadow: 0 4px 14px rgba(79, 70, 229, 0.35);">
+                  <i data-lucide="upload-cloud" style="width: 18px; height: 18px;"></i>
+                  <span>Terminale Gönder (Kalıcı Yükle)</span>
+                </button>
+                <button class="btn btn-secondary" id="btn-pull-master-from-terminal" onclick="window.CloudSync.pullMasterDataFromTerminal()" style="padding: 0.9rem; justify-content: center; gap: 8px; font-weight: 700; border-color: rgba(99, 102, 241, 0.4); color: #c7d2fe;">
+                  <i data-lucide="download-cloud" style="width: 18px; height: 18px;"></i>
+                  <span>Terminalden Çek (Sonuçları Al)</span>
+                </button>
+              </div>
+
+              <div id="desktop-sync-status-msg" style="font-size: 0.82rem; color: #10b981; display: none; align-items: center; gap: 6px; padding: 8px 12px; background: rgba(16, 185, 129, 0.1); border-radius: 8px; border: 1px solid rgba(16, 185, 129, 0.25);">
+                <i data-lucide="check-circle" style="width: 16px; height: 16px;"></i>
+                <span id="desktop-sync-status-text">Eşitleme tamamlandı</span>
+              </div>
+            </div>
+
+            <!-- Canlı Eşgüdüm Bilgilendirme Kartı -->
+            <div class="glass-card" style="padding: 1.25rem; display: flex; align-items: flex-start; gap: 12px; background: rgba(59, 130, 246, 0.05); border: 1px solid rgba(59, 130, 246, 0.2); border-radius: 12px;">
+              <i data-lucide="repeat" style="width: 22px; height: 22px; color: #3b82f6; flex-shrink: 0; margin-top: 2px;"></i>
+              <div style="font-size: 0.825rem; color: var(--text-muted); line-height: 1.5;">
+                <strong style="color: var(--text-primary); font-size: 0.88rem; display: block; margin-bottom: 2px;">Tam Canlı Eşgüdüm (Çift Yönlü Senkronizasyon)</strong>
+                Sınavlar, optik okuma sonuçları ve ders içi puanlar hem masaüstünde hem de el terminalinde anlık olarak eşzamanlanır. Masaüstünde oluşturulan veya silinen bir sınav terminalde, terminalde oluşturulan veya silinen bir sınav ise masaüstünde anında güncellenir.
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- 3. YAPAY ZEKA (AI) AYARLARI SEKMESİ (YENİ ÖZEL SEKME) -->
         <div class="config-tab-content" id="config-ai" style="display: none;">
           <div style="display: flex; flex-direction: column; gap: 1.5rem; max-width: 800px;">
             
@@ -3455,6 +3579,8 @@
             });
           </script>
         </div>
+          </div> <!-- /.config-contents-pane -->
+        </div> <!-- /.config-layout-wrapper -->
       </section>
 
       <!-- 9. ARAÇLAR SEKMESİ -->
@@ -9411,12 +9537,12 @@
         <div style="display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 1rem; background: var(--bg-secondary); border-radius: 10px; border: 1px solid var(--border-color);">
           <div style="display: flex; align-items: center; gap: 0.4rem;">
             <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600;">Mevcut:</span>
-            <span id="update-current-version" class="badge" style="font-size: 0.8rem; font-weight: 700; background: var(--border-color); color: var(--text-secondary); padding: 0.2rem 0.5rem; border-radius: 6px;">v1.0.60</span>
+            <span id="update-current-version" class="badge" style="font-size: 0.8rem; font-weight: 700; background: var(--border-color); color: var(--text-secondary); padding: 0.2rem 0.5rem; border-radius: 6px;">v1.0.61</span>
           </div>
           <i data-lucide="arrow-right" style="width: 16px; height: 16px; color: #6366f1;"></i>
           <div style="display: flex; align-items: center; gap: 0.4rem;">
             <span style="font-size: 0.75rem; color: #6366f1; font-weight: 600;">Yeni Sürüm:</span>
-            <span id="update-latest-version" class="badge" style="font-size: 0.8rem; font-weight: 700; background: #6366f1; color: white; padding: 0.2rem 0.5rem; border-radius: 6px;">v1.0.60</span>
+            <span id="update-latest-version" class="badge" style="font-size: 0.8rem; font-weight: 700; background: #6366f1; color: white; padding: 0.2rem 0.5rem; border-radius: 6px;">v1.0.61</span>
           </div>
         </div>
 
@@ -9636,7 +9762,7 @@
           <div>
             <h3 style="margin: 0; font-size: 1.2rem; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
               Sınıf Asistanı Masaüstü Uygulaması
-              <span id="download-app-version-badge" class="badge" style="font-size: 0.75rem; background: var(--primary); color: white; padding: 0.2rem 0.5rem; border-radius: 6px; font-weight: 600;">v1.0.60 (En Son)</span>
+              <span id="download-app-version-badge" class="badge" style="font-size: 0.75rem; background: var(--primary); color: white; padding: 0.2rem 0.5rem; border-radius: 6px; font-weight: 600;">v1.0.61 (En Son)</span>
             </h3>
             <p style="margin: 0; font-size: 0.85rem; color: var(--text-secondary);">Akıllı tahta ve bilgisayarınızda internet olmadan da tam performans çalışın.</p>
           </div>
@@ -9664,7 +9790,7 @@
               </p>
             </div>
             <div>
-              <a id="btn-download-deb" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/download/v1.0.60/sinif-asistani_1.0.60_amd64.deb" target="_blank" class="btn btn-primary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem; background: #ef4444; border-color: #ef4444; font-weight: 600;">
+              <a id="btn-download-deb" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/download/v1.0.61/sinif-asistani_1.0.61_amd64.deb" target="_blank" class="btn btn-primary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem; background: #ef4444; border-color: #ef4444; font-weight: 600;">
                 <i data-lucide="download" style="width: 16px; height: 16px;"></i> Pardus (.deb) İndir
               </a>
               <button type="button" onclick="window.openPardusInstallHelpModal()" style="width: 100%; margin-top: 0.5rem; background: rgba(239, 68, 68, 0.12); border: 1px dashed rgba(239, 68, 68, 0.5); color: #f87171; border-radius: var(--radius-sm, 8px); padding: 0.45rem 0.5rem; font-size: 0.78rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.35rem; transition: all 0.2s ease;">
@@ -9691,7 +9817,7 @@
               </p>
             </div>
             <div>
-              <a id="btn-download-exe" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/download/v1.0.60/sinif-asistani_1.0.60_x64-setup.exe" target="_blank" class="btn btn-primary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem; background: #0284c7; border-color: #0284c7; font-weight: 600;">
+              <a id="btn-download-exe" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/download/v1.0.61/sinif-asistani_1.0.61_x64-setup.exe" target="_blank" class="btn btn-primary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem; background: #0284c7; border-color: #0284c7; font-weight: 600;">
                 <i data-lucide="download" style="width: 16px; height: 16px;"></i> Windows (.exe) İndir
               </a>
               <button type="button" onclick="window.openWinInstallHelpModal()" style="width: 100%; margin-top: 0.5rem; background: rgba(2, 132, 199, 0.12); border: 1px dashed rgba(2, 132, 199, 0.5); color: #38bdf8; border-radius: var(--radius-sm, 8px); padding: 0.45rem 0.5rem; font-size: 0.78rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.35rem; transition: all 0.2s ease;">
@@ -9719,13 +9845,13 @@
             </div>
             <div>
               <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem;">
-                <a id="btn-download-dmg" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/download/v1.0.60/sinif-asistani_1.0.60_aarch64.dmg" target="_blank" class="btn btn-primary" style="flex: 1.1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.15rem; background: #8b5cf6; border-color: #8b5cf6; font-weight: 600; padding: 0.5rem 0.35rem; font-size: 0.78rem; text-align: center; text-decoration: none;">
+                <a id="btn-download-dmg" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/download/v1.0.61/sinif-asistani_1.0.61_aarch64.dmg" target="_blank" class="btn btn-primary" style="flex: 1.1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.15rem; background: #8b5cf6; border-color: #8b5cf6; font-weight: 600; padding: 0.5rem 0.35rem; font-size: 0.78rem; text-align: center; text-decoration: none;">
                   <span style="display: flex; align-items: center; gap: 0.25rem; font-weight: 700;">
                     <i data-lucide="download" style="width: 14px; height: 14px;"></i> Apple Silicon
                   </span>
                   <span style="font-size: 0.67rem; opacity: 0.92; font-weight: 500;">(M1 / M2 / M3 / M4)</span>
                 </a>
-                <a id="btn-download-dmg-intel" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/download/v1.0.60/sinif-asistani_1.0.60_x64.dmg" target="_blank" class="btn btn-secondary" style="flex: 0.9; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.15rem; font-weight: 600; padding: 0.5rem 0.35rem; font-size: 0.78rem; text-align: center; text-decoration: none; border: 1px solid rgba(139, 92, 246, 0.45); color: var(--text-primary);">
+                <a id="btn-download-dmg-intel" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/download/v1.0.61/sinif-asistani_1.0.61_x64.dmg" target="_blank" class="btn btn-secondary" style="flex: 0.9; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.15rem; font-weight: 600; padding: 0.5rem 0.35rem; font-size: 0.78rem; text-align: center; text-decoration: none; border: 1px solid rgba(139, 92, 246, 0.45); color: var(--text-primary);">
                   <span style="display: flex; align-items: center; gap: 0.25rem; font-weight: 700;">
                     <i data-lucide="download" style="width: 14px; height: 14px;"></i> Intel Mac
                   </span>
@@ -9755,7 +9881,7 @@
                 Derste masaları gezerken tek dokunuşla ödev kontrolü, ders akışı ve hızlı yoklama için mobil uygulama paketi.
               </p>
             </div>
-            <a id="btn-download-apk" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/download/v1.0.60/sinif-asistani.apk" target="_blank" class="btn btn-primary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem; background: #16a34a; border-color: #16a34a; font-weight: 600;">
+            <a id="btn-download-apk" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/download/v1.0.61/sinif-asistani.apk" target="_blank" class="btn btn-primary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem; background: #16a34a; border-color: #16a34a; font-weight: 600;">
               <i data-lucide="download" style="width: 16px; height: 16px;"></i> Android (.apk) İndir
             </a>
           </div>
@@ -9777,7 +9903,7 @@
                 <strong>Kurulum gerektirmez!</strong> Özellikle ortaokul modunda sınıf sınıf gezen branş öğretmenleri, uygulamayı Flash diskine (USB) yükleyerek tüm sınıflardaki akıllı tahtalarda doğrudan flash bellek üzerinden tak-çalıştır şeklinde kullanabilir.
               </p>
             </div>
-            <a id="btn-download-appimage" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/download/v1.0.60/sinif-asistani_1.0.60_amd64.AppImage" target="_blank" class="btn btn-primary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem; background: #10b981; border-color: #10b981; font-weight: 600;">
+            <a id="btn-download-appimage" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/download/v1.0.61/sinif-asistani_1.0.61_amd64.AppImage" target="_blank" class="btn btn-primary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem; background: #10b981; border-color: #10b981; font-weight: 600;">
               <i data-lucide="download" style="width: 16px; height: 16px;"></i> AppImage (USB Uyumlu) İndir
             </a>
           </div>
@@ -10048,7 +10174,8 @@
   <script src="js/homework.js?v=35"></script>
   <script src="js/qrcode.min.js"></script>
   <script src="js/jsqr.js"></script>
-  <script src="js/omr-engine.js?v=62"></script>
+  <script src="js/cloud-sync.js?v=1"></script>
+  <script src="js/omr-engine.js?v=63"></script>
   <script src="js/weekly.js?v=62"></script>
   <script src="js/dashboard.js?v=35"></script>
   <script src="js/timer.js?v=35"></script>

@@ -5353,9 +5353,90 @@ th:hover .hw-col-actions {
   }
 }
 
+/* ==========================================================================
+   ASİSTAN KONFİGÜRASYONU SOL DİKEY MENÜ & SEKMELER
+   ========================================================================== */
+.config-layout-wrapper {
+  display: flex;
+  gap: 1.5rem;
+  align-items: flex-start;
+  width: 100%;
+}
+
+.config-sidebar-nav {
+  width: 250px;
+  flex-shrink: 0;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0.35rem !important;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg, 12px);
+  padding: 0.65rem !important;
+  margin-bottom: 0 !important;
+  border-bottom: 1px solid var(--border-color) !important;
+  box-sizing: border-box;
+}
+
+.config-sidebar-nav .sub-tab-btn {
+  width: 100% !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.75rem !important;
+  padding: 0.7rem 0.95rem !important;
+  border-radius: var(--radius-md, 8px) !important;
+  border: 1px solid transparent !important;
+  background: transparent !important;
+  color: var(--text-secondary) !important;
+  font-weight: 600 !important;
+  font-size: 0.88rem !important;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  text-align: left !important;
+  border-bottom: 1px solid transparent !important;
+  box-sizing: border-box;
+}
+
+.config-sidebar-nav .sub-tab-btn:hover {
+  background: rgba(99, 102, 241, 0.08) !important;
+  color: var(--text-primary) !important;
+  transform: translateX(3px);
+}
+
+.config-sidebar-nav .sub-tab-btn.active {
+  background: linear-gradient(135deg, rgba(79, 70, 229, 0.16), rgba(99, 102, 241, 0.08)) !important;
+  color: #6366f1 !important;
+  border-color: rgba(99, 102, 241, 0.3) !important;
+  border-left: 3.5px solid #6366f1 !important;
+  font-weight: 700 !important;
+  box-shadow: 0 2px 8px rgba(79, 70, 229, 0.1) !important;
+}
+
+.config-sidebar-nav .sub-tab-btn i {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.config-contents-pane {
+  flex: 1;
+  min-width: 0;
+}
+
+@media (max-width: 900px) {
+  .config-layout-wrapper {
+    flex-direction: column;
+  }
+  .config-sidebar-nav {
+    width: 100% !important;
+    display: grid !important;
+    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)) !important;
+  }
+}
+
 /* Asistan Konfigürasyonu Mobil Görünüm Ayarları */
 @media (max-width: 768px) {
-  #assistant-config .sub-tab-menu {
+  #assistant-config .config-sidebar-nav {
     display: grid !important;
     grid-template-columns: 1fr 1fr !important;
     gap: 0.5rem !important;
@@ -5363,7 +5444,7 @@ th:hover .hw-col-actions {
     box-sizing: border-box !important;
   }
   
-  #assistant-config .sub-tab-btn {
+  #assistant-config .config-sidebar-nav .sub-tab-btn {
     text-align: center !important;
     justify-content: center !important;
     padding: 0.6rem 0.25rem !important;
@@ -5373,7 +5454,7 @@ th:hover .hw-col-actions {
     border-bottom: 2px solid transparent !important;
   }
   
-  #assistant-config .sub-tab-btn.active {
+  #assistant-config .config-sidebar-nav .sub-tab-btn.active {
     border-bottom-color: var(--primary) !important;
   }
 }

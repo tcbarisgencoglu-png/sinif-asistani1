@@ -607,44 +607,55 @@
         }
       }
 
-      // N ders için sol ve sağ sütun sınırları (vLines üzerinden dinamik ve hassas eşleme)
+      // N ders için sol ve sağ sütun sınırları (Genişlik ve aralık oranlarıyla %100 kararlı eşleme)
       const detectedBoxes = [];
-      if (vLines.length >= numSubjects * 2) {
-        // Çiftler halinde tespit edilen çizgiler (Sol ve Sağ sütun kenarları)
-        for (let sIdx = 0; sIdx < numSubjects; sIdx++) {
-          detectedBoxes.push({
-            left: vLines[sIdx * 2],
-            right: vLines[sIdx * 2 + 1]
-          });
+      const expectedBoxRatio = 0.88 / numSubjects; // Her bir ders kutusunun yaklaşık sayfa oranı (~0.176)
+      const minBoxW = Math.round(w * (expectedBoxRatio * 0.85));
+      const maxBoxW = Math.round(w * (expectedBoxRatio * 1.15));
+      const rawBoxes = [];
+      for (let j = 0; j < vLines.length - 1; j++) {
+        const d = vLines[j + 1] - vLines[j];
+        if (d >= minBoxW && d <= maxBoxW) {
+          rawBoxes.push({ left: vLines[j], right: vLines[j + 1], width: d });
         }
-      } else if (vLines.length >= numSubjects + 1) {
-        // Tek çizgiler halinde tespit edilen ayırıcılar
-        for (let sIdx = 0; sIdx < numSubjects; sIdx++) {
-          detectedBoxes.push({
-            left: vLines[sIdx],
-            right: vLines[sIdx + 1]
-          });
+      }
+
+      let expectedBoxW = Math.round(w * expectedBoxRatio);
+      let expectedGap = Math.round(w * 0.009);
+      if (rawBoxes.length > 0) {
+        expectedBoxW = Math.round(rawBoxes.reduce((a, b) => a + b.width, 0) / rawBoxes.length);
+      }
+
+      const assigned = new Array(numSubjects).fill(null);
+      for (const b of rawBoxes) {
+        const estIdx = Math.round((b.left - w * 0.05) / (expectedBoxW + expectedGap));
+        const clampedIdx = Math.max(0, Math.min(numSubjects - 1, estIdx));
+        if (!assigned[clampedIdx]) assigned[clampedIdx] = b;
+      }
+
+      let anchorIdx = assigned.findIndex(b => b !== null);
+      if (anchorIdx === -1) anchorIdx = 0;
+
+      for (let k = anchorIdx - 1; k >= 0; k--) {
+        const nextB = assigned[k + 1];
+        const right = nextB.left - expectedGap;
+        const nearR = vLines.find(x => Math.abs(x - right) < 15) || right;
+        const left = nearR - expectedBoxW;
+        const nearL = vLines.find(x => Math.abs(x - left) < 15) || left;
+        assigned[k] = { left: nearL, right: nearR };
+      }
+      for (let k = anchorIdx + 1; k < numSubjects; k++) {
+        if (!assigned[k]) {
+          const prevB = assigned[k - 1];
+          const left = prevB.right + expectedGap;
+          const nearL = vLines.find(x => Math.abs(x - left) < 15) || left;
+          const right = nearL + expectedBoxW;
+          const nearR = vLines.find(x => Math.abs(x - right) < 15) || right;
+          assigned[k] = { left: nearL, right: nearR };
         }
-      } else if (numSubjects === 3) {
-        const b1L = vLines.find(x => x > w * 0.04 && x < w * 0.12) || Math.round(w * 0.065);
-        const b1R = vLines.find(x => x > w * 0.32 && x < w * 0.38) || Math.round(w * 0.35);
-        const b2L = vLines.find(x => x > b1R && x < w * 0.42) || Math.round(w * 0.37);
-        const b2R = vLines.find(x => x > w * 0.62 && x < w * 0.68) || Math.round(w * 0.65);
-        const b3L = vLines.find(x => x > b2R && x < w * 0.72) || Math.round(w * 0.67);
-        const b3R = vLines.find(x => x > w * 0.90 && x < w * 0.98) || Math.round(w * 0.95);
-        detectedBoxes.push({ left: b1L, right: b1R }, { left: b2L, right: b2R }, { left: b3L, right: b3R });
-      } else {
-        const tableL = vLines.find(x => x < w * 0.15) || Math.round(w * 0.05);
-        const tableR = [...vLines].reverse().find(x => x > w * 0.85) || Math.round(w * 0.95);
-        const spanW = tableR - tableL;
-        const boxStepW = spanW / numSubjects;
-        for (let sIdx = 0; sIdx < numSubjects; sIdx++) {
-          const expL = tableL + sIdx * boxStepW;
-          const expR = tableL + (sIdx + 1) * boxStepW;
-          const l = vLines.find(x => Math.abs(x - expL) < boxStepW * 0.25) || Math.round(expL);
-          const r = vLines.find(x => Math.abs(x - expR) < boxStepW * 0.25) || Math.round(expR - w * 0.01);
-          detectedBoxes.push({ left: l, right: r });
-        }
+      }
+      for (let k = 0; k < numSubjects; k++) {
+        detectedBoxes.push(assigned[k]);
       }
 
       // 2. Kutuların üst sınırını tespit et
@@ -735,13 +746,11 @@
         const numQuestions = subj.questionCount || 8;
         const baseTop = headerLineY || boxTop;
         const availH = boxBottom - baseTop;
-        const firstRowY = headerLineY
-          ? (headerLineY + availH * (numQuestions <= 8 ? 0.090 : 0.065))
-          : (boxTop + Math.round(availH * 0.16));
-        const lastRowY = boxBottom - availH * (numQuestions <= 8 ? 0.026 : 0.020);
+        const firstRowY = headerLineY ? (headerLineY + availH * 0.030) : (boxTop + availH * 0.090);
+        const lastRowY = boxBottom - availH * 0.030;
         const rowStep = numQuestions > 1 ? (lastRowY - firstRowY) / (numQuestions - 1) : 0;
-        const choiceStep = boxW * 0.222;
-        const choiceStartX = bBox.left + boxW * 0.280;
+        const choiceStep = boxW * 0.205;
+        const choiceStartX = bBox.left + boxW * 0.295;
 
         for (let q = 1; q <= numQuestions; q++) {
           const rowY = numQuestions > 1
@@ -761,15 +770,15 @@
           const rowPaperLum = pCnt > 0 ? (pSum / pCnt) : 230;
 
           const choiceScores = [];
-          const searchYRange = Math.max(26, Math.min(42, Math.round((rowStep || 40) * 0.30)));
-          const searchXRange = Math.max(22, Math.min(36, Math.round(choiceStep * 0.24)));
+          const searchYRange = Math.max(8, Math.min(18, Math.round((rowStep || 40) * 0.15)));
+          const searchXRange = Math.max(8, Math.min(16, Math.round(choiceStep * 0.15)));
 
           for (let lIdx = 0; lIdx < letters.length; lIdx++) {
             const initX = Math.round(choiceStartX + lIdx * choiceStep);
             const initY = rowY;
 
             let bestX = initX, bestY = initY, maxDark = -1;
-            const rCheck = Math.max(2, Math.round(choiceStep * 0.18));
+            const rCheck = Math.max(2, Math.round(choiceStep * 0.16));
             for (let dy = -searchYRange; dy <= searchYRange; dy += 2) {
               for (let dx = -searchXRange; dx <= searchXRange; dx += 2) {
                 let sum = 0;
@@ -821,8 +830,8 @@
           let status = 'blank';
 
           const diff = best.score - second.score;
-          const isFilled = best.score >= 0.60 && (diff >= 0.12 || best.score >= 0.70);
-          const isMultiple = isFilled && second.score >= 0.55 && diff < 0.10;
+          const isFilled = best.score >= 0.45 && (diff >= 0.10 || best.score >= 0.65);
+          const isMultiple = isFilled && second.score >= 0.50 && diff < 0.08;
 
           if (isMultiple) {
             status = 'multiple';

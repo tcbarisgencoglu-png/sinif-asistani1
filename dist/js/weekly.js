@@ -1100,8 +1100,16 @@ function setupWeeklyTab(showToast) {
 
         stateManager.saveExam(examData);
 
+        // Canlı El Terminali Eşitlemesi (Buluta & Terminale Canlı Fırlat)
+        if (window.CloudSync) {
+          window.CloudSync.pushExam(examData).catch(() => {});
+          if (typeof window.CloudSync.pushLiveExamCreated === 'function') {
+            window.CloudSync.pushLiveExamCreated(examData, 'desktop').catch(() => {});
+          }
+        }
+
         if (toastCallback) {
-          toastCallback(`"${name}" sınavı başarıyla oluşturuldu.`, 'success');
+          toastCallback(`"${name}" sınavı başarıyla oluşturuldu ve El Terminaline iletildi.`, 'success');
         }
 
         if (modalAddExam) modalAddExam.classList.remove('active');
@@ -1206,8 +1214,16 @@ function setupWeeklyTab(showToast) {
 
       stateManager.saveExam(activeExam);
 
+      // Canlı El Terminali Eşitlemesi (Sonuçları Terminale Canlı Fırlat)
+      if (window.CloudSync) {
+        window.CloudSync.pushExam(activeExam).catch(() => {});
+        if (typeof window.CloudSync.pushLiveExamResults === 'function') {
+          window.CloudSync.pushLiveExamResults(activeExam, 'desktop').catch(() => {});
+        }
+      }
+
       if (toastCallback) {
-        toastCallback('Sınav sonuçları başarıyla kaydedildi.', 'success');
+        toastCallback('Sınav sonuçları başarıyla kaydedildi ve El Terminaline aktarıldı.', 'success');
       }
 
       renderExamsList();
@@ -1237,13 +1253,18 @@ function setupWeeklyTab(showToast) {
 
       stateManager.deleteExam(examIdToDelete);
 
+      // Canlı El Terminali Eşitlemesi (Sınavı Terminalden ve Buluttan da Sil)
+      if (window.CloudSync && typeof window.CloudSync.pushLiveExamDeleted === 'function') {
+        window.CloudSync.pushLiveExamDeleted(examIdToDelete, examNameToDelete, 'desktop').catch(() => {});
+      }
+
       activeExam = null;
       window.activeWeeklyExam = null;
       if (activeExamCard) activeExamCard.style.display = 'none';
       if (btnPrintReport) btnPrintReport.style.display = 'none';
 
       if (toastCallback) {
-        toastCallback(`"${examNameToDelete}" sınavı başarıyla silindi.`, 'success');
+        toastCallback(`"${examNameToDelete}" sınavı başarıyla silindi ve El Terminalinden kaldırıldı.`, 'success');
       }
 
       renderExamsList();
@@ -8315,7 +8336,76 @@ function renderPipContent(win) {
   }
 }
 
-window.openBoardQuestionAnalysisPip = openBoardQuestionAnalysisPip;
+  // ==========================================================================
+  // EL TERMİNALİ İLE ÇİFT YÖNLÜ CANLI SENKRONİZASYON (BULUT & ANLIK EŞİTLEME)
+  // ==========================================================================
+  window.syncActiveExamToCompanion = async function() {
+    if (!activeExam) {
+      if (window.showToast) window.showToast('Lütfen önce bir sınav seçin.', 'warning');
+      return;
+    }
+
+    if (!window.CloudSync) {
+      if (window.showToast) window.showToast('Senkronizasyon modülü yüklenemedi.', 'danger');
+      return;
+    }
+
+    const syncCode = window.CloudSync.syncCode || window.CloudSync.loadSyncCode();
+    if (window.showToast) window.showToast(`📱 El Terminali eşitleniyor... (Kod: ${syncCode})`, 'info', 2000);
+
+    try {
+      // 1. Sınavla birlikte o sınıfın/şubenin öğrenci listesini de pakete ekle
+      const state = stateManager.loadState();
+      const examBranch = activeExam.branch || '';
+      const isMiddle = state.educationLevel === 'middle';
+      const classStudents = (state.students || []).filter(s => {
+        return !isMiddle || !examBranch || examBranch === 'all' || s.branch === examBranch;
+      });
+
+      const examToPush = {
+        ...activeExam,
+        classStudents: classStudents.map(s => ({
+          id: s.id,
+          number: s.number,
+          name: s.name,
+          surname: s.surname,
+          branch: s.branch
+        }))
+      };
+
+      // 2. Sınav ve sınıf listesini buluta gönder
+      const pushRes = await window.CloudSync.pushExam(examToPush);
+
+      // 3. Ardından buluttan telefonda okunan en son sonuçları çek
+      const pullRes = await window.CloudSync.pullExams();
+
+      if (pushRes.success || pullRes.success) {
+        // State'i tazele ve tabloyu yeniden çiz
+        const state = stateManager.loadState();
+        const updatedExam = (state.weeklyEvaluations || []).find(e => e.id === activeExam.id);
+        if (updatedExam) {
+          activeExam = updatedExam;
+          renderActiveExamTable();
+        }
+
+        const msg = `✅ El Terminali ile eşitlendi! (Kod: ${syncCode}) Sınav gönderildi & okunan sonuçlar aktarıldı.`;
+        if (window.showToast) window.showToast(msg, 'success', 3500);
+      } else {
+        const codePrompt = prompt(
+          `Bulut bağlantısı kurulamadı. Eşleşme Kodunuz: ${syncCode}\n` +
+          `Eşleşme kodunuzu değiştirmek ister misiniz?`,
+          syncCode
+        );
+        if (codePrompt && codePrompt !== syncCode) {
+          window.CloudSync.setSyncCode(codePrompt);
+          window.syncActiveExamToCompanion();
+        }
+      }
+    } catch (e) {
+      console.error('El Terminali eşitleme hatası:', e);
+      if (window.showToast) window.showToast('Eşitleme sırasında hata oluştu: ' + e.message, 'danger');
+    }
+  };
 
   window.setupWeeklyTab = setupWeeklyTab;
 })();

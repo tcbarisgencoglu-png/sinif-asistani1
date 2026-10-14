@@ -1444,8 +1444,18 @@ function renderDashboardWeekly() {
 
   // Her öğrenci için puanları topla
   const studentScores = activeStudents.map(student => {
+    const sId = String(student.id);
+    const sNum = String(student.number || '').trim();
+    const sName = `${student.name || ''} ${student.surname || ''}`.trim().toLocaleLowerCase('tr-TR');
+
     const perfRecords = state.performance.filter(p => {
-      if (p.studentId !== student.id) return false;
+      // 1. Öğrenci ID eşleşmesi (veya numara / isim yedek eşleşmesi)
+      const pId = String(p.studentId || '');
+      const isMatch = (pId === sId) ||
+        (sNum && p.studentNumber && String(p.studentNumber).trim() === sNum) ||
+        (sName && p.studentName && p.studentName.trim().toLocaleLowerCase('tr-TR') === sName);
+
+      if (!isMatch) return false;
       
       // Kaydın haftasını bul
       let recordWeek = '';
@@ -1467,7 +1477,7 @@ function renderDashboardWeekly() {
         }
       }
       
-      return recordWeek === selectedWeek;
+      return recordWeek === selectedWeek || !recordWeek;
     });
 
     let dojoPoints = 0;
@@ -1638,8 +1648,17 @@ function renderDashboardMonthly() {
 
   // Her öğrenci için puanları topla
   const studentScores = activeStudents.map(student => {
+    const sId = String(student.id);
+    const sNum = String(student.number || '').trim();
+    const sName = `${student.name || ''} ${student.surname || ''}`.trim().toLocaleLowerCase('tr-TR');
+
     const perfRecords = state.performance.filter(p => {
-      if (p.studentId !== student.id) return false;
+      const pId = String(p.studentId || '');
+      const isMatch = (pId === sId) ||
+        (sNum && p.studentNumber && String(p.studentNumber).trim() === sNum) ||
+        (sName && p.studentName && p.studentName.trim().toLocaleLowerCase('tr-TR') === sName);
+
+      if (!isMatch) return false;
       
       // Kaydın ait olduğu ayı bul (Önce weekId/homeworkId/taskId, sonra date kontrol edilir)
       let recordMonth = '';
@@ -1865,8 +1884,16 @@ function openStudentDetailModal(id) {
 
   // 1. Sekme: Performans Akışı Doldurma
   detailPerfTbody.innerHTML = '';
+  const sNum = student ? String(student.number || '').trim() : '';
+  const sName = student ? `${student.name || ''} ${student.surname || ''}`.trim().toLocaleLowerCase('tr-TR') : '';
+
   const studentPerf = state.performance
-    .filter(p => p.studentId === id)
+    .filter(p => {
+      const pId = String(p.studentId || '');
+      return (pId === String(id)) ||
+        (sNum && p.studentNumber && String(p.studentNumber).trim() === sNum) ||
+        (sName && p.studentName && p.studentName.trim().toLocaleLowerCase('tr-TR') === sName);
+    })
     .sort((a, b) => new Date(b.date) - new Date(a.date));
 
   if (studentPerf.length === 0) {
@@ -3459,7 +3486,7 @@ function updateFlowContent(syncWithRealTime = true) {
         const releases = await response.json();
         if (Array.isArray(releases) && releases.length > 0) {
           const latestRelease = releases[0];
-          const tagName = latestRelease.tag_name || 'v1.0.60';
+          const tagName = latestRelease.tag_name || 'v1.0.61';
           
           const badge = document.getElementById('download-app-version-badge');
           if (badge) badge.textContent = `${tagName} (En Son)`;

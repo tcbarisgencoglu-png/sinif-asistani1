@@ -1,6 +1,7 @@
 # macOS
 .DS_Store
 *.swp
+*.old.html
 
 # Node.js
 node_modules/

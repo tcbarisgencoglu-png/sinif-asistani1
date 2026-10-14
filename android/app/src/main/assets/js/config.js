@@ -51,6 +51,10 @@
         });
 
         renderConfig();
+
+        if (targetTab === 'config-pairing' && window.CloudSync && typeof window.CloudSync.updateSyncUI === 'function') {
+          window.CloudSync.updateSyncUI();
+        }
       });
     });
 
@@ -94,20 +98,36 @@
     }
 
     const configEducationLevel = document.getElementById('config-education-level');
+    const configPairingEducationLevel = document.getElementById('config-pairing-education-level');
+
+    function handleEducationLevelChange(val) {
+      stateManager.setEducationLevel(val);
+      if (configEducationLevel) configEducationLevel.value = val;
+      if (configPairingEducationLevel) configPairingEducationLevel.value = val;
+
+      if (toastCallback) {
+        const label = val === 'primary' ? 'Sınıf Öğretmeni (İlkokul)' : 'Branş Öğretmeni (Ortaokul)';
+        toastCallback(`Öğretmenlik / Görev Türü "${label}" olarak güncellendi.`, 'success');
+      }
+
+      // Update visibility immediately
+      if (window.updateVisibilityByEducationLevel) {
+        window.updateVisibilityByEducationLevel();
+      }
+
+      const event = new CustomEvent('stateChanged');
+      document.dispatchEvent(event);
+    }
+
     if (configEducationLevel) {
       configEducationLevel.addEventListener('change', () => {
-        stateManager.setEducationLevel(configEducationLevel.value);
-        if (toastCallback) {
-          toastCallback(`Eğitim kademesi ${configEducationLevel.value === 'middle' ? 'Ortaokul' : 'İlkokul'} olarak güncellendi.`, 'success');
-        }
-        
-        // Update visibility immediately
-        if (window.updateVisibilityByEducationLevel) {
-          window.updateVisibilityByEducationLevel();
-        }
+        handleEducationLevelChange(configEducationLevel.value);
+      });
+    }
 
-        const event = new CustomEvent('stateChanged');
-        document.dispatchEvent(event);
+    if (configPairingEducationLevel) {
+      configPairingEducationLevel.addEventListener('change', () => {
+        handleEducationLevelChange(configPairingEducationLevel.value);
       });
     }
 
@@ -1813,10 +1833,11 @@ SADECE VE SADECE GEÇERLİ BİR JSON DİZİSİ DÖNDÜR. Markdown (örneğin \`\
   // Update configuration components
   function renderConfig() {
     updateConfigThemeUI();
+    const curLevel = stateManager.loadState().educationLevel || 'middle';
     const configEducationLevel = document.getElementById('config-education-level');
-    if (configEducationLevel) {
-      configEducationLevel.value = stateManager.loadState().educationLevel || 'middle';
-    }
+    if (configEducationLevel) configEducationLevel.value = curLevel;
+    const configPairingEducationLevel = document.getElementById('config-pairing-education-level');
+    if (configPairingEducationLevel) configPairingEducationLevel.value = curLevel;
     
     // 1. Load Puan Ayarları inputs
     const hwSettings = stateManager.getHomeworkSettings();
