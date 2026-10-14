@@ -494,8 +494,16 @@
         if (window.CompanionBehavior) {
           window.CompanionBehavior.init();
         }
+        if (window.CompanionHomework) {
+          window.CompanionHomework.init();
+        }
+        if (window.CompanionBooks) {
+          window.CompanionBooks.init();
+        }
       } else {
-        this.showToast(res.error || 'Masaüstünden veri bulunamadı. Lütfen masaüstünden "Terminale Gönder" butonuna basın.');
+        const errorMsg = res.error || 'Masaüstünden veri bulunamadı. Lütfen masaüstünden "Terminale Gönder" butonuna basın.';
+        this.showToast(errorMsg);
+        alert('⚠️ Eşitleme Bekleniyor\n\n' + errorMsg);
       }
     },
 

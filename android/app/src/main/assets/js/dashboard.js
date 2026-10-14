@@ -3486,7 +3486,7 @@ function updateFlowContent(syncWithRealTime = true) {
         const releases = await response.json();
         if (Array.isArray(releases) && releases.length > 0) {
           const latestRelease = releases[0];
-          const tagName = latestRelease.tag_name || 'v1.0.61';
+          const tagName = latestRelease.tag_name || 'v1.0.62';
           
           const badge = document.getElementById('download-app-version-badge');
           if (badge) badge.textContent = `${tagName} (En Son)`;

@@ -32,13 +32,30 @@
       }
       this.loadSyncCode();
 
-      // Masaüstü uygulamasında (akıllı tahta) canlı arka plan dinleyicisini başlat
+      // Masaüstü uygulamasında (akıllı tahta) canlı arka plan dinleyicisini ve otomatik bulut yüklemesini başlat
       if (window.stateManager) {
         this.harmonizePerformanceRecords();
         this.startLiveListener();
+        setTimeout(() => {
+          this.autoPushMasterDebounced();
+        }, 1500);
       }
 
       this.updateSyncUI();
+    },
+
+    // Masaüstü verilerini sessizce arka planda buluta hazırla
+    autoPushMasterDebounced() {
+      if (!window.stateManager) return;
+      if (this.debouncedMasterTimer) clearTimeout(this.debouncedMasterTimer);
+      this.debouncedMasterTimer = setTimeout(async () => {
+        try {
+          console.log('[CloudSync] Masaüstü verileri otomatik olarak buluta aktarılıyor (Kod: ' + this.syncCode + ')...');
+          await this.pushMasterData();
+        } catch (e) {
+          console.warn('[CloudSync] Otomatik master veri eşitleme uyarısı:', e);
+        }
+      }, 1000);
     },
 
     // 6 Haneli Çakışmasız, Kolay Okunur Alfanümerik Kod Üretici
@@ -99,6 +116,7 @@
 
       if (window.stateManager) {
         this.startLiveListener(true);
+        this.autoPushMasterDebounced();
       }
       return clean;
     },
