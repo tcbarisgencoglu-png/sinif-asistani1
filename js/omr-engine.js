@@ -923,7 +923,7 @@
             markedLetter = best.letter;
           }
 
-          const totalSubjs = (examConfig && Array.isArray(examConfig.subjects)) ? examConfig.subjects.length : 1;
+          const totalSubjs = (exam && Array.isArray(exam.subjects)) ? exam.subjects.length : 1;
           const correctAns = findCorrectAnswerForKey(answerKey, subj, sIdx, q, cumulativeOffset, totalSubjs);
 
           const qd = {

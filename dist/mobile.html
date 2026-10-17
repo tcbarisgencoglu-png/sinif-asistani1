@@ -786,6 +786,254 @@
   </div>
 
   <!-- ==========================================================================
+       4a-1. OPTİK FORM VE CEVAP ANAHTARI MÜDAHALE / DÜZENLEME MODALI
+       (KAYDEDİLMİŞ VE MASAÜSTÜNDEN ÇEKİLMİŞ TÜM SINAVLAR İÇİN)
+       ========================================================================== -->
+  <div class="c-exam-wizard-modal" id="companion-exam-settings-modal" style="display: none;" onclick="if(event.target === this) window.CompanionOmr.closeExamSettingsModal();">
+    <div class="c-exam-wizard-sheet">
+      <!-- Başlık Barı -->
+      <div style="display: flex; align-items: center; justify-content: space-between; padding: 16px; border-bottom: 1px solid #e2e8f0; background: #f8fafc;">
+        <div>
+          <h3 style="font-size: 16px; font-weight: 800; color: #0f172a; margin: 0;">Optik Form & Cevap Anahtarı</h3>
+          <span id="settings-modal-subtitle" style="font-size: 11px; color: #64748b;">Mevcut / Masaüstü Sınavı Müdahalesi</span>
+        </div>
+        <button type="button" class="c-icon-btn" style="width: 34px; height: 34px;" onclick="window.CompanionOmr.closeExamSettingsModal()">
+          <i data-lucide="x" style="width: 18px; height: 18px;"></i>
+        </button>
+      </div>
+
+      <!-- Düzenleme Gövdesi -->
+      <form id="form-companion-exam-settings" onsubmit="event.preventDefault(); window.CompanionOmr.submitExamSettingsForm();" class="c-wizard-body">
+        <input type="hidden" id="settings-exam-id" />
+
+        <!-- 1. Sınav Adı -->
+        <div class="c-form-group" style="margin-bottom: 12px;">
+          <label class="c-label" for="settings-exam-name" style="font-weight: 700; font-size: 12px;">Sınav Adı / Konusu</label>
+          <input type="text" id="settings-exam-name" class="c-input" required style="font-size: 13px;" />
+        </div>
+
+        <!-- 2. Şube ve Uygulama Haftası -->
+        <div id="settings-branch-week-row" style="display: grid; grid-template-columns: 1fr 1.5fr; gap: 10px; margin-bottom: 12px;">
+          <div class="c-form-group" id="settings-branch-group" style="margin-bottom: 0;">
+            <label class="c-label" for="settings-exam-section" style="font-weight: 700; font-size: 12px;">Şube</label>
+            <select id="settings-exam-section" class="c-select" style="font-size: 13px;">
+              <!-- JS dinamik dolduracak -->
+            </select>
+          </div>
+          <div class="c-form-group" id="settings-week-group" style="margin-bottom: 0;">
+            <label class="c-label" for="settings-exam-week" style="font-weight: 700; font-size: 12px;">Uygulama Haftası</label>
+            <select id="settings-exam-week" class="c-select" style="font-size: 13px;">
+              <!-- JS dinamik dolduracak -->
+            </select>
+          </div>
+        </div>
+
+        <!-- 3. Sınav Süresi -->
+        <div class="c-form-group" style="margin-bottom: 14px;">
+          <label class="c-label" for="settings-exam-duration" style="font-weight: 700; font-size: 12px;">Sınav Süresi (Dakika)</label>
+          <input type="number" id="settings-exam-duration" class="c-input" min="1" max="240" required style="font-size: 13px;" />
+        </div>
+
+        <!-- 4. Tek Ders Soru Sayısı -->
+        <div class="c-form-group" id="settings-single-q-group" style="margin-bottom: 14px;">
+          <label class="c-label" for="settings-exam-questions" style="font-weight: 700; font-size: 12px;">Soru Sayısı</label>
+          <input type="number" id="settings-exam-questions" class="c-input" min="1" max="100" oninput="window.CompanionOmr.settingsOnSingleQChange(this.value)" style="font-size: 13px;" />
+        </div>
+
+        <!-- 4b. Çoklu Ders Dağılım Konfigürasyonu -->
+        <div id="settings-multi-container" style="display: none; background: #f8fafc; padding: 12px; border-radius: 14px; border: 1.5px solid #e2e8f0; margin-bottom: 14px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <strong style="font-size: 12.5px; color: #0f172a;">📚 Dersler ve Soru Dağılımı</strong>
+            <span id="settings-multi-total-badge" style="background: rgba(79, 70, 229, 0.12); color: #4f46e5; font-weight: 800; font-size: 11px; padding: 3px 8px; border-radius: 999px;">
+              Toplam: 0 Soru
+            </span>
+          </div>
+
+          <div id="settings-subjects-list" style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; max-height: 160px; overflow-y: auto;">
+            <!-- JS dolduracak -->
+          </div>
+
+          <button type="button" class="c-btn-secondary" style="width: 100%; justify-content: center; font-size: 11.5px; padding: 6px;" onclick="window.CompanionOmr.settingsAddSubject()">
+            ➕ Yeni Ders Ekle
+          </button>
+        </div>
+
+        <!-- 5. Yanlışlar Doğruları Etkilesin (Net Hesabı) -->
+        <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 10px 12px; margin-bottom: 14px;">
+          <label style="display: flex; align-items: center; justify-content: space-between; cursor: pointer; margin: 0;">
+            <span style="font-size: 12.5px; font-weight: 700; color: #1e293b;">Yanlışlar Doğruları Etkilesin (Net Hesabı)</span>
+            <input type="checkbox" id="settings-wrong-affects" onchange="document.getElementById('settings-penalty-row').style.display = this.checked ? 'block' : 'none';" style="width: 18px; height: 18px; cursor: pointer;" />
+          </label>
+          <div id="settings-penalty-row" style="display: none; margin-top: 8px; padding-top: 8px; border-top: 1px dashed #e2e8f0;">
+            <label class="c-label" for="settings-penalty-rate" style="font-size: 11px; margin-bottom: 4px;">Kaç Yanlış Bir Doğruyu Götürsün?</label>
+            <select id="settings-penalty-rate" class="c-select" style="font-size: 12px; padding: 6px 10px;">
+              <option value="3">3 Yanlış 1 Doğruyu Götürür (Ortaokul / LGS)</option>
+              <option value="4">4 Yanlış 1 Doğruyu Götürür (Lise / YKS)</option>
+              <option value="2">2 Yanlış 1 Doğruyu Götürür</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- 6. Optik Form ve Şık Sayısı -->
+        <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px; margin-bottom: 14px;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+            <span style="font-size: 12.5px; font-weight: 700; color: #1e293b;">Optik Form Kaç Şıklı Olacak?</span>
+          </div>
+          <div class="c-opt-choice-pills">
+            <div class="c-opt-choice-pill" id="settings-pill-opt-3" onclick="window.CompanionOmr.settingsSelectChoicesCount(3)">
+              3 Şıklı (A-B-C)
+            </div>
+            <div class="c-opt-choice-pill" id="settings-pill-opt-4" onclick="window.CompanionOmr.settingsSelectChoicesCount(4)">
+              4 Şıklı (A-B-C-D)
+            </div>
+            <div class="c-opt-choice-pill" id="settings-pill-opt-5" onclick="window.CompanionOmr.settingsSelectChoicesCount(5)">
+              5 Şıklı (A-B-C-D-E)
+            </div>
+          </div>
+
+          <!-- 7. Cevap Anahtarı Araç Çubuğu -->
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+            <span style="font-size: 12px; font-weight: 800; color: #0f172a;">🔑 Cevap Anahtarı</span>
+            <div style="display: flex; gap: 4px;">
+              <button type="button" class="c-btn-secondary" style="padding: 3px 6px; font-size: 10.5px;" onclick="window.CompanionOmr.settingsToggleTextBox()">Metinle Gir</button>
+              <button type="button" class="c-btn-secondary" style="padding: 3px 6px; font-size: 10.5px;" onclick="window.CompanionOmr.settingsFillSampleKey()">Örnek Doldur</button>
+              <button type="button" class="c-btn-secondary" style="padding: 3px 6px; font-size: 10.5px; color: #ef4444;" onclick="window.CompanionOmr.settingsClearKey()">Temizle</button>
+            </div>
+          </div>
+
+          <!-- Metinle Hızlı Anahtar Kutusu -->
+          <div id="settings-key-text-box" style="display: none; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; padding: 8px; margin-bottom: 8px;">
+            <textarea id="settings-key-text-input" class="c-input" rows="2" style="font-family: monospace; font-size: 11px; margin-bottom: 6px;" placeholder="Örn: 1.a 2.b 3.c 4.d 5.a"></textarea>
+            <div style="display: flex; justify-content: flex-end; gap: 6px;">
+              <button type="button" class="c-btn-secondary" style="padding: 4px 8px; font-size: 11px;" onclick="document.getElementById('settings-key-text-box').style.display='none';">Kapat</button>
+              <button type="button" class="c-btn-primary" style="padding: 4px 10px; font-size: 11px;" onclick="window.CompanionOmr.settingsApplyTextKey()">Uygula</button>
+            </div>
+          </div>
+
+          <!-- Çoklu Derste Ders Sekmeleri -->
+          <div id="settings-key-subj-tabs" style="display: none; gap: 6px; overflow-x: auto; padding-bottom: 6px; margin-bottom: 6px;">
+            <!-- JS dolduracak -->
+          </div>
+
+          <!-- Dinamik Soru Satırları Gridi -->
+          <div id="settings-answer-key-grid" class="c-answer-key-grid">
+            <!-- JS dolduracak -->
+          </div>
+        </div>
+
+        <!-- Bilgi Uyarısı: Önceden okunmuş öğrenciler varsa -->
+        <div id="settings-recalculate-notice" style="display: none; background: #fffbeb; border: 1.5px solid #fef3c7; border-radius: 10px; padding: 10px 12px; margin-bottom: 12px; font-size: 11.5px; color: #92400e; line-height: 1.4;">
+          <div style="font-weight: 800; display: flex; align-items: center; gap: 6px; margin-bottom: 3px;">
+            <i data-lucide="alert-triangle" style="width: 14px; height: 14px; color: #f59e0b;"></i>
+            <span>Otomatik Yeniden Puanlama</span>
+          </div>
+          Bu sınavda daha önce taranmış öğrenci sonuçları bulunuyor. Cevap anahtarı veya net katsayısı güncellendiğinde, tüm öğrencilerin puanları otomatik olarak anında yeniden hesaplanacaktır.
+        </div>
+
+        <!-- Alt Butonlar -->
+        <div class="c-wizard-footer" style="padding: 0; margin-top: 10px; background: transparent; border: none;">
+          <button type="button" class="c-btn-secondary" style="flex: 1; justify-content: center;" onclick="window.CompanionOmr.closeExamSettingsModal()">
+            İptal
+          </button>
+          <button type="submit" class="c-btn-primary" style="flex: 2; justify-content: center; background: linear-gradient(135deg, #4f46e5, #6366f1);">
+            <i data-lucide="check" style="width: 18px; height: 18px;"></i>
+            <span>Güncelle ve Kaydet</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       4a-2. MOBİL OPTİK FORM YAZDIRMA MODALI
+       ========================================================================== -->
+  <div class="c-exam-wizard-modal" id="companion-optical-print-modal" style="display: none;" onclick="if(event.target === this) window.CompanionOmr.closeMobileOpticalPrintModal();">
+    <div class="c-exam-wizard-sheet">
+      <!-- Başlık Barı -->
+      <div style="display: flex; align-items: center; justify-content: space-between; padding: 16px; border-bottom: 1px solid #e2e8f0; background: #f8fafc;">
+        <div>
+          <h3 style="font-size: 16px; font-weight: 800; color: #0f172a; margin: 0;">Optik Form Yazdır</h3>
+          <span id="mprint-exam-title-badge" style="font-size: 11px; color: #64748b;">Yazıcıya Gönderim & PDF Çıktısı</span>
+        </div>
+        <button type="button" class="c-icon-btn" style="width: 34px; height: 34px;" onclick="window.CompanionOmr.closeMobileOpticalPrintModal()">
+          <i data-lucide="x" style="width: 18px; height: 18px;"></i>
+        </button>
+      </div>
+
+      <!-- Yazdırma Ayarları Gövdesi -->
+      <div class="c-wizard-body">
+        <!-- 1. Form Türü (İsimli vs İsimsiz / Boş) -->
+        <div class="c-form-group" style="margin-bottom: 14px;">
+          <label class="c-label" style="font-weight: 700; font-size: 12px; margin-bottom: 6px;">Form Türü</label>
+          <div style="display: flex; gap: 8px;">
+            <button type="button" class="c-opt-choice-pill active" id="mprint-type-named" onclick="window.CompanionOmr.mprintSetType('named')">
+              👤 İsimli / Kişiye Özel
+            </button>
+            <button type="button" class="c-opt-choice-pill" id="mprint-type-blank" onclick="window.CompanionOmr.mprintSetType('blank')">
+              📄 İsimsiz / Boş Yedek
+            </button>
+          </div>
+        </div>
+
+        <!-- 2. Sayfa Düzeni (Sayfa Başına Form) -->
+        <div class="c-form-group" style="margin-bottom: 14px;">
+          <label class="c-label" style="font-weight: 700; font-size: 12px; margin-bottom: 6px;">Sayfa Başına Form Adedi</label>
+          <div class="c-opt-choice-pills">
+            <div class="c-opt-choice-pill" id="mprint-perpage-1" onclick="window.CompanionOmr.mprintSetPerPage(1)">
+              1 Form / A4
+            </div>
+            <div class="c-opt-choice-pill active" id="mprint-perpage-2" onclick="window.CompanionOmr.mprintSetPerPage(2)">
+              2 Form / A4 (A5)
+            </div>
+            <div class="c-opt-choice-pill" id="mprint-perpage-4" onclick="window.CompanionOmr.mprintSetPerPage(4)">
+              4 Form / A4 (A6)
+            </div>
+          </div>
+        </div>
+
+        <!-- 3. Boş Form Adedi (Sadece İsimsiz seçilirse görünür) -->
+        <div id="mprint-blank-count-group" style="display: none; margin-bottom: 14px;">
+          <label class="c-label" for="mprint-blank-count" style="font-weight: 700; font-size: 12px;">Basılacak Boş Form Sayısı</label>
+          <input type="number" id="mprint-blank-count" class="c-input" min="1" max="100" value="10" oninput="window.CompanionOmr.mprintUpdateSummary()" style="font-size: 13px;" />
+        </div>
+
+        <!-- 4. Öğrenci Seçim Listesi (Sadece İsimli seçilirse görünür) -->
+        <div id="mprint-students-group" style="margin-bottom: 14px;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+            <label class="c-label" style="font-weight: 700; font-size: 12px; margin: 0;">Yazdırılacak Öğrenciler</label>
+            <div style="display: flex; gap: 6px;">
+              <button type="button" class="c-btn-secondary" style="padding: 2px 8px; font-size: 10.5px;" onclick="window.CompanionOmr.mprintToggleAllStudents(true)">Tümünü Seç</button>
+              <button type="button" class="c-btn-secondary" style="padding: 2px 8px; font-size: 10.5px;" onclick="window.CompanionOmr.mprintToggleAllStudents(false)">Temizle</button>
+            </div>
+          </div>
+          <div id="mprint-students-list" style="max-height: 180px; overflow-y: auto; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 6px; display: flex; flex-direction: column; gap: 4px;">
+            <!-- JS dolduracak -->
+          </div>
+        </div>
+
+        <!-- Özet Bilgi Kartı -->
+        <div class="c-behavior-tip-box" style="margin-bottom: 6px; background: #f0fdf4; border-color: #bbf7d0;">
+          <i data-lucide="printer" style="width: 16px; height: 16px; color: #16a34a; flex-shrink: 0;"></i>
+          <span id="mprint-summary-text" style="color: #15803d; font-size: 11.5px; font-weight: 700;">
+            Hesaplanıyor...
+          </span>
+        </div>
+      </div>
+
+      <!-- Alt Butonlar -->
+      <div class="c-wizard-footer">
+        <button type="button" class="c-btn-secondary" style="flex: 1; justify-content: center;" onclick="window.CompanionOmr.closeMobileOpticalPrintModal()">
+          Vazgeç
+        </button>
+        <button type="button" class="c-btn-primary" style="flex: 2; justify-content: center; background: linear-gradient(135deg, #10b981, #059669);" onclick="window.CompanionOmr.executeMobileOpticalPrint()">
+          <i data-lucide="printer" style="width: 18px; height: 18px;"></i>
+          <span>Yazdır / Yazıcıya Gönder</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
        4b. TERMINAL AYARLARI MODALI
        ========================================================================== -->
   <div class="c-exam-wizard-modal" id="companion-settings-modal" style="display: none;">
@@ -1437,6 +1685,7 @@
   <!-- QR, Bulut & OMR Analiz Motorları -->
   <script src="js/supabase-config.js"></script>
   <script src="js/cloud-sync.js?v=5"></script>
+  <script src="js/qrcode.min.js"></script>
   <script src="js/jsqr.js"></script>
   <script src="js/omr-engine.js?v=5"></script>
   <script src="js/companion-omr.js?v=5"></script>

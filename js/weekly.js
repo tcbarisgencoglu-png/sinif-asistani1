@@ -1667,28 +1667,74 @@ function setupWeeklyTab(showToast) {
       }
       
       // Formları oluştur
-      generateOpticalFormsHTML(selectedStudentIds, questionCount, choicesCount, formType, perPage);
+      const pagesHtml = generateOpticalFormsHTML(selectedStudentIds, questionCount, choicesCount, formType, perPage);
       
       // Kapat modalı
       if (modalPrintOptical) modalPrintOptical.classList.remove('active');
       
-      // Yazdır
-      const printStyle = document.createElement('style');
-      printStyle.id = 'optical-print-page-style';
-      printStyle.textContent = `@page { size: A4 portrait; margin: 5mm; }`;
-      document.head.appendChild(printStyle);
+      // Güvenli ve Tam İzolasyonlu Yazdırma (Tauri, WebKit, WebView2 ve Tüm Tarayıcılarla %100 Uyumlu)
+      const cleanTitle = (activeExam?.examName || 'Optik_Form').replace(/[^a-zA-Z0-9_\u00C0-\u017F-]/g, '_');
+      const docTitle = `${cleanTitle}_${formType === 'named' ? 'Ogrenci_Listeli' : 'Bos'}`;
+      const fullPrintHtml = buildDesktopOpticalPrintDocument(pagesHtml, docTitle);
 
-      document.body.classList.add('print-optical');
-      window.print();
-      
-      const cleanupPrint = () => {
-        document.body.classList.remove('print-optical');
-        const s = document.getElementById('optical-print-page-style');
-        if (s) s.remove();
-      };
+      let printFrame = document.getElementById('omr-desktop-print-iframe');
+      if (!printFrame) {
+        printFrame = document.createElement('iframe');
+        printFrame.id = 'omr-desktop-print-iframe';
+        printFrame.style.position = 'fixed';
+        printFrame.style.right = '0';
+        printFrame.style.bottom = '0';
+        printFrame.style.width = '0';
+        printFrame.style.height = '0';
+        printFrame.style.border = '0';
+        printFrame.style.visibility = 'hidden';
+        document.body.appendChild(printFrame);
+      }
 
-      window.addEventListener('afterprint', cleanupPrint, { once: true });
-      setTimeout(cleanupPrint, 1000);
+      try {
+        const printDoc = printFrame.contentDocument || printFrame.contentWindow.document;
+        printDoc.open();
+        printDoc.write(fullPrintHtml);
+        printDoc.close();
+      } catch (err) {
+        console.warn('Iframe yazma hatası, ana sayfa üzerinden yazdırılacak:', err);
+      }
+
+      if (toastCallback) toastCallback('Yazıcı hazırlanıyor, yazdırma penceresi açılıyor...', 'info');
+      else if (window.showToast) window.showToast('Yazıcı hazırlanıyor, yazdırma penceresi açılıyor...', 'info');
+
+      // Tarayıcının DOM ve SVG elementlerini render edebilmesi için kısa gecikme
+      setTimeout(() => {
+        let printed = false;
+        try {
+          if (printFrame && printFrame.contentWindow) {
+            printFrame.contentWindow.focus();
+            printFrame.contentWindow.print();
+            printed = true;
+          }
+        } catch (e) {
+          console.warn('Iframe print çağrısı başarısız oldu, doğrudan pencere deneniyor:', e);
+        }
+
+        if (!printed) {
+          const printStyle = document.createElement('style');
+          printStyle.id = 'optical-print-page-style';
+          printStyle.textContent = `@page { size: A4 portrait; margin: 4mm; }`;
+          document.head.appendChild(printStyle);
+
+          document.body.classList.add('print-optical');
+          window.print();
+
+          const cleanupPrint = () => {
+            document.body.classList.remove('print-optical');
+            const s = document.getElementById('optical-print-page-style');
+            if (s) s.remove();
+          };
+
+          window.addEventListener('afterprint', cleanupPrint, { once: true });
+          setTimeout(cleanupPrint, 30000);
+        }
+      }, 250);
     });
   }
 
@@ -5491,7 +5537,7 @@ Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi ve
       });
 
       studentIds.forEach(id => {
-        const s = allClassStudents.find(st => st.id === id);
+        const s = allClassStudents.find(st => String(st.id) === String(id));
         if (s) {
           const canonicalIdx = allClassStudents.indexOf(s) + 1;
           studentsList.push({
@@ -5540,7 +5586,277 @@ Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi ve
       pagesHtml += `<div class="omr-print-page omr-per-page-${perPage}">${pageCardsHtml}</div>`;
     }
 
-    printContainer.innerHTML = pagesHtml;
+    if (printContainer) {
+      printContainer.innerHTML = pagesHtml;
+    }
+    return pagesHtml;
+  }
+
+  function buildDesktopOpticalPrintDocument(pagesHtml, examTitle = 'Optik_Form') {
+    return `<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${examTitle}</title>
+  <style>
+    @page {
+      size: A4 portrait;
+      margin: 4mm;
+    }
+    * {
+      box-sizing: border-box;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: #ffffff !important;
+      color: #000000 !important;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    }
+    .omr-print-page {
+      display: block;
+      page-break-after: always;
+      break-after: page;
+      page-break-inside: avoid;
+      break-inside: avoid;
+      width: 100%;
+      height: 285mm;
+      max-height: 285mm;
+      box-sizing: border-box;
+      padding: 2mm 3mm;
+      margin: 0 auto;
+      background: #ffffff;
+      overflow: hidden;
+    }
+    .omr-print-page:last-child {
+      page-break-after: auto;
+      break-after: auto;
+    }
+    .omr-print-page.omr-per-page-1 {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      height: 285mm;
+    }
+    .omr-print-page.omr-per-page-1 .omr-card {
+      height: 275mm;
+      max-width: 100%;
+      margin: 0 auto;
+      padding: 14px 18px;
+    }
+    .omr-print-page.omr-per-page-2 {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 4mm;
+      height: 285mm;
+    }
+    .omr-print-page.omr-per-page-2 .omr-card {
+      height: 138mm;
+      max-height: 139mm;
+      max-width: 100%;
+      margin: 0;
+      padding: 8px 12px;
+    }
+    .omr-print-page.omr-per-page-4 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: 139mm 139mm;
+      gap: 3mm;
+      height: 285mm;
+    }
+    .omr-print-page.omr-per-page-4 .omr-card {
+      height: 139mm;
+      max-height: 139mm;
+      max-width: 100%;
+      margin: 0;
+      padding: 6px 8px;
+    }
+    .omr-card {
+      position: relative;
+      background: #ffffff;
+      color: #000000;
+      border: 1.5px solid #000000;
+      border-radius: 6px;
+      box-sizing: border-box;
+      width: 100%;
+      user-select: none;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      page-break-inside: avoid;
+      break-inside: avoid;
+    }
+    .omr-anchor {
+      position: absolute;
+      width: 22px;
+      height: 22px;
+      background-color: #000000 !important;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-sizing: border-box;
+      z-index: 5;
+    }
+    .omr-anchor::before {
+      content: '';
+      display: block;
+      width: 12px;
+      height: 12px;
+      background-color: #ffffff !important;
+      box-sizing: border-box;
+    }
+    .omr-anchor::after {
+      content: '';
+      position: absolute;
+      width: 6px;
+      height: 6px;
+      background-color: #000000 !important;
+      box-sizing: border-box;
+    }
+    .omr-anchor-tl { top: 6px; left: 6px; }
+    .omr-anchor-tr { top: 6px; right: 6px; }
+    .omr-anchor-bl { bottom: 6px; left: 6px; }
+    .omr-anchor-br { bottom: 6px; right: 6px; }
+    .omr-card-header {
+      margin: 2px 28px 4px 28px;
+      border-bottom: 2px solid #000000;
+      padding-bottom: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .omr-header-main {
+      flex: 1;
+      min-width: 0;
+    }
+    .omr-header-title {
+      font-size: 13px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-bottom: 2px;
+    }
+    .omr-student-info {
+      display: flex;
+      gap: 14px;
+      font-size: 11px;
+    }
+    .omr-card-body {
+      margin: 0 28px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+    .omr-grid-container {
+      display: grid;
+      gap: 16px;
+      width: 100%;
+    }
+    .omr-grid-container.cols-1 { grid-template-columns: 1fr; }
+    .omr-grid-container.cols-2 { grid-template-columns: 1fr 1fr; }
+    .omr-grid-container.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+    .omr-grid-col {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .omr-q-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      height: 20px;
+    }
+    .omr-q-num {
+      width: 22px;
+      font-size: 11px;
+      font-weight: 700;
+      font-family: monospace;
+      text-align: right;
+    }
+    .omr-q-bubbles {
+      display: flex;
+      gap: 4px;
+    }
+    .omr-bubble {
+      width: 18px;
+      height: 18px;
+      border: 1.5px solid #000000;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: 800;
+      background: #ffffff;
+      color: #000000;
+    }
+    .omr-multi-subjects-grid {
+      display: grid;
+      gap: 8px;
+      width: 100%;
+    }
+    .omr-multi-subjects-grid.cols-2 { grid-template-columns: 1fr 1fr; }
+    .omr-multi-subjects-grid.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+    .omr-multi-subjects-grid.cols-4 { grid-template-columns: repeat(4, 1fr); }
+    .omr-multi-subjects-grid.cols-5 { grid-template-columns: repeat(5, 1fr); }
+    .omr-multi-subjects-grid.cols-6 { grid-template-columns: repeat(6, 1fr); }
+    .omr-subject-block {
+      border: 1px solid #000000;
+      border-radius: 4px;
+      padding: 4px;
+      background: #fafafa;
+    }
+    .omr-subject-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #000000;
+      padding-bottom: 2px;
+      margin-bottom: 4px;
+      font-size: 10px;
+      font-weight: 800;
+    }
+    .omr-subject-name {
+      text-transform: uppercase;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .omr-subject-badge {
+      font-size: 9px;
+      opacity: 0.8;
+    }
+    .omr-subject-rows {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5px;
+    }
+    .omr-card-footer {
+      margin: 2px 28px 4px 28px;
+      border-top: 1px solid #000000;
+      padding-top: 2px;
+      display: flex;
+      justify-content: space-between;
+      font-size: 8.5px;
+      font-weight: 600;
+      color: #333333;
+    }
+  </style>
+</head>
+<body>
+  ${pagesHtml}
+</body>
+</html>`;
   }
 
   // Başlangıç listesini yükle

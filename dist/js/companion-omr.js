@@ -287,9 +287,17 @@
                   <div>
                     <div class="c-exam-card-header">
                       <span class="c-exam-week-tag">${weekLabel}</span>
-                      <button type="button" class="c-icon-btn" style="width: 24px; height: 24px; padding: 0; background: transparent;" title="Sınavı Sil" onclick="event.stopPropagation(); window.CompanionOmr.promptDeleteExam('${exam.id}')">
-                        <i data-lucide="trash-2" style="width: 13px; height: 13px; color: #94a3b8;"></i>
-                      </button>
+                      <div style="display: flex; gap: 2px;" onclick="event.stopPropagation();">
+                        <button type="button" class="c-icon-btn" style="width: 24px; height: 24px; padding: 0; background: transparent;" title="Optik Form Yazdır" onclick="window.CompanionOmr.openMobileOpticalPrintModal('${exam.id}')">
+                          <i data-lucide="printer" style="width: 13px; height: 13px; color: #10b981;"></i>
+                        </button>
+                        <button type="button" class="c-icon-btn" style="width: 24px; height: 24px; padding: 0; background: transparent;" title="Optik Form ve Cevap Anahtarını Düzenle" onclick="window.CompanionOmr.openExamSettingsModal('${exam.id}')">
+                          <i data-lucide="sliders-horizontal" style="width: 13px; height: 13px; color: #6366f1;"></i>
+                        </button>
+                        <button type="button" class="c-icon-btn" style="width: 24px; height: 24px; padding: 0; background: transparent;" title="Sınavı Sil" onclick="window.CompanionOmr.promptDeleteExam('${exam.id}')">
+                          <i data-lucide="trash-2" style="width: 13px; height: 13px; color: #94a3b8;"></i>
+                        </button>
+                      </div>
                     </div>
                     <div class="c-exam-card-title">${exam.examName}</div>
                     <div class="c-exam-meta-pill">${metaText}</div>
@@ -364,9 +372,14 @@
               <span style="font-size: 11px; color: #93c5fd;">${weekLabel} • ${exam.totalQuestions} Soru ${isMulti ? '• Çok Dersli' : ''}</span>
             </div>
           </div>
-          <button type="button" class="c-icon-btn" title="Cevap Anahtarı" onclick="window.CompanionOmr.openKeyEditor('${exam.id}')">
-            <i data-lucide="key" style="width: 18px; height: 18px; color: #93c5fd;"></i>
-          </button>
+          <div style="display: flex; gap: 6px;">
+            <button type="button" class="c-icon-btn" title="Optik Form Yazdır" onclick="window.CompanionOmr.openMobileOpticalPrintModal('${exam.id}')">
+              <i data-lucide="printer" style="width: 18px; height: 18px; color: #34d399;"></i>
+            </button>
+            <button type="button" class="c-icon-btn" title="Optik Form & Cevap Anahtarını Düzenle" onclick="window.CompanionOmr.openExamSettingsModal('${exam.id}')">
+              <i data-lucide="sliders-horizontal" style="width: 18px; height: 18px; color: #93c5fd;"></i>
+            </button>
+          </div>
         </div>
 
         <!-- Sınav Detay Bilgi Kartı -->
@@ -395,6 +408,18 @@
           </div>
           <div class="c-omr-progress-bar" style="height: 8px; border-radius: 999px;">
             <div class="c-omr-progress-fill" style="width: ${percent}%;"></div>
+          </div>
+
+          <!-- Hızlı Optik Müdahale & Yazdırma Çubuğu -->
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; padding-top: 10px; border-top: 1px solid #e2e8f0;">
+            <button type="button" class="c-btn-secondary" style="font-size: 11px; padding: 7px 8px; justify-content: center; font-weight: 700; color: #4f46e5; border-color: #c7d2fe; background: #eef2ff;" onclick="window.CompanionOmr.openExamSettingsModal('${exam.id}')">
+              <i data-lucide="sliders-horizontal" style="width: 14px; height: 14px;"></i>
+              <span>Optik & Anahtar</span>
+            </button>
+            <button type="button" class="c-btn-secondary" style="font-size: 11px; padding: 7px 8px; justify-content: center; font-weight: 700; color: #059669; border-color: #a7f3d0; background: #ecfdf5;" onclick="window.CompanionOmr.openMobileOpticalPrintModal('${exam.id}')">
+              <i data-lucide="printer" style="width: 14px; height: 14px;"></i>
+              <span>Optik Form Yazdır</span>
+            </button>
           </div>
         </div>
 
@@ -1398,6 +1423,9 @@
       } catch (e) {
         console.error('Manuel çekim hatası:', e);
         this.isProcessingFrame = false;
+        guideBox && guideBox.classList.remove('locked');
+        statusPill && statusPill.classList.remove('success');
+        if (statusText) statusText.textContent = 'Optik formu kılavuza oturtun';
         if (window.Companion) window.Companion.showToast('Görüntü okunamadı: Formu kılavuza oturtup tekrar deneyin.');
       }
     },
@@ -1502,6 +1530,12 @@
         }
       } else {
         playNoticeBeep();
+        const guideBox = document.getElementById('omr-guide-box');
+        const statusPill = document.getElementById('omr-status-pill');
+        const statusText = document.getElementById('omr-status-text');
+        guideBox && guideBox.classList.remove('locked');
+        statusPill && statusPill.classList.remove('success');
+        if (statusText) statusText.textContent = 'Optik formu kılavuza oturtun';
         if (window.Companion) {
           window.Companion.vibrate(50);
           window.Companion.showToast('Optik form algılanamadı. Formu kılavuza oturtun.');
@@ -1929,6 +1963,1350 @@
 
       this.renderHub();
       if (window.Companion) window.Companion.showToast('Cevap anahtarı kaydedildi!');
+    },
+
+    // ==========================================================================
+    // OPTİK FORM VE CEVAP ANAHTARI MÜDAHALE (KAYITLI / MASAÜSTÜ SINAVLAR)
+    // ==========================================================================
+
+    openExamSettingsModal(examId) {
+      const data = this.getData();
+      const exam = (data.weeklyEvaluations || []).find(e => String(e.id) === String(examId)) || this.activeExam;
+      if (!exam) return;
+
+      const modal = document.getElementById('companion-exam-settings-modal');
+      if (!modal) return;
+
+      const isMulti = !!(exam.isMultiSubject && Array.isArray(exam.subjects) && exam.subjects.length > 0);
+      
+      this.settingsState = {
+        examId: exam.id,
+        examName: exam.examName || '',
+        branch: exam.branch || '',
+        weekId: exam.weekId || 'W4',
+        duration: exam.duration || 40,
+        wrongAffects: !!exam.wrongAffects,
+        penaltyRate: exam.penaltyRate || 4,
+        choicesCount: exam.choicesCount || 4,
+        isMultiSubject: isMulti,
+        subjects: isMulti ? JSON.parse(JSON.stringify(exam.subjects)) : [],
+        activeSubjId: isMulti ? (exam.subjects[0]?.id || 'sub_0') : null,
+        totalQuestions: exam.totalQuestions || 20,
+        answerKey: { ...(exam.answerKey || {}) }
+      };
+
+      const idInput = document.getElementById('settings-exam-id');
+      if (idInput) idInput.value = exam.id;
+
+      const nameInput = document.getElementById('settings-exam-name');
+      if (nameInput) nameInput.value = this.settingsState.examName;
+
+      const durInput = document.getElementById('settings-exam-duration');
+      if (durInput) durInput.value = this.settingsState.duration;
+
+      // Şube ve Hafta
+      const isClassTeacher = (window.Companion && typeof window.Companion.isClassTeacher === 'function' && window.Companion.isClassTeacher()) ||
+                             (window.Companion && window.Companion.profile && (window.Companion.profile.isClassTeacher || (window.Companion.profile.branch && window.Companion.profile.branch.includes('Sınıf Öğretmeni')))) ||
+                             (this.getData().educationLevel === 'primary');
+
+      const branchGroup = document.getElementById('settings-branch-group');
+      const branchWeekRow = document.getElementById('settings-branch-week-row');
+
+      if (isClassTeacher) {
+        if (branchGroup) branchGroup.style.display = 'none';
+        if (branchWeekRow) branchWeekRow.style.gridTemplateColumns = '1fr';
+      } else {
+        if (branchGroup) branchGroup.style.display = 'block';
+        if (branchWeekRow) branchWeekRow.style.gridTemplateColumns = '1fr 1.5fr';
+
+        const sectionSelect = document.getElementById('settings-exam-section');
+        if (sectionSelect) {
+          const sections = (window.Companion && window.Companion.profile && window.Companion.profile.sections) || ['5-A', '6-A', '7-A', '8-A'];
+          sectionSelect.innerHTML = sections.map(s => `
+            <option value="${s}" ${s === this.settingsState.branch ? 'selected' : ''}>${s} Şubesi</option>
+          `).join('');
+        }
+      }
+
+      const weekSelect = document.getElementById('settings-exam-week');
+      if (weekSelect) {
+        weekSelect.innerHTML = '';
+        for (let w = 1; w <= 36; w++) {
+          const opt = document.createElement('option');
+          opt.value = `W${w}`;
+          opt.textContent = `${w}. Hafta`;
+          if (`W${w}` === this.settingsState.weekId || w === parseInt(String(this.settingsState.weekId).replace('W', ''), 10)) {
+            opt.selected = true;
+          }
+          weekSelect.appendChild(opt);
+        }
+      }
+
+      // Soru Sayısı ve Branşlar
+      const singleGroup = document.getElementById('settings-single-q-group');
+      const multiContainer = document.getElementById('settings-multi-container');
+      const qInput = document.getElementById('settings-exam-questions');
+
+      if (isMulti) {
+        if (singleGroup) singleGroup.style.display = 'none';
+        if (multiContainer) multiContainer.style.display = 'block';
+        this.settingsRenderSubjectsUI();
+      } else {
+        if (singleGroup) singleGroup.style.display = 'block';
+        if (multiContainer) multiContainer.style.display = 'none';
+        if (qInput) qInput.value = this.settingsState.totalQuestions;
+      }
+
+      // Net Hesabı
+      const wrongAffCheck = document.getElementById('settings-wrong-affects');
+      if (wrongAffCheck) wrongAffCheck.checked = this.settingsState.wrongAffects;
+      const penaltyRow = document.getElementById('settings-penalty-row');
+      if (penaltyRow) penaltyRow.style.display = this.settingsState.wrongAffects ? 'block' : 'none';
+      const penaltySelect = document.getElementById('settings-penalty-rate');
+      if (penaltySelect) penaltySelect.value = String(this.settingsState.penaltyRate || 4);
+
+      // Şık Sayısı
+      this.settingsSelectChoicesCount(this.settingsState.choicesCount);
+
+      // Taranan öğrenci varsa uyarı göster
+      const scannedNotice = document.getElementById('settings-recalculate-notice');
+      const scannedCount = Object.keys(exam.studentResults || {}).length;
+      if (scannedNotice) scannedNotice.style.display = scannedCount > 0 ? 'block' : 'none';
+
+      // Alt Başlık
+      const subTitle = document.getElementById('settings-modal-subtitle');
+      if (subTitle) subTitle.textContent = `${exam.examName} (${isMulti ? 'Çok Branşlı' : `${this.settingsState.totalQuestions} Soru`})`;
+
+      modal.style.display = 'flex';
+      if (window.Companion) window.Companion.renderIcons();
+    },
+
+    closeExamSettingsModal() {
+      const modal = document.getElementById('companion-exam-settings-modal');
+      if (modal) modal.style.display = 'none';
+    },
+
+    settingsSelectChoicesCount(count) {
+      if (!this.settingsState) return;
+      this.settingsState.choicesCount = count;
+      [3, 4, 5].forEach(c => {
+        const pill = document.getElementById(`settings-pill-opt-${c}`);
+        if (pill) pill.classList.toggle('active', c === count);
+      });
+      this.settingsRenderAnswerKeyGrid();
+    },
+
+    settingsOnSingleQChange(val) {
+      if (!this.settingsState) return;
+      this.settingsState.totalQuestions = Math.max(1, parseInt(val, 10) || 1);
+      this.settingsRenderAnswerKeyGrid();
+    },
+
+    settingsAddSubject() {
+      if (!this.settingsState) return;
+      const newId = 'sub_' + Date.now();
+      if (!Array.isArray(this.settingsState.subjects)) this.settingsState.subjects = [];
+      this.settingsState.subjects.push({ id: newId, name: 'Yeni Ders', questionCount: 10 });
+      this.settingsState.activeSubjId = newId;
+      this.settingsRenderSubjectsUI();
+      this.settingsRenderAnswerKeyGrid();
+    },
+
+    settingsRemoveSubject(subjId) {
+      if (!this.settingsState || !Array.isArray(this.settingsState.subjects)) return;
+      if (this.settingsState.subjects.length <= 1) {
+        if (window.Companion) window.Companion.showToast('En az 1 ders bulunmalıdır.');
+        return;
+      }
+      this.settingsState.subjects = this.settingsState.subjects.filter(s => s.id !== subjId);
+      this.settingsState.activeSubjId = this.settingsState.subjects[0].id;
+      this.settingsRenderSubjectsUI();
+      this.settingsRenderAnswerKeyGrid();
+    },
+
+    settingsUpdateSubject(subjId, field, val) {
+      if (!this.settingsState || !Array.isArray(this.settingsState.subjects)) return;
+      const s = this.settingsState.subjects.find(x => x.id === subjId);
+      if (s) {
+        if (field === 'questionCount') s.questionCount = Math.max(1, parseInt(val, 10) || 1);
+        else s.name = String(val).trim() || 'Ders';
+      }
+      this.settingsRenderSubjectsUI(false);
+      this.settingsRenderAnswerKeyGrid();
+    },
+
+    settingsRenderSubjectsUI(rebuild = true) {
+      if (!this.settingsState) return;
+      const container = document.getElementById('settings-subjects-list');
+      const badge = document.getElementById('settings-multi-total-badge');
+      const total = (this.settingsState.subjects || []).reduce((sum, s) => sum + (parseInt(s.questionCount, 10) || 0), 0);
+
+      if (badge) badge.textContent = `Toplam: ${total} Soru`;
+      if (!container || !rebuild) return;
+
+      container.innerHTML = (this.settingsState.subjects || []).map((subj, idx) => `
+        <div style="display: flex; align-items: center; gap: 6px; background: #ffffff; padding: 6px 8px; border-radius: 8px; border: 1px solid #e2e8f0;">
+          <span style="font-size: 11px; font-weight: 800; color: #94a3b8; min-width: 16px;">${idx + 1}.</span>
+          <input type="text" class="c-input" value="${subj.name}" placeholder="Ders Adı" style="flex: 1; height: 30px; font-size: 12px; padding: 4px 8px;" onchange="window.CompanionOmr.settingsUpdateSubject('${subj.id}', 'name', this.value)" />
+          <input type="number" class="c-input" min="1" max="50" value="${subj.questionCount}" style="width: 60px; height: 30px; font-size: 12px; padding: 4px 6px; text-align: center;" onchange="window.CompanionOmr.settingsUpdateSubject('${subj.id}', 'questionCount', this.value)" />
+          <button type="button" class="c-icon-btn" style="width: 28px; height: 28px; padding: 0; color: #ef4444;" onclick="window.CompanionOmr.settingsRemoveSubject('${subj.id}')">
+            <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i>
+          </button>
+        </div>
+      `).join('');
+
+      if (window.Companion) window.Companion.renderIcons();
+    },
+
+    settingsRenderAnswerKeyGrid() {
+      if (!this.settingsState) return;
+      const grid = document.getElementById('settings-answer-key-grid');
+      const tabs = document.getElementById('settings-key-subj-tabs');
+      if (!grid) return;
+
+      const choicesCount = this.settingsState.choicesCount || 4;
+      const letters = ['A', 'B', 'C', 'D', 'E'].slice(0, choicesCount);
+
+      if (this.settingsState.isMultiSubject) {
+        if (tabs) {
+          tabs.style.display = 'flex';
+          tabs.innerHTML = (this.settingsState.subjects || []).map(s => `
+            <button type="button" class="c-subject-pill ${s.id === this.settingsState.activeSubjId ? 'active' : ''}" style="cursor: pointer;" onclick="window.CompanionOmr.settingsSelectSubjTab('${s.id}')">
+              📚 ${s.name} (${s.questionCount}S)
+            </button>
+          `).join('');
+        }
+
+        const currentSubj = (this.settingsState.subjects || []).find(s => s.id === this.settingsState.activeSubjId) || this.settingsState.subjects[0];
+        if (!currentSubj) return;
+
+        let cumulativeOffset = 0;
+        for (const s of (this.settingsState.subjects || [])) {
+          if (s.id === currentSubj.id) break;
+          cumulativeOffset += (s.questionCount || 0);
+        }
+
+        const count = currentSubj.questionCount || 10;
+        grid.innerHTML = Array.from({ length: count }, (_, i) => i + 1).map(q => {
+          const globalQ = cumulativeOffset + q;
+          const key = `${currentSubj.id}_${q}`;
+          const sel = this.settingsState.answerKey[key] || this.settingsState.answerKey[`${currentSubj.name}_${q}`] || this.settingsState.answerKey[globalQ] || '';
+          return `
+            <div class="c-ak-row">
+              <span class="c-ak-q-num">S.${q}</span>
+              <div class="c-ak-bubbles">
+                ${letters.map(letter => `
+                  <button type="button" class="c-ak-bubble-btn ${sel === letter ? 'active' : ''}" onclick="window.CompanionOmr.settingsSetAnswer('${key}', '${letter}')">
+                    ${letter}
+                  </button>
+                `).join('')}
+              </div>
+            </div>
+          `;
+        }).join('');
+      } else {
+        if (tabs) tabs.style.display = 'none';
+        const count = this.settingsState.totalQuestions || 20;
+
+        grid.innerHTML = Array.from({ length: count }, (_, i) => i + 1).map(q => {
+          const sel = this.settingsState.answerKey[q] || '';
+          return `
+            <div class="c-ak-row">
+              <span class="c-ak-q-num">S.${q}</span>
+              <div class="c-ak-bubbles">
+                ${letters.map(letter => `
+                  <button type="button" class="c-ak-bubble-btn ${sel === letter ? 'active' : ''}" onclick="window.CompanionOmr.settingsSetAnswer(${q}, '${letter}')">
+                    ${letter}
+                  </button>
+                `).join('')}
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+    },
+
+    settingsSelectSubjTab(subjId) {
+      if (!this.settingsState) return;
+      this.settingsState.activeSubjId = subjId;
+      this.settingsRenderAnswerKeyGrid();
+    },
+
+    settingsSetAnswer(qKey, letter) {
+      if (!this.settingsState) return;
+      if (this.settingsState.answerKey[qKey] === letter) {
+        delete this.settingsState.answerKey[qKey];
+      } else {
+        this.settingsState.answerKey[qKey] = letter;
+      }
+
+      if (this.settingsState.isMultiSubject) {
+        const currentSubj = (this.settingsState.subjects || []).find(s => s.id === this.settingsState.activeSubjId);
+        if (currentSubj) {
+          let cumulativeOffset = 0;
+          for (const s of (this.settingsState.subjects || [])) {
+            if (s.id === this.settingsState.activeSubjId) break;
+            cumulativeOffset += (s.questionCount || 0);
+          }
+          const m = String(qKey).match(/_(\d+)$/);
+          if (m) {
+            const qNum = parseInt(m[1], 10);
+            const globalQ = cumulativeOffset + qNum;
+            if (this.settingsState.answerKey[qKey]) {
+              this.settingsState.answerKey[`${currentSubj.name}_${qNum}`] = letter;
+              this.settingsState.answerKey[globalQ] = letter;
+            } else {
+              delete this.settingsState.answerKey[`${currentSubj.name}_${qNum}`];
+              delete this.settingsState.answerKey[globalQ];
+            }
+          }
+        }
+      }
+
+      this.settingsRenderAnswerKeyGrid();
+      if (window.Companion) window.Companion.vibrate(10);
+    },
+
+    settingsFillSampleKey() {
+      if (!this.settingsState) return;
+      const letters = ['A', 'B', 'C', 'D', 'E'].slice(0, this.settingsState.choicesCount || 4);
+      if (this.settingsState.isMultiSubject) {
+        let globalCursor = 1;
+        (this.settingsState.subjects || []).forEach(s => {
+          for (let q = 1; q <= s.questionCount; q++) {
+            const ans = letters[(globalCursor * 3) % letters.length];
+            this.settingsState.answerKey[`${s.id}_${q}`] = ans;
+            this.settingsState.answerKey[`${s.name}_${q}`] = ans;
+            this.settingsState.answerKey[globalCursor] = ans;
+            globalCursor++;
+          }
+        });
+      } else {
+        const count = this.settingsState.totalQuestions || 20;
+        for (let q = 1; q <= count; q++) {
+          this.settingsState.answerKey[q] = letters[(q * 3) % letters.length];
+        }
+      }
+      this.settingsRenderAnswerKeyGrid();
+      if (window.Companion) window.Companion.showToast('Örnek cevap anahtarı dolduruldu.');
+    },
+
+    settingsClearKey() {
+      if (!this.settingsState) return;
+      this.settingsState.answerKey = {};
+      this.settingsRenderAnswerKeyGrid();
+      if (window.Companion) window.Companion.showToast('Cevap anahtarı temizlendi.');
+    },
+
+    settingsToggleTextBox() {
+      const box = document.getElementById('settings-key-text-box');
+      if (box) box.style.display = (box.style.display === 'none') ? 'block' : 'none';
+    },
+
+    settingsApplyTextKey() {
+      if (!this.settingsState) return;
+      const txtInput = document.getElementById('settings-key-text-input');
+      const text = txtInput ? txtInput.value.trim().toUpperCase() : '';
+      if (!text) return;
+
+      const pairs = text.match(/(\d+)\s*[:.\-\s]\s*([A-E])/gi) || text.match(/(\d+)([A-E])/gi);
+      if (pairs) {
+        pairs.forEach(p => {
+          const m = p.match(/(\d+)[^A-E]*([A-E])/i);
+          if (m) {
+            const q = parseInt(m[1], 10);
+            const ans = m[2].toUpperCase();
+            if (this.settingsState.isMultiSubject) {
+              const activeSubj = (this.settingsState.subjects || []).find(s => s.id === this.settingsState.activeSubjId);
+              let cumulativeOffset = 0;
+              for (const s of (this.settingsState.subjects || [])) {
+                if (s.id === this.settingsState.activeSubjId) break;
+                cumulativeOffset += (s.questionCount || 0);
+              }
+              const globalQ = cumulativeOffset + q;
+              this.settingsState.answerKey[`${this.settingsState.activeSubjId}_${q}`] = ans;
+              if (activeSubj && activeSubj.name) {
+                this.settingsState.answerKey[`${activeSubj.name}_${q}`] = ans;
+              }
+              this.settingsState.answerKey[globalQ] = ans;
+            } else {
+              this.settingsState.answerKey[q] = ans;
+            }
+          }
+        });
+      }
+      this.settingsRenderAnswerKeyGrid();
+      const box = document.getElementById('settings-key-text-box');
+      if (box) box.style.display = 'none';
+      if (window.Companion) window.Companion.showToast('Cevap anahtarı uygulandı.');
+    },
+
+    async submitExamSettingsForm() {
+      if (!this.settingsState) return;
+      const nameInput = document.getElementById('settings-exam-name');
+      const name = nameInput ? nameInput.value.trim() : '';
+      if (!name) {
+        if (window.Companion) window.Companion.showToast('Lütfen sınav adını girin.');
+        return;
+      }
+
+      const durInput = document.getElementById('settings-exam-duration');
+      const duration = parseInt(durInput ? durInput.value : 40, 10) || 40;
+
+      const sectionSelect = document.getElementById('settings-exam-section');
+      const branch = sectionSelect && sectionSelect.value ? sectionSelect.value : this.settingsState.branch;
+
+      const weekSelect = document.getElementById('settings-exam-week');
+      const week = weekSelect && weekSelect.value ? weekSelect.value : this.settingsState.weekId;
+
+      const wrongAffCheck = document.getElementById('settings-wrong-affects');
+      const wrongAffects = wrongAffCheck ? wrongAffCheck.checked : false;
+
+      const penaltySelect = document.getElementById('settings-penalty-rate');
+      const penaltyRate = wrongAffects ? (parseInt(penaltySelect ? penaltySelect.value : 4, 10) || 4) : 0;
+
+      const isMulti = this.settingsState.isMultiSubject;
+      let totalQ = 20;
+      let subjects = [];
+
+      if (isMulti) {
+        subjects = (this.settingsState.subjects || []).map(s => ({
+          id: s.id,
+          name: s.name,
+          questionCount: s.questionCount,
+          answerKey: {}
+        }));
+        totalQ = subjects.reduce((sum, s) => sum + s.questionCount, 0);
+
+        let cumulative = 0;
+        subjects.forEach(s => {
+          s.answerKey = {};
+          for (let qi = 1; qi <= s.questionCount; qi++) {
+            const globalQ = cumulative + qi;
+            const val = this.settingsState.answerKey[`${s.id}_${qi}`] || this.settingsState.answerKey[`${s.name}_${qi}`] || this.settingsState.answerKey[globalQ];
+            if (val) {
+              s.answerKey[qi] = val;
+              this.settingsState.answerKey[`${s.id}_${qi}`] = val;
+              this.settingsState.answerKey[`${s.name}_${qi}`] = val;
+              this.settingsState.answerKey[globalQ] = val;
+            }
+          }
+          cumulative += s.questionCount;
+        });
+      } else {
+        const qInput = document.getElementById('settings-exam-questions');
+        totalQ = parseInt(qInput ? qInput.value : (this.settingsState.totalQuestions || 20), 10) || 20;
+      }
+
+      const data = this.getData();
+      const exam = (data.weeklyEvaluations || []).find(e => String(e.id) === String(this.settingsState.examId));
+      if (!exam) {
+        if (window.Companion) window.Companion.showToast('Sınav bulunamadı.');
+        return;
+      }
+
+      // Bilgileri güncelle
+      exam.examName = name;
+      exam.duration = duration;
+      if (branch) exam.branch = branch;
+      if (week) exam.weekId = week;
+      exam.wrongAffects = wrongAffects;
+      exam.penaltyRate = penaltyRate;
+      exam.choicesCount = this.settingsState.choicesCount || 4;
+      exam.totalQuestions = totalQ;
+      exam.isMultiSubject = isMulti;
+      if (isMulti) exam.subjects = subjects;
+      exam.answerKey = { ...this.settingsState.answerKey };
+      exam.updatedAt = new Date().toISOString();
+
+      // Önceden taranmış öğrenci sonuçlarını otomatik yeniden puanla!
+      const rescoredCount = this.recalculateExamResults(exam);
+
+      // Veritabanına kaydet
+      this.saveData(data);
+      this.activeExam = exam;
+
+      // Buluta fırlat
+      if (window.CloudSync) {
+        window.CloudSync.pushExam(exam).catch(() => {});
+        window.CloudSync.pushLiveExamResults(exam, 'terminal').catch(() => {});
+      }
+
+      this.closeExamSettingsModal();
+      this.renderHub();
+
+      const toastMsg = rescoredCount > 0 
+        ? `✅ Optik form ve cevap anahtarı güncellendi! (${rescoredCount} öğrenci yeniden puanlandı)`
+        : `✅ Sınav ve cevap anahtarı başarıyla güncellendi!`;
+      if (window.Companion) window.Companion.showToast(toastMsg, 'success');
+    },
+
+    recalculateExamResults(exam) {
+      if (!exam || !exam.studentResults) return 0;
+      const studentIds = Object.keys(exam.studentResults);
+      if (studentIds.length === 0) return 0;
+
+      const totalQ = exam.totalQuestions || 20;
+      const penaltyRate = exam.wrongAffects ? (exam.penaltyRate || 4) : 0;
+      const answerKey = exam.answerKey || {};
+      const isMulti = !!(exam.isMultiSubject && Array.isArray(exam.subjects) && exam.subjects.length > 0);
+
+      if (!exam.examScores) exam.examScores = {};
+
+      studentIds.forEach(stuId => {
+        const res = exam.studentResults[stuId];
+        if (!res) return;
+        const answers = res.answers || {};
+
+        let correctCount = 0;
+        let wrongCount = 0;
+        let blankCount = 0;
+        const questionDetails = [];
+        const subjectBreakdown = {};
+
+        if (isMulti) {
+          let cumulativeOffset = 0;
+          exam.subjects.forEach(subj => {
+            let sCorrect = 0;
+            let sWrong = 0;
+            let sBlank = 0;
+            const count = subj.questionCount || 10;
+
+            for (let qi = 1; qi <= count; qi++) {
+              const globalQ = cumulativeOffset + qi;
+              const marked = answers[globalQ] || answers[`${subj.id}_${qi}`] || answers[`${subj.name}_${qi}`] || '';
+              const correctAns = answerKey[globalQ] || answerKey[`${subj.id}_${qi}`] || answerKey[`${subj.name}_${qi}`] || (subj.answerKey && subj.answerKey[qi]) || '';
+
+              const qd = {
+                q: globalQ,
+                subjId: subj.id,
+                subjName: subj.name,
+                subjQ: qi,
+                marked: marked,
+                keyAnswer: correctAns
+              };
+
+              if (!marked) {
+                blankCount++;
+                sBlank++;
+                qd.isBlank = true;
+                qd.isCorrect = false;
+              } else if (correctAns && marked === correctAns) {
+                correctCount++;
+                sCorrect++;
+                qd.isBlank = false;
+                qd.isCorrect = true;
+              } else {
+                wrongCount++;
+                sWrong++;
+                qd.isBlank = false;
+                qd.isCorrect = false;
+              }
+              questionDetails.push(qd);
+            }
+
+            const sNet = penaltyRate > 0 ? (sCorrect - (sWrong / penaltyRate)) : sCorrect;
+            const sScore = count > 0 ? parseFloat(((Math.max(0, sNet) / count) * 100).toFixed(1)) : 0;
+
+            subjectBreakdown[subj.id] = {
+              subjectId: subj.id,
+              subjectName: subj.name,
+              totalQuestions: count,
+              correct: sCorrect,
+              wrong: sWrong,
+              blank: sBlank,
+              net: Math.max(0, parseFloat(sNet.toFixed(2))),
+              score: sScore
+            };
+
+            cumulativeOffset += count;
+          });
+        } else {
+          for (let q = 1; q <= totalQ; q++) {
+            const marked = answers[q] || '';
+            const correctAns = answerKey[q] || '';
+            const qd = {
+              q: q,
+              marked: marked,
+              keyAnswer: correctAns
+            };
+
+            if (!marked) {
+              blankCount++;
+              qd.isBlank = true;
+              qd.isCorrect = false;
+            } else if (correctAns && marked === correctAns) {
+              correctCount++;
+              qd.isBlank = false;
+              qd.isCorrect = true;
+            } else {
+              wrongCount++;
+              qd.isBlank = false;
+              qd.isCorrect = false;
+            }
+            questionDetails.push(qd);
+          }
+        }
+
+        let net = penaltyRate > 0 ? (correctCount - (wrongCount / penaltyRate)) : correctCount;
+        net = Math.max(0, parseFloat(net.toFixed(2)));
+        const score = totalQ > 0 ? parseFloat(((net / totalQ) * 100).toFixed(1)) : 0;
+
+        res.correct = correctCount;
+        res.wrong = wrongCount;
+        res.blank = blankCount;
+        res.net = net;
+        res.score = score;
+        res.questionDetails = questionDetails;
+        if (isMulti) res.subjectBreakdown = subjectBreakdown;
+        res.updatedAt = new Date().toISOString();
+
+        exam.examScores[stuId] = score;
+      });
+
+      return studentIds.length;
+    },
+
+    // ==========================================================================
+    // MOBİL OPTİK FORM YAZDIRMA (TELEFONDAN YAZICIYA GÖNDERME)
+    // ==========================================================================
+
+    openMobileOpticalPrintModal(examId) {
+      const data = this.getData();
+      const exam = (data.weeklyEvaluations || []).find(e => String(e.id) === String(examId)) || this.activeExam;
+      if (!exam) return;
+
+      this.mprintExam = exam;
+      this.mprintType = 'named';
+      this.mprintPerPage = 2;
+
+      const modal = document.getElementById('companion-optical-print-modal');
+      if (!modal) return;
+
+      const badge = document.getElementById('mprint-exam-title-badge');
+      if (badge) badge.textContent = `${exam.examName} (${exam.totalQuestions || 20} Soru)`;
+
+      this.mprintSetType('named');
+      this.mprintSetPerPage(2);
+
+      const studentsListEl = document.getElementById('mprint-students-list');
+      const students = this.getActiveStudents();
+
+      if (studentsListEl) {
+        if (students.length === 0) {
+          studentsListEl.innerHTML = `<div style="font-size: 11.5px; color: #64748b; padding: 8px; text-align: center;">Bu şubede kayıtlı öğrenci bulunmuyor.</div>`;
+        } else {
+          studentsListEl.innerHTML = students.map((s, idx) => `
+            <label style="display: flex; align-items: center; justify-content: space-between; background: #ffffff; padding: 6px 10px; border-radius: 8px; border: 1px solid #e2e8f0; cursor: pointer;">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <input type="checkbox" class="mprint-stu-cb" value="${s.id}" data-index="${idx + 1}" checked onchange="window.CompanionOmr.mprintUpdateSummary()" style="width: 16px; height: 16px; cursor: pointer;" />
+                <span style="font-size: 12px; font-weight: 700; color: #1e293b;">${s.number ? s.number + ' - ' : ''}${s.name} ${s.surname || ''}</span>
+              </div>
+              <span style="font-size: 10.5px; color: #64748b; font-family: monospace;">ID:#${idx + 1}</span>
+            </label>
+          `).join('');
+        }
+      }
+
+      this.mprintUpdateSummary();
+      modal.style.display = 'flex';
+      if (window.Companion) window.Companion.renderIcons();
+    },
+
+    closeMobileOpticalPrintModal() {
+      const modal = document.getElementById('companion-optical-print-modal');
+      if (modal) modal.style.display = 'none';
+    },
+
+    mprintSetType(type) {
+      this.mprintType = type;
+      const namedBtn = document.getElementById('mprint-type-named');
+      const blankBtn = document.getElementById('mprint-type-blank');
+      const stuGroup = document.getElementById('mprint-students-group');
+      const blankGroup = document.getElementById('mprint-blank-count-group');
+
+      if (type === 'blank') {
+        namedBtn && namedBtn.classList.remove('active');
+        blankBtn && blankBtn.classList.add('active');
+        if (stuGroup) stuGroup.style.display = 'none';
+        if (blankGroup) blankGroup.style.display = 'block';
+      } else {
+        namedBtn && namedBtn.classList.add('active');
+        blankBtn && blankBtn.classList.remove('active');
+        if (stuGroup) stuGroup.style.display = 'block';
+        if (blankGroup) blankGroup.style.display = 'none';
+      }
+
+      this.mprintUpdateSummary();
+    },
+
+    mprintSetPerPage(perPage) {
+      this.mprintPerPage = perPage;
+      [1, 2, 4].forEach(p => {
+        const pill = document.getElementById(`mprint-perpage-${p}`);
+        if (pill) pill.classList.toggle('active', p === perPage);
+      });
+      this.mprintUpdateSummary();
+    },
+
+    mprintToggleAllStudents(select) {
+      const cbs = document.querySelectorAll('.mprint-stu-cb');
+      cbs.forEach(cb => { cb.checked = select; });
+      this.mprintUpdateSummary();
+    },
+
+    mprintUpdateSummary() {
+      const summaryText = document.getElementById('mprint-summary-text');
+      if (!summaryText) return;
+
+      const perPage = this.mprintPerPage || 2;
+      let formCount = 0;
+
+      if (this.mprintType === 'blank') {
+        const blankInput = document.getElementById('mprint-blank-count');
+        formCount = parseInt(blankInput ? blankInput.value : 10, 10) || 10;
+      } else {
+        formCount = document.querySelectorAll('.mprint-stu-cb:checked').length;
+      }
+
+      const pageCount = Math.ceil(formCount / perPage);
+      summaryText.textContent = `Toplam ${formCount} adet optik form (${pageCount} sayfa A4 kağıt) yazdırılacak.`;
+    },
+
+    generateOpticalBinaryIdSVG(options) {
+      const { studentIndex = 0, studentId = '', studentNo = '' } = options || {};
+      const idx = parseInt(studentIndex, 10) || 0;
+
+      const bits = [];
+      for (let b = 0; b < 9; b++) {
+        bits.push((idx >> b) & 1);
+      }
+
+      const boxSize = 16;
+      const gap = 4;
+      const padding = 4;
+      const totalW = padding * 2 + boxSize * 3 + gap * 2; // 64
+      const totalH = totalW;
+
+      let rects = '';
+      for (let r = 0; r < 3; r++) {
+        for (let c = 0; c < 3; c++) {
+          const bitIdx = r * 3 + c;
+          const x = padding + c * (boxSize + gap);
+          const y = padding + r * (boxSize + gap);
+          if (bits[bitIdx] === 1) {
+            rects += `<rect x="${x}" y="${y}" width="${boxSize}" height="${boxSize}" fill="#000000" rx="2" />`;
+          } else {
+            rects += `<rect x="${x}" y="${y}" width="${boxSize}" height="${boxSize}" fill="#ffffff" stroke="#000000" stroke-width="2" rx="2" />`;
+          }
+        }
+      }
+
+      let qrSvgHtml = '';
+      const qrcodeFn = (typeof window !== 'undefined' && (window.qrcode || (typeof qrcode === 'function' ? qrcode : null))) || null;
+      if (qrcodeFn && idx > 0) {
+        try {
+          const qr = qrcodeFn(0, 'M');
+          qr.addData(`SA:${idx}:${studentNo || ''}`);
+          qr.make();
+          qrSvgHtml = qr.createSvgTag(2, 0);
+          if (qrSvgHtml) {
+            qrSvgHtml = qrSvgHtml.replace(/width="[^"]*"/, 'width="46"').replace(/height="[^"]*"/, 'height="46"');
+          }
+        } catch (e) {
+          console.warn('Micro-QR üretilemedi:', e);
+        }
+      }
+
+      if (qrSvgHtml) {
+        return `
+          <div class="omr-id-badge omr-dual-id-badge" title="Öğrenci Optik ve QR Kimlik Kodu #${idx}">
+            <div class="omr-binary-strip-wrap" style="background: #ffffff; padding: 2px 5px; display: flex; align-items: center; gap: 6px; border: 2px solid #000000; border-radius: 6px; box-sizing: border-box;">
+              <div style="display: flex; flex-direction: column; align-items: center;">
+                <div style="font-size: 0.48rem; font-weight: 800; color: #000000; letter-spacing: 0.4px; margin-bottom: 1px; text-transform: uppercase;">OMR ID</div>
+                <svg viewBox="0 0 ${totalW} ${totalH}" width="46" height="46" shape-rendering="crispEdges" style="display: block;">
+                  <rect x="1" y="1" width="${totalW - 2}" height="${totalH - 2}" fill="#ffffff" stroke="#000000" stroke-width="2.5" rx="3" />
+                  ${rects}
+                </svg>
+                <div class="omr-id-caption" style="font-size: 0.60rem; font-weight: 800; font-family: monospace; color: #000000; margin-top: 1px;">
+                  ${idx > 0 ? ('ID:#' + idx) : 'ID:---'}
+                </div>
+              </div>
+              <div style="display: flex; flex-direction: column; align-items: center;">
+                <div style="font-size: 0.48rem; font-weight: 800; color: #000000; letter-spacing: 0.4px; margin-bottom: 1px; text-transform: uppercase;">QR KOD</div>
+                <div style="width: 46px; height: 46px; display: flex; align-items: center; justify-content: center; overflow: hidden;">
+                  ${qrSvgHtml}
+                </div>
+                <div class="omr-id-caption" style="font-size: 0.58rem; font-weight: 800; font-family: monospace; color: #000000; margin-top: 1px;">
+                  ${studentNo ? ('NO:' + studentNo) : 'KOD'}
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      return `
+        <div class="omr-id-badge omr-binary-badge" title="Öğrenci Optik Kimlik Kodu #${idx}">
+          <div class="omr-binary-strip-wrap" style="background: #ffffff; padding: 4px 6px; display: flex; flex-direction: column; align-items: center; border: 2px solid #000000; border-radius: 6px; box-sizing: border-box;">
+            <div style="font-size: 0.50rem; font-weight: 800; color: #000000; letter-spacing: 0.5px; margin-bottom: 2px; text-transform: uppercase;">KİMLİK KODU</div>
+            <svg viewBox="0 0 ${totalW} ${totalH}" width="56" height="56" shape-rendering="crispEdges" style="display: block;">
+              <rect x="1" y="1" width="${totalW - 2}" height="${totalH - 2}" fill="#ffffff" stroke="#000000" stroke-width="2.5" rx="3" />
+              ${rects}
+            </svg>
+            <div class="omr-id-caption" style="font-size: 0.65rem; font-weight: 800; font-family: monospace; color: #000000; margin-top: 2px;">
+              ${idx > 0 ? ('ID:#' + idx) : 'ID:---'}
+            </div>
+          </div>
+        </div>
+      `;
+    },
+
+    generateSingleOpticalCardHTML(options) {
+      const {
+        examName = 'Haftalık Değerlendirme',
+        studentName = '................................',
+        studentNo = '......',
+        studentId = '',
+        studentIndex = 0,
+        examId = '',
+        totalQuestions = 20,
+        letters = ['A', 'B', 'C', 'D'],
+        perPage = 2,
+        isMultiSubject = false,
+        subjects = []
+      } = options;
+
+      const qrBadgeHtml = this.generateOpticalBinaryIdSVG({
+        studentIndex,
+        studentId,
+        studentNo,
+        examId: examId || ''
+      });
+
+      if (isMultiSubject && Array.isArray(subjects) && subjects.length > 0) {
+        const cols = Math.min(6, Math.max(2, subjects.length));
+        const maxSubjQ = Math.max(...subjects.map(s => s.questionCount || 0));
+        const isCompact = maxSubjQ > 20 || totalQuestions > 40;
+
+        let subjectsHtml = '';
+        subjects.forEach(subj => {
+          let rowsHtml = '';
+          const count = subj.questionCount || 10;
+          for (let q = 1; q <= count; q++) {
+            rowsHtml += `
+              <div class="omr-q-row" data-subj="${subj.id}" data-q="${q}">
+                <span class="omr-q-num">${q}</span>
+                <div class="omr-q-bubbles">
+                  ${letters.map(l => `<span class="omr-bubble" data-opt="${l}">${l}</span>`).join('')}
+                </div>
+              </div>
+            `;
+          }
+
+          subjectsHtml += `
+            <div class="omr-subject-block">
+              <div class="omr-subject-header">
+                <span class="omr-subject-name" title="${subj.name}">${subj.name}</span>
+                <span class="omr-subject-badge">${count} Soru</span>
+              </div>
+              <div class="omr-subject-rows">
+                ${rowsHtml}
+              </div>
+            </div>
+          `;
+        });
+
+        return `
+          <div class="omr-card omr-multi ${isCompact ? 'compact-rows' : ''}">
+            <div class="omr-anchor omr-anchor-tl"></div>
+            <div class="omr-anchor omr-anchor-tr"></div>
+            <div class="omr-anchor omr-anchor-bl"></div>
+            <div class="omr-anchor omr-anchor-br"></div>
+
+            <div class="omr-card-header">
+              <div class="omr-header-main">
+                <div class="omr-header-title">
+                  ${examName}
+                  <small style="font-size: 0.68rem; font-weight: 700; opacity: 0.85; margin-left: 6px;">(${subjects.map(s => s.name).join(' • ')})</small>
+                </div>
+                <div class="omr-student-info">
+                  <div><strong>Öğrenci:</strong> ${studentName}</div>
+                  <div><strong>No:</strong> ${studentNo}</div>
+                </div>
+              </div>
+              ${qrBadgeHtml}
+            </div>
+
+            <div class="omr-card-body" style="padding: 2px 0;">
+              <div class="omr-multi-subjects-grid cols-${cols}">
+                ${subjectsHtml}
+              </div>
+            </div>
+
+            <div class="omr-card-footer">
+              <span>* Her ders için 1'den başlayan soruları kurşun kalemle doldurunuz.</span>
+              <span>SINIF ASİSTANI</span>
+            </div>
+          </div>
+        `;
+      }
+
+      const cols = totalQuestions <= 15 ? 1 : (totalQuestions <= 30 ? 2 : 3);
+      const questionsPerCol = Math.ceil(totalQuestions / cols);
+
+      let columnsHtml = '';
+      for (let c = 0; c < cols; c++) {
+        const startQ = c * questionsPerCol + 1;
+        const endQ = Math.min((c + 1) * questionsPerCol, totalQuestions);
+
+        let colRows = '';
+        for (let q = startQ; q <= endQ; q++) {
+          colRows += `
+            <div class="omr-q-row" data-q="${q}">
+              <span class="omr-q-num">${q}</span>
+              <div class="omr-q-bubbles">
+                ${letters.map(l => `<span class="omr-bubble" data-opt="${l}">${l}</span>`).join('')}
+              </div>
+            </div>
+          `;
+        }
+
+        columnsHtml += `
+          <div class="omr-grid-col col-${c}">
+            ${colRows}
+          </div>
+        `;
+      }
+
+      return `
+        <div class="omr-card">
+          <div class="omr-anchor omr-anchor-tl"></div>
+          <div class="omr-anchor omr-anchor-tr"></div>
+          <div class="omr-anchor omr-anchor-bl"></div>
+          <div class="omr-anchor omr-anchor-br"></div>
+
+          <div class="omr-card-header">
+            <div class="omr-header-main">
+              <div class="omr-header-title">${examName}</div>
+              <div class="omr-student-info">
+                <div><strong>Öğrenci:</strong> ${studentName}</div>
+                <div><strong>No:</strong> ${studentNo}</div>
+              </div>
+            </div>
+            ${qrBadgeHtml}
+          </div>
+
+          <div class="omr-card-body">
+            <div class="omr-grid-container cols-${cols}">
+              ${columnsHtml}
+            </div>
+          </div>
+
+          <div class="omr-card-footer">
+            <span>* Doğru seçeneği taşırmadan, koyu kurşun kalemle doldurunuz.</span>
+            <span>SINIF ASİSTANI</span>
+          </div>
+        </div>
+      `;
+    },
+
+    buildMobileOpticalPrintDocument(pagesHtml, examTitle = 'Optik_Form') {
+      return `<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${examTitle}</title>
+  <style>
+    @page {
+      size: A4 portrait;
+      margin: 4mm;
+    }
+    * {
+      box-sizing: border-box;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: #ffffff !important;
+      color: #000000 !important;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    }
+    .omr-print-page {
+      display: block;
+      page-break-after: always;
+      break-after: page;
+      page-break-inside: avoid;
+      break-inside: avoid;
+      width: 100%;
+      height: 285mm;
+      max-height: 285mm;
+      box-sizing: border-box;
+      padding: 2mm 3mm;
+      margin: 0 auto;
+      background: #ffffff;
+      overflow: hidden;
+    }
+    .omr-print-page:last-child {
+      page-break-after: auto;
+      break-after: auto;
+    }
+    .omr-print-page.omr-per-page-1 {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      height: 285mm;
+    }
+    .omr-print-page.omr-per-page-1 .omr-card {
+      height: 275mm;
+      max-width: 100%;
+      margin: 0 auto;
+      padding: 14px 18px;
+    }
+    .omr-print-page.omr-per-page-2 {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 4mm;
+      height: 285mm;
+    }
+    .omr-print-page.omr-per-page-2 .omr-card {
+      height: 138mm;
+      max-height: 139mm;
+      max-width: 100%;
+      margin: 0;
+      padding: 8px 12px;
+    }
+    .omr-print-page.omr-per-page-4 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: 139mm 139mm;
+      gap: 3mm;
+      height: 285mm;
+    }
+    .omr-print-page.omr-per-page-4 .omr-card {
+      height: 139mm;
+      max-height: 139mm;
+      max-width: 100%;
+      margin: 0;
+      padding: 6px 8px;
+    }
+    .omr-card {
+      position: relative;
+      background: #ffffff;
+      color: #000000;
+      border: 1.5px solid #000000;
+      border-radius: 6px;
+      box-sizing: border-box;
+      width: 100%;
+      user-select: none;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      page-break-inside: avoid;
+      break-inside: avoid;
+    }
+    .omr-anchor {
+      position: absolute;
+      width: 22px;
+      height: 22px;
+      background-color: #000000 !important;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-sizing: border-box;
+      z-index: 5;
+    }
+    .omr-anchor::before {
+      content: '';
+      display: block;
+      width: 12px;
+      height: 12px;
+      background-color: #ffffff !important;
+      box-sizing: border-box;
+    }
+    .omr-anchor::after {
+      content: '';
+      position: absolute;
+      width: 6px;
+      height: 6px;
+      background-color: #000000 !important;
+      box-sizing: border-box;
+    }
+    .omr-anchor-tl { top: 6px; left: 6px; }
+    .omr-anchor-tr { top: 6px; right: 6px; }
+    .omr-anchor-bl { bottom: 6px; left: 6px; }
+    .omr-anchor-br { bottom: 6px; right: 6px; }
+    .omr-card-header {
+      margin: 2px 28px 4px 28px;
+      border-bottom: 2px solid #000000;
+      padding-bottom: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .omr-header-main {
+      flex: 1;
+      min-width: 0;
+    }
+    .omr-header-title {
+      font-size: 13px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-bottom: 2px;
+    }
+    .omr-student-info {
+      display: flex;
+      gap: 14px;
+      font-size: 11px;
+    }
+    .omr-card-body {
+      margin: 0 28px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+    .omr-grid-container {
+      display: grid;
+      gap: 16px;
+      width: 100%;
+    }
+    .omr-grid-container.cols-1 { grid-template-columns: 1fr; }
+    .omr-grid-container.cols-2 { grid-template-columns: 1fr 1fr; }
+    .omr-grid-container.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+    .omr-grid-col {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .omr-q-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      height: 20px;
+    }
+    .omr-q-num {
+      width: 22px;
+      font-size: 11px;
+      font-weight: 700;
+      font-family: monospace;
+      text-align: right;
+    }
+    .omr-q-bubbles {
+      display: flex;
+      gap: 4px;
+    }
+    .omr-bubble {
+      width: 18px;
+      height: 18px;
+      border: 1.5px solid #000000;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: 800;
+      background: #ffffff;
+      color: #000000;
+    }
+    .omr-multi-subjects-grid {
+      display: grid;
+      gap: 8px;
+      width: 100%;
+    }
+    .omr-multi-subjects-grid.cols-2 { grid-template-columns: 1fr 1fr; }
+    .omr-multi-subjects-grid.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+    .omr-multi-subjects-grid.cols-4 { grid-template-columns: repeat(4, 1fr); }
+    .omr-multi-subjects-grid.cols-5 { grid-template-columns: repeat(5, 1fr); }
+    .omr-multi-subjects-grid.cols-6 { grid-template-columns: repeat(6, 1fr); }
+    .omr-subject-block {
+      border: 1px solid #000000;
+      border-radius: 4px;
+      padding: 4px;
+      background: #fafafa;
+    }
+    .omr-subject-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #000000;
+      padding-bottom: 2px;
+      margin-bottom: 4px;
+      font-size: 10px;
+      font-weight: 800;
+    }
+    .omr-subject-name {
+      text-transform: uppercase;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .omr-subject-badge {
+      font-size: 9px;
+      opacity: 0.8;
+    }
+    .omr-subject-rows {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5px;
+    }
+    .omr-card-footer {
+      margin: 2px 28px 4px 28px;
+      border-top: 1px solid #000000;
+      padding-top: 2px;
+      display: flex;
+      justify-content: space-between;
+      font-size: 8.5px;
+      font-weight: 600;
+      color: #333333;
+    }
+  </style>
+</head>
+<body>
+  ${pagesHtml}
+</body>
+</html>`;
+    },
+
+    executeMobileOpticalPrint() {
+      const exam = this.mprintExam || this.activeExam;
+      if (!exam) return;
+
+      const formType = this.mprintType || 'named';
+      const perPage = this.mprintPerPage || 2;
+      const allStudents = this.getActiveStudents();
+
+      let targetStudents = [];
+      if (formType === 'named') {
+        const checkedBoxes = Array.from(document.querySelectorAll('.mprint-stu-cb:checked'));
+        if (checkedBoxes.length === 0) {
+          if (window.Companion) window.Companion.showToast('Lütfen en az bir öğrenci seçin.');
+          return;
+        }
+        checkedBoxes.forEach(cb => {
+          const s = allStudents.find(st => String(st.id) === String(cb.value));
+          if (s) {
+            const canonicalIdx = allStudents.indexOf(s) + 1;
+            targetStudents.push({
+              studentIndex: canonicalIdx,
+              studentId: s.id,
+              studentNo: s.number || '',
+              studentName: `${s.name} ${s.surname || ''}`.trim()
+            });
+          }
+        });
+      } else {
+        const blankCountInput = document.getElementById('mprint-blank-count');
+        const count = Math.max(1, parseInt(blankCountInput ? blankCountInput.value : 10, 10) || 10);
+        for (let i = 1; i <= count; i++) {
+          targetStudents.push({
+            studentIndex: 0,
+            studentId: '',
+            studentNo: '......',
+            studentName: '................................'
+          });
+        }
+      }
+
+      const choicesCount = exam.choicesCount || 4;
+      const letters = ['A', 'B', 'C', 'D', 'E'].slice(0, choicesCount);
+      const totalQuestions = exam.totalQuestions || 20;
+      const isMultiSubject = !!(exam.isMultiSubject && Array.isArray(exam.subjects) && exam.subjects.length > 0);
+      const subjects = exam.subjects || [];
+
+      let pagesHtml = '';
+      const totalPages = Math.ceil(targetStudents.length / perPage);
+
+      for (let p = 0; p < totalPages; p++) {
+        const pageStudents = targetStudents.slice(p * perPage, (p + 1) * perPage);
+        let pageCardsHtml = '';
+
+        pageStudents.forEach(stu => {
+          pageCardsHtml += this.generateSingleOpticalCardHTML({
+            examName: exam.examName || 'Haftalık Değerlendirme',
+            studentName: stu.studentName,
+            studentNo: stu.studentNo,
+            studentId: stu.studentId,
+            studentIndex: stu.studentIndex,
+            examId: exam.id,
+            totalQuestions: totalQuestions,
+            letters: letters,
+            perPage: perPage,
+            isMultiSubject: isMultiSubject,
+            subjects: subjects
+          });
+        });
+
+        const remainingSlots = perPage - pageStudents.length;
+        for (let r = 0; r < remainingSlots; r++) {
+          pageCardsHtml += `<div class="omr-card omr-card-placeholder" style="visibility: hidden; border: 1.5px dashed transparent;"></div>`;
+        }
+
+        pagesHtml += `<div class="omr-print-page omr-per-page-${perPage}">${pageCardsHtml}</div>`;
+      }
+
+      const fullPrintHtml = this.buildMobileOpticalPrintDocument(pagesHtml, exam.examName || 'Optik_Form');
+
+      this.closeMobileOpticalPrintModal();
+
+      // Android Native Yazıcı Kontrolü
+      if (window.AndroidBridge && typeof window.AndroidBridge.printHtml === 'function') {
+        try {
+          window.AndroidBridge.printHtml(fullPrintHtml, exam.examName || 'Optik_Form');
+          if (window.Companion) window.Companion.showToast('Yazıcı ekranına yönlendiriliyor...', 'success');
+          return;
+        } catch (e) {
+          console.warn('AndroidBridge.printHtml hatası, iframe fallback kullanılıyor:', e);
+        }
+      }
+
+      // Mobil Tarayıcı / PWA / Web Fallback
+      let printFrame = document.getElementById('mobile-omr-print-frame');
+      if (!printFrame) {
+        printFrame = document.createElement('iframe');
+        printFrame.id = 'mobile-omr-print-frame';
+        printFrame.style.position = 'fixed';
+        printFrame.style.right = '0';
+        printFrame.style.bottom = '0';
+        printFrame.style.width = '0';
+        printFrame.style.height = '0';
+        printFrame.style.border = '0';
+        printFrame.style.visibility = 'hidden';
+        document.body.appendChild(printFrame);
+      }
+
+      const frameDoc = printFrame.contentDocument || printFrame.contentWindow.document;
+      frameDoc.open();
+      frameDoc.write(fullPrintHtml);
+      frameDoc.close();
+
+      setTimeout(() => {
+        try {
+          printFrame.contentWindow.focus();
+          printFrame.contentWindow.print();
+        } catch (err) {
+          console.error('Yazdırma tetiklenemedi:', err);
+          const win = window.open('', '_blank');
+          if (win) {
+            win.document.write(fullPrintHtml);
+            win.document.close();
+            win.focus();
+            setTimeout(() => win.print(), 350);
+          }
+        }
+      }, 400);
+
+      if (window.Companion) window.Companion.showToast('Yazdırma sayfası hazırlandı!', 'success');
     }
   };
 

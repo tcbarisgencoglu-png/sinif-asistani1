@@ -295,6 +295,14 @@
       const res = await this.request('GET', `teacher_sync?sync_code=eq.${encodeURIComponent(this.syncCode)}&exam_id=eq.MASTER_STATE&select=*`);
       this.isSyncing = false;
 
+      if (res && res.error) {
+        this.updateSyncUI();
+        const msg = (res.message && (res.message.toLowerCase().includes('fetch') || res.message.toLowerCase().includes('network')))
+          ? 'İnternet bağlantısı kurulamadı. Lütfen telefonunuzun Wi-Fi veya mobil veri bağlantısını açıp tekrar deneyin.'
+          : ('Bulut bağlantı hatası: ' + (res.message || res.status || 'Sunucuya erişilemedi.'));
+        return { success: false, error: msg };
+      }
+
       let masterItem = null;
       if (Array.isArray(res) && res.length > 0) {
         masterItem = res[0].payload;
@@ -303,6 +311,13 @@
       // Eğer MASTER_STATE tek başına bulunamadıysa tüm kayıtları çekip içinden ara
       if (!masterItem) {
         const allRes = await this.request('GET', `teacher_sync?sync_code=eq.${encodeURIComponent(this.syncCode)}&select=*`);
+        if (allRes && allRes.error) {
+          this.updateSyncUI();
+          return {
+            success: false,
+            error: 'İnternet bağlantısı kurulamadı. Lütfen telefonunuzun Wi-Fi veya mobil veri bağlantısını açıp tekrar deneyin.'
+          };
+        }
         if (Array.isArray(allRes)) {
           const match = allRes.find(r => r.exam_id === 'MASTER_STATE');
           if (match) masterItem = match.payload;
@@ -313,7 +328,7 @@
         this.updateSyncUI();
         return {
           success: false,
-          error: 'Bulutta bu eşleşme koduna ait ana veri paketi (MASTER_STATE) bulunamadı. Lütfen masaüstünden "Terminale Gönder" butonuna bastığınızdan emin olun.'
+          error: `Bulutta "${this.syncCode}" eşleşme koduna ait ana veri paketi (MASTER_STATE) bulunamadı. Lütfen masaüstünden "Terminale Gönder" butonuna bastığınızdan emin olun.`
         };
       }
 
