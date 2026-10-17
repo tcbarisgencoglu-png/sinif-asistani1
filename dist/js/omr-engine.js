@@ -825,36 +825,24 @@
       const totalGridW = gridUEnd - gridUStart;
       const slotW = totalGridW / numSubjects;
 
-      // 2. Maksimum soru sayısı (tüm dersler arasındaki en yüksek soru adedi)
-      // Örn: Türkçe 8, Matematik 8, Sosyal 5, Fen 5, İngilizce 6 -> maxQuestions = 8
-      const maxQuestions = Math.max(...examSubjects.map(s => parseInt(s.questionCount, 10) || 0), 1);
+      // 2. Çoklu ders gövde dikey aralığı (0.0 - 1.0 aralığı, dış çerçeve / çapa referanslı)
+      // Üst başlık (Sınav adı, öğrenci adı, QR rozeti) 0.00 - 0.28 aralığını kaplar.
+      // Soru satırları 0.320'de başlar, son soru satırı 0.935'te biter.
+      let vFirstRow = 0.320;
+      let vLastRow = 0.935;
 
-      // 3. Kağıt formatına göre dikey gövde sınırları
-      let bodyTop = 0.125;
-      let bodyBottom = 0.945;
       if (perPage === 1) {
-        bodyTop = 0.110;
-        bodyBottom = 0.955;
+        vFirstRow = 0.280;
+        vLastRow = 0.945;
       } else if (perPage === 4) {
-        bodyTop = 0.140;
-        bodyBottom = 0.925;
+        vFirstRow = 0.340;
+        vLastRow = 0.920;
       }
-      const availH = bodyBottom - bodyTop;
 
-      // 4. Sabit Satır Yüksekliği & Dikey Ortalama (justify-content: center simülasyonu)
-      // HTML'de her soru satırı (~20px + 1.5px gap) A5 kartta ~0.0441 v birimidir.
-      // Soru sayısı çok olduğunda (örn. 20 soru) satırlar sıkışır: (availH - 0.065) / maxQuestions
-      const rowStep = Math.min(0.0441, (availH - 0.065) / Math.max(1, maxQuestions));
-      const tableHeight = 0.060 + (maxQuestions - 1) * rowStep;
-      const verticalCenteringOffset = Math.max(0, (availH - tableHeight) * 0.5);
-
-      // İlk soru satırının merkez V koordinatı (TÜM DERSLER İÇİN ORTAK & YATAYDA HİZALI!)
-      const vFirstRow = bodyTop + verticalCenteringOffset + 0.055;
-
-      // 5. Ders sütunu içindeki şıkların yayılımı (A - B - C - D)
-      // HTML'de .omr-q-num (22px) ve .omr-bubble (18px x 4 + 3x4px gap)
+      // 3. Ders sütunu içindeki şıkların yayılımı (A - B - C - D)
+      // .omr-q-num (22px) ve .omr-bubble (18px x 4)
       const bStartRatio = 0.28;
-      const bEndRatio = letters.length >= 5 ? 0.78 : (letters.length === 3 ? 0.60 : 0.74);
+      const bEndRatio = letters.length >= 5 ? 0.80 : (letters.length === 3 ? 0.62 : 0.76);
       const choiceStepRatio = letters.length > 1 ? ((bEndRatio - bStartRatio) / (letters.length - 1)) : 0;
 
       examSubjects.forEach((subj, sIdx) => {
@@ -867,9 +855,11 @@
         const colWidth = colUEnd - colUStart;
 
         const numQuestions = parseInt(subj.questionCount, 10) || 6;
+        // CSS justify-content: space-between yapısına göre her derste sorular vFirstRow ve vLastRow arasına yayılır
+        const rowStep = numQuestions > 1 ? ((vLastRow - vFirstRow) / (numQuestions - 1)) : 0;
 
         for (let q = 1; q <= numQuestions; q++) {
-          const rowV = vFirstRow + (q - 1) * rowStep;
+          const rowV = numQuestions > 1 ? (vFirstRow + (q - 1) * rowStep) : ((vFirstRow + vLastRow) * 0.5);
           const key = `${subj.id}_${q}`;
 
           // Bu ders sütununa özel lokal kağıt aydınlığı
