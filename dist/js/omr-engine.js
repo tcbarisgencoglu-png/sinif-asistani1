@@ -1617,6 +1617,9 @@
 
     detectedCards.forEach((card, idx) => {
       let matched = null;
+      let rawStudentName = '';
+      let rawStudentNo = '';
+
       // 1. İLK ÖNCELİK: QR KOD (Reed-Solomon Hata Düzeltmeli & %100 Kesin Doğrulama)
       let rawStuId = '';
       let rawStuNo = '';
