@@ -1454,6 +1454,13 @@ function setupWeeklyTab(showToast) {
         if (perPageInput) perPageInput.value = '2';
         if (tipEl) tipEl.style.display = 'none';
       }
+
+      const typeInput = document.getElementById('optical-type-input');
+      if (typeInput) typeInput.value = 'named';
+      const studentsGrp = document.getElementById('optical-students-group');
+      const blankGrp = document.getElementById('optical-blank-count-group');
+      if (studentsGrp) studentsGrp.style.display = 'block';
+      if (blankGrp) blankGrp.style.display = 'none';
       
       try {
         populateOpticalStudentsList();
@@ -1585,10 +1592,27 @@ function setupWeeklyTab(showToast) {
   const opticalCInput = document.getElementById('optical-choices-input');
   const opticalTypeInput = document.getElementById('optical-type-input');
   const opticalPerPageInput = document.getElementById('optical-per-page-input');
+  const opticalBlankCountInput = document.getElementById('optical-blank-count-input');
+
+  const updateOpticalTypeUI = () => {
+    const isBlank = opticalTypeInput && opticalTypeInput.value === 'blank';
+    const studentsGrp = document.getElementById('optical-students-group');
+    const blankGrp = document.getElementById('optical-blank-count-group');
+    if (studentsGrp) studentsGrp.style.display = isBlank ? 'none' : 'block';
+    if (blankGrp) blankGrp.style.display = isBlank ? 'block' : 'none';
+  };
 
   if (opticalQInput) opticalQInput.addEventListener('input', updateOpticalLivePreview);
   if (opticalCInput) opticalCInput.addEventListener('change', updateOpticalLivePreview);
-  if (opticalTypeInput) opticalTypeInput.addEventListener('change', updateOpticalLivePreview);
+  if (opticalTypeInput) {
+    opticalTypeInput.addEventListener('change', () => {
+      updateOpticalTypeUI();
+      updateOpticalLivePreview();
+    });
+  }
+  if (opticalBlankCountInput) {
+    opticalBlankCountInput.addEventListener('input', updateOpticalLivePreview);
+  }
   if (opticalPerPageInput) {
     opticalPerPageInput.addEventListener('change', () => {
       const tipEl = document.getElementById('optical-multi-page-tip');
@@ -1672,69 +1696,34 @@ function setupWeeklyTab(showToast) {
       // Kapat modalı
       if (modalPrintOptical) modalPrintOptical.classList.remove('active');
       
-      // Güvenli ve Tam İzolasyonlu Yazdırma (Tauri, WebKit, WebView2 ve Tüm Tarayıcılarla %100 Uyumlu)
-      const cleanTitle = (activeExam?.examName || 'Optik_Form').replace(/[^a-zA-Z0-9_\u00C0-\u017F-]/g, '_');
-      const docTitle = `${cleanTitle}_${formType === 'named' ? 'Ogrenci_Listeli' : 'Bos'}`;
-      const fullPrintHtml = buildDesktopOpticalPrintDocument(pagesHtml, docTitle);
-
-      let printFrame = document.getElementById('omr-desktop-print-iframe');
-      if (!printFrame) {
-        printFrame = document.createElement('iframe');
-        printFrame.id = 'omr-desktop-print-iframe';
-        printFrame.style.position = 'fixed';
-        printFrame.style.right = '0';
-        printFrame.style.bottom = '0';
-        printFrame.style.width = '0';
-        printFrame.style.height = '0';
-        printFrame.style.border = '0';
-        printFrame.style.visibility = 'hidden';
-        document.body.appendChild(printFrame);
-      }
-
-      try {
-        const printDoc = printFrame.contentDocument || printFrame.contentWindow.document;
-        printDoc.open();
-        printDoc.write(fullPrintHtml);
-        printDoc.close();
-      } catch (err) {
-        console.warn('Iframe yazma hatası, ana sayfa üzerinden yazdırılacak:', err);
-      }
-
+      // Güvenli ve Doğrudan Yazdırma (Tauri macOS/Windows, WebKit, WebView2 ve Tüm Tarayıcılarla %100 Uyumlu)
       if (toastCallback) toastCallback('Yazıcı hazırlanıyor, yazdırma penceresi açılıyor...', 'info');
       else if (window.showToast) window.showToast('Yazıcı hazırlanıyor, yazdırma penceresi açılıyor...', 'info');
 
-      // Tarayıcının DOM ve SVG elementlerini render edebilmesi için kısa gecikme
+      const printStyleId = 'optical-print-page-style';
+      let printStyle = document.getElementById(printStyleId);
+      if (!printStyle) {
+        printStyle = document.createElement('style');
+        printStyle.id = printStyleId;
+        document.head.appendChild(printStyle);
+      }
+      printStyle.textContent = `@page { size: A4 portrait; margin: 4mm; }`;
+
+      document.body.classList.add('print-optical');
+
+      // Tarayıcının ve WebView'in DOM ile CSS'i hazırlaması için kısa gecikme
       setTimeout(() => {
-        let printed = false;
-        try {
-          if (printFrame && printFrame.contentWindow) {
-            printFrame.contentWindow.focus();
-            printFrame.contentWindow.print();
-            printed = true;
-          }
-        } catch (e) {
-          console.warn('Iframe print çağrısı başarısız oldu, doğrudan pencere deneniyor:', e);
-        }
+        window.print();
 
-        if (!printed) {
-          const printStyle = document.createElement('style');
-          printStyle.id = 'optical-print-page-style';
-          printStyle.textContent = `@page { size: A4 portrait; margin: 4mm; }`;
-          document.head.appendChild(printStyle);
+        const cleanupPrint = () => {
+          document.body.classList.remove('print-optical');
+          const s = document.getElementById(printStyleId);
+          if (s) s.remove();
+        };
 
-          document.body.classList.add('print-optical');
-          window.print();
-
-          const cleanupPrint = () => {
-            document.body.classList.remove('print-optical');
-            const s = document.getElementById('optical-print-page-style');
-            if (s) s.remove();
-          };
-
-          window.addEventListener('afterprint', cleanupPrint, { once: true });
-          setTimeout(cleanupPrint, 30000);
-        }
-      }, 250);
+        window.addEventListener('afterprint', cleanupPrint, { once: true });
+        setTimeout(cleanupPrint, 15000);
+      }, 150);
     });
   }
 
@@ -5555,8 +5544,10 @@ Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi ve
         }
       }
     } else {
-      // Boş formlar: Sayfaları tam dolduracak miktarda oluştur
-      const count = perPage === 4 ? 32 : (perPage === 2 ? 30 : 20);
+      // Boş formlar: Sayfaları tam dolduracak miktarda veya kullanıcının belirttiği adette oluştur
+      const blankCountInput = document.getElementById('optical-blank-count-input');
+      const customBlankCount = blankCountInput ? parseInt(blankCountInput.value, 10) : 0;
+      const count = customBlankCount > 0 ? customBlankCount : (perPage === 4 ? 32 : (perPage === 2 ? 30 : 20));
       for (let i = 1; i <= count; i++) {
         studentsList.push({ id: '', name: '................................', number: '......', index: i });
       }

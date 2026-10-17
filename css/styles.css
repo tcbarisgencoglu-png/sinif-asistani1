@@ -3603,33 +3603,97 @@ th:hover .hw-col-actions {
   background-color: white;
 }
 
-/* Optical Form Modal Columns styling */
-.optical-modal-body {
-  display: grid;
-  grid-template-columns: 1.1fr 0.9fr;
-  gap: 1.5rem;
+/* Optical Form Modal Columns styling (Desktop Compact & Scroll-free Layout) */
+#modal-print-optical .modal-content {
+  max-width: 1040px !important;
+  width: 95vw !important;
+  max-height: calc(100vh - 40px) !important;
+  overflow: hidden !important;
+  display: flex !important;
+  flex-direction: column !important;
+  border-radius: 14px !important;
 }
 
-.optical-preview-pane {
-  display: flex;
-  flex-direction: column;
-  border-left: 1px solid var(--border-color);
-  padding-left: 1.5rem;
+#modal-print-optical .optical-modal-body {
+  display: grid !important;
+  grid-template-columns: 1.4fr 0.9fr !important;
+  gap: 1.25rem !important;
+  padding: 0.85rem 1.25rem !important;
+  overflow: hidden !important;
 }
 
-.optical-preview-container {
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-sm);
-  padding: 15px;
-  background-color: #f8fafc;
-  color: black;
-  flex: 1;
-  max-height: 480px; /* slightly taller for page lists */
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
+#modal-print-optical .optical-preview-pane {
+  display: flex !important;
+  flex-direction: column !important;
+  border-left: 1px solid var(--border-color) !important;
+  padding-left: 1.25rem !important;
+  overflow: hidden !important;
+}
+
+#modal-print-optical .optical-preview-container {
+  border: 1px solid var(--border-color) !important;
+  border-radius: 8px !important;
+  background-color: #cbd5e1 !important;
+  color: black !important;
+  flex: 1 !important;
+  height: 250px !important;
+  max-height: 250px !important;
+  overflow: hidden !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 !important;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.06) !important;
+  position: relative !important;
+}
+
+#modal-print-optical .optical-preview-container .omr-preview-sheet {
+  background: white !important;
+  border: 1px solid #94a3b8 !important;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.18) !important;
+  padding: 6px !important;
+  box-sizing: border-box !important;
+  width: 180mm !important;
+  max-width: 180mm !important;
+  transform: scale(0.26) !important;
+  transform-origin: center center !important;
+  flex-shrink: 0 !important;
+  pointer-events: none !important;
+}
+
+#modal-print-optical .optical-student-checkbox-item {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  padding: 3px 6px !important;
+  font-size: 0.74rem !important;
+  border-radius: 4px !important;
+  background: var(--bg-secondary) !important;
+  border: 1px solid var(--border-color) !important;
+  cursor: pointer !important;
+  user-select: none !important;
+  color: var(--text-primary) !important;
+  transition: background-color var(--transition-fast) !important;
+}
+
+#modal-print-optical .optical-student-checkbox-item:hover {
+  background-color: var(--bg-primary) !important;
+  border-color: var(--primary) !important;
+}
+
+#modal-print-optical .optical-student-checkbox-item input[type="checkbox"] {
+  width: 14px !important;
+  height: 14px !important;
+  margin: 0 !important;
+  cursor: pointer !important;
+  flex-shrink: 0 !important;
+}
+
+#modal-print-optical .optical-student-checkbox-item span {
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  font-weight: 600 !important;
 }
 
 /* Specific scaling for miniature cards inside preview pages */

@@ -1142,34 +1142,37 @@
 
     if (window.AndroidBridge && typeof window.AndroidBridge.printHtml === 'function') {
       window.AndroidBridge.printHtml(fullPrintHtml, docTitle);
+    } else if (window.AndroidBridge && typeof window.AndroidBridge.printDocument === 'function') {
+      const printContainer = document.getElementById('optical-forms-print-container');
+      if (printContainer) printContainer.innerHTML = pagesHtml;
+      document.body.classList.add('print-optical');
+      window.AndroidBridge.printDocument(docTitle);
+      setTimeout(() => { document.body.classList.remove('print-optical'); }, 15000);
     } else {
-      let printFrame = document.getElementById('omr-print-iframe');
-      if (!printFrame) {
-        printFrame = document.createElement('iframe');
-        printFrame.id = 'omr-print-iframe';
-        printFrame.style.position = 'fixed';
-        printFrame.style.right = '0';
-        printFrame.style.bottom = '0';
-        printFrame.style.width = '0';
-        printFrame.style.height = '0';
-        printFrame.style.border = '0';
-        document.body.appendChild(printFrame);
+      const printContainer = document.getElementById('optical-forms-print-container');
+      if (printContainer) printContainer.innerHTML = pagesHtml;
+
+      const printStyleId = 'optical-print-page-style';
+      let printStyle = document.getElementById(printStyleId);
+      if (!printStyle) {
+        printStyle = document.createElement('style');
+        printStyle.id = printStyleId;
+        document.head.appendChild(printStyle);
       }
-      const doc = printFrame.contentDocument || printFrame.contentWindow.document;
-      doc.open();
-      doc.write(fullPrintHtml);
-      doc.close();
+      printStyle.textContent = `@page { size: A4 portrait; margin: 4mm; }`;
+
+      document.body.classList.add('print-optical');
 
       setTimeout(() => {
-        try {
-          if (printFrame.contentWindow) {
-            printFrame.contentWindow.focus();
-            printFrame.contentWindow.print();
-          }
-        } catch (e) {
-          window.print();
-        }
-      }, 350);
+        window.print();
+        const cleanupPrint = () => {
+          document.body.classList.remove('print-optical');
+          const s = document.getElementById(printStyleId);
+          if (s) s.remove();
+        };
+        window.addEventListener('afterprint', cleanupPrint, { once: true });
+        setTimeout(cleanupPrint, 15000);
+      }, 150);
     }
   };
 
