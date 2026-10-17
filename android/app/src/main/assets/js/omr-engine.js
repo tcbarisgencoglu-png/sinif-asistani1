@@ -825,23 +825,37 @@
       const totalGridW = gridUEnd - gridUStart;
       const slotW = totalGridW / numSubjects;
 
-      // Kağıt formatına göre hassas kalibre edilmiş dikey satır aralığı
-      let vFirstRow = 0.125;
-      let vLastRow = 0.945;
+      // 2. Maksimum soru sayısı (tüm dersler arasındaki en yüksek soru adedi)
+      // Örn: Türkçe 8, Matematik 8, Sosyal 5, Fen 5, İngilizce 6 -> maxQuestions = 8
+      const maxQuestions = Math.max(...examSubjects.map(s => parseInt(s.questionCount, 10) || 0), 1);
 
+      // 3. Kağıt formatına göre dikey gövde sınırları
+      let bodyTop = 0.125;
+      let bodyBottom = 0.945;
       if (perPage === 1) {
-        // A4 Tam Sayfa
-        vFirstRow = 0.110;
-        vLastRow = 0.955;
+        bodyTop = 0.110;
+        bodyBottom = 0.955;
       } else if (perPage === 4) {
-        // A6 Kesilmiş Çeyrek Sayfa
-        vFirstRow = 0.145;
-        vLastRow = 0.925;
-      } else {
-        // A5 Kesilmiş Yarım Sayfa (perPage === 2)
-        vFirstRow = 0.125;
-        vLastRow = 0.945;
+        bodyTop = 0.140;
+        bodyBottom = 0.925;
       }
+      const availH = bodyBottom - bodyTop;
+
+      // 4. Sabit Satır Yüksekliği & Dikey Ortalama (justify-content: center simülasyonu)
+      // HTML'de her soru satırı (~20px + 1.5px gap) A5 kartta ~0.0441 v birimidir.
+      // Soru sayısı çok olduğunda (örn. 20 soru) satırlar sıkışır: (availH - 0.065) / maxQuestions
+      const rowStep = Math.min(0.0441, (availH - 0.065) / Math.max(1, maxQuestions));
+      const tableHeight = 0.060 + (maxQuestions - 1) * rowStep;
+      const verticalCenteringOffset = Math.max(0, (availH - tableHeight) * 0.5);
+
+      // İlk soru satırının merkez V koordinatı (TÜM DERSLER İÇİN ORTAK & YATAYDA HİZALI!)
+      const vFirstRow = bodyTop + verticalCenteringOffset + 0.055;
+
+      // 5. Ders sütunu içindeki şıkların yayılımı (A - B - C - D)
+      // HTML'de .omr-q-num (22px) ve .omr-bubble (18px x 4 + 3x4px gap)
+      const bStartRatio = 0.28;
+      const bEndRatio = letters.length >= 5 ? 0.78 : (letters.length === 3 ? 0.60 : 0.74);
+      const choiceStepRatio = letters.length > 1 ? ((bEndRatio - bStartRatio) / (letters.length - 1)) : 0;
 
       examSubjects.forEach((subj, sIdx) => {
         let subjCorrect = 0;
@@ -853,17 +867,9 @@
         const colWidth = colUEnd - colUStart;
 
         const numQuestions = parseInt(subj.questionCount, 10) || 6;
-        const availH = vLastRow - vFirstRow;
-        const rowStep = numQuestions > 1 ? (availH / (numQuestions - 1)) : 0;
-
-        // Ders sütunu içindeki şıkların yayılımı (A - B - C - D)
-        const bStartRatio = letters.length >= 5 ? 0.25 : (letters.length === 3 ? 0.32 : 0.28);
-        const bEndRatio = 0.92;
-        const bubbleStartU = colUStart + colWidth * bStartRatio;
-        const bubbleSpan = colWidth * (bEndRatio - bStartRatio);
 
         for (let q = 1; q <= numQuestions; q++) {
-          const rowV = numQuestions > 1 ? (vFirstRow + (q - 1) * rowStep) : ((vFirstRow + vLastRow) * 0.5);
+          const rowV = vFirstRow + (q - 1) * rowStep;
           const key = `${subj.id}_${q}`;
 
           // Bu ders sütununa özel lokal kağıt aydınlığı
@@ -873,11 +879,9 @@
           const choiceScores = [];
 
           for (let lIdx = 0; lIdx < letters.length; lIdx++) {
-            const choiceU = letters.length > 1
-              ? (bubbleStartU + (lIdx / (letters.length - 1)) * bubbleSpan)
-              : (bubbleStartU + bubbleSpan * 0.5);
+            const choiceU = colUStart + colWidth * (bStartRatio + lIdx * choiceStepRatio);
             const initialPt = mapPoint(choiceU, rowV);
-            const searchR = Math.max(7, Math.round(sampleRadius * 1.4));
+            const searchR = Math.max(6, Math.round(sampleRadius * 1.3));
             const snappedPt = refineBubbleCenter(gray, w, h, initialPt, sampleRadius, rowPaperLum, searchR, searchR);
 
             const metrics = analyzeBubble(gray, w, h, snappedPt.x, snappedPt.y, sampleRadius, rowPaperLum);
@@ -898,10 +902,10 @@
 
           const diff = best.score - second.score;
           // Kurşun kalem ve tükenmez kalem için hassas adaptif doluluk eşiği
-          const fillThreshold = (options.sensitivity === 'high' || options.sensitivity === 3) ? 0.20 : ((options.sensitivity === 'low' || options.sensitivity === 1) ? 0.34 : 0.25);
-          const minDiff = (options.sensitivity === 'high' || options.sensitivity === 3) ? 0.05 : 0.08;
+          const fillThreshold = (options.sensitivity === 'high' || options.sensitivity === 3) ? 0.18 : ((options.sensitivity === 'low' || options.sensitivity === 1) ? 0.32 : 0.23);
+          const minDiff = (options.sensitivity === 'high' || options.sensitivity === 3) ? 0.05 : 0.07;
 
-          const isFilled = (best.score >= fillThreshold && diff >= minDiff) || (best.score >= 0.42);
+          const isFilled = (best.score >= fillThreshold && diff >= minDiff) || (best.score >= 0.38);
           const isMultiple = isFilled && (second.score >= fillThreshold) && (diff < minDiff);
 
           if (isMultiple) {
@@ -1283,6 +1287,33 @@
             qrRes = window.jsQR(upData.data, upCanvas.width, upCanvas.height, { inversionAttempts: 'attemptBoth' });
           }
         }
+
+        // Sağ yarıdaki Micro-QR kodunu ayrıca odaklanarak tara
+        if (!qrRes) {
+          const qrW = Math.round(badgeW * 0.55);
+          const qrH = badgeH;
+          const qrCanvas = document.createElement('canvas');
+          qrCanvas.width = qrW;
+          qrCanvas.height = qrH;
+          const qrCtx = qrCanvas.getContext('2d');
+          if (qrCtx) {
+            qrCtx.drawImage(bCanvas, badgeW - qrW, 0, qrW, qrH, 0, 0, qrW, qrH);
+            const qrData = qrCtx.getImageData(0, 0, qrW, qrH);
+            qrRes = window.jsQR(qrData.data, qrW, qrH, { inversionAttempts: 'attemptBoth' });
+            if (!qrRes) {
+              const upQr = document.createElement('canvas');
+              upQr.width = qrW * 2;
+              upQr.height = qrH * 2;
+              const upCtx = upQr.getContext('2d');
+              if (upCtx) {
+                upCtx.imageSmoothingEnabled = false;
+                upCtx.drawImage(qrCanvas, 0, 0, upQr.width, upQr.height);
+                const upData = upCtx.getImageData(0, 0, upQr.width, upQr.height);
+                qrRes = window.jsQR(upData.data, upQr.width, upQr.height, { inversionAttempts: 'attemptBoth' });
+              }
+            }
+          }
+        }
       }
 
       // 2. 9-Bit Binary OMR Matrisi (3x3 kutucuk)
@@ -1321,13 +1352,14 @@
 
             const minL = Math.min(...cells);
             const maxL = Math.max(...cells);
-            if (maxL - minL >= 38) {
+            // Sahte eşleşmeleri (noise) önlemek için güçlü kontrast farkı ve gerçekçi sınıf mevcudu (1..50)
+            if (maxL - minL >= 48) {
               const thresh = (minL + maxL) * 0.5;
               let decoded = 0;
               for (let i = 0; i < 9; i++) {
                 if (cells[i] < thresh) decoded |= (1 << i);
               }
-              if (decoded > 0 && decoded <= 511) {
+              if (decoded > 0 && decoded <= 50) {
                 binaryId = decoded;
                 break;
               }
@@ -1595,11 +1627,54 @@
 
     detectedCards.forEach((card, idx) => {
       let matched = null;
-      let rawStudentName = '';
-      let rawStudentNo = '';
+      // 1. İLK ÖNCELİK: QR KOD (Reed-Solomon Hata Düzeltmeli & %100 Kesin Doğrulama)
+      let rawStuId = '';
+      let rawStuNo = '';
+      let rawStuIdx = 0;
 
-      // 1. ÖNCELİK: OPTİK BINARY ID (En Güvenilir & Deterministik)
-      if (card.binaryId && card.binaryId > 0 && card.binaryId <= sortedRoster.length) {
+      const qrData = (card.qrResult && card.qrResult.data) ? card.qrResult.data : '';
+      if (qrData) {
+        const parts = qrData.split(':');
+        if (parts[0] === 'SA') {
+          if (parts[1] === 'STU' || parts[1] === 'SMP' || parts[1] === 'BLK') {
+            // Eski format: SA:STU:studentId:studentNo:studentIndex:examId
+            rawStuId = parts[2];
+            rawStuNo = parts[3];
+            rawStuIdx = parseInt(parts[4], 10) || 0;
+          } else {
+            // Yeni format: SA:studentIndex:studentNo
+            rawStuIdx = parseInt(parts[1], 10) || 0;
+            rawStuNo = parts[2] || '';
+          }
+
+          // 1a. Okul numarasına göre eşleme
+          if (rawStuNo && rawStuNo !== '......') {
+            matched = sortedRoster.find(s => String(s.number).trim() === String(rawStuNo).trim()) ||
+                      classStudents.find(s => String(s.number).trim() === String(rawStuNo).trim());
+          }
+          // 1b. Sıra numarasına göre eşleme
+          if (!matched && rawStuIdx > 0 && rawStuIdx <= sortedRoster.length) {
+            matched = sortedRoster[rawStuIdx - 1];
+          }
+          // 1c. Sistem ID'sine göre eşleme
+          if (!matched && rawStuId) {
+            matched = sortedRoster.find(s => String(s.id) === String(rawStuId)) ||
+                      classStudents.find(s => String(s.id) === String(rawStuId));
+          }
+
+          if (matched) {
+            rawStudentName = `${matched.name} ${matched.surname || ''}`.trim();
+            rawStudentNo = matched.number || '';
+          }
+        }
+      }
+
+      // 2. İKİNCİ ÖNCELİK: OPTİK BINARY ID (Sadece mantıklı sınıf sınırları içindeyse)
+      if (card.binaryId && (card.binaryId > Math.max(sortedRoster.length, 50) || card.binaryId <= 0)) {
+        card.binaryId = null; // Sahte gürültü / sınır dışı binary ID'yi sıfırla
+      }
+
+      if (!matched && card.binaryId && card.binaryId > 0 && card.binaryId <= sortedRoster.length) {
         matched = sortedRoster[card.binaryId - 1];
         if (matched) {
           rawStudentName = `${matched.name} ${matched.surname || ''}`.trim();
@@ -1607,51 +1682,7 @@
         }
       }
 
-      let rawStuId = '';
-      let rawStuNo = '';
-      let rawStuIdx = 0;
-
-      // 2. İKİNCİ ÖNCELİK: QR KOD (Fallback)
-      if (!matched) {
-        const qrData = (card.qrResult && card.qrResult.data) ? card.qrResult.data : '';
-        if (qrData) {
-          const parts = qrData.split(':');
-          if (parts[0] === 'SA') {
-            if (parts[1] === 'STU' || parts[1] === 'SMP' || parts[1] === 'BLK') {
-              // Eski uzun format: SA:STU:studentId:studentNo:studentIndex:examId
-              rawStuId = parts[2];
-              rawStuNo = parts[3];
-              rawStuIdx = parseInt(parts[4], 10) || 0;
-            } else {
-              // YENİ SADE QR FORMAT: SA:studentIndex:studentNo (Örn: SA:1:602) -> 21x21 Version 1 Modül
-              rawStuIdx = parseInt(parts[1], 10) || 0;
-              rawStuNo = parts[2] || '';
-            }
-
-            // 1. Okul numarasına göre eşleme (en kesin)
-            if (rawStuNo && rawStuNo !== '......') {
-              matched = sortedRoster.find(s => String(s.number).trim() === String(rawStuNo).trim()) ||
-                        classStudents.find(s => String(s.number).trim() === String(rawStuNo).trim());
-            }
-            // 2. Sıra numarasına göre eşleme (baskı indeks sırası - ID:#1, #2...)
-            if (!matched && rawStuIdx > 0 && rawStuIdx <= sortedRoster.length) {
-              matched = sortedRoster[rawStuIdx - 1];
-            }
-            // 3. Sistem ID'sine göre eşleme
-            if (!matched && rawStuId) {
-              matched = sortedRoster.find(s => String(s.id) === String(rawStuId)) ||
-                        classStudents.find(s => String(s.id) === String(rawStuId));
-            }
-
-            if (matched) {
-              rawStudentName = `${matched.name} ${matched.surname || ''}`.trim();
-              rawStudentNo = matched.number || '';
-            }
-          }
-        }
-      }
-
-      // 2b. Küresel Öğrenci Havuzundan Numara / Sıra ile Eşleme (sortedRoster boşsa kurtarma)
+      // 3. ÜÇÜNCÜ ÖNCELİK: Küresel Öğrenci Havuzundan Numara / Sıra ile Kurtarma
       if (!matched && (rawStuNo || card.binaryId || rawStuIdx)) {
         let globalList = [];
         try {
@@ -1673,7 +1704,9 @@
           }
           if (!matched && (card.binaryId || rawStuIdx)) {
             const idxToFind = card.binaryId || rawStuIdx;
-            matched = globalList.find(s => parseInt(s.index || s.studentIndex, 10) === idxToFind) || (idxToFind <= globalList.length ? globalList[idxToFind - 1] : null);
+            if (idxToFind <= globalList.length) {
+              matched = globalList.find(s => parseInt(s.index || s.studentIndex, 10) === idxToFind) || globalList[idxToFind - 1];
+            }
           }
           if (matched) {
             rawStudentName = `${matched.name} ${matched.surname || ''}`.trim();
@@ -1682,7 +1715,7 @@
         }
       }
 
-      // 3. ÜÇÜNCÜ ÖNCELİK: Sayfa ve Kart Sırası (Baskı Şablonuna Göre Fallback)
+      // 4. DÖRDÜNCÜ ÖNCELİK: Sayfa ve Kart Sırası (Baskı Şablonuna Göre Fallback)
       let candidate = null;
       if (!matched && sortedRoster.length > 0) {
         let expectedIdx = -1;
@@ -1703,7 +1736,10 @@
         rawStudentNo = rawStuNo;
         if (!rawStudentName) rawStudentName = `Öğrenci No: ${rawStuNo}`;
       } else if (!matched && (card.binaryId || rawStuIdx)) {
-        if (!rawStudentName) rawStudentName = `Öğrenci #${card.binaryId || rawStuIdx}`;
+        const validIdx = card.binaryId || rawStuIdx;
+        if (validIdx > 0 && validIdx <= Math.max(sortedRoster.length, 50)) {
+          if (!rawStudentName) rawStudentName = `Öğrenci #${validIdx}`;
+        }
       }
 
       card.matched = matched;
