@@ -1078,6 +1078,18 @@ function setupWeeklyTab(showToast) {
           totalQ = subjects.reduce((sum, s) => sum + s.questionCount, 0);
         }
 
+        const isMiddle = state.educationLevel === 'middle';
+        const allClassStudents = (state.students || []).filter(student => {
+          if (!student) return false;
+          return !isMiddle || !examBranch || student.branch === examBranch;
+        }).map(s => ({
+          id: s.id,
+          name: s.name,
+          surname: s.surname || '',
+          number: s.number || '',
+          branch: s.branch || examBranch || ''
+        }));
+
         const examData = {
           id: 'exam_' + Date.now(),
           weekId: week,
@@ -1089,6 +1101,7 @@ function setupWeeklyTab(showToast) {
           wrongAffects: wrongAffects,
           penaltyRate: penaltyRate,
           branch: examBranch,
+          classStudents: allClassStudents,
           hasOpticalForm: hasOptical,
           choicesCount: choicesCount,
           answerKey: answerKey,

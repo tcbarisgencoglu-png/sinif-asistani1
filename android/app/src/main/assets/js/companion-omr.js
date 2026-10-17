@@ -155,9 +155,10 @@
 
       const data = this.getData();
       let students = Array.isArray(data.students) ? data.students : [];
-      const activeSection = (this.activeExam && this.activeExam.branch) || (window.Companion && window.Companion.activeSection) || '5-A';
+      const activeSection = (this.activeExam && this.activeExam.branch) || (window.Companion && window.Companion.activeSection) || '';
 
       if (students.length > 0) {
+        if (!activeSection) return students;
         const filtered = students.filter(s => {
           if (!s.branch && !s.section && !s.className) return true;
           const b = String(s.branch || s.section || s.className || '').trim().toUpperCase();
@@ -1477,9 +1478,9 @@
 
         scanResult.cards.forEach((card, cIdx) => {
           const matched = card.matched || card.candidate || (students.length === 1 ? students[0] : null);
-          const stuName = matched ? `${matched.name} ${matched.surname || ''}`.trim() : (card.rawStudentName || (scanResult.cards.length > 1 ? `Form #${cIdx + 1}` : 'Öğrenci'));
-          const stuNo = matched ? (matched.number || '-') : (card.rawStudentNo || '-');
-          const stuId = matched ? matched.id : ('temp_' + Date.now() + '_' + cIdx);
+          const stuName = matched ? `${matched.name} ${matched.surname || ''}`.trim() : (card.studentName || card.rawStudentName || (scanResult.cards.length > 1 ? `Form #${cIdx + 1}` : 'Öğrenci'));
+          const stuNo = matched ? (matched.number || '-') : (card.studentNo || card.rawStudentNo || '-');
+          const stuId = matched ? matched.id : (card.studentId || ('temp_' + Date.now() + '_' + cIdx));
 
           const cardResult = {
             studentId: stuId,
@@ -1511,7 +1512,9 @@
 
         this.showResultHud(this.activeCardResult);
 
-        const isUnmatched = !this.activeCardResult.studentId || this.activeCardResult.studentId.startsWith('temp_') || this.activeCardResult.studentName === 'Öğrenci' || this.activeCardResult.studentNo === '-';
+        const isUnmatched = !this.activeCardResult.studentId || 
+                            (this.activeCardResult.studentId.startsWith('temp_') && (!this.activeCardResult.studentNo || this.activeCardResult.studentNo === '-')) || 
+                            (this.activeCardResult.studentName === 'Öğrenci' && (!this.activeCardResult.studentNo || this.activeCardResult.studentNo === '-'));
 
         if (this.autoAdvance && !isUnmatched) {
           const nextBtnText = document.getElementById('omr-btn-next-text');
