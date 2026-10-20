@@ -161,21 +161,27 @@ jobs:
             src-tauri/target/**/bundle/rpm/*.rpm
           if-no-files-found: warn
 
+      - name: Release Notlarını Hazırla
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: bash
+        run: |
+          node -e '
+            const v = require("./version.json");
+            let md = "### 🚀 " + (v.title || ("Sınıf Asistanı " + v.version)) + "\n\n";
+            if (v.description) md += "**" + v.description + "**\n\n";
+            if (Array.isArray(v.features)) {
+              v.features.forEach(f => { md += "- " + f + "\n"; });
+            }
+            md += "\n---\n🛡️ **Veri Güvenliği:** Güncelleme yaptığınızda mevcut sınıflarınız, öğrencileriniz, ders programınız ve tüm verileriniz **kesinlikle silinmez, korunur**.\n";
+            require("fs").writeFileSync("release_notes.md", md);
+          '
+
       - name: Masaüstü Paketlerini Release'e Yükle (Etiket Push)
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
           name: "Sınıf Asistanı ${{ github.ref_name }}"
-          body: |
-            ### 🚀 Bu Sürümdeki Yenilikler (${{ github.ref_name }}):
-            - 📦 **Yerel PDF Motoru Entegrasyonu:** PDF.js ve worker kütüphaneleri uygulamaya doğrudan dahil edildi; CDN bağımlılığı olmadan anında ve çevrim dışı çalışma sağlandı.
-            - 📄 **PDF Optik Form Aktarma Düzeltmesi:** Çok sayfalı CamScanner PDF'lerinin 0 KB ve kırık görsel olarak algılanması sorunu resmi PDF ayrıştırıcı motor ile kökten düzeltildi.
-            - 🛡️ **Dengeli Tuval Ölçeklemesi:** 1300px güvenli çözünürlük ölçeklemesiyle 30+ sayfalı CamScanner PDF'leri bellek aşımına uğramadan tüm sayfalar eksiksiz taranır.
-            - 🔒 **Optik / Elle Not Girişi Koruması:** Optik formu taranmış öğrencilerin Doğru/Yanlış/Boş kutuları kilitlenerek korumaya alındı; optiksiz öğrenciler elle düzenlemeye açık tutuldu.
-            - 🤖 **Android Uygulaması (.apk):** Telefon ve tabletlere doğrudan kurulabilen güncel Android paket desteği (`sinif-asistani.apk`).
-
-            ---
-            🛡️ **Veri Güvenliği:** Güncelleme yaptığınızda mevcut sınıflarınız, öğrencileriniz, ders programınız ve tüm verileriniz **kesinlikle silinmez, korunur**.
+          body_path: release_notes.md
           draft: false
           prerelease: false
           files: |
@@ -254,21 +260,27 @@ jobs:
           name: sinif-asistani-android-apk
           path: artifacts/sinif-asistani.apk
 
+      - name: Release Notlarını Hazırla (Android)
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: bash
+        run: |
+          node -e '
+            const v = require("./version.json");
+            let md = "### 🚀 " + (v.title || ("Sınıf Asistanı " + v.version)) + "\n\n";
+            if (v.description) md += "**" + v.description + "**\n\n";
+            if (Array.isArray(v.features)) {
+              v.features.forEach(f => { md += "- " + f + "\n"; });
+            }
+            md += "\n---\n🛡️ **Veri Güvenliği:** Güncelleme yaptığınızda mevcut sınıflarınız, öğrencileriniz, ders programınız ve tüm verileriniz **kesinlikle silinmez, korunur**.\n";
+            require("fs").writeFileSync("release_notes.md", md);
+          '
+
       - name: Release'e APK Ekle (Etiket Push)
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
           name: "Sınıf Asistanı ${{ github.ref_name }}"
-          body: |
-            ### 🚀 Bu Sürümdeki Yenilikler (${{ github.ref_name }}):
-            - 📦 **Yerel PDF Motoru Entegrasyonu:** PDF.js ve worker kütüphaneleri uygulamaya doğrudan dahil edildi; CDN bağımlılığı olmadan anında ve çevrim dışı çalışma sağlandı.
-            - 📄 **PDF Optik Form Aktarma Düzeltmesi:** Çok sayfalı CamScanner PDF'lerinin 0 KB ve kırık görsel olarak algılanması sorunu resmi PDF ayrıştırıcı motor ile kökten düzeltildi.
-            - 🛡️ **Dengeli Tuval Ölçeklemesi:** 1300px güvenli çözünürlük ölçeklemesiyle 30+ sayfalı CamScanner PDF'leri bellek aşımına uğramadan tüm sayfalar eksiksiz taranır.
-            - 🔒 **Optik / Elle Not Girişi Koruması:** Optik formu taranmış öğrencilerin Doğru/Yanlış/Boş kutuları kilitlenerek korumaya alındı; optiksiz öğrenciler elle düzenlemeye açık tutuldu.
-            - 🤖 **Android Uygulaması (.apk):** Telefon ve tabletlere doğrudan kurulabilen güncel Android paket desteği (`sinif-asistani.apk`).
-
-            ---
-            🛡️ **Veri Güvenliği:** Güncelleme yaptığınızda mevcut sınıflarınız, öğrencileriniz, ders programınız ve tüm verileriniz **kesinlikle silinmez, korunur**.
+          body_path: release_notes.md
           draft: false
           prerelease: false
           files: artifacts/sinif-asistani.apk
