@@ -1,13 +1,13 @@
 {
-  "version": "1.0.73",
-  "releaseDate": "2026-10-17",
+  "version": "1.0.76",
+  "releaseDate": "2026-10-20",
   "minRequiredVersion": "1.0.0",
-  "title": "Sınıf Asistanı v1.0.73 Yayında!",
-  "description": "Yerel Çevrim Dışı PDF Motoru, CamScanner Optik Ayrıştırma ve Kırık Görsel Düzeltmesi",
+  "title": "Sınıf Asistanı v1.0.76 Yayında!",
+  "description": "Sınav Yönetimi, Optik Okuyucu (OMR) Senkronizasyonu ve Masaüstü Tablo İyileştirmeleri",
   "features": [
-    "Yerel PDF Motoru Entegrasyonu: PDF.js ve worker kütüphaneleri uygulamaya doğrudan dahil edildi; CDN bağımlılığı olmadan anında ve çevrim dışı çalışma sağlandı.",
-    "PDF Optik Form Aktarma Düzeltmesi: Çok sayfalı PDF'lerin 0 KB ve kırık görsel olarak algılanması sorunu resmi PDF ayrıştırıcı motor ile kökten düzeltildi.",
-    "Dengeli Tuval Ölçeklemesi: 1300px güvenli çözünürlük ölçeklemesiyle 30+ sayfalı CamScanner PDF'leri bellek aşımına uğramadan tüm sayfalar eksiksiz taranır."
+    "El Terminali Cevap Anahtarı Senkronizasyonu: Terminalden girilen cevap anahtarlarının masaüstü uygulamaya anında iletilmesi ve her dersin S.1'den başlaması sağlandı.",
+    "Kompakt Sınav Kartları ve Geçmiş Sınavlar Modalı: Masaüstünde son 3 sınav kart olarak gösterilirken, 4 ve sonraki sınavlar tek tıkla açılan liste görünümü modalına taşındı.",
+    "Tam Genişlik Öğrenci Sıralama Tablosu: Masaüstü sınav öğrenci sıralama tablosundaki yatay kaydırma çubuğu kaldırıldı ve Optik Gir butonunun sayfaya tam sığması sağlandı."
   ],
   "release_url": "https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/latest"
 }

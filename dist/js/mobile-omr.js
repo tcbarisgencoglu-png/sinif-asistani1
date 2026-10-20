@@ -170,25 +170,58 @@
 
     // Mevcut cevap anahtarı
     const currentKey = exam.answerKey || {};
+    const isMulti = !!(exam.isMultiSubject && Array.isArray(exam.subjects) && exam.subjects.length > 0);
 
     let html = '';
-    for (let q = 1; q <= qCount; q++) {
-      const selected = currentKey[q] || '';
-      html += `
-        <div class="m-ak-row" data-q="${q}">
-          <span class="m-ak-qnum">${q}.</span>
-          <div class="m-ak-options">
-            ${letters.map(l => `
-              <button type="button" class="m-ak-opt-btn ${selected === l ? 'active' : ''}" data-q="${q}" data-opt="${l}" onclick="window.selectAnswerKeyChoice(${q}, '${l}')">
-                ${l}
-              </button>
-            `).join('')}
-            <button type="button" class="m-ak-clear-btn ${selected ? 'visible' : ''}" id="m-ak-clear-${q}" title="Boş Bırak" onclick="window.clearAnswerKeyChoice(${q})">
-              &times;
-            </button>
+    if (isMulti) {
+      let globalCursor = 1;
+      exam.subjects.forEach(subj => {
+        const subjCount = parseInt(subj.questionCount, 10) || 10;
+        html += `
+          <div style="background: rgba(79, 70, 229, 0.08); border: 1px solid rgba(79, 70, 229, 0.2); padding: 8px 12px; border-radius: 8px; margin: 10px 0 6px; font-weight: 800; font-size: 13px; color: var(--m-primary); display: flex; justify-content: space-between; align-items: center;">
+            <span>📚 ${subj.name}</span>
+            <span style="font-size: 11px; opacity: 0.85;">1 - ${subjCount}. Sorular</span>
           </div>
-        </div>
-      `;
+        `;
+        for (let qi = 1; qi <= subjCount; qi++) {
+          const q = globalCursor++;
+          const selected = currentKey[`${subj.id}_${qi}`] || currentKey[`${subj.name}_${qi}`] || (subj.answerKey && subj.answerKey[qi]) || currentKey[q] || '';
+          html += `
+            <div class="m-ak-row" data-q="${q}" data-subj-id="${subj.id}" data-subj-name="${subj.name}" data-subj-q="${qi}">
+              <span class="m-ak-qnum">${qi}.</span>
+              <div class="m-ak-options">
+                ${letters.map(l => `
+                  <button type="button" class="m-ak-opt-btn ${selected === l ? 'active' : ''}" data-q="${q}" data-opt="${l}" onclick="window.selectAnswerKeyChoice(${q}, '${l}')">
+                    ${l}
+                  </button>
+                `).join('')}
+                <button type="button" class="m-ak-clear-btn ${selected ? 'visible' : ''}" id="m-ak-clear-${q}" title="Boş Bırak" onclick="window.clearAnswerKeyChoice(${q})">
+                  &times;
+                </button>
+              </div>
+            </div>
+          `;
+        }
+      });
+    } else {
+      for (let q = 1; q <= qCount; q++) {
+        const selected = currentKey[q] || '';
+        html += `
+          <div class="m-ak-row" data-q="${q}">
+            <span class="m-ak-qnum">${q}.</span>
+            <div class="m-ak-options">
+              ${letters.map(l => `
+                <button type="button" class="m-ak-opt-btn ${selected === l ? 'active' : ''}" data-q="${q}" data-opt="${l}" onclick="window.selectAnswerKeyChoice(${q}, '${l}')">
+                  ${l}
+                </button>
+              `).join('')}
+              <button type="button" class="m-ak-clear-btn ${selected ? 'visible' : ''}" id="m-ak-clear-${q}" title="Boş Bırak" onclick="window.clearAnswerKeyChoice(${q})">
+                &times;
+              </button>
+            </div>
+          </div>
+        `;
+      }
     }
 
     listEl.innerHTML = html;
@@ -261,7 +294,7 @@
 
     listEl.querySelectorAll('.m-ak-row').forEach((row, idx) => {
       const opt = letters[idx % letters.length];
-      const q = idx + 1;
+      const q = parseInt(row.getAttribute('data-q'), 10) || (idx + 1);
       window.selectAnswerKeyChoice(q, opt);
     });
     if (window.showMobileToast) window.showMobileToast('Örnek cevap anahtarı dolduruldu.');
@@ -273,11 +306,19 @@
     if (!listEl) return;
 
     const answerKey = {};
+    let filledCount = 0;
     listEl.querySelectorAll('.m-ak-row').forEach(row => {
       const q = row.getAttribute('data-q');
+      const subjId = row.getAttribute('data-subj-id');
+      const subjName = row.getAttribute('data-subj-name');
+      const subjQ = row.getAttribute('data-subj-q');
       const activeBtn = row.querySelector('.m-ak-opt-btn.active');
       if (activeBtn) {
-        answerKey[q] = activeBtn.getAttribute('data-opt');
+        const opt = activeBtn.getAttribute('data-opt');
+        answerKey[q] = opt;
+        if (subjId && subjQ) answerKey[`${subjId}_${subjQ}`] = opt;
+        if (subjName && subjQ) answerKey[`${subjName}_${subjQ}`] = opt;
+        filledCount++;
       }
     });
 
@@ -285,16 +326,35 @@
     const ex = (state.weeklyEvaluations || []).find(e => String(e.id) === String(activeExam.id));
     if (ex) {
       ex.answerKey = answerKey;
+      ex.hasOpticalForm = true;
+      ex.updatedAt = new Date().toISOString();
+      if (ex.isMultiSubject && Array.isArray(ex.subjects)) {
+        ex.subjects.forEach(s => {
+          s.answerKey = {};
+          for (let qi = 1; qi <= (parseInt(s.questionCount, 10) || 0); qi++) {
+            const val = answerKey[`${s.id}_${qi}`] || answerKey[`${s.name}_${qi}`];
+            if (val) s.answerKey[qi] = val;
+          }
+        });
+      }
+      if (window.CompanionOmr && typeof window.CompanionOmr.recalculateExamResults === 'function') {
+        window.CompanionOmr.recalculateExamResults(ex);
+      }
       window.stateManager.saveState(state);
       activeExam.answerKey = answerKey;
+      if (window.CloudSync) {
+        window.CloudSync.pushExam(ex).catch(() => {});
+        if (typeof window.CloudSync.pushLiveExamResults === 'function') {
+          window.CloudSync.pushLiveExamResults(ex, 'terminal').catch(() => {});
+        }
+      }
     }
 
     const modal = document.getElementById('modal-mobile-answer-key');
     if (modal) modal.classList.remove('active');
 
-    const filledCount = Object.keys(answerKey).length;
     if (window.showMobileToast) {
-      window.showMobileToast(`✅ Cevap anahtarı kaydedildi (${filledCount} soru).`);
+      window.showMobileToast(`✅ Cevap anahtarı kaydedildi ve masaüstüne iletildi (${filledCount} soru).`);
     }
     if (window.vibrate) window.vibrate(30);
 

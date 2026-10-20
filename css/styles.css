@@ -1785,7 +1785,8 @@ select option {
 
 /* Haftalık Değerlendirme Bölümü */
 .weekly-container {
-  max-width: 800px;
+  width: 100%;
+  max-width: 100%;
   margin: 0 auto;
   display: flex;
   flex-direction: column;
@@ -3163,14 +3164,14 @@ th:hover .hw-col-actions {
 }
 
 .exam-table-input {
-  width: 58px !important;
+  width: 52px !important;
   max-width: 100% !important;
   text-align: center !important;
   margin: 0 auto !important;
-  padding: 0.25rem 0.2rem !important;
-  font-size: 0.95rem !important;
+  padding: 0.2rem 0.15rem !important;
+  font-size: 0.9rem !important;
   font-weight: 700 !important;
-  height: 34px !important;
+  height: 32px !important;
   line-height: 1.2 !important;
   border-radius: var(--radius-sm) !important;
   box-sizing: border-box !important;
@@ -4640,9 +4641,15 @@ th:hover .hw-col-actions {
 .omr-subject-rows {
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  justify-content: flex-start !important;
+  align-items: stretch;
   flex: 1;
   gap: 2px;
+  box-sizing: border-box;
+}
+.omr-card.omr-multi .omr-q-row {
+  height: 20px !important;
+  min-height: 20px !important;
   box-sizing: border-box;
 }
 
@@ -5037,17 +5044,87 @@ th:hover .hw-col-actions {
   }
 }
 
-/* Sınav Listesi Gridi (Çakışmaları önleme) */
+/* Sınav Listesi Gridi (Son 3 Sınav Yan Yana + Masaüstü Tablo Düzeni) */
 .exams-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 1.25rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+@media (max-width: 1024px) {
+  .exams-grid {
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  }
 }
 
 @media (max-width: 768px) {
   .exams-grid {
     grid-template-columns: 1fr !important;
   }
+}
+
+@media (min-width: 769px) {
+  #active-exam-card .table-wrapper,
+  #active-exam-table-wrapper {
+    overflow-x: hidden !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  #active-exam-table {
+    width: 100% !important;
+    table-layout: auto;
+  }
+
+  #active-exam-table th,
+  #active-exam-table td {
+    padding: 0.5rem 0.4rem !important;
+  }
+
+  #active-exam-table .btn-open-student-optical {
+    white-space: nowrap !important;
+    flex-shrink: 0 !important;
+  }
+}
+
+.older-exams-bar-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  padding: 0.65rem 1rem;
+  border-radius: var(--radius-md);
+  border: 1px dashed rgba(99, 102, 241, 0.45);
+  background: rgba(99, 102, 241, 0.06);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.older-exams-bar-trigger:hover {
+  background: rgba(99, 102, 241, 0.12);
+  border-color: var(--primary);
+  transform: translateY(-1px);
+}
+
+.older-exams-bar-trigger.has-active-older-exam {
+  border-style: solid;
+  border-color: var(--primary);
+  background: rgba(99, 102, 241, 0.1);
+  box-shadow: 0 0 0 2px var(--primary-glow);
+}
+
+#older-exams-list-tbody tr.older-exam-row {
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+#older-exams-list-tbody tr.older-exam-row:hover td {
+  background-color: rgba(99, 102, 241, 0.08) !important;
+}
+
+#older-exams-list-tbody tr.older-exam-row.active-older-exam-row td {
+  background-color: rgba(99, 102, 241, 0.14) !important;
 }
 
 /* Ödev Matrisi Gridi Mobil */

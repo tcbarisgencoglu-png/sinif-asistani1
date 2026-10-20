@@ -35,6 +35,16 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.webkit.WebViewAssetLoader;
+import com.google.mlkit.vision.documentscanner.GmsDocumentScanner;
+import com.google.mlkit.vision.documentscanner.GmsDocumentScannerOptions;
+import com.google.mlkit.vision.documentscanner.GmsDocumentScanning;
+import com.google.mlkit.vision.documentscanner.GmsDocumentScanningResult;
+import androidx.activity.result.IntentSenderRequest;
+import org.json.JSONArray;
+import org.json.JSONObject;
+import java.io.InputStream;
+import java.io.FileOutputStream;
+import java.io.ByteArrayOutputStream;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -43,6 +53,7 @@ public class MainActivity extends AppCompatActivity {
     private WebChromeClient.FileChooserParams pendingFileChooserParams;
     private ActivityResultLauncher<Intent> fileChooserLauncher;
     private ActivityResultLauncher<String> cameraPermissionLauncher;
+    private ActivityResultLauncher<IntentSenderRequest> documentScannerLauncher;
     private PermissionRequest pendingWebPermissionRequest;
     private Uri cameraPhotoUri;
     private File currentPhotoFile;
@@ -257,6 +268,88 @@ public class MainActivity extends AppCompatActivity {
                 }
             });
         }
+
+        @JavascriptInterface
+        public boolean isDocumentScannerSupported() {
+            return true;
+        }
+
+        @JavascriptInterface
+        public void startDocumentScan(int pageLimit) {
+            runOnUiThread(() -> {
+                try {
+                    int limit = (pageLimit > 0 && pageLimit <= 100) ? pageLimit : 30;
+                    GmsDocumentScannerOptions options = new GmsDocumentScannerOptions.Builder()
+                        .setGalleryImportAllowed(true)
+                        .setPageLimit(limit)
+                        .setResultFormats(GmsDocumentScannerOptions.RESULT_FORMAT_JPEG)
+                        .setScannerMode(GmsDocumentScannerOptions.SCANNER_MODE_FULL)
+                        .build();
+
+                    GmsDocumentScanner scanner = GmsDocumentScanning.getClient(options);
+                    scanner.getStartScanIntent(MainActivity.this)
+                        .addOnSuccessListener(intentSender -> {
+                            IntentSenderRequest request = new IntentSenderRequest.Builder(intentSender).build();
+                            documentScannerLauncher.launch(request);
+                        })
+                        .addOnFailureListener(e -> {
+                            notifyScanFailed("Google Belge Tarayıcı başlatılamadı: " + e.getMessage());
+                        });
+                } catch (Exception e) {
+                    notifyScanFailed("Tarayıcı hatası: " + e.getMessage());
+                }
+            });
+        }
+    }
+
+    private void processScannedPages(List<GmsDocumentScanningResult.Page> pages) {
+        new Thread(() -> {
+            try {
+                JSONArray base64Array = new JSONArray();
+
+                for (int i = 0; i < pages.size(); i++) {
+                    GmsDocumentScanningResult.Page page = pages.get(i);
+                    Uri uri = page.getImageUri();
+                    if (uri != null) {
+                        InputStream is = getContentResolver().openInputStream(uri);
+                        if (is != null) {
+                            byte[] buf = new byte[16384];
+                            int read;
+                            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                            while ((read = is.read(buf)) != -1) {
+                                baos.write(buf, 0, read);
+                            }
+                            is.close();
+
+                            String b64 = "data:image/jpeg;base64," + android.util.Base64.encodeToString(baos.toByteArray(), android.util.Base64.NO_WRAP);
+                            base64Array.put(b64);
+                        }
+                    }
+                }
+
+                if (base64Array.length() > 0) {
+                    final String b64Json = base64Array.toString();
+                    runOnUiThread(() -> {
+                        if (webView != null) {
+                            webView.evaluateJavascript("if (window.CompanionOmr && typeof window.CompanionOmr.onDocumentScanSuccess === 'function') { window.CompanionOmr.onDocumentScanSuccess(" + b64Json + "); }", null);
+                        }
+                    });
+                } else {
+                    notifyScanFailed("Taranan sayfaların görüntüsü alınamadı.");
+                }
+            } catch (Exception e) {
+                notifyScanFailed("Belge işleme hatası: " + e.getMessage());
+            }
+        }).start();
+    }
+
+    private void notifyScanFailed(String errorMsg) {
+        runOnUiThread(() -> {
+            if (webView != null) {
+                String safeErr = JSONObject.quote(errorMsg != null ? errorMsg : "Tarama tamamlanamadı.");
+                webView.evaluateJavascript("if (window.CompanionOmr && typeof window.CompanionOmr.onDocumentScanFailed === 'function') { window.CompanionOmr.onDocumentScanFailed(" + safeErr + "); }", null);
+            }
+        });
     }
 
     @Override
@@ -401,6 +494,20 @@ public class MainActivity extends AppCompatActivity {
                     fileUploadCallback.onReceiveValue(results);
                     fileUploadCallback = null;
                 }
+            }
+        );
+
+        documentScannerLauncher = registerForActivityResult(
+            new ActivityResultContracts.StartIntentSenderForResult(),
+            result -> {
+                if (result.getResultCode() == RESULT_OK && result.getData() != null) {
+                    GmsDocumentScanningResult scanningResult = GmsDocumentScanningResult.fromActivityResultIntent(result.getData());
+                    if (scanningResult != null && scanningResult.getPages() != null && !scanningResult.getPages().isEmpty()) {
+                        processScannedPages(scanningResult.getPages());
+                        return;
+                    }
+                }
+                notifyScanFailed("Tarama iptal edildi veya belge algılanamadı.");
             }
         );
 

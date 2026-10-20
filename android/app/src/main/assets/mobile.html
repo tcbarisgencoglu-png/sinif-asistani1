@@ -1034,6 +1034,63 @@
   </div>
 
   <!-- ==========================================================================
+       4a-3. OPTİK FORM VE İŞARETLEME NOKTALARI TEŞHİS & ÖNİZLEME MODALI
+       ========================================================================== -->
+  <div id="companion-optical-inspect-modal" style="display: none;">
+    <!-- Üst Çubuk -->
+    <div class="c-optical-inspect-header">
+      <div style="display: flex; align-items: center; gap: 10px; min-width: 0;">
+        <button type="button" class="c-btn-secondary" onclick="window.CompanionOmr.closeOpticalInspectModal()" style="display: flex; align-items: center; gap: 5px; background: rgba(239, 68, 68, 0.2); border: 1.5px solid rgba(239, 68, 68, 0.5); color: #fca5a5; padding: 6px 12px; border-radius: 8px; font-weight: 800; font-size: 13px; cursor: pointer; flex-shrink: 0;">
+          <i data-lucide="arrow-left" style="width: 17px; height: 17px;"></i>
+          <span>Kapat</span>
+        </button>
+        <div class="c-scan-avatar" id="opt-inspect-avatar" style="width: 36px; height: 36px; font-size: 15px; flex-shrink: 0;">Ö</div>
+        <div style="min-width: 0;">
+          <div id="opt-inspect-title" style="font-size: 14px; font-weight: 800; color: #ffffff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Öğrenci Adı</div>
+          <div id="opt-inspect-meta" style="font-size: 11px; color: #94a3b8;">No: - • 0 Puan • 0D 0Y 0B</div>
+        </div>
+      </div>
+      <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
+        <button type="button" class="c-icon-btn" id="opt-inspect-download-btn" title="Görseli İndir / Paylaş" onclick="window.CompanionOmr.downloadInspectImage()" style="background: rgba(99, 102, 241, 0.25); border: 1px solid rgba(99, 102, 241, 0.5); color: #a5b4fc; width: 36px; height: 36px;">
+          <i data-lucide="download" style="width: 17px; height: 17px;"></i>
+        </button>
+        <button type="button" class="c-icon-btn" onclick="window.CompanionOmr.closeOpticalInspectModal()" style="background: rgba(255, 255, 255, 0.12); border: 1px solid rgba(255, 255, 255, 0.25); color: #ffffff; width: 36px; height: 36px;" title="Kapat">
+          <i data-lucide="x" style="width: 18px; height: 18px;"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Açıklama / Renk Göstergesi (Legend) -->
+    <div class="c-optical-inspect-legend">
+      <span class="legend-item"><span class="legend-dot green"></span> Doğru</span>
+      <span class="legend-item"><span class="legend-dot red"></span> Yanlış</span>
+      <span class="legend-item"><span class="legend-dot blue"></span> Baloncuk Merkezleri</span>
+      <span class="legend-item"><span class="legend-dot key"></span> Cevap Anahtarı</span>
+      <span class="legend-item"><span class="legend-dot corner"></span> Köşe Çapaları</span>
+    </div>
+
+    <!-- Yakınlaştırma & Odak Kontrolleri -->
+    <div class="c-optical-zoom-toolbar">
+      <button type="button" class="c-zoom-btn" onclick="window.CompanionOmr.zoomInspect(-0.25)">
+        <i data-lucide="zoom-out" style="width: 15px; height: 15px;"></i>
+      </button>
+      <span id="opt-inspect-zoom-level" style="font-size: 11.5px; font-weight: 800; color: #cbd5e1; min-width: 44px; text-align: center;">%100</span>
+      <button type="button" class="c-zoom-btn" onclick="window.CompanionOmr.zoomInspect(0.25)">
+        <i data-lucide="zoom-in" style="width: 15px; height: 15px;"></i>
+      </button>
+      <button type="button" class="c-zoom-btn reset" onclick="window.CompanionOmr.resetInspectZoom()">Sığdır (100%)</button>
+      <span style="font-size: 10.5px; color: #64748b; margin-left: auto;">Butonlarla veya iki parmakla ölçekleyin</span>
+    </div>
+
+    <!-- Görsel Alanı (Kaydırılabilir & Zoomlanabilir) -->
+    <div class="c-optical-inspect-body" id="opt-inspect-container">
+      <div id="opt-inspect-img-wrapper">
+        <img id="opt-inspect-img" src="" alt="Optik Form Analizi" />
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
        4b. TERMINAL AYARLARI MODALI
        ========================================================================== -->
   <div class="c-exam-wizard-modal" id="companion-settings-modal" style="display: none;">
@@ -1223,9 +1280,10 @@
           <i data-lucide="x" style="width: 20px; height: 20px;"></i>
         </button>
 
-        <div class="c-scanner-exam-tag" id="omr-camera-exam-tag">
+        <div class="c-scanner-exam-tag" id="omr-camera-exam-tag" onclick="window.CompanionOmr.openExamPickerModal()" title="Sınavı Değiştir (Tıkla)" style="cursor: pointer; display: flex; align-items: center; gap: 5px;">
           <i data-lucide="file-text" style="width: 14px; height: 14px;"></i>
           <span id="omr-camera-exam-name">Sınav</span>
+          <i data-lucide="chevron-down" style="width: 12px; height: 12px; opacity: 0.7;"></i>
         </div>
 
         <div style="display: flex; gap: 8px;">
@@ -1273,13 +1331,22 @@
           <div class="c-scanner-shutter-inner"></div>
         </button>
 
-        <button type="button" class="c-scanner-btn-circle" onclick="window.CompanionOmr.closeCamera()" title="Vazgeç">
-          <i data-lucide="rotate-ccw" style="width: 20px; height: 20px;"></i>
+        <button type="button" class="c-scanner-btn-circle" onclick="window.CompanionOmr.closeCamera(); window.CompanionOmr.startDocumentScan();" title="Google Akıllı Tarayıcı">
+          <i data-lucide="sparkles" style="width: 20px; height: 20px; color: #a5b4fc;"></i>
         </button>
       </div>
 
       <!-- Canlı Okuma Sonuç Kartı (HUD) -->
       <div class="c-scan-result-hud" id="omr-result-hud">
+        <!-- Aktif Sınav Göstergesi -->
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; padding: 4px 8px; background: rgba(99, 102, 241, 0.15); border: 1px solid rgba(99, 102, 241, 0.3); border-radius: 8px;">
+          <span style="font-size: 11px; font-weight: 700; color: #a5b4fc; display: flex; align-items: center; gap: 5px;">
+            <i data-lucide="book-open" style="width: 13px; height: 13px;"></i>
+            <span id="omr-hud-exam-name">Sınav</span>
+          </span>
+          <span style="font-size: 10px; font-weight: 700; color: #e2e8f0;" id="omr-hud-exam-type">Dersler</span>
+        </div>
+
         <!-- Eşleşmeyen Öğrenci Uyarısı & Hızlı Kurtarma -->
         <div id="omr-unmatched-alert" style="display: none; background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.4); border-radius: 10px; padding: 8px 12px; margin-bottom: 10px; align-items: center; justify-content: space-between;">
           <span style="font-size: 12px; font-weight: 700; color: #fbbf24;">⚠️ Öğrenci Eşleşmedi</span>
@@ -1330,9 +1397,13 @@
         <div id="omr-hud-mistakes-strip" class="c-mistakes-strip" style="display: none;"></div>
 
         <div class="c-scan-hud-actions">
-          <button type="button" class="c-btn-secondary" style="flex: 0 0 84px;" onclick="window.CompanionOmr.retryScan()">
-            <i data-lucide="rotate-ccw" style="width: 16px; height: 16px;"></i>
+          <button type="button" class="c-btn-secondary" style="flex: 0 0 76px;" onclick="window.CompanionOmr.retryScan()">
+            <i data-lucide="rotate-ccw" style="width: 15px; height: 15px;"></i>
             <span>Tekrar</span>
+          </button>
+          <button type="button" class="c-btn-secondary" id="omr-btn-view-preview" style="flex: 0 0 auto; background: rgba(99, 102, 241, 0.22); border: 1px solid rgba(99, 102, 241, 0.45); color: #c7d2fe;" onclick="window.CompanionOmr.viewActiveCardPreview()" title="Optik Form İşaretleme Noktalarını İncele">
+            <i data-lucide="eye" style="width: 16px; height: 16px; color: #a5b4fc;"></i>
+            <span>Optiği Gör</span>
           </button>
           <button type="button" class="c-btn-next-scan" id="omr-btn-next-scan" onclick="window.CompanionOmr.acceptResultAndNext()">
             <i data-lucide="check" style="width: 18px; height: 18px;"></i>
@@ -1684,16 +1755,16 @@
 
   <!-- QR, Bulut & OMR Analiz Motorları -->
   <script src="js/supabase-config.js"></script>
-  <script src="js/cloud-sync.js?v=5"></script>
+  <script src="js/cloud-sync.js?v=75"></script>
   <script src="js/qrcode.min.js"></script>
   <script src="js/jsqr.js"></script>
-  <script src="js/omr-engine.js?v=5"></script>
-  <script src="js/companion-omr.js?v=5"></script>
-  <script src="js/companion-behavior.js?v=2"></script>
-  <script src="js/companion-homework.js?v=2"></script>
-  <script src="js/companion-books.js?v=3"></script>
+  <script src="js/omr-engine.js?v=79"></script>
+  <script src="js/companion-omr.js?v=79"></script>
+  <script src="js/companion-behavior.js?v=75"></script>
+  <script src="js/companion-homework.js?v=75"></script>
+  <script src="js/companion-books.js?v=75"></script>
 
   <!-- Çekirdek Kontrolcü -->
-  <script src="js/companion.js?v=5"></script>
+  <script src="js/companion.js?v=75"></script>
 </body>
 </html>

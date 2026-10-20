@@ -179,11 +179,24 @@
       const data = this.getData();
       const exams = Array.isArray(data.weeklyEvaluations) ? data.weeklyEvaluations : [];
       if (exams.length > 0) {
-        if (!this.activeExam) {
-          this.activeExam = exams[0];
-        } else {
-          const matched = exams.find(e => String(e.id) === String(this.activeExam.id));
-          this.activeExam = matched || exams[0];
+        let lastId = null;
+        try {
+          lastId = localStorage.getItem('companion_last_active_exam_id');
+        } catch(e) {}
+
+        let matched = null;
+        if (this.activeExam) {
+          matched = exams.find(e => String(e.id) === String(this.activeExam.id));
+        }
+        if (!matched && lastId) {
+          matched = exams.find(e => String(e.id) === String(lastId));
+        }
+        // Eğer eşleşme yoksa, çoklu dersli (Ai5 vb.) veya en son oluşturulan sınava öncelik ver
+        this.activeExam = matched || exams.find(e => e.isMultiSubject && Array.isArray(e.subjects) && e.subjects.length > 0) || exams[0];
+        if (this.activeExam) {
+          try {
+            localStorage.setItem('companion_last_active_exam_id', this.activeExam.id);
+          } catch(e) {}
         }
       }
     },
@@ -197,6 +210,9 @@
       const exam = (data.weeklyEvaluations || []).find(e => String(e.id) === String(examId));
       if (exam) {
         this.activeExam = exam;
+        try {
+          localStorage.setItem('companion_last_active_exam_id', exam.id);
+        } catch(e) {}
         this.viewState = 'detail';
         this.isRanked = false; // Yeni açıldığında varsayılan okuma sırası
         this.renderHub();
@@ -494,26 +510,36 @@
                     <div class="c-scan-card-score">${score.toFixed(1)} P</div>
                     <div class="c-scan-card-net">${net.toFixed(1)} Net</div>
                   </div>
-                  <button type="button" class="c-icon-btn" style="width: 28px; height: 28px; flex-shrink: 0;" title="Sil" onclick="window.CompanionOmr.deleteResult('${studentId}')">
-                    <i data-lucide="trash-2" style="width: 14px; height: 14px; color: #94a3b8;"></i>
-                  </button>
+                  <div style="display: flex; gap: 4px; align-items: center; flex-shrink: 0;">
+                    <button type="button" class="c-icon-btn" style="width: 28px; height: 28px; background: rgba(99, 102, 241, 0.15); border: 1px solid rgba(99, 102, 241, 0.35);" title="Optik Form Görseli ve Noktaları Gör" onclick="window.CompanionOmr.openOpticalPreviewModal('${studentId}')">
+                      <i data-lucide="eye" style="width: 14px; height: 14px; color: #818cf8;"></i>
+                    </button>
+                    <button type="button" class="c-icon-btn" style="width: 28px; height: 28px;" title="Sil" onclick="window.CompanionOmr.deleteResult('${studentId}')">
+                      <i data-lucide="trash-2" style="width: 14px; height: 14px; color: #94a3b8;"></i>
+                    </button>
+                  </div>
                 </div>
               `;
             }).join('')}
           `}
         </div>
 
-        <!-- Sabit Alt Eylem Çubuğu: Sonuçları Kaydet & QR Kod Butonu -->
+        <!-- Sabit Alt Eylem Çubuğu: Sonuçları Kaydet & Akıllı / Canlı Tara -->
         <div class="c-omr-sticky-actions">
           <button type="button" class="c-btn-save-results" onclick="window.CompanionOmr.saveAndRankResults()">
             <i data-lucide="save" style="width: 18px; height: 18px;"></i>
             <span>Sonuçları Kaydet</span>
           </button>
 
-          <button type="button" class="c-btn-qr-scan-bottom" onclick="window.CompanionOmr.openCamera()">
-            <i data-lucide="qr-code" style="width: 20px; height: 20px;"></i>
-            <span>QR / Form Tara</span>
-          </button>
+          <div style="display: flex; gap: 6px; flex: 1.3;">
+            <button type="button" class="c-btn-qr-scan-bottom" style="flex: 1;" onclick="window.CompanionOmr.openCamera()" title="Google Akıllı Belge Tarayıcı (CamScanner Kalitesinde)">
+              <i data-lucide="sparkles" style="width: 20px; height: 20px; color: #a5b4fc;"></i>
+              <span>Akıllı Tara</span>
+            </button>
+            <button type="button" class="c-icon-btn" style="width: 48px; height: 48px; background: rgba(30, 41, 59, 0.85); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;" onclick="window.CompanionOmr.openLiveCamera()" title="Canlı Kamera Vizörü">
+              <i data-lucide="camera" style="width: 20px; height: 20px; color: #94a3b8;"></i>
+            </button>
+          </div>
         </div>
       `;
     },
@@ -776,35 +802,64 @@
       const letters = ['A', 'B', 'C', 'D', 'E'].slice(0, choicesCount);
 
       if (this.wizardType === 'multi') {
+        const subjects = this.wizardSubjects || [];
+        if (!this.wizardActiveSubjId) {
+          this.wizardActiveSubjId = subjects[0] ? subjects[0].id : 'ALL';
+        }
+
         if (tabs) {
           tabs.style.display = 'flex';
-          tabs.innerHTML = this.wizardSubjects.map(s => `
+          const allPill = `
+            <button type="button" class="c-subject-pill ${this.wizardActiveSubjId === 'ALL' ? 'active' : ''}" style="cursor: pointer;" onclick="window.CompanionOmr.wizardSelectSubjTab('ALL')">
+              📋 Tüm Dersler
+            </button>
+          `;
+          tabs.innerHTML = allPill + subjects.map(s => `
             <button type="button" class="c-subject-pill ${s.id === this.wizardActiveSubjId ? 'active' : ''}" style="cursor: pointer;" onclick="window.CompanionOmr.wizardSelectSubjTab('${s.id}')">
               📚 ${s.name} (${s.questionCount}S)
             </button>
           `).join('');
         }
 
-        const currentSubj = this.wizardSubjects.find(s => s.id === this.wizardActiveSubjId) || this.wizardSubjects[0];
-        if (!currentSubj) return;
+        const targetSubjects = this.wizardActiveSubjId === 'ALL'
+          ? subjects
+          : [subjects.find(s => s.id === this.wizardActiveSubjId) || subjects[0]].filter(Boolean);
 
-        const count = currentSubj.questionCount || 10;
-        grid.innerHTML = Array.from({ length: count }, (_, i) => i + 1).map(q => {
-          const key = `${currentSubj.id}_${q}`;
-          const sel = this.wizardKey[key] || '';
-          return `
-            <div class="c-ak-row">
-              <span class="c-ak-q-num">S.${q}</span>
-              <div class="c-ak-bubbles">
-                ${letters.map(letter => `
-                  <button type="button" class="c-ak-bubble-btn ${sel === letter ? 'active' : ''}" onclick="window.CompanionOmr.wizardSetAnswer('${key}', '${letter}')">
-                    ${letter}
-                  </button>
-                `).join('')}
-              </div>
+        if (targetSubjects.length === 0) return;
+
+        let html = '';
+        targetSubjects.forEach(subj => {
+          let cumulativeOffset = 0;
+          for (const s of subjects) {
+            if (s.id === subj.id) break;
+            cumulativeOffset += (parseInt(s.questionCount, 10) || 0);
+          }
+          const count = parseInt(subj.questionCount, 10) || 10;
+          html += `
+            <div style="grid-column: 1 / -1; background: #eef2ff; border: 1px solid #c7d2fe; padding: 6px 10px; border-radius: 8px; margin: 6px 0 4px; font-weight: 800; font-size: 12px; color: #4338ca; display: flex; justify-content: space-between; align-items: center;">
+              <span>📚 ${subj.name}</span>
+              <span style="font-size: 11px; color: #4f46e5;">1 - ${count}. Sorular</span>
             </div>
           `;
-        }).join('');
+          for (let q = 1; q <= count; q++) {
+            const globalQ = cumulativeOffset + q;
+            const key = `${subj.id}_${q}`;
+            const sel = this.wizardKey[key] || this.wizardKey[`${subj.name}_${q}`] || this.wizardKey[globalQ] || '';
+            html += `
+              <div class="c-ak-row">
+                <span class="c-ak-q-num">S.${q}</span>
+                <div class="c-ak-bubbles">
+                  ${letters.map(letter => `
+                    <button type="button" class="c-ak-bubble-btn ${sel === letter ? 'active' : ''}" onclick="window.CompanionOmr.wizardSetAnswer('${key}', '${letter}')">
+                      ${letter}
+                    </button>
+                  `).join('')}
+                </div>
+              </div>
+            `;
+          }
+        });
+        grid.innerHTML = html;
       } else {
         if (tabs) tabs.style.display = 'none';
         const qInput = document.getElementById('wizard-exam-questions');
@@ -834,32 +889,38 @@
     },
 
     wizardSetAnswer(qKey, letter) {
-      if (this.wizardKey[qKey] === letter) {
-        delete this.wizardKey[qKey];
-      } else {
-        this.wizardKey[qKey] = letter;
-      }
-
       if (this.wizardType === 'multi') {
-        const currentSubj = (this.wizardSubjects || []).find(s => s.id === this.wizardActiveSubjId);
+        const subjects = this.wizardSubjects || [];
+        const currentSubj = subjects.find(s => String(qKey).startsWith(s.id + '_')) || subjects.find(s => s.id === this.wizardActiveSubjId);
         if (currentSubj) {
           let cumulativeOffset = 0;
-          for (const s of (this.wizardSubjects || [])) {
-            if (s.id === this.wizardActiveSubjId) break;
-            cumulativeOffset += (s.questionCount || 0);
+          for (const s of subjects) {
+            if (s.id === currentSubj.id) break;
+            cumulativeOffset += (parseInt(s.questionCount, 10) || 0);
           }
           const m = String(qKey).match(/_(\d+)$/);
-          if (m) {
-            const qNum = parseInt(m[1], 10);
+          const qNum = m ? parseInt(m[1], 10) : parseInt(qKey, 10);
+          if (qNum) {
             const globalQ = cumulativeOffset + qNum;
-            if (this.wizardKey[qKey]) {
-              this.wizardKey[`${currentSubj.name}_${qNum}`] = letter;
-              this.wizardKey[globalQ] = letter;
-            } else {
-              delete this.wizardKey[`${currentSubj.name}_${qNum}`];
+            const idKey = `${currentSubj.id}_${qNum}`;
+            const nameKey = `${currentSubj.name}_${qNum}`;
+            const existing = this.wizardKey[idKey] || this.wizardKey[nameKey] || this.wizardKey[globalQ] || '';
+            if (existing === letter) {
+              delete this.wizardKey[idKey];
+              delete this.wizardKey[nameKey];
               delete this.wizardKey[globalQ];
+            } else {
+              this.wizardKey[idKey] = letter;
+              this.wizardKey[nameKey] = letter;
+              this.wizardKey[globalQ] = letter;
             }
           }
+        }
+      } else {
+        if (this.wizardKey[qKey] === letter) {
+          delete this.wizardKey[qKey];
+        } else {
+          this.wizardKey[qKey] = letter;
         }
       }
 
@@ -909,24 +970,61 @@
 
       const pairs = text.match(/(\d+)\s*[:.\-\s]\s*([A-E])/gi) || text.match(/(\d+)([A-E])/gi);
       if (pairs) {
+        let currentSubjIdx = 0;
+        let prevQ = 0;
+        const subjects = this.wizardSubjects || [];
+
         pairs.forEach(p => {
           const m = p.match(/(\d+)[^A-E]*([A-E])/i);
           if (m) {
             const q = parseInt(m[1], 10);
             const ans = m[2].toUpperCase();
-            if (this.wizardType === 'multi') {
-              const activeSubj = (this.wizardSubjects || []).find(s => s.id === this.wizardActiveSubjId);
-              let cumulativeOffset = 0;
-              for (const s of (this.wizardSubjects || [])) {
-                if (s.id === this.wizardActiveSubjId) break;
-                cumulativeOffset += (s.questionCount || 0);
+            if (this.wizardType === 'multi' && subjects.length > 0) {
+              if (this.wizardActiveSubjId && this.wizardActiveSubjId !== 'ALL') {
+                const activeSubj = subjects.find(s => s.id === this.wizardActiveSubjId) || subjects[0];
+                let cumulativeOffset = 0;
+                for (const s of subjects) {
+                  if (s.id === activeSubj.id) break;
+                  cumulativeOffset += (parseInt(s.questionCount, 10) || 0);
+                }
+                if (q >= 1 && q <= (parseInt(activeSubj.questionCount, 10) || 20)) {
+                  const globalQ = cumulativeOffset + q;
+                  this.wizardKey[`${activeSubj.id}_${q}`] = ans;
+                  if (activeSubj.name) this.wizardKey[`${activeSubj.name}_${q}`] = ans;
+                  this.wizardKey[globalQ] = ans;
+                }
+              } else {
+                // 'ALL' görünümündeyken her ders 1'den başlayarak girilmişse (1..15, 1..15) veya ardışık (1..30) girilmişse akıllı eşle
+                if (q === 1 && prevQ > 1 && currentSubjIdx < subjects.length - 1) {
+                  currentSubjIdx++;
+                }
+                const curSubj = subjects[currentSubjIdx];
+                if (curSubj && q <= (parseInt(curSubj.questionCount, 10) || 10)) {
+                  let cumulativeOffset = 0;
+                  for (let i = 0; i < currentSubjIdx; i++) {
+                    cumulativeOffset += (parseInt(subjects[i].questionCount, 10) || 0);
+                  }
+                  const globalQ = cumulativeOffset + q;
+                  this.wizardKey[`${curSubj.id}_${q}`] = ans;
+                  if (curSubj.name) this.wizardKey[`${curSubj.name}_${q}`] = ans;
+                  this.wizardKey[globalQ] = ans;
+                  prevQ = q;
+                } else {
+                  // Global soru numarası (örn. 16..30) olarak girilmişse ilgili dersi bul
+                  let cum = 0;
+                  for (const s of subjects) {
+                    const cnt = parseInt(s.questionCount, 10) || 0;
+                    if (q > cum && q <= cum + cnt) {
+                      const subjQ = q - cum;
+                      this.wizardKey[`${s.id}_${subjQ}`] = ans;
+                      if (s.name) this.wizardKey[`${s.name}_${subjQ}`] = ans;
+                      this.wizardKey[q] = ans;
+                      break;
+                    }
+                    cum += cnt;
+                  }
+                }
               }
-              const globalQ = cumulativeOffset + q;
-              this.wizardKey[`${this.wizardActiveSubjId}_${q}`] = ans;
-              if (activeSubj && activeSubj.name) {
-                this.wizardKey[`${activeSubj.name}_${q}`] = ans;
-              }
-              this.wizardKey[globalQ] = ans;
             } else {
               this.wizardKey[q] = ans;
             }
@@ -1128,10 +1226,28 @@
     },
 
     // ==========================================================================
-    // CANLI KAMERA VİZÖR YÖNETİMİ & QR VE OMR OKUMA
+    // AKILLI BELGE TARAYICI (GOOGLE ML KIT) & CANLI KAMERA VİZÖR YÖNETİMİ
     // ==========================================================================
 
     async openCamera() {
+      // Android ortamında Google Document Scanner destekleniyorsa doğrudan akıllı tarayıcıyı başlat
+      if (window.AndroidBridge && typeof window.AndroidBridge.startDocumentScan === 'function') {
+        window.AndroidBridge.startDocumentScan(30);
+        return;
+      }
+      return this.openLiveCamera();
+    },
+
+    startDocumentScan(limit = 30) {
+      if (window.AndroidBridge && typeof window.AndroidBridge.startDocumentScan === 'function') {
+        window.AndroidBridge.startDocumentScan(limit);
+        return true;
+      }
+      this.openLiveCamera();
+      return false;
+    },
+
+    async openLiveCamera() {
       const modal = document.getElementById('companion-omr-camera-modal');
       const video = document.getElementById('omr-camera-video');
       const examNameTag = document.getElementById('omr-camera-exam-name');
@@ -1283,8 +1399,8 @@
       const canvasMinY = gRelTop / scale;
       const canvasMaxY = gRelBottom / scale;
 
-      const marginX = (canvasMaxX - canvasMinX) * 0.15;
-      const marginY = (canvasMaxY - canvasMinY) * 0.15;
+      const marginX = (canvasMaxX - canvasMinX) * 0.25;
+      const marginY = (canvasMaxY - canvasMinY) * 0.25;
 
       return {
         minX: Math.max(0, Math.round(canvasMinX - marginX)),
@@ -1305,20 +1421,23 @@
       const guideBox = document.getElementById('omr-guide-box');
       if (!guideBox) return;
       if (format === 1) {
+        // A4 (Tam Sayfa - Dikey)
         guideBox.style.width = '82vw';
-        guideBox.style.height = '62vh';
-        guideBox.style.maxWidth = '460px';
-        guideBox.style.maxHeight = '560px';
+        guideBox.style.height = 'calc(82vw * 1.414)';
+        guideBox.style.maxWidth = '380px';
+        guideBox.style.maxHeight = '537px';
       } else if (format === 4) {
-        guideBox.style.width = '84vw';
-        guideBox.style.height = '42vh';
-        guideBox.style.maxWidth = '440px';
-        guideBox.style.maxHeight = '340px';
-      } else {
+        // A6 (Çeyrek Sayfa - Yatay)
         guideBox.style.width = '88vw';
-        guideBox.style.height = '50vh';
-        guideBox.style.maxWidth = '500px';
-        guideBox.style.maxHeight = '420px';
+        guideBox.style.height = 'calc(88vw / 1.414)';
+        guideBox.style.maxWidth = '460px';
+        guideBox.style.maxHeight = '325px';
+      } else {
+        // A5 (Yarım Sayfa - Yatay Kesilmiş Kart)
+        guideBox.style.width = '90vw';
+        guideBox.style.height = 'calc(90vw / 1.414)';
+        guideBox.style.maxWidth = '480px';
+        guideBox.style.maxHeight = '340px';
       }
     },
 
@@ -1463,17 +1582,37 @@
         return;
       }
 
+      const data = this.getData();
+      const allExams = Array.isArray(data.weeklyEvaluations) ? data.weeklyEvaluations : [];
+
       let scanResult = null;
       if (window.OmrEngine && typeof window.OmrEngine.scanDocumentPage === 'function') {
         scanResult = await window.OmrEngine.scanDocumentPage(canvas, exam, students, {
           isDoubleForm: false,
           perPage: this.currentPaperFormat || 2,
           sensitivity: this.currentSensitivity,
-          bounds: bounds
+          bounds: bounds,
+          isMobileCamera: true,
+          allExams: allExams
         });
       }
 
       if (scanResult && scanResult.success && Array.isArray(scanResult.cards) && scanResult.cards.length > 0) {
+        // Otomatik Sınav Eşleme Kontrolü: Fiziksel form farklı bir sınava (ör. Ai5 çoklu ders) aitse
+        if (scanResult.cards[0] && scanResult.cards[0].autoSwitchedExam) {
+          const sw = scanResult.cards[0].autoSwitchedExam;
+          this.activeExam = sw;
+          try {
+            localStorage.setItem('companion_last_active_exam_id', sw.id);
+          } catch(e) {}
+          const examTag = document.getElementById('omr-camera-exam-name');
+          if (examTag) examTag.textContent = sw.examName;
+          if (window.Companion) {
+            window.Companion.showToast(`🎯 Form '${sw.examName}' (${sw.isMultiSubject ? sw.subjects.length + ' Ders' : 'Tek Ders'}) ile eşleştirildi!`, 'info');
+          }
+        }
+
+        const currentActiveExam = this.activeExam || exam;
         const savedResults = [];
 
         scanResult.cards.forEach((card, cIdx) => {
@@ -1497,7 +1636,7 @@
             thumbUrl: card.thumbUrl
           };
 
-          this.saveExamResult(exam.id, stuId, cardResult);
+          this.saveExamResult(currentActiveExam.id, stuId, cardResult);
           savedResults.push(cardResult);
         });
 
@@ -1510,13 +1649,27 @@
           if (window.Companion) window.Companion.showToast(`✅ ${savedResults.length} Öğrenci Formu Okundu: ${names}`, 'success');
         }
 
-        this.showResultHud(this.activeCardResult);
+        const modal = document.getElementById('companion-omr-camera-modal');
+        const isModalOpen = modal && modal.style.display !== 'none';
+        if (isModalOpen) {
+          this.showResultHud(this.activeCardResult);
+        } else {
+          const r = this.activeCardResult;
+          if (window.Companion) {
+            window.Companion.showToast(`✅ ${r.studentName}: ${r.score} Puan (${r.correct}D ${r.wrong}Y ${r.blank}B)`, 'success');
+          }
+          this.renderHub();
+        }
 
         const isUnmatched = !this.activeCardResult.studentId || 
                             (this.activeCardResult.studentId.startsWith('temp_') && (!this.activeCardResult.studentNo || this.activeCardResult.studentNo === '-')) || 
                             (this.activeCardResult.studentName === 'Öğrenci' && (!this.activeCardResult.studentNo || this.activeCardResult.studentNo === '-'));
 
-        if (this.autoAdvance && !isUnmatched) {
+        if (isUnmatched && !isModalOpen) {
+          this.openStudentPickerModal();
+        }
+
+        if (this.autoAdvance && !isUnmatched && isModalOpen) {
           const nextBtnText = document.getElementById('omr-btn-next-text');
           let count = 2;
           if (nextBtnText) nextBtnText.textContent = `Sonraki Form (${count})`;
@@ -1541,10 +1694,69 @@
         if (statusText) statusText.textContent = 'Optik formu kılavuza oturtun';
         if (window.Companion) {
           window.Companion.vibrate(50);
-          window.Companion.showToast('Optik form algılanamadı. Formu kılavuza oturtun.');
+          window.Companion.showToast('Optik form algılanamadı.');
         }
         this.isProcessingFrame = false;
         this.scanCooldownUntil = Date.now() + 1500;
+      }
+    },
+
+    // Google ML Kit Belge Tarayıcı Başarılı Döndüğünde Çağrılır
+    async onDocumentScanSuccess(urls, base64List) {
+      const items = (Array.isArray(urls) && urls.length > 0) ? urls : (Array.isArray(base64List) ? base64List : []);
+      if (!items || items.length === 0) {
+        if (window.Companion) window.Companion.showToast('Taranan belge bulunamadı.');
+        return;
+      }
+
+      if (window.Companion) {
+        window.Companion.showToast(`📑 ${items.length} adet optik form inceleniyor...`);
+      }
+
+      let readCardsCount = 0;
+      const total = items.length;
+
+      for (let i = 0; i < total; i++) {
+        const src = items[i];
+        try {
+          const img = await new Promise((resolve, reject) => {
+            const im = new Image();
+            im.crossOrigin = 'anonymous';
+            im.onload = () => resolve(im);
+            im.onerror = (e) => reject(e);
+            im.src = src;
+          });
+
+          const canvas = document.createElement('canvas');
+          canvas.width = img.naturalWidth || img.width;
+          canvas.height = img.naturalHeight || img.height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0);
+
+          await this.processImageCanvas(canvas, null);
+          readCardsCount++;
+        } catch (err) {
+          console.error(`Belge #${i + 1} işlenirken hata:`, err);
+        }
+      }
+
+      if (window.AndroidBridge && typeof window.AndroidBridge.vibrate === 'function') {
+        window.AndroidBridge.vibrate(60);
+      }
+
+      if (total > 1) {
+        if (window.Companion) {
+          window.Companion.showToast(`✅ ${total} sayfadan optik formlar başarıyla okundu ve kaydedildi!`, 'success');
+        }
+      }
+      this.renderHub();
+    },
+
+    // Google ML Kit Belge Tarayıcı İptal Edildiğinde / Hata Aldığında Çağrılır
+    onDocumentScanFailed(errorMsg) {
+      console.log('Document scan failed/cancelled:', errorMsg);
+      if (window.Companion) {
+        window.Companion.showToast(errorMsg || 'Belge tarama iptal edildi.');
       }
     },
 
@@ -1571,6 +1783,17 @@
       if (blank) blank.textContent = res.blank;
       if (net) net.textContent = Number(res.net || 0).toFixed(1);
       if (nextBtnText) nextBtnText.textContent = 'Kaydet & Sonraki Form';
+
+      const examNameElem = document.getElementById('omr-hud-exam-name');
+      const examTypeElem = document.getElementById('omr-hud-exam-type');
+      if (this.activeExam) {
+        if (examNameElem) examNameElem.textContent = this.activeExam.examName || 'Sınav';
+        if (examTypeElem) {
+          examTypeElem.textContent = this.activeExam.isMultiSubject 
+            ? `📚 ${(this.activeExam.subjects || []).length} Ders • ${this.activeExam.totalQuestions || 32}S` 
+            : `📄 ${this.activeExam.totalQuestions || 20} Soru`;
+        }
+      }
 
       // Eşleşmeyen Öğrenci Uyarısı
       const isUnmatched = !res.studentId || res.studentId.startsWith('temp_') || res.studentName === 'Öğrenci' || res.studentNo === '-';
@@ -1751,10 +1974,19 @@
         score: res.score,
         answers: res.answers,
         subjectBreakdown: res.subjectBreakdown || {},
+        thumbUrl: res.thumbUrl || (exam.studentResults[studentId] && exam.studentResults[studentId].thumbUrl) || null,
         updatedAt: new Date().toISOString()
       };
       exam.examScores[studentId] = res.score;
       exam.updatedAt = new Date().toISOString();
+
+      if (res.thumbUrl) {
+        this.scannedCardImages = this.scannedCardImages || {};
+        this.scannedCardImages[studentId] = res.thumbUrl;
+        try {
+          sessionStorage.setItem('omr_thumb_' + studentId, res.thumbUrl);
+        } catch (e) {}
+      }
 
       this.saveData(data);
       this.activeExam = exam;
@@ -1804,8 +2036,10 @@
     // ==========================================================================
 
     openKeyEditor(examId) {
-      const exam = this.activeExam;
+      const data = this.getData();
+      const exam = (examId && (data.weeklyEvaluations || []).find(e => String(e.id) === String(examId))) || this.activeExam;
       if (!exam) return;
+      this.activeExam = exam;
 
       let modal = document.getElementById('companion-key-modal');
       if (!modal) {
@@ -1828,15 +2062,15 @@
           bodyHtml += `
             <div style="background: var(--c-bg); padding: 8px 12px; border-radius: 8px; margin: 12px 0 6px; font-weight: 800; font-size: 13px; color: var(--c-primary); display: flex; justify-content: space-between;">
               <span>📚 ${subj.name}</span>
-              <span style="font-size: 11px; opacity: 0.8;">(${subj.questionCount} Soru)</span>
+              <span style="font-size: 11px; opacity: 0.8;">(1 - ${subj.questionCount}. Sorular)</span>
             </div>
           `;
           for (let qi = 1; qi <= subj.questionCount; qi++) {
             const currentQ = qCursor++;
-            const activeOpt = key[currentQ] || key[`${subj.id}_${qi}`] || '';
+            const activeOpt = key[`${subj.id}_${qi}`] || key[`${subj.name}_${qi}`] || (subj.answerKey && subj.answerKey[qi]) || key[currentQ] || '';
             bodyHtml += `
               <div class="c-key-q-row">
-                <span class="c-key-q-num">S.${currentQ}</span>
+                <span class="c-key-q-num">S.${qi}</span>
                 <div class="c-key-opt-btns">
                   ${choices.map(opt => `
                     <button type="button" 
@@ -1907,7 +2141,20 @@
       if (!this.activeExam) return;
       if (!this.activeExam.answerKey) this.activeExam.answerKey = {};
 
-      const current = this.activeExam.answerKey[q];
+      let current = this.activeExam.answerKey[q];
+      if (this.activeExam.isMultiSubject && Array.isArray(this.activeExam.subjects)) {
+        let cumulative = 0;
+        for (const s of this.activeExam.subjects) {
+          const count = s.questionCount || 0;
+          if (q > cumulative && q <= cumulative + count) {
+            const subjQ = q - cumulative;
+            current = this.activeExam.answerKey[`${s.id}_${subjQ}`] || this.activeExam.answerKey[`${s.name}_${subjQ}`] || (s.answerKey && s.answerKey[subjQ]) || current;
+            break;
+          }
+          cumulative += count;
+        }
+      }
+
       const isSetting = (current !== opt);
       if (isSetting) {
         this.activeExam.answerKey[q] = opt;
@@ -1941,7 +2188,7 @@
       const row = document.querySelector(`.c-key-opt-btn[data-q="${q}"][data-opt="${opt}"]`);
       if (row && row.parentElement) {
         row.parentElement.querySelectorAll('.c-key-opt-btn').forEach(btn => {
-          btn.classList.toggle('active', btn.getAttribute('data-opt') === this.activeExam.answerKey[q]);
+          btn.classList.toggle('active', isSetting && btn.getAttribute('data-opt') === opt);
         });
       }
 
@@ -1951,21 +2198,35 @@
     saveKeyEditor() {
       const data = this.getData();
       const exam = (data.weeklyEvaluations || []).find(e => String(e.id) === String(this.activeExam.id));
+      let rescoredCount = 0;
       if (exam) {
-        exam.answerKey = this.activeExam.answerKey;
+        exam.answerKey = { ...(this.activeExam.answerKey || {}) };
         if (this.activeExam.isMultiSubject && Array.isArray(this.activeExam.subjects)) {
           exam.subjects = this.activeExam.subjects;
         }
+        exam.hasOpticalForm = true;
         exam.updatedAt = new Date().toISOString();
+        rescoredCount = this.recalculateExamResults(exam);
         this.saveData(data);
-        if (window.CloudSync) window.CloudSync.pushExam(exam).catch(() => {});
+        this.activeExam = exam;
+        if (window.CloudSync) {
+          window.CloudSync.pushExam(exam).catch(() => {});
+          if (typeof window.CloudSync.pushLiveExamResults === 'function') {
+            window.CloudSync.pushLiveExamResults(exam, 'terminal').catch(() => {});
+          }
+        }
       }
 
       const modal = document.getElementById('companion-key-modal');
       if (modal) modal.style.display = 'none';
 
       this.renderHub();
-      if (window.Companion) window.Companion.showToast('Cevap anahtarı kaydedildi!');
+      if (window.Companion) {
+        const msg = rescoredCount > 0
+          ? `✅ Cevap anahtarı kaydedildi ve masaüstüne gönderildi! (${rescoredCount} öğrenci yeniden puanlandı)`
+          : '✅ Cevap anahtarı kaydedildi ve masaüstüne gönderildi!';
+        window.Companion.showToast(msg, 'success');
+      }
     },
 
     // ==========================================================================
@@ -1980,8 +2241,32 @@
       const modal = document.getElementById('companion-exam-settings-modal');
       if (!modal) return;
 
-      const isMulti = !!(exam.isMultiSubject && Array.isArray(exam.subjects) && exam.subjects.length > 0);
-      
+      const isMulti = !!((exam.isMultiSubject && Array.isArray(exam.subjects) && exam.subjects.length > 0) || (Array.isArray(exam.subjects) && exam.subjects.length > 1));
+      const clonedSubjects = isMulti ? JSON.parse(JSON.stringify(exam.subjects)).map((s, idx) => ({
+        ...s,
+        id: s.id || `sub_${idx}`,
+        name: s.name || `Ders ${idx + 1}`,
+        questionCount: parseInt(s.questionCount, 10) || 10
+      })) : [];
+
+      const initialKey = { ...(exam.answerKey || {}) };
+      if (isMulti) {
+        let cum = 0;
+        clonedSubjects.forEach(s => {
+          const count = parseInt(s.questionCount, 10) || 10;
+          for (let qi = 1; qi <= count; qi++) {
+            const globalQ = cum + qi;
+            const val = initialKey[`${s.id}_${qi}`] || initialKey[`${s.name}_${qi}`] || (s.answerKey && s.answerKey[qi]) || initialKey[globalQ] || '';
+            if (val) {
+              initialKey[`${s.id}_${qi}`] = val;
+              initialKey[`${s.name}_${qi}`] = val;
+              initialKey[globalQ] = val;
+            }
+          }
+          cum += count;
+        });
+      }
+
       this.settingsState = {
         examId: exam.id,
         examName: exam.examName || '',
@@ -1992,10 +2277,10 @@
         penaltyRate: exam.penaltyRate || 4,
         choicesCount: exam.choicesCount || 4,
         isMultiSubject: isMulti,
-        subjects: isMulti ? JSON.parse(JSON.stringify(exam.subjects)) : [],
-        activeSubjId: isMulti ? (exam.subjects[0]?.id || 'sub_0') : null,
+        subjects: clonedSubjects,
+        activeSubjId: isMulti ? (clonedSubjects[0]?.id || 'ALL') : null,
         totalQuestions: exam.totalQuestions || 20,
-        answerKey: { ...(exam.answerKey || {}) }
+        answerKey: initialKey
       };
 
       const idInput = document.getElementById('settings-exam-id');
@@ -2171,42 +2456,65 @@
       const letters = ['A', 'B', 'C', 'D', 'E'].slice(0, choicesCount);
 
       if (this.settingsState.isMultiSubject) {
+        const subjects = this.settingsState.subjects || [];
+        if (!this.settingsState.activeSubjId) {
+          this.settingsState.activeSubjId = subjects[0] ? subjects[0].id : 'ALL';
+        }
+
         if (tabs) {
           tabs.style.display = 'flex';
-          tabs.innerHTML = (this.settingsState.subjects || []).map(s => `
+          const allPill = `
+            <button type="button" class="c-subject-pill ${this.settingsState.activeSubjId === 'ALL' ? 'active' : ''}" style="cursor: pointer;" onclick="window.CompanionOmr.settingsSelectSubjTab('ALL')">
+              📋 Tüm Dersler
+            </button>
+          `;
+          tabs.innerHTML = allPill + subjects.map(s => `
             <button type="button" class="c-subject-pill ${s.id === this.settingsState.activeSubjId ? 'active' : ''}" style="cursor: pointer;" onclick="window.CompanionOmr.settingsSelectSubjTab('${s.id}')">
               📚 ${s.name} (${s.questionCount}S)
             </button>
           `).join('');
         }
 
-        const currentSubj = (this.settingsState.subjects || []).find(s => s.id === this.settingsState.activeSubjId) || this.settingsState.subjects[0];
-        if (!currentSubj) return;
+        const targetSubjects = this.settingsState.activeSubjId === 'ALL'
+          ? subjects
+          : [subjects.find(s => s.id === this.settingsState.activeSubjId) || subjects[0]].filter(Boolean);
 
-        let cumulativeOffset = 0;
-        for (const s of (this.settingsState.subjects || [])) {
-          if (s.id === currentSubj.id) break;
-          cumulativeOffset += (s.questionCount || 0);
-        }
+        if (targetSubjects.length === 0) return;
 
-        const count = currentSubj.questionCount || 10;
-        grid.innerHTML = Array.from({ length: count }, (_, i) => i + 1).map(q => {
-          const globalQ = cumulativeOffset + q;
-          const key = `${currentSubj.id}_${q}`;
-          const sel = this.settingsState.answerKey[key] || this.settingsState.answerKey[`${currentSubj.name}_${q}`] || this.settingsState.answerKey[globalQ] || '';
-          return `
-            <div class="c-ak-row">
-              <span class="c-ak-q-num">S.${q}</span>
-              <div class="c-ak-bubbles">
-                ${letters.map(letter => `
-                  <button type="button" class="c-ak-bubble-btn ${sel === letter ? 'active' : ''}" onclick="window.CompanionOmr.settingsSetAnswer('${key}', '${letter}')">
-                    ${letter}
-                  </button>
-                `).join('')}
-              </div>
+        let html = '';
+        targetSubjects.forEach(subj => {
+          let cumulativeOffset = 0;
+          for (const s of subjects) {
+            if (s.id === subj.id) break;
+            cumulativeOffset += (parseInt(s.questionCount, 10) || 0);
+          }
+
+          const count = parseInt(subj.questionCount, 10) || 10;
+          html += `
+            <div style="grid-column: 1 / -1; background: #eef2ff; border: 1px solid #c7d2fe; padding: 6px 10px; border-radius: 8px; margin: 6px 0 4px; font-weight: 800; font-size: 12px; color: #4338ca; display: flex; justify-content: space-between; align-items: center;">
+              <span>📚 ${subj.name}</span>
+              <span style="font-size: 11px; color: #4f46e5;">1 - ${count}. Sorular</span>
             </div>
           `;
-        }).join('');
+          for (let q = 1; q <= count; q++) {
+            const globalQ = cumulativeOffset + q;
+            const key = `${subj.id}_${q}`;
+            const sel = this.settingsState.answerKey[key] || this.settingsState.answerKey[`${subj.name}_${q}`] || (subj.answerKey && subj.answerKey[q]) || this.settingsState.answerKey[globalQ] || '';
+            html += `
+              <div class="c-ak-row">
+                <span class="c-ak-q-num">S.${q}</span>
+                <div class="c-ak-bubbles">
+                  ${letters.map(letter => `
+                    <button type="button" class="c-ak-bubble-btn ${sel === letter ? 'active' : ''}" onclick="window.CompanionOmr.settingsSetAnswer('${key}', '${letter}')">
+                      ${letter}
+                    </button>
+                  `).join('')}
+                </div>
+              </div>
+            `;
+          }
+        });
+        grid.innerHTML = html;
       } else {
         if (tabs) tabs.style.display = 'none';
         const count = this.settingsState.totalQuestions || 20;
@@ -2237,32 +2545,42 @@
 
     settingsSetAnswer(qKey, letter) {
       if (!this.settingsState) return;
-      if (this.settingsState.answerKey[qKey] === letter) {
-        delete this.settingsState.answerKey[qKey];
-      } else {
-        this.settingsState.answerKey[qKey] = letter;
-      }
 
       if (this.settingsState.isMultiSubject) {
-        const currentSubj = (this.settingsState.subjects || []).find(s => s.id === this.settingsState.activeSubjId);
+        const subjects = this.settingsState.subjects || [];
+        const currentSubj = subjects.find(s => String(qKey).startsWith(s.id + '_')) || subjects.find(s => s.id === this.settingsState.activeSubjId);
         if (currentSubj) {
           let cumulativeOffset = 0;
-          for (const s of (this.settingsState.subjects || [])) {
-            if (s.id === this.settingsState.activeSubjId) break;
-            cumulativeOffset += (s.questionCount || 0);
+          for (const s of subjects) {
+            if (s.id === currentSubj.id) break;
+            cumulativeOffset += (parseInt(s.questionCount, 10) || 0);
           }
           const m = String(qKey).match(/_(\d+)$/);
-          if (m) {
-            const qNum = parseInt(m[1], 10);
+          const qNum = m ? parseInt(m[1], 10) : parseInt(qKey, 10);
+          if (qNum) {
             const globalQ = cumulativeOffset + qNum;
-            if (this.settingsState.answerKey[qKey]) {
-              this.settingsState.answerKey[`${currentSubj.name}_${qNum}`] = letter;
-              this.settingsState.answerKey[globalQ] = letter;
-            } else {
-              delete this.settingsState.answerKey[`${currentSubj.name}_${qNum}`];
+            const idKey = `${currentSubj.id}_${qNum}`;
+            const nameKey = `${currentSubj.name}_${qNum}`;
+            const existing = this.settingsState.answerKey[idKey] || this.settingsState.answerKey[nameKey] || (currentSubj.answerKey && currentSubj.answerKey[qNum]) || this.settingsState.answerKey[globalQ] || '';
+            if (existing === letter) {
+              delete this.settingsState.answerKey[idKey];
+              delete this.settingsState.answerKey[nameKey];
               delete this.settingsState.answerKey[globalQ];
+              if (currentSubj.answerKey) delete currentSubj.answerKey[qNum];
+            } else {
+              this.settingsState.answerKey[idKey] = letter;
+              this.settingsState.answerKey[nameKey] = letter;
+              this.settingsState.answerKey[globalQ] = letter;
+              if (!currentSubj.answerKey) currentSubj.answerKey = {};
+              currentSubj.answerKey[qNum] = letter;
             }
           }
+        }
+      } else {
+        if (this.settingsState.answerKey[qKey] === letter) {
+          delete this.settingsState.answerKey[qKey];
+        } else {
+          this.settingsState.answerKey[qKey] = letter;
         }
       }
 
@@ -2314,24 +2632,65 @@
 
       const pairs = text.match(/(\d+)\s*[:.\-\s]\s*([A-E])/gi) || text.match(/(\d+)([A-E])/gi);
       if (pairs) {
+        let currentSubjIdx = 0;
+        let prevQ = 0;
+        const subjects = this.settingsState.subjects || [];
+
         pairs.forEach(p => {
           const m = p.match(/(\d+)[^A-E]*([A-E])/i);
           if (m) {
             const q = parseInt(m[1], 10);
             const ans = m[2].toUpperCase();
-            if (this.settingsState.isMultiSubject) {
-              const activeSubj = (this.settingsState.subjects || []).find(s => s.id === this.settingsState.activeSubjId);
-              let cumulativeOffset = 0;
-              for (const s of (this.settingsState.subjects || [])) {
-                if (s.id === this.settingsState.activeSubjId) break;
-                cumulativeOffset += (s.questionCount || 0);
+            if (this.settingsState.isMultiSubject && subjects.length > 0) {
+              if (this.settingsState.activeSubjId && this.settingsState.activeSubjId !== 'ALL') {
+                const activeSubj = subjects.find(s => s.id === this.settingsState.activeSubjId) || subjects[0];
+                let cumulativeOffset = 0;
+                for (const s of subjects) {
+                  if (s.id === activeSubj.id) break;
+                  cumulativeOffset += (parseInt(s.questionCount, 10) || 0);
+                }
+                if (q >= 1 && q <= (parseInt(activeSubj.questionCount, 10) || 20)) {
+                  const globalQ = cumulativeOffset + q;
+                  this.settingsState.answerKey[`${activeSubj.id}_${q}`] = ans;
+                  if (activeSubj.name) this.settingsState.answerKey[`${activeSubj.name}_${q}`] = ans;
+                  this.settingsState.answerKey[globalQ] = ans;
+                  if (!activeSubj.answerKey) activeSubj.answerKey = {};
+                  activeSubj.answerKey[q] = ans;
+                }
+              } else {
+                if (q === 1 && prevQ > 1 && currentSubjIdx < subjects.length - 1) {
+                  currentSubjIdx++;
+                }
+                const curSubj = subjects[currentSubjIdx];
+                if (curSubj && q <= (parseInt(curSubj.questionCount, 10) || 10)) {
+                  let cumulativeOffset = 0;
+                  for (let i = 0; i < currentSubjIdx; i++) {
+                    cumulativeOffset += (parseInt(subjects[i].questionCount, 10) || 0);
+                  }
+                  const globalQ = cumulativeOffset + q;
+                  this.settingsState.answerKey[`${curSubj.id}_${q}`] = ans;
+                  if (curSubj.name) this.settingsState.answerKey[`${curSubj.name}_${q}`] = ans;
+                  this.settingsState.answerKey[globalQ] = ans;
+                  if (!curSubj.answerKey) curSubj.answerKey = {};
+                  curSubj.answerKey[q] = ans;
+                  prevQ = q;
+                } else {
+                  let cum = 0;
+                  for (const s of subjects) {
+                    const cnt = parseInt(s.questionCount, 10) || 0;
+                    if (q > cum && q <= cum + cnt) {
+                      const subjQ = q - cum;
+                      this.settingsState.answerKey[`${s.id}_${subjQ}`] = ans;
+                      if (s.name) this.settingsState.answerKey[`${s.name}_${subjQ}`] = ans;
+                      this.settingsState.answerKey[q] = ans;
+                      if (!s.answerKey) s.answerKey = {};
+                      s.answerKey[subjQ] = ans;
+                      break;
+                    }
+                    cum += cnt;
+                  }
+                }
               }
-              const globalQ = cumulativeOffset + q;
-              this.settingsState.answerKey[`${this.settingsState.activeSubjId}_${q}`] = ans;
-              if (activeSubj && activeSubj.name) {
-                this.settingsState.answerKey[`${activeSubj.name}_${q}`] = ans;
-              }
-              this.settingsState.answerKey[globalQ] = ans;
             } else {
               this.settingsState.answerKey[q] = ans;
             }
@@ -2371,12 +2730,13 @@
       const isMulti = this.settingsState.isMultiSubject;
       let totalQ = 20;
       let subjects = [];
+      const cleanAnswerKey = {};
 
       if (isMulti) {
         subjects = (this.settingsState.subjects || []).map(s => ({
           id: s.id,
           name: s.name,
-          questionCount: s.questionCount,
+          questionCount: parseInt(s.questionCount, 10) || 10,
           answerKey: {}
         }));
         totalQ = subjects.reduce((sum, s) => sum + s.questionCount, 0);
@@ -2389,9 +2749,9 @@
             const val = this.settingsState.answerKey[`${s.id}_${qi}`] || this.settingsState.answerKey[`${s.name}_${qi}`] || this.settingsState.answerKey[globalQ];
             if (val) {
               s.answerKey[qi] = val;
-              this.settingsState.answerKey[`${s.id}_${qi}`] = val;
-              this.settingsState.answerKey[`${s.name}_${qi}`] = val;
-              this.settingsState.answerKey[globalQ] = val;
+              cleanAnswerKey[`${s.id}_${qi}`] = val;
+              cleanAnswerKey[`${s.name}_${qi}`] = val;
+              cleanAnswerKey[globalQ] = val;
             }
           }
           cumulative += s.questionCount;
@@ -2399,6 +2759,10 @@
       } else {
         const qInput = document.getElementById('settings-exam-questions');
         totalQ = parseInt(qInput ? qInput.value : (this.settingsState.totalQuestions || 20), 10) || 20;
+        for (let q = 1; q <= totalQ; q++) {
+          const val = this.settingsState.answerKey[q] || this.settingsState.answerKey[String(q)];
+          if (val) cleanAnswerKey[q] = val;
+        }
       }
 
       const data = this.getData();
@@ -2419,7 +2783,8 @@
       exam.totalQuestions = totalQ;
       exam.isMultiSubject = isMulti;
       if (isMulti) exam.subjects = subjects;
-      exam.answerKey = { ...this.settingsState.answerKey };
+      exam.hasOpticalForm = true;
+      exam.answerKey = cleanAnswerKey;
       exam.updatedAt = new Date().toISOString();
 
       // Önceden taranmış öğrenci sonuçlarını otomatik yeniden puanla!
@@ -2579,18 +2944,38 @@
       const exam = (data.weeklyEvaluations || []).find(e => String(e.id) === String(examId)) || this.activeExam;
       if (!exam) return;
 
+      const isMulti = exam && !!exam.isMultiSubject && Array.isArray(exam.subjects) && exam.subjects.length > 0;
+      const maxSubjQ = isMulti ? Math.max(...exam.subjects.map(s => parseInt(s.questionCount, 10) || 0)) : (parseInt(exam.totalQuestions, 10) || 20);
+      const totalQ = parseInt(exam.totalQuestions, 10) || 20;
+      const requiresSinglePage = maxSubjQ > 20 || (!isMulti && totalQ > 40);
+
+      this.mprintRequiresSinglePage = requiresSinglePage;
       this.mprintExam = exam;
       this.mprintType = 'named';
-      this.mprintPerPage = 2;
 
       const modal = document.getElementById('companion-optical-print-modal');
       if (!modal) return;
 
       const badge = document.getElementById('mprint-exam-title-badge');
-      if (badge) badge.textContent = `${exam.examName} (${exam.totalQuestions || 20} Soru)`;
+      if (badge) {
+        badge.textContent = `${exam.examName} (${totalQ} Soru${requiresSinglePage ? ' • A4 Tam Sayfa Zorunlu' : ''})`;
+      }
+
+      const pill1 = document.getElementById('mprint-perpage-1');
+      const pill2 = document.getElementById('mprint-perpage-2');
+      const pill4 = document.getElementById('mprint-perpage-4');
+
+      if (requiresSinglePage) {
+        if (pill2) { pill2.classList.add('disabled'); pill2.style.opacity = '0.35'; pill2.style.pointerEvents = 'none'; pill2.title = 'Soru sayısı > 20 olduğu için A4 Tam Sayfa gereklidir'; }
+        if (pill4) { pill4.classList.add('disabled'); pill4.style.opacity = '0.35'; pill4.style.pointerEvents = 'none'; pill4.title = 'Soru sayısı > 20 olduğu için A4 Tam Sayfa gereklidir'; }
+        this.mprintSetPerPage(1);
+      } else {
+        if (pill2) { pill2.classList.remove('disabled'); pill2.style.opacity = '1'; pill2.style.pointerEvents = 'auto'; pill2.title = ''; }
+        if (pill4) { pill4.classList.remove('disabled'); pill4.style.opacity = '1'; pill4.style.pointerEvents = 'auto'; pill4.title = ''; }
+        this.mprintSetPerPage(2);
+      }
 
       this.mprintSetType('named');
-      this.mprintSetPerPage(2);
 
       const studentsListEl = document.getElementById('mprint-students-list');
       const students = this.getActiveStudents();
@@ -2644,6 +3029,12 @@
     },
 
     mprintSetPerPage(perPage) {
+      if (this.mprintRequiresSinglePage && perPage !== 1) {
+        if (window.Companion && window.Companion.showToast) {
+          window.Companion.showToast('Bu sınavda soru sayısı (Ders başına > 20) fazla olduğu için yalnızca A4 Tam Sayfa kullanılabilir.', 'warning');
+        }
+        return;
+      }
       this.mprintPerPage = perPage;
       [1, 2, 4].forEach(p => {
         const pill = document.getElementById(`mprint-perpage-${p}`);
@@ -2710,7 +3101,8 @@
       if (qrcodeFn && idx > 0) {
         try {
           const qr = qrcodeFn(0, 'M');
-          qr.addData(`SA:${idx}:${studentNo || ''}`);
+          const pTag = options && options.perPage ? `:P${options.perPage}` : ':P2';
+          qr.addData(`SA:${idx}:${studentNo || ''}${pTag}`);
           qr.make();
           qrSvgHtml = qr.createSvgTag(2, 0);
           if (qrSvgHtml) {
@@ -2765,6 +3157,14 @@
       `;
     },
 
+    renderCornerAnchorSVG(posClass) {
+      return `<svg class="omr-anchor ${posClass}" viewBox="0 0 24 24" width="22" height="22" shape-rendering="crispEdges" style="position: absolute; z-index: 10; display: block;">
+        <rect x="0" y="0" width="24" height="24" fill="#000000" rx="3" />
+        <rect x="3.5" y="3.5" width="17" height="17" fill="#ffffff" rx="2" />
+        <rect x="7" y="7" width="10" height="10" fill="#000000" rx="1" />
+      </svg>`;
+    },
+
     generateSingleOpticalCardHTML(options) {
       const {
         examName = 'Haftalık Değerlendirme',
@@ -2784,7 +3184,8 @@
         studentIndex,
         studentId,
         studentNo,
-        examId: examId || ''
+        examId: examId || '',
+        perPage: perPage || 2
       });
 
       if (isMultiSubject && Array.isArray(subjects) && subjects.length > 0) {
@@ -2822,10 +3223,11 @@
 
         return `
           <div class="omr-card omr-multi ${isCompact ? 'compact-rows' : ''}">
-            <div class="omr-anchor omr-anchor-tl"></div>
-            <div class="omr-anchor omr-anchor-tr"></div>
-            <div class="omr-anchor omr-anchor-bl"></div>
-            <div class="omr-anchor omr-anchor-br"></div>
+            <!-- 4 Köşe Referans Çapası (CamScanner & Tarayıcı Uyumlu Vektör Çapa) -->
+            ${this.renderCornerAnchorSVG('omr-anchor-tl')}
+            ${this.renderCornerAnchorSVG('omr-anchor-tr')}
+            ${this.renderCornerAnchorSVG('omr-anchor-bl')}
+            ${this.renderCornerAnchorSVG('omr-anchor-br')}
 
             <div class="omr-card-header">
               <div class="omr-header-main">
@@ -2884,10 +3286,11 @@
 
       return `
         <div class="omr-card">
-          <div class="omr-anchor omr-anchor-tl"></div>
-          <div class="omr-anchor omr-anchor-tr"></div>
-          <div class="omr-anchor omr-anchor-bl"></div>
-          <div class="omr-anchor omr-anchor-br"></div>
+          <!-- 4 Köşe Referans Çapası (CamScanner & Tarayıcı Uyumlu Vektör Çapa) -->
+          ${this.renderCornerAnchorSVG('omr-anchor-tl')}
+          ${this.renderCornerAnchorSVG('omr-anchor-tr')}
+          ${this.renderCornerAnchorSVG('omr-anchor-bl')}
+          ${this.renderCornerAnchorSVG('omr-anchor-br')}
 
           <div class="omr-card-header">
             <div class="omr-header-main">
@@ -3017,28 +3420,9 @@
       position: absolute;
       width: 22px;
       height: 22px;
-      background-color: #000000 !important;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-sizing: border-box;
-      z-index: 5;
-    }
-    .omr-anchor::before {
-      content: '';
       display: block;
-      width: 12px;
-      height: 12px;
-      background-color: #ffffff !important;
       box-sizing: border-box;
-    }
-    .omr-anchor::after {
-      content: '';
-      position: absolute;
-      width: 6px;
-      height: 6px;
-      background-color: #000000 !important;
-      box-sizing: border-box;
+      z-index: 10;
     }
     .omr-anchor-tl { top: 6px; left: 6px; }
     .omr-anchor-tr { top: 6px; right: 6px; }
@@ -3161,7 +3545,10 @@
     .omr-subject-rows {
       display: flex;
       flex-direction: column;
-      gap: 1.5px;
+      justify-content: flex-start !important;
+      align-items: stretch;
+      gap: 2px;
+      box-sizing: border-box;
     }
     .omr-card-footer {
       margin: 2px 28px 4px 28px;
@@ -3310,9 +3697,301 @@
       }, 400);
 
       if (window.Companion) window.Companion.showToast('Yazdırma sayfası hazırlandı!', 'success');
+    },
+
+    // ==========================================================================
+    // OPTİK FORM VE İŞARETLEME NOKTALARI TEŞHİS & ÖNİZLEME MOTORU
+    // ==========================================================================
+    inspectZoomLevel: 1.0,
+    inspectCurrentImageUrl: '',
+
+    viewActiveCardPreview() {
+      if (!this.activeCardResult) {
+        if (window.Companion) window.Companion.showToast('Görüntülenecek optik form bulunamadı.', 'warning');
+        return;
+      }
+      this.openOpticalInspectModalWithData(this.activeCardResult);
+    },
+
+    openOpticalPreviewModal(studentId) {
+      const data = this.getData();
+      const exam = (data.weeklyEvaluations || []).find(e => String(e.id) === String(this.activeExam.id));
+      const res = (exam && exam.studentResults && exam.studentResults[studentId]) || {};
+      let cachedImg = (this.scannedCardImages && this.scannedCardImages[studentId]) || res.thumbUrl;
+      if (!cachedImg) {
+        try {
+          cachedImg = sessionStorage.getItem('omr_thumb_' + studentId);
+        } catch (e) {}
+      }
+
+      if (!cachedImg) {
+        if (window.Companion) window.Companion.showToast('Bu öğrenci için taranmış form görseli bulunamadı.', 'warning');
+        return;
+      }
+
+      this.openOpticalInspectModalWithData({
+        studentName: res.studentName || 'Öğrenci',
+        studentNo: res.studentNo || '-',
+        score: res.score || 0,
+        correct: res.correct || 0,
+        wrong: res.wrong || 0,
+        blank: res.blank || 0,
+        thumbUrl: cachedImg
+      });
+    },
+
+    openOpticalInspectModalWithData(data) {
+      const modal = document.getElementById('companion-optical-inspect-modal');
+      if (!modal) return;
+
+      const titleEl = document.getElementById('opt-inspect-title');
+      const metaEl = document.getElementById('opt-inspect-meta');
+      const avatarEl = document.getElementById('opt-inspect-avatar');
+      const imgEl = document.getElementById('opt-inspect-img');
+
+      if (titleEl) titleEl.textContent = data.studentName || 'Öğrenci Formu';
+      if (metaEl) metaEl.textContent = `No: ${data.studentNo || '-'} • Puan: ${Number(data.score || 0).toFixed(1)} • ${data.correct || 0}D ${data.wrong || 0}Y ${data.blank || 0}B`;
+      if (avatarEl) avatarEl.textContent = (data.studentName || 'Ö')[0].toUpperCase();
+
+      this.inspectCurrentImageUrl = data.thumbUrl || '';
+      if (imgEl) {
+        imgEl.src = data.thumbUrl || '';
+        this.resetInspectZoom();
+      }
+
+      modal.style.display = 'flex';
+      this.setupInspectTouch();
+      if (window.Companion) window.Companion.renderIcons();
+    },
+
+    setupInspectTouch() {
+      const container = document.getElementById('opt-inspect-container');
+      if (!container || container._touchBound) return;
+      container._touchBound = true;
+
+      let initialDist = 0;
+      let initialZoom = 1.0;
+      let lastTap = 0;
+
+      container.addEventListener('touchstart', (e) => {
+        if (e.touches.length === 2) {
+          initialDist = Math.hypot(
+            e.touches[0].clientX - e.touches[1].clientX,
+            e.touches[0].clientY - e.touches[1].clientY
+          );
+          initialZoom = this.inspectZoomLevel || 1.0;
+        } else if (e.touches.length === 1) {
+          const now = Date.now();
+          if (now - lastTap < 300) {
+            // Çift dokunma: %100 ve %220 arasında geçiş
+            if (this.inspectZoomLevel > 1.1) {
+              this.resetInspectZoom();
+            } else {
+              this.inspectZoomLevel = 2.2;
+              this.applyInspectZoom();
+            }
+          }
+          lastTap = now;
+        }
+      }, { passive: true });
+
+      container.addEventListener('touchmove', (e) => {
+        if (e.touches.length === 2 && initialDist > 0) {
+          const currentDist = Math.hypot(
+            e.touches[0].clientX - e.touches[1].clientX,
+            e.touches[0].clientY - e.touches[1].clientY
+          );
+          const scale = currentDist / initialDist;
+          const newZoom = Math.max(0.6, Math.min(3.5, initialZoom * scale));
+          this.inspectZoomLevel = parseFloat(newZoom.toFixed(2));
+          this.applyInspectZoom();
+        }
+      }, { passive: true });
+
+      container.addEventListener('touchend', (e) => {
+        if (e.touches.length < 2) {
+          initialDist = 0;
+        }
+      }, { passive: true });
+    },
+
+    closeOpticalInspectModal() {
+      const modal = document.getElementById('companion-optical-inspect-modal');
+      if (modal) modal.style.display = 'none';
+      const imgEl = document.getElementById('opt-inspect-img');
+      if (imgEl) imgEl.src = '';
+      this.inspectCurrentImageUrl = '';
+    },
+
+    zoomInspect(delta) {
+      this.inspectZoomLevel = Math.max(0.5, Math.min(3.5, parseFloat(((this.inspectZoomLevel || 1.0) + delta).toFixed(2))));
+      this.applyInspectZoom();
+    },
+
+    resetInspectZoom() {
+      this.inspectZoomLevel = 1.0;
+      this.applyInspectZoom();
+    },
+
+    applyInspectZoom() {
+      const wrapper = document.getElementById('opt-inspect-img-wrapper') || document.getElementById('opt-inspect-img');
+      const levelEl = document.getElementById('opt-inspect-zoom-level');
+      if (wrapper) {
+        wrapper.style.transform = `scale(${this.inspectZoomLevel})`;
+        if (this.inspectZoomLevel > 1) {
+          wrapper.style.cursor = 'grab';
+        } else {
+          wrapper.style.cursor = 'default';
+        }
+      }
+      if (levelEl) {
+        levelEl.textContent = `%${Math.round(this.inspectZoomLevel * 100)}`;
+      }
+    },
+
+    downloadInspectImage() {
+      if (!this.inspectCurrentImageUrl) {
+        if (window.Companion) window.Companion.showToast('İndirilecek görsel yok.', 'warning');
+        return;
+      }
+      try {
+        const link = document.createElement('a');
+        const filename = `Optik_${(document.getElementById('opt-inspect-title')?.textContent || 'Form').replace(/\s+/g, '_')}_${Date.now()}.jpg`;
+        link.href = this.inspectCurrentImageUrl;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        if (window.Companion) window.Companion.showToast('Görsel indirildi.', 'success');
+      } catch (e) {
+        window.open(this.inspectCurrentImageUrl, '_blank');
+      }
+    },
+
+    openExamPickerModal() {
+      const data = this.getData();
+      const exams = Array.isArray(data.weeklyEvaluations) ? data.weeklyEvaluations : [];
+      let picker = document.getElementById('omr-quick-exam-picker-modal');
+      if (!picker) {
+        picker = document.createElement('div');
+        picker.id = 'omr-quick-exam-picker-modal';
+        picker.className = 'c-modal-overlay';
+        picker.style.cssText = 'display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.75); backdrop-filter: blur(8px); z-index: 10005; align-items: center; justify-content: center; padding: 20px;';
+        picker.onclick = (e) => { if (e.target === picker) this.closeExamPickerModal(); };
+        document.body.appendChild(picker);
+      }
+      picker.innerHTML = `
+        <div class="c-modal-card" style="max-width: 350px; width: 100%; border-radius: 20px; padding: 20px; background: #0f172a; border: 1px solid rgba(255,255,255,0.15); box-shadow: 0 20px 40px rgba(0,0,0,0.6); color: #fff;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 16px;">📚</span>
+              <h3 style="font-size: 15px; font-weight: 800; margin: 0; color: #fff;">Sınav Seçimi</h3>
+            </div>
+            <button type="button" class="c-icon-btn" onclick="window.CompanionOmr.closeExamPickerModal()" style="color: #94a3b8; background: transparent; border: none; font-size: 18px; cursor: pointer; padding: 4px;">✕</button>
+          </div>
+          <p style="font-size: 11px; color: #94a3b8; margin: 0 0 12px 0;">Tarayacağınız optik forma ait doğru sınavı seçin:</p>
+          <div style="display: flex; flex-direction: column; gap: 8px; max-height: 320px; overflow-y: auto;">
+            ${exams.map(e => {
+              const isSelected = this.activeExam && String(this.activeExam.id) === String(e.id);
+              const info = e.isMultiSubject 
+                ? `📚 ${(e.subjects || []).length} Ders • ${e.totalQuestions || 32} Soru` 
+                : `📄 ${e.totalQuestions || 20} Soru • ${e.choicesCount || 4} Şık`;
+              return `
+                <div onclick="window.CompanionOmr.quickSelectExam('${e.id}')" style="padding: 12px 14px; border-radius: 12px; background: ${isSelected ? 'rgba(99, 102, 241, 0.25)' : 'rgba(30, 41, 59, 0.85)'}; border: 1.5px solid ${isSelected ? '#6366f1' : 'rgba(255,255,255,0.1)'}; cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
+                  <div>
+                    <div style="font-size: 13.5px; font-weight: 800; color: #fff; margin-bottom: 2px;">${e.examName}</div>
+                    <div style="font-size: 11px; color: ${isSelected ? '#a5b4fc' : '#94a3b8'};">${info}</div>
+                  </div>
+                  ${isSelected ? '<span style="font-size: 16px; color: #10b981; font-weight: 900;">✓</span>' : ''}
+                </div>
+              `;
+            }).join('')}
+          </div>
+        </div>
+      `;
+      picker.style.display = 'flex';
+      if (window.Companion) window.Companion.renderIcons();
+    },
+
+    closeExamPickerModal() {
+      const picker = document.getElementById('omr-quick-exam-picker-modal');
+      if (picker) picker.style.display = 'none';
+    },
+
+    quickSelectExam(examId) {
+      const data = this.getData();
+      const exam = (data.weeklyEvaluations || []).find(e => String(e.id) === String(examId));
+      if (exam) {
+        this.activeExam = exam;
+        try {
+          localStorage.setItem('companion_last_active_exam_id', exam.id);
+        } catch(e) {}
+        const examNameTag = document.getElementById('omr-camera-exam-name');
+        if (examNameTag) examNameTag.textContent = exam.examName;
+        this.closeExamPickerModal();
+        if (window.Companion) {
+          window.Companion.showToast(`🎯 Sınav seçildi: ${exam.examName} (${exam.isMultiSubject ? exam.subjects.length + ' Ders' : 'Tek Ders'})`);
+        }
+      }
     }
   };
 
   window.CompanionOmr = CompanionOmr;
+
+  // Android Donanım Geri Tuşu Entegrasyonu
+  window.handleAndroidBack = function() {
+    const examPickerModal = document.getElementById('omr-quick-exam-picker-modal');
+    if (examPickerModal && examPickerModal.style.display !== 'none') {
+      CompanionOmr.closeExamPickerModal();
+      return true;
+    }
+
+    const inspectModal = document.getElementById('companion-optical-inspect-modal');
+    if (inspectModal && inspectModal.style.display !== 'none') {
+      CompanionOmr.closeOpticalInspectModal();
+      return true;
+    }
+
+    const pickerModal = document.getElementById('omr-student-picker-modal');
+    if (pickerModal && pickerModal.style.display !== 'none') {
+      CompanionOmr.closeStudentPickerModal();
+      return true;
+    }
+
+    const printModal = document.getElementById('companion-optical-print-modal');
+    if (printModal && printModal.style.display !== 'none') {
+      CompanionOmr.closeMobileOpticalPrintModal();
+      return true;
+    }
+
+    const wizardModal = document.getElementById('companion-exam-wizard-modal');
+    if (wizardModal && wizardModal.style.display !== 'none') {
+      CompanionOmr.closeCreateExamModal();
+      return true;
+    }
+
+    const settingsModal = document.getElementById('companion-settings-modal');
+    if (settingsModal && settingsModal.style.display !== 'none') {
+      if (window.Companion && typeof window.Companion.closeSettingsModal === 'function') {
+        window.Companion.closeSettingsModal();
+      } else {
+        settingsModal.style.display = 'none';
+      }
+      return true;
+    }
+
+    const cameraModal = document.getElementById('companion-omr-camera-modal');
+    if (cameraModal && cameraModal.style.display !== 'none') {
+      CompanionOmr.closeCamera();
+      return true;
+    }
+
+    if (CompanionOmr.viewState === 'detail') {
+      CompanionOmr.backToExamsList();
+      return true;
+    }
+
+    return false;
+  };
 
 })(window);

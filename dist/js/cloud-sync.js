@@ -147,19 +147,198 @@
       }
     },
 
+    // İki sınav kaydını (Yerel ve Bulut) cevap anahtarı, dersler ve öğrenci sonuçları kaybolmadan akıllıca birleştir
+    mergeExamObjects(localExam, cloudExam) {
+      if (!localExam) return cloudExam;
+      if (!cloudExam) return localExam;
+
+      const localTime = new Date(localExam.updatedAt || localExam.createdAt || 0).getTime() || 0;
+      const cloudTime = new Date(cloudExam.updatedAt || cloudExam.createdAt || 0).getTime() || 0;
+      const cloudIsNewer = cloudTime >= localTime;
+
+      const localKeyCount = Object.keys(localExam.answerKey || {}).filter(k => localExam.answerKey[k]).length;
+      const cloudKeyCount = Object.keys(cloudExam.answerKey || {}).filter(k => cloudExam.answerKey[k]).length;
+
+      let mergedAnswerKey = {};
+      if (cloudIsNewer && cloudKeyCount > 0) {
+        mergedAnswerKey = { ...(localExam.answerKey || {}), ...(cloudExam.answerKey || {}) };
+      } else if (localKeyCount === 0 && cloudKeyCount > 0) {
+        mergedAnswerKey = { ...(cloudExam.answerKey || {}) };
+      } else {
+        mergedAnswerKey = { ...(cloudExam.answerKey || {}), ...(localExam.answerKey || {}) };
+      }
+
+      const mergedSubjects = (cloudIsNewer && Array.isArray(cloudExam.subjects) && cloudExam.subjects.length > 0)
+        ? cloudExam.subjects
+        : ((Array.isArray(localExam.subjects) && localExam.subjects.length > 0) ? localExam.subjects : (cloudExam.subjects || []));
+
+      const isMulti = !!(
+        (cloudIsNewer ? cloudExam.isMultiSubject : localExam.isMultiSubject) ||
+        localExam.isMultiSubject ||
+        cloudExam.isMultiSubject ||
+        (Array.isArray(mergedSubjects) && mergedSubjects.length > 1)
+      );
+
+      // Çoklu ders ise derslerin kendi iç answerKey alanlarını ve birleşik anahtarları senkronla
+      if (isMulti && Array.isArray(mergedSubjects) && mergedSubjects.length > 0) {
+        let cum = 0;
+        mergedSubjects.forEach((s, idx) => {
+          if (!s.id) s.id = `sub_${idx}`;
+          const count = parseInt(s.questionCount, 10) || 10;
+          if (!s.answerKey) s.answerKey = {};
+          for (let qi = 1; qi <= count; qi++) {
+            const globalQ = cum + qi;
+            const val = (cloudIsNewer && cloudExam.answerKey && (cloudExam.answerKey[`${s.id}_${qi}`] || cloudExam.answerKey[`${s.name}_${qi}`] || cloudExam.answerKey[globalQ])) ||
+                        mergedAnswerKey[`${s.id}_${qi}`] ||
+                        mergedAnswerKey[`${s.name}_${qi}`] ||
+                        s.answerKey[qi] ||
+                        mergedAnswerKey[globalQ] || '';
+            if (val) {
+              s.answerKey[qi] = val;
+              mergedAnswerKey[`${s.id}_${qi}`] = val;
+              if (s.name) mergedAnswerKey[`${s.name}_${qi}`] = val;
+              mergedAnswerKey[globalQ] = val;
+            }
+          }
+          cum += count;
+        });
+      }
+
+      const mergedResults = { ...(localExam.studentResults || {}), ...(cloudExam.studentResults || {}) };
+      const mergedScores = { ...(localExam.examScores || {}), ...(cloudExam.examScores || {}) };
+
+      const base = cloudIsNewer ? { ...localExam, ...cloudExam } : { ...cloudExam, ...localExam };
+      const merged = {
+        ...base,
+        isMultiSubject: isMulti,
+        subjects: mergedSubjects,
+        answerKey: mergedAnswerKey,
+        hasOpticalForm: !!(localExam.hasOpticalForm || cloudExam.hasOpticalForm || Object.keys(mergedAnswerKey).length > 0),
+        choicesCount: (cloudIsNewer ? cloudExam.choicesCount : localExam.choicesCount) || cloudExam.choicesCount || localExam.choicesCount || 4,
+        totalQuestions: (cloudIsNewer ? cloudExam.totalQuestions : localExam.totalQuestions) || cloudExam.totalQuestions || localExam.totalQuestions || 20,
+        studentResults: mergedResults,
+        examScores: mergedScores,
+        updatedAt: new Date(Math.max(localTime, cloudTime, Date.now())).toISOString()
+      };
+
+      // Cevap anahtarı mevcutsa ve öğrenci sonuçları varsa puanları güncel cevap anahtarına göre tazele
+      if (Object.keys(mergedAnswerKey).length > 0 && Object.keys(mergedResults).length > 0) {
+        this.recalculateMergedExamResults(merged);
+      }
+
+      return merged;
+    },
+
+    recalculateMergedExamResults(exam) {
+      if (!exam || !exam.studentResults || !exam.answerKey) return;
+      const answerKey = exam.answerKey || {};
+      if (Object.keys(answerKey).length === 0) return;
+
+      const totalQ = parseInt(exam.totalQuestions, 10) || 20;
+      const penaltyRate = exam.wrongAffects ? (parseFloat(exam.penaltyRate) || 4) : 0;
+      const isMulti = !!(exam.isMultiSubject && Array.isArray(exam.subjects) && exam.subjects.length > 0);
+      if (!exam.examScores) exam.examScores = {};
+
+      Object.keys(exam.studentResults).forEach(stuId => {
+        const res = exam.studentResults[stuId];
+        if (!res || !res.answers) return;
+        const answers = res.answers || {};
+        let correctCount = 0;
+        let wrongCount = 0;
+        let blankCount = 0;
+        const questionDetails = [];
+        const subjectBreakdown = {};
+
+        if (isMulti) {
+          let cum = 0;
+          exam.subjects.forEach(subj => {
+            let sCorrect = 0, sWrong = 0, sBlank = 0;
+            const count = parseInt(subj.questionCount, 10) || 10;
+            for (let qi = 1; qi <= count; qi++) {
+              const globalQ = cum + qi;
+              const marked = String(answers[`${subj.id}_${qi}`] || answers[`${subj.name}_${qi}`] || answers[globalQ] || '').trim().toUpperCase();
+              const cleanMarked = marked === 'MULTIPLE' ? '' : marked;
+              const correctAns = String(answerKey[`${subj.id}_${qi}`] || answerKey[`${subj.name}_${qi}`] || (subj.answerKey && subj.answerKey[qi]) || answerKey[globalQ] || '').trim().toUpperCase();
+              const qd = { q: globalQ, subjId: subj.id, subjName: subj.name, subjQ: qi, marked: cleanMarked, keyAnswer: correctAns };
+              if (!cleanMarked) {
+                blankCount++; sBlank++; qd.isBlank = true; qd.isCorrect = false;
+              } else if (correctAns && cleanMarked === correctAns) {
+                correctCount++; sCorrect++; qd.isBlank = false; qd.isCorrect = true;
+              } else {
+                wrongCount++; sWrong++; qd.isBlank = false; qd.isCorrect = false;
+              }
+              questionDetails.push(qd);
+            }
+            const sNet = penaltyRate > 0 ? (sCorrect - (sWrong / penaltyRate)) : sCorrect;
+            const sScore = count > 0 ? parseFloat(((Math.max(0, sNet) / count) * 100).toFixed(1)) : 0;
+            subjectBreakdown[subj.id] = {
+              subjectId: subj.id,
+              subjectName: subj.name,
+              totalQuestions: count,
+              correct: sCorrect,
+              wrong: sWrong,
+              blank: sBlank,
+              net: Math.max(0, parseFloat(sNet.toFixed(2))),
+              score: sScore
+            };
+            cum += count;
+          });
+        } else {
+          for (let q = 1; q <= totalQ; q++) {
+            const marked = String(answers[q] || answers[String(q)] || '').trim().toUpperCase();
+            const cleanMarked = marked === 'MULTIPLE' ? '' : marked;
+            const correctAns = String(answerKey[q] || answerKey[String(q)] || '').trim().toUpperCase();
+            const qd = { q, marked: cleanMarked, keyAnswer: correctAns };
+            if (!cleanMarked) {
+              blankCount++; qd.isBlank = true; qd.isCorrect = false;
+            } else if (correctAns && cleanMarked === correctAns) {
+              correctCount++; qd.isBlank = false; qd.isCorrect = true;
+            } else {
+              wrongCount++; qd.isBlank = false; qd.isCorrect = false;
+            }
+            questionDetails.push(qd);
+          }
+        }
+
+        let net = penaltyRate > 0 ? (correctCount - (wrongCount / penaltyRate)) : correctCount;
+        net = Math.max(0, parseFloat(net.toFixed(2)));
+        const score = totalQ > 0 ? parseFloat(((net / totalQ) * 100).toFixed(1)) : 0;
+
+        res.correct = correctCount;
+        res.wrong = wrongCount;
+        res.blank = blankCount;
+        res.net = net;
+        res.score = score;
+        res.questionDetails = questionDetails;
+        if (isMulti) res.subjectBreakdown = subjectBreakdown;
+        exam.examScores[stuId] = score;
+      });
+    },
+
     // Sınavı Buluta Yükle (Masaüstü veya Telefondan)
     async pushExam(exam) {
       if (!exam || !exam.id) return { success: false, error: 'Geçersiz sınav' };
       this.isSyncing = true;
       this.updateSyncUI();
 
+      const source = (window.stateManager && !window.Companion && !window.CompanionOmr) ? 'desktop' : 'terminal';
+      const nowIso = new Date().toISOString();
+      const examPayload = {
+        ...exam,
+        source: source,
+        updatedAt: exam.updatedAt || nowIso
+      };
+
       const payload = {
         sync_code: this.syncCode,
         exam_id: String(exam.id),
         exam_name: exam.examName || 'Sınav',
-        payload: exam,
-        updated_at: new Date().toISOString()
+        payload: examPayload,
+        updated_at: nowIso
       };
+
+      if (!this.lastSeenUpdatedAtByExamId) this.lastSeenUpdatedAtByExamId = {};
+      this.lastSeenUpdatedAtByExamId[String(exam.id)] = nowIso;
 
       const res = await this.request('POST', 'teacher_sync', payload);
       this.isSyncing = false;
@@ -222,10 +401,13 @@
       }
 
       // Hafif ve güvenli master payload (büyük gereksiz veriler temizlenir)
+      const source = (window.stateManager && !window.Companion && !window.CompanionOmr) ? 'desktop' : 'terminal';
+      const nowIso = new Date().toISOString();
       const masterPayload = {
         type: 'MASTER_STATE',
+        source: source,
         syncCode: this.syncCode,
-        timestamp: new Date().toISOString(),
+        timestamp: nowIso,
         educationLevel: educationLevel,
         teacherProfile: {
           name: (localData.userProfile && localData.userProfile.name) || (window.Companion && window.Companion.profile && window.Companion.profile.name) || '',
@@ -262,8 +444,11 @@
         exam_id: 'MASTER_STATE',
         exam_name: 'Tüm Sınıflar & Veriler (Kalıcı)',
         payload: masterPayload,
-        updated_at: new Date().toISOString()
+        updated_at: nowIso
       };
+
+      if (!this.lastSeenUpdatedAtByExamId) this.lastSeenUpdatedAtByExamId = {};
+      this.lastSeenUpdatedAtByExamId['MASTER_STATE'] = nowIso;
 
       const res = await this.request('POST', 'teacher_sync', record);
       this.isSyncing = false;
@@ -382,22 +567,15 @@
         }
       }
 
-      // 3. Sınavları birleştir (Yerel taranan sonuçları koru)
+      // 3. Sınavları birleştir (Yerel taranan sonuçları ve buluttaki güncel cevap anahtarını koru)
       if (Array.isArray(masterItem.weeklyEvaluations)) {
         if (!localData.weeklyEvaluations) localData.weeklyEvaluations = [];
         masterItem.weeklyEvaluations.forEach(cloudExam => {
+          if (!cloudExam || !cloudExam.id) return;
           const eIdx = localData.weeklyEvaluations.findIndex(le => String(le.id) === String(cloudExam.id));
           if (eIdx >= 0) {
             const localExam = localData.weeklyEvaluations[eIdx];
-            const mergedResults = { ...(cloudExam.studentResults || {}), ...(localExam.studentResults || {}) };
-            const mergedScores = { ...(cloudExam.examScores || {}), ...(localExam.examScores || {}) };
-            localData.weeklyEvaluations[eIdx] = {
-              ...cloudExam,
-              ...localExam,
-              studentResults: mergedResults,
-              examScores: mergedScores,
-              updatedAt: new Date().toISOString()
-            };
+            localData.weeklyEvaluations[eIdx] = this.mergeExamObjects(localExam, cloudExam);
           } else {
             localData.weeklyEvaluations.unshift(cloudExam);
           }
@@ -842,13 +1020,17 @@
     async pushLiveEvent(eventType, eventPayload) {
       if (!this.syncCode) return;
 
+      const nowIso = new Date().toISOString();
       const record = {
         sync_code: this.syncCode,
         exam_id: 'LIVE_EVENT',
         exam_name: eventType === 'performance' ? 'Canlı Puan' : (eventType === 'omr' ? 'Optik Okuma' : 'Canlı Olay'),
         payload: eventPayload,
-        updated_at: new Date().toISOString()
+        updated_at: nowIso
       };
+
+      if (!this.lastSeenUpdatedAtByExamId) this.lastSeenUpdatedAtByExamId = {};
+      this.lastSeenUpdatedAtByExamId['LIVE_EVENT'] = nowIso;
 
       try {
         await this.request('POST', 'teacher_sync', record);
@@ -874,6 +1056,8 @@
 
       this.liveListenerActive = true;
       this.lastProcessedEventTime = new Date().toISOString();
+      this.lastSeenUpdatedAtByExamId = this.lastSeenUpdatedAtByExamId || {};
+      this.initialPollDone = false;
       if (!this.processedEventIds) this.processedEventIds = new Set();
 
       // A) Supabase Realtime WebSocket Bağlantısı
@@ -881,6 +1065,7 @@
 
       // B) Dayanıklı Kalp Atışı / Yedek Polling (Her 3 saniyede bir)
       if (this.pollingInterval) clearInterval(this.pollingInterval);
+      setTimeout(() => this.checkLiveUpdates(), 500);
       this.pollingInterval = setInterval(() => {
         this.checkLiveUpdates();
       }, 3000);
@@ -926,6 +1111,10 @@
             if (msg.event === 'INSERT' || msg.event === 'UPDATE' || msg.event === 'broadcast') {
               const rec = msg.payload && (msg.payload.record || msg.payload.new || msg.payload);
               if (rec) {
+                if (rec.exam_id && rec.updated_at) {
+                  if (!this.lastSeenUpdatedAtByExamId) this.lastSeenUpdatedAtByExamId = {};
+                  this.lastSeenUpdatedAtByExamId[rec.exam_id] = rec.updated_at;
+                }
                 this.handleIncomingLiveRecord(rec);
               }
             }
@@ -943,19 +1132,55 @@
       }
     },
 
-    // Yedek Kontrolcü (Heartbeat Polling)
+    // Yedek Kontrolcü (Heartbeat Polling - Saat farkı ve çoklu kayıt korumalı)
     async checkLiveUpdates() {
       if (!this.syncCode) return;
       if (!window.stateManager && !window.Companion && !window.CompanionOmr) return;
 
       try {
-        const res = await this.request('GET', `teacher_sync?sync_code=eq.${encodeURIComponent(this.syncCode)}&order=updated_at.desc&limit=1&select=*`);
+        const res = await this.request('GET', `teacher_sync?sync_code=eq.${encodeURIComponent(this.syncCode)}&order=updated_at.desc&limit=20&select=*`);
         if (Array.isArray(res) && res.length > 0) {
-          const latest = res[0];
-          if (latest.updated_at && (!this.lastProcessedEventTime || latest.updated_at > this.lastProcessedEventTime)) {
-            this.lastProcessedEventTime = latest.updated_at;
-            this.handleIncomingLiveRecord(latest);
+          if (!this.lastSeenUpdatedAtByExamId) this.lastSeenUpdatedAtByExamId = {};
+
+          if (!this.initialPollDone) {
+            this.initialPollDone = true;
+            res.forEach(rec => {
+              if (rec && rec.exam_id && rec.updated_at) {
+                this.lastSeenUpdatedAtByExamId[rec.exam_id] = rec.updated_at;
+              }
+              // İlk açılışta bulutta daha güncel bir sınav/cevap anahtarı varsa sessizce masaüstüne eşitle
+              if (window.stateManager && window.stateManager.state && rec && rec.exam_id && rec.exam_id !== 'LIVE_EVENT' && rec.exam_id !== 'MASTER_STATE') {
+                const cloudExam = rec.payload;
+                if (cloudExam && cloudExam.id) {
+                  const exams = window.stateManager.state.weeklyEvaluations || [];
+                  const idx = exams.findIndex(e => String(e.id) === String(cloudExam.id));
+                  if (idx >= 0) {
+                    const localKeyLen = Object.keys(exams[idx].answerKey || {}).length;
+                    const cloudKeyLen = Object.keys(cloudExam.answerKey || {}).length;
+                    const localTime = new Date(exams[idx].updatedAt || 0).getTime() || 0;
+                    const cloudTime = new Date(cloudExam.updatedAt || 0).getTime() || 0;
+                    if ((localKeyLen === 0 && cloudKeyLen > 0) || (cloudTime > localTime && cloudKeyLen > 0)) {
+                      this.handleIncomingLiveRecord(rec);
+                    }
+                  }
+                }
+              }
+            });
+            return;
           }
+
+          // Kronolojik sırayla (eskiden yeniye) değişen tüm kayıtları işle
+          const ordered = [...res].reverse();
+          ordered.forEach(rec => {
+            if (!rec || !rec.exam_id || !rec.updated_at) return;
+            const prevTime = this.lastSeenUpdatedAtByExamId[rec.exam_id];
+            if (prevTime !== rec.updated_at) {
+              this.lastSeenUpdatedAtByExamId[rec.exam_id] = rec.updated_at;
+              this.handleIncomingLiveRecord(rec);
+            }
+          });
+        } else if (Array.isArray(res)) {
+          this.initialPollDone = true;
         }
       } catch (e) {}
     },
@@ -1359,9 +1584,9 @@
         }
       }
 
-      // 3. CANLI YENİ SINAV VEYA TOPLU SINAV SONUÇLARI ENTEGRASYONU
+      // 3. CANLI YENİ SINAV, CEVAP ANAHTARI VEYA TOPLU SINAV SONUÇLARI ENTEGRASYONU
       else if (
-        (record.exam_id && String(record.exam_id).startsWith('exam_')) ||
+        (record.exam_id && record.exam_id !== 'LIVE_EVENT' && record.exam_id !== 'MASTER_STATE') ||
         (record.exam_id === 'LIVE_EVENT' && (payload.type === 'exam_created' || payload.type === 'exam_results'))
       ) {
         const examData = (payload.type === 'exam_created' || payload.type === 'exam_results') ? (payload.exam || payload) : payload;
@@ -1378,6 +1603,7 @@
             const harmonizedScores = {};
             Object.keys(examData.studentResults).forEach(stuKey => {
               const res = examData.studentResults[stuKey];
+              if (!res) return;
               const matched = this.resolveDesktopStudent(stuKey, res.studentName, res.studentNo || res.studentNumber, allStudents);
               const targetId = matched ? matched.id : stuKey;
               harmonizedResults[targetId] = res;
@@ -1394,25 +1620,33 @@
             examData.examScores = harmonizedScores;
           }
 
+          let finalExam = examData;
           if (existingIdx >= 0) {
-            window.stateManager.state.weeklyEvaluations[existingIdx] = {
-              ...window.stateManager.state.weeklyEvaluations[existingIdx],
-              ...examData,
-              updatedAt: new Date().toISOString()
-            };
+            finalExam = this.mergeExamObjects(window.stateManager.state.weeklyEvaluations[existingIdx], examData);
+            window.stateManager.state.weeklyEvaluations[existingIdx] = finalExam;
           } else {
+            if (examData.answerKey && Object.keys(examData.answerKey).length > 0) {
+              examData.hasOpticalForm = true;
+            }
             window.stateManager.state.weeklyEvaluations.unshift(examData);
           }
 
           const isNew = existingIdx < 0;
-          const actionLabel = isNew ? 'Yeni Sınav Oluşturuldu' : 'Sınav Sonuçları Güncellendi';
-          window.stateManager.saveState(`El Terminalinden ${actionLabel}: ${examData.examName}`);
+          const hasKey = finalExam.answerKey && Object.keys(finalExam.answerKey).length > 0;
+          const actionLabel = isNew ? 'Yeni Sınav Oluşturuldu' : (hasKey ? 'Cevap Anahtarı & Sınav Güncellendi' : 'Sınav Sonuçları Güncellendi');
+          window.stateManager.saveState(`El Terminalinden ${actionLabel}: ${finalExam.examName}`);
           document.dispatchEvent(new CustomEvent('stateChanged'));
 
-          if (window.activeWeeklyExam && String(window.activeWeeklyExam.id) === String(examData.id)) {
-            window.activeWeeklyExam = existingIdx >= 0 ? window.stateManager.state.weeklyEvaluations[existingIdx] : examData;
-            if (typeof window.renderActiveExamTable === 'function') {
+          if (window.activeWeeklyExam && String(window.activeWeeklyExam.id) === String(finalExam.id)) {
+            window.activeWeeklyExam = finalExam;
+            if (typeof window.openActiveExam === 'function') {
+              window.openActiveExam(finalExam);
+            } else if (typeof window.renderActiveExamTable === 'function') {
               window.renderActiveExamTable();
+            }
+            const akModal = document.getElementById('modal-edit-exam-answer-key');
+            if (akModal && akModal.classList.contains('active') && typeof window.openDesktopAnswerKeyModal === 'function') {
+              window.openDesktopAnswerKeyModal();
             }
           }
 
@@ -1424,10 +1658,12 @@
           }
 
           this.playDesktopLiveChime();
-          const count = Object.keys(examData.studentResults || {}).length;
-          const toastMsg = count > 0
-            ? `📱 El Terminalinden Canlı: "${examData.examName}" (${count} öğrenci sonucu aktarıldı)`
-            : `📱 El Terminalinden Canlı: "${examData.examName}" oluşturuldu`;
+          const count = Object.keys(finalExam.studentResults || {}).length;
+          const toastMsg = isNew
+            ? `📱 El Terminalinden Canlı: "${finalExam.examName}" oluşturuldu`
+            : (hasKey
+              ? `📱 El Terminalinden Canlı: "${finalExam.examName}" cevap anahtarı masaüstüne aktarıldı`
+              : `📱 El Terminalinden Canlı: "${finalExam.examName}" (${count} öğrenci sonucu aktarıldı)`);
           if (window.showToast) {
             window.showToast(toastMsg, 'success');
           }
@@ -1450,16 +1686,43 @@
       }
 
       // 5. MASTER_STATE GÜNCELLEMESİ (Terminalden toplu fırlatılmışsa)
-      else if (record.exam_id === 'MASTER_STATE' && payload && payload.source === 'terminal') {
+      else if (record.exam_id === 'MASTER_STATE' && payload && payload.source !== 'desktop') {
+        let stateModified = false;
+        let addedPerf = 0;
+        let updatedExams = 0;
+        const allStudents = window.stateManager.state.students || [];
+
+        if (Array.isArray(payload.weeklyEvaluations) && payload.weeklyEvaluations.length > 0) {
+          if (!Array.isArray(window.stateManager.state.weeklyEvaluations)) {
+            window.stateManager.state.weeklyEvaluations = [];
+          }
+          payload.weeklyEvaluations.forEach(cloudExam => {
+            if (!cloudExam || !cloudExam.id) return;
+            const eIdx = window.stateManager.state.weeklyEvaluations.findIndex(e => String(e.id) === String(cloudExam.id));
+            if (eIdx >= 0) {
+              const prevKeyJson = JSON.stringify(window.stateManager.state.weeklyEvaluations[eIdx].answerKey || {});
+              const merged = this.mergeExamObjects(window.stateManager.state.weeklyEvaluations[eIdx], cloudExam);
+              const nextKeyJson = JSON.stringify(merged.answerKey || {});
+              window.stateManager.state.weeklyEvaluations[eIdx] = merged;
+              if (prevKeyJson !== nextKeyJson) {
+                stateModified = true;
+                updatedExams++;
+              }
+            } else {
+              window.stateManager.state.weeklyEvaluations.unshift(cloudExam);
+              stateModified = true;
+              updatedExams++;
+            }
+          });
+        }
+
         if (Array.isArray(payload.performance)) {
           if (!window.stateManager.state.performance) window.stateManager.state.performance = [];
-          const allStudents = window.stateManager.state.students || [];
           const existingIds = new Set(window.stateManager.state.performance.map(p => String(p.id)));
           const activeDesktopWeek = (typeof window.stateManager.getSelectedWeek === 'function')
             ? window.stateManager.getSelectedWeek()
             : (window.getISOWeek ? window.getISOWeek(new Date()) : '');
 
-          let added = 0;
           payload.performance.forEach(p => {
             if (!existingIds.has(String(p.id))) {
               const matched = this.resolveDesktopStudent(p.studentId, p.studentName, p.studentNumber, allStudents);
@@ -1471,15 +1734,31 @@
               }
               window.stateManager.state.performance.push(p);
               existingIds.add(String(p.id));
-              added++;
+              addedPerf++;
+              stateModified = true;
             }
           });
-          if (added > 0) {
-            window.stateManager.saveState();
-            document.dispatchEvent(new CustomEvent('stateChanged'));
-            if (typeof window.renderDashboard === 'function') window.renderDashboard();
-            this.playDesktopLiveChime();
-            if (window.showToast) window.showToast(`📱 El Terminalinden ${added} yeni veri eşitlendi`, 'success');
+        }
+
+        if (stateModified) {
+          window.stateManager.saveState('El Terminalinden Veriler Eşitlendi');
+          document.dispatchEvent(new CustomEvent('stateChanged'));
+          if (typeof window.renderDashboard === 'function') window.renderDashboard();
+          if (typeof window.renderWeeklyEvaluations === 'function') window.renderWeeklyEvaluations();
+          if (typeof window.renderExamsList === 'function') window.renderExamsList();
+          if (window.activeWeeklyExam) {
+            const refreshed = (window.stateManager.state.weeklyEvaluations || []).find(e => String(e.id) === String(window.activeWeeklyExam.id));
+            if (refreshed) {
+              window.activeWeeklyExam = refreshed;
+              if (typeof window.openActiveExam === 'function') window.openActiveExam(refreshed);
+            }
+          }
+          this.playDesktopLiveChime();
+          if (window.showToast) {
+            const msg = updatedExams > 0
+              ? `📱 El Terminalinden sınav ve cevap anahtarı güncellendi`
+              : `📱 El Terminalinden ${addedPerf} yeni veri eşitlendi`;
+            window.showToast(msg, 'success');
           }
         }
       }
@@ -1565,35 +1844,78 @@
 
         // Yerel veritabanını güncelle ve birleştir
         let localData = {};
-        try {
-          const raw = localStorage.getItem(STORAGE_KEY);
-          if (raw) localData = JSON.parse(raw);
-        } catch (e) {}
+        if (window.stateManager && window.stateManager.state) {
+          localData = window.stateManager.state;
+        } else {
+          try {
+            const raw = localStorage.getItem(STORAGE_KEY);
+            if (raw) localData = JSON.parse(raw);
+          } catch (e) {}
+        }
 
         if (!localData.weeklyEvaluations) localData.weeklyEvaluations = [];
 
         let updatedCount = 0;
         res.forEach(item => {
-          if (item.exam_id === 'MASTER_STATE') return; // Master state ayrı işlenir
+          if (!item || !item.payload) return;
 
-          const cloudExam = item.payload;
+          // MASTER_STATE içindeki sınavları da göz önünde bulundur
+          if (item.exam_id === 'MASTER_STATE') {
+            if (Array.isArray(item.payload.weeklyEvaluations)) {
+              item.payload.weeklyEvaluations.forEach(mExam => {
+                if (!mExam || !mExam.id) return;
+                const eIdx = localData.weeklyEvaluations.findIndex(e => String(e.id) === String(mExam.id));
+                if (eIdx >= 0) {
+                  localData.weeklyEvaluations[eIdx] = this.mergeExamObjects(localData.weeklyEvaluations[eIdx], mExam);
+                } else {
+                  localData.weeklyEvaluations.unshift(mExam);
+                }
+              });
+            }
+            return;
+          }
+
+          let cloudExam = item.payload;
+          if (item.exam_id === 'LIVE_EVENT') {
+            if ((cloudExam.type === 'exam_created' || cloudExam.type === 'exam_results') && cloudExam.exam && cloudExam.exam.id) {
+              cloudExam = cloudExam.exam;
+            } else {
+              return;
+            }
+          }
+
           if (!cloudExam || !cloudExam.id) return;
+
+          // Masaüstündeysek öğrenci kimliklerini eşle
+          if (window.stateManager && Array.isArray(localData.students) && cloudExam.studentResults && typeof cloudExam.studentResults === 'object') {
+            const harmonizedResults = {};
+            const harmonizedScores = {};
+            Object.keys(cloudExam.studentResults).forEach(stuKey => {
+              const r = cloudExam.studentResults[stuKey];
+              if (!r) return;
+              const matched = this.resolveDesktopStudent(stuKey, r.studentName, r.studentNo || r.studentNumber, localData.students);
+              const targetId = matched ? matched.id : stuKey;
+              harmonizedResults[targetId] = r;
+              if (matched && matched.number) {
+                harmonizedResults[String(matched.number)] = r;
+              }
+              if (cloudExam.examScores && cloudExam.examScores[stuKey] !== undefined) {
+                harmonizedScores[targetId] = cloudExam.examScores[stuKey];
+              } else if (r.score !== undefined) {
+                harmonizedScores[targetId] = r.score;
+              }
+            });
+            cloudExam.studentResults = harmonizedResults;
+            cloudExam.examScores = harmonizedScores;
+          }
 
           const existingIdx = localData.weeklyEvaluations.findIndex(e => String(e.id) === String(cloudExam.id));
           if (existingIdx >= 0) {
-            // Sonuçları birleştir (en güncel olanı koru)
-            const localExam = localData.weeklyEvaluations[existingIdx];
-            const mergedResults = { ...(localExam.studentResults || {}), ...(cloudExam.studentResults || {}) };
-            const mergedScores = { ...(localExam.examScores || {}), ...(cloudExam.examScores || {}) };
-
-            localData.weeklyEvaluations[existingIdx] = {
-              ...localExam,
-              ...cloudExam,
-              studentResults: mergedResults,
-              examScores: mergedScores,
-              updatedAt: new Date().toISOString()
-            };
+            localData.weeklyEvaluations[existingIdx] = this.mergeExamObjects(localData.weeklyEvaluations[existingIdx], cloudExam);
           } else {
+            if (cloudExam.answerKey && Object.keys(cloudExam.answerKey).length > 0) {
+              cloudExam.hasOpticalForm = true;
+            }
             localData.weeklyEvaluations.unshift(cloudExam);
           }
 
@@ -1613,7 +1935,18 @@
           updatedCount++;
         });
 
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(localData));
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(localData));
+        } catch (e) {}
+
+        if (window.stateManager) {
+          window.stateManager.state = localData;
+          if (typeof window.stateManager.saveState === 'function') {
+            window.stateManager.saveState('El Terminalinden Sınav ve Cevap Anahtarı Eşitlendi');
+          }
+          document.dispatchEvent(new CustomEvent('stateChanged'));
+        }
+
         this.lastSyncTime = new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
         localStorage.setItem(LAST_SYNC_KEY, this.lastSyncTime);
         this.updateSyncUI();
@@ -1623,8 +1956,20 @@
           window.CompanionOmr.ensureActiveExam();
           window.CompanionOmr.renderHub();
         }
+        if (window.activeWeeklyExam) {
+          const refreshed = (localData.weeklyEvaluations || []).find(e => String(e.id) === String(window.activeWeeklyExam.id));
+          if (refreshed) {
+            window.activeWeeklyExam = refreshed;
+            if (typeof window.openActiveExam === 'function') {
+              window.openActiveExam(refreshed);
+            }
+          }
+        }
         if (typeof window.renderWeeklyEvaluations === 'function') {
           window.renderWeeklyEvaluations();
+        }
+        if (typeof window.renderExamsList === 'function') {
+          window.renderExamsList();
         }
 
         return { success: true, count: updatedCount };

@@ -5971,6 +5971,20 @@ body {
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
+
+  .omr-subject-rows {
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: flex-start !important;
+    align-items: stretch !important;
+    gap: 2px !important;
+    box-sizing: border-box !important;
+  }
+  .omr-card.omr-multi .omr-q-row {
+    height: 20px !important;
+    min-height: 20px !important;
+    box-sizing: border-box !important;
+  }
 }
 
 /* ==========================================================================
@@ -6969,6 +6983,121 @@ body {
   align-items: center;
   flex-shrink: 0;
 }
+
+/* ==========================================================================
+   OPTİK FORM İNCELEME & TEŞHİS MODALI STİLLERİ
+   ========================================================================== */
+.c-optical-inspect-sheet {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  background: #090d16;
+  display: flex;
+  flex-direction: column;
+  z-index: 100000;
+  overflow: hidden;
+}
+
+.c-optical-inspect-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: #0f172a;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  flex-shrink: 0;
+}
+
+.c-optical-inspect-legend {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 14px;
+  background: rgba(15, 23, 42, 0.95);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 11px;
+  color: #94a3b8;
+  overflow-x: auto;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: 600;
+}
+
+.legend-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.legend-dot.green { background: #10b981; }
+.legend-dot.red { background: #ef4444; }
+.legend-dot.blue { background: #3b82f6; box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.35); }
+.legend-dot.key { border: 2px solid #10b981; background: transparent; }
+.legend-dot.corner { background: #f59e0b; }
+
+.c-optical-zoom-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  background: #111827;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  flex-shrink: 0;
+}
+
+.c-zoom-btn {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.c-zoom-btn.reset {
+  padding: 4px 10px;
+  font-size: 11px;
+  color: #93c5fd;
+  background: rgba(59, 130, 246, 0.15);
+  border-color: rgba(59, 130, 246, 0.3);
+}
+
+.c-optical-inspect-body {
+  flex: 1;
+  overflow: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
+  background: #040711;
+  touch-action: pan-x pan-y pinch-zoom;
+  position: relative;
+}
+
+#opt-inspect-img {
+  max-width: 100%;
+  height: auto;
+  object-fit: contain;
+  border-radius: 8px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.85);
+  transition: transform 0.15s ease-out;
+  transform-origin: center center;
+  user-select: none;
+}
+
 
 
 

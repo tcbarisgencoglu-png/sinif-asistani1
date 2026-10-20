@@ -1441,7 +1441,7 @@ function setupWeeklyTab(showToast) {
       }
       window.activeWeeklyExam = activeExam;
       
-      const isMulti = !!activeExam.isMultiSubject;
+      const isMulti = !!activeExam.isMultiSubject && Array.isArray(activeExam.subjects) && activeExam.subjects.length > 0;
       const qCount = activeExam.totalQuestions || 20;
 
       const questionCountInput = document.getElementById('optical-questions-input');
@@ -1455,16 +1455,27 @@ function setupWeeklyTab(showToast) {
         choicesInput.value = activeExam.choicesCount || 4;
       }
 
+      const maxSubjQ = isMulti ? Math.max(...activeExam.subjects.map(s => parseInt(s.questionCount, 10) || 0)) : (parseInt(activeExam.totalQuestions, 10) || 20);
+      const requiresSinglePage = maxSubjQ > 20 || (!isMulti && qCount > 40);
+
       const perPageInput = document.getElementById('optical-per-page-input');
       const tipEl = document.getElementById('optical-multi-page-tip');
-      if (isMulti || qCount > 35) {
-        if (perPageInput) perPageInput.value = '1';
+      if (requiresSinglePage) {
+        if (perPageInput) {
+          perPageInput.value = '1';
+          Array.from(perPageInput.options).forEach(opt => {
+            if (opt.value !== '1') opt.disabled = true;
+          });
+        }
         if (tipEl) {
           tipEl.style.display = 'block';
-          tipEl.innerHTML = `ℹ️ Çoklu ders optik formunun A4 sayfaya tam sığması ve net okunabilmesi için <strong>Sayfa Başına 1 Form (A4)</strong> seçildi.`;
+          tipEl.innerHTML = `⚠️ Soru sayısı (ders başına > 20 soru) nedeniyle optik form güvenliği ve ergonomisi için <strong>Sayfa Başına 1 Form (A4)</strong> kilitlendi.`;
         }
       } else {
-        if (perPageInput) perPageInput.value = '2';
+        if (perPageInput) {
+          Array.from(perPageInput.options).forEach(opt => { opt.disabled = false; });
+          perPageInput.value = '2';
+        }
         if (tipEl) tipEl.style.display = 'none';
       }
 
@@ -2006,11 +2017,13 @@ function setupWeeklyTab(showToast) {
       const tabsWrap = document.createElement('div');
       tabsWrap.style.cssText = 'display: flex; gap: 4px; margin-bottom: 8px; flex-wrap: wrap; width: 100%; border-bottom: 1px solid var(--border-color); padding-bottom: 6px;';
 
-      subjects.forEach(s => {
+      let cumTab = 0;
+      subjects.forEach((s, sIdx) => {
         let marked = 0;
         for (let q = 1; q <= s.questionCount; q++) {
-          if (opticalTempExamKey[`${s.id}_${q}`] || opticalTempExamKey[`${s.name}_${q}`] || opticalTempExamKey[q]) marked++;
+          if (findCorrectAnswerForKey(opticalTempExamKey, s, sIdx, q, cumTab)) marked++;
         }
+        cumTab += (s.questionCount || 0);
         const tabBtn = document.createElement('button');
         tabBtn.type = 'button';
         const isActive = s.id === currentSubj.id;
@@ -2028,8 +2041,15 @@ function setupWeeklyTab(showToast) {
       const gridWrap = document.createElement('div');
       gridWrap.style.cssText = 'display: flex; flex-wrap: wrap; gap: 6px; width: 100%;';
 
+      const currentSubjIdx = Math.max(0, subjects.findIndex(s => s.id === currentSubj.id));
+      let currentCumOffset = 0;
+      for (let i = 0; i < currentSubjIdx; i++) {
+        currentCumOffset += (subjects[i].questionCount || 0);
+      }
+
       for (let q = 1; q <= currentSubj.questionCount; q++) {
         const key = `${currentSubj.id}_${q}`;
+        const globalQ = currentCumOffset + q;
         const row = document.createElement('div');
         row.style.cssText = 'display: inline-flex; align-items: center; gap: 4px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 6px; padding: 2px 6px;';
 
@@ -2038,7 +2058,7 @@ function setupWeeklyTab(showToast) {
         label.style.cssText = 'font-size: 0.75rem; font-weight: 700; color: var(--text-muted); min-width: 22px; text-align: right;';
         row.appendChild(label);
 
-        const currentVal = opticalTempExamKey[key] || opticalTempExamKey[`${currentSubj.name}_${q}`] || opticalTempExamKey[q] || '';
+        const currentVal = findCorrectAnswerForKey(opticalTempExamKey, currentSubj, currentSubjIdx, q, currentCumOffset) || '';
 
         letters.forEach(letter => {
           const btn = document.createElement('button');
@@ -2046,12 +2066,14 @@ function setupWeeklyTab(showToast) {
           btn.textContent = letter;
           btn.className = `optical-key-pill-btn ${currentVal === letter ? 'active' : ''}`;
           btn.addEventListener('click', () => {
-            if (opticalTempExamKey[key] === letter || opticalTempExamKey[`${currentSubj.name}_${q}`] === letter) {
+            if (currentVal === letter) {
               delete opticalTempExamKey[key];
               delete opticalTempExamKey[`${currentSubj.name}_${q}`];
+              delete opticalTempExamKey[globalQ];
             } else {
               opticalTempExamKey[key] = letter;
-              delete opticalTempExamKey[`${currentSubj.name}_${q}`];
+              if (currentSubj.name) opticalTempExamKey[`${currentSubj.name}_${q}`] = letter;
+              opticalTempExamKey[globalQ] = letter;
             }
             activeExam.answerKey = { ...opticalTempExamKey };
             stateManager.saveExam(activeExam);
@@ -4122,6 +4144,31 @@ Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi ve
     });
   }
 
+  function countExamDefinedAnswers(exam, keyObj) {
+    if (!exam) return 0;
+    const rawKey = keyObj || exam.answerKey || {};
+    if (exam.isMultiSubject && Array.isArray(exam.subjects) && exam.subjects.length > 0) {
+      let count = 0;
+      let cum = 0;
+      exam.subjects.forEach((s, idx) => {
+        const qCount = parseInt(s.questionCount, 10) || 0;
+        for (let q = 1; q <= qCount; q++) {
+          if (findCorrectAnswerForKey(rawKey, s, idx, q, cum)) {
+            count++;
+          }
+        }
+        cum += qCount;
+      });
+      return count;
+    }
+    const totalQ = parseInt(exam.totalQuestions, 10) || 20;
+    let count = 0;
+    for (let q = 1; q <= totalQ; q++) {
+      if (rawKey[q] || rawKey[String(q)]) count++;
+    }
+    return count;
+  }
+
   function openDesktopAnswerKeyModal() {
     if (!activeExam) {
       if (toastCallback) toastCallback('Lütfen önce bir sınav seçin!', 'warning');
@@ -4130,7 +4177,28 @@ Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi ve
 
     if (!modalEditExamAnswerKey) return;
 
-    editAnswerKeyTemp = { ...(activeExam.answerKey || {}) };
+    const rawKey = activeExam.answerKey || {};
+    editAnswerKeyTemp = {};
+    if (activeExam.isMultiSubject && Array.isArray(activeExam.subjects) && activeExam.subjects.length > 0) {
+      let cum = 0;
+      activeExam.subjects.forEach((s, idx) => {
+        if (!s.id) s.id = `sub_${idx}`;
+        const qCount = parseInt(s.questionCount, 10) || 0;
+        for (let q = 1; q <= qCount; q++) {
+          const val = findCorrectAnswerForKey(rawKey, s, idx, q, cum);
+          if (val) {
+            editAnswerKeyTemp[`${s.id}_${q}`] = val;
+          }
+        }
+        cum += qCount;
+      });
+    } else {
+      const totalQ = parseInt(activeExam.totalQuestions, 10) || 20;
+      for (let q = 1; q <= totalQ; q++) {
+        const val = rawKey[q] || rawKey[String(q)];
+        if (val) editAnswerKeyTemp[q] = String(val).trim().toUpperCase();
+      }
+    }
     editAnswerKeyChoices = parseInt(activeExam.choicesCount, 10) || 4;
 
     if (desktopAkSubtitle) {
@@ -4342,7 +4410,7 @@ Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi ve
   function updateDesktopAkCounter() {
     if (!desktopAkCounterBadge || !activeExam) return;
     const qCount = parseInt(activeExam.totalQuestions, 10) || 20;
-    const filled = Object.keys(editAnswerKeyTemp).filter(k => editAnswerKeyTemp[k]).length;
+    const filled = countExamDefinedAnswers(activeExam, editAnswerKeyTemp);
 
     desktopAkCounterBadge.textContent = `${filled} / ${qCount} Soru Tanımlandı`;
     if (filled === qCount) {
@@ -4505,7 +4573,26 @@ Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi ve
     btnSaveEditAnswerKey.addEventListener('click', () => {
       if (!activeExam) return;
 
-      activeExam.answerKey = { ...editAnswerKeyTemp };
+      const finalAnswerKey = { ...editAnswerKeyTemp };
+      if (activeExam.isMultiSubject && Array.isArray(activeExam.subjects)) {
+        let cum = 0;
+        activeExam.subjects.forEach(s => {
+          s.answerKey = {};
+          const qCount = parseInt(s.questionCount, 10) || 0;
+          for (let q = 1; q <= qCount; q++) {
+            const globalQ = cum + q;
+            const val = finalAnswerKey[`${s.id}_${q}`];
+            if (val) {
+              s.answerKey[q] = val;
+              if (s.name) finalAnswerKey[`${s.name}_${q}`] = val;
+              finalAnswerKey[globalQ] = val;
+            }
+          }
+          cum += qCount;
+        });
+      }
+
+      activeExam.answerKey = finalAnswerKey;
       activeExam.choicesCount = editAnswerKeyChoices;
       activeExam.hasOpticalForm = true;
       activeExam.updatedAt = new Date().toISOString();
@@ -4616,6 +4703,13 @@ Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi ve
       }
 
       stateManager.saveExam(activeExam);
+
+      if (window.CloudSync) {
+        window.CloudSync.pushExam(activeExam).catch(() => {});
+        if (typeof window.CloudSync.pushLiveExamResults === 'function') {
+          window.CloudSync.pushLiveExamResults(activeExam, 'desktop').catch(() => {});
+        }
+      }
 
       if (modalEditExamAnswerKey) modalEditExamAnswerKey.classList.remove('active');
 
@@ -5213,7 +5307,8 @@ Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi ve
     if (qrcodeFn && idx > 0) {
       try {
         const qr = qrcodeFn(0, 'M');
-        qr.addData(`SA:${idx}:${studentNo || ''}`);
+        const pTag = options && options.perPage ? `:P${options.perPage}` : ':P2';
+        qr.addData(`SA:${idx}:${studentNo || ''}${pTag}`);
         qr.make();
         qrSvgHtml = qr.createSvgTag(2, 0);
         if (qrSvgHtml) {
@@ -5272,6 +5367,15 @@ Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi ve
     `;
   }
 
+  // Vektörel Köşe Referans Çapası (Yazıcı/Tarayıcı Dostu SVG - Asla Silinmez ve Yüksek Kontrastlı)
+  function renderCornerAnchorSVG(posClass) {
+    return `<svg class="omr-anchor ${posClass}" viewBox="0 0 24 24" width="22" height="22" shape-rendering="crispEdges" style="position: absolute; z-index: 10; display: block;">
+      <rect x="0" y="0" width="24" height="24" fill="#000000" rx="3" />
+      <rect x="3.5" y="3.5" width="17" height="17" fill="#ffffff" rx="2" />
+      <rect x="7" y="7" width="10" height="10" fill="#000000" rx="1" />
+    </svg>`;
+  }
+
   // Tekil Optik Kart HTML Şablonu (Binary ID Rozetli, Deterministik OMR & CamScanner Uyumlu)
   function generateSingleDesktopOpticalCardHTML(options) {
     const {
@@ -5292,7 +5396,8 @@ Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi ve
       studentIndex,
       studentId,
       studentNo,
-      examId: examId || (activeExam ? activeExam.id : '')
+      examId: examId || (activeExam ? activeExam.id : ''),
+      perPage: perPage || 2
     });
 
     if (isMultiSubject && Array.isArray(subjects) && subjects.length > 0) {
@@ -5331,11 +5436,11 @@ Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi ve
 
       return `
         <div class="omr-card omr-multi ${isCompact ? 'compact-rows' : ''}">
-          <!-- 4 Köşe Referans Çapası (CamScanner & Tarayıcı Uyumlu) -->
-          <div class="omr-anchor omr-anchor-tl"></div>
-          <div class="omr-anchor omr-anchor-tr"></div>
-          <div class="omr-anchor omr-anchor-bl"></div>
-          <div class="omr-anchor omr-anchor-br"></div>
+          <!-- 4 Köşe Referans Çapası (CamScanner & Tarayıcı Uyumlu Vektör Çapa) -->
+          ${renderCornerAnchorSVG('omr-anchor-tl')}
+          ${renderCornerAnchorSVG('omr-anchor-tr')}
+          ${renderCornerAnchorSVG('omr-anchor-bl')}
+          ${renderCornerAnchorSVG('omr-anchor-br')}
 
           <!-- Üst Başlık & Öğrenci Bilgileri & QR Rozeti -->
           <div class="omr-card-header">
@@ -5398,11 +5503,11 @@ Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi ve
 
     return `
       <div class="omr-card">
-        <!-- 4 Köşe Referans Çapası (CamScanner & Tarayıcı Uyumlu) -->
-        <div class="omr-anchor omr-anchor-tl"></div>
-        <div class="omr-anchor omr-anchor-tr"></div>
-        <div class="omr-anchor omr-anchor-bl"></div>
-        <div class="omr-anchor omr-anchor-br"></div>
+        <!-- 4 Köşe Referans Çapası (CamScanner & Tarayıcı Uyumlu Vektör Çapa) -->
+        ${renderCornerAnchorSVG('omr-anchor-tl')}
+        ${renderCornerAnchorSVG('omr-anchor-tr')}
+        ${renderCornerAnchorSVG('omr-anchor-bl')}
+        ${renderCornerAnchorSVG('omr-anchor-br')}
 
         <!-- Üst Başlık & Öğrenci Bilgileri & QR Rozeti -->
         <div class="omr-card-header">
@@ -5699,28 +5804,9 @@ Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi ve
       position: absolute;
       width: 22px;
       height: 22px;
-      background-color: #000000 !important;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-sizing: border-box;
-      z-index: 5;
-    }
-    .omr-anchor::before {
-      content: '';
       display: block;
-      width: 12px;
-      height: 12px;
-      background-color: #ffffff !important;
       box-sizing: border-box;
-    }
-    .omr-anchor::after {
-      content: '';
-      position: absolute;
-      width: 6px;
-      height: 6px;
-      background-color: #000000 !important;
-      box-sizing: border-box;
+      z-index: 10;
     }
     .omr-anchor-tl { top: 6px; left: 6px; }
     .omr-anchor-tr { top: 6px; right: 6px; }
@@ -5843,7 +5929,10 @@ Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi ve
     .omr-subject-rows {
       display: flex;
       flex-direction: column;
-      gap: 1.5px;
+      justify-content: flex-start !important;
+      align-items: stretch;
+      gap: 2px;
+      box-sizing: border-box;
     }
     .omr-card-footer {
       margin: 2px 28px 4px 28px;
@@ -5867,10 +5956,350 @@ Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi ve
   renderExamsList();
 }
 
+function computeExamSummaryStats(rawExam, state) {
+  const exam = (activeExam && String(activeExam.id) === String(rawExam.id)) ? activeExam : rawExam;
+  const scoreMap = {};
+  if (exam.examScores && typeof exam.examScores === 'object') {
+    for (const stdId in exam.examScores) {
+      const score = exam.examScores[stdId];
+      if (score !== undefined && score !== null && score !== '') {
+        const num = parseFloat(score);
+        if (!isNaN(num)) scoreMap[stdId] = num;
+      }
+    }
+  }
+  if (exam.studentResults && typeof exam.studentResults === 'object') {
+    for (const stdId in exam.studentResults) {
+      if (scoreMap[stdId] === undefined && exam.studentResults[stdId]) {
+        const score = exam.studentResults[stdId].score;
+        if (score !== undefined && score !== null && score !== '') {
+          const num = parseFloat(score);
+          if (!isNaN(num)) scoreMap[stdId] = num;
+        }
+      }
+    }
+  }
+
+  const scores = [];
+  for (const stdId in scoreMap) {
+    scores.push({ studentId: stdId, score: scoreMap[stdId] });
+  }
+
+  const avgScore = scores.length > 0
+    ? (scores.reduce((sum, item) => sum + item.score, 0) / scores.length).toFixed(1)
+    : '0';
+
+  scores.sort((a, b) => b.score - a.score);
+  const topThree = scores.slice(0, 3);
+  const allRoster = (state && (state.rawStudents || state.students)) || [];
+
+  const getStudentShortName = (studentId) => {
+    const student = allRoster.find(s => s && String(s.id) === String(studentId));
+    const sSurname = (student && student.surname) ? String(student.surname) : '';
+    return student ? `${student.name || ''} ${sSurname ? sSurname[0] + '.' : ''}`.trim() : 'Öğrenci';
+  };
+
+  let topStudentsHTML = '<div class="exam-card-topstudents" style="border-top: 1px solid var(--border-color); padding-top: 0.5rem; margin-top: 0.5rem;">';
+  if (topThree.length === 0) {
+    topStudentsHTML += '<span style="color: var(--text-muted); font-size: 0.75rem;">Henüz puan girişi yapılmamış.</span>';
+  } else {
+    topThree.forEach((item, index) => {
+      const name = getStudentShortName(item.studentId);
+      let medal = '';
+      if (index === 0) medal = '🥇';
+      else if (index === 1) medal = '🥈';
+      else if (index === 2) medal = '🥉';
+      topStudentsHTML += `
+        <div style="display: flex; justify-content: space-between; font-size: 0.75rem; font-weight: 500; margin-bottom: 0.15rem;">
+          <span style="color: var(--text-secondary);">${medal} ${name}</span>
+          <strong style="color: var(--text-primary);">${item.score} Puan</strong>
+        </div>
+      `;
+    });
+  }
+  topStudentsHTML += '</div>';
+
+  const topOneText = topThree.length > 0
+    ? `🥇 ${getStudentShortName(topThree[0].studentId)} (${topThree[0].score})`
+    : '-';
+
+  const formattedWeek = window.formatWeekTR ? window.formatWeekTR(exam.weekId, 'full') : (exam.weekId || '');
+  const penaltyText = exam.wrongAffects ? `${exam.penaltyRate} Yanlış 1 Doğruyu Götürür` : 'Yanlışlar Doğruları Etkilemez';
+  const opticalBadge = exam.hasOpticalForm ? `<span class="badge" style="background: rgba(99, 102, 241, 0.15); color: var(--primary); font-size: 0.72rem; padding: 0.1rem 0.35rem; font-weight: 700;">📝 ${exam.choicesCount || 4} Şıklı Optik</span>` : '';
+  const multiBadge = exam.isMultiSubject && exam.subjects ? `<span class="badge" style="background: rgba(16, 185, 129, 0.15); color: #059669; font-size: 0.72rem; padding: 0.1rem 0.35rem; font-weight: 700;">📚 ${exam.subjects.length} Ders</span>` : '';
+
+  return {
+    exam,
+    scores,
+    avgScore,
+    topThree,
+    topOneText,
+    topStudentsHTML,
+    formattedWeek,
+    penaltyText,
+    opticalBadge,
+    multiBadge
+  };
+}
+
+let olderExamsModalFilterMode = 'older'; // 'older' (4,5,6...) veya 'all' (1..N)
+let olderExamsModalBound = false;
+
+function ensureOlderExamsModalEvents() {
+  if (olderExamsModalBound) return;
+  const modal = document.getElementById('modal-older-exams-list');
+  if (!modal) return;
+  olderExamsModalBound = true;
+
+  const closeModal = () => {
+    modal.classList.remove('active');
+    modal.style.display = 'none';
+  };
+
+  const btnClose = document.getElementById('btn-close-older-exams-modal');
+  const btnCloseFooter = document.getElementById('btn-close-older-exams-modal-footer');
+  if (btnClose) btnClose.addEventListener('click', closeModal);
+  if (btnCloseFooter) btnCloseFooter.addEventListener('click', closeModal);
+
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) closeModal();
+  });
+
+  const searchInput = document.getElementById('older-exams-search-input');
+  if (searchInput) {
+    searchInput.addEventListener('input', () => {
+      renderOlderExamsModalList();
+    });
+  }
+
+  const btnOlderOnly = document.getElementById('btn-filter-older-only');
+  const btnAllExams = document.getElementById('btn-filter-all-exams');
+  if (btnOlderOnly) {
+    btnOlderOnly.addEventListener('click', () => {
+      olderExamsModalFilterMode = 'older';
+      renderOlderExamsModalList();
+    });
+  }
+  if (btnAllExams) {
+    btnAllExams.addEventListener('click', () => {
+      olderExamsModalFilterMode = 'all';
+      renderOlderExamsModalList();
+    });
+  }
+
+  const headerBtn = document.getElementById('btn-open-older-exams-modal');
+  if (headerBtn) {
+    headerBtn.addEventListener('click', () => {
+      openOlderExamsModal('older');
+    });
+  }
+}
+
+function openOlderExamsModal(mode = 'older') {
+  ensureOlderExamsModalEvents();
+  const modal = document.getElementById('modal-older-exams-list');
+  if (!modal) return;
+  olderExamsModalFilterMode = mode || 'older';
+  const searchInput = document.getElementById('older-exams-search-input');
+  if (searchInput) searchInput.value = '';
+  renderOlderExamsModalList();
+  modal.style.display = 'flex';
+  modal.classList.add('active');
+}
+window.openOlderExamsModal = openOlderExamsModal;
+
+function renderOlderExamsModalList() {
+  const modal = document.getElementById('modal-older-exams-list');
+  const tbody = document.getElementById('older-exams-list-tbody');
+  if (!modal || !tbody) return;
+
+  let state = (stateManager && stateManager.state) ? stateManager.state : stateManager.loadState();
+  let exams = (state.weeklyEvaluations || []).map(e => {
+    if (e && !e.id) {
+      e.id = 'exam_' + (e.createdAt ? new Date(e.createdAt).getTime() : Date.now());
+    }
+    return e;
+  }).filter(e => e && e.id);
+
+  exams.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+
+  // Eğer toplam sınav <= 3 ise otomatik tümünü göster
+  const effectiveMode = (exams.length <= 3) ? 'all' : olderExamsModalFilterMode;
+
+  const btnOlderOnly = document.getElementById('btn-filter-older-only');
+  const btnAllExams = document.getElementById('btn-filter-all-exams');
+  const titleEl = document.getElementById('older-exams-modal-title');
+  const countBadge = document.getElementById('older-exams-modal-count-badge');
+
+  const olderCount = Math.max(0, exams.length - 3);
+  if (btnOlderOnly) {
+    btnOlderOnly.textContent = `4, 5, 6... Sınavlar (${olderCount})`;
+    btnOlderOnly.className = `btn btn-sm ${effectiveMode === 'older' ? 'btn-primary' : 'btn-secondary'}`;
+    btnOlderOnly.style.display = exams.length > 3 ? 'inline-flex' : 'none';
+  }
+  if (btnAllExams) {
+    btnAllExams.textContent = `Tüm Sınavlar (${exams.length})`;
+    btnAllExams.className = `btn btn-sm ${effectiveMode === 'all' ? 'btn-primary' : 'btn-secondary'}`;
+  }
+  if (titleEl) {
+    titleEl.textContent = effectiveMode === 'older'
+      ? 'Diğer Sınavlar Listesi (4, 5, 6... Sınavlar)'
+      : 'Tüm Sınavlar Listesi';
+  }
+
+  const searchInput = document.getElementById('older-exams-search-input');
+  const query = searchInput ? searchInput.value.trim().toLocaleLowerCase('tr') : '';
+
+  const indexedExams = exams.map((rawExam, idx) => ({
+    rawExam,
+    orderNo: idx + 1
+  }));
+
+  let filtered = effectiveMode === 'older'
+    ? indexedExams.filter(item => item.orderNo >= 4)
+    : indexedExams;
+
+  if (query) {
+    filtered = filtered.filter(({ rawExam }) => {
+      const name = String(rawExam.examName || '').toLocaleLowerCase('tr');
+      const branch = String(rawExam.branch || '').toLocaleLowerCase('tr');
+      const weekStr = (window.formatWeekTR ? window.formatWeekTR(rawExam.weekId, 'full') : (rawExam.weekId || '')).toLocaleLowerCase('tr');
+      return name.includes(query) || branch.includes(query) || weekStr.includes(query);
+    });
+  }
+
+  if (countBadge) {
+    countBadge.textContent = `${filtered.length} Sınav`;
+  }
+
+  tbody.innerHTML = '';
+
+  if (filtered.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="8" style="text-align: center; padding: 2.5rem 1rem; color: var(--text-muted);">
+          Aranan kriterlere uygun sınav bulunamadı.
+        </td>
+      </tr>
+    `;
+    return;
+  }
+
+  filtered.forEach(({ rawExam, orderNo }) => {
+    const stats = computeExamSummaryStats(rawExam, state);
+    const { exam, scores, avgScore, topOneText, formattedWeek, opticalBadge, multiBadge } = stats;
+    const isSelected = !!(activeExam && String(activeExam.id) === String(exam.id));
+
+    const tr = document.createElement('tr');
+    tr.className = `older-exam-row ${isSelected ? 'active-older-exam-row' : ''}`;
+    tr.innerHTML = `
+      <td style="text-align: center; vertical-align: middle; font-weight: 700; color: var(--text-muted); padding: 0.65rem 0.5rem;">
+        <span class="badge" style="background: ${isSelected ? 'var(--primary)' : 'var(--bg-primary)'}; color: ${isSelected ? '#fff' : 'var(--text-secondary)'}; border: 1px solid var(--border-color); font-size: 0.75rem; font-weight: 700; padding: 0.15rem 0.45rem;">#${orderNo}</span>
+      </td>
+      <td style="vertical-align: middle; padding: 0.65rem 0.75rem;">
+        <div style="display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap;">
+          <strong style="color: var(--text-primary); font-size: 0.9rem;">${exam.examName || 'Sınav'}</strong>
+          ${exam.branch ? `<span class="badge" style="background: rgba(255, 255, 255, 0.1); color: var(--text-primary); font-size: 0.68rem; padding: 0.1rem 0.35rem;">${exam.branch}</span>` : ''}
+          ${multiBadge}
+          ${opticalBadge}
+          ${isSelected ? `<span class="badge" style="background: rgba(16, 185, 129, 0.16); color: #059669; font-size: 0.68rem; font-weight: 700; padding: 0.1rem 0.4rem;">✓ Açık</span>` : ''}
+        </div>
+      </td>
+      <td style="vertical-align: middle; color: var(--text-secondary); font-size: 0.8rem; padding: 0.65rem 0.5rem;">
+        ${formattedWeek || '-'}
+      </td>
+      <td style="text-align: center; vertical-align: middle; font-size: 0.8rem; color: var(--text-secondary); white-space: nowrap; padding: 0.65rem 0.5rem;">
+        <strong>${exam.totalQuestions || 0}</strong> Soru • ${exam.duration || 0} Dk
+      </td>
+      <td style="text-align: center; vertical-align: middle; font-size: 0.8rem; padding: 0.65rem 0.5rem;">
+        <span class="badge" style="background: var(--bg-primary); border: 1px solid var(--border-color); color: var(--text-secondary); font-size: 0.74rem; font-weight: 600;">${scores.length} Öğrenci</span>
+      </td>
+      <td style="text-align: center; vertical-align: middle; font-weight: 700; color: var(--primary); font-size: 0.85rem; padding: 0.65rem 0.5rem;">
+        Ort: ${avgScore}
+      </td>
+      <td style="vertical-align: middle; font-size: 0.78rem; color: var(--text-secondary); padding: 0.65rem 0.5rem; white-space: nowrap;">
+        ${topOneText}
+      </td>
+      <td style="text-align: center; vertical-align: middle; white-space: nowrap; padding: 0.65rem 0.5rem;">
+        <div style="display: inline-flex; align-items: center; gap: 0.35rem;">
+          <button type="button" class="btn btn-sm btn-primary btn-select-older-exam" style="font-size: 0.74rem; padding: 0.28rem 0.65rem; height: auto; display: inline-flex; align-items: center; gap: 4px;">
+            <i data-lucide="folder-open" style="width: 13px; height: 13px;"></i>
+            <span>Aç</span>
+          </button>
+          <button type="button" class="btn btn-sm btn-secondary btn-delete-older-exam" style="font-size: 0.74rem; padding: 0.28rem 0.45rem; height: auto; color: var(--danger); border-color: rgba(239, 68, 68, 0.3);" title="Sınavı Sil">
+            <i data-lucide="trash-2" style="width: 13px; height: 13px;"></i>
+          </button>
+        </div>
+      </td>
+    `;
+
+    const selectExamFromModal = () => {
+      modal.classList.remove('active');
+      modal.style.display = 'none';
+      openActiveExam(exam);
+      if (activeExamCard) {
+        setTimeout(() => {
+          activeExamCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 60);
+      }
+    };
+
+    tr.addEventListener('click', (e) => {
+      if (e.target.closest('.btn-delete-older-exam')) return;
+      selectExamFromModal();
+    });
+
+    const btnSelect = tr.querySelector('.btn-select-older-exam');
+    if (btnSelect) {
+      btnSelect.addEventListener('click', (e) => {
+        e.stopPropagation();
+        selectExamFromModal();
+      });
+    }
+
+    const btnDelete = tr.querySelector('.btn-delete-older-exam');
+    if (btnDelete) {
+      btnDelete.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const confirmed = window.showConfirm
+          ? await window.showConfirm(`"${exam.examName || 'Sınav'}" sınavını ve tüm öğrenci sonuçlarını silmek istediğinize emin misiniz?`)
+          : confirm(`"${exam.examName || 'Sınav'}" sınavını silmek istediğinize emin misiniz?`);
+        if (!confirmed) return;
+
+        let currentState = stateManager.loadState();
+        currentState.weeklyEvaluations = (currentState.weeklyEvaluations || []).filter(item => String(item.id) !== String(exam.id));
+        stateManager.saveState(currentState);
+        if (window.cloudSync && typeof window.cloudSync.deleteExamFromCloud === 'function') {
+          window.cloudSync.deleteExamFromCloud(exam.id);
+        }
+        if (activeExam && String(activeExam.id) === String(exam.id)) {
+          activeExam = null;
+          window.activeWeeklyExam = null;
+          if (activeExamCard) activeExamCard.style.display = 'none';
+          if (btnPrintReport) btnPrintReport.style.display = 'none';
+        }
+        renderExamsList();
+        renderOlderExamsModalList();
+        if (window.showToast) window.showToast('Sınav silindi.', 'info');
+      });
+    }
+
+    tbody.appendChild(tr);
+  });
+
+  if (window.safeCreateIcons) window.safeCreateIcons();
+  else if (window.lucide) window.lucide.createIcons();
+}
+
 function renderExamsList() {
+  ensureOlderExamsModalEvents();
   let state = (stateManager && stateManager.state) ? stateManager.state : stateManager.loadState();
   const examsList = document.getElementById('weekly-exams-list');
   const emptyState = document.getElementById('weekly-exams-empty-state');
+  const olderBar = document.getElementById('weekly-older-exams-bar');
+  const headerOlderBtn = document.getElementById('btn-open-older-exams-modal');
+  const headerOlderBtnText = document.getElementById('btn-open-older-exams-modal-text');
+  const countBadge = document.getElementById('weekly-exams-count-badge');
   
   if (!examsList) return;
   examsList.innerHTML = '';
@@ -5885,80 +6314,34 @@ function renderExamsList() {
 
   exams.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
 
+  if (countBadge) {
+    if (exams.length > 0) {
+      countBadge.style.display = 'inline-block';
+      countBadge.textContent = `${exams.length} Sınav`;
+    } else {
+      countBadge.style.display = 'none';
+    }
+  }
+
   if (exams.length === 0) {
     if (emptyState) emptyState.style.display = 'block';
+    if (olderBar) olderBar.style.display = 'none';
+    if (headerOlderBtn) headerOlderBtn.style.display = 'none';
     return;
   } else {
     if (emptyState) emptyState.style.display = 'none';
   }
 
-  exams.forEach(rawExam => {
-    const exam = (activeExam && String(activeExam.id) === String(rawExam.id)) ? activeExam : rawExam;
-    // Sınav ortalama puanı ve ilk 3 öğrencisini hesapla (hem examScores hem studentResults üzerinden güvenli okuma)
-    const scoreMap = {};
-    if (exam.examScores && typeof exam.examScores === 'object') {
-      for (const stdId in exam.examScores) {
-        const score = exam.examScores[stdId];
-        if (score !== undefined && score !== null && score !== '') {
-          const num = parseFloat(score);
-          if (!isNaN(num)) scoreMap[stdId] = num;
-        }
-      }
-    }
-    if (exam.studentResults && typeof exam.studentResults === 'object') {
-      for (const stdId in exam.studentResults) {
-        if (scoreMap[stdId] === undefined && exam.studentResults[stdId]) {
-          const score = exam.studentResults[stdId].score;
-          if (score !== undefined && score !== null && score !== '') {
-            const num = parseFloat(score);
-            if (!isNaN(num)) scoreMap[stdId] = num;
-          }
-        }
-      }
-    }
+  // Masaüstünde sadece son 3 sınav kart olarak gösterilir
+  const visibleExams = exams.slice(0, 3);
+  const olderExams = exams.slice(3);
 
-    const scores = [];
-    for (const stdId in scoreMap) {
-      scores.push({ studentId: stdId, score: scoreMap[stdId] });
-    }
-
-    const avgScore = scores.length > 0
-      ? (scores.reduce((sum, item) => sum + item.score, 0) / scores.length).toFixed(1)
-      : '0';
-
-    scores.sort((a, b) => b.score - a.score);
-    const topThree = scores.slice(0, 3);
-    
-    let topStudentsHTML = '<div class="exam-card-topstudents" style="border-top: 1px solid var(--border-color); padding-top: 0.5rem; margin-top: 0.5rem;">';
-    if (topThree.length === 0) {
-      topStudentsHTML += '<span style="color: var(--text-muted); font-size: 0.75rem;">Henüz puan girişi yapılmamış.</span>';
-    } else {
-      const allRoster = state.rawStudents || state.students || [];
-      topThree.forEach((item, index) => {
-        const student = allRoster.find(s => s && String(s.id) === String(item.studentId));
-        const sSurname = (student && student.surname) ? String(student.surname) : '';
-        const name = student ? `${student.name || ''} ${sSurname ? sSurname[0] + '.' : ''}`.trim() : 'Öğrenci';
-        let medal = '';
-        if (index === 0) medal = '🥇';
-        else if (index === 1) medal = '🥈';
-        else if (index === 2) medal = '🥉';
-        topStudentsHTML += `
-          <div style="display: flex; justify-content: space-between; font-size: 0.75rem; font-weight: 500; margin-bottom: 0.15rem;">
-            <span style="color: var(--text-secondary);">${medal} ${name}</span>
-            <strong style="color: var(--text-primary);">${item.score} Puan</strong>
-          </div>
-        `;
-      });
-    }
-    topStudentsHTML += '</div>';
-
-    const formattedWeek = window.formatWeekTR ? window.formatWeekTR(exam.weekId, 'full') : (exam.weekId || '');
-    const penaltyText = exam.wrongAffects ? `${exam.penaltyRate} Yanlış 1 Doğruyu Götürür` : 'Yanlışlar Doğruları Etkilemez';
-    const opticalBadge = exam.hasOpticalForm ? `<span class="badge" style="background: rgba(99, 102, 241, 0.15); color: var(--primary); font-size: 0.72rem; padding: 0.1rem 0.35rem; font-weight: 700;">📝 ${exam.choicesCount || 4} Şıklı Optik</span>` : '';
-    const multiBadge = exam.isMultiSubject && exam.subjects ? `<span class="badge" style="background: rgba(16, 185, 129, 0.15); color: #059669; font-size: 0.72rem; padding: 0.1rem 0.35rem; font-weight: 700;">📚 ${exam.subjects.length} Ders</span>` : '';
+  visibleExams.forEach(rawExam => {
+    const stats = computeExamSummaryStats(rawExam, state);
+    const { exam, avgScore, topStudentsHTML, formattedWeek, penaltyText, opticalBadge, multiBadge } = stats;
 
     const card = document.createElement('div');
-    card.className = `exam-card ${activeExam && activeExam.id === exam.id ? 'active-card' : ''}`;
+    card.className = `exam-card ${activeExam && String(activeExam.id) === String(exam.id) ? 'active-card' : ''}`;
     card.innerHTML = `
       <div class="exam-card-title">
         <span style="font-weight: 700; color: var(--text-primary);">${exam.examName || 'Sınav'}${exam.branch ? ` <span class="badge" style="background: rgba(255, 255, 255, 0.1); color: var(--text-primary); font-size: 0.7rem; padding: 0.1rem 0.3rem; margin-left: 0.25rem;">${exam.branch}</span>` : ''}</span>
@@ -5980,16 +6363,68 @@ function renderExamsList() {
       ${topStudentsHTML}
     `;
 
-    if (activeExam && String(activeExam.id) === String(exam.id)) {
-      card.classList.add('active-card');
-    }
-
     card.addEventListener('click', () => {
       openActiveExam(exam);
     });
 
     examsList.appendChild(card);
   });
+
+  // 4, 5, 6... sınavlar varsa üst buton ve alt liste barını göster
+  if (olderExams.length > 0) {
+    if (headerOlderBtn) {
+      headerOlderBtn.style.display = 'inline-flex';
+      if (headerOlderBtnText) {
+        headerOlderBtnText.textContent = `Diğer Sınavlar (+${olderExams.length} Liste)`;
+      }
+    }
+    if (olderBar) {
+      const activeOlderIdx = activeExam
+        ? exams.findIndex(e => String(e.id) === String(activeExam.id))
+        : -1;
+      const isOlderActive = activeOlderIdx >= 3;
+      const previewNames = olderExams
+        .slice(0, 3)
+        .map((e, i) => `#${i + 4} ${e.examName || 'Sınav'}`)
+        .join(', ') + (olderExams.length > 3 ? ` ve +${olderExams.length - 3} sınav daha` : '');
+
+      olderBar.style.display = 'block';
+      olderBar.innerHTML = `
+        <div class="older-exams-bar-trigger ${isOlderActive ? 'has-active-older-exam' : ''}" id="weekly-older-exams-bar-inner" title="4, 5, 6... diğer sınavları liste halinde görmek için tıklayın">
+          <div style="display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap;">
+            <span style="display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 6px; background: rgba(99, 102, 241, 0.15); color: var(--primary);">
+              <i data-lucide="list" style="width: 16px; height: 16px;"></i>
+            </span>
+            <div>
+              <div style="display: flex; align-items: center; gap: 0.45rem; flex-wrap: wrap;">
+                <strong style="font-size: 0.86rem; color: var(--text-primary);">Diğer Sınavlar (${olderExams.map((_, idx) => idx + 4).slice(0, 3).join(', ')}${olderExams.length > 3 ? '...' : ''}. Sınavlar)</strong>
+                <span class="badge" style="background: var(--primary); color: #fff; font-size: 0.72rem; font-weight: 700; padding: 0.12rem 0.5rem; border-radius: 999px;">+${olderExams.length} Sınav</span>
+                ${isOlderActive ? `<span class="badge" style="background: rgba(16, 185, 129, 0.18); color: #059669; border: 1px solid rgba(16, 185, 129, 0.4); font-size: 0.73rem; font-weight: 700; padding: 0.12rem 0.55rem;">📌 Açık Sınav (#${activeOlderIdx + 1}): ${activeExam.examName || 'Sınav'}</span>` : ''}
+              </div>
+              <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 2px;">${previewNames}</div>
+            </div>
+          </div>
+          <div style="display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.8rem; font-weight: 700; color: var(--primary); white-space: nowrap;">
+            <span>Liste Halinde Gör</span>
+            <i data-lucide="external-link" style="width: 14px; height: 14px;"></i>
+          </div>
+        </div>
+      `;
+
+      const triggerEl = document.getElementById('weekly-older-exams-bar-inner');
+      if (triggerEl) {
+        triggerEl.addEventListener('click', () => {
+          openOlderExamsModal('older');
+        });
+      }
+    }
+  } else {
+    if (headerOlderBtn) headerOlderBtn.style.display = 'none';
+    if (olderBar) {
+      olderBar.style.display = 'none';
+      olderBar.innerHTML = '';
+    }
+  }
 
   if (window.safeCreateIcons) window.safeCreateIcons();
   else if (window.lucide) window.lucide.createIcons();
@@ -6007,8 +6442,9 @@ function openActiveExam(exam) {
     if (activeExamTitle) activeExamTitle.textContent = exam.examName || 'Sınav';
 
     const formattedWeek = window.formatWeekTR ? window.formatWeekTR(exam.weekId, 'full') : (exam.weekId || '');
-    const keyCount = Object.keys(exam.answerKey || {}).filter(k => exam.answerKey[k]).length;
-    const opticalBadge = exam.hasOpticalForm ? `<span class="badge" style="background: rgba(99, 102, 241, 0.15); color: var(--primary); font-weight: 700; cursor: pointer;" title="Cevap anahtarını düzenlemek için tıklayın" onclick="window.openDesktopAnswerKeyModal ? window.openDesktopAnswerKeyModal() : null">📝 ${exam.choicesCount || 4} Şıklı Optik Form (${keyCount}/${exam.totalQuestions || 0} Cevap 🔑)</span>` : '';
+    const keyCount = countExamDefinedAnswers(exam);
+    const hasOpt = !!(exam.hasOpticalForm || keyCount > 0);
+    const opticalBadge = hasOpt ? `<span class="badge" style="background: rgba(99, 102, 241, 0.15); color: var(--primary); font-weight: 700; cursor: pointer;" title="Cevap anahtarını düzenlemek için tıklayın" onclick="window.openDesktopAnswerKeyModal ? window.openDesktopAnswerKeyModal() : null">📝 ${exam.choicesCount || 4} Şıklı Optik Form (${keyCount}/${exam.totalQuestions || 0} Cevap 🔑)</span>` : '';
     const multiSubjBadge = exam.isMultiSubject && exam.subjects ? `<span class="badge" style="background: rgba(16, 185, 129, 0.15); color: #059669; font-weight: 700;" title="${exam.subjects.map(s => `${s.name}: ${s.questionCount} Soru`).join(' • ')}">📚 Çoklu Ders (${exam.subjects.length} Branş - ${exam.totalQuestions} Soru)</span>` : '';
     const penaltyText = exam.wrongAffects ? `${exam.penaltyRate} Yanlış 1 Doğruyu Götürür` : 'Yanlışlar Doğruları Etkilemez';
 
@@ -6032,22 +6468,8 @@ function openActiveExam(exam) {
     // Tabloyu çiz
     renderActiveExamTable();
 
-    // Liste kartlarında seçili olanı güncellemek için
-    document.querySelectorAll('.exam-card').forEach(card => {
-      card.classList.remove('active-card');
-    });
-    // Yeniden çizim yapmadan DOM'dan ekleme
-    const examsListEl = document.getElementById('weekly-exams-list');
-    if (examsListEl) {
-      const listItems = examsListEl.querySelectorAll('.exam-card');
-      const state = stateManager.loadState();
-      const exams = (state.weeklyEvaluations || []).filter(e => e && e.id);
-      exams.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
-      const activeIdx = exams.findIndex(e => e.id === exam.id);
-      if (activeIdx !== -1 && listItems[activeIdx]) {
-        listItems[activeIdx].classList.add('active-card');
-      }
-    }
+    // Son 3 sınav kartını ve 4+ sınav barındaki seçili durumunu güncelle
+    renderExamsList();
   } catch (err) {
     console.error('openActiveExam hatası:', err);
     if (window.showToast) {
@@ -6204,7 +6626,7 @@ function renderStudentSubjectBreakdown(result, exam) {
       }
     });
 
-    return `<div style="display: flex; flex-direction: column; gap: 2px; align-items: flex-start;">${items.join('')}</div>`;
+    return `<div style="display: flex; flex-wrap: wrap; gap: 4px; align-items: center;">${items.join('')}</div>`;
   } else {
     if (result.correct !== '' && result.correct !== undefined) {
       const correct = parseInt(result.correct, 10) || 0;
@@ -6402,13 +6824,13 @@ function renderActiveExamTable() {
         <td style="text-align: center; vertical-align: middle; font-weight: 700;">
           <span class="exam-score-span">${result.score !== undefined && result.score !== '' ? result.score : '-'}</span>
         </td>
-        <td style="text-align: center; vertical-align: middle;">
-          <button type="button" class="btn btn-sm btn-open-student-optical ${hasAnswers ? 'btn-secondary' : 'btn-outline-secondary'}" data-student-id="${student.id}" style="font-size: 0.74rem; padding: 0.28rem 0.6rem; height: auto; display: inline-flex; align-items: center; gap: 4px; border-radius: 6px; cursor: pointer; ${hasAnswers ? 'border-color: rgba(99, 102, 241, 0.4); color: var(--primary); font-weight: 600; background: rgba(99, 102, 241, 0.1);' : 'border: 1px dashed var(--border-color); color: var(--text-muted);'}" title="${sName} ${sSurname} - ${hasAnswers ? 'Optik form işaretlemelerini incele ve düzenle' : 'Bu öğrenci için optik form işaretlemelerini gir'}">
-            <i data-lucide="${hasAnswers ? 'scan-line' : 'edit'}" style="width: 14px; height: 14px;"></i>
+        <td style="text-align: center; vertical-align: middle; white-space: nowrap;">
+          <button type="button" class="btn btn-sm btn-open-student-optical ${hasAnswers ? 'btn-secondary' : 'btn-outline-secondary'}" data-student-id="${student.id}" style="font-size: 0.74rem; padding: 0.26rem 0.55rem; height: auto; display: inline-flex; align-items: center; justify-content: center; gap: 4px; border-radius: 6px; cursor: pointer; white-space: nowrap; flex-shrink: 0; ${hasAnswers ? 'border-color: rgba(99, 102, 241, 0.4); color: var(--primary); font-weight: 600; background: rgba(99, 102, 241, 0.1);' : 'border: 1px dashed var(--border-color); color: var(--text-muted);'}" title="${sName} ${sSurname} - ${hasAnswers ? 'Optik form işaretlemelerini incele ve düzenle' : 'Bu öğrenci için optik form işaretlemelerini gir'}">
+            <i data-lucide="${hasAnswers ? 'scan-line' : 'edit'}" style="width: 13px; height: 13px; flex-shrink: 0;"></i>
             <span>${hasAnswers ? 'Optik İncele' : 'Optik Gir'}</span>
           </button>
         </td>
-        <td style="text-align: center; vertical-align: middle;" class="change-indicator-td">
+        <td style="text-align: center; vertical-align: middle; white-space: nowrap;" class="change-indicator-td">
           <!-- İlerleme rozeti -->
         </td>
       `;
@@ -8690,8 +9112,17 @@ function renderPipContent(win) {
     if (window.showToast) window.showToast(`📱 El Terminali eşitleniyor... (Kod: ${syncCode})`, 'info', 2000);
 
     try {
-      // 1. Sınavla birlikte o sınıfın/şubenin öğrenci listesini de pakete ekle
+      // 1. ÖNCE buluttan el terminalinde girilen güncel cevap anahtarını ve sonuçları çek (üzerine yazılmasını engelle!)
+      const pullRes = await window.CloudSync.pullExams();
+
+      // 2. Güncellenmiş sınavı ve sınıfın öğrenci listesini hazırla
       const state = stateManager.loadState();
+      const updatedFromCloud = (state.weeklyEvaluations || []).find(e => String(e.id) === String(activeExam.id));
+      if (updatedFromCloud) {
+        activeExam = updatedFromCloud;
+        window.activeWeeklyExam = updatedFromCloud;
+      }
+
       const examBranch = activeExam.branch || '';
       const isMiddle = state.educationLevel === 'middle';
       const classStudents = (state.students || []).filter(s => {
@@ -8709,22 +9140,20 @@ function renderPipContent(win) {
         }))
       };
 
-      // 2. Sınav ve sınıf listesini buluta gönder
+      // 3. Birleştirilmiş sınavı ve sınıf listesini buluta gönder
       const pushRes = await window.CloudSync.pushExam(examToPush);
 
-      // 3. Ardından buluttan telefonda okunan en son sonuçları çek
-      const pullRes = await window.CloudSync.pullExams();
-
       if (pushRes.success || pullRes.success) {
-        // State'i tazele ve tabloyu yeniden çiz
-        const state = stateManager.loadState();
-        const updatedExam = (state.weeklyEvaluations || []).find(e => e.id === activeExam.id);
+        // State'i tazele, bilgi çubuğunu ve tabloyu yeniden çiz
+        const freshState = stateManager.loadState();
+        const updatedExam = (freshState.weeklyEvaluations || []).find(e => String(e.id) === String(activeExam.id));
         if (updatedExam) {
-          activeExam = updatedExam;
-          renderActiveExamTable();
+          openActiveExam(updatedExam);
+        } else {
+          openActiveExam(activeExam);
         }
 
-        const msg = `✅ El Terminali ile eşitlendi! (Kod: ${syncCode}) Sınav gönderildi & okunan sonuçlar aktarıldı.`;
+        const msg = `✅ El Terminali ile eşitlendi! (Kod: ${syncCode}) Cevap anahtarı ve okunan sonuçlar senkronize edildi.`;
         if (window.showToast) window.showToast(msg, 'success', 3500);
       } else {
         const codePrompt = prompt(
@@ -8747,8 +9176,9 @@ function renderPipContent(win) {
   window.renderExamsList = renderExamsList;
   window.renderWeeklyEvaluations = renderExamsList;
   window.renderActiveExamTable = renderActiveExamTable;
+  window.openActiveExam = openActiveExam;
 
-  // Global state değiştiğinde (örneğin terminalden canlı sınav veya sonuç geldiğinde) arayüzü anında tazele
+  // Global state değiştiğinde (örneğin terminalden canlı sınav, cevap anahtarı veya sonuç geldiğinde) arayüzü anında tazele
   document.addEventListener('stateChanged', () => {
     try {
       renderExamsList();
@@ -8757,9 +9187,10 @@ function renderPipContent(win) {
         const state = (stateManager && stateManager.state) ? stateManager.state : stateManager.loadState();
         const updated = (state.weeklyEvaluations || []).find(e => String(e.id) === String(currentActiveId));
         if (updated) {
-          activeExam = updated;
-          window.activeWeeklyExam = updated;
-          renderActiveExamTable();
+          openActiveExam(updated);
+          if (modalEditExamAnswerKey && modalEditExamAnswerKey.classList.contains('active')) {
+            openDesktopAnswerKeyModal();
+          }
         }
       }
     } catch (e) {

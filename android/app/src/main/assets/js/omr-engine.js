@@ -242,98 +242,96 @@
   function findConcentricTargetAnchor(gray, w, h, minX, maxX, minY, maxY, radius) {
     let bestX = 0, bestY = 0;
     let bestScore = 0;
-    const step = Math.max(2, Math.floor(radius / 3));
+    const step = 2;
 
-    const rCore = Math.max(2, Math.round(radius * 0.30));
-    const rRingInner = Math.max(rCore + 1, Math.round(radius * 0.45));
-    const rRingOuter = Math.max(rRingInner + 1, Math.round(radius * 0.75));
-    const rOuter = Math.max(rRingOuter + 1, Math.round(radius * 1.10));
-
-    const rCore2 = rCore * rCore;
-    const rRingInner2 = rRingInner * rRingInner;
-    const rRingOuter2 = rRingOuter * rRingOuter;
-    const rOuter2 = rOuter * rOuter;
+    const rCore = Math.max(2, Math.round(radius * 0.35));
+    const rRing = Math.max(rCore + 2, Math.round(radius * 0.68));
+    const rOuter = radius;
 
     for (let y = minY + rOuter; y <= maxY - rOuter; y += step) {
       for (let x = minX + rOuter; x <= maxX - rOuter; x += step) {
-        let coreSum = 0, coreCount = 0;
-        let ringSum = 0, ringCount = 0;
-        let outerSum = 0, outerCount = 0;
+        let coreSumSq = 0, coreCountSq = 0;
+        let ringSumSq = 0, ringCountSq = 0;
+        let outerSumSq = 0, outerCountSq = 0;
+
+        let coreSumCi = 0, coreCountCi = 0;
+        let ringSumCi = 0, ringCountCi = 0;
+        let outerSumCi = 0, outerCountCi = 0;
 
         for (let dy = -rOuter; dy <= rOuter; dy += 2) {
           const py = y + dy;
           const dy2 = dy * dy;
           for (let dx = -rOuter; dx <= rOuter; dx += 2) {
             const px = x + dx;
-            const d2 = dx * dx + dy2;
-            if (d2 <= rOuter2) {
-              const lum = gray[py * w + px];
-              if (d2 <= rCore2) {
-                coreSum += lum;
-                coreCount++;
-              } else if (d2 >= rRingInner2 && d2 <= rRingOuter2) {
-                ringSum += lum;
-                ringCount++;
-              } else if (d2 > rRingOuter2) {
-                outerSum += lum;
-                outerCount++;
+            const lum = gray[py * w + px];
+
+            // 1. Kare metriği (CamScanner SVG Kare Referans Çapası)
+            const dSq = Math.max(Math.abs(dx), Math.abs(dy));
+            if (dSq <= rOuter) {
+              if (dSq <= rCore) {
+                coreSumSq += lum;
+                coreCountSq++;
+              } else if (dSq <= rRing) {
+                ringSumSq += lum;
+                ringCountSq++;
+              } else {
+                outerSumSq += lum;
+                outerCountSq++;
+              }
+            }
+
+            // 2. Dairesel metrik (Klasik Nişangah)
+            const dCi2 = dx * dx + dy2;
+            if (dCi2 <= rOuter * rOuter) {
+              if (dCi2 <= rCore * rCore) {
+                coreSumCi += lum;
+                coreCountCi++;
+              } else if (dCi2 <= rRing * rRing) {
+                ringSumCi += lum;
+                ringCountCi++;
+              } else {
+                outerSumCi += lum;
+                outerCountCi++;
               }
             }
           }
         }
 
-        if (coreCount > 0 && ringCount > 0 && outerCount > 0) {
-          const coreLum = coreSum / coreCount;
-          const ringLum = ringSum / ringCount;
-          const outerLum = outerSum / outerCount;
+        // Kare veya daire skoru hesapla
+        let candidateScore = 0;
 
-          // Desen Kuralı: Core Koyu, Ring Açık (Beyaz), Dış Çerçeve Koyu
-          const contrast1 = ringLum - coreLum;
-          const contrast2 = ringLum - outerLum;
-
-          if (contrast1 > 20 && contrast2 > 12) {
-            const score = (contrast1 * 0.6) + (contrast2 * 0.4);
-            if (score > bestScore) {
-              bestScore = score;
-              bestX = x;
-              bestY = y;
-            }
+        if (coreCountSq > 0 && ringCountSq > 0 && outerCountSq > 0) {
+          const coreLum = coreSumSq / coreCountSq;
+          const ringLum = ringSumSq / ringCountSq;
+          const outerLum = outerSumSq / outerCountSq;
+          const c1 = ringLum - coreLum;
+          const c2 = ringLum - outerLum;
+          if (c1 > 22 && c2 > 12) {
+            candidateScore = Math.max(candidateScore, (c1 * 0.5) + (c2 * 0.5));
           }
+        }
+
+        if (coreCountCi > 0 && ringCountCi > 0 && outerCountCi > 0) {
+          const coreLum = coreSumCi / coreCountCi;
+          const ringLum = ringSumCi / ringCountCi;
+          const outerLum = outerSumCi / outerCountCi;
+          const c1 = ringLum - coreLum;
+          const c2 = ringLum - outerLum;
+          if (c1 > 20 && c2 > 10) {
+            candidateScore = Math.max(candidateScore, (c1 * 0.6) + (c2 * 0.4));
+          }
+        }
+
+        if (candidateScore > bestScore && candidateScore > 35) {
+          bestScore = candidateScore;
+          bestX = x;
+          bestY = y;
         }
       }
     }
 
-    if (bestScore > 24 && bestX > 0 && bestY > 0) {
-      let fineX = bestX, fineY = bestY, fineScore = bestScore;
-      const fineRadius = Math.max(2, step);
-      for (let fY = Math.max(minY + rOuter, bestY - fineRadius); fY <= Math.min(maxY - rOuter, bestY + fineRadius); fY++) {
-        for (let fX = Math.max(minX + rOuter, bestX - fineRadius); fX <= Math.min(maxX - rOuter, bestX + fineRadius); fX++) {
-          let cSum = 0, cCnt = 0, rSum = 0, rCnt = 0, oSum = 0, oCnt = 0;
-          for (let dy = -rOuter; dy <= rOuter; dy += 2) {
-            const py = fY + dy;
-            const dy2 = dy * dy;
-            for (let dx = -rOuter; dx <= rOuter; dx += 2) {
-              const px = fX + dx;
-              const d2 = dx * dx + dy2;
-              if (d2 <= rOuter2) {
-                const lum = gray[py * w + px];
-                if (d2 <= rCore2) { cSum += lum; cCnt++; }
-                else if (d2 >= rRingInner2 && d2 <= rRingOuter2) { rSum += lum; rCnt++; }
-                else if (d2 > rRingOuter2) { oSum += lum; oCnt++; }
-              }
-            }
-          }
-          if (cCnt > 0 && rCnt > 0 && oCnt > 0) {
-            const c1 = (rSum / rCnt) - (cSum / cCnt);
-            const c2 = (rSum / rCnt) - (oSum / oCnt);
-            if (c1 > 18 && c2 > 10) {
-              const sc = (c1 * 0.6) + (c2 * 0.4);
-              if (sc > fineScore) { fineScore = sc; fineX = fX; fineY = fY; }
-            }
-          }
-        }
-      }
-      return { x: fineX, y: fineY };
+    if (bestScore >= 38 && bestX > 0 && bestY > 0) {
+      return { x: bestX, y: bestY, score: bestScore };
     }
 
     return null;
@@ -436,6 +434,242 @@
     };
   }
 
+  // Mobil kamera vizörü içindeki kağıt ve kart sınırlarını bulan adaptif dedektör
+  // Mobil kamera vizörü içindeki kağıt ve kart sınırlarını bulan adaptif dedektör (Perspektif ve Açı Uyumlu RANSAC)
+  function findMobileCameraCardCorners(grayBuf, w, h, threshold, bounds) {
+    if (!bounds) return null;
+    const minX = Math.max(0, bounds.minX);
+    const maxX = Math.min(w, bounds.maxX);
+    const minY = Math.max(0, bounds.minY);
+    const maxY = Math.min(h, bounds.maxY);
+    const subW = maxX - minX;
+    const subH = maxY - minY;
+    if (subW < 80 || subH < 60) return null;
+
+    const midX = Math.round((minX + maxX) / 2);
+    const midY = Math.round((minY + maxY) / 2);
+
+    // Dış kart çerçevesi arama derinliği: %20'den fazla içeri girilirse Türkçe/Matematik/Fen iç ders sütunlarına çarpar!
+    const maxScanX = Math.max(15, Math.round(subW * 0.20));
+    const maxScanY = Math.max(15, Math.round(subH * 0.22));
+
+    // 1. Dört kenar boyunca siyah kart çerçevesinin sınır noktalarını örnekle (Multi-Ray Scan)
+    const topPts = [];
+    for (let s = 0.15; s <= 0.85; s += 0.02) {
+      const x = Math.round(minX + subW * s);
+      for (let y = minY; y <= minY + maxScanY; y++) {
+        if (grayBuf[y * w + x] < 145 && grayBuf[(y + 6) * w + x] > 175) {
+          topPts.push({ x, y });
+          break;
+        }
+      }
+    }
+
+    const botPts = [];
+    for (let s = 0.15; s <= 0.85; s += 0.02) {
+      const x = Math.round(minX + subW * s);
+      for (let y = maxY - 1; y >= maxY - maxScanY; y--) {
+        if (grayBuf[y * w + x] < 145 && grayBuf[(y - 6) * w + x] > 175) {
+          botPts.push({ x, y });
+          break;
+        }
+      }
+    }
+
+    const leftPts = [];
+    for (let s = 0.15; s <= 0.85; s += 0.02) {
+      const y = Math.round(minY + subH * s);
+      for (let x = minX; x <= minX + maxScanX; x++) {
+        if (grayBuf[y * w + x] < 145 && grayBuf[y * w + (x + 6)] > 175) {
+          leftPts.push({ x, y });
+          break;
+        }
+      }
+    }
+
+    const rightPts = [];
+    for (let s = 0.15; s <= 0.85; s += 0.02) {
+      const y = Math.round(minY + subH * s);
+      for (let x = maxX - 1; x >= maxX - maxScanX; x--) {
+        if (grayBuf[y * w + x] < 145 && grayBuf[y * w + (x - 6)] > 175) {
+          rightPts.push({ x, y });
+          break;
+        }
+      }
+    }
+
+    function fitLineRANSAC(pts, isHorizontal) {
+      if (pts.length < 4) return null;
+      let bestLine = null;
+      let maxInliers = -1;
+      for (let it = 0; it < 30; it++) {
+        const i1 = Math.floor(Math.random() * pts.length);
+        let i2 = Math.floor(Math.random() * pts.length);
+        if (i1 === i2) continue;
+        const p1 = pts[i1], p2 = pts[i2];
+        const u1 = isHorizontal ? p1.x : p1.y, v1 = isHorizontal ? p1.y : p1.x;
+        const u2 = isHorizontal ? p2.x : p2.y, v2 = isHorizontal ? p2.y : p2.x;
+        if (Math.abs(u2 - u1) < 10) continue;
+        const m = (v2 - v1) / (u2 - u1);
+        const c = v1 - m * u1;
+
+        let inliers = 0;
+        for (const p of pts) {
+          const u = isHorizontal ? p.x : p.y, v = isHorizontal ? p.y : p.x;
+          const dist = Math.abs(m * u + c - v) / Math.sqrt(m * m + 1);
+          if (dist <= 4.0) inliers++;
+        }
+        if (inliers > maxInliers) {
+          maxInliers = inliers;
+          bestLine = { m, c };
+        }
+      }
+      if (!bestLine || maxInliers < 4) return null;
+
+      let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0, n = 0;
+      for (const p of pts) {
+        const u = isHorizontal ? p.x : p.y, v = isHorizontal ? p.y : p.x;
+        const dist = Math.abs(bestLine.m * u + bestLine.c - v) / Math.sqrt(bestLine.m * bestLine.m + 1);
+        if (dist <= 4.0) {
+          sumX += u; sumY += v; sumXY += u * v; sumXX += u * u;
+          n++;
+        }
+      }
+      const denom = n * sumXX - sumX * sumX;
+      if (Math.abs(denom) < 1e-6) return bestLine;
+      const m = (n * sumXY - sumX * sumY) / denom;
+      const c = (sumY - m * sumX) / n;
+      return { m, c };
+    }
+
+    const lTop = fitLineRANSAC(topPts, true);
+    const lBot = fitLineRANSAC(botPts, true);
+    const lLeft = fitLineRANSAC(leftPts, false);
+    const lRight = fitLineRANSAC(rightPts, false);
+
+    if (lTop && lBot && lLeft && lRight) {
+      function intersect(hLine, vLine) {
+        const denom = 1 - hLine.m * vLine.m;
+        if (Math.abs(denom) < 1e-6) return null;
+        const y = (hLine.m * vLine.c + hLine.c) / denom;
+        const x = vLine.m * y + vLine.c;
+        return { x: Math.round(x), y: Math.round(y) };
+      }
+
+      const tl = intersect(lTop, lLeft);
+      const tr = intersect(lTop, lRight);
+      const br = intersect(lBot, lRight);
+      const bl = intersect(lBot, lLeft);
+
+      if (tl && tr && br && bl) {
+        const cardW = Math.hypot(tr.x - tl.x, tr.y - tl.y);
+        const cardH = Math.hypot(bl.x - tl.x, bl.y - tl.y);
+        const aspect = cardW / Math.max(1, cardH);
+        if (cardW >= subW * 0.65 && cardH >= subH * 0.55 && aspect >= 1.10 && aspect <= 1.95) {
+          return { tl, tr, br, bl };
+        }
+      }
+    }
+
+    // 2. Fallback: Eksen hizalı kağıt ve kart çerçevesi arama
+    let topY = minY;
+    let botY = maxY;
+    let leftX = minX;
+    let rightX = maxX;
+
+    const checkW = Math.max(10, Math.round(subW * 0.35));
+    const checkH = Math.max(10, Math.round(subH * 0.35));
+
+    for (let y = minY; y <= midY - 20; y++) {
+      let bright = 0;
+      for (let x = midX - checkW; x <= midX + checkW; x += 2) {
+        if (grayBuf[y * w + x] > 135) bright++;
+      }
+      if (bright > (checkW * 0.75)) { topY = y; break; }
+    }
+
+    for (let y = maxY - 1; y >= midY + 20; y--) {
+      let bright = 0;
+      for (let x = midX - checkW; x <= midX + checkW; x += 2) {
+        if (grayBuf[y * w + x] > 135) bright++;
+      }
+      if (bright > (checkW * 0.75)) { botY = y; break; }
+    }
+
+    for (let x = minX; x <= midX - 20; x++) {
+      let bright = 0;
+      for (let y = midY - checkH; y <= midY + checkH; y += 2) {
+        if (grayBuf[y * w + x] > 135) bright++;
+      }
+      if (bright > (checkH * 0.75)) { leftX = x; break; }
+    }
+
+    for (let x = maxX - 1; x >= midX + 20; x--) {
+      let bright = 0;
+      for (let y = midY - checkH; y <= midY + checkH; y += 2) {
+        if (grayBuf[y * w + x] > 135) bright++;
+      }
+      if (bright > (checkH * 0.75)) { rightX = x; break; }
+    }
+
+    const pW = rightX - leftX;
+    const pH = botY - topY;
+
+    let cardTop = topY;
+    let cardBot = botY;
+    let cardLeft = leftX;
+    let cardRight = rightX;
+
+    const spanW = Math.max(10, Math.round(pW * 0.45));
+    const spanH = Math.max(10, Math.round(pH * 0.45));
+
+    for (let y = topY; y < Math.min(topY + Math.round(pH * 0.25), midY - 20); y++) {
+      let dark = 0;
+      for (let x = midX - spanW; x < midX + spanW; x += 2) {
+        if (grayBuf[y * w + x] < 140) dark++;
+      }
+      if (dark > spanW * 0.40) { cardTop = y; break; }
+    }
+
+    for (let y = botY; y > Math.max(botY - Math.round(pH * 0.25), midY + 20); y--) {
+      let dark = 0;
+      for (let x = midX - spanW; x < midX + spanW; x += 2) {
+        if (grayBuf[y * w + x] < 140) dark++;
+      }
+      if (dark > spanW * 0.40) { cardBot = y; break; }
+    }
+
+    for (let x = leftX; x < Math.min(leftX + Math.round(pW * 0.25), midX - 20); x++) {
+      let dark = 0;
+      for (let y = midY - spanH; y < midY + spanH; y += 2) {
+        if (grayBuf[y * w + x] < 140) dark++;
+      }
+      if (dark > spanH * 0.40) { cardLeft = x; break; }
+    }
+
+    for (let x = rightX; x > Math.max(rightX - Math.round(pW * 0.25), midX + 20); x--) {
+      let dark = 0;
+      for (let y = midY - spanH; y < midY + spanH; y += 2) {
+        if (grayBuf[y * w + x] < 140) dark++;
+      }
+      if (dark > spanH * 0.40) { cardRight = x; break; }
+    }
+
+    const fallbackW = cardRight - cardLeft;
+    const fallbackH = cardBot - cardTop;
+    const fallbackAspect = fallbackW / Math.max(1, fallbackH);
+    if (fallbackW >= subW * 0.65 && fallbackH >= subH * 0.55 && fallbackAspect >= 1.10 && fallbackAspect <= 1.95) {
+      return {
+        tl: { x: cardLeft, y: cardTop },
+        tr: { x: cardRight, y: cardTop },
+        br: { x: cardRight, y: cardBot },
+        bl: { x: cardLeft, y: cardBot }
+      };
+    }
+
+    return null;
+  }
+
   function detectCornerAnchorsInternal(gray, w, h, threshold, bounds) {
     const minX = bounds ? bounds.minX : 0;
     const maxX = bounds ? bounds.maxX : w;
@@ -444,57 +678,78 @@
     const subW = maxX - minX;
     const subH = maxY - minY;
 
-    // 1. Önce formun belirgin dış kart çerçevesini kontrol et (CamScanner ve taranmış A4 için)
-    const borderCorners = findCardBorderCorners(gray, w, h, threshold, bounds);
-    if (borderCorners) {
-      return borderCorners;
-    }
-
-    // 2. Kadran bazlı (Quadrant) Arama: Mobil çekimlerde form vizörün ortasında olsa bile 4 köşeyi kaçırmaz
-    const qW = Math.round(subW * 0.52);
-    const qH = Math.round(subH * 0.52);
-    const anchorRadius = Math.max(7, Math.min(26, Math.round(subW * 0.018)));
-
-    let tlFound = findConcentricTargetAnchor(gray, w, h, minX, minX + qW, minY, minY + qH, anchorRadius);
-    let trFound = findConcentricTargetAnchor(gray, w, h, maxX - qW, maxX, minY, minY + qH, anchorRadius);
-    let brFound = findConcentricTargetAnchor(gray, w, h, maxX - qW, maxX, maxY - qH, maxY, anchorRadius);
-    let blFound = findConcentricTargetAnchor(gray, w, h, minX, minX + qW, maxY - qH, maxY, anchorRadius);
-
-    let foundCount = (tlFound ? 1 : 0) + (trFound ? 1 : 0) + (brFound ? 1 : 0) + (blFound ? 1 : 0);
-
-    // Yetersizse farklı ölçekle (daha küçük veya büyük çapa yarıçapı) tekrar dene
-    if (foundCount < 3) {
-      const altRadius = Math.max(6, Math.round(anchorRadius * 0.75));
-      if (!tlFound) tlFound = findConcentricTargetAnchor(gray, w, h, minX, minX + qW, minY, minY + qH, altRadius);
-      if (!trFound) trFound = findConcentricTargetAnchor(gray, w, h, maxX - qW, maxX, minY, minY + qH, altRadius);
-      if (!brFound) brFound = findConcentricTargetAnchor(gray, w, h, maxX - qW, maxX, maxY - qH, maxY, altRadius);
-      if (!blFound) blFound = findConcentricTargetAnchor(gray, w, h, minX, minX + qW, maxY - qH, maxY, altRadius);
-      foundCount = (tlFound ? 1 : 0) + (trFound ? 1 : 0) + (brFound ? 1 : 0) + (blFound ? 1 : 0);
-    }
-
     function areAnchorsGeometricallyValid(tl, tr, br, bl) {
       if (!tl || !tr || !br || !bl) return false;
+      // Köşe çapaları formun dış uçlarında (köşe kadranlarında) yer almalıdır; iç rozetler çapa sayılamaz
+      if (tl.x > minX + subW * 0.28 || tl.y > minY + subH * 0.32) return false;
+      if (tr.x < minX + subW * 0.72 || tr.y > minY + subH * 0.32) return false;
+      if (bl.x > minX + subW * 0.28 || bl.y < minY + subH * 0.68) return false;
+      if (br.x < minX + subW * 0.72 || br.y < minY + subH * 0.68) return false;
+
       const wTop = tr.x - tl.x;
       const wBot = br.x - bl.x;
       const hLeft = bl.y - tl.y;
       const hRight = br.y - tr.y;
-      if (wTop < subW * 0.35 || wBot < subW * 0.35) return false;
-      if (hLeft < subH * 0.22 || hRight < subH * 0.22) return false;
-      if (Math.abs(wTop - wBot) > subW * 0.35) return false;
-      if (Math.abs(hLeft - hRight) > subH * 0.35) return false;
-      if (Math.abs(tl.y - tr.y) > subH * 0.30) return false;
-      if (Math.abs(bl.y - br.y) > subH * 0.30) return false;
+      if (wTop < subW * 0.45 || wBot < subW * 0.45) return false;
+      if (hLeft < subH * 0.30 || hRight < subH * 0.30) return false;
+      if (Math.abs(wTop - wBot) > subW * 0.25) return false;
+      if (Math.abs(hLeft - hRight) > subH * 0.25) return false;
+      if (Math.abs(tl.y - tr.y) > subH * 0.20) return false;
+      if (Math.abs(bl.y - br.y) > subH * 0.20) return false;
       const aspect = wTop / Math.max(1, hLeft);
-      if (aspect < 0.35 || aspect > 3.0) return false;
+      if (aspect < 0.80 || aspect > 2.2) return false;
       return true;
     }
 
+    // 1. İLK ÖNCELİK: 4 Köşe Referans Çapası (Hedef Nişangahı - CamScanner & ÖSYM Standardı)
+    const qW = Math.round(subW * 0.24);
+    const qH = Math.round(subH * 0.28);
+    const rOpt = Math.round(subW * 0.013);
+    const scalesToTry = [8, 9, 10, 11, 12, 13, 14, 15, 16, 18, 20, 22, 24, rOpt].filter((v, i, a) => v >= 7 && a.indexOf(v) === i);
+
+    function findBestConcentricInQuad(x1, x2, y1, y2, type) {
+      let best = null;
+      let bestMetric = (type === 'tl' || type === 'bl') ? 999999 : -999999;
+      for (const r of scalesToTry) {
+        const cand = findConcentricTargetAnchor(gray, w, h, x1, x2, y1, y2, r);
+        if (cand && cand.score >= 28) {
+          let metric = 0;
+          if (type === 'tl') metric = cand.x + cand.y;
+          else if (type === 'tr') metric = cand.x - cand.y;
+          else if (type === 'bl') metric = cand.x - cand.y;
+          else if (type === 'br') metric = cand.x + cand.y;
+
+          if (type === 'tl' || type === 'bl') {
+            if (metric < bestMetric) {
+              bestMetric = metric;
+              best = cand;
+            }
+          } else {
+            if (metric > bestMetric) {
+              bestMetric = metric;
+              best = cand;
+            }
+          }
+        }
+      }
+      return best;
+    }
+
+    let tlFound = findBestConcentricInQuad(minX, minX + qW, minY, minY + qH, 'tl');
+    // TR ve BR için x >= subW * 0.86 sınırı OMR ID / QR rozet kutusunun (x <= 0.84) çapa sanılmasını %100 engeller!
+    let trFound = findBestConcentricInQuad(Math.max(minX + Math.round(subW * 0.86), maxX - qW), maxX, minY, minY + qH, 'tr');
+    let brFound = findBestConcentricInQuad(Math.max(minX + Math.round(subW * 0.86), maxX - qW), maxX, Math.max(minY + Math.round(subH * 0.70), maxY - qH), maxY, 'br');
+    let blFound = findBestConcentricInQuad(minX, minX + qW, Math.max(minY + Math.round(subH * 0.70), maxY - qH), maxY, 'bl');
+
+    let foundCount = (tlFound ? 1 : 0) + (trFound ? 1 : 0) + (brFound ? 1 : 0) + (blFound ? 1 : 0);
+
     if (foundCount >= 3) {
       const cand = {
-        tl: tlFound || { x: minX, y: minY },
-        tr: trFound || { x: maxX, y: minY },
-        br: brFound || { x: maxX, y: maxY },
-        bl: blFound || { x: minX, y: maxY }
+        tl: tlFound ? { x: tlFound.x, y: tlFound.y } : { x: minX, y: minY },
+        tr: trFound ? { x: trFound.x, y: trFound.y } : { x: maxX, y: minY },
+        br: brFound ? { x: brFound.x, y: brFound.y } : { x: maxX, y: maxY },
+        bl: blFound ? { x: blFound.x, y: blFound.y } : { x: minX, y: maxY },
+        isAnchor: true
       };
       if (foundCount === 3) {
         if (!tlFound) cand.tl = { x: cand.tr.x + cand.bl.x - cand.br.x, y: cand.tr.y + cand.bl.y - cand.br.y };
@@ -505,12 +760,80 @@
       if (areAnchorsGeometricallyValid(cand.tl, cand.tr, cand.br, cand.bl)) {
         return cand;
       }
+    } else if (foundCount === 2) {
+      // 2 köşe çapası ile A5 form geometrisini (En/Boy oranı ~ 1.414) mükemmel rekonstrükte et
+      const aspect = 1.414;
+      const cand = { isAnchor: true };
+      if (tlFound && trFound) {
+        const dx = trFound.x - tlFound.x, dy = trFound.y - tlFound.y;
+        const hdx = -dy / aspect, hdy = dx / aspect;
+        cand.tl = { x: tlFound.x, y: tlFound.y };
+        cand.tr = { x: trFound.x, y: trFound.y };
+        cand.bl = { x: Math.round(tlFound.x + hdx), y: Math.round(tlFound.y + hdy) };
+        cand.br = { x: Math.round(trFound.x + hdx), y: Math.round(trFound.y + hdy) };
+      } else if (tlFound && blFound) {
+        const hdx = blFound.x - tlFound.x, hdy = blFound.y - tlFound.y;
+        const wdx = hdy * aspect, wdy = -hdx * aspect;
+        cand.tl = { x: tlFound.x, y: tlFound.y };
+        cand.bl = { x: blFound.x, y: blFound.y };
+        cand.tr = { x: Math.round(tlFound.x + wdx), y: Math.round(tlFound.y + wdy) };
+        cand.br = { x: Math.round(blFound.x + wdx), y: Math.round(blFound.y + wdy) };
+      } else if (trFound && brFound) {
+        const hdx = brFound.x - trFound.x, hdy = brFound.y - trFound.y;
+        const wdx = hdy * aspect, wdy = -hdx * aspect;
+        cand.tr = { x: trFound.x, y: trFound.y };
+        cand.br = { x: brFound.x, y: brFound.y };
+        cand.tl = { x: Math.round(trFound.x - wdx), y: Math.round(trFound.y - wdy) };
+        cand.bl = { x: Math.round(brFound.x - wdx), y: Math.round(brFound.y - wdy) };
+      } else if (blFound && brFound) {
+        const dx = brFound.x - blFound.x, dy = brFound.y - blFound.y;
+        const hdx = -dy / aspect, hdy = dx / aspect;
+        cand.bl = { x: blFound.x, y: blFound.y };
+        cand.br = { x: brFound.x, y: brFound.y };
+        cand.tl = { x: Math.round(blFound.x - hdx), y: Math.round(blFound.y - hdy) };
+        cand.tr = { x: Math.round(brFound.x - hdx), y: Math.round(brFound.y - hdy) };
+      }
+      if (cand.tl && cand.tr && cand.br && cand.bl && areAnchorsGeometricallyValid(cand.tl, cand.tr, cand.br, cand.bl)) {
+        return cand;
+      }
+    }
+
+    function makeAnchorFromBorder(b) {
+      if (!b) return null;
+      const w = b.tr.x - b.tl.x, h = b.bl.y - b.tl.y;
+      return {
+        tl: { x: Math.round(b.tl.x + w * 0.05), y: Math.round(b.tl.y + h * 0.05) },
+        tr: { x: Math.round(b.tr.x - w * 0.05), y: Math.round(b.tr.y + h * 0.05) },
+        br: { x: Math.round(b.br.x - w * 0.05), y: Math.round(b.br.y - h * 0.05) },
+        bl: { x: Math.round(b.bl.x + w * 0.05), y: Math.round(b.bl.y - h * 0.05) },
+        isAnchor: true
+      };
+    }
+
+    // 2. Çapa bulunamazsa (eski formlar için): Mobil kamera vizörü adaptif RANSAC kart tespiti
+    if (bounds) {
+      const mobCorners = findMobileCameraCardCorners(gray, w, h, threshold, bounds);
+      if (mobCorners) {
+        return makeAnchorFromBorder(mobCorners);
+      }
+    }
+
+    // 2b. Formun belirgin dış kart çerçevesini kontrol et (Masaüstü PDF, CamScanner ve taranmış A4 için)
+    const borderCorners = findCardBorderCorners(gray, w, h, threshold, bounds);
+    if (borderCorners) {
+      return makeAnchorFromBorder(borderCorners);
+    }
+
+    // 2c. Açı/perspektifli çekimlerde tüm kare RANSAC kart tespiti (Fallback)
+    const globalMobCorners = findMobileCameraCardCorners(gray, w, h, threshold, { minX: 0, maxX: w, minY: 0, maxY: h });
+    if (globalMobCorners) {
+      return makeAnchorFromBorder(globalMobCorners);
     }
 
     // 3. Konsantrik çapa bulunamazsa dış siyah çerçeveyi dene
     const bbox = findFormOuterBoundingBox(gray, w, h, minX, maxX, minY, maxY, threshold);
     if (bbox) {
-      return bbox;
+      return makeAnchorFromBorder(bbox);
     }
 
     // 4. Koyu köşe lekesi arama (Fallback)
@@ -525,7 +848,8 @@
         tl: tlFound || { x: minX, y: minY },
         tr: trFound || { x: maxX, y: minY },
         br: brFound || { x: maxX, y: maxY },
-        bl: blFound || { x: minX, y: maxY }
+        bl: blFound || { x: minX, y: maxY },
+        isAnchor: true
       };
       if (!tlFound) cand.tl = { x: cand.tr.x + cand.bl.x - cand.br.x, y: cand.tr.y + cand.bl.y - cand.br.y };
       else if (!trFound) cand.tr = { x: cand.tl.x + cand.br.x - cand.bl.x, y: cand.tl.y + cand.br.y - cand.bl.y };
@@ -648,10 +972,10 @@
 
   function sampleLocalPaperLuminance(gray, w, h, pt, radius) {
     let sum = 0, count = 0;
+    // Yalnızca satırlar arası dikey boşluklardan kağıt beyazlığını örnekle (asla yataydaki baloncuklara veya yazılara taşma yapma)
     const checkPts = [
-      { x: pt.x, y: Math.max(0, pt.y - Math.round(radius * 1.6)) },
-      { x: pt.x, y: Math.min(h - 1, pt.y + Math.round(radius * 1.6)) },
-      { x: Math.max(0, pt.x - Math.round(radius * 2.0)), y: pt.y }
+      { x: pt.x, y: Math.max(0, pt.y - Math.round(radius * 1.8)) },
+      { x: pt.x, y: Math.min(h - 1, pt.y + Math.round(radius * 1.8)) }
     ];
 
     for (const cp of checkPts) {
@@ -674,6 +998,24 @@
     const rInner = Math.max(2, Math.round(radius * 0.45));
     const rInner2 = rInner * rInner;
 
+    // 1. Baloncuğun tam geometrik merkez çekirdeği (3x3 piksel)
+    // Gerçek bir kurşun kalem işaretlemesinde merkez doludur.
+    // Eğer merkez çekirdeği bembeyaz ise, rInner kenarındaki koyuluk sadece tablo çizgisi veya çember çizgisidir!
+    let coreSumLum = 0;
+    let corePixels = 0;
+    for (let cdy = -1; cdy <= 1; cdy++) {
+      const cpy = cy + cdy;
+      if (cpy < 0 || cpy >= h) continue;
+      for (let cdx = -1; cdx <= 1; cdx++) {
+        const cpx = cx + cdx;
+        if (cpx < 0 || cpx >= w) continue;
+        coreSumLum += gray[cpy * w + cpx];
+        corePixels++;
+      }
+    }
+    const meanCoreLum = corePixels > 0 ? (coreSumLum / corePixels) : rowPaperLum;
+    const coreDarkness = Math.max(0, (rowPaperLum - meanCoreLum) / Math.max(1, rowPaperLum));
+
     let totalPixels = 0;
     const darknessValues = [];
 
@@ -694,11 +1036,11 @@
     }
 
     if (totalPixels === 0) {
-      return { score: 0, fillRatio: 0, medianDarkness: 0, p75Darkness: 0, meanDarkness: 0 };
+      return { score: 0, fillRatio: 0, medianDarkness: 0, p75Darkness: 0, meanDarkness: 0, coreDarkness: 0 };
     }
 
     darknessValues.sort((a, b) => a - b);
-    const medianDarkness = darknessValues[Math.floor(totalPixels * 0.50)];
+    let medianDarkness = darknessValues[Math.floor(totalPixels * 0.50)];
     const p75Darkness = darknessValues[Math.floor(totalPixels * 0.75)];
 
     let darkCount = 0;
@@ -709,11 +1051,23 @@
       if (v >= 0.28) darkCount++;
     }
 
-    const fillRatio = darkCount / totalPixels;
-    const meanDarkness = sumDark / totalPixels;
-    const score = (medianDarkness * 0.35) + (meanDarkness * 0.35) + (fillRatio * 0.30);
+    let fillRatio = darkCount / totalPixels;
+    let meanDarkness = sumDark / totalPixels;
 
-    return { score, fillRatio, medianDarkness, p75Darkness, meanDarkness };
+    // Merkez çekirdek beyazlık koruması:
+    // Eğer baloncuğun merkezi kağıt beyazı ise (coreDarkness < 0.12), kenardan sızan çizgiye rağmen bu baloncuk boştur!
+    if (coreDarkness < 0.12) {
+      medianDarkness = Math.min(medianDarkness, 0.05);
+      fillRatio = Math.min(fillRatio, 0.15);
+      meanDarkness = Math.min(meanDarkness, 0.15);
+    }
+
+    let score = (medianDarkness * 0.35) + (meanDarkness * 0.35) + (fillRatio * 0.30);
+    if (coreDarkness < 0.12) {
+      score = Math.min(score, 0.20);
+    }
+
+    return { score, fillRatio, medianDarkness, p75Darkness, meanDarkness, coreDarkness };
   }
 
   function refineBubbleCenter(gray, w, h, initialPt, radius, rowPaperLum, maxRangeX, maxRangeY) {
@@ -783,25 +1137,122 @@
     return { x: bestX, y: bestY };
   }
 
+  function snapToBubbleRing(gray, w, h, initialPt, radius) {
+    // Merkezin komşu dikey tablo çizgilerine taşmasını önlemek için dengeli arama penceresi
+    const searchRx = Math.max(5, Math.min(9, Math.round(radius * 0.70)));
+    const searchRy = Math.max(4, Math.min(8, Math.round(radius * 0.65)));
+    const rRing = Math.max(8, Math.round(radius * 0.95));
+    const rOuter = Math.max(12, Math.round(radius * 1.45));
+
+    const angles = [0, 0.785398, 1.570796, 2.356194, 3.141593, 3.926991, 4.712389, 5.497787];
+    const ringCos = angles.map(a => Math.round(rRing * Math.cos(a)));
+    const ringSin = angles.map(a => Math.round(rRing * Math.sin(a)));
+    const outerCos = angles.map(a => Math.round(rOuter * Math.cos(a)));
+    const outerSin = angles.map(a => Math.round(rOuter * Math.sin(a)));
+
+    let bestX = initialPt.x;
+    let bestY = initialPt.y;
+    let bestScore = -1e9;
+
+    for (let dy = -searchRy; dy <= searchRy; dy++) {
+      const cy = initialPt.y + dy;
+      for (let dx = -searchRx; dx <= searchRx; dx++) {
+        const cx = initialPt.x + dx;
+        let ringDark = 0;
+        let outerWhite = 0;
+
+        for (let a = 0; a < 8; a++) {
+          const rx = cx + ringCos[a];
+          const ry = cy + ringSin[a];
+          const ox = cx + outerCos[a];
+          const oy = cy + outerSin[a];
+
+          if (rx >= 0 && rx < w && ry >= 0 && ry < h) {
+            ringDark += (255 - gray[ry * w + rx]);
+          }
+          if (ox >= 0 && ox < w && oy >= 0 && oy < h) {
+            outerWhite += gray[oy * w + ox];
+          }
+        }
+
+        // Başlangıç noktasından uzaklaşma cezası: Komşu çizgilere sıçramayı engelle
+        const dist = Math.hypot(dx, dy);
+        const score = ringDark + outerWhite * 0.4 - dist * 4;
+        if (score > bestScore) {
+          bestScore = score;
+          bestX = cx;
+          bestY = cy;
+        }
+      }
+    }
+
+    return { x: bestX, y: bestY };
+  }
+
   // ==========================================================================
   // 4. TEKİL KART TARAMA MOTORU (HEM TEK HEM ÇOKLU DERS)
   // ==========================================================================
 
   function scanSingleCard(canvas, gray, w, h, corners, exam, classStudents, options = {}) {
-    const isMulti = exam && !!exam.isMultiSubject && Array.isArray(exam.subjects) && exam.subjects.length > 0;
-    const examSubjects = isMulti ? exam.subjects : [];
-    const qCount = parseInt(exam.totalQuestions, 10) || (isMulti ? examSubjects.reduce((acc, s) => acc + (parseInt(s.questionCount, 10) || 0), 0) : 20);
-    const choicesCount = parseInt(exam.choicesCount, 10) || 4;
+    const mapPoint = createProjectiveHomography(corners);
+    const cardW = Math.abs(corners.tr.x - corners.tl.x);
+    const sampleRadius = Math.max(5, Math.min(18, Math.round(cardW * 0.0075)));
+
+    let effectiveExam = exam || {};
+    let autoSwitchedExam = null;
+    const allExams = Array.isArray(options.allExams) ? options.allExams : [];
+
+    // Fiziksel Form Geometrisi ve Kolon Düzeni Tespiti:
+    // Çoklu dersli (4 veya 5 sütunlu) formlarda u ≈ 0.2835 (2. Ders / Matematik) ve u ≈ 0.4745 (3. Ders)
+    // dikey şeritlerinde soru kutusu, tablo çizgisi ve baloncuk daireleri yer alır.
+    // Tek dersli 20 soruluk formlarda ise u = 0.0881 ile u = 0.5626 arasında u ≈ 0.28 bölgesi tamamen BOŞ BEYAZ KAĞITTIR.
+    if (allExams.length > 0) {
+      let darkCol2 = 0;
+      let totalSamplesCol2 = 0;
+      for (let v = 0.45; v <= 0.75; v += 0.02) {
+        for (let du = -0.012; du <= 0.012; du += 0.004) {
+          const pt = mapPoint(0.2835 + du, v);
+          if (pt.x >= 0 && pt.x < w && pt.y >= 0 && pt.y < h) {
+            totalSamplesCol2++;
+            if (gray[pt.y * w + pt.x] < 165) darkCol2++;
+          }
+        }
+      }
+      const ratioCol2 = totalSamplesCol2 > 0 ? (darkCol2 / totalSamplesCol2) : 0;
+      const isPhysicalMulti = ratioCol2 >= 0.045;
+
+      if (!effectiveExam.isMultiSubject && isPhysicalMulti) {
+        // Fiziksel kağıt çoklu ders ama seçili sınav tek ders: allExams içinden çoklu dersli sınavı bul
+        const candidate = allExams.find(e => e.isMultiSubject && Array.isArray(e.subjects) && e.subjects.length > 0);
+        if (candidate) {
+          console.log(`[OMR Engine] Fiziksel form çoklu ders olarak algılandı. '${effectiveExam.examName}' -> '${candidate.examName}' sınavına otomatik geçildi.`);
+          effectiveExam = candidate;
+          autoSwitchedExam = candidate;
+        }
+      } else if (effectiveExam.isMultiSubject && !isPhysicalMulti && ratioCol2 < 0.015) {
+        // Fiziksel kağıt tek ders ama seçili sınav çoklu ders: tek dersli sınava geç
+        const candidate = allExams.find(e => !e.isMultiSubject);
+        if (candidate) {
+          console.log(`[OMR Engine] Fiziksel form tek ders olarak algılandı. '${effectiveExam.examName}' -> '${candidate.examName}' sınavına otomatik geçildi.`);
+          effectiveExam = candidate;
+          autoSwitchedExam = candidate;
+        }
+      }
+    }
+
+    const isMulti = effectiveExam && !!effectiveExam.isMultiSubject && Array.isArray(effectiveExam.subjects) && effectiveExam.subjects.length > 0;
+    const examSubjects = isMulti ? effectiveExam.subjects : [];
+    const qCount = parseInt(effectiveExam.totalQuestions, 10) || (isMulti ? examSubjects.reduce((acc, s) => acc + (parseInt(s.questionCount, 10) || 0), 0) : 20);
+    const choicesCount = parseInt(effectiveExam.choicesCount, 10) || 4;
     const letters = ['A', 'B', 'C', 'D', 'E'].slice(0, choicesCount);
-    const answerKey = exam.answerKey || {};
-    const penaltyRate = exam.wrongAffects ? (parseFloat(exam.penaltyRate) || 4) : 0;
+    const answerKey = effectiveExam.answerKey || {};
+    const penaltyRate = effectiveExam.wrongAffects ? (parseFloat(effectiveExam.penaltyRate) || 4) : 0;
 
     // Kağıt Formatı (1: A4 Tam Boy, 2: A5 Kesilmiş Yarım Boy, 4: A6 Kesilmiş Çeyrek Boy)
-    const perPage = parseInt(options.perPage || exam.perPage, 10) || 2;
+    const perPage = parseInt(options.perPage || effectiveExam.perPage, 10) || 2;
 
-    const mapPoint = createProjectiveHomography(corners);
-    const sampleRadius = Math.max(5, Math.min(16, Math.round(w * 0.013)));
-
+    const isAnchor = !!corners.isAnchor;
+    const isMobile = !isAnchor && (!!options.isMobileCamera || !!options.bounds);
     const minScore = options.minScore || 0.17;
     const minFill = options.minFill || 0.25;
 
@@ -828,16 +1279,8 @@
       // 2. Çoklu ders gövde dikey aralığı (0.0 - 1.0 aralığı, dış çerçeve / çapa referanslı)
       // Üst başlık (Sınav adı, öğrenci adı, QR rozeti) 0.00 - 0.28 aralığını kaplar.
       // Soru satırları 0.320'de başlar, son soru satırı 0.935'te biter.
-      let vFirstRow = 0.320;
-      let vLastRow = 0.935;
-
-      if (perPage === 1) {
-        vFirstRow = 0.280;
-        vLastRow = 0.945;
-      } else if (perPage === 4) {
-        vFirstRow = 0.340;
-        vLastRow = 0.920;
-      }
+      const vFirstRow = 0.4350;
+      const vLastRow = 0.935;
 
       // 3. Ders sütunu içindeki şıkların yayılımı (A - B - C - D)
       // .omr-q-num (22px) ve .omr-bubble (18px x 4)
@@ -850,53 +1293,134 @@
         let subjWrong = 0;
         let subjBlank = 0;
 
-        const colUStart = gridUStart + sIdx * slotW + 0.003;
-        const colUEnd = gridUStart + (sIdx + 1) * slotW - 0.003;
-        const colWidth = colUEnd - colUStart;
-
         const numQuestions = parseInt(subj.questionCount, 10) || 6;
-        // CSS justify-content: space-between yapısına göre her derste sorular vFirstRow ve vLastRow arasına yayılır
-        const rowStep = numQuestions > 1 ? ((vLastRow - vFirstRow) / (numQuestions - 1)) : 0;
 
-        for (let q = 1; q <= numQuestions; q++) {
-          const rowV = numQuestions > 1 ? (vFirstRow + (q - 1) * rowStep) : ((vFirstRow + vLastRow) * 0.5);
-          const key = `${subj.id}_${q}`;
+        // Sütun yatay hizalaması (Ders sayısına göre deterministik matris - tüm modlarda birleşik)
+        let colU_A, choiceStep;
+        if (numSubjects === 5) {
+          const colBounds = [
+            { uA: 0.0985, uD: 0.1775 }, // Türkçe
+            { uA: 0.2885, uD: 0.3665 }, // Matematik
+            { uA: 0.4710, uD: 0.5650 }, // Fen Bilgisi
+            { uA: 0.6565, uD: 0.7485 }, // Sosyal Bilgiler
+            { uA: 0.8430, uD: 0.9395 }  // İngilizce
+          ];
+          const cb = colBounds[sIdx] || { uA: 0.0985 + sIdx * 0.186, uD: 0.1775 + sIdx * 0.186 };
+          colU_A = cb.uA;
+          choiceStep = letters.length > 1 ? ((cb.uD - cb.uA) / (letters.length - 1)) : 0.0263;
+        } else if (numSubjects === 4) {
+          const colU_A_list = [0.1060, 0.3340, 0.5620, 0.7900];
+          colU_A = colU_A_list[sIdx] !== undefined ? colU_A_list[sIdx] : (0.1060 + sIdx * 0.2280);
+          choiceStep = 0.0340;
+        } else if (numSubjects === 3) {
+          const colU_A_list = [0.1250, 0.4280, 0.7310];
+          colU_A = colU_A_list[sIdx] !== undefined ? colU_A_list[sIdx] : (0.1250 + sIdx * 0.3030);
+          choiceStep = 0.0420;
+        } else if (numSubjects === 2) {
+          const colU_A_list = [0.1550, 0.6050];
+          colU_A = colU_A_list[sIdx] !== undefined ? colU_A_list[sIdx] : (0.1550 + sIdx * 0.4500);
+          choiceStep = 0.0520;
+        } else if (numSubjects === 6) {
+          colU_A = 0.0820 + sIdx * 0.1560;
+          choiceStep = 0.0240;
+        } else {
+          colU_A = (gridUStart + 0.055) + sIdx * slotW;
+          choiceStep = (slotW * 0.58) / Math.max(1, letters.length - 1);
+        }
 
-          // Bu ders sütununa özel lokal kağıt aydınlığı
-          const rowSamplePt = mapPoint(colUStart + colWidth * 0.12, rowV);
-          const rowPaperLum = sampleLocalPaperLuminance(gray, w, h, rowSamplePt, sampleRadius);
+        // Sabit Satır Izgarası (Fixed Row Pitch)
+        const vFixedStep = 0.0435;
 
-          const choiceScores = [];
+        function evaluateSubjectGrid(step) {
+          const qResults = [];
+          let gridConfidence = 0;
 
-          for (let lIdx = 0; lIdx < letters.length; lIdx++) {
-            const choiceU = colUStart + colWidth * (bStartRatio + lIdx * choiceStepRatio);
-            const initialPt = mapPoint(choiceU, rowV);
-            const searchR = Math.max(6, Math.round(sampleRadius * 1.3));
-            const snappedPt = refineBubbleCenter(gray, w, h, initialPt, sampleRadius, rowPaperLum, searchR, searchR);
+          for (let q = 1; q <= numQuestions; q++) {
+            const rowV = numQuestions > 1 ? (vFirstRow + (q - 1) * step) : ((vFirstRow + vLastRow) * 0.5);
+            const rowSamplePt = mapPoint(colU_A + choiceStep * 1.5, rowV);
+            const rowPaperLum = sampleLocalPaperLuminance(gray, w, h, rowSamplePt, sampleRadius);
 
-            const metrics = analyzeBubble(gray, w, h, snappedPt.x, snappedPt.y, sampleRadius, rowPaperLum);
-            choiceScores.push({
-              letter: letters[lIdx],
-              score: metrics.score,
-              fillRatio: metrics.fillRatio,
-              pt: snappedPt
+            const currentChoiceScores = [];
+            for (let lIdx = 0; lIdx < letters.length; lIdx++) {
+              const choiceU = colU_A + lIdx * choiceStep;
+              const initialPt = mapPoint(choiceU, rowV);
+              let snappedPt;
+              let metrics;
+
+              if (isAnchor || isMobile) {
+                snappedPt = snapToBubbleRing(gray, w, h, initialPt, sampleRadius);
+                metrics = analyzeBubble(gray, w, h, snappedPt.x, snappedPt.y, sampleRadius, rowPaperLum);
+              } else {
+                const searchR = Math.max(6, Math.round(sampleRadius * 1.3));
+                snappedPt = refineBubbleCenter(gray, w, h, initialPt, sampleRadius, rowPaperLum, searchR, searchR);
+                metrics = analyzeBubble(gray, w, h, snappedPt.x, snappedPt.y, sampleRadius, rowPaperLum);
+              }
+
+              currentChoiceScores.push({
+                letter: letters[lIdx],
+                score: metrics.score,
+                fillRatio: metrics.fillRatio,
+                meanDarkness: metrics.meanDarkness,
+                medianDarkness: metrics.medianDarkness,
+                coreDarkness: metrics.coreDarkness,
+                pt: snappedPt
+              });
+            }
+
+            const sortedScores = [...currentChoiceScores].sort((a, b) => b.score - a.score);
+            const best = sortedScores[0];
+            const second = sortedScores[1] || { score: 0, fillRatio: 0 };
+            const diff = best.score - second.score;
+            if (isAnchor) {
+              if (best.score >= 0.30 && diff >= 0.12) {
+                gridConfidence += (best.score + diff);
+              }
+            } else {
+              if (best.fillRatio >= 0.55 && diff >= 0.15) {
+                gridConfidence += (best.fillRatio + diff);
+              }
+            }
+
+            qResults.push({
+              q,
+              choiceScores: currentChoiceScores,
+              sortedScores,
+              best,
+              second,
+              diff
             });
           }
 
-          choiceScores.sort((a, b) => b.score - a.score);
-          const best = choiceScores[0];
-          const second = choiceScores[1] || { score: 0, fillRatio: 0 };
+          return { gridConfidence, qResults };
+        }
+
+        const bestSubjGrid = evaluateSubjectGrid(vFixedStep);
+
+        bestSubjGrid.qResults.forEach(qr => {
+          const q = qr.q;
+          const key = `${subj.id}_${q}`;
+          const choiceScores = qr.choiceScores;
+          const best = qr.best;
+          const second = qr.second;
+          const diff = qr.diff;
 
           let markedLetter = '';
           let status = 'blank';
 
-          const diff = best.score - second.score;
-          // Kurşun kalem ve tükenmez kalem için hassas adaptif doluluk eşiği
-          const fillThreshold = (options.sensitivity === 'high' || options.sensitivity === 3) ? 0.18 : ((options.sensitivity === 'low' || options.sensitivity === 1) ? 0.32 : 0.23);
-          const minDiff = (options.sensitivity === 'high' || options.sensitivity === 3) ? 0.05 : 0.07;
+          const fillThreshold = (options.sensitivity === 'high' || options.sensitivity === 3) ? 0.36 : ((options.sensitivity === 'low' || options.sensitivity === 1) ? 0.50 : 0.44);
+          const minDiff = (options.sensitivity === 'high' || options.sensitivity === 3) ? 0.10 : 0.12;
 
-          const isFilled = (best.score >= fillThreshold && diff >= minDiff) || (best.score >= 0.38);
-          const isMultiple = isFilled && (second.score >= fillThreshold) && (diff < minDiff);
+          // Gerçek kurşun kalem işaretlemesi kontrolü:
+          // 1. Kenardan sızan tablo çizgisi/çember çizgisi durumunda merkez veya medyan boş kalır.
+          // 2. İşaretli sayılabilmesi için baloncuğun içi dolu olmalıdır (medianDarkness >= 0.18 veya coreDarkness >= 0.20).
+          const hasSolidFill = (best.medianDarkness !== undefined ? best.medianDarkness >= 0.18 : true) || (best.coreDarkness !== undefined ? best.coreDarkness >= 0.20 : true);
+
+          const isFilled = hasSolidFill && (
+            (best.score >= fillThreshold && diff >= minDiff) ||
+            (best.score >= 0.55 && diff >= 0.08) ||
+            (best.score >= 0.65)
+          );
+          const isMultiple = isFilled && (second.score >= fillThreshold) && (diff < minDiff) && (second.medianDarkness >= 0.18);
 
           if (isMultiple) {
             status = 'multiple';
@@ -939,7 +1463,7 @@
 
           detectedAnswers[key] = qd.marked;
           questionDetails.push(qd);
-        }
+        });
 
         let subjNet = penaltyRate > 0 ? (subjCorrect - (subjWrong / penaltyRate)) : subjCorrect;
         subjNet = Math.max(0, parseFloat(subjNet.toFixed(2)));
@@ -965,73 +1489,86 @@
       const cols = qCount <= 15 ? 1 : (qCount <= 30 ? 2 : 3);
       const questionsPerCol = Math.ceil(qCount / cols);
 
-      let bodyTop = 0.16;
-      let bodyBottom = 0.95;
-
-      if (perPage === 2) {
-        bodyTop = 0.20;
-        bodyBottom = 0.93;
-      } else if (perPage === 4) {
-        bodyTop = 0.25;
-        bodyBottom = 0.90;
-      } else {
-        bodyTop = 0.15;
-        bodyBottom = 0.96;
-      }
-
-      const availH = bodyBottom - bodyTop;
-      const actualRowStep = Math.min(0.055, Math.max(0.034, availH / Math.max(12, questionsPerCol)));
-      const firstRowCenter = bodyTop + actualRowStep * 0.55;
-
       for (let c = 0; c < cols; c++) {
         const startQ = c * questionsPerCol + 1;
         const endQ = Math.min((c + 1) * questionsPerCol, qCount);
 
-        let colUStart, colUEnd;
-        if (cols === 1) {
-          colUStart = 0.25; colUEnd = 0.75;
-        } else if (cols === 2) {
-          colUStart = 0.05 + c * 0.46; colUEnd = colUStart + 0.44;
+        let colChoiceStartU, uChoiceStep;
+        if (cols === 2) {
+          colChoiceStartU = c === 0 ? 0.0881 : 0.5626;
+          uChoiceStep = 0.0304;
+        } else if (cols === 1) {
+          colChoiceStartU = 0.3550;
+          uChoiceStep = 0.0304;
         } else {
-          colUStart = 0.04 + c * 0.32; colUEnd = colUStart + 0.28;
+          colChoiceStartU = 0.055 + c * 0.330;
+          uChoiceStep = 0.0240;
         }
-        const colWidth = colUEnd - colUStart;
+
+        const actualRowStep = 0.0453;
+        const vMid = 0.569;
+        const firstRowCenter = vMid - ((questionsPerCol - 1) / 2) * actualRowStep;
 
         for (let q = startQ; q <= endQ; q++) {
           const rowIdx = q - startQ;
           const rowV = firstRowCenter + rowIdx * actualRowStep;
 
-          const rowSamplePt = mapPoint(colUStart + colWidth * 0.15, rowV);
+          const rowSamplePt = mapPoint(colChoiceStartU, rowV);
           const rowPaperLum = sampleLocalPaperLuminance(gray, w, h, rowSamplePt, sampleRadius);
+          const darkThresh = Math.min(145, Math.round(rowPaperLum * 0.65));
 
           const choiceScores = [];
           for (let lIdx = 0; lIdx < letters.length; lIdx++) {
-            const choiceU = colUStart + colWidth * (0.24 + (lIdx + 0.5) * (0.74 / letters.length));
+            const choiceU = colChoiceStartU + lIdx * uChoiceStep;
             const initialPt = mapPoint(choiceU, rowV);
-            const snappedPt = refineBubbleCenter(gray, w, h, initialPt, sampleRadius, rowPaperLum);
 
-            const metrics = analyzeBubble(gray, w, h, snappedPt.x, snappedPt.y, sampleRadius, rowPaperLum);
+            // Micro-center adjustment (±2px) to prevent snapping to outer dark border
+            let maxDarkPix = 0;
+            let bestTotalPix = 0;
+            let bestPt = initialPt;
+
+            for (let sOffY = -2; sOffY <= 2; sOffY += 1) {
+              for (let sOffX = -2; sOffX <= 2; sOffX += 1) {
+                let dCount = 0, tCount = 0;
+                for (let dy = -sampleRadius; dy <= sampleRadius; dy++) {
+                  for (let dx = -sampleRadius; dx <= sampleRadius; dx++) {
+                    if (dx * dx + dy * dy <= sampleRadius * sampleRadius) {
+                      tCount++;
+                      const px = initialPt.x + sOffX + dx;
+                      const py = initialPt.y + sOffY + dy;
+                      if (px >= 0 && px < w && py >= 0 && py < h) {
+                        if (gray[py * w + px] < darkThresh) dCount++;
+                      }
+                    }
+                  }
+                }
+                if (dCount > maxDarkPix) {
+                  maxDarkPix = dCount;
+                  bestTotalPix = tCount;
+                  bestPt = { x: initialPt.x + sOffX, y: initialPt.y + sOffY };
+                }
+              }
+            }
+
+            const fillRatio = bestTotalPix > 0 ? (maxDarkPix / bestTotalPix) : 0;
             choiceScores.push({
               letter: letters[lIdx],
-              score: metrics.score,
-              fillRatio: metrics.fillRatio,
-              pt: snappedPt
+              score: fillRatio,
+              fillRatio: fillRatio,
+              pt: bestPt
             });
           }
 
           choiceScores.sort((a, b) => b.score - a.score);
           const best = choiceScores[0];
           const second = choiceScores[1] || { score: 0, fillRatio: 0 };
+          const diff = best.score - second.score;
 
           let markedLetter = '';
           let status = 'blank';
 
-          const diff = best.score - second.score;
-          const fillThreshold = (options.sensitivity === 'high' || options.sensitivity === 3) ? 0.20 : ((options.sensitivity === 'low' || options.sensitivity === 1) ? 0.34 : 0.25);
-          const minDiff = (options.sensitivity === 'high' || options.sensitivity === 3) ? 0.05 : 0.08;
-
-          const isFilled = (best.score >= fillThreshold && diff >= minDiff) || (best.score >= 0.42);
-          const isMultiple = isFilled && (second.score >= fillThreshold) && (diff < minDiff);
+          const isFilled = (best.score >= 0.42 && diff >= 0.15) || (best.score >= 0.55);
+          const isMultiple = isFilled && (second.score >= 0.42) && (diff < 0.12);
 
           if (isMultiple) {
             status = 'multiple';
@@ -1092,29 +1629,96 @@
     oCtx.closePath();
     oCtx.stroke();
 
-    // Şık vurguları
+    // 4 Köşe Noktası Vurgusu ve Koordinat Etiketleri
+    const cornerMarkers = [
+      { name: 'TL', pt: corners.tl },
+      { name: 'TR', pt: corners.tr },
+      { name: 'BR', pt: corners.br },
+      { name: 'BL', pt: corners.bl }
+    ];
+    cornerMarkers.forEach(cm => {
+      if (!cm.pt) return;
+      oCtx.strokeStyle = '#f59e0b';
+      oCtx.lineWidth = 2.5;
+      oCtx.beginPath();
+      oCtx.arc(cm.pt.x, cm.pt.y, 14, 0, Math.PI * 2);
+      oCtx.stroke();
+
+      oCtx.beginPath();
+      oCtx.moveTo(cm.pt.x - 18, cm.pt.y);
+      oCtx.lineTo(cm.pt.x + 18, cm.pt.y);
+      oCtx.moveTo(cm.pt.x, cm.pt.y - 18);
+      oCtx.lineTo(cm.pt.x, cm.pt.y + 18);
+      oCtx.stroke();
+
+      oCtx.font = 'bold 13px sans-serif';
+      const label = `${cm.name} (${Math.round(cm.pt.x)}, ${Math.round(cm.pt.y)})`;
+      const tm = oCtx.measureText(label);
+      oCtx.fillStyle = 'rgba(15, 23, 42, 0.85)';
+      oCtx.fillRect(cm.pt.x + 14, cm.pt.y - 10, tm.width + 8, 20);
+      oCtx.fillStyle = '#fbbf24';
+      oCtx.fillText(label, cm.pt.x + 18, cm.pt.y + 4);
+    });
+
+    // Şık vurguları ve TÜM taranan baloncuk merkezleri
     questionDetails.forEach(qd => {
       (qd.scores || []).forEach(cs => {
+        if (!cs.pt) return;
         const isMarked = (qd.status === 'marked' && qd.marked === cs.letter);
         const isAnswerKey = (qd.keyAnswer && cs.letter === qd.keyAnswer);
 
+        // 1. Her baloncuk merkezine açık mavi kılavuz noktası ve hedef çemberi
+        oCtx.beginPath();
+        oCtx.arc(cs.pt.x, cs.pt.y, Math.max(2, sampleRadius * 0.28), 0, Math.PI * 2);
+        oCtx.fillStyle = '#2563eb';
+        oCtx.fill();
+
+        oCtx.beginPath();
+        oCtx.arc(cs.pt.x, cs.pt.y, sampleRadius, 0, Math.PI * 2);
+        oCtx.strokeStyle = 'rgba(59, 130, 246, 0.45)';
+        oCtx.lineWidth = 1;
+        oCtx.stroke();
+
+        // 2. İşaretleme Durumu (Dolu ise yeşil veya kırmızı)
         if (isMarked) {
           oCtx.beginPath();
           oCtx.arc(cs.pt.x, cs.pt.y, sampleRadius * 1.25, 0, Math.PI * 2);
-          oCtx.fillStyle = qd.isCorrect ? 'rgba(16, 185, 129, 0.45)' : 'rgba(239, 68, 68, 0.45)';
+          oCtx.fillStyle = qd.isCorrect ? 'rgba(16, 185, 129, 0.50)' : 'rgba(239, 68, 68, 0.50)';
           oCtx.strokeStyle = qd.isCorrect ? '#10b981' : '#ef4444';
           oCtx.lineWidth = 2.5;
           oCtx.fill();
           oCtx.stroke();
+
+          // Şık harfini ortala
+          oCtx.font = `bold ${Math.max(10, Math.round(sampleRadius * 1.05))}px sans-serif`;
+          oCtx.fillStyle = '#ffffff';
+          oCtx.textAlign = 'center';
+          oCtx.textBaseline = 'middle';
+          oCtx.fillText(cs.letter, cs.pt.x, cs.pt.y);
+          oCtx.textAlign = 'start';
+          oCtx.textBaseline = 'alphabetic';
         } else if (isAnswerKey && !qd.isCorrect) {
+          // Doğru cevap olan ama işaretlenmemiş şık (yeşil halka)
           oCtx.beginPath();
-          oCtx.arc(cs.pt.x, cs.pt.y, sampleRadius * 1.15, 0, Math.PI * 2);
-          oCtx.strokeStyle = 'rgba(16, 185, 129, 0.8)';
-          oCtx.lineWidth = 2;
+          oCtx.arc(cs.pt.x, cs.pt.y, sampleRadius * 1.2, 0, Math.PI * 2);
+          oCtx.strokeStyle = '#10b981';
+          oCtx.lineWidth = 2.5;
           oCtx.stroke();
         }
       });
     });
+
+    // Tepe Teşhis ve Özet Bilgi Bandı
+    const bannerH = Math.max(34, Math.round(h * 0.04));
+    oCtx.fillStyle = 'rgba(15, 23, 42, 0.88)';
+    oCtx.fillRect(0, 0, w, bannerH);
+    oCtx.font = `bold ${Math.max(12, Math.round(w * 0.013))}px sans-serif`;
+    oCtx.fillStyle = '#f8fafc';
+    const anchorInfo = corners.isAnchor ? '4/4 Çapa (Hassas)' : (corners.foundCount ? `${corners.foundCount}/4 Çapa` : 'Çerçeve Fallback');
+    const examLabel = (effectiveExam && effectiveExam.examName) ? effectiveExam.examName : 'Sınav';
+    const subjLabel = isMulti ? `${examSubjects.length} Ders` : 'Tek Ders';
+    const diagSummary = `[OMR Teşhis] Sınav: ${examLabel} (${subjLabel}) | Mod: ${anchorInfo} | Soru: ${qCount} | Puan: ${score} (${correctCount}D ${wrongCount}Y ${blankCount}B) | Net: ${net}`;
+    oCtx.fillText(diagSummary, 16, Math.max(22, Math.round(bannerH * 0.65)));
 
     return {
       success: true,
@@ -1128,7 +1732,8 @@
       net,
       score,
       subjectBreakdown,
-      thumbUrl: overlayCanvas.toDataURL('image/jpeg', 0.85)
+      thumbUrl: overlayCanvas.toDataURL('image/jpeg', 0.85),
+      autoSwitchedExam: autoSwitchedExam
     };
   }
 
@@ -1230,8 +1835,8 @@
     function unwarpAndScanBadge(context, mapFn, targetW, targetH) {
       if (typeof mapFn !== 'function') return { qrResult: null, binaryId: null };
 
-      const badgeW = 280;
-      const badgeH = 130;
+      const badgeW = 360;
+      const badgeH = 200;
       const bCanvas = document.createElement('canvas');
       bCanvas.width = badgeW;
       bCanvas.height = badgeH;
@@ -1243,9 +1848,9 @@
       const srcData = context.getImageData(0, 0, targetW, targetH).data;
 
       for (let by = 0; by < badgeH; by++) {
-        const v = 0.00 + (by / badgeH) * 0.17;
+        const v = 0.03 + (by / badgeH) * 0.32;
         for (let bx = 0; bx < badgeW; bx++) {
-          const u = 0.58 + (bx / badgeW) * 0.41;
+          const u = 0.70 + (bx / badgeW) * 0.28;
           const pt = mapFn(u, v);
           const px = Math.max(0, Math.min(targetW - 1, pt.x));
           const py = Math.max(0, Math.min(targetH - 1, pt.y));
@@ -1304,21 +1909,65 @@
             }
           }
         }
+
+        // 4 Köşe Çapalı kart formatında sağ üst köşe QR arama (u: 0.78-0.99, v: 0.01-0.20)
+        if (!qrRes) {
+          const trW = 200;
+          const trH = 150;
+          const trCanvas = document.createElement('canvas');
+          trCanvas.width = trW;
+          trCanvas.height = trH;
+          const trCtx = trCanvas.getContext('2d', { willReadFrequently: true });
+          if (trCtx) {
+            const trImgData = trCtx.createImageData(trW, trH);
+            const trData = trImgData.data;
+            for (let ty = 0; ty < trH; ty++) {
+              const v = 0.01 + (ty / trH) * 0.19;
+              for (let tx = 0; tx < trW; tx++) {
+                const u = 0.78 + (tx / trW) * 0.21;
+                const pt = mapFn(u, v);
+                const px = Math.max(0, Math.min(targetW - 1, pt.x));
+                const py = Math.max(0, Math.min(targetH - 1, pt.y));
+                const srcIdx = (py * targetW + px) * 4;
+                const dstIdx = (ty * trW + tx) * 4;
+                trData[dstIdx] = srcData[srcIdx];
+                trData[dstIdx + 1] = srcData[srcIdx + 1];
+                trData[dstIdx + 2] = srcData[srcIdx + 2];
+                trData[dstIdx + 3] = 255;
+              }
+            }
+            qrRes = window.jsQR(trData, trW, trH, { inversionAttempts: 'attemptBoth' });
+            if (!qrRes) {
+              const upCanvas = document.createElement('canvas');
+              upCanvas.width = trW * 2;
+              upCanvas.height = trH * 2;
+              const upCtx = upCanvas.getContext('2d');
+              if (upCtx) {
+                upCtx.imageSmoothingEnabled = false;
+                trCtx.putImageData(trImgData, 0, 0);
+                upCtx.drawImage(trCanvas, 0, 0, upCanvas.width, upCanvas.height);
+                const upData = upCtx.getImageData(0, 0, upCanvas.width, upCanvas.height);
+                qrRes = window.jsQR(upData.data, upCanvas.width, upCanvas.height, { inversionAttempts: 'attemptBoth' });
+              }
+            }
+          }
+        }
       }
 
       // 2. 9-Bit Binary OMR Matrisi (3x3 kutucuk)
       let binaryId = null;
+      let bestContrast = 0;
       const bGray = new Uint8Array(badgeW * badgeH);
       for (let i = 0, p = 0; i < bData.length; i += 4, p++) {
         bGray[p] = (bData[i] * 77 + bData[i + 1] * 150 + bData[i + 2] * 29) >> 8;
       }
 
-      for (let side = 32; side <= 76; side += 4) {
-        for (let y = 4; y <= badgeH - side - 4; y += 4) {
-          for (let x = 4; x <= Math.round(badgeW * 0.65) - side; x += 4) {
+      for (let side = 40; side <= 120; side += 4) {
+        for (let y = 10; y <= badgeH - side - 5; y += 4) {
+          for (let x = 5; x <= Math.round(badgeW * 0.60) - side; x += 4) {
             const cw = side / 3.0;
             const ch = side / 3.0;
-            const sR = Math.max(1, Math.round(cw * 0.20));
+            const sR = Math.max(1, Math.round(cw * 0.18));
             const cells = [];
 
             for (let r = 0; r < 3; r++) {
@@ -1342,22 +1991,20 @@
 
             const minL = Math.min(...cells);
             const maxL = Math.max(...cells);
-            // Sahte eşleşmeleri (noise) önlemek için güçlü kontrast farkı ve gerçekçi sınıf mevcudu (1..50)
-            if (maxL - minL >= 48) {
+            const contrast = maxL - minL;
+            if (contrast >= 40 && contrast > bestContrast) {
               const thresh = (minL + maxL) * 0.5;
               let decoded = 0;
               for (let i = 0; i < 9; i++) {
                 if (cells[i] < thresh) decoded |= (1 << i);
               }
-              if (decoded > 0 && decoded <= 50) {
+              if (decoded > 0 && decoded <= 511) {
+                bestContrast = contrast;
                 binaryId = decoded;
-                break;
               }
             }
           }
-          if (binaryId) break;
         }
-        if (binaryId) break;
       }
 
       return { qrResult: qrRes, binaryId: binaryId };
@@ -1365,19 +2012,69 @@
 
     // ── YENİ: OPTİK BINARY ID DEDEKTÖRÜ (BÜYÜK 3x3 OMR MATRİSİ - 9 BİT / 512 ÖĞRENCİ) ──
     // Ortaöğretim ve kalabalık kademeler için 511 öğrenciye kadar tam kapasite destekler.
-    // Kart başlığında (0.65 - 0.95 U, -0.03 - 0.12 V) 3x3 kutucuk rozetini dinamik tespit eder.
+    // Kart başlığında (0.65 - 0.98 U, -0.03 - 0.25 V) 3x3 kutucuk rozetini dinamik tespit eder.
     function detectBinaryIdInCard(grayBuf, imgW, imgH, cardCorners) {
       if (!cardCorners || !cardCorners.tl || !cardCorners.tr || !cardCorners.bl) return null;
+
+      // 1. Homografi ile doğrudan kalibre edilmiş 3x3 OMR bölgesi örneği
+      if (typeof createProjectiveHomography === 'function') {
+        const mapFn = createProjectiveHomography(cardCorners);
+        const uStart = 0.792, uEnd = 0.863;
+        const vStart = 0.060, vEnd = 0.171;
+        let bestDirectDecoded = null, bestDirectContrast = 0;
+
+        for (let dv = -0.015; dv <= 0.025; dv += 0.003) {
+          for (let du = -0.020; du <= 0.020; du += 0.003) {
+            const curU0 = uStart + du, curU1 = uEnd + du;
+            const curV0 = vStart + dv, curV1 = vEnd + dv;
+            const cw = (curU1 - curU0) / 3;
+            const ch = (curV1 - curV0) / 3;
+            const cells = [];
+
+            for (let r = 0; r < 3; r++) {
+              for (let c = 0; c < 3; c++) {
+                const pt = mapFn(curU0 + (c + 0.5) * cw, curV0 + (r + 0.5) * ch);
+                let sum = 0, count = 0;
+                for (let dy = -2; dy <= 2; dy++) {
+                  for (let dx = -2; dx <= 2; dx++) {
+                    const px = pt.x + dx, py = pt.y + dy;
+                    if (px >= 0 && px < imgW && py >= 0 && py < imgH) {
+                      sum += grayBuf[py * imgW + px];
+                      count++;
+                    }
+                  }
+                }
+                cells.push(count > 0 ? (sum / count) : 255);
+              }
+            }
+            const minL = Math.min(...cells);
+            const maxL = Math.max(...cells);
+            const contrast = maxL - minL;
+            if (contrast > 60 && contrast > bestDirectContrast) {
+              const thresh = (minL + maxL) * 0.5;
+              let dec = 0;
+              for (let i = 0; i < 9; i++) {
+                if (cells[i] < thresh) dec |= (1 << i);
+              }
+              if (dec > 0 && dec <= 511) {
+                bestDirectContrast = contrast;
+                bestDirectDecoded = dec;
+              }
+            }
+          }
+        }
+        if (bestDirectDecoded) return bestDirectDecoded;
+      }
 
       const cardW = Math.hypot(cardCorners.tr.x - cardCorners.tl.x, cardCorners.tr.y - cardCorners.tl.y);
       const cardH = Math.hypot(cardCorners.bl.x - cardCorners.tl.x, cardCorners.bl.y - cardCorners.tl.y);
       if (cardW < 50 || cardH < 50) return null;
 
-      // 3x3 OMR matrisi başlık bölgesinde, sağ çeyrekte (0.65 - 0.95 U) ve üst kısımda (-0.03 - 0.12 V) bulunur
+      // 3x3 OMR matrisi başlık bölgesinde, sağ çeyrekte (0.65 - 0.98 U) ve üst kısımda (-0.03 - 0.25 V) bulunur
       const minX = Math.max(0, Math.round(cardCorners.tl.x + cardW * 0.65));
-      const maxX = Math.min(imgW - 1, Math.round(cardCorners.tl.x + cardW * 0.95));
+      const maxX = Math.min(imgW - 1, Math.round(cardCorners.tl.x + cardW * 0.98));
       const minY = Math.max(0, Math.round(cardCorners.tl.y - cardH * 0.03));
-      const maxY = Math.min(imgH - 1, Math.round(cardCorners.tl.y + cardH * 0.12));
+      const maxY = Math.min(imgH - 1, Math.round(cardCorners.tl.y + cardH * 0.25));
 
       // Boyut: cardW * 0.04 ile cardW * 0.10 arası
       const minSide = Math.max(16, Math.round(cardW * 0.04));
@@ -1454,10 +2151,16 @@
     }
 
     // Sayfada 2 form var mı? (A4 Sayfa Başına 2 Form Tespiti)
-    const canBeDouble = options.isDoubleForm !== false;
+    // 1) Sayfanın 2 form barındırabilmesi için mutlaka DİKEY (PORTRAIT, targetH > targetW * 1.15) olması gerekir.
+    // Yatay (landscape) taranan A5 veya tekil optik kartlar asla 2 form içeremez.
+    const isPortrait = targetH > targetW * 1.15;
     let isDoubleForm = false;
     let cornersTop = null;
     let cornersBottom = null;
+
+    // Önce tüm sayfa üzerinde 4 köşe referans çapası var mı kontrol et
+    let cornersFull = detectCornerAnchors(gray, targetW, targetH, threshold, scaledBounds);
+    const hasFullAnchors = cornersFull && cornersFull.isAnchor && (Math.abs(cornersFull.bl.y - cornersFull.tl.y) > targetH * 0.45);
 
     function isSubFormGeometricallyValid(c, w, h) {
       if (!c || !c.tl || !c.tr || !c.bl || !c.br) return false;
@@ -1472,16 +2175,16 @@
 
     if (options.isDoubleForm === true) {
       isDoubleForm = true;
-    } else if (canBeDouble && (!scaledBounds || (scaledBounds.maxY - scaledBounds.minY > targetH * 0.70))) {
-      // Tam sayfada veya geniş kadrajda üst yarı ve alt yarıyı bağımsız tara
+    } else if (!hasFullAnchors && isPortrait && options.isDoubleForm !== false && (!scaledBounds || (scaledBounds.maxY - scaledBounds.minY > targetH * 0.70))) {
+      // Dikey tam sayfada üst yarı ve alt yarıyı bağımsız tara
       const boundsTopTest = { minX: 0, maxX: targetW, minY: 0, maxY: Math.round(targetH * 0.55) };
       const boundsBottomTest = { minX: 0, maxX: targetW, minY: Math.round(targetH * 0.45), maxY: targetH };
 
       cornersTop = detectCornerAnchors(gray, targetW, targetH, threshold, boundsTopTest);
       cornersBottom = detectCornerAnchors(gray, targetW, targetH, threshold, boundsBottomTest);
 
-      const topOk = isSubFormGeometricallyValid(cornersTop, targetW, targetH);
-      const botOk = isSubFormGeometricallyValid(cornersBottom, targetW, targetH);
+      const topOk = isSubFormGeometricallyValid(cornersTop, targetW, targetH) && cornersTop.isAnchor;
+      const botOk = isSubFormGeometricallyValid(cornersBottom, targetW, targetH) && cornersBottom.isAnchor;
 
       if (topOk && botOk) {
         isDoubleForm = true;
@@ -1507,6 +2210,7 @@
         });
       }
       const cornersTopOrig = {
+        ...cornersTop,
         tl: { ...cornersTop.tl },
         tr: { ...cornersTop.tr },
         bl: { ...cornersTop.bl },
@@ -1532,6 +2236,7 @@
         });
       }
       const cornersBottomOrig = {
+        ...cornersBottom,
         tl: { ...cornersBottom.tl },
         tr: { ...cornersBottom.tr },
         bl: { ...cornersBottom.bl },
@@ -1553,8 +2258,9 @@
 
       detectedCards.push(cardTop, cardBottom);
     } else {
-      // ── SAYFA BAŞINA 1 FORM (TAM SAYFA A4 / MOBİL VİZÖR) ──
-      let cornersFull = detectCornerAnchors(gray, targetW, targetH, threshold, scaledBounds);
+      if (!cornersFull) {
+        cornersFull = detectCornerAnchors(gray, targetW, targetH, threshold, scaledBounds);
+      }
       const cornersSpanW = cornersFull ? Math.abs(cornersFull.tr.x - cornersFull.tl.x) : 0;
       if (scaledBounds && (!cornersFull || cornersSpanW < targetW * 0.40)) {
         // Mobil vizör sınırını kontrollü genişleterek ara
@@ -1575,6 +2281,7 @@
         }
       }
       const cornersFullOrig = {
+        ...cornersFull,
         tl: { ...cornersFull.tl },
         tr: { ...cornersFull.tr },
         bl: { ...cornersFull.bl },
@@ -1583,19 +2290,36 @@
       const cardFull = scanSingleCard(canvas, gray, targetW, targetH, cornersFull, exam, classStudents, options);
       const fullBadge = unwarpAndScanBadge(ctx, createProjectiveHomography(cornersFull), targetW, targetH);
       cardFull.qrResult = fullBadge.qrResult;
-      cardFull.binaryId = fullBadge.binaryId || detectBinaryIdInCard(gray, targetW, targetH, cornersFullOrig);
+      cardFull.binaryId = detectBinaryIdInCard(gray, targetW, targetH, cornersFullOrig) || fullBadge.binaryId;
       if (!cardFull.qrResult) {
-        cardFull.qrResult = scanQrInRegion(ctx, 0, 0, targetW, targetH);
-      }
-      if (!cardFull.binaryId && !cardFull.qrResult && cornersFullOrig && cornersFullOrig.tr) {
-        const subW = Math.round(targetW * 0.40);
-        const subH = Math.round(targetH * 0.35);
-        const subX = Math.max(0, cornersFullOrig.tr.x - subW + 80);
-        const subY = Math.max(0, cornersFullOrig.tr.y - Math.round(subH * 0.5));
-        cardFull.qrResult = scanQrInRegion(ctx, subX, subY, subW, subH);
+        if (cornersFullOrig && cornersFullOrig.tr) {
+          const subW = Math.round(targetW * 0.45);
+          const subH = Math.round(targetH * 0.40);
+          const subX = Math.max(0, cornersFullOrig.tr.x - subW + 80);
+          const subY = Math.max(0, cornersFullOrig.tr.y - Math.round(subH * 0.5));
+          cardFull.qrResult = scanQrInRegion(ctx, subX, subY, subW, subH);
+        }
+        if (!cardFull.qrResult && scaledBounds) {
+          cardFull.qrResult = scanQrInRegion(ctx, scaledBounds.minX, scaledBounds.minY, scaledBounds.maxX - scaledBounds.minX, scaledBounds.maxY - scaledBounds.minY);
+        }
+        if (!cardFull.qrResult) {
+          cardFull.qrResult = scanQrInRegion(ctx, 0, 0, targetW, targetH);
+        }
       }
       if (!cardFull.binaryId && !cardFull.qrResult && scaledBounds) {
-        cardFull.qrResult = scanQrInRegion(ctx, scaledBounds.minX, scaledBounds.minY, scaledBounds.maxX - scaledBounds.minX, scaledBounds.maxY - scaledBounds.minY);
+        // Eğer vizör sınırıyla bulunan köşelerden rozet / ID çözülemediyse, tüm kare üzerinden tekrar dene
+        const globalCorners = detectCornerAnchors(gray, targetW, targetH, threshold, null);
+        if (globalCorners) {
+          const gCard = scanSingleCard(canvas, gray, targetW, targetH, globalCorners, exam, classStudents, options);
+          const gBadge = unwarpAndScanBadge(ctx, createProjectiveHomography(globalCorners), targetW, targetH);
+          const gBinaryId = detectBinaryIdInCard(gray, targetW, targetH, globalCorners) || gBadge.binaryId;
+          if (gBinaryId || gBadge.qrResult) {
+            cornersFull = globalCorners;
+            cardFull = gCard;
+            cardFull.qrResult = gBadge.qrResult || cardFull.qrResult;
+            cardFull.binaryId = gBinaryId;
+          }
+        }
       }
       detectedCards.push(cardFull);
     }
@@ -1765,6 +2489,8 @@
     analyzeBubble,
     refineBubbleCenter,
     sampleLocalPaperLuminance,
+    findConcentricTargetAnchor,
+    snapToBubbleRing,
     normalizeOmrSubject,
     getOmrSubjectBaseKeywords,
     extractAnswerForSubj,
