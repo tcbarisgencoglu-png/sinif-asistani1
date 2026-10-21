@@ -1457,17 +1457,19 @@ function renderDashboardWeekly() {
 
       if (!isMatch) return false;
       
-      // Kaydın haftasını bul
+      // Kaydın haftasını bul (Ödev ve Görev kayıtlarında kendi teslim tarihi önceliklidir)
       let recordWeek = '';
-      if (p.weekId) {
-        recordWeek = p.weekId;
-      } else if (p.homeworkId) {
+      if (p.homeworkId) {
         const hw = state.homeworks.find(h => h.id === p.homeworkId);
-        if (hw) recordWeek = window.getISOWeek(hw.dueDate);
+        if (!hw) return false;
+        if (hw.dueDate) recordWeek = window.getISOWeek(hw.dueDate);
       } else if (p.taskId) {
         const task = (state.tasks || []).find(t => t.id === p.taskId || t.performanceId === p.id);
         if (task && task.completedDate) recordWeek = window.getISOWeek(task.completedDate);
         else if (task && task.dueDate) recordWeek = window.getISOWeek(task.dueDate);
+        else if (p.weekId) recordWeek = p.weekId;
+      } else if (p.weekId) {
+        recordWeek = p.weekId;
       } else {
         const linkedTask = (state.tasks || []).find(t => t.performanceId === p.id);
         if (linkedTask && linkedTask.completedDate) {
@@ -1477,7 +1479,7 @@ function renderDashboardWeekly() {
         }
       }
       
-      return recordWeek === selectedWeek || !recordWeek;
+      return selectedWeek ? (recordWeek === selectedWeek) : true;
     });
 
     let dojoPoints = 0;
@@ -1486,6 +1488,7 @@ function renderDashboardWeekly() {
     let taskPoints = 0;
     let homeworkPoints = 0;
     let examPoints = 0;
+    const seenHomeworkIds = new Set();
 
     perfRecords.forEach(p => {
       const reason = p.reason || '';
@@ -1510,6 +1513,8 @@ function renderDashboardWeekly() {
       );
 
       if (p.homeworkId) {
+        if (seenHomeworkIds.has(String(p.homeworkId))) return;
+        seenHomeworkIds.add(String(p.homeworkId));
         homeworkPoints += p.point;
       } else if (p.examId || reasonLower.includes('sınav') || reasonLower.includes('değerlendirme')) {
         examPoints += p.point;
@@ -1660,9 +1665,22 @@ function renderDashboardMonthly() {
 
       if (!isMatch) return false;
       
-      // Kaydın ait olduğu ayı bul (Önce weekId/homeworkId/taskId, sonra date kontrol edilir)
+      // Kaydın ait olduğu ayı bul (Önce homeworkId/taskId, sonra weekId ve date kontrol edilir)
       let recordMonth = '';
-      if (p.weekId) {
+      if (p.homeworkId) {
+        const hw = state.homeworks.find(h => h.id === p.homeworkId);
+        if (!hw) return false;
+        if (hw.dueDate && hw.dueDate.length >= 7) {
+          recordMonth = hw.dueDate.substring(0, 7);
+        }
+      } else if (p.taskId) {
+        const task = (state.tasks || []).find(t => t.id === p.taskId || t.performanceId === p.id);
+        if (task && task.completedDate) {
+          recordMonth = task.completedDate.substring(0, 7);
+        } else if (task && task.dueDate) {
+          recordMonth = task.dueDate.substring(0, 7);
+        }
+      } else if (p.weekId) {
         const parts = p.weekId.split('-W');
         if (parts.length === 2) {
           const year = parseInt(parts[0]);
@@ -1671,21 +1689,6 @@ function renderDashboardMonthly() {
           const yyyy = d.getFullYear();
           const mm = String(d.getMonth() + 1).padStart(2, '0');
           recordMonth = `${yyyy}-${mm}`;
-        }
-      } else if (p.homeworkId) {
-        const hw = state.homeworks.find(h => h.id === p.homeworkId);
-        if (hw && hw.dueDate) {
-          const d = new Date(hw.dueDate);
-          if (!isNaN(d.getTime())) {
-            const yyyy = d.getFullYear();
-            const mm = String(d.getMonth() + 1).padStart(2, '0');
-            recordMonth = `${yyyy}-${mm}`;
-          }
-        }
-      } else if (p.taskId) {
-        const task = (state.tasks || []).find(t => t.id === p.taskId || t.performanceId === p.id);
-        if (task && task.completedDate) {
-          recordMonth = task.completedDate.substring(0, 7);
         }
       } else {
         const linkedTask = (state.tasks || []).find(t => t.performanceId === p.id);
@@ -1712,6 +1715,7 @@ function renderDashboardMonthly() {
     let taskPoints = 0;
     let homeworkPoints = 0;
     let examPoints = 0;
+    const seenMonthlyHomeworkIds = new Set();
 
     perfRecords.forEach(p => {
       const reason = p.reason || '';
@@ -1736,6 +1740,8 @@ function renderDashboardMonthly() {
       );
 
       if (p.homeworkId) {
+        if (seenMonthlyHomeworkIds.has(String(p.homeworkId))) return;
+        seenMonthlyHomeworkIds.add(String(p.homeworkId));
         homeworkPoints += p.point;
       } else if (p.examId || reasonLower.includes('sınav') || reasonLower.includes('değerlendirme')) {
         examPoints += p.point;
@@ -3486,7 +3492,7 @@ function updateFlowContent(syncWithRealTime = true) {
         const releases = await response.json();
         if (Array.isArray(releases) && releases.length > 0) {
           const latestRelease = releases[0];
-          const tagName = latestRelease.tag_name || 'v1.0.78';
+          const tagName = latestRelease.tag_name || 'v1.0.79';
           
           const badge = document.getElementById('download-app-version-badge');
           if (badge) badge.textContent = `${tagName} (En Son)`;

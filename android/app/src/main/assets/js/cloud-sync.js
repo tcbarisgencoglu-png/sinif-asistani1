@@ -594,6 +594,12 @@
           : (window.getISOWeek ? window.getISOWeek(new Date()) : '');
 
         masterItem.performance.forEach(p => {
+          if (!p) return;
+          // Ödev performans kayıtları homeworks üzerinden birebir senkronize edilir, mükerrer eklemeyi önle
+          if (p.homeworkId || (typeof p.reason === 'string' && /" Ödevi \((Tam|Yarım|Yapılmadı|Muaf)\)$/.test(p.reason.trim()))) {
+            return;
+          }
+
           // ID'yi yerel öğrenciye uyarla
           if (cloudToLocalMap.has(String(p.studentId))) {
             p.studentId = cloudToLocalMap.get(String(p.studentId));
@@ -603,7 +609,7 @@
           }
 
           if (!p.weekId) {
-            p.weekId = activeDesktopWeek;
+            p.weekId = (p.date && window.getISOWeek) ? window.getISOWeek(p.date) : activeDesktopWeek;
           }
 
           if (!existingPerfIds.has(String(p.id))) {
@@ -614,14 +620,15 @@
 
         // Ayrıca yerel hafızadaki unmapped performans kayıtlarını da onar!
         localData.performance.forEach(lp => {
+          if (!lp) return;
           if (cloudToLocalMap.has(String(lp.studentId))) {
             lp.studentId = cloudToLocalMap.get(String(lp.studentId));
           } else {
             const matched = this.resolveDesktopStudent(lp.studentId, lp.studentName, lp.studentNumber, localData.students);
             if (matched) lp.studentId = matched.id;
           }
-          if (!lp.weekId) {
-            lp.weekId = activeDesktopWeek;
+          if (!lp.weekId && !lp.homeworkId) {
+            lp.weekId = (lp.date && window.getISOWeek) ? window.getISOWeek(lp.date) : activeDesktopWeek;
           }
         });
       }
@@ -647,6 +654,10 @@
         const hwList = masterItem.homeworks || masterItem.homework || [];
         localData.homeworks = hwList;
         localData.homework = hwList;
+      }
+
+      if (typeof window.reconcileHomeworkStateObject === 'function') {
+        window.reconcileHomeworkStateObject(localData);
       }
 
       localStorage.setItem(STORAGE_KEY, JSON.stringify(localData));
@@ -1234,6 +1245,7 @@
       const validStudentIds = new Set(students.map(s => String(s.id)));
 
       perfs.forEach(p => {
+        if (!p) return;
         // Öğrenci ID'si masaüstündeki öğrencilerde yoksa akıllı eşleştirmeyle doğru öğrenciye bağla
         if (!validStudentIds.has(String(p.studentId))) {
           const matched = this.resolveDesktopStudent(p.studentId, p.studentName, p.studentNumber, students);
@@ -1244,12 +1256,30 @@
             changed = true;
           }
         }
-        // weekId yoksa aktif haftayı bağla ki haftalık değerlendirmede çıksın
+        // weekId yoksa kaydın kendi tarihinden (ödev teslim tarihi veya işlem tarihi) haftayı bul
         if (!p.weekId) {
-          p.weekId = activeWeek;
-          changed = true;
+          if (p.homeworkId && Array.isArray(state.homeworks)) {
+            const hw = state.homeworks.find(h => h.id === p.homeworkId);
+            if (hw && hw.dueDate && window.getISOWeek) {
+              p.weekId = window.getISOWeek(hw.dueDate);
+              changed = true;
+            }
+          } else if (p.date && window.getISOWeek) {
+            p.weekId = window.getISOWeek(p.date);
+            changed = true;
+          } else {
+            p.weekId = activeWeek;
+            changed = true;
+          }
         }
       });
+
+      // Ödev kayıtları ile performans tablosundaki ödev puanlarını birebir senkronize et
+      if (typeof window.stateManager.recalculateAllHomeworkPoints === 'function') {
+        if (window.stateManager.recalculateAllHomeworkPoints(false)) {
+          changed = true;
+        }
+      }
 
       if (changed) {
         window.stateManager.saveState('Performans kayıtları masaüstü öğrenci kimlikleriyle senkronize edildi');
@@ -1445,9 +1475,10 @@
           window.stateManager.state.homeworks = [];
         }
 
+        const isPrimary = window.stateManager.state.educationLevel === 'primary';
         let hw = window.stateManager.state.homeworks.find(h => {
           const matchDate = h.dueDate === dateStr;
-          const matchBranch = !branch || !h.branch || h.branch === branch || h.branch === 'all';
+          const matchBranch = isPrimary || !branch || !h.branch || h.branch === branch || h.branch === 'all';
           return matchDate && matchBranch;
         });
 
@@ -1456,7 +1487,7 @@
             title: title,
             description: 'El terminalinden günlük kontrol',
             dueDate: dateStr,
-            branch: branch
+            branch: isPrimary ? '' : branch
           });
         } else if (title && hw.title !== title) {
           hw.title = title;
@@ -1468,6 +1499,10 @@
           const matched = this.resolveDesktopStudent(stuId, '', '', allStudents);
           const targetStudentId = matched ? matched.id : stuId;
           window.stateManager.updateHomeworkStatus(hw.id, targetStudentId, status);
+        }
+
+        if (typeof window.stateManager.recalculateAllHomeworkPoints === 'function') {
+          window.stateManager.recalculateAllHomeworkPoints(false);
         }
 
         window.stateManager.saveState(`El Terminalinden Canlı Ödev: ${branch || ''}`);
@@ -1714,6 +1749,32 @@
           });
         }
 
+        if (Array.isArray(payload.homeworks) && payload.homeworks.length > 0) {
+          if (!Array.isArray(window.stateManager.state.homeworks)) {
+            window.stateManager.state.homeworks = [];
+          }
+          const isPrimary = window.stateManager.state.educationLevel === 'primary';
+          payload.homeworks.forEach(cloudHw => {
+            if (!cloudHw || !cloudHw.dueDate) return;
+            const existing = window.stateManager.state.homeworks.find(h =>
+              h.id === cloudHw.id ||
+              (h.dueDate === cloudHw.dueDate && (isPrimary || !cloudHw.branch || !h.branch || h.branch === cloudHw.branch || h.branch === 'all'))
+            );
+            if (!existing) {
+              window.stateManager.state.homeworks.push(cloudHw);
+              stateModified = true;
+            } else if (cloudHw.status && typeof cloudHw.status === 'object') {
+              if (!existing.status) existing.status = {};
+              Object.keys(cloudHw.status).forEach(sKey => {
+                const matched = this.resolveDesktopStudent(sKey, '', '', allStudents);
+                const targetId = matched ? matched.id : sKey;
+                existing.status[targetId] = cloudHw.status[sKey];
+              });
+              stateModified = true;
+            }
+          });
+        }
+
         if (Array.isArray(payload.performance)) {
           if (!window.stateManager.state.performance) window.stateManager.state.performance = [];
           const existingIds = new Set(window.stateManager.state.performance.map(p => String(p.id)));
@@ -1722,13 +1783,23 @@
             : (window.getISOWeek ? window.getISOWeek(new Date()) : '');
 
           payload.performance.forEach(p => {
+            if (!p) return;
+            // Ödev performans kayıtları state.homeworks üzerinden birebir üretilir;
+            // el terminalinden gelen farklı homeworkId'li kayıtların mükerrer eklenmesini önle
+            const isLegacyHwReason = p.reason && typeof p.reason === 'string' && /"\s*Ödevi\s*\((Tam|Yarım|Yapılmadı|Muaf)\)/.test(p.reason);
+            if (p.homeworkId || isLegacyHwReason) return;
+
             if (!existingIds.has(String(p.id))) {
               const matched = this.resolveDesktopStudent(p.studentId, p.studentName, p.studentNumber, allStudents);
               if (matched) {
                 p.studentId = matched.id;
               }
               if (!p.weekId) {
-                p.weekId = activeDesktopWeek;
+                if (p.date && window.getISOWeek) {
+                  p.weekId = window.getISOWeek(p.date);
+                } else {
+                  p.weekId = activeDesktopWeek;
+                }
               }
               window.stateManager.state.performance.push(p);
               existingIds.add(String(p.id));
@@ -1736,6 +1807,10 @@
               stateModified = true;
             }
           });
+        }
+
+        if (typeof window.stateManager.recalculateAllHomeworkPoints === 'function') {
+          window.stateManager.recalculateAllHomeworkPoints(false);
         }
 
         if (stateModified) {

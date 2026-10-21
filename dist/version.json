@@ -1,13 +1,13 @@
 {
-  "version": "1.0.78",
+  "version": "1.0.79",
   "releaseDate": "2026-10-21",
   "minRequiredVersion": "1.0.0",
-  "title": "Sınıf Asistanı v1.0.78 Yayında!",
-  "description": "Defter Resim Boyutlandırma, İmleç Konumuna Ekleme ve Sınav Detayı Hatası Düzeltmesi",
+  "title": "Sınıf Asistanı v1.0.79 Yayında!",
+  "description": "Haftalık Ödev Puanlaması Onarımı ve Bulut Senkronizasyon İyileştirmeleri",
   "features": [
-    "Defter Resim Boyutlandırma: Deftere eklenen resimlerin sağ alt köşesinden fare veya akıllı tahta dokunmatiği ile serbestçe boyutlandırılabilmesi sağlandı.",
-    "Tam İmleç Konumuna Ekleme ve Metin Kaydırma: Eklenen resimlerin her zaman o anki imleç konumuna yerleşmesi ve altındaki metin ile öğeleri defter satır hizasını koruyarak aşağı kaydırması sağlandı.",
-    "Sınav Detayları Hata Düzeltmesi: Defterde çalışırken arka planda tetiklenen stateChanged olayında oluşan 'countExamDefinedAnswers' referans hatası giderildi."
+    "Haftalık Ödev Puanlaması Düzeltmesi: El terminali ve bulut senkronizasyonu sırasında oluşan mükerrer ödev performans puanları giderildi; Ödev Takip Sistemi ile Haftalık Performans tablosu birebir eşitlendi.",
+    "Otomatik Veri Onarımı: Mevcut verilerdeki mükerrer veya yanlış haftaya atanmış geçmiş ödev puanlarını uygulama açılışında otomatik temizleyen mutabakat mekanizması eklendi.",
+    "Dağıtım ve Derleme Hızlandırması: GitHub Actions çapraz platform derleme iş akışı optimize edildi."
   ],
   "release_url": "https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/latest"
 }

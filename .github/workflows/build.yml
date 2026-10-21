@@ -2,26 +2,13 @@ name: "Tauri Build — Çapraz Platform"
 
 on:
   push:
-    branches:
-      - main
-    paths-ignore:
-      - "tanitim/**"
-      - "dist/tanitim/**"
-      - "*.md"
-      - ".gitignore"
-      - "LICENSE*"
     tags:
       - "v*"
-  pull_request:
-    branches:
-      - main
-    paths-ignore:
-      - "tanitim/**"
-      - "dist/tanitim/**"
-      - "*.md"
-      - ".gitignore"
-      - "LICENSE*"
   workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: write
@@ -35,9 +22,6 @@ jobs:
           - platform: "macos-latest"
             args: "--target aarch64-apple-darwin"
             artifact_name: "mac-apple-silicon"
-          - platform: "macos-latest"
-            args: "--target x86_64-apple-darwin"
-            artifact_name: "mac-intel"
           - platform: "ubuntu-22.04"
             args: ""
             artifact_name: "linux"
@@ -60,12 +44,13 @@ jobs:
       - name: Rust kur
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin' || '' }}
 
       - name: Rust önbelleği
         uses: swatinem/rust-cache@v2
         with:
           workspaces: "src-tauri"
+          shared-key: ${{ matrix.artifact_name }}
 
       - name: Linux bağımlılıkları
         if: matrix.platform == 'ubuntu-22.04'
@@ -80,9 +65,8 @@ jobs:
 
       - name: npm bağımlılıklarını yükle
         run: |
-          npm install
+          npm ci || npm install
           npx tauri --version || npm install --force -D @tauri-apps/cli
-          npx tauri --version
 
       - name: dist klasörünü hazırla (Linux/Mac)
         if: matrix.platform != 'windows-latest'
@@ -128,7 +112,7 @@ jobs:
           npx tauri --version
           echo "Derleme baslatiliyor (args: ${{ matrix.args }})..."
           set +e
-          npx tauri build ${{ matrix.args }} --no-sign --ignore-version-mismatches -v 2>&1 | tee tauri-build.log
+          npx tauri build ${{ matrix.args }} --no-sign --ignore-version-mismatches 2>&1 | tee tauri-build.log
           EXIT_CODE=${PIPESTATUS[0]}
           set -e
           cp tauri-build.log "error-${{ matrix.artifact_name }}.txt"
@@ -139,27 +123,6 @@ jobs:
             echo '```' >> $GITHUB_STEP_SUMMARY
             exit $EXIT_CODE
           fi
-
-      - name: Hata Günlüğünü Kaydet
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: tauri-error-${{ matrix.artifact_name }}
-          path: error-${{ matrix.artifact_name }}.txt
-          if-no-files-found: ignore
-
-      - name: Masaüstü Paketlerini Artifact Olarak Kaydet
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ matrix.artifact_name }}
-          path: |
-            src-tauri/target/**/bundle/dmg/*.dmg
-            src-tauri/target/**/bundle/macos/*.app.tar.gz
-            src-tauri/target/**/bundle/nsis/*.exe
-            src-tauri/target/**/bundle/deb/*.deb
-            src-tauri/target/**/bundle/appimage/*.AppImage
-            src-tauri/target/**/bundle/rpm/*.rpm
-          if-no-files-found: warn
 
       - name: Release Notlarını Hazırla
         if: startsWith(github.ref, 'refs/tags/')
@@ -253,12 +216,6 @@ jobs:
             echo "❌ HATA: APK içerisinde mobile.html bulunamadı!"
             exit 1
           }
-
-      - name: APK'yı Artifact Olarak Kaydet (Push)
-        uses: actions/upload-artifact@v4
-        with:
-          name: sinif-asistani-android-apk
-          path: artifacts/sinif-asistani.apk
 
       - name: Release Notlarını Hazırla (Android)
         if: startsWith(github.ref, 'refs/tags/')

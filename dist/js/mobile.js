@@ -1362,11 +1362,12 @@
   let currentPerfMonth = new Date().toISOString().substring(0, 7); // 'YYYY-MM'
 
   function getPerformanceRecordWeek(p, state) {
-    if (p.weekId) return p.weekId;
     if (p.homeworkId && state && state.homeworks) {
       const hw = state.homeworks.find(h => h.id === p.homeworkId);
-      if (hw && hw.dueDate && window.getISOWeek) return window.getISOWeek(hw.dueDate);
+      if (!hw) return '';
+      if (hw.dueDate && window.getISOWeek) return window.getISOWeek(hw.dueDate);
     }
+    if (p.weekId) return p.weekId;
     if (p.taskId && state && state.tasks) {
       const task = state.tasks.find(t => t.id === p.taskId || t.performanceId === p.id);
       if (task && task.completedDate && window.getISOWeek) return window.getISOWeek(task.completedDate);
@@ -1385,16 +1386,17 @@
   }
 
   function getPerformanceRecordMonth(p, state, recordWeek) {
+    if (p.homeworkId && state && state.homeworks) {
+      const hw = state.homeworks.find(h => h.id === p.homeworkId);
+      if (!hw) return '';
+      if (hw.dueDate && hw.dueDate.length >= 7) return hw.dueDate.substring(0, 7);
+    }
     if (p.date) {
       const dStr = String(p.date);
       if (dStr.length >= 7 && dStr.includes('-')) {
         const ym = dStr.substring(0, 7);
         if (/^\d{4}-\d{2}$/.test(ym)) return ym;
       }
-    }
-    if (p.homeworkId && state && state.homeworks) {
-      const hw = state.homeworks.find(h => h.id === p.homeworkId);
-      if (hw && hw.dueDate && hw.dueDate.length >= 7) return hw.dueDate.substring(0, 7);
     }
     if (p.taskId && state && state.tasks) {
       const task = state.tasks.find(t => t.id === p.taskId || t.performanceId === p.id);

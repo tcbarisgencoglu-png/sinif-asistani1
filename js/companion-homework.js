@@ -338,17 +338,24 @@
       // 2. Durumları ve Performans Kayıtlarını Güncelle
       const hwSettings = data.homeworkSettings || { completed: 4, incomplete: 2, missing: -4, excused: 0 };
       const timestamp = new Date().toISOString();
+      const hwWeekId = (window.getISOWeek && dateStr) ? window.getISOWeek(dateStr) : '';
 
       for (const sId in this.statusMap) {
         const status = this.statusMap[sId];
         if (status === 'none') {
           delete hw.status[sId];
-          data.performance = data.performance.filter(p => !(p.homeworkId === hw.id && String(p.studentId) === sId));
+          data.performance = data.performance.filter(p => !(
+            String(p.studentId) === sId &&
+            (p.homeworkId === hw.id || p.reason === `"${title}" Ödevi (Tam)` || p.reason === `"${title}" Ödevi (Yarım)` || p.reason === `"${title}" Ödevi (Yapılmadı)` || p.reason === `"${title}" Ödevi (Muaf)`)
+          ));
         } else {
           hw.status[sId] = status;
 
-          // Performans kaydını güncelle
-          data.performance = data.performance.filter(p => !(p.homeworkId === hw.id && String(p.studentId) === sId));
+          // Performans kaydını güncelle (aynı ödev veya aynı başlıklı mükerrer kayıtları temizle)
+          data.performance = data.performance.filter(p => !(
+            String(p.studentId) === sId &&
+            (p.homeworkId === hw.id || p.reason === `"${title}" Ödevi (Tam)` || p.reason === `"${title}" Ödevi (Yarım)` || p.reason === `"${title}" Ödevi (Yapılmadı)` || p.reason === `"${title}" Ödevi (Muaf)`)
+          ));
 
           let pts = 0;
           let sLabel = '';
@@ -362,14 +369,15 @@
           const studentNumber = student ? String(student.number || '').trim() : '';
 
           data.performance.push({
-            id: 'perf_' + Date.now() + Math.random().toString(36).substr(2, 5),
+            id: 'perf_hw_' + hw.id + '_' + sId,
             studentId: sId,
             studentName: studentName,
             studentNumber: studentNumber,
             type: pts >= 0 ? 'positive' : 'development',
             point: pts,
             reason: `"${title}" Ödevi (${sLabel})`,
-            date: timestamp,
+            date: dateStr || timestamp,
+            weekId: hwWeekId || undefined,
             homeworkId: hw.id
           });
         }

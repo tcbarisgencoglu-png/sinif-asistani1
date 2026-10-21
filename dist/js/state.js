@@ -18,6 +18,9 @@ function getISOWeek(dateInput) {
     date = new Date();
   } else if (dateInput instanceof Date) {
     date = dateInput;
+  } else if (typeof dateInput === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateInput.trim())) {
+    const parts = dateInput.trim().split('-').map(Number);
+    date = new Date(parts[0], parts[1] - 1, parts[2]);
   } else {
     date = new Date(dateInput);
   }
@@ -2218,6 +2221,199 @@ function removeDemoStudentsIfOnlyDemoExist() {
 }
 window.removeDemoStudentsIfOnlyDemoExist = removeDemoStudentsIfOnlyDemoExist;
 
+/**
+ * Ödev kayıtlarını (state.homeworks) ve ödev performans puanlarını (state.performance)
+ * birebir senkronize eder; mükerrer, yetim veya yanlış haftaya (weekId) atanmış
+ * ödev puanlarını otomatik olarak temizler ve onarır.
+ */
+function reconcileHomeworkStateObject(stateObj) {
+  if (!stateObj || typeof stateObj !== 'object') return false;
+  if (!Array.isArray(stateObj.homeworks)) stateObj.homeworks = [];
+  if (!Array.isArray(stateObj.performance)) stateObj.performance = [];
+
+  let changed = false;
+  const allStudents = Array.isArray(stateObj.rawStudents)
+    ? stateObj.rawStudents
+    : (Array.isArray(stateObj.students) ? stateObj.students : []);
+  const validStudentIds = new Set(allStudents.map(s => String(s.id)));
+
+  const resolveStuId = (rawKey) => {
+    if (rawKey === undefined || rawKey === null || rawKey === '') return null;
+    const keyStr = String(rawKey).trim();
+    if (validStudentIds.has(keyStr)) return keyStr;
+    if (allStudents.length > 0) {
+      const byNum = allStudents.find(s => s && String(s.number || '').trim() === keyStr);
+      if (byNum) return String(byNum.id);
+      return null;
+    }
+    return keyStr;
+  };
+
+  // 1. Aynı gün (ve ortaokulda aynı şube) için mükerrer oluşmuş ödev kayıtlarını birleştir
+  const isPrimary = stateObj.educationLevel === 'primary';
+  const hwByKey = new Map();
+  const oldHwIdToCanonicalId = new Map();
+
+  stateObj.homeworks.forEach(hw => {
+    if (!hw || !hw.dueDate) {
+      changed = true;
+      return;
+    }
+    const branchKey = isPrimary ? '' : String(hw.branch || '').trim();
+    const key = `${hw.dueDate}__${branchKey}`;
+
+    const normStatus = {};
+    if (hw.status && typeof hw.status === 'object') {
+      for (const [rawStuId, stVal] of Object.entries(hw.status)) {
+        if (!['completed', 'incomplete', 'missing', 'excused'].includes(stVal)) {
+          changed = true;
+          continue;
+        }
+        const resolvedId = resolveStuId(rawStuId);
+        if (!resolvedId) {
+          changed = true;
+          continue;
+        }
+        if (resolvedId !== String(rawStuId)) {
+          changed = true;
+        }
+        normStatus[resolvedId] = stVal;
+      }
+    }
+
+    if (!hwByKey.has(key)) {
+      hw.status = normStatus;
+      if (isPrimary && hw.branch) {
+        hw.branch = '';
+        changed = true;
+      }
+      hwByKey.set(key, hw);
+      oldHwIdToCanonicalId.set(String(hw.id), String(hw.id));
+    } else {
+      changed = true;
+      const canonical = hwByKey.get(key);
+      oldHwIdToCanonicalId.set(String(hw.id), String(canonical.id));
+      Object.assign(canonical.status, normStatus);
+      const isDefaultTitle = (t) => !t || /^(Pazartesi|Salı|Çarşamba|Perşembe|Cuma|\d{4}-\d{2}-\d{2})\s+Ödevi$/i.test(String(t).trim());
+      if (hw.title && (isDefaultTitle(canonical.title) && !isDefaultTitle(hw.title))) {
+        canonical.title = hw.title;
+      }
+      if (hw.description && !canonical.description) {
+        canonical.description = hw.description;
+      }
+    }
+  });
+
+  const dedupedHomeworks = Array.from(hwByKey.values());
+  if (dedupedHomeworks.length !== stateObj.homeworks.length) {
+    changed = true;
+  }
+  stateObj.homeworks = dedupedHomeworks;
+
+  // 2. Performans tablosundaki ödev kayıtlarını state.homeworks ile birebir eşitle
+  const isHwPerf = (p) => {
+    if (!p) return false;
+    if (p.homeworkId) return true;
+    const r = typeof p.reason === 'string' ? p.reason.trim() : '';
+    if (/" Ödevi \((Tam|Yarım|Yapılmadı|Muaf)\)$/.test(r)) return true;
+    return false;
+  };
+
+  const existingHwPerfMeta = new Map();
+  const oldHwPerfRecords = [];
+  const nonHwPerfRecords = [];
+
+  stateObj.performance.forEach(p => {
+    if (isHwPerf(p)) {
+      oldHwPerfRecords.push(p);
+      const canHwId = p.homeworkId ? (oldHwIdToCanonicalId.get(String(p.homeworkId)) || String(p.homeworkId)) : '';
+      const stuId = resolveStuId(p.studentId) || String(p.studentId || '');
+      if (canHwId && stuId) {
+        const mKey = `${canHwId}__${stuId}`;
+        if (!existingHwPerfMeta.has(mKey)) {
+          existingHwPerfMeta.set(mKey, { id: p.id, date: p.date });
+        }
+      }
+    } else {
+      nonHwPerfRecords.push(p);
+    }
+  });
+
+  const hs = stateObj.homeworkSettings || { completed: 4, incomplete: 2, missing: -4, excused: 0 };
+  const expectedHwPerfRecords = [];
+
+  stateObj.homeworks.forEach(hw => {
+    if (!hw || !hw.id || !hw.status || typeof hw.status !== 'object') return;
+    const hwWeekId = (hw.dueDate && typeof getISOWeek === 'function') ? getISOWeek(hw.dueDate) : '';
+
+    for (const [stuId, status] of Object.entries(hw.status)) {
+      let points = 0;
+      let statusLabel = '';
+      if (status === 'completed') {
+        points = hs.completed !== undefined ? parseInt(hs.completed, 10) : 4;
+        statusLabel = 'Tam';
+      } else if (status === 'incomplete') {
+        points = hs.incomplete !== undefined ? parseInt(hs.incomplete, 10) : 2;
+        statusLabel = 'Yarım';
+      } else if (status === 'missing') {
+        points = hs.missing !== undefined ? parseInt(hs.missing, 10) : -4;
+        statusLabel = 'Yapılmadı';
+      } else if (status === 'excused') {
+        points = hs.excused !== undefined ? parseInt(hs.excused, 10) : 0;
+        statusLabel = 'Muaf';
+      } else {
+        continue;
+      }
+
+      const mKey = `${hw.id}__${stuId}`;
+      const meta = existingHwPerfMeta.get(mKey);
+      const expectedReason = `"${hw.title}" Ödevi (${statusLabel})`;
+      const expectedType = points >= 0 ? 'positive' : 'development';
+      const expectedId = (meta && meta.id) ? meta.id : `perf_hw_${hw.id}_${stuId}`;
+      const expectedDate = (meta && meta.date) ? meta.date : (hw.dueDate ? new Date(hw.dueDate).toISOString() : new Date().toISOString());
+
+      expectedHwPerfRecords.push({
+        id: expectedId,
+        studentId: String(stuId),
+        type: expectedType,
+        point: points,
+        reason: expectedReason,
+        date: expectedDate,
+        weekId: hwWeekId || undefined,
+        homeworkId: hw.id
+      });
+    }
+  });
+
+  if (oldHwPerfRecords.length !== expectedHwPerfRecords.length) {
+    changed = true;
+  } else {
+    for (let i = 0; i < expectedHwPerfRecords.length; i++) {
+      const exp = expectedHwPerfRecords[i];
+      const cur = oldHwPerfRecords.find(
+        p => String(p.homeworkId) === String(exp.homeworkId) && String(p.studentId) === String(exp.studentId)
+      );
+      if (
+        !cur ||
+        cur.point !== exp.point ||
+        cur.type !== exp.type ||
+        cur.reason !== exp.reason ||
+        cur.weekId !== exp.weekId ||
+        String(cur.studentId) !== String(exp.studentId)
+      ) {
+        changed = true;
+        break;
+      }
+    }
+  }
+
+  if (changed) {
+    stateObj.performance = [...nonHwPerfRecords, ...expectedHwPerfRecords];
+  }
+  return changed;
+}
+window.reconcileHomeworkStateObject = reconcileHomeworkStateObject;
+
 class StateManager {
   constructor() {
     const data = localStorage.getItem(STORAGE_KEY);
@@ -2688,6 +2884,18 @@ class StateManager {
           });
         }
 
+        // Ödev kayıtları ile performans tablosundaki ödev puanlarını birebir senkronize et (mükerrer ve yanlış haftalı kayıtları onar)
+        if (reconcileHomeworkStateObject(loaded)) {
+          try {
+            parsed.homeworks = loaded.homeworks;
+            parsed.performance = loaded.performance;
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
+            console.log("loadState: Ödev puanları ve hafta atamaları state.homeworks ile senkronize edilerek onarıldı.");
+          } catch (hwSyncErr) {
+            console.warn("loadState: Ödev senkronizasyonu kaydetme uyarısı:", hwSyncErr);
+          }
+        }
+
         return wrapState(loaded, unfiltered);
       }
     } catch (e) {
@@ -3131,17 +3339,19 @@ class StateManager {
     if (!weekId) weekId = (this.getSelectedWeek ? this.getSelectedWeek() : (window.getISOWeek ? window.getISOWeek() : ''));
     return this.state.performance
       .filter(p => {
-        if (p.studentId !== studentId) return false;
-        if (p.weekId) return p.weekId === weekId;
-        if (p.homeworkId && this.state.homeworks) {
+        if (String(p.studentId) !== String(studentId)) return false;
+        if (p.homeworkId) {
+          if (!this.state.homeworks) return false;
           const hw = this.state.homeworks.find(h => h.id === p.homeworkId);
-          if (hw && hw.dueDate) return window.getISOWeek(hw.dueDate) === weekId;
+          if (!hw) return false;
+          return hw.dueDate ? (window.getISOWeek(hw.dueDate) === weekId) : false;
         }
         if (p.taskId && this.state.tasks) {
           const task = this.state.tasks.find(t => t.id === p.taskId || t.performanceId === p.id);
           if (task && task.completedDate) return window.getISOWeek(task.completedDate) === weekId;
           if (task && task.dueDate) return window.getISOWeek(task.dueDate) === weekId;
         }
+        if (p.weekId) return p.weekId === weekId;
         if (this.state.tasks) {
           const linkedTask = this.state.tasks.find(t => t.performanceId === p.id);
           if (linkedTask && linkedTask.completedDate) return window.getISOWeek(linkedTask.completedDate) === weekId;
@@ -3158,9 +3368,20 @@ class StateManager {
     }
     return this.state.performance
       .filter(p => {
-        if (p.studentId !== studentId) return false;
+        if (String(p.studentId) !== String(studentId)) return false;
         let rMonth = '';
-        if (p.weekId) {
+        if (p.homeworkId) {
+          if (!this.state.homeworks) return false;
+          const hw = this.state.homeworks.find(h => h.id === p.homeworkId);
+          if (!hw) return false;
+          if (hw.dueDate) rMonth = hw.dueDate.substring(0, 7);
+          return rMonth === monthStr;
+        }
+        if (p.taskId && this.state.tasks) {
+          const task = this.state.tasks.find(t => t.id === p.taskId || t.performanceId === p.id);
+          if (task && task.completedDate) rMonth = task.completedDate.substring(0, 7);
+        }
+        if (!rMonth && p.weekId) {
           const parts = p.weekId.split('-W');
           if (parts.length === 2) {
             const yr = parseInt(parts[0], 10);
@@ -3168,14 +3389,6 @@ class StateManager {
             const d = window.getDayInWeek ? window.getDayInWeek(yr, wk, 4) : null;
             if (d) rMonth = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
           }
-        }
-        if (!rMonth && p.homeworkId && this.state.homeworks) {
-          const hw = this.state.homeworks.find(h => h.id === p.homeworkId);
-          if (hw && hw.dueDate) rMonth = hw.dueDate.substring(0, 7);
-        }
-        if (!rMonth && p.taskId && this.state.tasks) {
-          const task = this.state.tasks.find(t => t.id === p.taskId || t.performanceId === p.id);
-          if (task && task.completedDate) rMonth = task.completedDate.substring(0, 7);
         }
         if (!rMonth && this.state.tasks) {
           const linkedTask = this.state.tasks.find(t => t.performanceId === p.id);
@@ -3191,6 +3404,18 @@ class StateManager {
 
 
   // ÖDEV İŞLEMLERİ
+  recalculateAllHomeworkPoints(shouldSave = false) {
+    const changed = reconcileHomeworkStateObject(this.state);
+    if (changed && shouldSave) {
+      this.saveState('Ödev puanları senkronize edildi');
+    }
+    return changed;
+  }
+
+  reconcileHomeworkPerformance(shouldSave = false) {
+    return this.recalculateAllHomeworkPoints(shouldSave);
+  }
+
   addHomework(hwData) {
     const homework = {
       id: 'hw_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
@@ -3215,6 +3440,7 @@ class StateManager {
         description: hwData.description || '',
         dueDate: hwData.dueDate
       };
+      this.recalculateAllHomeworkPoints(false);
       this.saveState();
       return true;
     }
@@ -3225,6 +3451,7 @@ class StateManager {
     this.state.homeworks = this.state.homeworks.filter(h => h.id !== id);
     // Ödeve ait tüm performans kayıtlarını sil
     this.state.performance = this.state.performance.filter(p => p.homeworkId !== id);
+    this.recalculateAllHomeworkPoints(false);
     this.saveState();
   }
 
@@ -3286,35 +3513,8 @@ class StateManager {
       excused: settings.excused !== undefined ? parseInt(settings.excused) : 0
     };
 
-    // Mevcut tüm ödev performans kayıtlarının puanlarını yeni ayarlara göre güncelle
-    this.state.performance.forEach(p => {
-      if (p.homeworkId) {
-        const hw = this.state.homeworks.find(h => h.id === p.homeworkId);
-        if (hw && hw.status) {
-          const status = hw.status[p.studentId];
-          let updatedPoint = 0;
-          let statusLabel = '';
-          if (status === 'completed') {
-            updatedPoint = this.state.homeworkSettings.completed;
-            statusLabel = 'Tam';
-          } else if (status === 'incomplete') {
-            updatedPoint = this.state.homeworkSettings.incomplete;
-            statusLabel = 'Yarım';
-          } else if (status === 'missing') {
-            updatedPoint = this.state.homeworkSettings.missing;
-            statusLabel = 'Yapılmadı';
-          } else if (status === 'excused') {
-            updatedPoint = this.state.homeworkSettings.excused;
-            statusLabel = 'Muaf';
-          }
-          
-          p.point = updatedPoint;
-          p.type = updatedPoint >= 0 ? 'positive' : 'development';
-          p.reason = `"${hw.title}" Ödevi (${statusLabel})`;
-        }
-      }
-    });
-
+    // Mevcut tüm ödev performans kayıtlarının puanlarını yeni ayarlara göre güncelle ve senkronize et
+    this.recalculateAllHomeworkPoints(false);
     this.saveState();
   }
 
@@ -3330,7 +3530,7 @@ class StateManager {
 
       // Önce bu ödev ve öğrenci için var olan performans kaydını sil
       this.state.performance = this.state.performance.filter(
-        p => !(p.homeworkId === homeworkId && p.studentId === studentId)
+        p => !(p.homeworkId === homeworkId && String(p.studentId) === String(studentId))
       );
 
       const settings = this.getHomeworkSettings();
@@ -3358,18 +3558,21 @@ class StateManager {
 
       if (shouldAddRecord) {
         const type = points >= 0 ? 'positive' : 'development';
+        const hwWeekId = (hw.dueDate && typeof getISOWeek === 'function') ? getISOWeek(hw.dueDate) : undefined;
         const record = {
-          id: 'perf_' + Date.now() + Math.random().toString(36).substr(2, 5),
-          studentId,
+          id: `perf_hw_${homeworkId}_${studentId}`,
+          studentId: String(studentId),
           type,
           point: points,
           reason: `"${hw.title}" Ödevi (${statusLabel})`,
           date: new Date().toISOString(),
+          weekId: hwWeekId || undefined,
           homeworkId
         };
         this.state.performance.push(record);
       }
 
+      this.recalculateAllHomeworkPoints(false);
       this.saveState();
       return true;
     }
