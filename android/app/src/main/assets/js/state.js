@@ -2225,6 +2225,16 @@ class StateManager {
     this.subscribers = [];
     const hasRealDataEver = localStorage.getItem('sinif_asistani_has_real_data') === 'true';
 
+    // Otomatik Sınav Puanlama Düzeltmesi (Standart Yarışma Sıralaması / Competition Ranking)
+    if (this.state && !this.state._examCompetitionRankingFixed_v1077) {
+      if (Array.isArray(this.state.weeklyEvaluations) && this.state.weeklyEvaluations.length > 0) {
+        this.recalculateAllExamPoints();
+      }
+      this.state._examCompetitionRankingFixed_v1077 = true;
+      this.saveState();
+      console.log("[Migration] Sınav derece puanları standart yarışma sıralamasına göre otomatik düzeltildi.");
+    }
+
     if (!data && !hasRealDataEver) {
       this.saveState(); // Seeding database instantly on first run
       this.loadDefaultStateFromServer();
@@ -2248,8 +2258,14 @@ class StateManager {
             }
             if (restored && (restored.students?.length > 0 || restored.books?.library?.length > 0)) {
               this.state = wrapState(restored, true);
+              if (!this.state._examCompetitionRankingFixed_v1077) {
+                if (Array.isArray(this.state.weeklyEvaluations) && this.state.weeklyEvaluations.length > 0) {
+                  this.recalculateAllExamPoints();
+                }
+                this.state._examCompetitionRankingFixed_v1077 = true;
+              }
               try {
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(restored));
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(this.state));
               } catch (e) {}
               this.notify();
               console.log('[Kurtarma] Otomatik kurtarma protokolü ile veritabanı başarıyla ayağa kaldırıldı.');
@@ -3608,39 +3624,43 @@ class StateManager {
     // Yeni derece ödüllerini hesapla ve ekle
     const settings = this.getWeeklyExamSettings();
     const studentScoreList = [];
+    const allStudents = Array.isArray(this.state.students) ? this.state.students : [];
     
     for (const stdId in examScores) {
       const val = parseFloat(examScores[stdId]);
       if (!isNaN(val) && val >= 0) {
-        studentScoreList.push({ studentId: stdId, score: val });
+        let resolvedStudentId = stdId;
+        const matched = allStudents.find(s => s && (String(s.id) === String(stdId) || String(s.number) === String(stdId)));
+        if (matched) resolvedStudentId = matched.id;
+        studentScoreList.push({ studentId: resolvedStudentId, score: val });
       }
     }
 
     // Skorlara göre büyükten küçüğe sırala
     studentScoreList.sort((a, b) => b.score - a.score);
 
-      // Eşitlikleri gözeten sıralama ve ödüllendirme mantığı (Ranks)
-      let currentRank = 0;
-      let lastScore = null;
-      
-      studentScoreList.forEach(item => {
-        if (item.score !== lastScore) {
-          currentRank++;
-          lastScore = item.score;
+    // Standart yarışma sıralaması (Competition / 1224 Ranking):
+    // Aynı puandakiler aynı dereceyi paylaşır, sonraki derece kişi sayısı kadar atlar (1, 2, 2, 2, 5, 6...)
+    let currentRank = 1;
+    for (let i = 0; i < studentScoreList.length; i++) {
+      if (i > 0) {
+        if (studentScoreList[i].score < studentScoreList[i - 1].score) {
+          currentRank = i + 1;
         }
-        
-        let rewardPoint = 0;
-        let reasonLabel = '';
-        
-        if (currentRank <= settings.topCount) {
-          rewardPoint = settings.rankPoints[currentRank] || 0;
-          reasonLabel = `Haftalık Sınav ${currentRank}.liği (${examName || 'İsimsiz Sınav'})`;
-        }
-      
+      }
+
+      let rewardPoint = 0;
+      let reasonLabel = '';
+
+      if (currentRank <= settings.topCount) {
+        rewardPoint = settings.rankPoints[currentRank] || 0;
+        reasonLabel = `Haftalık Sınav ${currentRank}.liği (${examName || 'İsimsiz Sınav'})`;
+      }
+
       if (rewardPoint > 0) {
         this.state.performance.push({
-          id: 'perf_' + Date.now() + Math.random().toString(36).substr(2, 5),
-          studentId: item.studentId,
+          id: 'perf_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5) + '_' + i,
+          studentId: studentScoreList[i].studentId,
           type: 'positive',
           point: rewardPoint,
           reason: reasonLabel,
@@ -3648,7 +3668,7 @@ class StateManager {
           weekId: weekId
         });
       }
-    });
+    }
 
     this.saveState();
     return evaluation;
@@ -3690,49 +3710,86 @@ class StateManager {
 
     // Yeni derece ödüllerini hesapla ve ekle
     const settings = this.getWeeklyExamSettings();
-    const studentScoreList = [];
-    
-    for (const stdId in examData.examScores) {
-      const val = parseFloat(examData.examScores[stdId]);
-      if (!isNaN(val) && val >= 0) {
-        studentScoreList.push({ studentId: stdId, score: val });
+    const scoreMap = {};
+    const netMap = {};
+
+    if (examData.examScores && typeof examData.examScores === 'object') {
+      for (const stdId in examData.examScores) {
+        const val = parseFloat(examData.examScores[stdId]);
+        if (!isNaN(val) && val >= 0) {
+          scoreMap[stdId] = val;
+        }
       }
     }
 
-    // Skorlara göre büyükten küçüğe sırala
-    studentScoreList.sort((a, b) => b.score - a.score);
-
-    // Eşitlikleri gözeten sıralama ve ödüllendirme mantığı (Ranks)
-    let currentRank = 0;
-    let lastScore = null;
-    
-    studentScoreList.forEach(item => {
-      if (item.score !== lastScore) {
-        currentRank++;
-        lastScore = item.score;
+    if (examData.studentResults && typeof examData.studentResults === 'object') {
+      for (const stdId in examData.studentResults) {
+        const sr = examData.studentResults[stdId];
+        if (sr) {
+          if (scoreMap[stdId] === undefined && sr.score !== undefined && sr.score !== null && sr.score !== '') {
+            const val = parseFloat(sr.score);
+            if (!isNaN(val) && val >= 0) scoreMap[stdId] = val;
+          }
+          if (sr.net !== undefined && sr.net !== null && sr.net !== '') {
+            const nVal = parseFloat(sr.net);
+            if (!isNaN(nVal)) netMap[stdId] = nVal;
+          }
+        }
       }
-      
+    }
+
+    const allStudents = Array.isArray(this.state.students) ? this.state.students : [];
+    const studentScoreList = [];
+    for (const stdId in scoreMap) {
+      let resolvedStudentId = stdId;
+      const matched = allStudents.find(s => s && (String(s.id) === String(stdId) || String(s.number) === String(stdId)));
+      if (matched) resolvedStudentId = matched.id;
+
+      studentScoreList.push({
+        studentId: resolvedStudentId,
+        score: scoreMap[stdId],
+        net: netMap[stdId] !== undefined ? netMap[stdId] : 0
+      });
+    }
+
+    // Skorlara göre büyükten küçüğe, eşitlikte nete göre sırala
+    studentScoreList.sort((a, b) => {
+      if (b.score !== a.score) return b.score - a.score;
+      if (b.net !== a.net) return b.net - a.net;
+      return 0;
+    });
+
+    // Standart yarışma sıralaması (Competition / 1224 Ranking):
+    // Aynı puandakiler aynı dereceyi paylaşır, sonraki derece kişi sayısı kadar atlar (1, 2, 2, 2, 5, 6...)
+    let currentRank = 1;
+    for (let i = 0; i < studentScoreList.length; i++) {
+      if (i > 0) {
+        if (studentScoreList[i].score < studentScoreList[i - 1].score) {
+          currentRank = i + 1;
+        }
+      }
+
       let rewardPoint = 0;
       let reasonLabel = '';
-      
+
       if (currentRank <= settings.topCount) {
         rewardPoint = settings.rankPoints[currentRank] || 0;
         reasonLabel = `"${examData.examName || 'Haftalık Sınav'}" Sınavı ${currentRank}.liği`;
       }
-      
+
       if (rewardPoint > 0) {
         this.state.performance.push({
-          id: 'perf_' + Date.now() + Math.random().toString(36).substr(2, 5),
-          studentId: item.studentId,
+          id: 'perf_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5) + '_' + i,
+          studentId: studentScoreList[i].studentId,
           type: 'positive',
           point: rewardPoint,
           reason: reasonLabel,
-          date: new Date().toISOString(),
+          date: examData.date || examData.updatedAt || new Date().toISOString(),
           weekId: examData.weekId,
           examId: examData.id
         });
       }
-    });
+    }
 
     this.saveState('Sınav kaydedildi: ' + (examData.examName || examData.id));
     return examData;
@@ -3772,99 +3829,117 @@ class StateManager {
     return this.state.weeklyExamSettings;
   }
 
+  recalculateAllExamPoints() {
+    if (!Array.isArray(this.state.weeklyEvaluations)) return;
+    const settings = this.getWeeklyExamSettings();
+    if (!Array.isArray(this.state.performance)) {
+      this.state.performance = [];
+    }
+
+    // 1. Tüm sınavlara ait eski performans ödüllerini temizle
+    this.state.performance = this.state.performance.filter(p => {
+      if (!p) return false;
+      if (p.examId) return false;
+      const r = (p.reason || '').toLowerCase();
+      if ((r.includes('sınav') || r.includes('değerlendirme')) && (r.includes('.liği') || r.includes('.lığı') || r.includes('derece'))) {
+        return false;
+      }
+      return true;
+    });
+
+    const allStudents = Array.isArray(this.state.students) ? this.state.students : [];
+
+    // 2. Her sınav için ödülleri baştan doğru standart yarışma sıralamasıyla (Competition Ranking) hesapla
+    this.state.weeklyEvaluations.forEach(exam => {
+      if (!exam) return;
+
+      const scoreMap = {};
+      const netMap = {};
+
+      if (exam.examScores && typeof exam.examScores === 'object') {
+        for (const stdId in exam.examScores) {
+          const val = parseFloat(exam.examScores[stdId]);
+          if (!isNaN(val) && val >= 0) scoreMap[stdId] = val;
+        }
+      }
+
+      if (exam.studentResults && typeof exam.studentResults === 'object') {
+        for (const stdId in exam.studentResults) {
+          const sr = exam.studentResults[stdId];
+          if (sr) {
+            if (scoreMap[stdId] === undefined && sr.score !== undefined && sr.score !== null && sr.score !== '') {
+              const val = parseFloat(sr.score);
+              if (!isNaN(val) && val >= 0) scoreMap[stdId] = val;
+            }
+            if (sr.net !== undefined && sr.net !== null && sr.net !== '') {
+              const nVal = parseFloat(sr.net);
+              if (!isNaN(nVal)) netMap[stdId] = nVal;
+            }
+          }
+        }
+      }
+
+      const studentScoreList = [];
+      for (const stdId in scoreMap) {
+        let resolvedStudentId = stdId;
+        const matched = allStudents.find(s => s && (String(s.id) === String(stdId) || String(s.number) === String(stdId)));
+        if (matched) resolvedStudentId = matched.id;
+
+        studentScoreList.push({
+          studentId: resolvedStudentId,
+          score: scoreMap[stdId],
+          net: netMap[stdId] !== undefined ? netMap[stdId] : 0
+        });
+      }
+
+      studentScoreList.sort((a, b) => {
+        if (b.score !== a.score) return b.score - a.score;
+        if (b.net !== a.net) return b.net - a.net;
+        return 0;
+      });
+
+      let currentRank = 1;
+      for (let i = 0; i < studentScoreList.length; i++) {
+        if (i > 0) {
+          if (studentScoreList[i].score < studentScoreList[i - 1].score) {
+            currentRank = i + 1;
+          }
+        }
+
+        let rewardPoint = 0;
+        let reasonLabel = '';
+
+        if (currentRank <= settings.topCount) {
+          rewardPoint = settings.rankPoints[currentRank] || 0;
+          reasonLabel = `"${exam.examName || 'Haftalık Sınav'}" Sınavı ${currentRank}.liği`;
+        }
+
+        if (rewardPoint > 0) {
+          this.state.performance.push({
+            id: 'perf_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5) + '_' + i,
+            studentId: studentScoreList[i].studentId,
+            type: 'positive',
+            point: rewardPoint,
+            reason: reasonLabel,
+            date: exam.date || exam.updatedAt || new Date().toISOString(),
+            weekId: exam.weekId,
+            examId: exam.id || undefined
+          });
+        }
+      }
+    });
+  }
+
   updateWeeklyExamSettings(settings) {
+    if (!settings) return;
     this.state.weeklyExamSettings = {
       topCount: parseInt(settings.topCount) || 3,
       rankPoints: settings.rankPoints || { 1: 10, 2: 7, 3: 4 }
     };
 
-    const examSettings = this.getWeeklyExamSettings();
-
-    // Geriye dönük tüm sınav ödüllerini yeni puanlara göre yeniden hesapla
-    this.state.weeklyEvaluations.forEach(evalItem => {
-      const weekId = evalItem.weekId;
-      const examName = evalItem.examName;
-      const examScores = evalItem.examScores || {};
-
-      const studentScoreList = [];
-      for (const stdId in examScores) {
-        const val = parseFloat(examScores[stdId]);
-        if (!isNaN(val) && val >= 0) {
-          studentScoreList.push({ studentId: stdId, score: val });
-        }
-      }
-
-      studentScoreList.sort((a, b) => b.score - a.score);
-
-      if (evalItem.id) {
-        this.state.performance = this.state.performance.filter(p => p.examId !== evalItem.id);
-        
-        let currentRank = 0;
-        let lastScore = null;
-        
-        studentScoreList.forEach(item => {
-          if (item.score !== lastScore) {
-            currentRank++;
-            lastScore = item.score;
-          }
-          
-          let rewardPoint = 0;
-          let reasonLabel = '';
-          
-          if (currentRank <= examSettings.topCount) {
-            rewardPoint = examSettings.rankPoints[currentRank] || 0;
-            reasonLabel = `"${examName}" Sınavı ${currentRank}.liği`;
-          }
-          
-          if (rewardPoint > 0) {
-            this.state.performance.push({
-              id: 'perf_' + Date.now() + Math.random().toString(36).substr(2, 5),
-              studentId: item.studentId,
-              type: 'positive',
-              point: rewardPoint,
-              reason: reasonLabel,
-              date: new Date().toISOString(),
-              weekId: weekId,
-              examId: evalItem.id
-            });
-          }
-        });
-      } else {
-        this.state.performance = this.state.performance.filter(p => !(p.weekId === weekId && !p.examId));
-        
-        let currentRank = 0;
-        let lastScore = null;
-        
-        studentScoreList.forEach(item => {
-          if (item.score !== lastScore) {
-            currentRank++;
-            lastScore = item.score;
-          }
-          
-          let rewardPoint = 0;
-          let reasonLabel = '';
-          
-          if (currentRank <= examSettings.topCount) {
-            rewardPoint = examSettings.rankPoints[currentRank] || 0;
-            reasonLabel = `Haftalık Sınav ${currentRank}.liği (${examName || 'İsimsiz Sınav'})`;
-          }
-          
-          if (rewardPoint > 0) {
-            this.state.performance.push({
-              id: 'perf_' + Date.now() + Math.random().toString(36).substr(2, 5),
-              studentId: item.studentId,
-              type: 'positive',
-              point: rewardPoint,
-              reason: reasonLabel,
-              date: new Date().toISOString(),
-              weekId: weekId
-            });
-          }
-        });
-      }
-    });
-
-    this.saveState();
+    // Geriye dönük tüm sınav ödüllerini yeni puanlara ve standart yarışma sıralamasına göre yeniden hesapla
+    this.recalculateAllExamPoints();
+    this.saveState('Sınav ödül puanı ayarları güncellendi');
   }
 
   getBookSettings() {

@@ -1623,18 +1623,16 @@
           let finalExam = examData;
           if (existingIdx >= 0) {
             finalExam = this.mergeExamObjects(window.stateManager.state.weeklyEvaluations[existingIdx], examData);
-            window.stateManager.state.weeklyEvaluations[existingIdx] = finalExam;
           } else {
             if (examData.answerKey && Object.keys(examData.answerKey).length > 0) {
               examData.hasOpticalForm = true;
             }
-            window.stateManager.state.weeklyEvaluations.unshift(examData);
           }
+          window.stateManager.saveExam(finalExam);
 
           const isNew = existingIdx < 0;
           const hasKey = finalExam.answerKey && Object.keys(finalExam.answerKey).length > 0;
           const actionLabel = isNew ? 'Yeni Sınav Oluşturuldu' : (hasKey ? 'Cevap Anahtarı & Sınav Güncellendi' : 'Sınav Sonuçları Güncellendi');
-          window.stateManager.saveState(`El Terminalinden ${actionLabel}: ${finalExam.examName}`);
           document.dispatchEvent(new CustomEvent('stateChanged'));
 
           if (window.activeWeeklyExam && String(window.activeWeeklyExam.id) === String(finalExam.id)) {
