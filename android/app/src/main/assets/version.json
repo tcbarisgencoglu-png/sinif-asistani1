@@ -1,13 +1,13 @@
 {
-  "version": "1.0.77",
+  "version": "1.0.78",
   "releaseDate": "2026-10-21",
   "minRequiredVersion": "1.0.0",
-  "title": "Sınıf Asistanı v1.0.77 Yayında!",
-  "description": "Sınav Başarı Sıralaması ve Derece Ödül Puanları Hesaplama Düzeltmesi",
+  "title": "Sınıf Asistanı v1.0.78 Yayında!",
+  "description": "Defter Resim Boyutlandırma, İmleç Konumuna Ekleme ve Sınav Detayı Hatası Düzeltmesi",
   "features": [
-    "Standart Yarışma Sıralaması (1224 Ranking): Sınavlarda eşit puan alan öğrencilerin dereceleri doğru hesaplanarak, sonraki gelen öğrencilerin derece ödülü kotası ve sıralaması düzeltildi.",
-    "İlk N Derece Kontrolü ve Fazladan Puan Düzeltmesi: İlk N (ör. 5) derece kuralı aşılmadan, sıralamada geride kalan öğrencilere sehven verilen fazladan derece puanları kaldırıldı.",
-    "Otomatik Geriye Dönük Veri İyileştirmesi: Mevcut sınav sonuçları açıldığında veya ayarlar kaydedildiğinde hatalı sınav puanları otomatik olarak sıfırlanıp doğru derecelerine göre yeniden hesaplanır."
+    "Defter Resim Boyutlandırma: Deftere eklenen resimlerin sağ alt köşesinden fare veya akıllı tahta dokunmatiği ile serbestçe boyutlandırılabilmesi sağlandı.",
+    "Tam İmleç Konumuna Ekleme ve Metin Kaydırma: Eklenen resimlerin her zaman o anki imleç konumuna yerleşmesi ve altındaki metin ile öğeleri defter satır hizasını koruyarak aşağı kaydırması sağlandı.",
+    "Sınav Detayları Hata Düzeltmesi: Defterde çalışırken arka planda tetiklenen stateChanged olayında oluşan 'countExamDefinedAnswers' referans hatası giderildi."
   ],
   "release_url": "https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/latest"
 }

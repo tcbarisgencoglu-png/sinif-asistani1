@@ -169,6 +169,56 @@
   }
 
   // Punto Uygulama ve Değiştirme Fonksiyonları
+  const RESIZE_HANDLE_SVG = `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="10 3 13 3 13 6"></polyline><polyline points="6 13 3 13 3 10"></polyline><line x1="13" y1="3" x2="9" y2="7"></line><line x1="3" y1="13" x2="7" y2="9"></line></svg>`;
+
+  function getNotebookLineHeight() {
+    if (!notebookTextarea) return 48;
+    const val = parseInt(getComputedStyle(notebookTextarea).getPropertyValue('--nb-line-height'), 10);
+    return val > 0 ? val : 48;
+  }
+
+  function syncImageLineAlignment(wrapper) {
+    if (!wrapper || !notebookTextarea) return;
+    const img = wrapper.querySelector('img');
+    if (!img) return;
+    const lineHeight = getNotebookLineHeight();
+    const imgHeight = img.offsetHeight || img.getBoundingClientRect().height || 0;
+    if (imgHeight <= 0) return;
+
+    const topMargin = 4;
+    const minPadding = 8;
+    const rows = Math.max(1, Math.ceil((imgHeight + minPadding) / lineHeight));
+    const totalSlotHeight = rows * lineHeight;
+    const bottomMargin = Math.max(4, Math.round(totalSlotHeight - imgHeight - topMargin));
+
+    wrapper.style.setProperty('margin-top', topMargin + 'px', 'important');
+    wrapper.style.setProperty('margin-bottom', bottomMargin + 'px', 'important');
+  }
+
+  function syncAllNotebookImages() {
+    if (!notebookTextarea) return;
+    const wrappers = notebookTextarea.querySelectorAll('.notebook-image-wrapper');
+    wrappers.forEach(wrapper => {
+      wrapper.setAttribute('contenteditable', 'false');
+      if (!wrapper.querySelector('.image-resize-handle')) {
+        const resizeBtn = document.createElement('button');
+        resizeBtn.className = 'image-resize-handle';
+        resizeBtn.type = 'button';
+        resizeBtn.title = 'Boyutlandırmak için sürükleyin';
+        resizeBtn.innerHTML = RESIZE_HANDLE_SVG;
+        wrapper.appendChild(resizeBtn);
+      }
+      const img = wrapper.querySelector('img');
+      if (img) {
+        if (img.complete && img.naturalHeight > 0) {
+          syncImageLineAlignment(wrapper);
+        } else {
+          img.addEventListener('load', () => syncImageLineAlignment(wrapper), { once: true });
+        }
+      }
+    });
+  }
+
   function applyNotebookFontSize(sizeKey) {
     if (!FONT_SIZE_LEVELS.includes(sizeKey)) {
       sizeKey = 'normal';
@@ -182,6 +232,7 @@
     try {
       localStorage.setItem('sinif_asistani_notebook_fontsize', sizeKey);
     } catch (e) {}
+    syncAllNotebookImages();
   }
 
   function changeNotebookFontSizeStep(delta) {
@@ -559,7 +610,11 @@
       }, 50);
     };
 
-    if (btnAddStickyNote) btnAddStickyNote.addEventListener('click', openStickyNoteModalFn);
+    if (btnAddStickyNote) {
+      btnAddStickyNote.addEventListener('mousedown', updateSavedRange);
+      btnAddStickyNote.addEventListener('touchstart', updateSavedRange, { passive: true });
+      btnAddStickyNote.addEventListener('click', openStickyNoteModalFn);
+    }
 
     if (formStickyNote) {
       formStickyNote.addEventListener('submit', handleAddStickyNoteSubmit);
@@ -820,7 +875,11 @@
       }, 50);
     };
 
-    if (btnAddTable) btnAddTable.addEventListener('click', openTableModalFn);
+    if (btnAddTable) {
+      btnAddTable.addEventListener('mousedown', updateSavedRange);
+      btnAddTable.addEventListener('touchstart', updateSavedRange, { passive: true });
+      btnAddTable.addEventListener('click', openTableModalFn);
+    }
 
     if (formTable) {
       formTable.addEventListener('submit', handleAddTableSubmit);
@@ -862,7 +921,10 @@
 
     // Görsel Ekle Butonları
     if (btnAddImage && notebookImageInput) {
+      btnAddImage.addEventListener('mousedown', updateSavedRange);
+      btnAddImage.addEventListener('touchstart', updateSavedRange, { passive: true });
       btnAddImage.addEventListener('click', () => {
+        updateSavedRange();
         notebookImageInput.click();
       });
       notebookImageInput.addEventListener('change', (e) => {
@@ -1002,21 +1064,97 @@
 
       notebookTextarea.addEventListener('keyup', updateSavedRange);
       notebookTextarea.addEventListener('mouseup', updateSavedRange);
-      notebookTextarea.addEventListener('click', updateSavedRange);
-      notebookTextarea.addEventListener('focus', updateSavedRange);
+      notebookTextarea.addEventListener('touchend', updateSavedRange, { passive: true });
+      document.addEventListener('selectionchange', () => {
+        if (document.activeElement === notebookTextarea) {
+          updateSavedRange();
+        }
+      });
+
+      // Görsel Boyutlandırma (Mouse ve Akıllı Tahta Dokunmatik Sürükleme Desteği)
+      notebookTextarea.addEventListener('pointerdown', (e) => {
+        const handle = e.target.closest('.image-resize-handle');
+        if (!handle) {
+          const clickedWrapper = e.target.closest('.notebook-image-wrapper');
+          notebookTextarea.querySelectorAll('.notebook-image-wrapper.is-selected').forEach(w => {
+            if (w !== clickedWrapper) w.classList.remove('is-selected');
+          });
+          if (clickedWrapper && !e.target.closest('.image-delete-btn')) {
+            clickedWrapper.classList.add('is-selected');
+          }
+          return;
+        }
+
+        e.preventDefault();
+        e.stopPropagation();
+
+        const wrapper = handle.closest('.notebook-image-wrapper');
+        const img = wrapper ? wrapper.querySelector('img') : null;
+        if (!wrapper || !img) return;
+
+        wrapper.classList.add('is-resizing', 'is-selected');
+        if (handle.setPointerCapture && e.pointerId !== undefined) {
+          try { handle.setPointerCapture(e.pointerId); } catch (err) {}
+        }
+
+        const startX = e.clientX;
+        const startY = e.clientY;
+        const startRect = wrapper.getBoundingClientRect();
+        const startWidth = startRect.width || 320;
+        const startHeight = startRect.height || 200;
+        const aspectRatio = (img.naturalWidth && img.naturalHeight)
+          ? (img.naturalWidth / img.naturalHeight)
+          : (startWidth / Math.max(1, startHeight));
+
+        const maxAllowedWidth = Math.max(160, (notebookTextarea.clientWidth || 800) - 85);
+
+        const onPointerMove = (ev) => {
+          ev.preventDefault();
+          const dx = ev.clientX - startX;
+          const dy = ev.clientY - startY;
+          const deltaWFromY = dy * aspectRatio;
+          const deltaW = Math.abs(dx) >= Math.abs(deltaWFromY) ? dx : deltaWFromY;
+          const newWidth = Math.max(80, Math.min(maxAllowedWidth, Math.round(startWidth + deltaW)));
+
+          wrapper.style.width = newWidth + 'px';
+          syncImageLineAlignment(wrapper);
+          if (typeof checkAndExpandPosterPage === 'function') {
+            checkAndExpandPosterPage();
+          }
+        };
+
+        const onPointerUp = (ev) => {
+          if (handle.releasePointerCapture && ev && ev.pointerId !== undefined) {
+            try { handle.releasePointerCapture(ev.pointerId); } catch (err) {}
+          }
+          window.removeEventListener('pointermove', onPointerMove);
+          window.removeEventListener('pointerup', onPointerUp);
+          window.removeEventListener('pointercancel', onPointerUp);
+          wrapper.classList.remove('is-resizing');
+          syncImageLineAlignment(wrapper);
+          triggerAutoSave();
+        };
+
+        window.addEventListener('pointermove', onPointerMove, { passive: false });
+        window.addEventListener('pointerup', onPointerUp);
+        window.addEventListener('pointercancel', onPointerUp);
+      });
       
       // Görsel, Tablo ve Yapışkan Not Silme Olayı (Delegation)
       notebookTextarea.addEventListener('click', (e) => {
         if (e.target) {
-          if (e.target.classList.contains('image-delete-btn')) {
+          const deleteImgBtn = e.target.closest('.image-delete-btn');
+          if (deleteImgBtn) {
             e.preventDefault();
             e.stopPropagation();
-            const wrapper = e.target.closest('.notebook-image-wrapper');
+            const wrapper = deleteImgBtn.closest('.notebook-image-wrapper');
             if (wrapper) {
               wrapper.remove();
               triggerAutoSave();
             }
-          } else if (e.target.classList.contains('table-delete-btn')) {
+            return;
+          }
+          if (e.target.classList.contains('table-delete-btn')) {
             e.preventDefault();
             e.stopPropagation();
             const wrapper = e.target.closest('.notebook-table-wrapper');
@@ -1024,7 +1162,9 @@
               wrapper.remove();
               triggerAutoSave();
             }
-          } else if (e.target.classList.contains('sticky-delete-btn')) {
+            return;
+          }
+          if (e.target.classList.contains('sticky-delete-btn')) {
             e.preventDefault();
             e.stopPropagation();
             const note = e.target.closest('.sticky-note-block');
@@ -1032,6 +1172,7 @@
               note.remove();
               triggerAutoSave();
             }
+            return;
           }
         }
       });
@@ -1041,16 +1182,18 @@
         if (e.target === notebookTextarea) {
           const rect = notebookTextarea.getBoundingClientRect();
           const clickY = e.clientY - rect.top + notebookTextarea.scrollTop;
+          const lineHeight = getNotebookLineHeight();
           
           const lastChild = notebookTextarea.lastElementChild;
           let lastBottomY = 20;
           if (lastChild) {
             const lastRect = lastChild.getBoundingClientRect();
-            lastBottomY = (lastRect.bottom - rect.top) + notebookTextarea.scrollTop;
+            const mb = parseFloat(getComputedStyle(lastChild).marginBottom) || 0;
+            lastBottomY = (lastRect.bottom - rect.top) + notebookTextarea.scrollTop + mb;
           }
           
           if (clickY > lastBottomY + 10) {
-            const linesNeeded = Math.max(1, Math.floor((clickY - lastBottomY) / 44));
+            const linesNeeded = Math.max(1, Math.floor((clickY - lastBottomY) / lineHeight));
             let targetDiv = null;
             for (let i = 0; i < linesNeeded; i++) {
               const div = document.createElement('div');
@@ -1068,9 +1211,11 @@
               sel.addRange(range);
               updateSavedRange();
               triggerAutoSave();
+              return;
             }
           }
         }
+        updateSavedRange();
       });
 
       // Poster sayfasının dinamik olarak aşağı doğru genişletilmesi
@@ -1258,6 +1403,7 @@
     window.addEventListener('resize', () => {
       if (isActiveTab('notebooks')) {
         adjustTopicTitleFontSize();
+        syncAllNotebookImages();
       }
     });
   }
@@ -1478,6 +1624,7 @@
         applyNotebookFontSize(savedFontSize);
 
         syncOrderedListContinuity();
+        syncAllNotebookImages();
       }
 
       // Kırmızı modunu sıfırla
@@ -1731,10 +1878,6 @@
     const suffix = '<div><br></div>'; // Altındaki boşluk ve dikey ritim satırı
     const html = `<div class="notebook-table-wrapper" contenteditable="false"><button class="table-delete-btn" type="button" title="Tabloyu Sil">&times;</button>${tableHtml}</div>` + suffix;
 
-    if (notebookTextarea) {
-      notebookTextarea.focus();
-    }
-
     const inserted = insertHtmlAtCursor(html, true);
     if (!inserted && notebookTextarea) {
       notebookTextarea.innerHTML += html + ' ';
@@ -1770,10 +1913,6 @@
 
     const suffix = '<div><br></div>'; // Adds an empty 36px line below for cursor exiting and vertical rhythm
     const html = `<div class="sticky-note-block sticky-color-${color}" contenteditable="false"><button class="sticky-delete-btn" type="button" title="Notu Sil">&times;</button><div class="sticky-note-icon-container"><i data-lucide="${iconName}"></i></div><div class="sticky-note-content" contenteditable="true">${escapeHTML(text)}</div></div>` + suffix;
-
-    if (notebookTextarea) {
-      notebookTextarea.focus();
-    }
 
     const inserted = insertHtmlAtCursor(html, true);
     if (!inserted && notebookTextarea) {
@@ -1954,13 +2093,15 @@
   function handleImageUpload(file) {
     if (!file) return;
 
+    const rangeAtUploadStart = savedRange ? savedRange.cloneRange() : null;
+
     const reader = new FileReader();
     reader.onload = function(e) {
       const img = new Image();
       img.onload = function() {
-        // Resize image to max 800px width/height to protect localStorage space limit
+        // Resize image to max 1200px width/height for crisp smartboard display while protecting localStorage
         const canvas = document.createElement('canvas');
-        const max_size = 800;
+        const max_size = 1200;
         let width = img.width;
         let height = img.height;
 
@@ -1976,29 +2117,26 @@
           }
         }
 
-        canvas.width = width;
-        canvas.height = height;
+        canvas.width = Math.round(width);
+        canvas.height = Math.round(height);
         const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0, width, height);
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
-        // Compress as JPEG with 0.7 quality to reduce string size in localStorage
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
-        
-        // Image tag wrapped in a hoverable container with a delete button overlay
-        const imgHtml = `<div class="notebook-image-wrapper" contenteditable="false"><img src="${dataUrl}" alt="Görsel"><button class="image-delete-btn" type="button" title="Görseli Sil">&times;</button></div>&nbsp;`;
-        
-        // Focus textarea
-        if (notebookTextarea) {
-          notebookTextarea.focus();
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+        const initialDisplayWidth = Math.max(120, Math.min(360, canvas.width));
+
+        const imgHtml = `<div class="notebook-image-wrapper" contenteditable="false" style="width: ${initialDisplayWidth}px;"><img src="${dataUrl}" alt="Görsel"><button class="image-delete-btn" type="button" title="Görseli Sil">&times;</button><button class="image-resize-handle" type="button" title="Boyutlandırmak için sürükleyin">${RESIZE_HANDLE_SVG}</button></div>`;
+
+        if (rangeAtUploadStart) {
+          savedRange = rangeAtUploadStart.cloneRange();
         }
 
-        const inserted = insertHtmlAtCursor(imgHtml);
+        const inserted = insertHtmlAtCursor(imgHtml, true);
         if (!inserted && notebookTextarea) {
-          // Fallback: append at the end
-          notebookTextarea.innerHTML += imgHtml + ' ';
+          notebookTextarea.insertAdjacentHTML('beforeend', imgHtml + '<div><br></div>');
         }
 
-        // Trigger autosave
+        syncAllNotebookImages();
         triggerAutoSave();
       };
       img.src = e.target.result;
@@ -2018,9 +2156,6 @@
     }
 
     if (html) {
-      if (notebookTextarea) {
-        notebookTextarea.focus();
-      }
       const inserted = insertHtmlAtCursor(html);
       if (!inserted && notebookTextarea) {
         notebookTextarea.innerHTML += html + ' ';
@@ -2031,114 +2166,257 @@
 
   function insertHtmlAtCursor(html, isBlockElement = false) {
     if (!notebookTextarea) return false;
-    let sel, range;
-    if (window.getSelection) {
-      sel = window.getSelection();
-      
-      // Restore savedRange if it exists
-      if (savedRange) {
+    if (!window.getSelection) return false;
+
+    const preservedRange = savedRange ? savedRange.cloneRange() : null;
+    if (document.activeElement !== notebookTextarea) {
+      notebookTextarea.focus();
+    }
+
+    const sel = window.getSelection();
+    if (preservedRange) {
+      try {
         sel.removeAllRanges();
-        sel.addRange(savedRange);
+        sel.addRange(preservedRange);
+        savedRange = preservedRange.cloneRange();
+      } catch (e) {}
+    }
+
+    if (!sel.getRangeAt || !sel.rangeCount) {
+      return false;
+    }
+
+    let range = sel.getRangeAt(0);
+    let container = range.commonAncestorContainer;
+    if (container.nodeType === Node.TEXT_NODE) {
+      container = container.parentNode;
+    }
+
+    let isInside = false;
+    let node = container;
+    while (node) {
+      if (node === notebookTextarea) {
+        isInside = true;
+        break;
       }
+      node = node.parentNode;
+    }
 
-      if (sel.getRangeAt && sel.rangeCount) {
-        range = sel.getRangeAt(0);
-        // Ensure selection is inside notebookTextarea
-        let container = range.commonAncestorContainer;
-        if (container.nodeType === 3) {
-          container = container.parentNode;
-        }
-        
-        // Search parents if it is notebookTextarea
-        let isInside = false;
-        let node = container;
-        let parentBlock = container;
-        while (node) {
-          if (node === notebookTextarea) {
-            isInside = true;
-            break;
-          }
-          parentBlock = node;
-          node = node.parentNode;
-        }
+    if (!isInside) {
+      return false;
+    }
 
-        if (isInside) {
-          if (isBlockElement && parentBlock && parentBlock !== notebookTextarea) {
-            const isEmptyLine = parentBlock.textContent.trim() === '' && 
-                                (parentBlock.innerHTML === '<br>' || parentBlock.querySelector('br') || parentBlock.innerHTML === '');
-            
-            const el = document.createElement("div");
-            el.innerHTML = html;
-            const frag = document.createDocumentFragment();
-            let childNode, lastNode;
-            while ((childNode = el.firstChild)) {
-              lastNode = frag.appendChild(childNode);
+    if (!isBlockElement) {
+      range.deleteContents();
+      const el = document.createElement('div');
+      el.innerHTML = html;
+      const frag = document.createDocumentFragment();
+      let childNode, lastNode;
+      while ((childNode = el.firstChild)) {
+        lastNode = frag.appendChild(childNode);
+      }
+      range.insertNode(frag);
+      if (lastNode) {
+        range = range.cloneRange();
+        range.setStartAfter(lastNode);
+        range.collapse(true);
+        sel.removeAllRanges();
+        sel.addRange(range);
+        savedRange = range.cloneRange();
+      }
+      return true;
+    }
+
+    // --- BLOK ELEMAN EKLEME (Görsel, Tablo, Yapışkan Not) ---
+    // İmlecin bulunduğu doğrudan üst satır bloğunu (notebookTextarea'nın doğrudan çocuğunu) belirle
+    let parentBlock = null;
+
+    if (range.startContainer === notebookTextarea) {
+      if (notebookTextarea.childNodes.length === 0) {
+        const initDiv = document.createElement('div');
+        initDiv.innerHTML = '<br>';
+        notebookTextarea.appendChild(initDiv);
+        parentBlock = initDiv;
+        range.setStart(parentBlock, 0);
+        range.collapse(true);
+      } else if (range.startOffset < notebookTextarea.childNodes.length) {
+        const targetChild = notebookTextarea.childNodes[range.startOffset];
+        if (targetChild.nodeType === Node.TEXT_NODE) {
+          const wrapDiv = document.createElement('div');
+          notebookTextarea.insertBefore(wrapDiv, targetChild);
+          wrapDiv.appendChild(targetChild);
+          parentBlock = wrapDiv;
+          range.setStart(targetChild, 0);
+          range.collapse(true);
+        } else {
+          parentBlock = targetChild;
+          range.setStart(parentBlock, 0);
+          range.collapse(true);
+        }
+      } else {
+        parentBlock = notebookTextarea.lastElementChild;
+        if (parentBlock) {
+          range.selectNodeContents(parentBlock);
+          range.collapse(false);
+        }
+      }
+    } else if (range.startContainer.nodeType === Node.TEXT_NODE && range.startContainer.parentNode === notebookTextarea) {
+      const txtNode = range.startContainer;
+      const offset = range.startOffset;
+      const wrapDiv = document.createElement('div');
+      notebookTextarea.insertBefore(wrapDiv, txtNode);
+      wrapDiv.appendChild(txtNode);
+      parentBlock = wrapDiv;
+      range.setStart(txtNode, offset);
+      range.collapse(true);
+    } else {
+      let curr = range.startContainer;
+      if (curr.nodeType === Node.TEXT_NODE) curr = curr.parentNode;
+      while (curr && curr !== notebookTextarea) {
+        if (curr.parentNode === notebookTextarea) {
+          parentBlock = curr;
+          break;
+        }
+        curr = curr.parentNode;
+      }
+    }
+
+    const el = document.createElement('div');
+    el.innerHTML = html;
+    const frag = document.createDocumentFragment();
+    let childNode;
+    let firstInsertedEl = null;
+    let lastInsertedEl = null;
+    while ((childNode = el.firstChild)) {
+      if (childNode.nodeType === Node.ELEMENT_NODE) {
+        if (!firstInsertedEl) firstInsertedEl = childNode;
+        lastInsertedEl = childNode;
+      }
+      frag.appendChild(childNode);
+    }
+
+    if (!parentBlock || parentBlock === notebookTextarea) {
+      notebookTextarea.appendChild(frag);
+    } else if (
+      parentBlock.classList &&
+      (parentBlock.classList.contains('notebook-image-wrapper') ||
+       parentBlock.classList.contains('notebook-table-wrapper') ||
+       parentBlock.classList.contains('sticky-note-block'))
+    ) {
+      if (parentBlock.nextSibling) {
+        notebookTextarea.insertBefore(frag, parentBlock.nextSibling);
+      } else {
+        notebookTextarea.appendChild(frag);
+      }
+    } else {
+      const hasEmbeddedMedia = parentBlock.querySelector && parentBlock.querySelector('img, table, .notebook-image-wrapper, .notebook-table-wrapper, .sticky-note-block, .math-fraction, .math-exponent, .math-sqrt');
+      const cleanBlockText = (parentBlock.textContent || '').replace(/[\u200B-\u200D\uFEFF\s\u00A0]/g, '');
+      const isEmptyLine = !hasEmbeddedMedia && cleanBlockText === '';
+
+      if (isEmptyLine) {
+        const hasNextSibling = !!parentBlock.nextElementSibling;
+        const trailingEmptyDiv = (lastInsertedEl && lastInsertedEl !== firstInsertedEl && lastInsertedEl.tagName === 'DIV' && (lastInsertedEl.textContent || '').trim() === '');
+        if (hasNextSibling && trailingEmptyDiv && lastInsertedEl.parentNode === frag) {
+          frag.removeChild(lastInsertedEl);
+          lastInsertedEl = firstInsertedEl;
+        }
+        notebookTextarea.insertBefore(frag, parentBlock);
+        if (hasNextSibling || trailingEmptyDiv) {
+          notebookTextarea.removeChild(parentBlock);
+        }
+      } else {
+        try {
+          const checkLeft = document.createRange();
+          checkLeft.selectNodeContents(parentBlock);
+          checkLeft.setEnd(range.startContainer, range.startOffset);
+          const leftClone = checkLeft.cloneContents();
+          const leftHasMedia = leftClone.querySelector && leftClone.querySelector('img, table, .notebook-image-wrapper, .notebook-table-wrapper, .sticky-note-block, .math-fraction, .math-exponent, .math-sqrt');
+          const leftText = (leftClone.textContent || '').replace(/[\u200B-\u200D\uFEFF\s\u00A0]/g, '');
+          const isAtStartOfBlock = !leftHasMedia && leftText === '';
+
+          const checkRight = document.createRange();
+          checkRight.selectNodeContents(parentBlock);
+          checkRight.setStart(range.endContainer, range.endOffset);
+          const rightClone = checkRight.cloneContents();
+          const rightHasMedia = rightClone.querySelector && rightClone.querySelector('img, table, .notebook-image-wrapper, .notebook-table-wrapper, .sticky-note-block, .math-fraction, .math-exponent, .math-sqrt');
+          const rightText = (rightClone.textContent || '').replace(/[\u200B-\u200D\uFEFF\s\u00A0]/g, '');
+          const isAtEndOfBlock = !rightHasMedia && rightText === '';
+
+          const trailingEmptyDiv = (lastInsertedEl && lastInsertedEl !== firstInsertedEl && lastInsertedEl.tagName === 'DIV' && (lastInsertedEl.textContent || '').trim() === '');
+
+          if (isAtStartOfBlock) {
+            if (trailingEmptyDiv && lastInsertedEl.parentNode === frag) {
+              frag.removeChild(lastInsertedEl);
+              lastInsertedEl = firstInsertedEl;
             }
-
-            if (isEmptyLine) {
-              // Replace parentBlock with the fragment
-              notebookTextarea.insertBefore(frag, parentBlock);
-              notebookTextarea.removeChild(parentBlock);
+            notebookTextarea.insertBefore(frag, parentBlock);
+          } else if (isAtEndOfBlock) {
+            if (parentBlock.nextElementSibling && trailingEmptyDiv && lastInsertedEl.parentNode === frag) {
+              frag.removeChild(lastInsertedEl);
+              lastInsertedEl = firstInsertedEl;
+            }
+            if (parentBlock.nextSibling) {
+              notebookTextarea.insertBefore(frag, parentBlock.nextSibling);
             } else {
-              try {
-                // Split parentBlock at cursor
-                const leftRange = document.createRange();
-                leftRange.setStart(parentBlock, 0);
-                leftRange.setEnd(range.startContainer, range.startOffset);
-                const leftFragment = leftRange.extractContents();
-                
-                const leftBlock = document.createElement(parentBlock.tagName || 'DIV');
-                if (parentBlock.className) leftBlock.className = parentBlock.className;
-                if (parentBlock.style.cssText) leftBlock.style.cssText = parentBlock.style.cssText;
-                leftBlock.appendChild(leftFragment);
-                
-                notebookTextarea.insertBefore(leftBlock, parentBlock);
-                notebookTextarea.insertBefore(frag, parentBlock);
-                
-                if (parentBlock.textContent.trim() === '' && parentBlock.innerHTML === '') {
-                  parentBlock.innerHTML = '<br>';
-                }
-              } catch (err) {
-                // Fallback to simple insertNode
-                range.deleteContents();
-                range.insertNode(frag);
-              }
+              notebookTextarea.appendChild(frag);
             }
-
-            if (lastNode) {
-              range = document.createRange();
-              range.setStartAfter(lastNode);
-              range.collapse(true);
-              sel.removeAllRanges();
-              sel.addRange(range);
-              savedRange = range.cloneRange();
-            }
-            return true;
           } else {
-            // Original inline insertion behavior
-            range.deleteContents();
-            const el = document.createElement("div");
-            el.innerHTML = html;
-            const frag = document.createDocumentFragment();
-            let childNode, lastNode;
-            while ((childNode = el.firstChild)) {
-              lastNode = frag.appendChild(childNode);
+            // İmleç satırın ortasındaysa satırı ikiye böl: sol kısım üstte kalır, blok araya girer, sağ kısım alta kayar
+            if (trailingEmptyDiv && lastInsertedEl.parentNode === frag) {
+              frag.removeChild(lastInsertedEl);
+              lastInsertedEl = firstInsertedEl;
             }
-            range.insertNode(frag);
-            if (lastNode) {
-              range = range.cloneRange();
-              range.setStartAfter(lastNode);
-              range.collapse(true);
-              sel.removeAllRanges();
-              sel.addRange(range);
-              savedRange = range.cloneRange();
+            const leftFragment = checkLeft.extractContents();
+            const leftBlock = document.createElement(parentBlock.tagName || 'DIV');
+            if (parentBlock.className) leftBlock.className = parentBlock.className;
+            if (parentBlock.style.cssText) leftBlock.style.cssText = parentBlock.style.cssText;
+            leftBlock.appendChild(leftFragment);
+
+            notebookTextarea.insertBefore(leftBlock, parentBlock);
+            notebookTextarea.insertBefore(frag, parentBlock);
+
+            if ((parentBlock.textContent || '').trim() === '' && parentBlock.innerHTML === '') {
+              parentBlock.innerHTML = '<br>';
             }
-            return true;
+          }
+        } catch (err) {
+          if (parentBlock.nextSibling) {
+            notebookTextarea.insertBefore(frag, parentBlock.nextSibling);
+          } else {
+            notebookTextarea.appendChild(frag);
           }
         }
       }
     }
-    return false;
+
+    // Eklenen bloğun altında düzenlenebilir bir satır bulunduğundan emin ol ve imleci oraya taşı
+    const anchorEl = lastInsertedEl || firstInsertedEl;
+    if (anchorEl && anchorEl.parentNode === notebookTextarea) {
+      let nextEditableLine = anchorEl.nextElementSibling;
+      if (!nextEditableLine) {
+        nextEditableLine = document.createElement('div');
+        nextEditableLine.innerHTML = '<br>';
+        notebookTextarea.appendChild(nextEditableLine);
+      }
+
+      const newRange = document.createRange();
+      if (
+        nextEditableLine.classList &&
+        (nextEditableLine.classList.contains('notebook-image-wrapper') ||
+         nextEditableLine.classList.contains('notebook-table-wrapper') ||
+         nextEditableLine.classList.contains('sticky-note-block'))
+      ) {
+        newRange.setStartAfter(anchorEl);
+      } else {
+        newRange.setStart(nextEditableLine, 0);
+      }
+      newRange.collapse(true);
+      sel.removeAllRanges();
+      sel.addRange(newRange);
+      savedRange = newRange.cloneRange();
+    }
+
+    return true;
   }
 
   function escapeHTML(str) {

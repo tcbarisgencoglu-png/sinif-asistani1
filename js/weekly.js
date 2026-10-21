@@ -194,6 +194,7 @@ let activeOpticalKeySubjId = '';
 
 let editAnswerKeyTemp = {};
 let editAnswerKeyChoices = 4;
+let activeEditKeySubjId = '';
 
 let activeExam = null;
 let toastCallback = null;
@@ -739,6 +740,31 @@ function findCorrectAnswerForKey(answerKey, subj, subjIndex, q, cumulativeOffset
   return '';
 }
 
+function countExamDefinedAnswers(exam, keyObj) {
+  if (!exam) return 0;
+  const rawKey = keyObj || exam.answerKey || {};
+  if (exam.isMultiSubject && Array.isArray(exam.subjects) && exam.subjects.length > 0) {
+    let count = 0;
+    let cum = 0;
+    exam.subjects.forEach((s, idx) => {
+      const qCount = parseInt(s.questionCount, 10) || 0;
+      for (let q = 1; q <= qCount; q++) {
+        if (findCorrectAnswerForKey(rawKey, s, idx, q, cum)) {
+          count++;
+        }
+      }
+      cum += qCount;
+    });
+    return count;
+  }
+  const totalQ = parseInt(exam.totalQuestions, 10) || 20;
+  let count = 0;
+  for (let q = 1; q <= totalQ; q++) {
+    if (rawKey[q] || rawKey[String(q)]) count++;
+  }
+  return count;
+}
+
 // Serbest metinden (Örn: "1.a 2.a 3.b 4.b..." veya "AABBCCDDAA" veya "A, A, B...") cevap anahtarını ayrıştıran evrensel motor
 function parseAnswerKeyText(rawText, choicesCount = 4) {
   if (!rawText || typeof rawText !== 'string') return {};
@@ -806,6 +832,7 @@ window.normalizeOmrSubject = normalizeOmrSubject;
 window.getOmrSubjectBaseKeywords = getOmrSubjectBaseKeywords;
 window.extractAnswerForSubj = extractAnswerForSubj;
 window.findCorrectAnswerForKey = findCorrectAnswerForKey;
+window.countExamDefinedAnswers = countExamDefinedAnswers;
 window.parseAnswerKeyText = parseAnswerKeyText;
 
 function setupWeeklyTab(showToast) {
@@ -4142,31 +4169,6 @@ Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi ve
     btnEditActiveExamKey.addEventListener('click', () => {
       openDesktopAnswerKeyModal();
     });
-  }
-
-  function countExamDefinedAnswers(exam, keyObj) {
-    if (!exam) return 0;
-    const rawKey = keyObj || exam.answerKey || {};
-    if (exam.isMultiSubject && Array.isArray(exam.subjects) && exam.subjects.length > 0) {
-      let count = 0;
-      let cum = 0;
-      exam.subjects.forEach((s, idx) => {
-        const qCount = parseInt(s.questionCount, 10) || 0;
-        for (let q = 1; q <= qCount; q++) {
-          if (findCorrectAnswerForKey(rawKey, s, idx, q, cum)) {
-            count++;
-          }
-        }
-        cum += qCount;
-      });
-      return count;
-    }
-    const totalQ = parseInt(exam.totalQuestions, 10) || 20;
-    let count = 0;
-    for (let q = 1; q <= totalQ; q++) {
-      if (rawKey[q] || rawKey[String(q)]) count++;
-    }
-    return count;
   }
 
   function openDesktopAnswerKeyModal() {
@@ -9187,9 +9189,13 @@ function renderPipContent(win) {
         const state = (stateManager && stateManager.state) ? stateManager.state : stateManager.loadState();
         const updated = (state.weeklyEvaluations || []).find(e => String(e.id) === String(currentActiveId));
         if (updated) {
-          openActiveExam(updated);
-          if (modalEditExamAnswerKey && modalEditExamAnswerKey.classList.contains('active')) {
-            openDesktopAnswerKeyModal();
+          activeExam = updated;
+          window.activeWeeklyExam = updated;
+          if (activeExamCard && activeExamCard.style.display !== 'none') {
+            openActiveExam(updated);
+          }
+          if (modalEditExamAnswerKey && modalEditExamAnswerKey.classList.contains('active') && typeof window.openDesktopAnswerKeyModal === 'function') {
+            window.openDesktopAnswerKeyModal();
           }
         }
       }

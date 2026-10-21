@@ -958,34 +958,61 @@
   min-height: var(--nb-line-height) !important;
 }
 
-/* Görsel Sildiğimiz Butonlu Wrapper */
+/* Görsel Boyutlandırılabilir ve Silinebilir Wrapper */
+.notebook-editor-textarea .notebook-image-wrapper,
 .notebook-image-wrapper {
-  display: inline-block;
-  float: left;
-  margin: 5px 15px 10px 0;
-  position: relative;
-  max-width: 45%;
+  display: block !important;
+  float: none !important;
+  clear: both !important;
+  position: relative !important;
+  width: 320px;
+  min-width: 80px !important;
+  max-width: 100% !important;
+  height: auto !important;
+  min-height: 0 !important;
+  line-height: 0 !important;
+  margin-top: 4px !important;
+  margin-right: 0 !important;
+  margin-bottom: 12px;
+  margin-left: 0 !important;
+  padding: 0 !important;
   cursor: default;
-  vertical-align: top;
+  user-select: none;
+  -webkit-user-select: none;
+  box-sizing: border-box !important;
+  border-radius: var(--radius-sm);
+  transition: box-shadow 0.15s ease;
 }
 
+.notebook-editor-textarea .notebook-image-wrapper:hover,
+.notebook-editor-textarea .notebook-image-wrapper.is-selected,
+.notebook-editor-textarea .notebook-image-wrapper.is-resizing {
+  outline: 2px dashed var(--primary, #4f46e5);
+  outline-offset: 2px;
+}
+
+.notebook-editor-textarea .notebook-image-wrapper img,
 .notebook-image-wrapper img {
-  display: block;
-  width: 100%;
-  max-height: 280px;
+  display: block !important;
+  width: 100% !important;
+  height: auto !important;
+  max-height: none !important;
   border-radius: var(--radius-sm);
   border: 1px solid var(--border-color);
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-drag: none;
 }
 
 .notebook-image-wrapper .image-delete-btn {
   position: absolute;
-  top: -8px;
-  right: -8px;
-  width: 22px;
-  height: 22px;
+  top: -10px;
+  right: -10px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
   background: #ef4444;
-  border: 1px solid #ffffff;
+  border: 1.5px solid #ffffff;
   color: white;
   font-size: 14px;
   font-weight: bold;
@@ -995,10 +1022,10 @@
   cursor: pointer;
   box-shadow: var(--shadow-sm);
   line-height: 1;
-  z-index: 10;
+  z-index: 12;
   opacity: 1;
   pointer-events: auto;
-  transition: transform var(--transition-fast);
+  transition: transform var(--transition-fast), background var(--transition-fast);
 }
 
 .notebook-image-wrapper:hover .image-delete-btn {
@@ -1007,6 +1034,43 @@
 
 .notebook-image-wrapper .image-delete-btn:hover {
   background: #dc2626;
+}
+
+.notebook-image-wrapper .image-resize-handle {
+  position: absolute;
+  bottom: -10px;
+  right: -10px;
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  background: var(--primary, #4f46e5);
+  border: 1.5px solid #ffffff;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: nwse-resize;
+  box-shadow: var(--shadow-sm);
+  z-index: 12;
+  opacity: 1;
+  pointer-events: auto;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  padding: 0;
+  transition: transform var(--transition-fast), background var(--transition-fast);
+}
+
+.notebook-image-wrapper:hover .image-resize-handle,
+.notebook-image-wrapper.is-resizing .image-resize-handle {
+  transform: scale(1.1);
+  background: #4338ca;
+}
+
+.notebook-image-wrapper .image-resize-handle svg {
+  width: 14px;
+  height: 14px;
+  pointer-events: none;
 }
 
 /* Yapışkan Not Silme Butonu */
@@ -1198,8 +1262,20 @@
 
   body.print-notebook .sticky-delete-btn,
   body.print-notebook .table-delete-btn,
-  body.print-notebook .image-delete-btn {
-    display: none !important; /* Silme butonlarını yazdırmada gizle */
+  body.print-notebook .image-delete-btn,
+  body.print-notebook .image-resize-btn,
+  body.print-notebook .image-resize-handle {
+    display: none !important; /* Silme ve boyutlandırma butonlarını yazdırmada gizle */
+  }
+
+  body.print-notebook .notebook-image-wrapper {
+    display: block !important;
+    float: none !important;
+    clear: both !important;
+    margin: 12px 0 !important;
+    max-width: 100% !important;
+    outline: none !important;
+    page-break-inside: avoid !important;
   }
 
   body.print-notebook .notebook-table-wrapper {
