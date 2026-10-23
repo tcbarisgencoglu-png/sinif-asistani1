@@ -155,6 +155,14 @@
 
       const data = this.getData();
       let students = Array.isArray(data.students) ? data.students : [];
+      if (students.length === 0 && typeof window !== 'undefined') {
+        if (window.stateManager?.state?.students?.length > 0) {
+          students = window.stateManager.state.students;
+        } else if (window.Companion && typeof window.Companion.getData === 'function') {
+          const cd = window.Companion.getData();
+          if (Array.isArray(cd.students) && cd.students.length > 0) students = cd.students;
+        }
+      }
       const activeSection = (this.activeExam && this.activeExam.branch) || (window.Companion && window.Companion.activeSection) || '';
 
       if (students.length > 0) {
@@ -1663,9 +1671,12 @@
 
         const isUnmatched = !this.activeCardResult.studentId || 
                             (this.activeCardResult.studentId.startsWith('temp_') && (!this.activeCardResult.studentNo || this.activeCardResult.studentNo === '-')) || 
-                            (this.activeCardResult.studentName === 'Öğrenci' && (!this.activeCardResult.studentNo || this.activeCardResult.studentNo === '-'));
+                            !this.activeCardResult.studentNo || 
+                            this.activeCardResult.studentNo === '-' || 
+                            this.activeCardResult.studentName === 'Öğrenci' || 
+                            (typeof this.activeCardResult.studentName === 'string' && this.activeCardResult.studentName.startsWith('Öğrenci #'));
 
-        if (isUnmatched && !isModalOpen) {
+        if (isUnmatched) {
           this.openStudentPickerModal();
         }
 
@@ -1796,7 +1807,12 @@
       }
 
       // Eşleşmeyen Öğrenci Uyarısı
-      const isUnmatched = !res.studentId || res.studentId.startsWith('temp_') || res.studentName === 'Öğrenci' || res.studentNo === '-';
+      const isUnmatched = !res.studentId || 
+                          res.studentId.startsWith('temp_') || 
+                          !res.studentNo || 
+                          res.studentNo === '-' || 
+                          res.studentName === 'Öğrenci' || 
+                          (typeof res.studentName === 'string' && res.studentName.startsWith('Öğrenci #'));
       const unmatchedAlert = document.getElementById('omr-unmatched-alert');
       if (unmatchedAlert) {
         unmatchedAlert.style.display = isUnmatched ? 'flex' : 'none';

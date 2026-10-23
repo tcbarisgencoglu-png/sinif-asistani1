@@ -1313,28 +1313,25 @@
       // Soru satırları 1. satırdan başlayarak flex-start düzeninde aşağıya doğru yerleşir.
       const maxQuestions = Math.max(...examSubjects.map(s => parseInt(s.questionCount, 10) || 0), 1);
 
-      let vFirstRowBase = 0.3250;
-      let vLastRow = 0.9400;
-      let vStandardStep = 0.0490; // A5 Yarım Sayfa için 22px pitch / ~488px anchor H ≈ 0.045 - 0.051
+      let vFirstRowBase = 0.2400;
+      let vLastRow = 0.8430;
+      let vStandardStep = (0.8430 - 0.2400) / (Math.max(8, maxQuestions) - 1); // 8 sorulu A5 formda ~0.0861, 10 soruluda ~0.0670
 
       if (perPage === 1) {
         // A4 Tam Sayfa
-        vFirstRowBase = 0.2700;
-        vLastRow = 0.9500;
-        vStandardStep = 0.0350;
+        vFirstRowBase = 0.2000;
+        vLastRow = 0.9400;
+        vStandardStep = (0.9400 - 0.2000) / (Math.max(12, maxQuestions) - 1);
       } else if (perPage === 4) {
         // A6 Çeyrek Sayfa
-        vFirstRowBase = 0.3300;
-        vLastRow = 0.9200;
-        vStandardStep = 0.0720;
+        vFirstRowBase = 0.2600;
+        vLastRow = 0.8800;
+        vStandardStep = (0.8800 - 0.2600) / (Math.max(6, maxQuestions) - 1);
       }
 
       const availH = vLastRow - vFirstRowBase;
-      // Kompakt (flex-start) düzende satırlar soru sayısı kart sınırına sığdığı sürece standart adımla (vStandardStep) dizilir.
-      // Soru sayısı sınır yüksekliğini aştığında (örn. A5'te 13+ soru) kart içine orantılı sıkışır:
-      const maxFitQuestions = Math.floor(availH / vStandardStep) + 1;
-      const vCompactStep = maxQuestions > maxFitQuestions
-        ? (availH / (maxQuestions - 1))
+      const vCompactStep = maxQuestions > 1
+        ? (availH / (Math.max(8, maxQuestions) - 1))
         : vStandardStep;
 
       // 3. Ders sütunu içindeki şıkların yayılımı (A - B - C - D)
@@ -1349,54 +1346,54 @@
         let colU_A, choiceStep;
         if (numSubjects === 5) {
           const colBounds = [
-            { uA: 0.0700, uD: 0.1620 }, // 1. Ders (Türkçe)
-            { uA: 0.2580, uD: 0.3500 }, // 2. Ders (Matematik)
-            { uA: 0.4490, uD: 0.5410 }, // 3. Ders (Sosyal Bilgiler)
-            { uA: 0.6410, uD: 0.7330 }, // 4. Ders (Fen Bilgisi)
-            { uA: 0.8330, uD: 0.9250 }  // 5. Ders (İngilizce)
+            { uA: 0.0740, uD: 0.1700 }, // 1. Ders (Türkçe)
+            { uA: 0.2660, uD: 0.3620 }, // 2. Ders (Matematik)
+            { uA: 0.4580, uD: 0.5540 }, // 3. Ders (Sosyal Bilgiler)
+            { uA: 0.6500, uD: 0.7460 }, // 4. Ders (Fen Bilgisi)
+            { uA: 0.8420, uD: 0.9380 }  // 5. Ders (İngilizce)
           ];
-          const cb = colBounds[sIdx] || { uA: 0.0700 + sIdx * 0.191, uD: 0.1620 + sIdx * 0.191 };
+          const cb = colBounds[sIdx] || { uA: 0.0740 + sIdx * 0.192, uD: 0.1700 + sIdx * 0.192 };
           colU_A = cb.uA;
-          choiceStep = letters.length > 1 ? ((cb.uD - cb.uA) / (letters.length - 1)) : 0.0307;
+          choiceStep = letters.length > 1 ? ((cb.uD - cb.uA) / (letters.length - 1)) : 0.0320;
         } else if (numSubjects === 4) {
           const colBounds = [
-            { uA: 0.0820, uD: 0.1740 },
-            { uA: 0.3220, uD: 0.4140 },
-            { uA: 0.5620, uD: 0.6540 },
-            { uA: 0.8020, uD: 0.8940 }
+            { uA: 0.0820, uD: 0.1780 },
+            { uA: 0.3220, uD: 0.4180 },
+            { uA: 0.5620, uD: 0.6580 },
+            { uA: 0.8020, uD: 0.8980 }
           ];
-          const cb = colBounds[sIdx] || { uA: 0.0820 + sIdx * 0.240, uD: 0.1740 + sIdx * 0.240 };
+          const cb = colBounds[sIdx] || { uA: 0.0820 + sIdx * 0.240, uD: 0.1780 + sIdx * 0.240 };
           colU_A = cb.uA;
-          choiceStep = letters.length > 1 ? ((cb.uD - cb.uA) / (letters.length - 1)) : 0.0307;
+          choiceStep = letters.length > 1 ? ((cb.uD - cb.uA) / (letters.length - 1)) : 0.0320;
         } else if (numSubjects === 3) {
           const colBounds = [
-            { uA: 0.0950, uD: 0.1870 },
-            { uA: 0.4100, uD: 0.5020 },
-            { uA: 0.7250, uD: 0.8170 }
+            { uA: 0.0950, uD: 0.1910 },
+            { uA: 0.4100, uD: 0.5060 },
+            { uA: 0.7250, uD: 0.8210 }
           ];
-          const cb = colBounds[sIdx] || { uA: 0.0950 + sIdx * 0.315, uD: 0.1870 + sIdx * 0.315 };
+          const cb = colBounds[sIdx] || { uA: 0.0950 + sIdx * 0.315, uD: 0.1910 + sIdx * 0.315 };
           colU_A = cb.uA;
-          choiceStep = letters.length > 1 ? ((cb.uD - cb.uA) / (letters.length - 1)) : 0.0307;
+          choiceStep = letters.length > 1 ? ((cb.uD - cb.uA) / (letters.length - 1)) : 0.0320;
         } else if (numSubjects === 2) {
           const colBounds = [
-            { uA: 0.1200, uD: 0.2120 },
-            { uA: 0.5900, uD: 0.6820 }
+            { uA: 0.1200, uD: 0.2160 },
+            { uA: 0.5900, uD: 0.6860 }
           ];
-          const cb = colBounds[sIdx] || { uA: 0.1200 + sIdx * 0.470, uD: 0.2120 + sIdx * 0.470 };
+          const cb = colBounds[sIdx] || { uA: 0.1200 + sIdx * 0.470, uD: 0.2160 + sIdx * 0.470 };
           colU_A = cb.uA;
-          choiceStep = letters.length > 1 ? ((cb.uD - cb.uA) / (letters.length - 1)) : 0.0307;
+          choiceStep = letters.length > 1 ? ((cb.uD - cb.uA) / (letters.length - 1)) : 0.0320;
         } else if (numSubjects === 6) {
           const colBounds = [
-            { uA: 0.0620, uD: 0.1540 },
-            { uA: 0.2200, uD: 0.3120 },
-            { uA: 0.3780, uD: 0.4700 },
-            { uA: 0.5360, uD: 0.6280 },
-            { uA: 0.6940, uD: 0.7860 },
-            { uA: 0.8520, uD: 0.9440 }
+            { uA: 0.0620, uD: 0.1580 },
+            { uA: 0.2200, uD: 0.3160 },
+            { uA: 0.3780, uD: 0.4740 },
+            { uA: 0.5360, uD: 0.6320 },
+            { uA: 0.6940, uD: 0.7900 },
+            { uA: 0.8520, uD: 0.9480 }
           ];
-          const cb = colBounds[sIdx] || { uA: 0.0620 + sIdx * 0.158, uD: 0.1540 + sIdx * 0.158 };
+          const cb = colBounds[sIdx] || { uA: 0.0620 + sIdx * 0.158, uD: 0.1580 + sIdx * 0.158 };
           colU_A = cb.uA;
-          choiceStep = letters.length > 1 ? ((cb.uD - cb.uA) / (letters.length - 1)) : 0.0307;
+          choiceStep = letters.length > 1 ? ((cb.uD - cb.uA) / (letters.length - 1)) : 0.0320;
         } else {
           const colW = (0.955 - (numSubjects - 1) * 0.012) / numSubjects;
           const colStep = colW + 0.012;
@@ -1966,7 +1963,7 @@
     }
 
     // ── YENİ: ROZET VE QR ALANINI HOMOGRAFİ İLE DÜZLEŞTİREREK TARAMA (0 EĞİM, %100 HASSASİYET) ──
-    function unwarpAndScanBadge(context, mapFn, targetW, targetH) {
+    function unwarpAndScanBadge(context, mapFn, targetW, targetH, maxValidIdx = 50) {
       if (typeof mapFn !== 'function') return { qrResult: null, binaryId: null };
 
       const badgeW = 360;
@@ -2091,6 +2088,7 @@
       // 2. 9-Bit Binary OMR Matrisi (3x3 kutucuk)
       let binaryId = null;
       let bestContrast = 0;
+      const effectiveMaxIdx = (maxValidIdx && maxValidIdx > 0) ? maxValidIdx : 50;
       const bGray = new Uint8Array(badgeW * badgeH);
       for (let i = 0, p = 0; i < bData.length; i += 4, p++) {
         bGray[p] = (bData[i] * 77 + bData[i + 1] * 150 + bData[i + 2] * 29) >> 8;
@@ -2132,7 +2130,7 @@
               for (let i = 0; i < 9; i++) {
                 if (cells[i] < thresh) decoded |= (1 << i);
               }
-              if (decoded > 0 && decoded <= 511) {
+              if (decoded > 0 && decoded <= effectiveMaxIdx) {
                 bestContrast = contrast;
                 binaryId = decoded;
               }
@@ -2147,14 +2145,15 @@
     // ── YENİ: OPTİK BINARY ID DEDEKTÖRÜ (BÜYÜK 3x3 OMR MATRİSİ - 9 BİT / 512 ÖĞRENCİ) ──
     // Ortaöğretim ve kalabalık kademeler için 511 öğrenciye kadar tam kapasite destekler.
     // Kart başlığında (0.65 - 0.98 U, -0.03 - 0.25 V) 3x3 kutucuk rozetini dinamik tespit eder.
-    function detectBinaryIdInCard(grayBuf, imgW, imgH, cardCorners) {
+    function detectBinaryIdInCard(grayBuf, imgW, imgH, cardCorners, maxValidIdx = 50) {
       if (!cardCorners || !cardCorners.tl || !cardCorners.tr || !cardCorners.bl) return null;
+      const effectiveMaxIdx = (maxValidIdx && maxValidIdx > 0) ? maxValidIdx : 50;
 
       // 1. Homografi ile doğrudan kalibre edilmiş 3x3 OMR bölgesi örneği
       if (typeof createProjectiveHomography === 'function') {
         const mapFn = createProjectiveHomography(cardCorners);
-        const uStart = 0.792, uEnd = 0.863;
-        const vStart = 0.060, vEnd = 0.171;
+        const uStart = 0.810, uEnd = 0.880;
+        const vStart = 0.045, vEnd = 0.160;
         let bestDirectDecoded = null, bestDirectContrast = 0;
 
         for (let dv = -0.015; dv <= 0.025; dv += 0.003) {
@@ -2190,7 +2189,7 @@
               for (let i = 0; i < 9; i++) {
                 if (cells[i] < thresh) dec |= (1 << i);
               }
-              if (dec > 0 && dec <= 511) {
+              if (dec > 0 && dec <= effectiveMaxIdx) {
                 bestDirectContrast = contrast;
                 bestDirectDecoded = dec;
               }
@@ -2269,7 +2268,7 @@
                   if (cells[i] < thresh) decoded |= (1 << i);
                 }
 
-                if (decoded > 0 && decoded <= 511) {
+                if (decoded > 0 && decoded <= effectiveMaxIdx) {
                   const totalScore = borderScore * 0.5 + (contrast / 255) * 0.5;
                   if (!bestCandidate || totalScore > bestCandidate.totalScore) {
                     bestCandidate = { x, y, side, decoded, totalScore, borderScore, contrast };
@@ -2287,6 +2286,7 @@
     // Sayfada 2 form var mı? (A4 Sayfa Başına 2 Form Tespiti)
     // 1) Sayfanın 2 form barındırabilmesi için mutlaka DİKEY (PORTRAIT, targetH > targetW * 1.15) olması gerekir.
     // Yatay (landscape) taranan A5 veya tekil optik kartlar asla 2 form içeremez.
+    const maxRosterCount = Array.isArray(classStudents) && classStudents.length > 0 ? classStudents.length : 50;
     const isPortrait = targetH > targetW * 1.15;
     let isDoubleForm = false;
     let cornersTop = null;
@@ -2351,7 +2351,7 @@
         br: { ...cornersTop.br }
       };
       const cardTop = scanSingleCard(canvas, gray, targetW, targetH, cornersTop, exam, classStudents, options);
-      cardTop.binaryId = detectBinaryIdInCard(gray, targetW, targetH, cornersTopOrig);
+      cardTop.binaryId = detectBinaryIdInCard(gray, targetW, targetH, cornersTopOrig, maxRosterCount);
       // Üst form QR arama: Önce rozet bölgesini geniş tara, sonra üst yarının tamamında ara
       if (cornersTopOrig && cornersTopOrig.tr) {
         const subW = Math.round(targetW * 0.45);
@@ -2377,7 +2377,7 @@
         br: { ...cornersBottom.br }
       };
       const cardBottom = scanSingleCard(canvas, gray, targetW, targetH, cornersBottom, exam, classStudents, options);
-      cardBottom.binaryId = detectBinaryIdInCard(gray, targetW, targetH, cornersBottomOrig);
+      cardBottom.binaryId = detectBinaryIdInCard(gray, targetW, targetH, cornersBottomOrig, maxRosterCount);
       // Alt form QR arama: Önce rozet bölgesini geniş tara, sonra alt yarının tamamında ara
       if (cornersBottomOrig && cornersBottomOrig.tr) {
         const subW = Math.round(targetW * 0.45);
@@ -2422,9 +2422,9 @@
         br: { ...cornersFull.br }
       };
       const cardFull = scanSingleCard(canvas, gray, targetW, targetH, cornersFull, exam, classStudents, options);
-      const fullBadge = unwarpAndScanBadge(ctx, createProjectiveHomography(cornersFull), targetW, targetH);
+      const fullBadge = unwarpAndScanBadge(ctx, createProjectiveHomography(cornersFull), targetW, targetH, maxRosterCount);
       cardFull.qrResult = fullBadge.qrResult;
-      cardFull.binaryId = detectBinaryIdInCard(gray, targetW, targetH, cornersFullOrig) || fullBadge.binaryId;
+      cardFull.binaryId = detectBinaryIdInCard(gray, targetW, targetH, cornersFullOrig, maxRosterCount) || fullBadge.binaryId;
       if (!cardFull.qrResult) {
         if (cornersFullOrig && cornersFullOrig.tr) {
           const subW = Math.round(targetW * 0.45);
@@ -2445,8 +2445,8 @@
         const globalCorners = detectCornerAnchors(gray, targetW, targetH, threshold, null);
         if (globalCorners) {
           const gCard = scanSingleCard(canvas, gray, targetW, targetH, globalCorners, exam, classStudents, options);
-          const gBadge = unwarpAndScanBadge(ctx, createProjectiveHomography(globalCorners), targetW, targetH);
-          const gBinaryId = detectBinaryIdInCard(gray, targetW, targetH, globalCorners) || gBadge.binaryId;
+          const gBadge = unwarpAndScanBadge(ctx, createProjectiveHomography(globalCorners), targetW, targetH, maxRosterCount);
+          const gBinaryId = detectBinaryIdInCard(gray, targetW, targetH, globalCorners, maxRosterCount) || gBadge.binaryId;
           if (gBinaryId || gBadge.qrResult) {
             cornersFull = globalCorners;
             cardFull = gCard;
@@ -2520,9 +2520,9 @@
         }
       }
 
-      // 2. İKİNCİ ÖNCELİK: OPTİK BINARY ID (Sadece mantıklı sınıf sınırları içindeyse)
-      if (card.binaryId && (card.binaryId > Math.max(sortedRoster.length, 50) || card.binaryId <= 0)) {
-        card.binaryId = null; // Sahte gürültü / sınır dışı binary ID'yi sıfırla
+      // 2. İKİNCİ ÖNCELİK: OPTİK BINARY ID (Sadece sınıf mevcudu sınırları içindeyse)
+      if (card.binaryId && (sortedRoster.length > 0 ? (card.binaryId > sortedRoster.length || card.binaryId <= 0) : (card.binaryId > 50 || card.binaryId <= 0))) {
+        card.binaryId = null; // Sınıf mevcudunu aşan sahte gürültü / sınır dışı binary ID'yi sıfırla
       }
 
       if (!matched && card.binaryId && card.binaryId > 0 && card.binaryId <= sortedRoster.length) {
@@ -2555,7 +2555,7 @@
           }
           if (!matched && (card.binaryId || rawStuIdx)) {
             const idxToFind = card.binaryId || rawStuIdx;
-            if (idxToFind <= globalList.length) {
+            if (idxToFind > 0 && idxToFind <= globalList.length) {
               matched = globalList.find(s => parseInt(s.index || s.studentIndex, 10) === idxToFind) || globalList[idxToFind - 1];
             }
           }
@@ -2588,7 +2588,7 @@
         if (!rawStudentName) rawStudentName = `Öğrenci No: ${rawStuNo}`;
       } else if (!matched && (card.binaryId || rawStuIdx)) {
         const validIdx = card.binaryId || rawStuIdx;
-        if (validIdx > 0 && validIdx <= Math.max(sortedRoster.length, 50)) {
+        if (validIdx > 0 && validIdx <= sortedRoster.length) {
           if (!rawStudentName) rawStudentName = `Öğrenci #${validIdx}`;
         }
       }
