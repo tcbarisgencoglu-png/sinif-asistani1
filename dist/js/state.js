@@ -2472,6 +2472,65 @@ class StateManager {
         }, 80);
       }
     }
+
+    // Eksik/kayıp öğrenci fotoğraflarını arka planda önceki yedeklerden otomatik onar
+    if (typeof window !== 'undefined') {
+      setTimeout(async () => {
+        try {
+          await this.healMissingStudentPhotos();
+        } catch (e) {}
+      }, 400);
+    }
+  }
+
+  async healMissingStudentPhotos() {
+    if (!this.state || !Array.isArray(this.state.students)) return 0;
+    const missingStudents = this.state.students.filter(s => !s.photo || s.photo.length < 50);
+    if (missingStudents.length === 0) return 0;
+
+    try {
+      let backups = [];
+      if (typeof getDailyBackupsFromIndexedDB === 'function') {
+        backups = await getDailyBackupsFromIndexedDB();
+      }
+      let nativeData = null;
+      if (typeof loadDesktopNativeData === 'function') {
+        nativeData = await loadDesktopNativeData();
+      }
+
+      const sources = [];
+      if (nativeData && Array.isArray(nativeData.students)) sources.push(nativeData.students);
+      if (Array.isArray(backups)) {
+        backups.forEach(b => {
+          if (b && b.data && Array.isArray(b.data.students)) sources.push(b.data.students);
+        });
+      }
+
+      let healed = 0;
+      for (const studentList of sources) {
+        for (const s of studentList) {
+          if (s.photo && typeof s.photo === 'string' && s.photo.length > 50) {
+            const current = this.state.students.find(cs => String(cs.id) === String(s.id) || (s.number && String(cs.number) === String(s.number)));
+            if (current && (!current.photo || current.photo.length < 50)) {
+              current.photo = s.photo;
+              healed++;
+            }
+          }
+        }
+        if (this.state.students.every(s => s.photo && s.photo.length > 50)) break;
+      }
+
+      if (healed > 0) {
+        console.log(`[Fotoğraf Onarım] ${healed} öğrenci fotoğrafı önceki yedeklerden başarıyla kurtarıldı.`);
+        this.saveState('Kayıp öğrenci fotoğrafları yedekten kurtarıldı');
+        const ev = new CustomEvent('stateChanged');
+        document.dispatchEvent(ev);
+      }
+      return healed;
+    } catch (err) {
+      console.warn('[Fotoğraf Onarım] Hata:', err);
+      return 0;
+    }
   }
 
   async loadDefaultStateFromServer() {

@@ -403,6 +403,20 @@
       // Hafif ve güvenli master payload (büyük gereksiz veriler temizlenir)
       const source = (window.stateManager && !window.Companion && !window.CompanionOmr) ? 'desktop' : 'terminal';
       const nowIso = new Date().toISOString();
+
+      // Sınav ödülleri ve ödev performans kayıtları master_state ile gönderilmez,
+      // çünkü sınav ve ödev kayıtlarından dinamik üretilirler. Yalnızca manuel davranış puanlarını aktar.
+      const cleanPerformance = (Array.isArray(localData.performance) ? localData.performance : []).filter(p => {
+        if (!p) return false;
+        if (p.examId) return false;
+        if (p.homeworkId) return false;
+        if (p.reason && typeof p.reason === 'string') {
+          if (/"\s*Ödevi\s*\((Tam|Yarım|Yapılmadı|Muaf)\)/i.test(p.reason)) return false;
+          if (/Sınav(ı)?\s+\d+\.liği/i.test(p.reason)) return false;
+        }
+        return true;
+      });
+
       const masterPayload = {
         type: 'MASTER_STATE',
         source: source,
@@ -436,7 +450,7 @@
         contributions: contributions,
         performanceBehaviors: performanceBehaviors,
         attendance: (localData.attendance || (window.stateManager && window.stateManager.state ? window.stateManager.state.attendance : {})) || {},
-        performance: Array.isArray(localData.performance) ? localData.performance : []
+        performance: cleanPerformance
       };
 
       const record = {
@@ -517,12 +531,16 @@
         };
       }
 
-      // Yerel hafızaya güvenle birleştir
+      // Yerel hafızaya güvenle birleştir (Masaüstünde stateManager.state önceliklidir)
       let localData = {};
-      try {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        if (raw) localData = JSON.parse(raw);
-      } catch (e) {}
+      if (window.stateManager && window.stateManager.state) {
+        localData = window.stateManager.state;
+      } else {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY);
+          if (raw) localData = JSON.parse(raw);
+        } catch (e) {}
+      }
 
       // 1. Öğrencileri birleştir (Kalıcı Liste) ve ID eşleme haritası oluştur
       const cloudToLocalMap = new Map();
@@ -541,9 +559,21 @@
           });
 
           if (idx >= 0) {
-            const canonicalId = localData.students[idx].id;
+            const existing = localData.students[idx];
+            const canonicalId = existing.id;
             cloudToLocalMap.set(String(cloudStudent.id), canonicalId);
-            localData.students[idx] = { ...cloudStudent, ...localData.students[idx], id: canonicalId };
+
+            // Fotoğraf koruması: Önce hafızadaki (stateManager.state), sonra mevcut öğrenci fotoğrafını kontrol et
+            const memStudent = window.stateManager?.state?.students?.find(s => String(s.id) === String(canonicalId) || (s.number && String(s.number) === String(existing.number)));
+            const existingPhoto = (memStudent && memStudent.photo && memStudent.photo.length > 50) ? memStudent.photo : ((existing.photo && existing.photo.length > 50) ? existing.photo : '');
+            const newPhoto = (cloudStudent.photo && typeof cloudStudent.photo === 'string' && cloudStudent.photo.length > 50) ? cloudStudent.photo : '';
+
+            localData.students[idx] = {
+              ...cloudStudent,
+              ...existing,
+              id: canonicalId,
+              photo: newPhoto || existingPhoto || ''
+            };
           } else {
             cloudToLocalMap.set(String(cloudStudent.id), cloudStudent.id);
             localData.students.push(cloudStudent);
@@ -589,32 +619,41 @@
       if (Array.isArray(masterItem.performance) && masterItem.performance.length > 0) {
         if (!localData.performance) localData.performance = [];
         const existingPerfIds = new Set(localData.performance.map(p => String(p.id)));
+        const makePerfKey = (perf, sId) => `${sId || perf.studentId}_${String(perf.date || '').slice(0, 10)}_${String(perf.reason || '').trim().toLowerCase()}_${perf.point || 0}`;
+        const existingPerfKeys = new Set((localData.performance || []).map(p => makePerfKey(p, p.studentId)));
         const activeDesktopWeek = (window.stateManager && typeof window.stateManager.getSelectedWeek === 'function')
           ? window.stateManager.getSelectedWeek()
           : (window.getISOWeek ? window.getISOWeek(new Date()) : '');
 
         masterItem.performance.forEach(p => {
           if (!p) return;
-          // Ödev performans kayıtları homeworks üzerinden birebir senkronize edilir, mükerrer eklemeyi önle
+          // Sınav dereceleri ve ödev performans kayıtları sınav ve ödev üzerinden dinamik üretilir, mükerrer eklemeyi önle
+          if (p.examId || (p.reason && typeof p.reason === 'string' && /Sınav(ı)?\s+\d+\.liği/i.test(p.reason))) {
+            return;
+          }
           if (p.homeworkId || (typeof p.reason === 'string' && /" Ödevi \((Tam|Yarım|Yapılmadı|Muaf)\)$/.test(p.reason.trim()))) {
             return;
           }
 
           // ID'yi yerel öğrenciye uyarla
+          let targetStuId = p.studentId;
           if (cloudToLocalMap.has(String(p.studentId))) {
-            p.studentId = cloudToLocalMap.get(String(p.studentId));
+            targetStuId = cloudToLocalMap.get(String(p.studentId));
           } else {
             const matched = this.resolveDesktopStudent(p.studentId, p.studentName, p.studentNumber, localData.students);
-            if (matched) p.studentId = matched.id;
+            if (matched) targetStuId = matched.id;
           }
+          p.studentId = targetStuId;
 
           if (!p.weekId) {
             p.weekId = (p.date && window.getISOWeek) ? window.getISOWeek(p.date) : activeDesktopWeek;
           }
 
-          if (!existingPerfIds.has(String(p.id))) {
+          const perfKey = makePerfKey(p, targetStuId);
+          if (!existingPerfIds.has(String(p.id)) && !existingPerfKeys.has(perfKey)) {
             localData.performance.push(p);
             existingPerfIds.add(String(p.id));
+            existingPerfKeys.add(perfKey);
           }
         });
 
@@ -972,7 +1011,6 @@
       };
 
       this.pushLiveEvent('omr', payload);
-      this.scheduleDebouncedMasterPush();
     },
 
     // 2b. Anlık Canlı Yeni Sınav Gönder (Masaüstü veya Terminal)
@@ -987,7 +1025,6 @@
       };
 
       this.pushLiveEvent('exam_created', payload);
-      this.scheduleDebouncedMasterPush();
     },
 
     // 2c. Anlık Canlı Sınav Sonuçları Paketi Gönder (Masaüstü veya Terminal)
@@ -1002,7 +1039,6 @@
       };
 
       this.pushLiveEvent('exam_results', payload);
-      this.scheduleDebouncedMasterPush();
     },
 
     // 2d. Anlık Canlı Sınav Silme Olayı Gönder (Masaüstü veya Terminal)
@@ -1023,8 +1059,6 @@
       try {
         await this.request('DELETE', `teacher_sync?sync_code=eq.${encodeURIComponent(this.syncCode)}&exam_id=eq.${encodeURIComponent(examId)}`);
       } catch (e) {}
-
-      this.scheduleDebouncedMasterPush();
     },
 
     // 3. Genel Canlı Olay Gönderimi (Supabase'e fırlat)
@@ -1778,22 +1812,28 @@
         if (Array.isArray(payload.performance)) {
           if (!window.stateManager.state.performance) window.stateManager.state.performance = [];
           const existingIds = new Set(window.stateManager.state.performance.map(p => String(p.id)));
+          const makePerfKey = (perf, sId) => `${sId || perf.studentId}_${String(perf.date || '').slice(0, 10)}_${String(perf.reason || '').trim().toLowerCase()}_${perf.point || 0}`;
+          const existingPerfKeys = new Set((window.stateManager.state.performance || []).map(p => makePerfKey(p, p.studentId)));
           const activeDesktopWeek = (typeof window.stateManager.getSelectedWeek === 'function')
             ? window.stateManager.getSelectedWeek()
             : (window.getISOWeek ? window.getISOWeek(new Date()) : '');
 
           payload.performance.forEach(p => {
             if (!p) return;
-            // Ödev performans kayıtları state.homeworks üzerinden birebir üretilir;
-            // el terminalinden gelen farklı homeworkId'li kayıtların mükerrer eklenmesini önle
+            // Sınav dereceleri ve ödev performans kayıtları sınav ve ödev üzerinden dinamik üretilir;
+            // el terminalinden gelen mükerrer veya farklı id'li sınav/ödev kayıtlarının eklenmesini önle
+            if (p.examId || (p.reason && typeof p.reason === 'string' && /Sınav(ı)?\s+\d+\.liği/i.test(p.reason))) {
+              return;
+            }
             const isLegacyHwReason = p.reason && typeof p.reason === 'string' && /"\s*Ödevi\s*\((Tam|Yarım|Yapılmadı|Muaf)\)/.test(p.reason);
             if (p.homeworkId || isLegacyHwReason) return;
 
-            if (!existingIds.has(String(p.id))) {
-              const matched = this.resolveDesktopStudent(p.studentId, p.studentName, p.studentNumber, allStudents);
-              if (matched) {
-                p.studentId = matched.id;
-              }
+            const matched = this.resolveDesktopStudent(p.studentId, p.studentName, p.studentNumber, allStudents);
+            const targetStuId = matched ? matched.id : p.studentId;
+            p.studentId = targetStuId;
+
+            const perfKey = makePerfKey(p, targetStuId);
+            if (!existingIds.has(String(p.id)) && !existingPerfKeys.has(perfKey)) {
               if (!p.weekId) {
                 if (p.date && window.getISOWeek) {
                   p.weekId = window.getISOWeek(p.date);
@@ -1803,6 +1843,7 @@
               }
               window.stateManager.state.performance.push(p);
               existingIds.add(String(p.id));
+              existingPerfKeys.add(perfKey);
               addedPerf++;
               stateModified = true;
             }
@@ -1828,10 +1869,13 @@
           }
           this.playDesktopLiveChime();
           if (window.showToast) {
-            const msg = updatedExams > 0
-              ? `📱 El Terminalinden sınav ve cevap anahtarı güncellendi`
-              : `📱 El Terminalinden ${addedPerf} yeni veri eşitlendi`;
-            window.showToast(msg, 'success');
+            if (updatedExams > 0) {
+              window.showToast(`📱 El Terminalinden sınav ve cevap anahtarı güncellendi`, 'success');
+            } else if (addedPerf > 0) {
+              window.showToast(`📱 El Terminalinden ${addedPerf} yeni davranış puanı eşitlendi`, 'success');
+            } else {
+              window.showToast(`📱 El Terminalinden veriler eşitlendi`, 'success');
+            }
           }
         }
       }
@@ -1992,13 +2036,22 @@
             localData.weeklyEvaluations.unshift(cloudExam);
           }
 
-          // Sınavla birlikte gelen öğrenci listesini de yerel hafızaya ekle / güncelle
+          // Sınavla birlikte gelen öğrenci listesini de yerel hafızaya ekle / güncelle (Fotoğrafları Koru!)
           if (Array.isArray(cloudExam.classStudents) && cloudExam.classStudents.length > 0) {
             if (!localData.students) localData.students = [];
             cloudExam.classStudents.forEach(cs => {
               const sIdx = localData.students.findIndex(ls => String(ls.id) === String(cs.id) || (ls.number && String(ls.number) === String(cs.number) && String(ls.branch || '').replace('/', '-') === String(cs.branch || '').replace('/', '-')));
               if (sIdx >= 0) {
-                localData.students[sIdx] = { ...localData.students[sIdx], ...cs };
+                const existing = localData.students[sIdx];
+                const memStudent = window.stateManager?.state?.students?.find(s => String(s.id) === String(existing.id) || (s.number && String(s.number) === String(existing.number)));
+                const existingPhoto = (memStudent && memStudent.photo && memStudent.photo.length > 50) ? memStudent.photo : ((existing.photo && existing.photo.length > 50) ? existing.photo : '');
+                const newPhoto = (cs.photo && typeof cs.photo === 'string' && cs.photo.length > 50) ? cs.photo : '';
+
+                localData.students[sIdx] = {
+                  ...existing,
+                  ...cs,
+                  photo: newPhoto || existingPhoto || ''
+                };
               } else {
                 localData.students.push(cs);
               }
