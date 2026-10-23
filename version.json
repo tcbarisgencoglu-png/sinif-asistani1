@@ -1,13 +1,13 @@
 {
-  "version": "1.0.85",
+  "version": "1.0.86",
   "releaseDate": "2026-10-23",
   "minRequiredVersion": "1.0.0",
-  "title": "Sınıf Asistanı v1.0.85 Yayında!",
-  "description": "Optik Okuma (OMR) Baloncuk Kalibrasyonu ve Ödev Oluşturucu İyileştirmeleri",
+  "title": "Sınıf Asistanı v1.0.86 Yayında!",
+  "description": "OMR Optik Okuma Baloncuk Merkezleri ve Çoklu Ders Hizalaması Tamamlandı",
   "features": [
-    "OMR Baloncuk Merkezleri Kalibrasyonu: Çoklu ders ve tek dersli optik formlarda soru sayısı ve kağıt formatı değişse bile baloncuk merkezlerine hatasız kilitlenen adaptif ızgara motoru entegre edildi.",
-    "Geriye Dönük Optik Uyumluluk: Hem yeni kompakt formlar hem de önceki sürümlerle yazdırılmış formlar için otomatik dikey hizalama ve çapa kilitlenmesi sağlandı.",
-    "Ödev Oluşturucu ve Raporlama Güncellemesi: Ödev üretici arayüzü, yazdırma ve performans raporlama geliştirmeleri eklendi."
+    "OMR Baloncuk Merkezleri Milimetrik Kilitlenme: Çoklu ders optik formlarda dikey başlangıç konumu (0.2400) ve satır adımı (0.0540) kağıt üzerindeki baskı ile %100 birebir eşitlendi.",
+    "Sütun ve Şık Aralıkları Yenilendi: Türkçe, Matematik, Sosyal Bilgiler, Fen Bilgisi ve İngilizce sütunlarının A-B-C-D şık merkezleri tam hizaya oturtuldu.",
+    "Halka Kilitlenmesi ve Boş Alan Koruması: Soru sayısı az olan derslerde (5-6 soru) alt kısımdaki boş alanlara ve satır numaralarına kayma engellendi."
   ],
   "release_url": "https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/latest"
 }

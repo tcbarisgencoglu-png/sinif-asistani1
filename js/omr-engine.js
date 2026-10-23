@@ -1156,11 +1156,7 @@
     const avgRing = ringSum / 8.0;
     const avgOut = outerSum / 8.0;
 
-    // Dolu baloncuk ise (merkez koyu, dışı açık)
-    if (cVal < 140 && avgOut > cVal + 25) {
-      return 1.5;
-    }
-    // Boş baloncuk halkası ise (merkez açık, halka koyu, dışı açık)
+    // Boş baloncuk halkası kontrastı (merkez açık, halka koyu, dışı açık)
     const ringDrop1 = cVal - avgRing;
     const ringDrop2 = avgOut - avgRing;
     if (ringDrop1 > 12 && ringDrop2 > 12) {
@@ -1171,8 +1167,8 @@
 
   function snapToBubbleRing(gray, w, h, initialPt, radius) {
     // Merkezin komşu dikey tablo çizgilerine taşmasını önlemek için dengeli arama penceresi
-    const searchRx = Math.max(5, Math.min(10, Math.round(radius * 0.75)));
-    const searchRy = Math.max(6, Math.min(14, Math.round(radius * 1.05)));
+    const searchRx = Math.max(6, Math.min(14, Math.round(radius * 1.0)));
+    const searchRy = Math.max(7, Math.min(16, Math.round(radius * 1.15)));
     const rRing = Math.max(8, Math.round(radius * 0.95));
     const rOuter = Math.max(12, Math.round(radius * 1.45));
 
@@ -1309,21 +1305,21 @@
       const slotW = totalGridW / numSubjects;
 
       // 2. Çoklu ders gövde dikey aralığı (0.0 - 1.0 aralığı, 4 referans çapa merkezli)
-      // Üst başlık (Sınav adı, öğrenci adı, QR rozeti) 0.00 - 0.28 aralığını kaplar.
+      // Üst başlık (Sınav adı, öğrenci adı, QR rozeti) 0.00 - 0.22 aralığını kaplar.
       // Soru satırları 1. satırdan başlayarak flex-start düzeninde aşağıya doğru yerleşir.
       const maxQuestions = Math.max(...examSubjects.map(s => parseInt(s.questionCount, 10) || 0), 1);
 
-      let vFirstRowBase = 0.3360;
-      let vCompactStep = 0.0467;
+      let vFirstRowBase = 0.2400;
+      let vCompactStep = 0.0540;
 
       if (perPage === 1) {
         // A4 Tam Sayfa
-        vFirstRowBase = 0.2250;
-        vCompactStep = 0.0225;
+        vFirstRowBase = 0.1650;
+        vCompactStep = 0.0270;
       } else if (perPage === 4) {
         // A6 Çeyrek Sayfa
-        vFirstRowBase = 0.3500;
-        vCompactStep = 0.0680;
+        vFirstRowBase = 0.2400;
+        vCompactStep = 0.0540;
       }
 
       if (maxQuestions > 20) {
@@ -1343,60 +1339,63 @@
         let colU_A, choiceStep;
         if (numSubjects === 5) {
           const colBounds = [
-            { uA: 0.0740, uD: 0.1700 }, // 1. Ders (Türkçe)
-            { uA: 0.2660, uD: 0.3620 }, // 2. Ders (Matematik)
-            { uA: 0.4580, uD: 0.5540 }, // 3. Ders (Sosyal Bilgiler)
-            { uA: 0.6500, uD: 0.7460 }, // 4. Ders (Fen Bilgisi)
-            { uA: 0.8420, uD: 0.9380 }  // 5. Ders (İngilizce)
+            { uA: 0.0670, uD: 0.1760 }, // 1. Ders (Türkçe)
+            { uA: 0.2620, uD: 0.3720 }, // 2. Ders (Matematik)
+            { uA: 0.4570, uD: 0.5670 }, // 3. Ders (Sosyal Bilgiler)
+            { uA: 0.6520, uD: 0.7620 }, // 4. Ders (Fen Bilgisi)
+            { uA: 0.8380, uD: 0.9440 }  // 5. Ders (İngilizce)
           ];
-          const cb = colBounds[sIdx] || { uA: 0.0740 + sIdx * 0.192, uD: 0.1700 + sIdx * 0.192 };
+          const cb = colBounds[sIdx] || { uA: 0.0670 + sIdx * 0.195, uD: 0.1760 + sIdx * 0.195 };
           colU_A = cb.uA;
-          choiceStep = letters.length > 1 ? ((cb.uD - cb.uA) / (letters.length - 1)) : 0.0320;
+          choiceStep = letters.length > 1 ? ((cb.uD - cb.uA) / (letters.length - 1)) : 0.0363;
         } else if (numSubjects === 4) {
           const colBounds = [
-            { uA: 0.0820, uD: 0.1780 },
-            { uA: 0.3220, uD: 0.4180 },
-            { uA: 0.5620, uD: 0.6580 },
-            { uA: 0.8020, uD: 0.8980 }
+            { uA: 0.0710, uD: 0.1800 },
+            { uA: 0.3080, uD: 0.4170 },
+            { uA: 0.5440, uD: 0.6530 },
+            { uA: 0.7810, uD: 0.8900 }
           ];
-          const cb = colBounds[sIdx] || { uA: 0.0820 + sIdx * 0.240, uD: 0.1780 + sIdx * 0.240 };
+          const cb = colBounds[sIdx] || { uA: 0.0710 + sIdx * 0.237, uD: 0.1800 + sIdx * 0.237 };
           colU_A = cb.uA;
-          choiceStep = letters.length > 1 ? ((cb.uD - cb.uA) / (letters.length - 1)) : 0.0320;
+          choiceStep = letters.length > 1 ? ((cb.uD - cb.uA) / (letters.length - 1)) : 0.0363;
         } else if (numSubjects === 3) {
           const colBounds = [
-            { uA: 0.0950, uD: 0.1910 },
-            { uA: 0.4100, uD: 0.5060 },
-            { uA: 0.7250, uD: 0.8210 }
+            { uA: 0.0710, uD: 0.1800 },
+            { uA: 0.3860, uD: 0.4950 },
+            { uA: 0.7020, uD: 0.8110 }
           ];
-          const cb = colBounds[sIdx] || { uA: 0.0950 + sIdx * 0.315, uD: 0.1910 + sIdx * 0.315 };
+          const cb = colBounds[sIdx] || { uA: 0.0710 + sIdx * 0.315, uD: 0.1800 + sIdx * 0.315 };
           colU_A = cb.uA;
-          choiceStep = letters.length > 1 ? ((cb.uD - cb.uA) / (letters.length - 1)) : 0.0320;
+          choiceStep = letters.length > 1 ? ((cb.uD - cb.uA) / (letters.length - 1)) : 0.0363;
         } else if (numSubjects === 2) {
           const colBounds = [
-            { uA: 0.1200, uD: 0.2160 },
-            { uA: 0.5900, uD: 0.6860 }
+            { uA: 0.0710, uD: 0.1800 },
+            { uA: 0.5440, uD: 0.6530 }
           ];
-          const cb = colBounds[sIdx] || { uA: 0.1200 + sIdx * 0.470, uD: 0.2160 + sIdx * 0.470 };
+          const cb = colBounds[sIdx] || { uA: 0.0710 + sIdx * 0.473, uD: 0.1800 + sIdx * 0.473 };
           colU_A = cb.uA;
-          choiceStep = letters.length > 1 ? ((cb.uD - cb.uA) / (letters.length - 1)) : 0.0320;
+          choiceStep = letters.length > 1 ? ((cb.uD - cb.uA) / (letters.length - 1)) : 0.0363;
         } else if (numSubjects === 6) {
           const colBounds = [
-            { uA: 0.0620, uD: 0.1580 },
-            { uA: 0.2200, uD: 0.3160 },
-            { uA: 0.3780, uD: 0.4740 },
-            { uA: 0.5360, uD: 0.6320 },
-            { uA: 0.6940, uD: 0.7900 },
-            { uA: 0.8520, uD: 0.9480 }
+            { uA: 0.0650, uD: 0.1680 },
+            { uA: 0.2230, uD: 0.3260 },
+            { uA: 0.3800, uD: 0.4830 },
+            { uA: 0.5380, uD: 0.6410 },
+            { uA: 0.6960, uD: 0.7990 },
+            { uA: 0.8540, uD: 0.9570 }
           ];
-          const cb = colBounds[sIdx] || { uA: 0.0620 + sIdx * 0.158, uD: 0.1580 + sIdx * 0.158 };
+          const cb = colBounds[sIdx] || { uA: 0.0650 + sIdx * 0.158, uD: 0.1680 + sIdx * 0.158 };
           colU_A = cb.uA;
-          choiceStep = letters.length > 1 ? ((cb.uD - cb.uA) / (letters.length - 1)) : 0.0320;
+          choiceStep = letters.length > 1 ? ((cb.uD - cb.uA) / (letters.length - 1)) : 0.0343;
         } else {
-          const colW = (0.955 - (numSubjects - 1) * 0.012) / numSubjects;
-          const colStep = colW + 0.012;
-          const colStartU = 0.020 + sIdx * colStep;
-          colU_A = colStartU + 0.050;
-          choiceStep = 0.0307;
+          const gridUSpan = 0.9350;
+          const gapU = 0.0113;
+          const colW = (gridUSpan - (numSubjects - 1) * gapU) / numSubjects;
+          const colStep = colW + gapU;
+          const colStartU = 0.0325 + sIdx * colStep;
+          colU_A = colStartU + 0.0345;
+          const spanD = Math.min(0.1090, colW * 0.75);
+          choiceStep = letters.length > 1 ? (spanD / (letters.length - 1)) : 0.0363;
         }
 
         function evaluateSubjectGrid(step, vFirst, du = 0) {
@@ -1404,7 +1403,7 @@
           let gridConfidence = 0;
 
           for (let q = 1; q <= numQuestions; q++) {
-            const rowV = numQuestions > 1 ? (vFirst + (q - 1) * step) : ((vFirst + vLastRow) * 0.5);
+            const rowV = vFirst + (q - 1) * step;
             const rowSamplePt = mapPoint(colU_A + du + choiceStep * 1.5, rowV);
             const rowPaperLum = sampleLocalPaperLuminance(gray, w, h, rowSamplePt, sampleRadius);
 
@@ -1470,9 +1469,9 @@
         const candidateGrids = [];
 
         // Ana flex-start ızgarası, mikro dikey/yatay kaydırmalar (dv, du) ve adımlama ölçekleri (scale)
-        const candidateVFirstOffsets = [0.000, -0.004, 0.004, -0.008, 0.008];
-        const candidateStepScales = [1.00, 0.98, 1.02, 0.96, 1.04];
-        const candidateDu = [0.000, -0.004, 0.004];
+        const candidateVFirstOffsets = [0.000, -0.003, 0.003, -0.006, 0.006];
+        const candidateStepScales = [1.00, 0.99, 1.01, 0.98, 1.02];
+        const candidateDu = [0.000, -0.003, 0.003];
 
         candidateStepScales.forEach(scale => {
           const testStep = vCompactStep * scale;
