@@ -133,8 +133,19 @@
     // Aktif Verileri Çek
     getData() {
       try {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        if (raw) return JSON.parse(raw);
+        let raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed && ((Array.isArray(parsed.students) && parsed.students.length > 0) || (Array.isArray(parsed.weeklyEvaluations) && parsed.weeklyEvaluations.length > 0))) {
+            return parsed;
+          }
+        }
+        // Ana mobil ve masaüstü veritabanı yedeği (sinif_asistani_state_v3)
+        const v3Raw = localStorage.getItem('sinif_asistani_state_v3');
+        if (v3Raw) {
+          const v3 = JSON.parse(v3Raw);
+          if (v3 && typeof v3 === 'object') return v3;
+        }
       } catch (e) {}
       return { students: [], weeklyEvaluations: [] };
     },
@@ -154,7 +165,16 @@
       }
 
       const data = this.getData();
-      let students = Array.isArray(data.students) ? data.students : [];
+      let students = Array.isArray(data.students) && data.students.length > 0 ? data.students : [];
+      if (students.length === 0) {
+        try {
+          const v3 = JSON.parse(localStorage.getItem('sinif_asistani_state_v3') || '{}');
+          if (Array.isArray(v3.students) && v3.students.length > 0) {
+            students = v3.students;
+          }
+        } catch (e) {}
+      }
+
       if (students.length === 0 && typeof window !== 'undefined') {
         if (window.stateManager?.state?.students?.length > 0) {
           students = window.stateManager.state.students;

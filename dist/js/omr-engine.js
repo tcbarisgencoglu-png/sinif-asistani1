@@ -1313,26 +1313,23 @@
       // Soru satırları 1. satırdan başlayarak flex-start düzeninde aşağıya doğru yerleşir.
       const maxQuestions = Math.max(...examSubjects.map(s => parseInt(s.questionCount, 10) || 0), 1);
 
-      let vFirstRowBase = 0.2400;
-      let vLastRow = 0.8430;
-      let vStandardStep = (0.8430 - 0.2400) / (Math.max(8, maxQuestions) - 1); // 8 sorulu A5 formda ~0.0861, 10 soruluda ~0.0670
+      let vFirstRowBase = 0.3360;
+      let vCompactStep = 0.0467;
 
       if (perPage === 1) {
         // A4 Tam Sayfa
-        vFirstRowBase = 0.2000;
-        vLastRow = 0.9400;
-        vStandardStep = (0.9400 - 0.2000) / (Math.max(12, maxQuestions) - 1);
+        vFirstRowBase = 0.2250;
+        vCompactStep = 0.0225;
       } else if (perPage === 4) {
         // A6 Çeyrek Sayfa
-        vFirstRowBase = 0.2600;
-        vLastRow = 0.8800;
-        vStandardStep = (0.8800 - 0.2600) / (Math.max(6, maxQuestions) - 1);
+        vFirstRowBase = 0.3500;
+        vCompactStep = 0.0680;
       }
 
-      const availH = vLastRow - vFirstRowBase;
-      const vCompactStep = maxQuestions > 1
-        ? (availH / (Math.max(8, maxQuestions) - 1))
-        : vStandardStep;
+      if (maxQuestions > 20) {
+        // Sıkışık ders satırları (.compact-rows: 16px row height)
+        vCompactStep = vCompactStep * 0.82;
+      }
 
       // 3. Ders sütunu içindeki şıkların yayılımı (A - B - C - D)
       examSubjects.forEach((subj, sIdx) => {
@@ -1469,12 +1466,12 @@
           return { gridConfidence, qResults };
         }
 
-        // Farklı yazıcı marjları, ölçekleme ve flex-start / space-between formlar için adaptif arama
+        // Farklı yazıcı marjları, ölçekleme ve flex-start formlar için adaptif arama
         const candidateGrids = [];
 
-        // 1. Ana flex-start ızgarası, mikro dikey/yatay kaydırmalar (dv, du) ve adımlama ölçekleri (scale)
-        const candidateVFirstOffsets = [0.000, -0.006, 0.006, -0.012, 0.012];
-        const candidateStepScales = [1.00, 0.97, 1.03, 0.94, 1.06];
+        // Ana flex-start ızgarası, mikro dikey/yatay kaydırmalar (dv, du) ve adımlama ölçekleri (scale)
+        const candidateVFirstOffsets = [0.000, -0.004, 0.004, -0.008, 0.008];
+        const candidateStepScales = [1.00, 0.98, 1.02, 0.96, 1.04];
         const candidateDu = [0.000, -0.004, 0.004];
 
         candidateStepScales.forEach(scale => {
@@ -1485,16 +1482,6 @@
             });
           });
         });
-
-        // 2. 1.0.69 geriye dönük uyumluluk (space-between) adayı (Sadece kartı dolduran 10+ soru varsa)
-        if (numQuestions >= 10) {
-          const legacyStep = availH / (numQuestions - 1);
-          if (Math.abs(legacyStep - vCompactStep) > 0.008) {
-            candidateGrids.push({ step: legacyStep, vFirst: vFirstRowBase, du: 0 });
-            candidateGrids.push({ step: legacyStep, vFirst: vFirstRowBase - 0.008, du: 0 });
-            candidateGrids.push({ step: legacyStep, vFirst: vFirstRowBase + 0.008, du: 0 });
-          }
-        }
 
         let bestSubjGrid = null;
         for (const cand of candidateGrids) {
