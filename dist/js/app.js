@@ -26,30 +26,50 @@ if (window.AndroidInterface && typeof window.AndroidInterface.printPage === 'fun
   };
 }
 
-// Tauri ve Tarayıcı Uyumlu Güvenli Link Açıcı
-window.safeOpenURL = (url) => {
-  if (window.__TAURI__) {
-    try {
-      if (window.__TAURI__.core && typeof window.__TAURI__.core.invoke === 'function') {
-        window.__TAURI__.core.invoke('plugin:opener|open', { path: url })
-          .catch(err => {
-            console.error('Tauri opener failed:', err);
-            window.open(url, '_blank');
-          });
-        return;
-      } else if (window.__TAURI__.invoke && typeof window.__TAURI__.invoke === 'function') {
-        window.__TAURI__.invoke('plugin:opener|open', { path: url })
-          .catch(err => {
-            console.error('Tauri invoke failed:', err);
-            window.open(url, '_blank');
-          });
-        return;
-      }
-    } catch (e) {
-      console.error('Tauri open error:', e);
-    }
+// Linux / Pardus Akıllı Tahta (ETAP) ortam tespiti
+window.isLinuxPlatform = () => {
+  const ua = (navigator.userAgent || '').toLowerCase();
+  const plat = (navigator.platform || '').toLowerCase();
+  // Android de Linux tabanlı olduğu için Android'i hariç tutuyoruz
+  if (ua.includes('android')) return false;
+  return ua.includes('linux') || ua.includes('x11') || ua.includes('pardus') || plat.includes('linux');
+};
+
+// Tauri v2 ve Tarayıcı Uyumlu Güvenli Link Açıcı
+window.safeOpenURL = (url, fallbackUrl = null) => {
+  if (!url) return;
+
+  // Linux / Pardus ortamında whatsapp:// masaüstü protokolü bulunmadığından doğrudan WhatsApp Web'e çevir
+  let targetUrl = url;
+  if (targetUrl.startsWith('whatsapp://') && window.isLinuxPlatform()) {
+    targetUrl = fallbackUrl || targetUrl.replace(/^whatsapp:\/\/send\?/i, 'https://web.whatsapp.com/send?');
   }
-  window.open(url, '_blank');
+
+  const invokeFn = (window.__TAURI__ && window.__TAURI__.core && typeof window.__TAURI__.core.invoke === 'function')
+    ? window.__TAURI__.core.invoke
+    : (window.__TAURI__ && typeof window.__TAURI__.invoke === 'function' ? window.__TAURI__.invoke : null);
+
+  if (invokeFn) {
+    // Önce doğrudan sistem çağrısını (open_external_url: xdg-open/open/start) dene
+    invokeFn('open_external_url', { url: targetUrl })
+      .catch(() => invokeFn('plugin:opener|open_url', { url: targetUrl }))
+      .catch(err => {
+        console.warn('Tauri open failed, trying fallback:', err);
+        const fb = fallbackUrl || (targetUrl.startsWith('whatsapp://')
+          ? targetUrl.replace(/^whatsapp:\/\/send\?/i, 'https://web.whatsapp.com/send?')
+          : null);
+        if (fb && fb !== targetUrl) {
+          invokeFn('open_external_url', { url: fb })
+            .catch(() => invokeFn('plugin:opener|open_url', { url: fb }))
+            .catch(() => window.open(fb, '_blank'));
+        } else {
+          window.open(targetUrl, '_blank');
+        }
+      });
+    return;
+  }
+
+  window.open(targetUrl, '_blank');
 };
 
 // Özelleştirilmiş ve tüm platformlarda çalışan Asenkron Onay Kutusu (Tauri macOS için confirm() alternatifi)
@@ -2674,7 +2694,7 @@ async function initApp() {
 }
 
 // Mevcut uygulama sürümü (her güncellemede değişir)
-const APP_VERSION = '1.0.79';
+const APP_VERSION = '1.0.80';
 
 // GitHub & Tauri Auto-Updater kontrolü
 async function checkForUpdates() {

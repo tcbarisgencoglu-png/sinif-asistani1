@@ -1276,11 +1276,33 @@
       const totalGridW = gridUEnd - gridUStart;
       const slotW = totalGridW / numSubjects;
 
-      // 2. Çoklu ders gövde dikey aralığı (0.0 - 1.0 aralığı, dış çerçeve / çapa referanslı)
+      // 2. Çoklu ders gövde dikey aralığı (0.0 - 1.0 aralığı, 4 referans çapa merkezli)
       // Üst başlık (Sınav adı, öğrenci adı, QR rozeti) 0.00 - 0.28 aralığını kaplar.
-      // Soru satırları 0.320'de başlar, son soru satırı 0.935'te biter.
-      const vFirstRow = 0.4350;
-      const vLastRow = 0.935;
+      // Soru satırları 1. satırdan başlayarak flex-start düzeninde aşağıya doğru yerleşir.
+      const maxQuestions = Math.max(...examSubjects.map(s => parseInt(s.questionCount, 10) || 0), 1);
+
+      let vFirstRowBase = 0.3045;
+      let vLastRow = 0.935;
+      let vStandardStep = 0.0435;
+
+      if (perPage === 1) {
+        // A4 Tam Sayfa
+        vFirstRowBase = 0.265;
+        vLastRow = 0.950;
+        vStandardStep = 0.0240;
+      } else if (perPage === 4) {
+        // A6 Çeyrek Sayfa
+        vFirstRowBase = 0.320;
+        vLastRow = 0.920;
+        vStandardStep = 0.0435;
+      }
+
+      const availH = vLastRow - vFirstRowBase;
+      // Kompakt (flex-start) düzende satırlar sabit vStandardStep ile dizilir.
+      // Çok fazla soru olduğunda (A5'te 14'ten fazla soru) gövde sınırına (availH) sığacak şekilde sıkışır:
+      const vCompactStep = maxQuestions > 1 ? Math.min(vStandardStep, availH / (maxQuestions - 1)) : vStandardStep;
+      // 1.0.69 geriye dönük uyumluluk (space-between) adımı:
+      const vLegacyStep = maxQuestions > 1 ? (availH / (maxQuestions - 1)) : vStandardStep;
 
       // 3. Ders sütunu içindeki şıkların yayılımı (A - B - C - D)
       // .omr-q-num (22px) ve .omr-bubble (18px x 4)
@@ -1328,15 +1350,12 @@
           choiceStep = (slotW * 0.58) / Math.max(1, letters.length - 1);
         }
 
-        // Sabit Satır Izgarası (Fixed Row Pitch)
-        const vFixedStep = 0.0435;
-
-        function evaluateSubjectGrid(step) {
+        function evaluateSubjectGrid(step, vFirst) {
           const qResults = [];
           let gridConfidence = 0;
 
           for (let q = 1; q <= numQuestions; q++) {
-            const rowV = numQuestions > 1 ? (vFirstRow + (q - 1) * step) : ((vFirstRow + vLastRow) * 0.5);
+            const rowV = numQuestions > 1 ? (vFirst + (q - 1) * step) : ((vFirst + vLastRow) * 0.5);
             const rowSamplePt = mapPoint(colU_A + choiceStep * 1.5, rowV);
             const rowPaperLum = sampleLocalPaperLuminance(gray, w, h, rowSamplePt, sampleRadius);
 
@@ -1372,11 +1391,11 @@
             const second = sortedScores[1] || { score: 0, fillRatio: 0 };
             const diff = best.score - second.score;
             if (isAnchor) {
-              if (best.score >= 0.30 && diff >= 0.12) {
+              if (best.score >= 0.28 && diff >= 0.10) {
                 gridConfidence += (best.score + diff);
               }
             } else {
-              if (best.fillRatio >= 0.55 && diff >= 0.15) {
+              if (best.fillRatio >= 0.50 && diff >= 0.12) {
                 gridConfidence += (best.fillRatio + diff);
               }
             }
@@ -1394,7 +1413,26 @@
           return { gridConfidence, qResults };
         }
 
-        const bestSubjGrid = evaluateSubjectGrid(vFixedStep);
+        // Farklı yazıcı marjları, eğimler veya 1.0.69 space-between baskıları için adaptif aday ızgaralar
+        let bestSubjGrid = evaluateSubjectGrid(vCompactStep, vFirstRowBase);
+
+        const candidateOffsets = [-0.012, -0.006, 0.006, 0.012];
+        for (const dv of candidateOffsets) {
+          const candGrid = evaluateSubjectGrid(vCompactStep, vFirstRowBase + dv);
+          if (candGrid.gridConfidence > bestSubjGrid.gridConfidence) {
+            bestSubjGrid = candGrid;
+          }
+        }
+
+        // Geriye dönük uyumluluk: 1.0.69 versiyonundaki space-between ızgara ile basılmış eski form kontrolü
+        if (numQuestions <= 12 && bestSubjGrid.gridConfidence < 0.60) {
+          for (const dv of [0.000, -0.008, 0.008]) {
+            const candLegacy = evaluateSubjectGrid(vLegacyStep, vFirstRowBase + dv);
+            if (candLegacy.gridConfidence > bestSubjGrid.gridConfidence) {
+              bestSubjGrid = candLegacy;
+            }
+          }
+        }
 
         bestSubjGrid.qResults.forEach(qr => {
           const q = qr.q;
@@ -1505,8 +1543,23 @@
           uChoiceStep = 0.0240;
         }
 
-        const actualRowStep = 0.0453;
-        const vMid = 0.569;
+        let actualRowStep = 0.0453;
+        let vMid = 0.569;
+
+        if (perPage === 1) {
+          vMid = 0.550;
+          actualRowStep = 0.0240;
+        } else if (perPage === 4) {
+          vMid = 0.575;
+          actualRowStep = 0.0453;
+        }
+
+        // Çok fazla soru varsa (örn. 30 soru) dikey taşmayı önle
+        const maxColH = 0.74;
+        if ((questionsPerCol - 1) * actualRowStep > maxColH) {
+          actualRowStep = maxColH / Math.max(1, questionsPerCol - 1);
+        }
+
         const firstRowCenter = vMid - ((questionsPerCol - 1) / 2) * actualRowStep;
 
         for (let q = startQ; q <= endQ; q++) {
@@ -1522,20 +1575,28 @@
             const choiceU = colChoiceStartU + lIdx * uChoiceStep;
             const initialPt = mapPoint(choiceU, rowV);
 
-            // Micro-center adjustment (±2px) to prevent snapping to outer dark border
+            let snappedPt;
+            if (isAnchor || isMobile) {
+              snappedPt = snapToBubbleRing(gray, w, h, initialPt, sampleRadius);
+            } else {
+              const searchR = Math.max(5, Math.round(sampleRadius * 1.1));
+              snappedPt = refineBubbleCenter(gray, w, h, initialPt, sampleRadius, rowPaperLum, searchR, searchR);
+            }
+
+            // Halka merkezine oturduktan sonra doluluk oranını ölç
             let maxDarkPix = 0;
             let bestTotalPix = 0;
-            let bestPt = initialPt;
+            let bestPt = snappedPt;
 
-            for (let sOffY = -2; sOffY <= 2; sOffY += 1) {
-              for (let sOffX = -2; sOffX <= 2; sOffX += 1) {
+            for (let sOffY = -1; sOffY <= 1; sOffY += 1) {
+              for (let sOffX = -1; sOffX <= 1; sOffX += 1) {
                 let dCount = 0, tCount = 0;
                 for (let dy = -sampleRadius; dy <= sampleRadius; dy++) {
                   for (let dx = -sampleRadius; dx <= sampleRadius; dx++) {
                     if (dx * dx + dy * dy <= sampleRadius * sampleRadius) {
                       tCount++;
-                      const px = initialPt.x + sOffX + dx;
-                      const py = initialPt.y + sOffY + dy;
+                      const px = snappedPt.x + sOffX + dx;
+                      const py = snappedPt.y + sOffY + dy;
                       if (px >= 0 && px < w && py >= 0 && py < h) {
                         if (gray[py * w + px] < darkThresh) dCount++;
                       }
@@ -1545,7 +1606,7 @@
                 if (dCount > maxDarkPix) {
                   maxDarkPix = dCount;
                   bestTotalPix = tCount;
-                  bestPt = { x: initialPt.x + sOffX, y: initialPt.y + sOffY };
+                  bestPt = { x: snappedPt.x + sOffX, y: snappedPt.y + sOffY };
                 }
               }
             }

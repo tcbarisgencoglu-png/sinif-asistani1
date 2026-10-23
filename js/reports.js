@@ -956,8 +956,14 @@
     const desktopUrl = `whatsapp://send?phone=${cleanedPhone}&text=${encoded}`;
     const webUrl = `https://web.whatsapp.com/send?phone=${cleanedPhone}&text=${encoded}`;
 
+    // Linux / Pardus Akıllı Tahta ortamında doğrudan WhatsApp Web'e yönlendir
+    if (typeof window.isLinuxPlatform === 'function' && window.isLinuxPlatform()) {
+      window.safeOpenURL(webUrl);
+      return;
+    }
+
     if (window.__TAURI__) {
-      window.safeOpenURL(desktopUrl);
+      window.safeOpenURL(desktopUrl, webUrl);
       return;
     }
 

@@ -1,13 +1,13 @@
 {
-  "version": "1.0.79",
-  "releaseDate": "2026-10-21",
+  "version": "1.0.80",
+  "releaseDate": "2026-10-23",
   "minRequiredVersion": "1.0.0",
-  "title": "Sınıf Asistanı v1.0.79 Yayında!",
-  "description": "Haftalık Ödev Puanlaması Onarımı ve Bulut Senkronizasyon İyileştirmeleri",
+  "title": "Sınıf Asistanı v1.0.80 Yayında!",
+  "description": "Optik Okuma (OMR) Baloncuk Kalibrasyonu ve Ödev Oluşturucu İyileştirmeleri",
   "features": [
-    "Haftalık Ödev Puanlaması Düzeltmesi: El terminali ve bulut senkronizasyonu sırasında oluşan mükerrer ödev performans puanları giderildi; Ödev Takip Sistemi ile Haftalık Performans tablosu birebir eşitlendi.",
-    "Otomatik Veri Onarımı: Mevcut verilerdeki mükerrer veya yanlış haftaya atanmış geçmiş ödev puanlarını uygulama açılışında otomatik temizleyen mutabakat mekanizması eklendi.",
-    "Dağıtım ve Derleme Hızlandırması: GitHub Actions çapraz platform derleme iş akışı optimize edildi."
+    "OMR Baloncuk Merkezleri Kalibrasyonu: Çoklu ders ve tek dersli optik formlarda soru sayısı ve kağıt formatı değişse bile baloncuk merkezlerine hatasız kilitlenen adaptif ızgara motoru entegre edildi.",
+    "Geriye Dönük Optik Uyumluluk: Hem yeni kompakt formlar hem de önceki sürümlerle yazdırılmış formlar için otomatik dikey hizalama ve çapa kilitlenmesi sağlandı.",
+    "Ödev Oluşturucu ve Raporlama Güncellemesi: Ödev üretici arayüzü, yazdırma ve performans raporlama geliştirmeleri eklendi."
   ],
   "release_url": "https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/latest"
 }

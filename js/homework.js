@@ -89,30 +89,134 @@ function buildWhatsAppMessage(hw, dayName) {
 }
 
 // -------------------------------------------------------
+// WhatsApp ile Paylaşım Modalı Aç (Akıllı Tahta / Pardus & Karekod)
+// -------------------------------------------------------
+function openWhatsAppShareModal(message) {
+  const modal = document.getElementById('modal-whatsapp-share');
+  if (!modal) return;
+
+  const encoded = encodeURIComponent(message);
+  const webUrl = `https://web.whatsapp.com/send?text=${encoded}`;
+  const mobileWaUrl = `https://api.whatsapp.com/send?text=${encoded}`;
+  const groupLink = stateManager.getWhatsappGroupLink ? stateManager.getWhatsappGroupLink() : '';
+
+  const qrContainer = document.getElementById('wa-share-qrcode');
+  if (qrContainer && typeof window.qrcode === 'function') {
+    try {
+      const qr = window.qrcode(0, 'M');
+      qr.addData(mobileWaUrl);
+      qr.make();
+      qrContainer.innerHTML = qr.createSvgTag({ cellSize: 3.8, margin: 2 });
+      const svg = qrContainer.querySelector('svg');
+      if (svg) {
+        svg.style.width = '100%';
+        svg.style.height = '100%';
+        svg.style.display = 'block';
+      }
+    } catch (e) {
+      console.warn('QR kod oluşturulamadı:', e);
+      qrContainer.innerHTML = '<span style="font-size:0.75rem;color:var(--text-secondary);">Karekod oluşturulamadı</span>';
+    }
+  }
+
+  const btnWeb = document.getElementById('btn-wa-open-web');
+  if (btnWeb) {
+    btnWeb.onclick = () => {
+      window.safeOpenURL(webUrl);
+      if (groupLink && groupLink.trim().startsWith('https://chat.whatsapp.com/')) {
+        setTimeout(() => window.safeOpenURL(groupLink), 500);
+      }
+    };
+  }
+
+  const btnCopy = document.getElementById('btn-wa-copy-text');
+  if (btnCopy) {
+    btnCopy.onclick = async () => {
+      try {
+        await navigator.clipboard.writeText(message);
+        if (toastCallback) toastCallback('Ödev mesajı panoya kopyalandı!', 'success');
+        else if (window.showToast) window.showToast('Ödev mesajı panoya kopyalandı!', 'success');
+      } catch (err) {
+        console.error('Kopyalama hatası:', err);
+      }
+    };
+  }
+
+  const btnGroup = document.getElementById('btn-wa-open-group');
+  if (btnGroup) {
+    btnGroup.onclick = () => {
+      if (groupLink && groupLink.trim().startsWith('https://chat.whatsapp.com/')) {
+        window.safeOpenURL(groupLink);
+      } else {
+        const msg = 'Ayarlar > Puan Ayarları bölümünden Sınıf WhatsApp Grup Davet Linkinizi kaydedebilirsiniz.';
+        if (toastCallback) toastCallback(msg, 'info');
+        else if (window.showToast) window.showToast(msg, 'info');
+      }
+    };
+  }
+
+  const chkAlwaysWeb = document.getElementById('chk-wa-always-web');
+  if (chkAlwaysWeb) {
+    chkAlwaysWeb.checked = localStorage.getItem('sinif_asistani_wa_always_web') === 'true';
+    chkAlwaysWeb.onchange = () => {
+      localStorage.setItem('sinif_asistani_wa_always_web', chkAlwaysWeb.checked ? 'true' : 'false');
+    };
+  }
+
+  modal.classList.add('active');
+  if (window.safeCreateIcons) window.safeCreateIcons();
+}
+window.openWhatsAppShareModal = openWhatsAppShareModal;
+
+// -------------------------------------------------------
 // WhatsApp'ta gönder
 // -------------------------------------------------------
-function sendToWhatsApp(hw, dayName) {
+function sendToWhatsApp(hw, dayName, forceShareModal = false) {
   const message = buildWhatsAppMessage(hw, dayName);
   const encoded = encodeURIComponent(message);
 
   const groupLink = stateManager.getWhatsappGroupLink ? stateManager.getWhatsappGroupLink() : '';
+  const desktopUrl = `whatsapp://send?text=${encoded}`;
+  const webUrl = `https://web.whatsapp.com/send?text=${encoded}`;
 
-  // Eğer grup davet linki varsa, önce onu açıyoruz.
+  // Eğer kullanıcı doğrudan karekod / paylaşım penceresini istediyse
+  if (forceShareModal) {
+    openWhatsAppShareModal(message);
+    return;
+  }
+
+  // 1. Linux / Pardus Akıllı Tahta Ortamı (WhatsApp masaüstü uygulaması bulunmadığından)
+  if (typeof window.isLinuxPlatform === 'function' && window.isLinuxPlatform()) {
+    const alwaysWeb = localStorage.getItem('sinif_asistani_wa_always_web') === 'true';
+    if (alwaysWeb) {
+      if (toastCallback) toastCallback('Pardus: WhatsApp Web açılıyor...', 'info');
+      window.safeOpenURL(webUrl);
+      if (groupLink && groupLink.trim().startsWith('https://chat.whatsapp.com/')) {
+        setTimeout(() => window.safeOpenURL(groupLink), 500);
+      }
+    } else {
+      // Akıllı tahta için karekod + WhatsApp Web seçim penceresini aç
+      openWhatsAppShareModal(message);
+    }
+    return;
+  }
+
+  // 2. macOS / Windows Masaüstü (Tauri) Ortamı
+  if (window.__TAURI__) {
+    // Grup linki varsa önce onu aç
+    if (groupLink && groupLink.trim().startsWith('https://chat.whatsapp.com/')) {
+      window.safeOpenURL(groupLink);
+    }
+    // Masaüstü uygulamasını tetikle, uygulama yoksa webUrl'e yönlendir
+    window.safeOpenURL(desktopUrl, webUrl);
+    return;
+  }
+
+  // 3. Web Tarayıcı Ortamı (macOS / Windows)
   if (groupLink && groupLink.trim().startsWith('https://chat.whatsapp.com/')) {
     window.safeOpenURL(groupLink);
   }
 
-  const desktopUrl = `whatsapp://send?text=${encoded}`;
-  const webUrl = `https://web.whatsapp.com/send?text=${encoded}`;
-
-  // Eğer Tauri (Masaüstü uygulaması) ortamındaysak
-  if (window.__TAURI__) {
-    // Tauri WebView içinde navigation hatası (çökme/donma) oluşmaması için direkt Opener API kullan
-    window.safeOpenURL(desktopUrl);
-    return;
-  }
-
-  // Tarayıcı ortamında akıllı yedekleme mekanizması (Desktop -> Web)
   let didOpenApp = false;
   const onBlur = () => {
     didOpenApp = true;
@@ -357,10 +461,41 @@ function setupHomeworkTab(showToast) {
     });
   }
 
+  // Akıllı Tahta / WhatsApp Paylaşım Modalı Kapatma
+  const modalWaShare = document.getElementById('modal-whatsapp-share');
+  if (modalWaShare) {
+    document.querySelectorAll('#modal-whatsapp-share .close-btn, #modal-whatsapp-share .close-btn-action').forEach(btn => {
+      btn.addEventListener('click', () => {
+        modalWaShare.classList.remove('active');
+      });
+    });
+  }
+
   // Sadece Kaydet butonu
   if (btnHwSendSaveOnly) {
     btnHwSendSaveOnly.addEventListener('click', () => {
       saveHomeworkFromSendModal(false);
+    });
+  }
+
+  // Karekod ile Paylaş butonu (Ödev Ver modalından)
+  const btnHwSendQr = document.getElementById('btn-hw-send-qr');
+  if (btnHwSendQr) {
+    btnHwSendQr.addEventListener('click', () => {
+      const title = hwSendTitleInput ? hwSendTitleInput.value.trim() : '';
+      const desc = hwSendDescInput ? hwSendDescInput.value.trim() : '';
+      const dueRaw = hwSendDueInput ? hwSendDueInput.value : '';
+      const due = window.toISODate ? window.toISODate(dueRaw) : dueRaw;
+      const dayName = hwSendDaynameInput ? hwSendDaynameInput.value : '';
+
+      if (!title || !due) {
+        if (toastCallback) toastCallback('Lütfen önce ödev konusu ve son teslim tarihini girin.', 'warning');
+        return;
+      }
+      saveHomeworkFromSendModal(false);
+      const fakeHw = { title, description: desc, dueDate: due };
+      const msg = buildWhatsAppMessage(fakeHw, dayName);
+      openWhatsAppShareModal(msg);
     });
   }
 
@@ -377,6 +512,17 @@ function setupHomeworkTab(showToast) {
     btnHwViewResend.addEventListener('click', () => {
       if (_viewingHw && _viewingDayName) {
         sendToWhatsApp(_viewingHw, _viewingDayName);
+      }
+    });
+  }
+
+  // Görüntüle modalından Karekod ile paylaş
+  const btnHwViewQr = document.getElementById('btn-hw-view-qr');
+  if (btnHwViewQr) {
+    btnHwViewQr.addEventListener('click', () => {
+      if (_viewingHw && _viewingDayName) {
+        const msg = buildWhatsAppMessage(_viewingHw, _viewingDayName);
+        openWhatsAppShareModal(msg);
       }
     });
   }

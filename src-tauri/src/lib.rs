@@ -321,6 +321,23 @@ fn open_app_data_dir(app: tauri::AppHandle) -> Result<String, String> {
     Err("Uygulama klasörü bulunamadı".to_string())
 }
 
+#[tauri::command]
+fn open_external_url(url: String) -> Result<bool, String> {
+    #[cfg(target_os = "windows")]
+    {
+        let _ = Command::new("cmd").args(&["/c", "start", "", &url]).spawn();
+    }
+    #[cfg(target_os = "macos")]
+    {
+        let _ = Command::new("open").arg(&url).spawn();
+    }
+    #[cfg(target_os = "linux")]
+    {
+        let _ = Command::new("xdg-open").arg(&url).spawn();
+    }
+    Ok(true)
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -334,7 +351,8 @@ pub fn run() {
             save_portable_data,
             save_desktop_data,
             load_desktop_data,
-            open_app_data_dir
+            open_app_data_dir,
+            open_external_url
         ])
         .setup(|app| {
             let _window = app.get_webview_window("main").unwrap();
