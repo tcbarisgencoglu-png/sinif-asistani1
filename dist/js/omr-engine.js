@@ -1137,10 +1137,42 @@
     return { x: bestX, y: bestY };
   }
 
+  function analyzeBubbleRingContrast(gray, w, h, cx, cy, radius) {
+    const rRing = Math.max(7, Math.round(radius * 0.95));
+    const rOuter = Math.max(11, Math.round(radius * 1.45));
+    const cVal = (cx >= 0 && cx < w && cy >= 0 && cy < h) ? gray[cy * w + cx] : 255;
+
+    let ringSum = 0;
+    let outerSum = 0;
+    const angles = [0, 0.785398, 1.570796, 2.356194, 3.141593, 3.926991, 4.712389, 5.497787];
+    for (let i = 0; i < 8; i++) {
+      const rx = Math.round(cx + rRing * Math.cos(angles[i]));
+      const ry = Math.round(cy + rRing * Math.sin(angles[i]));
+      const ox = Math.round(cx + rOuter * Math.cos(angles[i]));
+      const oy = Math.round(cy + rOuter * Math.sin(angles[i]));
+      ringSum += (rx >= 0 && rx < w && ry >= 0 && ry < h) ? gray[ry * w + rx] : 255;
+      outerSum += (ox >= 0 && ox < w && oy >= 0 && oy < h) ? gray[oy * w + ox] : 255;
+    }
+    const avgRing = ringSum / 8.0;
+    const avgOut = outerSum / 8.0;
+
+    // Dolu baloncuk ise (merkez koyu, dışı açık)
+    if (cVal < 140 && avgOut > cVal + 25) {
+      return 1.5;
+    }
+    // Boş baloncuk halkası ise (merkez açık, halka koyu, dışı açık)
+    const ringDrop1 = cVal - avgRing;
+    const ringDrop2 = avgOut - avgRing;
+    if (ringDrop1 > 12 && ringDrop2 > 12) {
+      return Math.min(1.2, (ringDrop1 + ringDrop2) / 45.0);
+    }
+    return 0.0;
+  }
+
   function snapToBubbleRing(gray, w, h, initialPt, radius) {
     // Merkezin komşu dikey tablo çizgilerine taşmasını önlemek için dengeli arama penceresi
-    const searchRx = Math.max(5, Math.min(9, Math.round(radius * 0.70)));
-    const searchRy = Math.max(4, Math.min(8, Math.round(radius * 0.65)));
+    const searchRx = Math.max(5, Math.min(10, Math.round(radius * 0.75)));
+    const searchRy = Math.max(6, Math.min(14, Math.round(radius * 1.05)));
     const rRing = Math.max(8, Math.round(radius * 0.95));
     const rOuter = Math.max(12, Math.round(radius * 1.45));
 
@@ -1281,28 +1313,29 @@
       // Soru satırları 1. satırdan başlayarak flex-start düzeninde aşağıya doğru yerleşir.
       const maxQuestions = Math.max(...examSubjects.map(s => parseInt(s.questionCount, 10) || 0), 1);
 
-      let vFirstRowBase = 0.3045;
-      let vLastRow = 0.935;
-      let vStandardStep = 0.0435;
+      let vFirstRowBase = 0.3250;
+      let vLastRow = 0.9400;
+      let vStandardStep = 0.0700;
 
       if (perPage === 1) {
         // A4 Tam Sayfa
-        vFirstRowBase = 0.265;
-        vLastRow = 0.950;
-        vStandardStep = 0.0240;
+        vFirstRowBase = 0.2700;
+        vLastRow = 0.9500;
+        vStandardStep = 0.0350;
       } else if (perPage === 4) {
         // A6 Çeyrek Sayfa
-        vFirstRowBase = 0.320;
-        vLastRow = 0.920;
-        vStandardStep = 0.0435;
+        vFirstRowBase = 0.3300;
+        vLastRow = 0.9200;
+        vStandardStep = 0.0720;
       }
 
       const availH = vLastRow - vFirstRowBase;
-      // Kompakt (flex-start) düzende satırlar sabit vStandardStep ile dizilir.
-      // Çok fazla soru olduğunda (A5'te 14'ten fazla soru) gövde sınırına (availH) sığacak şekilde sıkışır:
-      const vCompactStep = maxQuestions > 1 ? Math.min(vStandardStep, availH / (maxQuestions - 1)) : vStandardStep;
-      // 1.0.69 geriye dönük uyumluluk (space-between) adımı:
-      const vLegacyStep = maxQuestions > 1 ? (availH / (maxQuestions - 1)) : vStandardStep;
+      // Kompakt (flex-start) düzende satırlar soru sayısı kart sınırına sığdığı sürece standart adımla (vStandardStep) dizilir.
+      // Soru sayısı sınır yüksekliğini aştığında (örn. A5'te 10+ soru) kart içine orantılı sıkışır:
+      const maxFitQuestions = Math.floor(availH / vStandardStep) + 1;
+      const vCompactStep = maxQuestions > maxFitQuestions
+        ? (availH / (maxQuestions - 1))
+        : vStandardStep;
 
       // 3. Ders sütunu içindeki şıkların yayılımı (A - B - C - D)
       // .omr-q-num (22px) ve .omr-bubble (18px x 4)
@@ -1375,6 +1408,10 @@
                 metrics = analyzeBubble(gray, w, h, snappedPt.x, snappedPt.y, sampleRadius, rowPaperLum);
               }
 
+              // Baloncuk halka / doluluk kontrast kalitesi (Boş baloncuklar bile ızgarayı kilitler)
+              const ringContrast = analyzeBubbleRingContrast(gray, w, h, snappedPt.x, snappedPt.y, sampleRadius);
+              gridConfidence += ringContrast;
+
               currentChoiceScores.push({
                 letter: letters[lIdx],
                 score: metrics.score,
@@ -1392,11 +1429,11 @@
             const diff = best.score - second.score;
             if (isAnchor) {
               if (best.score >= 0.28 && diff >= 0.10) {
-                gridConfidence += (best.score + diff);
+                gridConfidence += (best.score + diff) * 2;
               }
             } else {
               if (best.fillRatio >= 0.50 && diff >= 0.12) {
-                gridConfidence += (best.fillRatio + diff);
+                gridConfidence += (best.fillRatio + diff) * 2;
               }
             }
 
@@ -1413,24 +1450,33 @@
           return { gridConfidence, qResults };
         }
 
-        // Farklı yazıcı marjları, eğimler veya 1.0.69 space-between baskıları için adaptif aday ızgaralar
-        let bestSubjGrid = evaluateSubjectGrid(vCompactStep, vFirstRowBase);
+        // Farklı yazıcı marjları, ölçekleme ve flex-start / space-between formlar için adaptif arama
+        const candidateGrids = [];
 
-        const candidateOffsets = [-0.012, -0.006, 0.006, 0.012];
-        for (const dv of candidateOffsets) {
-          const candGrid = evaluateSubjectGrid(vCompactStep, vFirstRowBase + dv);
-          if (candGrid.gridConfidence > bestSubjGrid.gridConfidence) {
-            bestSubjGrid = candGrid;
-          }
+        // 1. Ana flex-start ızgarası, mikro dikey kaydırmalar (dv) ve adımlama ölçekleri (scale)
+        const candidateVFirstOffsets = [0.000, -0.008, 0.008, -0.015, 0.015];
+        const candidateStepScales = [1.00, 0.97, 1.03];
+
+        candidateStepScales.forEach(scale => {
+          const testStep = vCompactStep * scale;
+          candidateVFirstOffsets.forEach(dv => {
+            candidateGrids.push({ step: testStep, vFirst: vFirstRowBase + dv });
+          });
+        });
+
+        // 2. 1.0.69 geriye dönük uyumluluk (space-between) adayı
+        const legacyStep = numQuestions > 1 ? (availH / (numQuestions - 1)) : vCompactStep;
+        if (Math.abs(legacyStep - vCompactStep) > 0.008) {
+          candidateGrids.push({ step: legacyStep, vFirst: vFirstRowBase });
+          candidateGrids.push({ step: legacyStep, vFirst: vFirstRowBase - 0.008 });
+          candidateGrids.push({ step: legacyStep, vFirst: vFirstRowBase + 0.008 });
         }
 
-        // Geriye dönük uyumluluk: 1.0.69 versiyonundaki space-between ızgara ile basılmış eski form kontrolü
-        if (numQuestions <= 12 && bestSubjGrid.gridConfidence < 0.60) {
-          for (const dv of [0.000, -0.008, 0.008]) {
-            const candLegacy = evaluateSubjectGrid(vLegacyStep, vFirstRowBase + dv);
-            if (candLegacy.gridConfidence > bestSubjGrid.gridConfidence) {
-              bestSubjGrid = candLegacy;
-            }
+        let bestSubjGrid = null;
+        for (const cand of candidateGrids) {
+          const evaluated = evaluateSubjectGrid(cand.step, cand.vFirst);
+          if (!bestSubjGrid || evaluated.gridConfidence > bestSubjGrid.gridConfidence) {
+            bestSubjGrid = evaluated;
           }
         }
 

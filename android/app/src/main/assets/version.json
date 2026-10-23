@@ -1,8 +1,8 @@
 {
-  "version": "1.0.81",
+  "version": "1.0.82",
   "releaseDate": "2026-10-23",
   "minRequiredVersion": "1.0.0",
-  "title": "Sınıf Asistanı v1.0.81 Yayında!",
+  "title": "Sınıf Asistanı v1.0.82 Yayında!",
   "description": "Optik Okuma (OMR) Baloncuk Kalibrasyonu ve Ödev Oluşturucu İyileştirmeleri",
   "features": [
     "OMR Baloncuk Merkezleri Kalibrasyonu: Çoklu ders ve tek dersli optik formlarda soru sayısı ve kağıt formatı değişse bile baloncuk merkezlerine hatasız kilitlenen adaptif ızgara motoru entegre edildi.",
