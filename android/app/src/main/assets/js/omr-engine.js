@@ -1315,7 +1315,7 @@
 
       let vFirstRowBase = 0.3250;
       let vLastRow = 0.9400;
-      let vStandardStep = 0.0700;
+      let vStandardStep = 0.0490; // A5 Yarım Sayfa için 22px pitch / ~488px anchor H ≈ 0.045 - 0.051
 
       if (perPage === 1) {
         // A4 Tam Sayfa
@@ -1331,18 +1331,13 @@
 
       const availH = vLastRow - vFirstRowBase;
       // Kompakt (flex-start) düzende satırlar soru sayısı kart sınırına sığdığı sürece standart adımla (vStandardStep) dizilir.
-      // Soru sayısı sınır yüksekliğini aştığında (örn. A5'te 10+ soru) kart içine orantılı sıkışır:
+      // Soru sayısı sınır yüksekliğini aştığında (örn. A5'te 13+ soru) kart içine orantılı sıkışır:
       const maxFitQuestions = Math.floor(availH / vStandardStep) + 1;
       const vCompactStep = maxQuestions > maxFitQuestions
         ? (availH / (maxQuestions - 1))
         : vStandardStep;
 
       // 3. Ders sütunu içindeki şıkların yayılımı (A - B - C - D)
-      // .omr-q-num (22px) ve .omr-bubble (18px x 4)
-      const bStartRatio = 0.28;
-      const bEndRatio = letters.length >= 5 ? 0.80 : (letters.length === 3 ? 0.62 : 0.76);
-      const choiceStepRatio = letters.length > 1 ? ((bEndRatio - bStartRatio) / (letters.length - 1)) : 0;
-
       examSubjects.forEach((subj, sIdx) => {
         let subjCorrect = 0;
         let subjWrong = 0;
@@ -1354,47 +1349,74 @@
         let colU_A, choiceStep;
         if (numSubjects === 5) {
           const colBounds = [
-            { uA: 0.0985, uD: 0.1775 }, // Türkçe
-            { uA: 0.2885, uD: 0.3665 }, // Matematik
-            { uA: 0.4710, uD: 0.5650 }, // Fen Bilgisi
-            { uA: 0.6565, uD: 0.7485 }, // Sosyal Bilgiler
-            { uA: 0.8430, uD: 0.9395 }  // İngilizce
+            { uA: 0.0700, uD: 0.1620 }, // 1. Ders (Türkçe)
+            { uA: 0.2580, uD: 0.3500 }, // 2. Ders (Matematik)
+            { uA: 0.4490, uD: 0.5410 }, // 3. Ders (Sosyal Bilgiler)
+            { uA: 0.6410, uD: 0.7330 }, // 4. Ders (Fen Bilgisi)
+            { uA: 0.8330, uD: 0.9250 }  // 5. Ders (İngilizce)
           ];
-          const cb = colBounds[sIdx] || { uA: 0.0985 + sIdx * 0.186, uD: 0.1775 + sIdx * 0.186 };
+          const cb = colBounds[sIdx] || { uA: 0.0700 + sIdx * 0.191, uD: 0.1620 + sIdx * 0.191 };
           colU_A = cb.uA;
-          choiceStep = letters.length > 1 ? ((cb.uD - cb.uA) / (letters.length - 1)) : 0.0263;
+          choiceStep = letters.length > 1 ? ((cb.uD - cb.uA) / (letters.length - 1)) : 0.0307;
         } else if (numSubjects === 4) {
-          const colU_A_list = [0.1060, 0.3340, 0.5620, 0.7900];
-          colU_A = colU_A_list[sIdx] !== undefined ? colU_A_list[sIdx] : (0.1060 + sIdx * 0.2280);
-          choiceStep = 0.0340;
+          const colBounds = [
+            { uA: 0.0820, uD: 0.1740 },
+            { uA: 0.3220, uD: 0.4140 },
+            { uA: 0.5620, uD: 0.6540 },
+            { uA: 0.8020, uD: 0.8940 }
+          ];
+          const cb = colBounds[sIdx] || { uA: 0.0820 + sIdx * 0.240, uD: 0.1740 + sIdx * 0.240 };
+          colU_A = cb.uA;
+          choiceStep = letters.length > 1 ? ((cb.uD - cb.uA) / (letters.length - 1)) : 0.0307;
         } else if (numSubjects === 3) {
-          const colU_A_list = [0.1250, 0.4280, 0.7310];
-          colU_A = colU_A_list[sIdx] !== undefined ? colU_A_list[sIdx] : (0.1250 + sIdx * 0.3030);
-          choiceStep = 0.0420;
+          const colBounds = [
+            { uA: 0.0950, uD: 0.1870 },
+            { uA: 0.4100, uD: 0.5020 },
+            { uA: 0.7250, uD: 0.8170 }
+          ];
+          const cb = colBounds[sIdx] || { uA: 0.0950 + sIdx * 0.315, uD: 0.1870 + sIdx * 0.315 };
+          colU_A = cb.uA;
+          choiceStep = letters.length > 1 ? ((cb.uD - cb.uA) / (letters.length - 1)) : 0.0307;
         } else if (numSubjects === 2) {
-          const colU_A_list = [0.1550, 0.6050];
-          colU_A = colU_A_list[sIdx] !== undefined ? colU_A_list[sIdx] : (0.1550 + sIdx * 0.4500);
-          choiceStep = 0.0520;
+          const colBounds = [
+            { uA: 0.1200, uD: 0.2120 },
+            { uA: 0.5900, uD: 0.6820 }
+          ];
+          const cb = colBounds[sIdx] || { uA: 0.1200 + sIdx * 0.470, uD: 0.2120 + sIdx * 0.470 };
+          colU_A = cb.uA;
+          choiceStep = letters.length > 1 ? ((cb.uD - cb.uA) / (letters.length - 1)) : 0.0307;
         } else if (numSubjects === 6) {
-          colU_A = 0.0820 + sIdx * 0.1560;
-          choiceStep = 0.0240;
+          const colBounds = [
+            { uA: 0.0620, uD: 0.1540 },
+            { uA: 0.2200, uD: 0.3120 },
+            { uA: 0.3780, uD: 0.4700 },
+            { uA: 0.5360, uD: 0.6280 },
+            { uA: 0.6940, uD: 0.7860 },
+            { uA: 0.8520, uD: 0.9440 }
+          ];
+          const cb = colBounds[sIdx] || { uA: 0.0620 + sIdx * 0.158, uD: 0.1540 + sIdx * 0.158 };
+          colU_A = cb.uA;
+          choiceStep = letters.length > 1 ? ((cb.uD - cb.uA) / (letters.length - 1)) : 0.0307;
         } else {
-          colU_A = (gridUStart + 0.055) + sIdx * slotW;
-          choiceStep = (slotW * 0.58) / Math.max(1, letters.length - 1);
+          const colW = (0.955 - (numSubjects - 1) * 0.012) / numSubjects;
+          const colStep = colW + 0.012;
+          const colStartU = 0.020 + sIdx * colStep;
+          colU_A = colStartU + 0.050;
+          choiceStep = 0.0307;
         }
 
-        function evaluateSubjectGrid(step, vFirst) {
+        function evaluateSubjectGrid(step, vFirst, du = 0) {
           const qResults = [];
           let gridConfidence = 0;
 
           for (let q = 1; q <= numQuestions; q++) {
             const rowV = numQuestions > 1 ? (vFirst + (q - 1) * step) : ((vFirst + vLastRow) * 0.5);
-            const rowSamplePt = mapPoint(colU_A + choiceStep * 1.5, rowV);
+            const rowSamplePt = mapPoint(colU_A + du + choiceStep * 1.5, rowV);
             const rowPaperLum = sampleLocalPaperLuminance(gray, w, h, rowSamplePt, sampleRadius);
 
             const currentChoiceScores = [];
             for (let lIdx = 0; lIdx < letters.length; lIdx++) {
-              const choiceU = colU_A + lIdx * choiceStep;
+              const choiceU = colU_A + du + lIdx * choiceStep;
               const initialPt = mapPoint(choiceU, rowV);
               let snappedPt;
               let metrics;
@@ -1453,28 +1475,33 @@
         // Farklı yazıcı marjları, ölçekleme ve flex-start / space-between formlar için adaptif arama
         const candidateGrids = [];
 
-        // 1. Ana flex-start ızgarası, mikro dikey kaydırmalar (dv) ve adımlama ölçekleri (scale)
-        const candidateVFirstOffsets = [0.000, -0.008, 0.008, -0.015, 0.015];
-        const candidateStepScales = [1.00, 0.97, 1.03];
+        // 1. Ana flex-start ızgarası, mikro dikey/yatay kaydırmalar (dv, du) ve adımlama ölçekleri (scale)
+        const candidateVFirstOffsets = [0.000, -0.006, 0.006, -0.012, 0.012];
+        const candidateStepScales = [1.00, 0.97, 1.03, 0.94, 1.06];
+        const candidateDu = [0.000, -0.004, 0.004];
 
         candidateStepScales.forEach(scale => {
           const testStep = vCompactStep * scale;
           candidateVFirstOffsets.forEach(dv => {
-            candidateGrids.push({ step: testStep, vFirst: vFirstRowBase + dv });
+            candidateDu.forEach(du => {
+              candidateGrids.push({ step: testStep, vFirst: vFirstRowBase + dv, du });
+            });
           });
         });
 
-        // 2. 1.0.69 geriye dönük uyumluluk (space-between) adayı
-        const legacyStep = numQuestions > 1 ? (availH / (numQuestions - 1)) : vCompactStep;
-        if (Math.abs(legacyStep - vCompactStep) > 0.008) {
-          candidateGrids.push({ step: legacyStep, vFirst: vFirstRowBase });
-          candidateGrids.push({ step: legacyStep, vFirst: vFirstRowBase - 0.008 });
-          candidateGrids.push({ step: legacyStep, vFirst: vFirstRowBase + 0.008 });
+        // 2. 1.0.69 geriye dönük uyumluluk (space-between) adayı (Sadece kartı dolduran 10+ soru varsa)
+        if (numQuestions >= 10) {
+          const legacyStep = availH / (numQuestions - 1);
+          if (Math.abs(legacyStep - vCompactStep) > 0.008) {
+            candidateGrids.push({ step: legacyStep, vFirst: vFirstRowBase, du: 0 });
+            candidateGrids.push({ step: legacyStep, vFirst: vFirstRowBase - 0.008, du: 0 });
+            candidateGrids.push({ step: legacyStep, vFirst: vFirstRowBase + 0.008, du: 0 });
+          }
         }
 
         let bestSubjGrid = null;
         for (const cand of candidateGrids) {
-          const evaluated = evaluateSubjectGrid(cand.step, cand.vFirst);
+          const evaluated = evaluateSubjectGrid(cand.step, cand.vFirst, cand.du || 0);
           if (!bestSubjGrid || evaluated.gridConfidence > bestSubjGrid.gridConfidence) {
             bestSubjGrid = evaluated;
           }
