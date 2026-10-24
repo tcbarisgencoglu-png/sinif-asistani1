@@ -1,13 +1,13 @@
 {
-  "version": "1.0.90",
+  "version": "1.0.91",
   "releaseDate": "2026-10-24",
   "minRequiredVersion": "1.0.0",
-  "title": "Sınıf Asistanı v1.0.90 Yayında!",
-  "description": "5 Sabit Yuva (Fixed Slot) Mimarisi ve A4 Sayfa Alt Boşluğunu Değerlendiren 134mm Ferah Optik Form",
+  "title": "Sınıf Asistanı v1.0.91 Yayında!",
+  "description": "A5 2'li Optik Formlar için 128mm/134mm Dikey Başlangıç (0.2450) ve Adım Kalibrasyonu",
   "features": [
-    "A4 Sayfa Altı Boşluğu Değerlendirildi: 2'li baskıda sayfa altındaki 3 cm boşluk formlara dahil edildi (kart boyu 120mm -> 134mm); 15 soruya kadar büyük ve ferah baloncuk düzeni sağlandı.",
-    "5 Sabit Yuva (Fixed Slot) Mimarisi: Ders sayısından bağımsız olarak (1..5 ders) her ders kendi sabit sütununda (Türkçe, Mat, Fen, Sosyal, İngilizce) yer alır; boş ders alanları otomatik korunarak kamera koordinatları %100 sabitlendi.",
-    "15 Soru Desteği: Çoklu ders formlarında artık 15 soruya kadar tam sayfa dengeli, sıkışmasız optik çıktılar üretilir."
+    "A5 2'li Form Dikey Başlangıcı Kalibre Edildi: Kart boyu genişlemesine bağlı olarak vFirstRowBase (0.2450) ve vCompactStep (0.0480) oranları güncellendi; 1. sorunun 2. soruya kayması engellendi.",
+    "Alt Çizgi Kırpılma Koruması: Sayfa altı güvenli marjini korunarak alt çıpaların ve kenarlıkların yazıcı sınırlarına sığması sağlandı.",
+    "5 Sabit Yuva Mimarisi Tamamlandı: Çoklu derslerde her ders kendi sabit sütununa oturacak şekilde kilitlendi."
   ],
   "release_url": "https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/latest"
 }

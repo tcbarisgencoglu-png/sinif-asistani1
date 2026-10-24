@@ -1309,13 +1309,17 @@
       // Soru satırları 1. satırdan başlayarak flex-start düzeninde aşağıya doğru yerleşir.
       const maxQuestions = Math.max(...examSubjects.map(s => parseInt(s.questionCount, 10) || 0), 1);
 
-      let vFirstRowBase = 0.2810;
-      let vCompactStep = 0.0524;
+      let vFirstRowBase = 0.2450;
+      let vCompactStep = 0.0480;
 
       if (perPage === 1) {
         // A4 Tam Sayfa
         vFirstRowBase = 0.2000;
         vCompactStep = 0.0260;
+      } else if (perPage === 2) {
+        // A5 Yatay (Sayfada 2 Form - 128mm / 134mm)
+        vFirstRowBase = 0.2450;
+        vCompactStep = 0.0480;
       } else if (perPage === 4) {
         // A6 Çeyrek Sayfa
         vFirstRowBase = 0.2810;
@@ -1410,8 +1414,8 @@
       }
 
       // Global aday ızgaralar: Mikro dikey kaydırmalar (dv) ve adımlama ölçekleri (scale)
-      const candidateVFirstOffsets = [0.000, -0.002, 0.002, -0.004, 0.004];
-      const candidateStepScales = [1.00, 0.99, 1.01, 0.98, 1.02];
+      const candidateVFirstOffsets = [0.000, -0.006, 0.006, -0.012, 0.012, -0.018, 0.018];
+      const candidateStepScales = [1.00, 0.98, 1.02, 0.95, 1.05];
 
       let bestGlobalStep = vCompactStep;
       let bestGlobalVFirst = vFirstRowBase;
