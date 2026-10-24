@@ -1305,21 +1305,21 @@
       const slotW = totalGridW / numSubjects;
 
       // 2. Çoklu ders gövde dikey aralığı (0.0 - 1.0 aralığı, 4 referans çapa merkezli)
-      // Üst başlık (Sınav adı, öğrenci adı, QR rozeti) 0.00 - 0.22 aralığını kaplar.
+      // Üst başlık (Sınav adı, öğrenci adı, QR rozeti) 0.00 - 0.24 aralığını kaplar.
       // Soru satırları 1. satırdan başlayarak flex-start düzeninde aşağıya doğru yerleşir.
       const maxQuestions = Math.max(...examSubjects.map(s => parseInt(s.questionCount, 10) || 0), 1);
 
-      let vFirstRowBase = 0.2400;
-      let vCompactStep = 0.0540;
+      let vFirstRowBase = 0.2760;
+      let vCompactStep = 0.0515;
 
       if (perPage === 1) {
         // A4 Tam Sayfa
-        vFirstRowBase = 0.1650;
-        vCompactStep = 0.0270;
+        vFirstRowBase = 0.2000;
+        vCompactStep = 0.0260;
       } else if (perPage === 4) {
         // A6 Çeyrek Sayfa
-        vFirstRowBase = 0.2400;
-        vCompactStep = 0.0540;
+        vFirstRowBase = 0.2760;
+        vCompactStep = 0.0515;
       }
 
       if (maxQuestions > 20) {
@@ -1327,15 +1327,8 @@
         vCompactStep = vCompactStep * 0.82;
       }
 
-      // 3. Ders sütunu içindeki şıkların yayılımı (A - B - C - D)
-      examSubjects.forEach((subj, sIdx) => {
-        let subjCorrect = 0;
-        let subjWrong = 0;
-        let subjBlank = 0;
-
-        const numQuestions = parseInt(subj.questionCount, 10) || 6;
-
-        // Sütun yatay hizalaması (Ders sayısına göre deterministik matris - tüm modlarda birleşik)
+      // Ders sütunlarının yatay geometri haritası (Tüm dersler için standart)
+      function getSubjectColumnGeometry(sIdx) {
         let colU_A, choiceStep;
         if (numSubjects === 5) {
           const colBounds = [
@@ -1397,6 +1390,79 @@
           const spanD = Math.min(0.1090, colW * 0.75);
           choiceStep = letters.length > 1 ? (spanD / (letters.length - 1)) : 0.0363;
         }
+        return { colU_A, choiceStep };
+      }
+
+      // ── BİRLEŞİK KART GENELİ DİKEY IZGARA KALİBRASYONU (GLOBAL VERTICAL LOCK) ──
+      // Tüm dersler aynı fiziksel kağıt üzerine basıldığı için:
+      // 1. Soru 1 yatay düzlemde tüm dersler için birebir aynı dikey çizgidedir (vFirst).
+      // 2. Sorular arasındaki dikey aralık (step) tüm sütunlar için sabittir: (q - 1) * step.
+      // Sütunların birbirinden bağımsız dikey kayma yapmasını engellemek için tek bir global arama yapılır.
+      function evaluateGlobalGridConfidence(testStep, testVFirst) {
+        let totalConfidence = 0;
+        for (let sIdx = 0; sIdx < numSubjects; sIdx++) {
+          const subj = examSubjects[sIdx];
+          const numQuestions = parseInt(subj.questionCount, 10) || 6;
+          const { colU_A, choiceStep } = getSubjectColumnGeometry(sIdx);
+
+          for (let q = 1; q <= numQuestions; q++) {
+            const rowV = testVFirst + (q - 1) * testStep;
+            const rowSamplePt = mapPoint(colU_A + choiceStep * 1.5, rowV);
+            const rowPaperLum = sampleLocalPaperLuminance(gray, w, h, rowSamplePt, sampleRadius);
+
+            const rowScores = [];
+            for (let lIdx = 0; lIdx < letters.length; lIdx++) {
+              const choiceU = colU_A + lIdx * choiceStep;
+              const initialPt = mapPoint(choiceU, rowV);
+              const snappedPt = (isAnchor || isMobile)
+                ? snapToBubbleRing(gray, w, h, initialPt, sampleRadius)
+                : refineBubbleCenter(gray, w, h, initialPt, sampleRadius, rowPaperLum, Math.max(6, Math.round(sampleRadius * 1.3)), Math.max(6, Math.round(sampleRadius * 1.3)));
+
+              const ringContrast = analyzeBubbleRingContrast(gray, w, h, snappedPt.x, snappedPt.y, sampleRadius);
+              totalConfidence += ringContrast;
+
+              const metrics = analyzeBubble(gray, w, h, snappedPt.x, snappedPt.y, sampleRadius, rowPaperLum);
+              rowScores.push(metrics.score);
+            }
+            rowScores.sort((a, b) => b - a);
+            const diff = rowScores[0] - (rowScores[1] || 0);
+            if (rowScores[0] >= 0.28 && diff >= 0.10) {
+              totalConfidence += (rowScores[0] + diff) * 2;
+            }
+          }
+        }
+        return totalConfidence;
+      }
+
+      // Global aday ızgaralar: Mikro dikey kaydırmalar (dv) ve adımlama ölçekleri (scale)
+      const candidateVFirstOffsets = [0.000, -0.003, 0.003, -0.006, 0.006];
+      const candidateStepScales = [1.00, 0.99, 1.01, 0.98, 1.02];
+
+      let bestGlobalStep = vCompactStep;
+      let bestGlobalVFirst = vFirstRowBase;
+      let bestGlobalScore = -1;
+
+      candidateStepScales.forEach(scale => {
+        const testStep = vCompactStep * scale;
+        candidateVFirstOffsets.forEach(dv => {
+          const testVFirst = vFirstRowBase + dv;
+          const score = evaluateGlobalGridConfidence(testStep, testVFirst);
+          if (score > bestGlobalScore) {
+            bestGlobalScore = score;
+            bestGlobalStep = testStep;
+            bestGlobalVFirst = testVFirst;
+          }
+        });
+      });
+
+      // 3. Ders sütunu içindeki şıkların yayılımı (A - B - C - D)
+      examSubjects.forEach((subj, sIdx) => {
+        let subjCorrect = 0;
+        let subjWrong = 0;
+        let subjBlank = 0;
+
+        const numQuestions = parseInt(subj.questionCount, 10) || 6;
+        const { colU_A, choiceStep } = getSubjectColumnGeometry(sIdx);
 
         function evaluateSubjectGrid(step, vFirst, du = 0) {
           const qResults = [];
@@ -1465,26 +1531,11 @@
           return { gridConfidence, qResults };
         }
 
-        // Farklı yazıcı marjları, ölçekleme ve flex-start formlar için adaptif arama
-        const candidateGrids = [];
-
-        // Ana flex-start ızgarası, mikro dikey/yatay kaydırmalar (dv, du) ve adımlama ölçekleri (scale)
-        const candidateVFirstOffsets = [0.000, -0.003, 0.003, -0.006, 0.006];
-        const candidateStepScales = [1.00, 0.99, 1.01, 0.98, 1.02];
-        const candidateDu = [0.000, -0.003, 0.003];
-
-        candidateStepScales.forEach(scale => {
-          const testStep = vCompactStep * scale;
-          candidateVFirstOffsets.forEach(dv => {
-            candidateDu.forEach(du => {
-              candidateGrids.push({ step: testStep, vFirst: vFirstRowBase + dv, du });
-            });
-          });
-        });
-
+        // Sütun bazında yalnızca yatay mikro ince ayar yapılır (dikey eksen global kilitlidir)
+        const candidateDu = [0.000, -0.002, 0.002];
         let bestSubjGrid = null;
-        for (const cand of candidateGrids) {
-          const evaluated = evaluateSubjectGrid(cand.step, cand.vFirst, cand.du || 0);
+        for (const du of candidateDu) {
+          const evaluated = evaluateSubjectGrid(bestGlobalStep, bestGlobalVFirst, du);
           if (!bestSubjGrid || evaluated.gridConfidence > bestSubjGrid.gridConfidence) {
             bestSubjGrid = evaluated;
           }

@@ -1,13 +1,13 @@
 {
-  "version": "1.0.86",
-  "releaseDate": "2026-10-23",
+  "version": "1.0.87",
+  "releaseDate": "2026-10-24",
   "minRequiredVersion": "1.0.0",
-  "title": "Sınıf Asistanı v1.0.86 Yayında!",
-  "description": "OMR Optik Okuma Baloncuk Merkezleri ve Çoklu Ders Hizalaması Tamamlandı",
+  "title": "Sınıf Asistanı v1.0.87 Yayında!",
+  "description": "Çoklu Ders Optik Formlarda Global Birleşik Dikey Izgara ve Milimetrik Baloncuk Kilitlenmesi",
   "features": [
-    "OMR Baloncuk Merkezleri Milimetrik Kilitlenme: Çoklu ders optik formlarda dikey başlangıç konumu (0.2400) ve satır adımı (0.0540) kağıt üzerindeki baskı ile %100 birebir eşitlendi.",
-    "Sütun ve Şık Aralıkları Yenilendi: Türkçe, Matematik, Sosyal Bilgiler, Fen Bilgisi ve İngilizce sütunlarının A-B-C-D şık merkezleri tam hizaya oturtuldu.",
-    "Halka Kilitlenmesi ve Boş Alan Koruması: Soru sayısı az olan derslerde (5-6 soru) alt kısımdaki boş alanlara ve satır numaralarına kayma engellendi."
+    "Global Birleşik Dikey Izgara (Tüm Derslerde Aynı Yatay Düzlem): Tüm dersler tek bir fiziksel kağıt üzerinde yer aldığından, 1. soruların yatay düzlemde farklı piksellere kayması engellendi; 1. sorular tüm ders sütunlarında tek ve aynı yatay doğruya kilitlendi.",
+    "Baskı ile %100 Birebir Başlangıç Konumu: 1. soru satırı başlık metinlerinin ('TÜRKÇE' vb.) altına, kağıt üzerindeki gerçek baloncuk merkezine (v=0.2760, adım=0.0515) oturtuldu. 1. sorunun başlığa veya 2. sorunun 1. soruya denk gelmesi giderildi.",
+    "Sabit Boşluk Kuralı ((q - 1) * step): Sorular arasındaki dikey adım tüm sütunlar için eşit ve sabit tutularak bağımsız sütun kaymaları sonlandırıldı."
   ],
   "release_url": "https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/latest"
 }
