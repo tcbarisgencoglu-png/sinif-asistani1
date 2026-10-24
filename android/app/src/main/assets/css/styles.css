@@ -3390,13 +3390,13 @@ th:hover .hw-col-actions {
     flex-direction: column !important;
     justify-content: space-between !important;
     gap: 4mm !important;
-    height: 246mm !important;
-    max-height: 248mm !important;
+    height: 274mm !important;
+    max-height: 276mm !important;
     padding: 1mm 2mm !important;
   }
   body.print-optical .omr-print-page.omr-per-page-2 .omr-card {
-    height: 120mm !important;
-    max-height: 121mm !important;
+    height: 134mm !important;
+    max-height: 135mm !important;
     overflow: hidden !important;
     box-sizing: border-box !important;
     padding: 6px 10px !important;
@@ -3404,8 +3404,8 @@ th:hover .hw-col-actions {
     break-inside: avoid !important;
   }
   body.print-optical .omr-print-page.omr-per-page-2 .omr-card.omr-multi {
-    height: 120mm !important;
-    max-height: 121mm !important;
+    height: 134mm !important;
+    max-height: 135mm !important;
     padding: 4px 8px !important;
     overflow: hidden !important;
     box-sizing: border-box !important;
@@ -4056,13 +4056,13 @@ th:hover .hw-col-actions {
   flex-direction: column;
   justify-content: space-between;
   gap: 4mm;
-  height: 246mm;
-  max-height: 248mm;
+  height: 274mm;
+  max-height: 276mm;
   padding: 1mm 2mm;
 }
 .omr-print-page.omr-per-page-2 .omr-card {
-  height: 120mm;
-  max-height: 121mm;
+  height: 134mm;
+  max-height: 135mm;
   max-width: 100%;
   margin: 0;
   padding: 6px 10px;
@@ -4583,16 +4583,21 @@ th:hover .hw-col-actions {
   box-sizing: border-box;
 }
 .omr-multi-subjects-grid.cols-2 .omr-subject-block {
-  width: 48.5%;
+  width: 18.8%;
+  flex: 0 0 18.8%;
 }
 .omr-multi-subjects-grid.cols-3 .omr-subject-block {
-  width: 32%;
+  width: 18.8%;
+  flex: 0 0 18.8%;
 }
 .omr-multi-subjects-grid.cols-4 .omr-subject-block {
-  width: 23.5%;
-}
-.omr-multi-subjects-grid.cols-5 .omr-subject-block {
   width: 18.8%;
+  flex: 0 0 18.8%;
+}
+.omr-multi-subjects-grid.cols-5 .omr-subject-block,
+.omr-multi-subjects-grid.fixed-5-slots .omr-subject-block {
+  width: 18.8%;
+  flex: 0 0 18.8%;
 }
 .omr-multi-subjects-grid.cols-6 .omr-subject-block {
   width: 15.5%;

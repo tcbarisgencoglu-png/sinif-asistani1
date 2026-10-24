@@ -5403,38 +5403,47 @@ Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi ve
     });
 
     if (isMultiSubject && Array.isArray(subjects) && subjects.length > 0) {
-      // ÇOKLU DERS OPTİK KARTI (A4 Sığdırma Garantili & Her Derste 1'den Başlayan Numaralandırma)
-      const cols = Math.min(6, Math.max(2, subjects.length));
+      // ÇOKLU DERS OPTİK KARTI (5 Sabit Yuva / Slot Mimarisi)
       const maxSubjQ = Math.max(...subjects.map(s => s.questionCount || 0));
       const isCompact = maxSubjQ > 20 || totalQuestions > 40;
 
+      const maxSlots = 5;
       let subjectsHtml = '';
-      subjects.forEach(subj => {
-        let rowsHtml = '';
-        const count = subj.questionCount || 10;
-        for (let q = 1; q <= count; q++) {
-          rowsHtml += `
-            <div class="omr-q-row" data-subj="${subj.id}" data-q="${q}">
-              <span class="omr-q-num">${q}</span>
-              <div class="omr-q-bubbles">
-                ${letters.map(l => `<span class="omr-bubble" data-opt="${l}">${l}</span>`).join('')}
+      for (let sIdx = 0; sIdx < maxSlots; sIdx++) {
+        const subj = subjects[sIdx];
+        if (subj) {
+          let rowsHtml = '';
+          const count = subj.questionCount || 10;
+          for (let q = 1; q <= count; q++) {
+            rowsHtml += `
+              <div class="omr-q-row" data-subj="${subj.id}" data-q="${q}">
+                <span class="omr-q-num">${q}</span>
+                <div class="omr-q-bubbles">
+                  ${letters.map(l => `<span class="omr-bubble" data-opt="${l}">${l}</span>`).join('')}
+                </div>
+              </div>
+            `;
+          }
+
+          subjectsHtml += `
+            <div class="omr-subject-block slot-${sIdx}">
+              <div class="omr-subject-header">
+                <span class="omr-subject-name" title="${subj.name}">${subj.name}</span>
+                <span class="omr-subject-badge">${count} Soru</span>
+              </div>
+              <div class="omr-subject-rows">
+                ${rowsHtml}
               </div>
             </div>
           `;
+        } else {
+          // Boş yuva: Tam aynı 18.8% genişlikte boş alan (sayfa dengesini ve koordinatları korur)
+          subjectsHtml += `
+            <div class="omr-subject-block omr-slot-empty" style="visibility: hidden; border: none; background: transparent;">
+            </div>
+          `;
         }
-
-        subjectsHtml += `
-          <div class="omr-subject-block">
-            <div class="omr-subject-header">
-              <span class="omr-subject-name" title="${subj.name}">${subj.name}</span>
-              <span class="omr-subject-badge">${count} Soru</span>
-            </div>
-            <div class="omr-subject-rows">
-              ${rowsHtml}
-            </div>
-          </div>
-        `;
-      });
+      }
 
       return `
         <div class="omr-card omr-multi ${isCompact ? 'compact-rows' : ''}">
@@ -5459,9 +5468,9 @@ Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi ve
             ${qrBadgeHtml}
           </div>
 
-          <!-- Çoklu Ders Şıkları Gövdesi -->
+          <!-- Çoklu Ders Şıkları Gövdesi (5 Sabit Yuva) -->
           <div class="omr-card-body" style="padding: 2px 0;">
-            <div class="omr-multi-subjects-grid cols-${cols}">
+            <div class="omr-multi-subjects-grid cols-5 fixed-5-slots">
               ${subjectsHtml}
             </div>
           </div>

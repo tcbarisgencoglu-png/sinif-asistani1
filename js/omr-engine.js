@@ -1327,47 +1327,22 @@
         vCompactStep = vCompactStep * 0.82;
       }
 
-      // Ders sütunlarının yatay geometri haritası (Tüm dersler için standart)
+      // Ders sütunlarının yatay geometri haritası (5 Sabit Yuva / Fixed Slot Mimarisi)
       function getSubjectColumnGeometry(sIdx) {
         let colU_A, choiceStep;
-        if (numSubjects === 5) {
-          const colBounds = [
-            { uA: 0.0650, uD: 0.1790 }, // 1. Ders (Türkçe)
-            { uA: 0.2640, uD: 0.3780 }, // 2. Ders (Matematik)
-            { uA: 0.4640, uD: 0.5780 }, // 3. Ders (Fen Bilgisi)
-            { uA: 0.6620, uD: 0.7760 }, // 4. Ders (Sosyal Bilgiler)
-            { uA: 0.8600, uD: 0.9740 }  // 5. Ders (İngilizce)
-          ];
+        // 1..5 ders için her ders kendi sabit sütununda (Slot 0..4) yer alır
+        const colBounds = [
+          { uA: 0.0650, uD: 0.1790 }, // 1. Yuva (Türkçe)
+          { uA: 0.2640, uD: 0.3780 }, // 2. Yuva (Matematik)
+          { uA: 0.4640, uD: 0.5780 }, // 3. Yuva (Fen Bilgisi)
+          { uA: 0.6620, uD: 0.7760 }, // 4. Yuva (Sosyal Bilgiler)
+          { uA: 0.8600, uD: 0.9740 }  // 5. Yuva (İngilizce)
+        ];
+
+        if (numSubjects <= 5) {
           const cb = colBounds[sIdx] || { uA: 0.0650 + sIdx * 0.1985, uD: 0.1790 + sIdx * 0.1985 };
           colU_A = cb.uA;
           choiceStep = letters.length > 1 ? ((cb.uD - cb.uA) / (letters.length - 1)) : 0.0380;
-        } else if (numSubjects === 4) {
-          const colBounds = [
-            { uA: 0.0710, uD: 0.1800 },
-            { uA: 0.3080, uD: 0.4170 },
-            { uA: 0.5440, uD: 0.6530 },
-            { uA: 0.7810, uD: 0.8900 }
-          ];
-          const cb = colBounds[sIdx] || { uA: 0.0710 + sIdx * 0.237, uD: 0.1800 + sIdx * 0.237 };
-          colU_A = cb.uA;
-          choiceStep = letters.length > 1 ? ((cb.uD - cb.uA) / (letters.length - 1)) : 0.0363;
-        } else if (numSubjects === 3) {
-          const colBounds = [
-            { uA: 0.0710, uD: 0.1800 },
-            { uA: 0.3860, uD: 0.4950 },
-            { uA: 0.7020, uD: 0.8110 }
-          ];
-          const cb = colBounds[sIdx] || { uA: 0.0710 + sIdx * 0.315, uD: 0.1800 + sIdx * 0.315 };
-          colU_A = cb.uA;
-          choiceStep = letters.length > 1 ? ((cb.uD - cb.uA) / (letters.length - 1)) : 0.0363;
-        } else if (numSubjects === 2) {
-          const colBounds = [
-            { uA: 0.0710, uD: 0.1800 },
-            { uA: 0.5440, uD: 0.6530 }
-          ];
-          const cb = colBounds[sIdx] || { uA: 0.0710 + sIdx * 0.473, uD: 0.1800 + sIdx * 0.473 };
-          colU_A = cb.uA;
-          choiceStep = letters.length > 1 ? ((cb.uD - cb.uA) / (letters.length - 1)) : 0.0363;
         } else if (numSubjects === 6) {
           const colBounds = [
             { uA: 0.0650, uD: 0.1680 },

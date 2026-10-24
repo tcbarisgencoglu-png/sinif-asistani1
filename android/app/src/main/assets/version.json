@@ -1,13 +1,13 @@
 {
-  "version": "1.0.89",
+  "version": "1.0.90",
   "releaseDate": "2026-10-24",
   "minRequiredVersion": "1.0.0",
-  "title": "Sınıf Asistanı v1.0.89 Yayında!",
-  "description": "10 Soruluk Çoklu Ders Formlarında 9-10. Soru Dikey Hizalama ve Halka Sıçrama Koruması Kalibrasyonu",
+  "title": "Sınıf Asistanı v1.0.90 Yayında!",
+  "description": "5 Sabit Yuva (Fixed Slot) Mimarisi ve A4 Sayfa Alt Boşluğunu Değerlendiren 134mm Ferah Optik Form",
   "features": [
-    "9 ve 10. Soru Kayması Tamamen Giderildi: Dikey adım (vCompactStep = 0.0524) ve başlangıç ofseti (0.2810) baskıdaki 30 piksellik fiziksel satır aralığına birebir kilitlendi.",
-    "Baloncuk Arama Sınırı Daraltıldı (Sıçrama Koruması): snapToBubbleRing arama yarıçapı ±5 piksele sabitlenerek 9 ve 10. soru merkezlerinin komşu satırlara veya alt tablo sınır çizgisine sıçraması engellendi.",
-    "Global Izgara Ölçekleme Aralığı Hassaslaştırıldı: Mikro ölçekleme aralığı [0.98 - 1.02] bandına alınarak form sonundaki satır uzaması ve taşması ortadan kaldırıldı."
+    "A4 Sayfa Altı Boşluğu Değerlendirildi: 2'li baskıda sayfa altındaki 3 cm boşluk formlara dahil edildi (kart boyu 120mm -> 134mm); 15 soruya kadar büyük ve ferah baloncuk düzeni sağlandı.",
+    "5 Sabit Yuva (Fixed Slot) Mimarisi: Ders sayısından bağımsız olarak (1..5 ders) her ders kendi sabit sütununda (Türkçe, Mat, Fen, Sosyal, İngilizce) yer alır; boş ders alanları otomatik korunarak kamera koordinatları %100 sabitlendi.",
+    "15 Soru Desteği: Çoklu ders formlarında artık 15 soruya kadar tam sayfa dengeli, sıkışmasız optik çıktılar üretilir."
   ],
   "release_url": "https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/latest"
 }
