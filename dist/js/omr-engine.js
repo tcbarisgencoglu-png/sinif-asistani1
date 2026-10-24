@@ -1166,11 +1166,11 @@
   }
 
   function snapToBubbleRing(gray, w, h, initialPt, radius) {
-    // Merkezin komşu dikey tablo çizgilerine taşmasını önlemek için dengeli arama penceresi
-    const searchRx = Math.max(6, Math.min(14, Math.round(radius * 1.0)));
-    const searchRy = Math.max(7, Math.min(16, Math.round(radius * 1.15)));
-    const rRing = Math.max(8, Math.round(radius * 0.95));
-    const rOuter = Math.max(12, Math.round(radius * 1.45));
+    // Merkezin komşu satırlara veya tablo sınır çizgilerine taşmasını önlemek için sıkı arama penceresi (maksimum ±5px)
+    const searchRx = Math.min(5, Math.max(3, Math.round(radius * 0.35)));
+    const searchRy = Math.min(5, Math.max(3, Math.round(radius * 0.35)));
+    const rRing = Math.max(7, Math.round(radius * 0.85));
+    const rOuter = Math.max(11, Math.round(radius * 1.35));
 
     const angles = [0, 0.785398, 1.570796, 2.356194, 3.141593, 3.926991, 4.712389, 5.497787];
     const ringCos = angles.map(a => Math.round(rRing * Math.cos(a)));
@@ -1205,7 +1205,7 @@
 
         // Başlangıç noktasından uzaklaşma cezası: Komşu çizgilere sıçramayı engelle
         const dist = Math.hypot(dx, dy);
-        const score = ringDark + outerWhite * 0.4 - dist * 4;
+        const score = ringDark + outerWhite * 0.4 - dist * 6;
         if (score > bestScore) {
           bestScore = score;
           bestX = cx;
@@ -1309,8 +1309,8 @@
       // Soru satırları 1. satırdan başlayarak flex-start düzeninde aşağıya doğru yerleşir.
       const maxQuestions = Math.max(...examSubjects.map(s => parseInt(s.questionCount, 10) || 0), 1);
 
-      let vFirstRowBase = 0.2820;
-      let vCompactStep = 0.0538;
+      let vFirstRowBase = 0.2810;
+      let vCompactStep = 0.0524;
 
       if (perPage === 1) {
         // A4 Tam Sayfa
@@ -1318,8 +1318,8 @@
         vCompactStep = 0.0260;
       } else if (perPage === 4) {
         // A6 Çeyrek Sayfa
-        vFirstRowBase = 0.2820;
-        vCompactStep = 0.0538;
+        vFirstRowBase = 0.2810;
+        vCompactStep = 0.0524;
       }
 
       if (maxQuestions > 20) {
@@ -1435,8 +1435,8 @@
       }
 
       // Global aday ızgaralar: Mikro dikey kaydırmalar (dv) ve adımlama ölçekleri (scale)
-      const candidateVFirstOffsets = [0.000, -0.003, 0.003, -0.006, 0.006];
-      const candidateStepScales = [1.00, 0.98, 1.02, 0.96, 1.04];
+      const candidateVFirstOffsets = [0.000, -0.002, 0.002, -0.004, 0.004];
+      const candidateStepScales = [1.00, 0.99, 1.01, 0.98, 1.02];
 
       let bestGlobalStep = vCompactStep;
       let bestGlobalVFirst = vFirstRowBase;
@@ -1532,7 +1532,7 @@
         }
 
         // Sütun bazında yalnızca yatay mikro ince ayar yapılır (dikey eksen global kilitlidir)
-        const candidateDu = [0.000, -0.003, 0.003, -0.006, 0.006];
+        const candidateDu = [0.000, -0.002, 0.002, -0.004, 0.004];
         let bestSubjGrid = null;
         for (const du of candidateDu) {
           const evaluated = evaluateSubjectGrid(bestGlobalStep, bestGlobalVFirst, du);

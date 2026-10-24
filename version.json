@@ -1,14 +1,13 @@
 {
-  "version": "1.0.88",
+  "version": "1.0.89",
   "releaseDate": "2026-10-24",
   "minRequiredVersion": "1.0.0",
-  "title": "Sınıf Asistanı v1.0.88 Yayında!",
-  "description": "10 Soruluk Çoklu Ders Formları için Dikey Adım ve 5. Sütun (İngilizce) Yatay Hizalama Kalibrasyonu",
+  "title": "Sınıf Asistanı v1.0.89 Yayında!",
+  "description": "10 Soruluk Çoklu Ders Formlarında 9-10. Soru Dikey Hizalama ve Halka Sıçrama Koruması Kalibrasyonu",
   "features": [
-    "Dikey Adım (Step) 10 Soruya Uygun Olarak Güncellendi: 10 soruluk çoklu ders formlarında soru adımı (0.0538) tam kalibre edildi; 6. sorudan sonra yukarı doğru biriken kayma tamamen ortadan kaldırıldı.",
-    "5. Sütun (İngilizce) Yatay Konumu Düzeltildi: İngilizce sütununda baloncukların sol taraftaki soru numaralarının (1, 2, 3...) üzerine kaymasına neden olan uA ofseti (0.8380 -> 0.8600) düzeltilerek şıklar doğrudan A-B-C-D üzerine oturtuldu.",
-    "3. ve 4. Sütun Milimetrik Dengeleme: Fen Bilgisi ve Sosyal Bilgiler sütunları form baskısı ile tam olarak eşitlendi.",
-    "Canlı Web Tanıtım Sayfası Ekran Kayması Giderildi: Mobil ve tablet cihazlarda yatay taşma engellendi, akıcı dikey görünüm sağlandı."
+    "9 ve 10. Soru Kayması Tamamen Giderildi: Dikey adım (vCompactStep = 0.0524) ve başlangıç ofseti (0.2810) baskıdaki 30 piksellik fiziksel satır aralığına birebir kilitlendi.",
+    "Baloncuk Arama Sınırı Daraltıldı (Sıçrama Koruması): snapToBubbleRing arama yarıçapı ±5 piksele sabitlenerek 9 ve 10. soru merkezlerinin komşu satırlara veya alt tablo sınır çizgisine sıçraması engellendi.",
+    "Global Izgara Ölçekleme Aralığı Hassaslaştırıldı: Mikro ölçekleme aralığı [0.98 - 1.02] bandına alınarak form sonundaki satır uzaması ve taşması ortadan kaldırıldı."
   ],
   "release_url": "https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/latest"
 }
