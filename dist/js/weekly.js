@@ -5181,8 +5181,24 @@ Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi ve
 
       if (activeExam.studentResults) delete activeExam.studentResults[activeOpticalStudentId];
       if (activeExam.examScores) delete activeExam.examScores[activeOpticalStudentId];
+      if (student && student.number) {
+        if (activeExam.studentResults) delete activeExam.studentResults[String(student.number)];
+        if (activeExam.examScores) delete activeExam.examScores[String(student.number)];
+      }
+      if (!Array.isArray(activeExam.deletedStudentIds)) activeExam.deletedStudentIds = [];
+      if (!activeExam.deletedStudentIds.includes(String(activeOpticalStudentId))) activeExam.deletedStudentIds.push(String(activeOpticalStudentId));
+      if (student && student.number && !activeExam.deletedStudentIds.includes(String(student.number))) {
+        activeExam.deletedStudentIds.push(String(student.number));
+      }
       activeExam.updatedAt = new Date().toISOString();
       stateManager.saveExam(activeExam);
+
+      if (window.CloudSync) {
+        if (typeof window.CloudSync.pushLiveOmrDelete === 'function') {
+          window.CloudSync.pushLiveOmrDelete(activeExam.id, activeExam.examName, activeOpticalStudentId, sName, student ? student.number : '', 'desktop');
+        }
+        window.CloudSync.pushExam(activeExam).catch(() => {});
+      }
 
       if (modalStudentOpticalEdit) modalStudentOpticalEdit.classList.remove('active');
       renderActiveExamTable();

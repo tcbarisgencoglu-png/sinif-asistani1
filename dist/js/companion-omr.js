@@ -1253,6 +1253,47 @@
       }
     },
 
+    // Masaüstünden Canlı Gelen Tek Öğrenci Optik Sonuç Silme Olayını Uygula
+    handleRemoteResultDeleted(examId, studentId, studentNo) {
+      if (!examId || !studentId) return;
+      const data = this.getData();
+      const exam = (data.weeklyEvaluations || []).find(e => String(e.id) === String(examId));
+      if (exam && exam.studentResults) {
+        delete exam.studentResults[studentId];
+        if (studentNo) delete exam.studentResults[String(studentNo)];
+        if (exam.examScores) {
+          delete exam.examScores[studentId];
+          if (studentNo) delete exam.examScores[String(studentNo)];
+        }
+        if (!Array.isArray(exam.deletedStudentIds)) exam.deletedStudentIds = [];
+        if (!exam.deletedStudentIds.includes(String(studentId))) exam.deletedStudentIds.push(String(studentId));
+        if (studentNo && !exam.deletedStudentIds.includes(String(studentNo))) exam.deletedStudentIds.push(String(studentNo));
+
+        this.saveData(data);
+        if (this.activeExam && String(this.activeExam.id) === String(examId)) {
+          this.activeExam = exam;
+        }
+        this.renderHub();
+      }
+    },
+
+    // Masaüstünden Canlı Gelen Tüm Optik Sonuçları Sıfırlama Olayını Uygula
+    handleRemoteAllResultsCleared(examId) {
+      if (!examId) return;
+      const data = this.getData();
+      const exam = (data.weeklyEvaluations || []).find(e => String(e.id) === String(examId));
+      if (exam) {
+        exam.studentResults = {};
+        exam.examScores = {};
+        exam.allResultsCleared = true;
+        this.saveData(data);
+        if (this.activeExam && String(this.activeExam.id) === String(examId)) {
+          this.activeExam = exam;
+        }
+        this.renderHub();
+      }
+    },
+
     // ==========================================================================
     // AKILLI BELGE TARAYICI (GOOGLE ML KIT) & CANLI KAMERA VİZÖR YÖNETİMİ
     // ==========================================================================
@@ -2014,6 +2055,10 @@
         updatedAt: new Date().toISOString()
       };
       exam.examScores[studentId] = res.score;
+      exam.allResultsCleared = false;
+      if (Array.isArray(exam.deletedStudentIds)) {
+        exam.deletedStudentIds = exam.deletedStudentIds.filter(id => id !== String(studentId) && (!res.studentNo || id !== String(res.studentNo)));
+      }
       exam.updatedAt = new Date().toISOString();
 
       if (res.thumbUrl) {
@@ -2041,13 +2086,33 @@
       const data = this.getData();
       const exam = (data.weeklyEvaluations || []).find(e => String(e.id) === String(this.activeExam.id));
       if (exam && exam.studentResults) {
+        const res = exam.studentResults[studentId] || {};
+        const studentName = res.studentName || '';
+        const studentNo = res.studentNo || res.studentNumber || '';
+
         delete exam.studentResults[studentId];
-        if (exam.examScores) delete exam.examScores[studentId];
+        if (studentNo) delete exam.studentResults[String(studentNo)];
+        if (exam.examScores) {
+          delete exam.examScores[studentId];
+          if (studentNo) delete exam.examScores[String(studentNo)];
+        }
+
+        if (!Array.isArray(exam.deletedStudentIds)) exam.deletedStudentIds = [];
+        if (!exam.deletedStudentIds.includes(String(studentId))) exam.deletedStudentIds.push(String(studentId));
+        if (studentNo && !exam.deletedStudentIds.includes(String(studentNo))) exam.deletedStudentIds.push(String(studentNo));
+
+        exam.updatedAt = new Date().toISOString();
         this.saveData(data);
         this.activeExam = exam;
         this.renderHub();
         if (window.Companion) window.Companion.showToast('Sonuç silindi.');
-        if (window.CloudSync) window.CloudSync.pushExam(exam).catch(() => {});
+
+        if (window.CloudSync) {
+          if (typeof window.CloudSync.pushLiveOmrDelete === 'function') {
+            window.CloudSync.pushLiveOmrDelete(exam.id, exam.examName, studentId, studentName, studentNo);
+          }
+          window.CloudSync.pushExam(exam).catch(() => {});
+        }
       }
     },
 
@@ -2058,12 +2123,20 @@
       if (exam) {
         exam.studentResults = {};
         exam.examScores = {};
+        exam.allResultsCleared = true;
+        exam.updatedAt = new Date().toISOString();
         this.saveData(data);
         this.activeExam = exam;
         this.isRanked = false;
         this.renderHub();
         if (window.Companion) window.Companion.showToast('Tüm sonuçlar temizlendi.');
-        if (window.CloudSync) window.CloudSync.pushExam(exam).catch(() => {});
+
+        if (window.CloudSync) {
+          if (typeof window.CloudSync.pushLiveOmrClearAll === 'function') {
+            window.CloudSync.pushLiveOmrClearAll(exam.id, exam.examName);
+          }
+          window.CloudSync.pushExam(exam).catch(() => {});
+        }
       }
     },
 

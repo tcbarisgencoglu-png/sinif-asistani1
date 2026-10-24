@@ -204,8 +204,27 @@
         });
       }
 
-      const mergedResults = { ...(localExam.studentResults || {}), ...(cloudExam.studentResults || {}) };
-      const mergedScores = { ...(localExam.examScores || {}), ...(cloudExam.examScores || {}) };
+      // Silinen öğrenci sonuçlarını ve sıfırlanma durumunu dikkate al
+      const allDeleted = new Set([
+        ...(Array.isArray(localExam.deletedStudentIds) ? localExam.deletedStudentIds : []),
+        ...(Array.isArray(cloudExam.deletedStudentIds) ? cloudExam.deletedStudentIds : [])
+      ]);
+
+      let mergedResults = {};
+      let mergedScores = {};
+
+      if ((cloudIsNewer && cloudExam.allResultsCleared) || (!cloudIsNewer && localExam.allResultsCleared)) {
+        mergedResults = {};
+        mergedScores = {};
+      } else {
+        mergedResults = { ...(localExam.studentResults || {}), ...(cloudExam.studentResults || {}) };
+        mergedScores = { ...(localExam.examScores || {}), ...(cloudExam.examScores || {}) };
+
+        allDeleted.forEach(delId => {
+          delete mergedResults[delId];
+          delete mergedScores[delId];
+        });
+      }
 
       const base = cloudIsNewer ? { ...localExam, ...cloudExam } : { ...cloudExam, ...localExam };
       const merged = {
@@ -218,6 +237,8 @@
         totalQuestions: (cloudIsNewer ? cloudExam.totalQuestions : localExam.totalQuestions) || cloudExam.totalQuestions || localExam.totalQuestions || 20,
         studentResults: mergedResults,
         examScores: mergedScores,
+        deletedStudentIds: Array.from(allDeleted),
+        allResultsCleared: (cloudIsNewer ? cloudExam.allResultsCleared : localExam.allResultsCleared) || false,
         updatedAt: new Date(Math.max(localTime, cloudTime, Date.now())).toISOString()
       };
 
@@ -1061,6 +1082,39 @@
       } catch (e) {}
     },
 
+    // 2e. Anlık Canlı Optik Sonuç Silme Gönder (Terminal veya Masaüstü)
+    async pushLiveOmrDelete(examId, examName, studentId, studentName, studentNo, source = (window.stateManager ? 'desktop' : 'terminal')) {
+      if (!this.syncCode || !examId) return;
+
+      const payload = {
+        type: 'omr_delete',
+        source: source,
+        examId: String(examId),
+        examName: examName || 'Sınav',
+        studentId: String(studentId),
+        studentName: studentName || 'Öğrenci',
+        studentNo: studentNo ? String(studentNo) : '',
+        timestamp: new Date().toISOString()
+      };
+
+      this.pushLiveEvent('omr_delete', payload);
+    },
+
+    // 2f. Anlık Canlı Tüm Optik Sonuçları Sıfırlama Gönder (Terminal veya Masaüstü)
+    async pushLiveOmrClearAll(examId, examName, source = (window.stateManager ? 'desktop' : 'terminal')) {
+      if (!this.syncCode || !examId) return;
+
+      const payload = {
+        type: 'omr_clear_all',
+        source: source,
+        examId: String(examId),
+        examName: examName || 'Sınav',
+        timestamp: new Date().toISOString()
+      };
+
+      this.pushLiveEvent('omr_clear_all', payload);
+    },
+
     // 3. Genel Canlı Olay Gönderimi (Supabase'e fırlat)
     async pushLiveEvent(eventType, eventPayload) {
       if (!this.syncCode) return;
@@ -1626,13 +1680,21 @@
               }
             }
 
+            // Yeni okuma yapıldığında silinenler listesinden çıkar
+            if (Array.isArray(targetExam.deletedStudentIds)) {
+              targetExam.deletedStudentIds = targetExam.deletedStudentIds.filter(id => id !== studentId && (!matched || id !== String(matched.number)));
+            }
+            targetExam.allResultsCleared = false;
+
             targetExam.updatedAt = new Date().toISOString();
             window.stateManager.saveState(`El Terminalinden Optik Sonuç: ${studentName}`);
             document.dispatchEvent(new CustomEvent('stateChanged'));
 
             if (window.activeWeeklyExam && (String(window.activeWeeklyExam.id) === examId || String(window.activeWeeklyExam.id) === String(targetExam.id))) {
               window.activeWeeklyExam = targetExam;
-              if (typeof window.renderActiveExamTable === 'function') {
+              if (typeof window.openActiveExam === 'function') {
+                window.openActiveExam(targetExam);
+              } else if (typeof window.renderActiveExamTable === 'function') {
                 window.renderActiveExamTable();
               }
             }
@@ -1653,6 +1715,130 @@
         }
       }
 
+      // 2b. CANLI OPTİK SONUÇ SİLİNDİ ENTEGRASYONU (El Terminalinden tek öğrenci sonucu silinince)
+      else if (record.exam_id === 'LIVE_EVENT' && payload.type === 'omr_delete') {
+        const examId = String(payload.examId);
+        const studentId = String(payload.studentId);
+        const studentNo = payload.studentNo ? String(payload.studentNo) : '';
+        let studentName = payload.studentName || 'Öğrenci';
+        const examName = payload.examName || 'Sınav';
+
+        this.lastLiveDeleteTime = Date.now();
+
+        if (Array.isArray(window.stateManager.state.weeklyEvaluations)) {
+          const targetExam = window.stateManager.state.weeklyEvaluations.find(e => String(e.id) === examId);
+          if (targetExam) {
+            const allStudents = window.stateManager.state.students || [];
+            const matched = this.resolveDesktopStudent(studentId, studentName, studentNo, allStudents);
+            if (matched) {
+              studentName = `${matched.name} ${matched.surname || ''}`.trim();
+            }
+
+            const keysToDelete = new Set([studentId]);
+            if (studentNo) keysToDelete.add(studentNo);
+            if (matched) {
+              if (matched.id) keysToDelete.add(String(matched.id));
+              if (matched.number) keysToDelete.add(String(matched.number));
+            }
+
+            if (targetExam.studentResults) {
+              Object.keys(targetExam.studentResults).forEach(k => {
+                const r = targetExam.studentResults[k];
+                if (r) {
+                  if (matched && String(r.studentId) === String(matched.id)) keysToDelete.add(k);
+                  if (matched && matched.number && String(r.studentNo) === String(matched.number)) keysToDelete.add(k);
+                  if (studentNo && String(r.studentNo) === studentNo) keysToDelete.add(k);
+                  if (studentName && r.studentName && r.studentName.trim().toLowerCase() === studentName.toLowerCase()) keysToDelete.add(k);
+                }
+              });
+
+              keysToDelete.forEach(k => {
+                delete targetExam.studentResults[k];
+              });
+            }
+
+            if (targetExam.examScores) {
+              keysToDelete.forEach(k => {
+                delete targetExam.examScores[k];
+              });
+            }
+
+            if (!Array.isArray(targetExam.deletedStudentIds)) targetExam.deletedStudentIds = [];
+            keysToDelete.forEach(k => {
+              if (!targetExam.deletedStudentIds.includes(k)) targetExam.deletedStudentIds.push(k);
+            });
+
+            targetExam.updatedAt = new Date().toISOString();
+            window.stateManager.saveState(`El Terminalinden Optik Sonuç Silindi: ${studentName}`);
+            document.dispatchEvent(new CustomEvent('stateChanged'));
+
+            if (window.activeWeeklyExam && (String(window.activeWeeklyExam.id) === examId || String(window.activeWeeklyExam.id) === String(targetExam.id))) {
+              window.activeWeeklyExam = targetExam;
+              if (typeof window.openActiveExam === 'function') {
+                window.openActiveExam(targetExam);
+              } else if (typeof window.renderActiveExamTable === 'function') {
+                window.renderActiveExamTable();
+              }
+            }
+
+            if (typeof window.renderWeeklyEvaluations === 'function') {
+              window.renderWeeklyEvaluations();
+            }
+            if (typeof window.renderExamsList === 'function') {
+              window.renderExamsList();
+            }
+
+            this.playDesktopLiveChime();
+            const toastMsg = `📱 El Terminalinden: ${studentName} optik sonucu silindi`;
+            if (window.showToast) {
+              window.showToast(toastMsg, 'info');
+            }
+          }
+        }
+      }
+
+      // 2c. CANLI TÜM OPTİK SONUÇLAR SIFIRLANDI ENTEGRASYONU
+      else if (record.exam_id === 'LIVE_EVENT' && payload.type === 'omr_clear_all') {
+        const examId = String(payload.examId);
+        const examName = payload.examName || 'Sınav';
+
+        this.lastLiveDeleteTime = Date.now();
+
+        if (Array.isArray(window.stateManager.state.weeklyEvaluations)) {
+          const targetExam = window.stateManager.state.weeklyEvaluations.find(e => String(e.id) === examId);
+          if (targetExam) {
+            targetExam.studentResults = {};
+            targetExam.examScores = {};
+            targetExam.allResultsCleared = true;
+            targetExam.updatedAt = new Date().toISOString();
+            window.stateManager.saveState(`El Terminalinden Tüm Sonuçlar Sıfırlandı: ${examName}`);
+            document.dispatchEvent(new CustomEvent('stateChanged'));
+
+            if (window.activeWeeklyExam && (String(window.activeWeeklyExam.id) === examId || String(window.activeWeeklyExam.id) === String(targetExam.id))) {
+              window.activeWeeklyExam = targetExam;
+              if (typeof window.openActiveExam === 'function') {
+                window.openActiveExam(targetExam);
+              } else if (typeof window.renderActiveExamTable === 'function') {
+                window.renderActiveExamTable();
+              }
+            }
+
+            if (typeof window.renderWeeklyEvaluations === 'function') {
+              window.renderWeeklyEvaluations();
+            }
+            if (typeof window.renderExamsList === 'function') {
+              window.renderExamsList();
+            }
+
+            this.playDesktopLiveChime();
+            const toastMsg = `📱 El Terminalinden: "${examName}" tüm okuma sonuçları sıfırlandı`;
+            if (window.showToast) {
+              window.showToast(toastMsg, 'info');
+            }
+          }
+        }
+      }
+
       // 3. CANLI YENİ SINAV, CEVAP ANAHTARI VEYA TOPLU SINAV SONUÇLARI ENTEGRASYONU
       else if (
         (record.exam_id && record.exam_id !== 'LIVE_EVENT' && record.exam_id !== 'MASTER_STATE') ||
@@ -1665,6 +1851,10 @@
           }
           const allStudents = window.stateManager.state.students || [];
           const existingIdx = window.stateManager.state.weeklyEvaluations.findIndex(e => String(e.id) === String(examData.id));
+          const prevExam = existingIdx >= 0 ? window.stateManager.state.weeklyEvaluations[existingIdx] : null;
+          const prevKeyCount = prevExam ? Object.keys(prevExam.answerKey || {}).filter(k => prevExam.answerKey[k]).length : 0;
+          const prevKeyStr = prevExam ? JSON.stringify(prevExam.answerKey || {}) : '{}';
+          const prevResultsCount = prevExam ? Object.keys(prevExam.studentResults || {}).length : 0;
 
           // Öğrenci ID'lerini masaüstündeki öğrencilerle eşle (harmonize results)
           if (examData.studentResults && typeof examData.studentResults === 'object') {
@@ -1700,8 +1890,11 @@
           window.stateManager.saveExam(finalExam);
 
           const isNew = existingIdx < 0;
-          const hasKey = finalExam.answerKey && Object.keys(finalExam.answerKey).length > 0;
-          const actionLabel = isNew ? 'Yeni Sınav Oluşturuldu' : (hasKey ? 'Cevap Anahtarı & Sınav Güncellendi' : 'Sınav Sonuçları Güncellendi');
+          const newKeyCount = Object.keys(finalExam.answerKey || {}).filter(k => finalExam.answerKey[k]).length;
+          const newKeyStr = JSON.stringify(finalExam.answerKey || {});
+          const keyChanged = (prevKeyStr !== newKeyStr) && (newKeyCount > 0);
+          const newResultsCount = Object.keys(finalExam.studentResults || {}).length;
+
           document.dispatchEvent(new CustomEvent('stateChanged'));
 
           if (window.activeWeeklyExam && String(window.activeWeeklyExam.id) === String(finalExam.id)) {
@@ -1724,15 +1917,30 @@
             window.renderExamsList();
           }
 
-          this.playDesktopLiveChime();
-          const count = Object.keys(finalExam.studentResults || {}).length;
-          const toastMsg = isNew
-            ? `📱 El Terminalinden Canlı: "${finalExam.examName}" oluşturuldu`
-            : (hasKey
-              ? `📱 El Terminalinden Canlı: "${finalExam.examName}" cevap anahtarı masaüstüne aktarıldı`
-              : `📱 El Terminalinden Canlı: "${finalExam.examName}" (${count} öğrenci sonucu aktarıldı)`);
-          if (window.showToast) {
-            window.showToast(toastMsg, 'success');
+          // Eğer az önce canlı silme olayı gösterildiyse mükerrer/yanıltıcı toast gösterme
+          const recentlyDeleted = this.lastLiveDeleteTime && (Date.now() - this.lastLiveDeleteTime < 4000);
+          if (!recentlyDeleted) {
+            let toastMsg = '';
+            if (isNew) {
+              toastMsg = `📱 El Terminalinden Canlı: "${finalExam.examName}" oluşturuldu`;
+            } else if (keyChanged && (!prevExam || prevKeyCount === 0)) {
+              toastMsg = `📱 El Terminalinden Canlı: "${finalExam.examName}" cevap anahtarı masaüstüne aktarıldı`;
+            } else if (keyChanged) {
+              toastMsg = `📱 El Terminalinden Canlı: "${finalExam.examName}" cevap anahtarı güncellendi`;
+            } else if (newResultsCount !== prevResultsCount) {
+              if (newResultsCount < prevResultsCount) {
+                toastMsg = `📱 El Terminalinden Canlı: "${finalExam.examName}" sonuçları güncellendi`;
+              } else {
+                toastMsg = `📱 El Terminalinden Canlı: "${finalExam.examName}" (${newResultsCount} öğrenci sonucu aktarıldı)`;
+              }
+            }
+
+            if (toastMsg) {
+              this.playDesktopLiveChime();
+              if (window.showToast) {
+                window.showToast(toastMsg, 'success');
+              }
+            }
           }
         }
       }
@@ -1891,6 +2099,20 @@
         const examName = payload.examName || 'Sınav';
         if (typeof window.CompanionOmr.handleRemoteExamDeleted === 'function') {
           window.CompanionOmr.handleRemoteExamDeleted(examId, examName);
+        }
+      }
+
+      // 1b. CANLI OPTİK SONUÇ SİLİNDİ (Masaüstünden silinince terminalden de sil)
+      else if (record.exam_id === 'LIVE_EVENT' && payload.type === 'omr_delete') {
+        if (typeof window.CompanionOmr.handleRemoteResultDeleted === 'function') {
+          window.CompanionOmr.handleRemoteResultDeleted(payload.examId, payload.studentId, payload.studentNo);
+        }
+      }
+
+      // 1c. CANLI TÜM OPTİK SONUÇLAR SIFIRLANDI
+      else if (record.exam_id === 'LIVE_EVENT' && payload.type === 'omr_clear_all') {
+        if (typeof window.CompanionOmr.handleRemoteAllResultsCleared === 'function') {
+          window.CompanionOmr.handleRemoteAllResultsCleared(payload.examId);
         }
       }
 

@@ -1,8 +1,8 @@
 {
-  "version": "1.0.92",
+  "version": "1.0.93",
   "releaseDate": "2026-10-24",
   "minRequiredVersion": "1.0.0",
-  "title": "Sınıf Asistanı v1.0.92 Yayında!",
+  "title": "Sınıf Asistanı v1.0.93 Yayında!",
   "description": "Fiziksel Cetvel Ölçümüyle 126mm x 188mm A5 2'li Optik Form Tam Kalibrasyonu",
   "features": [
     "Fiziksel Cetvel Kalibrasyonu: 126mm dikey boy ve 188mm yatay ene göre vFirst (0.2619), satır adımı (0.0490) ve 5 sabit yuva sınırları milimetrik olarak kilitlendi.",
