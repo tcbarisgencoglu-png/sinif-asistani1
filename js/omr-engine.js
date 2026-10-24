@@ -1309,8 +1309,8 @@
       // Soru satırları 1. satırdan başlayarak flex-start düzeninde aşağıya doğru yerleşir.
       const maxQuestions = Math.max(...examSubjects.map(s => parseInt(s.questionCount, 10) || 0), 1);
 
-      let vFirstRowBase = 0.2760;
-      let vCompactStep = 0.0515;
+      let vFirstRowBase = 0.2820;
+      let vCompactStep = 0.0538;
 
       if (perPage === 1) {
         // A4 Tam Sayfa
@@ -1318,8 +1318,8 @@
         vCompactStep = 0.0260;
       } else if (perPage === 4) {
         // A6 Çeyrek Sayfa
-        vFirstRowBase = 0.2760;
-        vCompactStep = 0.0515;
+        vFirstRowBase = 0.2820;
+        vCompactStep = 0.0538;
       }
 
       if (maxQuestions > 20) {
@@ -1332,15 +1332,15 @@
         let colU_A, choiceStep;
         if (numSubjects === 5) {
           const colBounds = [
-            { uA: 0.0670, uD: 0.1760 }, // 1. Ders (Türkçe)
-            { uA: 0.2620, uD: 0.3720 }, // 2. Ders (Matematik)
-            { uA: 0.4570, uD: 0.5670 }, // 3. Ders (Sosyal Bilgiler)
-            { uA: 0.6520, uD: 0.7620 }, // 4. Ders (Fen Bilgisi)
-            { uA: 0.8380, uD: 0.9440 }  // 5. Ders (İngilizce)
+            { uA: 0.0650, uD: 0.1790 }, // 1. Ders (Türkçe)
+            { uA: 0.2640, uD: 0.3780 }, // 2. Ders (Matematik)
+            { uA: 0.4640, uD: 0.5780 }, // 3. Ders (Fen Bilgisi)
+            { uA: 0.6620, uD: 0.7760 }, // 4. Ders (Sosyal Bilgiler)
+            { uA: 0.8600, uD: 0.9740 }  // 5. Ders (İngilizce)
           ];
-          const cb = colBounds[sIdx] || { uA: 0.0670 + sIdx * 0.195, uD: 0.1760 + sIdx * 0.195 };
+          const cb = colBounds[sIdx] || { uA: 0.0650 + sIdx * 0.1985, uD: 0.1790 + sIdx * 0.1985 };
           colU_A = cb.uA;
-          choiceStep = letters.length > 1 ? ((cb.uD - cb.uA) / (letters.length - 1)) : 0.0363;
+          choiceStep = letters.length > 1 ? ((cb.uD - cb.uA) / (letters.length - 1)) : 0.0380;
         } else if (numSubjects === 4) {
           const colBounds = [
             { uA: 0.0710, uD: 0.1800 },
@@ -1436,7 +1436,7 @@
 
       // Global aday ızgaralar: Mikro dikey kaydırmalar (dv) ve adımlama ölçekleri (scale)
       const candidateVFirstOffsets = [0.000, -0.003, 0.003, -0.006, 0.006];
-      const candidateStepScales = [1.00, 0.99, 1.01, 0.98, 1.02];
+      const candidateStepScales = [1.00, 0.98, 1.02, 0.96, 1.04];
 
       let bestGlobalStep = vCompactStep;
       let bestGlobalVFirst = vFirstRowBase;
@@ -1532,7 +1532,7 @@
         }
 
         // Sütun bazında yalnızca yatay mikro ince ayar yapılır (dikey eksen global kilitlidir)
-        const candidateDu = [0.000, -0.002, 0.002];
+        const candidateDu = [0.000, -0.003, 0.003, -0.006, 0.006];
         let bestSubjGrid = null;
         for (const du of candidateDu) {
           const evaluated = evaluateSubjectGrid(bestGlobalStep, bestGlobalVFirst, du);
