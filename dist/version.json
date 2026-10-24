@@ -1,13 +1,13 @@
 {
-  "version": "1.0.91",
+  "version": "1.0.92",
   "releaseDate": "2026-10-24",
   "minRequiredVersion": "1.0.0",
-  "title": "Sınıf Asistanı v1.0.91 Yayında!",
-  "description": "A5 2'li Optik Formlar için 128mm/134mm Dikey Başlangıç (0.2450) ve Adım Kalibrasyonu",
+  "title": "Sınıf Asistanı v1.0.92 Yayında!",
+  "description": "Fiziksel Cetvel Ölçümüyle 126mm x 188mm A5 2'li Optik Form Tam Kalibrasyonu",
   "features": [
-    "A5 2'li Form Dikey Başlangıcı Kalibre Edildi: Kart boyu genişlemesine bağlı olarak vFirstRowBase (0.2450) ve vCompactStep (0.0480) oranları güncellendi; 1. sorunun 2. soruya kayması engellendi.",
-    "Alt Çizgi Kırpılma Koruması: Sayfa altı güvenli marjini korunarak alt çıpaların ve kenarlıkların yazıcı sınırlarına sığması sağlandı.",
-    "5 Sabit Yuva Mimarisi Tamamlandı: Çoklu derslerde her ders kendi sabit sütununa oturacak şekilde kilitlendi."
+    "Fiziksel Cetvel Kalibrasyonu: 126mm dikey boy ve 188mm yatay ene göre vFirst (0.2619), satır adımı (0.0490) ve 5 sabit yuva sınırları milimetrik olarak kilitlendi.",
+    "Tüm Sorular Tam Merkezde: 1. sorudan 15. soruya kadar her baloncuk doğrudan kendi basılı çemberinin merkezine oturur.",
+    "A4 Sayfa Altı Güvenli Marjini: Form boyu 128mm olarak sabitlenerek alt çıpa kırpılmaları tamamen engellendi."
   ],
   "release_url": "https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/latest"
 }

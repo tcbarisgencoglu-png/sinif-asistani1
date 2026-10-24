@@ -1,6 +1,6 @@
 [package]
 name = "sinif-asistani"
-version = "1.0.91"
+version = "1.0.92"
 description = "Sınıf Asistanı - Dijital Öğretmen Yardımcısı"
 authors = ["Sınıf Asistanı"]
 license = ""

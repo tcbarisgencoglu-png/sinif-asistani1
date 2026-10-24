@@ -1309,20 +1309,20 @@
       // Soru satırları 1. satırdan başlayarak flex-start düzeninde aşağıya doğru yerleşir.
       const maxQuestions = Math.max(...examSubjects.map(s => parseInt(s.questionCount, 10) || 0), 1);
 
-      let vFirstRowBase = 0.2450;
-      let vCompactStep = 0.0480;
+      let vFirstRowBase = 0.2619;
+      let vCompactStep = 0.0490;
 
       if (perPage === 1) {
         // A4 Tam Sayfa
         vFirstRowBase = 0.2000;
         vCompactStep = 0.0260;
       } else if (perPage === 2) {
-        // A5 Yatay (Sayfada 2 Form - 128mm / 134mm)
-        vFirstRowBase = 0.2450;
-        vCompactStep = 0.0480;
+        // A5 Yatay (Sayfada 2 Form - 126mm Çıpa Boyu)
+        vFirstRowBase = 0.2619;
+        vCompactStep = 0.0490;
       } else if (perPage === 4) {
-        // A6 Çeyrek Sayfa
-        vFirstRowBase = 0.2810;
+        // A6 Çeyrek Sayfa (118mm Çıpa Boyu)
+        vFirstRowBase = 0.2760;
         vCompactStep = 0.0524;
       }
 
@@ -1334,19 +1334,19 @@
       // Ders sütunlarının yatay geometri haritası (5 Sabit Yuva / Fixed Slot Mimarisi)
       function getSubjectColumnGeometry(sIdx) {
         let colU_A, choiceStep;
-        // 1..5 ders için her ders kendi sabit sütununda (Slot 0..4) yer alır
+        // 1..5 ders için her ders kendi sabit sütununda (Slot 0..4) yer alır (188mm Çıpa Eni)
         const colBounds = [
-          { uA: 0.0650, uD: 0.1790 }, // 1. Yuva (Türkçe)
-          { uA: 0.2640, uD: 0.3780 }, // 2. Yuva (Matematik)
-          { uA: 0.4640, uD: 0.5780 }, // 3. Yuva (Fen Bilgisi)
-          { uA: 0.6620, uD: 0.7760 }, // 4. Yuva (Sosyal Bilgiler)
-          { uA: 0.8600, uD: 0.9740 }  // 5. Yuva (İngilizce)
+          { uA: 0.0638, uD: 0.1729 }, // 1. Yuva (Türkçe: 12.0mm - 32.5mm)
+          { uA: 0.2660, uD: 0.3750 }, // 2. Yuva (Matematik: 50.0mm - 70.5mm)
+          { uA: 0.4681, uD: 0.5718 }, // 3. Yuva (Fen Bilgisi: 88.0mm - 107.5mm)
+          { uA: 0.6702, uD: 0.7739 }, // 4. Yuva (Sosyal Bilgiler: 126.0mm - 145.5mm)
+          { uA: 0.8723, uD: 0.9761 }  // 5. Yuva (İngilizce: 164.0mm - 183.5mm)
         ];
 
         if (numSubjects <= 5) {
-          const cb = colBounds[sIdx] || { uA: 0.0650 + sIdx * 0.1985, uD: 0.1790 + sIdx * 0.1985 };
+          const cb = colBounds[sIdx] || { uA: 0.0638 + sIdx * 0.2021, uD: 0.1729 + sIdx * 0.2021 };
           colU_A = cb.uA;
-          choiceStep = letters.length > 1 ? ((cb.uD - cb.uA) / (letters.length - 1)) : 0.0380;
+          choiceStep = letters.length > 1 ? ((cb.uD - cb.uA) / (letters.length - 1)) : 0.0363;
         } else if (numSubjects === 6) {
           const colBounds = [
             { uA: 0.0650, uD: 0.1680 },
@@ -1414,8 +1414,8 @@
       }
 
       // Global aday ızgaralar: Mikro dikey kaydırmalar (dv) ve adımlama ölçekleri (scale)
-      const candidateVFirstOffsets = [0.000, -0.006, 0.006, -0.012, 0.012, -0.018, 0.018];
-      const candidateStepScales = [1.00, 0.98, 1.02, 0.95, 1.05];
+      const candidateVFirstOffsets = [0.000, -0.003, 0.003, -0.006, 0.006];
+      const candidateStepScales = [1.00, 0.99, 1.01, 0.98, 1.02];
 
       let bestGlobalStep = vCompactStep;
       let bestGlobalVFirst = vFirstRowBase;
