@@ -62,40 +62,172 @@
          EKRAN A: PROFİL KURULUMU & AYARLAR (EL TERMİNALİ EŞLEŞTİRME)
          ----------------------------------------------------------------------- -->
     <section class="c-view" id="view-setup" style="display: none;">
-
+      
       <!-- Üst Geri Dönüş Başlığı -->
-      <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 16px;">
-        <button type="button" class="c-icon-btn" onclick="window.Companion.showView('dashboard')">
-          <i data-lucide="arrow-left" style="width: 20px; height: 20px;"></i>
-        </button>
-        <div>
-          <h2 style="font-size: 18px; font-weight: 800; color: #ffffff; line-height: 1.2;">Ayarlar & Sınıf Bilgileri</h2>
-          <span style="font-size: 11px; color: #93c5fd;">Cihaz Eşleştirme ve Öğretmen Profili</span>
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <button type="button" class="c-icon-btn" id="btn-setup-back-dashboard" onclick="window.Companion.showView('dashboard')" style="display: none;" title="Geri Dön">
+            <i data-lucide="arrow-left" style="width: 20px; height: 20px;"></i>
+          </button>
+          <div>
+            <h2 style="font-size: 18px; font-weight: 800; color: #ffffff; line-height: 1.2;">Terminal Kurulum Sihirbazı</h2>
+            <span style="font-size: 11px; color: #93c5fd;">Sınıf Asistanı Mobil Eşleştirme</span>
+          </div>
+        </div>
+        <span style="background: rgba(99, 102, 241, 0.2); color: #c7d2fe; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 999px;" id="setup-step-counter">
+          Adım 1 / 3
+        </span>
+      </div>
+
+      <!-- Adım Göstergesi (Progress Bar) -->
+      <div class="c-wizard-progress" style="margin-bottom: 18px;">
+        <div class="c-wizard-step-bullet active" id="wizard-bullet-1" onclick="window.Companion.goToSetupStep(1)">
+          <div class="c-wizard-step-num">1</div>
+          <span class="c-wizard-step-title">Profil &amp; Branş</span>
+        </div>
+        <div class="c-wizard-step-bullet" id="wizard-bullet-2" onclick="window.Companion.goToSetupStep(2)">
+          <div class="c-wizard-step-num">2</div>
+          <span class="c-wizard-step-title">Cihaz Eşleme</span>
+        </div>
+        <div class="c-wizard-step-bullet" id="wizard-bullet-3" onclick="window.Companion.goToSetupStep(3)">
+          <div class="c-wizard-step-num">3</div>
+          <span class="c-wizard-step-title">Başlat</span>
         </div>
       </div>
 
-      <!-- Cihaz Eşleştirme & Kalıcı Veri Yükleme Kartı -->
-      <div class="c-setup-card" style="margin-bottom: 16px; border: 1px solid rgba(79, 70, 229, 0.4); background: linear-gradient(135deg, rgba(79, 70, 229, 0.08), rgba(99, 102, 241, 0.04));">
-        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
-          <div style="display: flex; align-items: center; gap: 8px;">
-            <div class="c-card-icon-wrap primary" style="width: 38px; height: 38px; border-radius: 10px;">
-              <i data-lucide="smartphone" style="width: 20px; height: 20px;"></i>
+      <!-- =====================================================================
+           ADIM 1: ÖĞRETMEN BİLGİSİ, GÖREV TÜRÜ VE ŞUBE
+           ===================================================================== -->
+      <div class="c-setup-card c-wizard-panel" id="setup-step-1">
+        <div class="c-setup-header" style="margin-bottom: 16px;">
+          <div class="c-setup-logo" style="width: 52px; height: 52px; margin-bottom: 8px;">
+            <i data-lucide="user-check" style="width: 26px; height: 26px;"></i>
+          </div>
+          <h1 class="c-setup-title" style="font-size: 18px;">Öğretmen &amp; Branş Bilgileri</h1>
+          <p class="c-setup-subtitle">Terminalde görev türünüzü ve okuttuğunuz şubeyi belirleyin.</p>
+        </div>
+
+        <!-- Ad Soyad -->
+        <div class="c-form-group" style="margin-bottom: 14px;">
+          <label class="c-label" for="setup-name-input">Adınız ve Soyadınız <span style="color: #ef4444;">*</span></label>
+          <input type="text" id="setup-name-input" class="c-input" placeholder="Örn: Ahmet Yılmaz" autocomplete="name" />
+        </div>
+
+        <!-- Görev / Öğretmenlik Türü (Sınıf vs Branş) -->
+        <div class="c-form-group" style="margin-bottom: 14px;">
+          <label class="c-label">Görev Türünüz <span style="color: #ef4444;">*</span></label>
+          <div class="c-role-cards">
+            <!-- Sınıf Öğretmeni Seçeneği -->
+            <div class="c-role-card selected" id="setup-role-card-primary" onclick="window.Companion.handleSetupRoleChange('primary')">
+              <div class="c-role-card-icon">
+                <i data-lucide="school" style="width: 20px; height: 20px;"></i>
+              </div>
+              <div class="c-role-card-info">
+                <div class="c-role-card-title">Sınıf Öğretmeni (İlkokul / Tek Şube)</div>
+                <div class="c-role-card-sub">Tek bir sınıftan sorumludur. Çoklu şube seçimi kapanır, tüm işlemler seçilen sınıf üzerinden yürütülür.</div>
+              </div>
             </div>
-            <div>
-              <h3 style="font-size: 15px; font-weight: 800; margin: 0; line-height: 1.2;">Masaüstü Cihaz Eşleştirme</h3>
-              <span style="font-size: 11px; color: var(--c-text-muted);">Akıllı Tahta & El Terminali Köprüsü</span>
+
+            <!-- Branş Öğretmeni Seçeneği -->
+            <div class="c-role-card" id="setup-role-card-middle" onclick="window.Companion.handleSetupRoleChange('middle')">
+              <div class="c-role-card-icon">
+                <i data-lucide="book-open" style="width: 20px; height: 20px;"></i>
+              </div>
+              <div class="c-role-card-info">
+                <div class="c-role-card-title">Branş Öğretmeni (Ortaokul / Çoklu Şube)</div>
+                <div class="c-role-card-sub">Birden fazla şubeye girer. Branşını ve girdiği şubeleri seçer, sınav oluştururken şube sorulur.</div>
+              </div>
             </div>
           </div>
-          <span style="background: rgba(16, 185, 129, 0.15); color: #10b981; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 999px;">
-            Kalıcı Bellek
+        </div>
+
+        <!-- Sınıf Öğretmenleri İçin: Tek Şube Seçici (Varsayılan Açık) -->
+        <div class="c-form-group" id="setup-single-section-group" style="margin-bottom: 14px;">
+          <label class="c-label" for="setup-single-class-select">Okuttuğunuz Şube <span style="color: #ef4444;">*</span></label>
+          <select id="setup-single-class-select" class="c-select">
+            <option value="1-A">1-A</option>
+            <option value="1-B">1-B</option>
+            <option value="1-C">1-C</option>
+            <option value="2-A">2-A</option>
+            <option value="2-B">2-B</option>
+            <option value="2-C">2-C</option>
+            <option value="3-A" selected>3-A</option>
+            <option value="3-B">3-B</option>
+            <option value="3-C">3-C</option>
+            <option value="4-A">4-A</option>
+            <option value="4-B">4-B</option>
+            <option value="4-C">4-C</option>
+          </select>
+          <span style="font-size: 11px; color: var(--c-text-muted); display: block; margin-top: 4px;">
+            🔒 Sınıf öğretmeni tek bir şubeden sorumlu olduğu için diğer şubeler otomatik olarak kapatılmıştır.
           </span>
         </div>
 
-        <p style="font-size: 12px; color: var(--c-text-muted); line-height: 1.4; margin-bottom: 12px;">
-          Masaüstü uygulamanızdaki <strong>Ayarlar &gt; El Terminali</strong> alanındaki eşleşme kodunu buraya girerek tüm sınıfları, öğrencileri ve sınavları terminale kalıcı olarak yükleyin.
-        </p>
+        <!-- Branş Öğretmenleri İçin: Branş Seçimi (Varsayılan Gizli) -->
+        <div class="c-form-group" id="setup-branch-group" style="display: none; margin-bottom: 14px;">
+          <label class="c-label" for="setup-branch-select">Branşınız <span style="color: #ef4444;">*</span></label>
+          <select id="setup-branch-select" class="c-select">
+            <!-- companion.js dolduracak -->
+          </select>
+        </div>
 
-        <div class="c-sync-code-box" style="margin: 0 0 12px 0; padding: 12px;">
+        <!-- Branş Öğretmenleri İçin: Girdiği Şubeler (Varsayılan Gizli) -->
+        <div class="c-form-group" id="setup-multi-section-group" style="display: none; margin-bottom: 14px;">
+          <label class="c-label">Girdiğiniz Şubeler (Dokunarak Seçin) <span style="color: #ef4444;">*</span></label>
+          <div class="c-chip-group" id="setup-section-chips">
+            <!-- companion.js dolduracak -->
+          </div>
+        </div>
+
+        <!-- Hızlı Kilit PIN Kodu (İsteğe Bağlı) -->
+        <div class="c-form-group" style="margin-bottom: 10px;">
+          <label class="c-label" for="setup-pin-input">Hızlı Kilit PIN Kodu (4 Hane)</label>
+          <input type="password" id="setup-pin-input" class="c-input" placeholder="1234" inputmode="numeric" maxlength="4" />
+          <span style="font-size: 11px; color: var(--c-text-muted); display: block; margin-top: 4px;">
+            İsteğe bağlıdır. Boş bırakırsanız varsayılan "1234" olarak ayarlanır.
+          </span>
+        </div>
+
+        <!-- İleri Butonu -->
+        <div class="c-wizard-nav-btns">
+          <button type="button" class="c-btn-primary" style="width: 100%; justify-content: center; gap: 8px; background: linear-gradient(135deg, #4f46e5, #6366f1); padding: 12px;" onclick="window.Companion.goToSetupStep(2)">
+            <span>Sonraki Adım: Cihaz Eşleştirme</span>
+            <i data-lucide="arrow-right" style="width: 18px; height: 18px;"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- =====================================================================
+           ADIM 2: MASAÜSTÜ İLE CİHAZ EŞLEŞTİRME & SENKRONİZASYON
+           ===================================================================== -->
+      <div class="c-setup-card c-wizard-panel" id="setup-step-2" style="display: none;">
+        <div class="c-setup-header" style="margin-bottom: 16px;">
+          <div class="c-setup-logo" style="width: 52px; height: 52px; margin-bottom: 8px; background: linear-gradient(135deg, #10b981, #059669);">
+            <i data-lucide="smartphone" style="width: 26px; height: 26px;"></i>
+          </div>
+          <h1 class="c-setup-title" style="font-size: 18px;">Masaüstü Cihaz Eşleştirme</h1>
+          <p class="c-setup-subtitle">Akıllı tahta / masaüstü uygulamasındaki verileri terminale aktarın.</p>
+        </div>
+
+        <!-- Kolay Eşleştirme İpucu -->
+        <div style="background: rgba(79, 70, 229, 0.12); border: 1px solid rgba(99, 102, 241, 0.35); border-radius: 12px; padding: 12px; margin-bottom: 14px; font-size: 12px; color: #e2e8f0; line-height: 1.45;">
+          <div style="font-weight: 800; color: #a5b4fc; margin-bottom: 6px; display: flex; align-items: center; gap: 6px;">
+            <i data-lucide="sparkles" style="width: 15px; height: 15px;"></i>
+            <span>Nasıl Eşleştirilir?</span>
+          </div>
+          <div>1. Masaüstünde <strong>Ayarlar &gt; El Terminali</strong> ekranındaki QR kodu açın.</div>
+          <div>2. Aşağıdaki <strong>"QR Kodu Tara"</strong> butonuna dokunup tahtadaki kodu okutun.</div>
+          <div>3. Veya eşleşme kodunu elle girip <strong>"Verileri Masaüstünden Eşitle"</strong>ye basın.</div>
+        </div>
+
+        <!-- QR Kod Tara Butonu -->
+        <button type="button" class="c-btn-primary" style="width: 100%; justify-content: center; gap: 8px; margin-bottom: 14px; background: linear-gradient(135deg, #10b981, #059669); box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35); font-weight: 800; padding: 12px;" onclick="window.CloudSync.openQrScanner()">
+          <i data-lucide="scan" style="width: 20px; height: 20px;"></i>
+          <span>📷 Tahtadaki QR Kodu Tara &amp; Eşle</span>
+        </button>
+
+        <!-- Eşleşme Kodu Kutusu -->
+        <div class="c-sync-code-box" style="margin: 0 0 14px 0; padding: 12px;">
           <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
             <div style="text-align: left; overflow: hidden; flex: 1;">
               <div style="font-size: 10px; color: var(--c-text-muted); text-transform: uppercase; font-weight: 700;">Eşleşme Kodu</div>
@@ -110,92 +242,94 @@
           </div>
         </div>
 
-        <!-- Kamerayla QR Kod Tara Butonu -->
-        <button type="button" class="c-btn-primary" style="width: 100%; justify-content: center; gap: 8px; margin-bottom: 12px; background: linear-gradient(135deg, #10b981, #059669); box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35); font-weight: 800;" onclick="window.CloudSync.openQrScanner()">
-          <i data-lucide="scan" style="width: 18px; height: 18px;"></i>
-          <span>📷 Tahtadaki QR Kodu Tara &amp; Eşle</span>
+        <!-- Masaüstünden Verileri Çek Butonu -->
+        <button type="button" class="c-btn-primary" id="btn-wizard-pull-master" style="width: 100%; justify-content: center; gap: 8px; margin-bottom: 14px; background: linear-gradient(135deg, #4f46e5, #6366f1); padding: 11px;" onclick="window.Companion.pullMasterDataInWizard()">
+          <i data-lucide="download-cloud" style="width: 18px; height: 18px;"></i>
+          <span>Masaüstünden Tüm Verileri Eşitle</span>
         </button>
 
-        <!-- Kalıcı Bellek Durumu Rozeti -->
-        <div id="mobile-memory-status-box" style="background: rgba(0, 0, 0, 0.25); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 8px; padding: 8px 12px; margin-bottom: 12px; font-size: 11px; display: flex; align-items: center; justify-content: space-between;">
-          <span style="color: #94a3b8;" id="mobile-memory-status-text">Bellek: Henüz veri eşitlenmedi</span>
-          <span style="color: #10b981; font-weight: 600;" id="mobile-memory-last-sync">-</span>
+        <!-- Canlı Eşitleme Durum Kutusu -->
+        <div id="wizard-sync-status-box" style="background: rgba(0, 0, 0, 0.25); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 10px; padding: 10px 12px; margin-bottom: 6px; font-size: 11.5px; display: flex; align-items: center; justify-content: space-between;">
+          <span style="color: #94a3b8;" id="wizard-sync-status-text">Durum: Henüz veri eşitlenmedi</span>
+          <span style="color: #10b981; font-weight: 700;" id="wizard-sync-status-badge">-</span>
         </div>
 
-        <!-- Kolay Eşleştirme İpucu Kutusu -->
-        <div style="background: rgba(79, 70, 229, 0.15); border: 1px solid rgba(99, 102, 241, 0.35); border-radius: 10px; padding: 10px 12px; margin-bottom: 12px; font-size: 11.5px; color: #e2e8f0; line-height: 1.5;">
-          <div style="font-weight: 800; color: #a5b4fc; margin-bottom: 4px; display: flex; align-items: center; gap: 5px;">
-            <i data-lucide="info" style="width: 14px; height: 14px;"></i>
-            <span>Nasıl Eşitlenir?</span>
+        <!-- Adım 2 Navigasyon Butonları -->
+        <div class="c-wizard-nav-btns">
+          <button type="button" class="c-btn-secondary" style="flex: 1; justify-content: center; padding: 11px;" onclick="window.Companion.goToSetupStep(1)">
+            <i data-lucide="arrow-left" style="width: 16px; height: 16px;"></i>
+            <span>Geri</span>
+          </button>
+          <button type="button" class="c-btn-secondary" style="flex: 1.2; justify-content: center; padding: 11px; background: rgba(255,255,255,0.08); font-size: 11.5px;" onclick="window.Companion.goToSetupStep(3)" title="Daha sonra eşleştirebilirsiniz">
+            <span>Şimdilik Atla</span>
+            <i data-lucide="skip-forward" style="width: 15px; height: 15px;"></i>
+          </button>
+          <button type="button" class="c-btn-primary" style="flex: 1.5; justify-content: center; gap: 6px; background: linear-gradient(135deg, #4f46e5, #6366f1); padding: 11px;" onclick="window.Companion.goToSetupStep(3)">
+            <span>İleri</span>
+            <i data-lucide="arrow-right" style="width: 16px; height: 16px;"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- =====================================================================
+           ADIM 3: ÖZET VE UYGULAMAYI BAŞLATMA
+           ===================================================================== -->
+      <div class="c-setup-card c-wizard-panel" id="setup-step-3" style="display: none;">
+        <div class="c-setup-header" style="margin-bottom: 16px;">
+          <div class="c-setup-logo" style="width: 52px; height: 52px; margin-bottom: 8px; background: linear-gradient(135deg, #f59e0b, #d97706);">
+            <i data-lucide="check-circle" style="width: 26px; height: 26px;"></i>
           </div>
-          <div>1. Akıllı tahtada (masaüstü) mor renkli <strong>"Terminale Gönder"</strong> butonuna basın.</div>
-          <div>2. Ardından aşağıdaki <strong>"Tüm Sınıf & Verileri Masaüstünden Eşitle"</strong> butonuna dokunun.</div>
+          <h1 class="c-setup-title" style="font-size: 18px;">Kurulum Tamamlandı!</h1>
+          <p class="c-setup-subtitle">Bilgileriniz hazırlandı, el terminalinizi kullanmaya başlayabilirsiniz.</p>
         </div>
 
-        <!-- Kalıcı Eşitleme Butonu -->
-        <button type="button" class="c-btn-primary" id="btn-mobile-pull-master" style="width: 100%; justify-content: center; gap: 8px; background: linear-gradient(135deg, #4f46e5, #6366f1);" onclick="window.Companion.pullMasterDataFromCloud()">
-          <i data-lucide="refresh-cw" style="width: 18px; height: 18px;"></i>
-          <span>Tüm Sınıf & Verileri Masaüstünden Eşitle</span>
+        <!-- Özet Kartı -->
+        <div style="background: rgba(255, 255, 255, 0.04); border: 1.5px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 14px; margin-bottom: 16px; display: flex; flex-direction: column; gap: 10px;">
+          <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.06); padding-bottom: 8px;">
+            <span style="font-size: 12px; color: #94a3b8; display: flex; align-items: center; gap: 6px;">
+              <i data-lucide="user" style="width: 14px; height: 14px;"></i>
+              <span>Öğretmen:</span>
+            </span>
+            <strong style="font-size: 13px; color: #ffffff;" id="summary-teacher-name">-</strong>
+          </div>
+
+          <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.06); padding-bottom: 8px;">
+            <span style="font-size: 12px; color: #94a3b8; display: flex; align-items: center; gap: 6px;">
+              <i data-lucide="award" style="width: 14px; height: 14px;"></i>
+              <span>Görev &amp; Branş:</span>
+            </span>
+            <strong style="font-size: 13px; color: #38bdf8;" id="summary-teacher-role">-</strong>
+          </div>
+
+          <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.06); padding-bottom: 8px;">
+            <span style="font-size: 12px; color: #94a3b8; display: flex; align-items: center; gap: 6px;">
+              <i data-lucide="school" style="width: 14px; height: 14px;"></i>
+              <span>Şube(ler):</span>
+            </span>
+            <strong style="font-size: 13px; color: #a7f3d0;" id="summary-teacher-sections">-</strong>
+          </div>
+
+          <div style="display: flex; align-items: center; justify-content: space-between;">
+            <span style="font-size: 12px; color: #94a3b8; display: flex; align-items: center; gap: 6px;">
+              <i data-lucide="refresh-cw" style="width: 14px; height: 14px;"></i>
+              <span>Eşleşme:</span>
+            </span>
+            <strong style="font-size: 12px; color: #fde047;" id="summary-sync-status">Bağlı Değil (Çevrimdışı)</strong>
+          </div>
+        </div>
+
+        <!-- Büyük Başlat Butonu -->
+        <button type="button" class="c-btn-primary" style="width: 100%; justify-content: center; gap: 10px; background: linear-gradient(135deg, #10b981, #059669); box-shadow: 0 4px 18px rgba(16, 185, 129, 0.4); font-size: 15px; font-weight: 800; padding: 14px; margin-bottom: 10px;" onclick="window.Companion.finishSetupWizard()">
+          <i data-lucide="rocket" style="width: 22px; height: 22px;"></i>
+          <span>Sınıf Asistanını Başlat</span>
+        </button>
+
+        <button type="button" class="c-btn-secondary" style="width: 100%; justify-content: center; gap: 6px; padding: 9px; font-size: 12px;" onclick="window.Companion.goToSetupStep(2)">
+          <i data-lucide="arrow-left" style="width: 14px; height: 14px;"></i>
+          <span>Geri Dön &amp; Eşleştirmeyi Değiştir</span>
         </button>
       </div>
 
-      <div class="c-setup-card">
-        <div class="c-setup-header">
-          <div class="c-setup-logo">
-            <i data-lucide="graduation-cap" style="width: 32px; height: 32px;"></i>
-          </div>
-          <h1 class="c-setup-title">Öğretmen Profili</h1>
-          <p class="c-setup-subtitle">Ortaokul branş ve sorumlu olduğunuz şubeleri tanımlayın veya masaüstünden çekin.</p>
-        </div>
-
-        <!-- Ad Soyad -->
-        <div class="c-form-group">
-          <label class="c-label" for="setup-name-input">Adınız ve Soyadınız</label>
-          <input type="text" id="setup-name-input" class="c-input" placeholder="Örn: Ahmet Yılmaz" autocomplete="name" />
-        </div>
-
-        <!-- Branş Seçimi -->
-        <div class="c-form-group">
-          <label class="c-label" for="setup-branch-select">Branşınız</label>
-          <select id="setup-branch-select" class="c-select">
-            <!-- companion.js dolduracak -->
-          </select>
-        </div>
-
-        <!-- Girdiğiniz Şubeler (Ortaokul Branş Öğretmenleri İçin Çoklu Şube) -->
-        <div class="c-form-group" id="setup-multi-section-group">
-          <label class="c-label">Girdiğiniz Şubeler (Dokunarak Seçin)</label>
-          <div class="c-chip-group" id="setup-section-chips">
-            <!-- companion.js dolduracak -->
-          </div>
-        </div>
-
-        <!-- Okuttuğunuz Sınıf (Sınıf Öğretmenleri İçin Tek Sınıf) -->
-        <div class="c-form-group" id="setup-single-section-group" style="display: none;">
-          <label class="c-label" for="setup-single-class-select">Okuttuğunuz Sınıf</label>
-          <select id="setup-single-class-select" class="c-select">
-            <!-- companion.js dolduracak -->
-          </select>
-          <span style="font-size: 11px; color: var(--c-text-muted); display: block; margin-top: 4px;">
-            Sınıf öğretmeni tek bir sınıftan sorumlu olduğu için şube seçici kaldırılmıştır.
-          </span>
-        </div>
-
-        <!-- 4 Haneli PIN Kodu -->
-        <div class="c-form-group">
-          <label class="c-label" for="setup-pin-input">Hızlı Giriş PIN Kodu (4 Hane)</label>
-          <input type="password" id="setup-pin-input" class="c-input" placeholder="Örn: 1453" inputmode="numeric" maxlength="4" />
-          <span style="font-size: 11px; color: var(--c-text-muted); display: block; margin-top: 4px;">
-            Akıllı tahta ve el terminalinde hızlı kilit açmak için kullanılır.
-          </span>
-        </div>
-
-        <!-- Kaydet Butonu -->
-        <button type="button" class="c-btn-primary" onclick="window.Companion.submitSetupForm()">
-          <i data-lucide="check-circle" style="width: 20px; height: 20px;"></i>
-          <span>Profili Kaydet</span>
-        </button>
-      </div>
     </section>
 
     <!-- -----------------------------------------------------------------------
@@ -1039,7 +1173,7 @@
   <div id="companion-optical-inspect-modal" style="display: none;">
     <!-- Üst Çubuk -->
     <div class="c-optical-inspect-header">
-      <div style="display: flex; align-items: center; gap: 10px; min-width: 0;">
+      <div style="display: flex; align-items: center; gap: 10px; min-width: 0; flex: 1;">
         <button type="button" class="c-btn-secondary" onclick="window.CompanionOmr.closeOpticalInspectModal()" style="display: flex; align-items: center; gap: 5px; background: rgba(239, 68, 68, 0.2); border: 1.5px solid rgba(239, 68, 68, 0.5); color: #fca5a5; padding: 6px 12px; border-radius: 8px; font-weight: 800; font-size: 13px; cursor: pointer; flex-shrink: 0;">
           <i data-lucide="arrow-left" style="width: 17px; height: 17px;"></i>
           <span>Kapat</span>
@@ -1051,6 +1185,10 @@
         </div>
       </div>
       <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
+        <button type="button" id="opt-inspect-assign-btn" class="c-btn-primary" onclick="window.CompanionOmr.openStudentPickerModal()" style="display: flex; align-items: center; gap: 5px; padding: 6px 11px; font-size: 12px; font-weight: 800; background: linear-gradient(135deg, #f59e0b, #d97706); border: none; border-radius: 8px; color: #000; cursor: pointer; box-shadow: 0 2px 8px rgba(245, 158, 11, 0.4);" title="Bu formdaki öğrenciyi el ile eşleştir">
+          <i data-lucide="user-check" style="width: 15px; height: 15px;"></i>
+          <span id="opt-inspect-assign-btn-text">Öğrenci Eşleştir</span>
+        </button>
         <button type="button" class="c-icon-btn" id="opt-inspect-download-btn" title="Görseli İndir / Paylaş" onclick="window.CompanionOmr.downloadInspectImage()" style="background: rgba(99, 102, 241, 0.25); border: 1px solid rgba(99, 102, 241, 0.5); color: #a5b4fc; width: 36px; height: 36px;">
           <i data-lucide="download" style="width: 17px; height: 17px;"></i>
         </button>
@@ -1216,6 +1354,14 @@
           </div>
         </div>
 
+        <!-- Kurulum Sihirbazını Baştan Başlat Butonu -->
+        <div style="margin-top: 10px;">
+          <button type="button" class="c-btn-secondary" style="width: 100%; justify-content: center; gap: 6px; padding: 10px; font-size: 12px; font-weight: 700; border-color: #cbd5e1;" onclick="window.Companion.relaunchSetupWizard()">
+            <i data-lucide="sparkles" style="width: 15px; height: 15px; color: #4f46e5;"></i>
+            <span>Kurulum Sihirbazını Baştan Başlat</span>
+          </button>
+        </div>
+
       </div>
 
       <!-- Alt Kaydet Butonu -->
@@ -1348,9 +1494,21 @@
         </div>
 
         <!-- Eşleşmeyen Öğrenci Uyarısı & Hızlı Kurtarma -->
-        <div id="omr-unmatched-alert" style="display: none; background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.4); border-radius: 10px; padding: 8px 12px; margin-bottom: 10px; align-items: center; justify-content: space-between;">
-          <span style="font-size: 12px; font-weight: 700; color: #fbbf24;">⚠️ Öğrenci Eşleşmedi</span>
-          <button type="button" style="padding: 5px 12px; font-size: 11px; background: #f59e0b; border: none; border-radius: 6px; color: #000; font-weight: 800; cursor: pointer;" onclick="window.CompanionOmr.openStudentPickerModal()">Öğrenci Seç</button>
+        <div id="omr-unmatched-alert" style="display: none; background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.4); border-radius: 10px; padding: 8px 12px; margin-bottom: 10px; align-items: center; justify-content: space-between; gap: 8px;">
+          <span style="font-size: 12px; font-weight: 700; color: #fbbf24; display: flex; align-items: center; gap: 5px;">
+            <i data-lucide="alert-circle" style="width: 14px; height: 14px;"></i>
+            <span>Öğrenci Eşleşmedi</span>
+          </span>
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <button type="button" style="padding: 5px 10px; font-size: 11px; background: rgba(99, 102, 241, 0.25); border: 1px solid rgba(99, 102, 241, 0.45); border-radius: 6px; color: #c7d2fe; font-weight: 800; cursor: pointer; display: flex; align-items: center; gap: 4px;" onclick="window.CompanionOmr.viewActiveCardPreview()" title="Taranan formun fotoğrafını incele">
+              <i data-lucide="eye" style="width: 13px; height: 13px;"></i>
+              <span>Optiğe Bak</span>
+            </button>
+            <button type="button" style="padding: 5px 12px; font-size: 11px; background: #f59e0b; border: none; border-radius: 6px; color: #000; font-weight: 800; cursor: pointer; display: flex; align-items: center; gap: 4px;" onclick="window.CompanionOmr.openStudentPickerModal()" title="Listeden öğrenci seç">
+              <i data-lucide="user-check" style="width: 13px; height: 13px;"></i>
+              <span>Öğrenci Seç</span>
+            </button>
+          </div>
         </div>
 
         <div class="c-scan-result-header">

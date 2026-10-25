@@ -1,13 +1,13 @@
 {
-  "version": "1.0.93",
-  "releaseDate": "2026-10-24",
+  "version": "1.0.95",
+  "releaseDate": "2026-10-25",
   "minRequiredVersion": "1.0.0",
-  "title": "Sınıf Asistanı v1.0.93 Yayında!",
-  "description": "Fiziksel Cetvel Ölçümüyle 126mm x 188mm A5 2'li Optik Form Tam Kalibrasyonu",
+  "title": "Sınıf Asistanı v1.0.95 Yayında!",
+  "description": "El Terminali Kurulum Sihirbazı & Ultra-Sade Evrensel QR Kod Optik Okuma",
   "features": [
-    "Fiziksel Cetvel Kalibrasyonu: 126mm dikey boy ve 188mm yatay ene göre vFirst (0.2619), satır adımı (0.0490) ve 5 sabit yuva sınırları milimetrik olarak kilitlendi.",
-    "Tüm Sorular Tam Merkezde: 1. sorudan 15. soruya kadar her baloncuk doğrudan kendi basılı çemberinin merkezine oturur.",
-    "A4 Sayfa Altı Güvenli Marjini: Form boyu 128mm olarak sabitlenerek alt çıpa kırpılmaları tamamen engellendi."
+    "3 Adımlı Kurulum Sihirbazı: İlkokul sınıf öğretmeni ve ortaokul branş öğretmeni için sadeleştirilmiş ilk kurulum ve otomatik şube yönetimi.",
+    "Ultra-Sade Evrensel QR Kimlik: 21x21 büyük modül QR kodlar ve çoklu format desteği (No#Sıra, SA, doğrudan ID) ile anında yüksek hızlı okuma.",
+    "Gelişmiş El Terminali Deneyimi: Sadeleştirilmiş şube geçişleri, bulut eşitleme durumu ve canlı optik form tarama iyileştirmeleri."
   ],
   "release_url": "https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/latest"
 }

@@ -24,7 +24,7 @@
     'Müzik',
     'Beden Eğitimi',
     'Teknoloji ve Tasarım',
-    'Sınıf Öğretmeni (İlkokul)'
+    'Rehberlik / Diğer'
   ];
 
   // Varsayılan Ortaokul Şubeleri
@@ -57,6 +57,8 @@
     isLocked: false,
     enteredPin: '',
     temporarySelectedSections: new Set(),
+    setupStep: 1,
+    setupSelectedRole: 'primary',
 
     isClassTeacher(branch) {
       if (this.profile && this.profile.teacherRole === 'primary') return true;
@@ -177,47 +179,292 @@
       const container = document.getElementById('companion-section-bar');
       if (!container) return;
 
-      // Sınıf Öğretmeni ise veya yalnızca 1 şube varsa barı tamamen gizle
-      if (this.isClassTeacher() || !this.profile || !Array.isArray(this.profile.sections) || this.profile.sections.length <= 1) {
-        container.style.display = 'none';
+      const isClass = this.isClassTeacher();
+      const sections = (this.profile && Array.isArray(this.profile.sections) && this.profile.sections.length > 0)
+        ? this.profile.sections
+        : (isClass ? ['3-A'] : DEFAULT_SECTIONS);
+
+      // Sınıf Öğretmeni ise tek bir şubesi vardır; çoklu buton barını gizle veya sade sınıf etiketi göster
+      if (isClass || sections.length <= 1) {
+        container.style.display = 'flex';
+        const mySection = sections[0] || this.activeSection || '3-A';
+        container.innerHTML = `
+          <div style="display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; background: rgba(79, 70, 229, 0.15); border: 1.5px solid rgba(99, 102, 241, 0.35); border-radius: 999px;">
+            <i data-lucide="school" style="width: 13px; height: 13px; color: #a5b4fc;"></i>
+            <span style="font-size: 11.5px; font-weight: 800; color: #e2e8f0;">Sınıf: ${mySection}</span>
+          </div>
+        `;
+        this.renderIcons();
         return;
       }
 
+      // Branş Öğretmenleri İçin Çoklu Şube Geçiş Hapları
       container.style.display = 'flex';
       container.innerHTML = `
         <span class="c-section-label">Şubeler:</span>
-        ${this.profile.sections.map(sec => `
+        ${sections.map(sec => `
           <button type="button" class="c-section-pill ${sec === this.activeSection ? 'active' : ''}" onclick="window.Companion.setActiveSection('${sec}')">
             ${sec}
           </button>
         `).join('')}
       `;
+      this.renderIcons();
     },
 
-    // Branş seçimi değiştiğinde arayüzü güncelle
-    handleBranchChange() {
-      const branchSelect = document.getElementById('setup-branch-select');
-      const multiGroup = document.getElementById('setup-multi-section-group');
+    // ==========================================================================
+    // KURULUM SİHİRBAZI YÖNETİMİ (WIZARD STEPS & ACTIONS)
+    // ==========================================================================
+
+    handleSetupRoleChange(role) {
+      this.setupSelectedRole = role;
+      const cardPrimary = document.getElementById('setup-role-card-primary');
+      const cardMiddle = document.getElementById('setup-role-card-middle');
       const singleGroup = document.getElementById('setup-single-section-group');
-      const singleClassSelect = document.getElementById('setup-single-class-select');
-      const currentBranch = branchSelect ? branchSelect.value : '';
+      const branchGroup = document.getElementById('setup-branch-group');
+      const multiGroup = document.getElementById('setup-multi-section-group');
 
-      const isClassT = isPrimaryTeacherBranch(currentBranch);
-
-      if (isClassT) {
-        if (multiGroup) multiGroup.style.display = 'none';
+      if (role === 'primary') {
+        if (cardPrimary) cardPrimary.classList.add('selected');
+        if (cardMiddle) cardMiddle.classList.remove('selected');
         if (singleGroup) singleGroup.style.display = 'block';
-
-        if (singleClassSelect && singleClassSelect.children.length === 0) {
-          singleClassSelect.innerHTML = PRIMARY_SECTIONS.map(s => `
-            <option value="${s}" ${(this.profile && this.profile.sections && this.profile.sections[0] === s) || s === '3-A' ? 'selected' : ''}>${s}</option>
-          `).join('');
-        }
+        if (branchGroup) branchGroup.style.display = 'none';
+        if (multiGroup) multiGroup.style.display = 'none';
       } else {
-        if (multiGroup) multiGroup.style.display = 'block';
+        if (cardPrimary) cardPrimary.classList.remove('selected');
+        if (cardMiddle) cardMiddle.classList.add('selected');
         if (singleGroup) singleGroup.style.display = 'none';
+        if (branchGroup) branchGroup.style.display = 'block';
+        if (multiGroup) multiGroup.style.display = 'block';
         this.renderSetupChips();
       }
+      this.vibrate(15);
+      this.renderIcons();
+    },
+
+    goToSetupStep(step) {
+      // Adım 1'den ilerlerken doğrulama yap
+      if (this.setupStep === 1 && step > 1) {
+        const nameInput = document.getElementById('setup-name-input');
+        const name = nameInput ? nameInput.value.trim() : '';
+        if (!name) {
+          this.showToast('Lütfen adınızı ve soyadınızı girin.');
+          nameInput && nameInput.focus();
+          return;
+        }
+        if (this.setupSelectedRole === 'middle' && this.temporarySelectedSections.size === 0) {
+          this.showToast('Lütfen girdiğiniz en az 1 şubeyi seçin.');
+          return;
+        }
+      }
+
+      this.setupStep = step;
+
+      // Adım sayacı
+      const counter = document.getElementById('setup-step-counter');
+      if (counter) counter.textContent = `Adım ${step} / 3`;
+
+      // İlerleme mermileri (Bullets)
+      for (let i = 1; i <= 3; i++) {
+        const bullet = document.getElementById(`wizard-bullet-${i}`);
+        if (!bullet) continue;
+        bullet.classList.remove('active', 'done');
+        if (i < step) {
+          bullet.classList.add('done');
+        } else if (i === step) {
+          bullet.classList.add('active');
+        }
+      }
+
+      // Adım panelleri
+      const p1 = document.getElementById('setup-step-1');
+      const p2 = document.getElementById('setup-step-2');
+      const p3 = document.getElementById('setup-step-3');
+      if (p1) p1.style.display = step === 1 ? 'flex' : 'none';
+      if (p2) p2.style.display = step === 2 ? 'flex' : 'none';
+      if (p3) p3.style.display = step === 3 ? 'flex' : 'none';
+
+      // Adım 2 açıldığında kod ve bellek durumunu güncelle
+      if (step === 2) {
+        const codeDisplay = document.getElementById('setup-view-code-display');
+        if (codeDisplay && window.CloudSync) {
+          codeDisplay.textContent = window.CloudSync.syncCode || '-';
+        }
+        this.updateWizardSyncStatus();
+      }
+
+      // Adım 3 açıldığında özet kartını doldur
+      if (step === 3) {
+        this.renderWizardSummary();
+      }
+
+      this.vibrate(20);
+      this.renderIcons();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    },
+
+    getData() {
+      if (window.CompanionOmr && typeof window.CompanionOmr.getData === 'function') {
+        return window.CompanionOmr.getData();
+      }
+      try {
+        const raw = localStorage.getItem('sinif_asistani_data') || localStorage.getItem('sinif_asistani_state_v3');
+        if (raw) return JSON.parse(raw);
+      } catch (e) {}
+      return { students: [], weeklyEvaluations: [] };
+    },
+
+    updateWizardSyncStatus() {
+      const statusText = document.getElementById('wizard-sync-status-text');
+      const statusBadge = document.getElementById('wizard-sync-status-badge');
+      if (!statusText || !statusBadge) return;
+
+      const data = this.getData();
+      let students = Array.isArray(data.students) ? data.students : [];
+      let exams = Array.isArray(data.weeklyEvaluations) ? data.weeklyEvaluations : [];
+
+      if (students.length === 0) {
+        try {
+          const rawV3 = localStorage.getItem('sinif_asistani_state_v3');
+          if (rawV3) {
+            const parsedV3 = JSON.parse(rawV3);
+            if (Array.isArray(parsedV3.students)) students = parsedV3.students;
+            if (Array.isArray(parsedV3.weeklyEvaluations)) exams = parsedV3.weeklyEvaluations;
+          }
+        } catch (e) {}
+      }
+
+      if (students.length > 0) {
+        const sections = [...new Set(students.map(s => {
+          const b = s.branch || s.section || s.className || '';
+          return b.replace('/', '-').trim().toUpperCase();
+        }).filter(Boolean))];
+
+        const secStr = sections.length > 0 ? ` (${sections.join(', ')})` : '';
+        statusText.textContent = `✅ ${students.length} Öğrenci${secStr}, ${exams.length} Sınav yüklü`;
+        statusBadge.textContent = 'Eşitlendi';
+        statusBadge.style.color = '#10b981';
+      } else {
+        statusText.textContent = 'Durum: Henüz veri eşitlenmedi';
+        statusBadge.textContent = 'Bekleniyor';
+        statusBadge.style.color = '#f59e0b';
+      }
+    },
+
+    updateSetupSectionsFromPulledData() {
+      const data = this.getData();
+      const students = Array.isArray(data.students) ? data.students : [];
+      if (students.length === 0) return;
+
+      const uniqueSections = [...new Set(students.map(s => {
+        const b = s.branch || s.section || s.className || '';
+        return b.replace('/', '-').trim().toUpperCase();
+      }).filter(Boolean))].sort();
+
+      if (uniqueSections.length === 0) return;
+
+      // Sınıf Öğretmeni için okuttuğu sınıfı otomatik seç
+      const singleClassSelect = document.getElementById('setup-single-class-select');
+      if (singleClassSelect) {
+        const matchingSec = uniqueSections[0];
+        let exists = false;
+        for (let i = 0; i < singleClassSelect.options.length; i++) {
+          if (singleClassSelect.options[i].value === matchingSec) {
+            exists = true;
+            break;
+          }
+        }
+        if (!exists) {
+          const opt = document.createElement('option');
+          opt.value = matchingSec;
+          opt.textContent = matchingSec;
+          singleClassSelect.appendChild(opt);
+        }
+        singleClassSelect.value = matchingSec;
+      }
+
+      // Branş Öğretmeni için şubeleri seçili yap
+      uniqueSections.forEach(sec => this.temporarySelectedSections.add(sec));
+      this.renderSetupChips();
+    },
+
+    renderWizardSummary() {
+      const nameInput = document.getElementById('setup-name-input');
+      const singleClassSelect = document.getElementById('setup-single-class-select');
+      const branchSelect = document.getElementById('setup-branch-select');
+
+      const name = nameInput ? nameInput.value.trim() : 'Öğretmen';
+      const isPrimary = this.setupSelectedRole === 'primary';
+      const roleStr = isPrimary ? 'Sınıf Öğretmeni (İlkokul)' : ((branchSelect && branchSelect.value) || 'Branş Öğretmeni');
+      const sectionsStr = isPrimary
+        ? (singleClassSelect ? singleClassSelect.value : '3-A')
+        : (Array.from(this.temporarySelectedSections).sort().join(', ') || '-');
+
+      const sName = document.getElementById('summary-teacher-name');
+      const sRole = document.getElementById('summary-teacher-role');
+      const sSections = document.getElementById('summary-teacher-sections');
+      const sSync = document.getElementById('summary-sync-status');
+
+      if (sName) sName.textContent = name;
+      if (sRole) sRole.textContent = roleStr;
+      if (sSections) sSections.textContent = sectionsStr;
+
+      if (sSync) {
+        const data = this.getData();
+        const students = Array.isArray(data.students) ? data.students : [];
+        if (students.length > 0) {
+          sSync.textContent = `✅ Bağlı (${students.length} Öğrenci)`;
+          sSync.style.color = '#10b981';
+        } else {
+          sSync.textContent = 'Çevrimdışı (Sonra Eşlenebilir)';
+          sSync.style.color = '#fde047';
+        }
+      }
+    },
+
+    async pullMasterDataInWizard() {
+      const btn = document.getElementById('btn-wizard-pull-master');
+      if (btn) btn.disabled = true;
+      this.showToast('Masaüstünden veriler alınıyor...');
+      await this.pullMasterDataFromCloud();
+      if (btn) btn.disabled = false;
+      this.updateWizardSyncStatus();
+      this.renderIcons();
+    },
+
+    finishSetupWizard() {
+      const nameInput = document.getElementById('setup-name-input');
+      const branchSelect = document.getElementById('setup-branch-select');
+      const singleClassSelect = document.getElementById('setup-single-class-select');
+      const pinInput = document.getElementById('setup-pin-input');
+
+      const name = nameInput ? nameInput.value.trim() : 'Öğretmen';
+      const isPrimary = this.setupSelectedRole === 'primary';
+      const branch = isPrimary ? 'Sınıf Öğretmeni (İlkokul)' : ((branchSelect && branchSelect.value) || 'Matematik');
+      const sections = isPrimary ? [(singleClassSelect ? singleClassSelect.value : '3-A')] : Array.from(this.temporarySelectedSections).sort();
+      const pin = (pinInput && pinInput.value.trim()) || '1234';
+
+      this.saveProfile({
+        name,
+        teacherRole: isPrimary ? 'primary' : 'middle',
+        isClassTeacher: isPrimary,
+        branch,
+        sections: sections.length > 0 ? sections : [isPrimary ? '3-A' : '5-A'],
+        pin
+      });
+
+      this.activeSection = sections[0] || (isPrimary ? '3-A' : '5-A');
+      localStorage.setItem(ACTIVE_SECTION_KEY, this.activeSection);
+      this.renderSectionBar();
+      this.showToast('🎉 Tebrikler! Sınıf Asistanı kullanıma hazır.');
+      this.showView('dashboard');
+    },
+
+    relaunchSetupWizard() {
+      this.closeSettingsModal();
+      this.renderSetupForm();
+      const backBtn = document.getElementById('btn-setup-back-dashboard');
+      if (backBtn) backBtn.style.display = 'flex';
+      this.showView('setup');
     },
 
     // Profil Kurulum Ekranını Doldur
@@ -225,11 +472,18 @@
       const branchSelect = document.getElementById('setup-branch-select');
       const nameInput = document.getElementById('setup-name-input');
       const pinInput = document.getElementById('setup-pin-input');
+      const singleClassSelect = document.getElementById('setup-single-class-select');
+
+      const isClass = this.isClassTeacher();
+      this.setupSelectedRole = isClass ? 'primary' : ((this.profile && this.profile.teacherRole) || 'primary');
 
       if (this.profile) {
         if (nameInput) nameInput.value = this.profile.name || '';
         if (pinInput) pinInput.value = this.profile.pin || '';
         this.temporarySelectedSections = new Set(this.profile.sections || ['5-A', '6-A', '7-A', '8-A']);
+        if (singleClassSelect && this.profile.sections && this.profile.sections[0]) {
+          singleClassSelect.value = this.profile.sections[0];
+        }
       } else {
         this.temporarySelectedSections = new Set(['5-A', '6-A', '7-A', '8-A']);
       }
@@ -241,7 +495,8 @@
         `).join('');
       }
 
-      this.handleBranchChange();
+      this.handleSetupRoleChange(this.setupSelectedRole);
+      this.goToSetupStep(1);
     },
 
     renderSetupChips() {
@@ -282,51 +537,6 @@
         this.renderSetupChips();
         this.showToast(`${formatted} şubesi eklendi.`);
       }
-    },
-
-    // Formu Kaydetme Aksiyonu
-    submitSetupForm() {
-      const nameInput = document.getElementById('setup-name-input');
-      const branchSelect = document.getElementById('setup-branch-select');
-      const singleClassSelect = document.getElementById('setup-single-class-select');
-      const pinInput = document.getElementById('setup-pin-input');
-
-      const name = nameInput ? nameInput.value.trim() : '';
-      const branch = branchSelect ? branchSelect.value : 'Matematik';
-      const pin = pinInput ? pinInput.value.trim() : '';
-
-      if (!name) {
-        this.showToast('Lütfen adınızı ve soyadınızı girin.');
-        nameInput && nameInput.focus();
-        return;
-      }
-
-      const isClassT = isPrimaryTeacherBranch(branch);
-      let sections = [];
-
-      if (isClassT) {
-        const singleSec = singleClassSelect ? singleClassSelect.value : '3-A';
-        sections = [singleSec];
-      } else {
-        if (this.temporarySelectedSections.size === 0) {
-          this.showToast('Lütfen girdiğiniz en az 1 şubeyi seçin.');
-          return;
-        }
-        sections = Array.from(this.temporarySelectedSections).sort();
-      }
-
-      if (pin && (pin.length !== 4 || isNaN(pin))) {
-        this.showToast('PIN kodu tam olarak 4 haneli bir sayı olmalıdır.');
-        pinInput && pinInput.focus();
-        return;
-      }
-
-      this.saveProfile({
-        name,
-        branch,
-        sections,
-        pin: pin || '1234'
-      });
     },
 
     // Ekran Geçişleri
@@ -487,6 +697,8 @@
         this.showToast(`✅ Eşitlendi! ${res.studentCount} öğrenci, ${res.examCount} sınav ve ${res.perfCount || 0} davranış puanı yüklendi.`);
         this.updateHeader();
         this.renderSectionBar();
+        this.updateWizardSyncStatus();
+        this.updateSetupSectionsFromPulledData();
         if (window.CompanionOmr) {
           window.CompanionOmr.ensureActiveExam();
           window.CompanionOmr.renderHub();
@@ -654,11 +866,10 @@
         });
       }
 
-      // Branş Değiştiğinde (Sınıf Öğretmeni vs Ortaokul)
+      // Branş Değiştiğinde
       const branchSelect = document.getElementById('setup-branch-select');
       if (branchSelect) {
         branchSelect.addEventListener('change', () => {
-          this.handleBranchChange();
           this.vibrate(10);
         });
       }

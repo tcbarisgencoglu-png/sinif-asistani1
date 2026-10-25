@@ -2377,6 +2377,10 @@
       const settingsModalCode = document.getElementById('settings-modal-code-display');
       if (settingsModalCode) settingsModalCode.textContent = this.syncCode;
 
+      if (window.Companion && typeof window.Companion.updateWizardSyncStatus === 'function') {
+        window.Companion.updateWizardSyncStatus();
+      }
+
       const mobileMemText = document.getElementById('mobile-memory-status-text');
       const mobileMemTime = document.getElementById('mobile-memory-last-sync');
       if (mobileMemText) {
