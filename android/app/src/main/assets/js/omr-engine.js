@@ -1430,49 +1430,13 @@
 
     let effectiveExam = exam || {};
     let autoSwitchedExam = null;
-    const allExams = Array.isArray(options.allExams) ? options.allExams : [];
-
-    // Fiziksel Form Geometrisi ve Kolon Düzeni Tespiti:
-    // Çoklu dersli (4 veya 5 sütunlu) formlarda u ≈ 0.2835 (2. Ders / Matematik) ve u ≈ 0.4745 (3. Ders)
-    // dikey şeritlerinde soru kutusu, tablo çizgisi ve baloncuk daireleri yer alır.
-    // Tek dersli 20 soruluk formlarda ise u = 0.0881 ile u = 0.5626 arasında u ≈ 0.28 bölgesi tamamen BOŞ BEYAZ KAĞITTIR.
-    if (allExams.length > 0) {
-      let darkCol2 = 0;
-      let totalSamplesCol2 = 0;
-      for (let v = 0.45; v <= 0.75; v += 0.02) {
-        for (let du = -0.012; du <= 0.012; du += 0.004) {
-          const pt = mapPoint(0.2835 + du, v);
-          if (pt.x >= 0 && pt.x < w && pt.y >= 0 && pt.y < h) {
-            totalSamplesCol2++;
-            if (gray[pt.y * w + pt.x] < 165) darkCol2++;
-          }
-        }
-      }
-      const ratioCol2 = totalSamplesCol2 > 0 ? (darkCol2 / totalSamplesCol2) : 0;
-      const isPhysicalMulti = ratioCol2 >= 0.045;
-
-      if (!effectiveExam.isMultiSubject && isPhysicalMulti) {
-        // Fiziksel kağıt çoklu ders ama seçili sınav tek ders: allExams içinden çoklu dersli sınavı bul
-        const candidate = allExams.find(e => e.isMultiSubject && Array.isArray(e.subjects) && e.subjects.length > 0);
-        if (candidate) {
-          console.log(`[OMR Engine] Fiziksel form çoklu ders olarak algılandı. '${effectiveExam.examName}' -> '${candidate.examName}' sınavına otomatik geçildi.`);
-          effectiveExam = candidate;
-          autoSwitchedExam = candidate;
-        }
-      } else if (effectiveExam.isMultiSubject && !isPhysicalMulti && ratioCol2 < 0.015) {
-        // Fiziksel kağıt tek ders ama seçili sınav çoklu ders: tek dersli sınava geç
-        const candidate = allExams.find(e => !e.isMultiSubject);
-        if (candidate) {
-          console.log(`[OMR Engine] Fiziksel form tek ders olarak algılandı. '${effectiveExam.examName}' -> '${candidate.examName}' sınavına otomatik geçildi.`);
-          effectiveExam = candidate;
-          autoSwitchedExam = candidate;
-        }
-      }
-    }
 
     const isMulti = effectiveExam && !!effectiveExam.isMultiSubject && Array.isArray(effectiveExam.subjects) && effectiveExam.subjects.length > 0;
-    const examSubjects = isMulti ? effectiveExam.subjects : [];
-    const qCount = parseInt(effectiveExam.totalQuestions, 10) || (isMulti ? examSubjects.reduce((acc, s) => acc + (parseInt(s.questionCount, 10) || 0), 0) : 20);
+    const rawSubjects = isMulti ? effectiveExam.subjects : [];
+    const qCount = parseInt(effectiveExam.totalQuestions, 10) || (isMulti ? rawSubjects.reduce((acc, s) => acc + (parseInt(s.questionCount, 10) || 0), 0) : 20);
+    const examSubjects = isMulti
+      ? rawSubjects
+      : [{ id: 'sub_0', name: effectiveExam.examName || 'Ders', questionCount: qCount }];
     const choicesCount = parseInt(effectiveExam.choicesCount, 10) || 4;
     const letters = ['A', 'B', 'C', 'D', 'E'].slice(0, choicesCount);
     const answerKey = effectiveExam.answerKey || {};
@@ -1483,69 +1447,46 @@
 
     const isAnchor = !!corners.isAnchor;
     const isMobile = !isAnchor && (!!options.isMobileCamera || !!options.bounds);
-    const minScore = options.minScore || 0.17;
-    const minFill = options.minFill || 0.25;
 
     const detectedAnswers = {};
     const questionDetails = [];
     let correctCount = 0;
     let wrongCount = 0;
     let blankCount = 0;
-    let subjectBreakdown = null;
+    let subjectBreakdown = isMulti ? {} : null;
 
-    if (isMulti) {
-      // ── ÇOKLU DERS (BRANŞLI DENEME) MOTORU ──
-      // Projeksiyon Homografisi (Paul Heckbert) ile Perspektif & Eğim Bağışıklığı
-      subjectBreakdown = {};
+    // ── 5 SABİT DERS CEBİ (FIXED 5-SLOT) & SABİT 1. SORU BAŞLANGIÇ MOTORU ──
+    // 1 ders seçilirse 1. ders cebine (Slot 0) yerleşir ve diğer 4 ders cebi boş kalır.
+    // 2..5 ders seçilirse sırasıyla kendi sabit ceplerine (Slot 0..4) yerleşir.
+    {
       const numSubjects = examSubjects.length;
       let cumulativeOffset = 0;
 
-      // Kartın geometrik koordinatları (0.0 - 1.0 aralığı, 4 referans çapa merkezli)
-      const gridUStart = 0.025;
-      const gridUEnd = 0.975;
-      const totalGridW = gridUEnd - gridUStart;
-      const slotW = totalGridW / numSubjects;
-
-      // 2. Çoklu ders gövde dikey aralığı (0.0 - 1.0 aralığı, 4 referans çapa merkezli)
-      // Üst başlık (Sınav adı, öğrenci adı, QR rozeti) 0.00 - 0.24 aralığını kaplar.
-      // Soru satırları 1. satırdan başlayarak flex-start düzeninde aşağıya doğru yerleşir.
+      // Üst başlık (Sınav adı, öğrenci adı, ArUco rozeti) 0.00 - 0.24 aralığını kaplar.
+      // Tüm derslerde 1. sorular daima aynı değişmeyen başlangıç noktasından (vFirstRowBase) başlar.
       const maxQuestions = Math.max(...examSubjects.map(s => parseInt(s.questionCount, 10) || 0), 1);
 
-      // ==========================================================================
-      // 🛑 KİLİTLİ KOORDİNATLAR - ASLA DEĞİŞTİRİLEMEZ 🛑
-      // Fiziksel cetvel kalibrasyonu (126mm x 188mm A5 2'li form) ile doğrulanmış ve kilitlenmiştir.
-      // Her ne olursa olsun vFirstRowBase, vCompactStep ve colBounds değerleri asla değiştirilemez!
-      // Tüm ders kutuları daima kartın tepesinden (vFirstRowBase = 0.2619) başlar.
-      // ==========================================================================
       let vFirstRowBase = 0.2619;
       let vCompactStep = 0.0490;
-      let vMidBase = 0.6049;
 
       if (perPage === 1) {
         // A4 Tam Sayfa
         vFirstRowBase = 0.2000;
         vCompactStep = 0.0260;
-        vMidBase = 0.4470;
       } else if (perPage === 2) {
         // A5 Yatay (Sayfada 2 Form - 126mm Çıpa Boyu)
         vFirstRowBase = 0.2619;
         vCompactStep = 0.0490;
-        vMidBase = 0.6049;
       } else if (perPage === 4) {
         // A6 Çeyrek Sayfa (118mm Çıpa Boyu)
         vFirstRowBase = 0.2760;
         vCompactStep = 0.0524;
-        vMidBase = 0.5642;
       }
 
       if (maxQuestions > 20) {
         // Sıkışık ders satırları (.compact-rows: 16px row height)
         vCompactStep = vCompactStep * 0.82;
       }
-
-      // Kilitli ve sabit dikey başlangıç konumu (flex-start)
-      const vTopFirstRow = vFirstRowBase;
-      const vCenteredFirstRow = vMidBase - ((maxQuestions - 1) / 2) * vCompactStep;
 
       // Ders sütunlarının yatay geometri haritası (5 Sabit Yuva / Fixed Slot Mimarisi)
       function getSubjectColumnGeometry(sIdx) {
@@ -1630,29 +1571,17 @@
       }
 
       // Global aday ızgaralar: Mikro dikey kaydırmalar (dv) ve adımlama ölçekleri (scale)
-      // Sabit ve kilitli cetvel pozisyonu (vTopFirstRow = 0.2619) daima birincil ve varsayılan ızgaradır.
-      // Eski hatalı CSS (justify-content: center) ile basılmış formlar için tolerans payı içerir.
-      const candidateBases = [vTopFirstRow];
-      if (Math.abs(vCenteredFirstRow - vTopFirstRow) > 0.015) {
-        candidateBases.push(vCenteredFirstRow);
-      }
-
-      const microOffsets = [0.000, -0.003, 0.003, -0.006, 0.006, -0.010, 0.010, -0.015, 0.015];
-      const candidateVFirstOffsets = [];
-      candidateBases.forEach(base => {
-        microOffsets.forEach(dv => {
-          candidateVFirstOffsets.push(base + dv);
-        });
-      });
+      const candidateVFirstOffsets = [0.000, -0.003, 0.003, -0.006, 0.006];
       const candidateStepScales = [1.00, 0.99, 1.01, 0.98, 1.02];
 
       let bestGlobalStep = vCompactStep;
-      let bestGlobalVFirst = vTopFirstRow;
+      let bestGlobalVFirst = vFirstRowBase;
       let bestGlobalScore = -1;
 
       candidateStepScales.forEach(scale => {
         const testStep = vCompactStep * scale;
-        candidateVFirstOffsets.forEach(testVFirst => {
+        candidateVFirstOffsets.forEach(dv => {
+          const testVFirst = vFirstRowBase + dv;
           const score = evaluateGlobalGridConfidence(testStep, testVFirst);
           if (score > bestGlobalScore) {
             bestGlobalScore = score;
@@ -1750,7 +1679,7 @@
 
         bestSubjGrid.qResults.forEach(qr => {
           const q = qr.q;
-          const key = `${subj.id}_${q}`;
+          const key = isMulti ? `${subj.id}_${q}` : String(q);
           const choiceScores = qr.choiceScores;
           const best = qr.best;
           const second = qr.second;
@@ -1782,7 +1711,7 @@
             markedLetter = best.letter;
           }
 
-          const totalSubjs = (exam && Array.isArray(exam.subjects)) ? exam.subjects.length : 1;
+          const totalSubjs = examSubjects.length;
           const correctAns = findCorrectAnswerForKey(answerKey, subj, sIdx, q, cumulativeOffset, totalSubjs);
 
           const qd = {
@@ -1814,172 +1743,33 @@
           }
 
           detectedAnswers[key] = qd.marked;
+          detectedAnswers[`${subj.id}_${q}`] = qd.marked;
+          if (examSubjects.length === 1) {
+            detectedAnswers[q] = qd.marked;
+          }
           questionDetails.push(qd);
         });
 
-        let subjNet = penaltyRate > 0 ? (subjCorrect - (subjWrong / penaltyRate)) : subjCorrect;
-        subjNet = Math.max(0, parseFloat(subjNet.toFixed(2)));
-        const subjScore = subj.questionCount > 0 ? parseFloat(((subjNet / subj.questionCount) * 100).toFixed(1)) : 0;
+        if (isMulti && subjectBreakdown) {
+          let subjNet = penaltyRate > 0 ? (subjCorrect - (subjWrong / penaltyRate)) : subjCorrect;
+          subjNet = Math.max(0, parseFloat(subjNet.toFixed(2)));
+          const subjScore = subj.questionCount > 0 ? parseFloat(((subjNet / subj.questionCount) * 100).toFixed(1)) : 0;
 
-        subjectBreakdown[subj.id] = {
-          id: subj.id,
-          name: subj.name,
-          subjectName: subj.name,
-          correct: subjCorrect,
-          wrong: subjWrong,
-          blank: subjBlank,
-          net: subjNet,
-          score: subjScore,
-          total: subj.questionCount
-        };
+          subjectBreakdown[subj.id] = {
+            id: subj.id,
+            name: subj.name,
+            subjectName: subj.name,
+            correct: subjCorrect,
+            wrong: subjWrong,
+            blank: subjBlank,
+            net: subjNet,
+            score: subjScore,
+            total: subj.questionCount
+          };
+        }
 
         cumulativeOffset += subj.questionCount;
       });
-
-    } else {
-      // ── TEK DERS MOTORU ──
-      const cols = qCount <= 15 ? 1 : (qCount <= 30 ? 2 : 3);
-      const questionsPerCol = Math.ceil(qCount / cols);
-
-      for (let c = 0; c < cols; c++) {
-        const startQ = c * questionsPerCol + 1;
-        const endQ = Math.min((c + 1) * questionsPerCol, qCount);
-
-        let colChoiceStartU, uChoiceStep;
-        if (cols === 2) {
-          colChoiceStartU = c === 0 ? 0.0881 : 0.5626;
-          uChoiceStep = 0.0304;
-        } else if (cols === 1) {
-          colChoiceStartU = 0.3550;
-          uChoiceStep = 0.0304;
-        } else {
-          colChoiceStartU = 0.055 + c * 0.330;
-          uChoiceStep = 0.0240;
-        }
-
-        let actualRowStep = 0.0453;
-        let vMid = 0.569;
-
-        if (perPage === 1) {
-          vMid = 0.550;
-          actualRowStep = 0.0240;
-        } else if (perPage === 4) {
-          vMid = 0.575;
-          actualRowStep = 0.0453;
-        }
-
-        // Çok fazla soru varsa (örn. 30 soru) dikey taşmayı önle
-        const maxColH = 0.74;
-        if ((questionsPerCol - 1) * actualRowStep > maxColH) {
-          actualRowStep = maxColH / Math.max(1, questionsPerCol - 1);
-        }
-
-        const firstRowCenter = vMid - ((questionsPerCol - 1) / 2) * actualRowStep;
-
-        for (let q = startQ; q <= endQ; q++) {
-          const rowIdx = q - startQ;
-          const rowV = firstRowCenter + rowIdx * actualRowStep;
-
-          const rowSamplePt = mapPoint(colChoiceStartU, rowV);
-          const rowPaperLum = sampleLocalPaperLuminance(gray, w, h, rowSamplePt, sampleRadius);
-          const darkThresh = Math.min(145, Math.round(rowPaperLum * 0.65));
-
-          const choiceScores = [];
-          for (let lIdx = 0; lIdx < letters.length; lIdx++) {
-            const choiceU = colChoiceStartU + lIdx * uChoiceStep;
-            const initialPt = mapPoint(choiceU, rowV);
-
-            let snappedPt;
-            if (isAnchor || isMobile) {
-              snappedPt = snapToBubbleRing(gray, w, h, initialPt, sampleRadius);
-            } else {
-              const searchR = Math.max(5, Math.round(sampleRadius * 1.1));
-              snappedPt = refineBubbleCenter(gray, w, h, initialPt, sampleRadius, rowPaperLum, searchR, searchR);
-            }
-
-            // Halka merkezine oturduktan sonra doluluk oranını ölç
-            let maxDarkPix = 0;
-            let bestTotalPix = 0;
-            let bestPt = snappedPt;
-
-            for (let sOffY = -1; sOffY <= 1; sOffY += 1) {
-              for (let sOffX = -1; sOffX <= 1; sOffX += 1) {
-                let dCount = 0, tCount = 0;
-                for (let dy = -sampleRadius; dy <= sampleRadius; dy++) {
-                  for (let dx = -sampleRadius; dx <= sampleRadius; dx++) {
-                    if (dx * dx + dy * dy <= sampleRadius * sampleRadius) {
-                      tCount++;
-                      const px = snappedPt.x + sOffX + dx;
-                      const py = snappedPt.y + sOffY + dy;
-                      if (px >= 0 && px < w && py >= 0 && py < h) {
-                        if (gray[py * w + px] < darkThresh) dCount++;
-                      }
-                    }
-                  }
-                }
-                if (dCount > maxDarkPix) {
-                  maxDarkPix = dCount;
-                  bestTotalPix = tCount;
-                  bestPt = { x: snappedPt.x + sOffX, y: snappedPt.y + sOffY };
-                }
-              }
-            }
-
-            const fillRatio = bestTotalPix > 0 ? (maxDarkPix / bestTotalPix) : 0;
-            choiceScores.push({
-              letter: letters[lIdx],
-              score: fillRatio,
-              fillRatio: fillRatio,
-              pt: bestPt
-            });
-          }
-
-          choiceScores.sort((a, b) => b.score - a.score);
-          const best = choiceScores[0];
-          const second = choiceScores[1] || { score: 0, fillRatio: 0 };
-          const diff = best.score - second.score;
-
-          let markedLetter = '';
-          let status = 'blank';
-
-          const isFilled = (best.score >= 0.42 && diff >= 0.15) || (best.score >= 0.55);
-          const isMultiple = isFilled && (second.score >= 0.42) && (diff < 0.12);
-
-          if (isMultiple) {
-            status = 'multiple';
-            markedLetter = '';
-          } else if (isFilled) {
-            status = 'marked';
-            markedLetter = best.letter;
-          }
-
-          const correctAns = String(answerKey[q] || answerKey[String(q)] || '').trim().toUpperCase();
-          const qd = {
-            q,
-            marked: markedLetter,
-            status,
-            keyAnswer: correctAns,
-            scores: choiceScores
-          };
-
-          if (!qd.marked) {
-            blankCount++;
-            qd.isCorrect = false;
-            qd.isBlank = true;
-          } else if (correctAns && qd.marked === correctAns) {
-            correctCount++;
-            qd.isCorrect = true;
-            qd.isBlank = false;
-          } else {
-            wrongCount++;
-            qd.isCorrect = false;
-            qd.isBlank = false;
-          }
-
-          detectedAnswers[q] = markedLetter;
-          questionDetails.push(qd);
-        }
-      }
     }
 
     let net = penaltyRate > 0 ? (correctCount - (wrongCount / penaltyRate)) : correctCount;

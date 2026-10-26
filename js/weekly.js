@@ -5301,28 +5301,27 @@ Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi ve
     const effectiveNo = (studentNo && studentNo !== '......' && studentNo !== '-') ? studentNo : (studentIndex > 0 ? String(studentIndex) : '0');
     const num = parseInt(effectiveNo, 10) || 0;
 
-    // OmrEngine üzerinden ArUco SVG üretimi
+    // OmrEngine üzerinden ArUco SVG üretimi (v1.0.92 başlık yüksekliğini birebir koruyan 46px boyut)
     let arucoSvg = '';
     if (window.OmrEngine && typeof window.OmrEngine.generateArucoSVG === 'function') {
-      arucoSvg = window.OmrEngine.generateArucoSVG(num, 50);
+      arucoSvg = window.OmrEngine.generateArucoSVG(num, 46);
     } else {
-      const cellSize = 8;
       const totalSize = 56;
       let rects = `<rect x="0" y="0" width="${totalSize}" height="${totalSize}" fill="#000000" /><rect x="8" y="8" width="40" height="40" fill="#ffffff" />`;
-      arucoSvg = `<svg viewBox="0 0 ${totalSize} ${totalSize}" width="50" height="50" shape-rendering="crispEdges" style="display: block;">${rects}</svg>`;
+      arucoSvg = `<svg viewBox="0 0 ${totalSize} ${totalSize}" width="46" height="46" shape-rendering="crispEdges" style="display: block;">${rects}</svg>`;
     }
 
     const isNamed = studentNo && studentNo !== '......' && studentNo !== '-';
-    const caption = isNamed ? `NO: ${studentNo}` : (studentIndex > 0 ? `NO: #${studentIndex}` : 'BOŞ FORM');
+    const caption = isNamed ? `NO:${studentNo}` : (studentIndex > 0 ? `ID:#${studentIndex}` : 'ID:---');
 
     return `
       <div class="omr-id-badge omr-aruco-badge" title="Öğrenci ArUco Kimlik Kodu: ${caption}">
-        <div class="omr-binary-strip-wrap" style="background: #ffffff; padding: 4px 6px; display: flex; flex-direction: column; align-items: center; border: 2px solid #000000; border-radius: 4px; box-sizing: border-box;">
-          <div style="font-size: 0.46rem; font-weight: 800; color: #000000; letter-spacing: 0.5px; margin-bottom: 3px; text-transform: uppercase;">KİMLİK ARMASI</div>
-          <div style="width: 50px; height: 50px; display: flex; align-items: center; justify-content: center; overflow: hidden;">
+        <div class="omr-binary-strip-wrap" style="background: #ffffff; padding: 2px 5px; display: flex; flex-direction: column; align-items: center; border: 2px solid #000000; border-radius: 6px; box-sizing: border-box;">
+          <div style="font-size: 0.48rem; font-weight: 800; color: #000000; letter-spacing: 0.4px; margin-bottom: 1px; text-transform: uppercase;">KİMLİK KODU</div>
+          <div style="width: 46px; height: 46px; display: flex; align-items: center; justify-content: center; overflow: hidden;">
             ${arucoSvg}
           </div>
-          <div class="omr-id-caption" style="font-size: 0.62rem; font-weight: 800; font-family: monospace; color: #000000; margin-top: 4px;">
+          <div class="omr-id-caption" style="font-size: 0.60rem; font-weight: 800; font-family: monospace; color: #000000; margin-top: 1px; line-height: 1;">
             ${caption}
           </div>
         </div>
@@ -5339,7 +5338,7 @@ Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi ve
     </svg>`;
   }
 
-  // Tekil Optik Kart HTML Şablonu (Binary ID Rozetli, Deterministik OMR & CamScanner Uyumlu)
+  // Tekil Optik Kart HTML Şablonu (5 Sabit Ders Cebi & Sabit 1. Soru Başlangıç Mimarisi + ArUco Rozet)
   function generateSingleDesktopOpticalCardHTML(options) {
     const {
       examName = 'Haftalık Değerlendirme',
@@ -5363,128 +5362,73 @@ Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi ve
       perPage: perPage || 2
     });
 
-    if (isMultiSubject && Array.isArray(subjects) && subjects.length > 0) {
-      // ÇOKLU DERS OPTİK KARTI (5 Sabit Yuva / Slot Mimarisi)
-      const maxSubjQ = Math.max(...subjects.map(s => s.questionCount || 0));
-      const isCompact = maxSubjQ > 20 || totalQuestions > 40;
+    // 5 SABİT DERS CEBİ MİMARİSİ:
+    // 1 ders seçilirse belirlenen 1. ders cebine (Slot 0) eklenir ve diğer 4 ders cebi boş kalır.
+    // Çoklu ders seçilirse her ders sırasıyla kendi sabit cebine (Slot 0..4) yerleşir.
+    const effectiveSubjects = (isMultiSubject && Array.isArray(subjects) && subjects.length > 0)
+      ? subjects
+      : [{ id: 'sub_0', name: examName || 'Ders', questionCount: totalQuestions || 10 }];
 
-      const maxSlots = 5;
-      let subjectsHtml = '';
-      for (let sIdx = 0; sIdx < maxSlots; sIdx++) {
-        const subj = subjects[sIdx];
-        if (subj) {
-          let rowsHtml = '';
-          const count = subj.questionCount || 10;
-          for (let q = 1; q <= count; q++) {
-            rowsHtml += `
-              <div class="omr-q-row" data-subj="${subj.id}" data-q="${q}">
-                <span class="omr-q-num">${q}</span>
-                <div class="omr-q-bubbles">
-                  ${letters.map(l => `<span class="omr-bubble" data-opt="${l}">${l}</span>`).join('')}
-                </div>
-              </div>
-            `;
-          }
+    const maxSubjQ = Math.max(...effectiveSubjects.map(s => s.questionCount || 0));
+    const isCompact = maxSubjQ > 20;
 
-          subjectsHtml += `
-            <div class="omr-subject-block slot-${sIdx}">
-              <div class="omr-subject-header">
-                <span class="omr-subject-name" title="${subj.name}">${subj.name}</span>
-                <span class="omr-subject-badge">${count} Soru</span>
+    const maxSlots = 5;
+    let subjectsHtml = '';
+    for (let sIdx = 0; sIdx < maxSlots; sIdx++) {
+      const subj = effectiveSubjects[sIdx];
+      if (subj) {
+        let rowsHtml = '';
+        const count = subj.questionCount || 10;
+        for (let q = 1; q <= count; q++) {
+          rowsHtml += `
+            <div class="omr-q-row" data-subj="${subj.id}" data-q="${q}">
+              <span class="omr-q-num">${q}</span>
+              <div class="omr-q-bubbles">
+                ${letters.map(l => `<span class="omr-bubble" data-opt="${l}">${l}</span>`).join('')}
               </div>
-              <div class="omr-subject-rows">
-                ${rowsHtml}
-              </div>
-            </div>
-          `;
-        } else {
-          // Boş yuva: Tam aynı 18.8% genişlikte boş alan (sayfa dengesini ve koordinatları korur)
-          subjectsHtml += `
-            <div class="omr-subject-block omr-slot-empty" style="visibility: hidden; border: none; background: transparent;">
             </div>
           `;
         }
-      }
 
-      return `
-        <div class="omr-card omr-multi ${isCompact ? 'compact-rows' : ''}">
-          <!-- 4 Köşe Referans Çapası (CamScanner & Tarayıcı Uyumlu Vektör Çapa) -->
-          ${renderCornerAnchorSVG('omr-anchor-tl')}
-          ${renderCornerAnchorSVG('omr-anchor-tr')}
-          ${renderCornerAnchorSVG('omr-anchor-bl')}
-          ${renderCornerAnchorSVG('omr-anchor-br')}
-
-          <!-- Üst Başlık & Öğrenci Bilgileri & QR Rozeti -->
-          <div class="omr-card-header">
-            <div class="omr-header-main">
-              <div class="omr-header-title">
-                ${examName}
-                <small style="font-size: 0.68rem; font-weight: 700; opacity: 0.85; margin-left: 6px;">(${subjects.map(s => s.name).join(' • ')})</small>
-              </div>
-              <div class="omr-student-info">
-                <div><strong>Öğrenci:</strong> ${studentName}</div>
-                <div><strong>No:</strong> ${studentNo}</div>
-              </div>
+        subjectsHtml += `
+          <div class="omr-subject-block slot-${sIdx}">
+            <div class="omr-subject-header">
+              <span class="omr-subject-name" title="${subj.name}">${subj.name}</span>
+              <span class="omr-subject-badge">${count} Soru</span>
             </div>
-            ${qrBadgeHtml}
-          </div>
-
-          <!-- Çoklu Ders Şıkları Gövdesi (5 Sabit Yuva) -->
-          <div class="omr-card-body" style="padding: 2px 0;">
-            <div class="omr-multi-subjects-grid cols-5 fixed-5-slots">
-              ${subjectsHtml}
-            </div>
-          </div>
-
-          <!-- Alt Bilgi / Uyarı -->
-          <div class="omr-card-footer">
-            <span>* Her ders için 1'den başlayan soruları kurşun kalemle doldurunuz.</span>
-            <span>SINIF ASİSTANI</span>
-          </div>
-        </div>
-      `;
-    }
-
-    // TEK DERS OPTİK KARTI (Mevcut Mantık)
-    const cols = totalQuestions <= 15 ? 1 : (totalQuestions <= 30 ? 2 : 3);
-    const questionsPerCol = Math.ceil(totalQuestions / cols);
-
-    let columnsHtml = '';
-    for (let c = 0; c < cols; c++) {
-      const startQ = c * questionsPerCol + 1;
-      const endQ = Math.min((c + 1) * questionsPerCol, totalQuestions);
-
-      let colRows = '';
-      for (let q = startQ; q <= endQ; q++) {
-        colRows += `
-          <div class="omr-q-row" data-q="${q}">
-            <span class="omr-q-num">${q}</span>
-            <div class="omr-q-bubbles">
-              ${letters.map(l => `<span class="omr-bubble" data-opt="${l}">${l}</span>`).join('')}
+            <div class="omr-subject-rows">
+              ${rowsHtml}
             </div>
           </div>
         `;
+      } else {
+        // Boş yuva: Tam aynı 18.8% genişlikte boş alan (sayfa dengesini ve koordinatları korur)
+        subjectsHtml += `
+          <div class="omr-subject-block omr-slot-empty" style="visibility: hidden; border: none; background: transparent;">
+          </div>
+        `;
       }
-
-      columnsHtml += `
-        <div class="omr-grid-col col-${c}">
-          ${colRows}
-        </div>
-      `;
     }
 
+    const subjSubtitle = (isMultiSubject && effectiveSubjects.length > 0)
+      ? `<small style="font-size: 0.68rem; font-weight: 700; opacity: 0.85; margin-left: 6px;">(${effectiveSubjects.map(s => s.name).join(' • ')})</small>`
+      : '';
+
     return `
-      <div class="omr-card">
+      <div class="omr-card omr-multi ${isCompact ? 'compact-rows' : ''}">
         <!-- 4 Köşe Referans Çapası (CamScanner & Tarayıcı Uyumlu Vektör Çapa) -->
         ${renderCornerAnchorSVG('omr-anchor-tl')}
         ${renderCornerAnchorSVG('omr-anchor-tr')}
         ${renderCornerAnchorSVG('omr-anchor-bl')}
         ${renderCornerAnchorSVG('omr-anchor-br')}
 
-        <!-- Üst Başlık & Öğrenci Bilgileri & QR Rozeti -->
+        <!-- Üst Başlık & Öğrenci Bilgileri & ArUco Kimlik Rozeti -->
         <div class="omr-card-header">
           <div class="omr-header-main">
-            <div class="omr-header-title">${examName}</div>
+            <div class="omr-header-title">
+              ${examName}
+              ${subjSubtitle}
+            </div>
             <div class="omr-student-info">
               <div><strong>Öğrenci:</strong> ${studentName}</div>
               <div><strong>No:</strong> ${studentNo}</div>
@@ -5493,16 +5437,16 @@ Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi ve
           ${qrBadgeHtml}
         </div>
 
-        <!-- Optik Form Şıkları -->
-        <div class="omr-card-body">
-          <div class="omr-grid-container cols-${cols}">
-            ${columnsHtml}
+        <!-- 5 Sabit Ders Cebi Gövdesi -->
+        <div class="omr-card-body" style="padding: 2px 0;">
+          <div class="omr-multi-subjects-grid cols-5 fixed-5-slots">
+            ${subjectsHtml}
           </div>
         </div>
 
         <!-- Alt Bilgi / Uyarı -->
         <div class="omr-card-footer">
-          <span>* Doğru seçeneği taşırmadan, koyu kurşun kalemle doldurunuz.</span>
+          <span>* Her ders için 1'den başlayan soruları kurşun kalemle doldurunuz.</span>
           <span>SINIF ASİSTANI</span>
         </div>
       </div>
@@ -5704,10 +5648,8 @@ Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi ve
       page-break-inside: avoid;
       break-inside: avoid;
       width: 100%;
-      height: 285mm;
-      max-height: 285mm;
       box-sizing: border-box;
-      padding: 2mm 3mm;
+      padding: 1mm 2mm;
       margin: 0 auto;
       background: #ffffff;
       overflow: hidden;
@@ -5721,10 +5663,12 @@ Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi ve
       flex-direction: column;
       justify-content: center;
       align-items: center;
-      height: 285mm;
+      height: 274mm;
+      max-height: 276mm;
     }
     .omr-print-page.omr-per-page-1 .omr-card {
-      height: 275mm;
+      height: 266mm;
+      max-height: 268mm;
       max-width: 100%;
       margin: 0 auto;
       padding: 14px 18px;
@@ -5734,25 +5678,33 @@ Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi ve
       flex-direction: column;
       justify-content: space-between;
       gap: 4mm;
-      height: 285mm;
+      height: 260mm;
+      max-height: 262mm;
+      padding: 1mm 2mm;
     }
     .omr-print-page.omr-per-page-2 .omr-card {
-      height: 138mm;
-      max-height: 139mm;
+      height: 128mm;
+      max-height: 128mm;
       max-width: 100%;
       margin: 0;
-      padding: 8px 12px;
+      padding: 6px 10px;
+    }
+    .omr-print-page.omr-per-page-2 .omr-card.omr-multi {
+      height: 128mm;
+      max-height: 128mm;
+      padding: 4px 8px;
     }
     .omr-print-page.omr-per-page-4 {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      grid-template-rows: 139mm 139mm;
+      grid-template-rows: 128mm 128mm;
       gap: 3mm;
-      height: 285mm;
+      height: 262mm;
+      max-height: 264mm;
     }
     .omr-print-page.omr-per-page-4 .omr-card {
-      height: 139mm;
-      max-height: 139mm;
+      height: 128mm;
+      max-height: 128mm;
       max-width: 100%;
       margin: 0;
       padding: 6px 8px;
@@ -5771,6 +5723,7 @@ Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi ve
       justify-content: space-between;
       page-break-inside: avoid;
       break-inside: avoid;
+      overflow: hidden;
     }
     .omr-anchor {
       position: absolute;
@@ -5785,7 +5738,7 @@ Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi ve
     .omr-anchor-bl { bottom: 6px; left: 6px; }
     .omr-anchor-br { bottom: 6px; right: 6px; }
     .omr-card-header {
-      margin: 2px 28px 4px 28px;
+      margin: 2px 26px 4px 26px;
       border-bottom: 2px solid #000000;
       padding-bottom: 4px;
       display: flex;
@@ -5798,124 +5751,217 @@ Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi ve
       min-width: 0;
     }
     .omr-header-title {
-      font-size: 13px;
-      font-weight: 800;
+      font-size: 0.88rem;
+      font-weight: 900;
+      text-align: left;
       text-transform: uppercase;
       letter-spacing: 0.5px;
+      color: #000000;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      margin-bottom: 2px;
     }
     .omr-student-info {
       display: flex;
-      gap: 14px;
-      font-size: 11px;
+      gap: 16px;
+      margin-top: 3px;
+      font-size: 0.8rem;
+      color: #000000;
+      font-weight: 700;
+    }
+    .omr-id-badge {
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 1px;
+    }
+    .omr-aruco-badge svg {
+      width: 46px !important;
+      height: 46px !important;
+      display: block;
+    }
+    .omr-per-page-2 .omr-aruco-badge svg {
+      width: 44px !important;
+      height: 44px !important;
+    }
+    .omr-per-page-4 .omr-aruco-badge svg {
+      width: 38px !important;
+      height: 38px !important;
     }
     .omr-card-body {
-      margin: 0 28px;
+      margin: 4px 14px;
       flex: 1;
       display: flex;
       flex-direction: column;
-      justify-content: flex-start !important;
-    }
-    .omr-grid-container {
-      display: grid;
-      gap: 16px;
-      width: 100%;
-    }
-    .omr-grid-container.cols-1 { grid-template-columns: 1fr; }
-    .omr-grid-container.cols-2 { grid-template-columns: 1fr 1fr; }
-    .omr-grid-container.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
-    .omr-grid-col {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-    }
-    .omr-q-row {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      height: 20px;
-    }
-    .omr-q-num {
-      width: 22px;
-      font-size: 11px;
-      font-weight: 700;
-      font-family: monospace;
-      text-align: right;
-    }
-    .omr-q-bubbles {
-      display: flex;
-      gap: 4px;
-    }
-    .omr-bubble {
-      width: 18px;
-      height: 18px;
-      border: 1.5px solid #000000;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
       justify-content: center;
-      font-size: 10px;
-      font-weight: 800;
-      background: #ffffff;
-      color: #000000;
+      box-sizing: border-box;
     }
     .omr-multi-subjects-grid {
-      display: grid;
-      gap: 8px;
+      display: flex;
       width: 100%;
-      align-items: start;
+      height: 100%;
+      justify-content: space-between;
+      gap: 6px;
+      box-sizing: border-box;
     }
-    .omr-multi-subjects-grid.cols-2 { grid-template-columns: 1fr 1fr; }
-    .omr-multi-subjects-grid.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
-    .omr-multi-subjects-grid.cols-4 { grid-template-columns: repeat(4, 1fr); }
-    .omr-multi-subjects-grid.cols-5 { grid-template-columns: repeat(5, 1fr); }
-    .omr-multi-subjects-grid.cols-6 { grid-template-columns: repeat(6, 1fr); }
+    .omr-multi-subjects-grid.cols-5 .omr-subject-block,
+    .omr-multi-subjects-grid.fixed-5-slots .omr-subject-block {
+      width: 18.8%;
+      flex: 0 0 18.8%;
+    }
     .omr-subject-block {
-      border: 1px solid #000000;
+      display: flex;
+      flex-direction: column;
+      border: 1.2px solid #000000;
       border-radius: 4px;
-      padding: 4px;
-      background: #fafafa;
+      padding: 3px 4px;
+      box-sizing: border-box;
+      background: #ffffff;
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
     }
     .omr-subject-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      border-bottom: 1px solid #000000;
+      border-bottom: 1.5px solid #000000;
       padding-bottom: 2px;
       margin-bottom: 4px;
-      font-size: 10px;
-      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 4px;
     }
     .omr-subject-name {
+      font-size: 0.72rem;
+      font-weight: 900;
+      color: #000000;
       text-transform: uppercase;
+      letter-spacing: 0.3px;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
     }
     .omr-subject-badge {
-      font-size: 9px;
-      opacity: 0.8;
+      font-size: 0.58rem;
+      font-weight: 800;
+      color: #000000;
+      background: #e2e8f0;
+      padding: 1px 4px;
+      border-radius: 3px;
+      white-space: nowrap;
     }
     .omr-subject-rows {
       display: flex;
       flex-direction: column;
       justify-content: flex-start !important;
       align-items: stretch;
+      flex: 1;
       gap: 2px;
       box-sizing: border-box;
     }
+    .omr-q-row {
+      display: flex;
+      width: 100%;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+      height: 20px !important;
+      min-height: 20px !important;
+      box-sizing: border-box;
+    }
+    .omr-q-num {
+      width: 22%;
+      font-size: 0.74rem;
+      font-weight: 800;
+      text-align: right;
+      color: #000000;
+      box-sizing: border-box;
+      padding-right: 4px;
+    }
+    .omr-q-bubbles {
+      width: 78%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-sizing: border-box;
+    }
+    .omr-bubble {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      border: 1.6px solid #000000 !important;
+      background: #ffffff !important;
+      color: #000000 !important;
+      font-size: 0.66rem;
+      font-weight: 800;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 1;
+      box-sizing: border-box;
+    }
     .omr-card-footer {
-      margin: 2px 28px 4px 28px;
-      border-top: 1px solid #000000;
-      padding-top: 2px;
+      margin: 4px 24px 2px 24px;
+      border-top: 1px dashed #64748b;
+      padding-top: 3px;
       display: flex;
       justify-content: space-between;
-      font-size: 8.5px;
+      font-size: 0.62rem;
+      color: #475569;
       font-weight: 600;
-      color: #333333;
+    }
+    /* 2-per-page (A5 İkili Form) milimetrik kalibrasyon kuralları */
+    .omr-per-page-2 .omr-card-header {
+      margin: 2px 22px 3px 22px !important;
+      padding-bottom: 2px !important;
+    }
+    .omr-per-page-2 .omr-header-title {
+      font-size: 0.80rem !important;
+    }
+    .omr-per-page-2 .omr-student-info {
+      font-size: 0.72rem !important;
+      gap: 12px !important;
+      margin-top: 2px !important;
+    }
+    .omr-per-page-2 .omr-card-body {
+      margin: 2px 10px !important;
+      padding: 1px 0 !important;
+    }
+    .omr-per-page-2 .omr-q-row {
+      gap: 4px !important;
+    }
+    .omr-per-page-2 .omr-q-num {
+      font-size: 0.70rem !important;
+      padding-right: 3px !important;
+    }
+    .omr-per-page-2 .omr-card.omr-multi {
+      padding: 4px 8px !important;
+    }
+    .omr-per-page-2 .omr-card.omr-multi .omr-subject-block {
+      padding: 2px 3px !important;
+    }
+    .omr-per-page-2 .omr-card.omr-multi .omr-subject-header {
+      padding-bottom: 1px !important;
+      margin-bottom: 2px !important;
+    }
+    .omr-per-page-2 .omr-card.omr-multi .omr-subject-name {
+      font-size: 0.66rem !important;
+    }
+    .omr-per-page-2 .omr-card.omr-multi .omr-subject-badge {
+      font-size: 0.54rem !important;
+      padding: 0 3px !important;
+    }
+    .omr-per-page-2 .omr-card.omr-multi .omr-bubble {
+      width: 14.5px !important;
+      height: 14.5px !important;
+      font-size: 0.55rem !important;
+      border-width: 1.4px !important;
+    }
+    .omr-per-page-2 .omr-card-footer {
+      margin: 2px 22px 2px 22px !important;
+      padding-top: 2px !important;
+      font-size: 0.58rem !important;
     }
   </style>
 </head>
