@@ -27,7 +27,7 @@
       <div class="c-appbar-info">
         <div style="display: flex; align-items: center;">
           <div class="c-appbar-name" id="appbar-teacher-name">Öğretmen</div>
-          <span id="companion-version-badge" style="font-size: 10px; background: rgba(255,255,255,0.22); padding: 1.5px 7px; border-radius: 999px; font-weight: 700; color: #fff; margin-left: 6px; letter-spacing: 0.3px;">v1.0.101</span>
+          <span id="companion-version-badge" style="font-size: 10px; background: rgba(255,255,255,0.22); padding: 1.5px 7px; border-radius: 999px; font-weight: 700; color: #fff; margin-left: 6px; letter-spacing: 0.3px;">v1.0.102</span>
         </div>
         <div class="c-appbar-branch" id="appbar-branch-name">Branş Seçilmedi</div>
       </div>
@@ -1373,13 +1373,21 @@
         <div style="margin-top: 8px;">
           <button type="button" class="c-btn-secondary" style="width: 100%; justify-content: center; gap: 6px; padding: 10px; font-size: 12px; font-weight: 700; border-color: #cbd5e1; background: #ffffff;" onclick="window.Companion.forceReloadApp()">
             <i data-lucide="rotate-cw" style="width: 15px; height: 15px; color: #0284c7;"></i>
-            <span>Önbelleği Temizle ve En Son Sürüme Yenile</span>
+            <span>Önbelleği Temizle ve Sayfayı Yenile</span>
           </button>
+        </div>
+
+        <!-- En Son APK İndir / Yükselt Butonu -->
+        <div style="margin-top: 8px;">
+          <a href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/latest/download/sinif-asistani.apk" target="_blank" class="c-btn-secondary" style="display: flex; width: 100%; justify-content: center; align-items: center; gap: 6px; padding: 10px; font-size: 12px; font-weight: 700; border: 1px solid #c7d2fe; background: #eef2ff; color: #4338ca; text-decoration: none; border-radius: 10px; box-sizing: border-box;">
+            <i data-lucide="download" style="width: 15px; height: 15px; color: #4f46e5;"></i>
+            <span>En Son Sürüm APK İndir (.apk)</span>
+          </a>
         </div>
 
         <!-- Versiyon Bilgisi -->
         <div style="text-align: center; margin-top: 14px; font-size: 11px; color: #94a3b8; font-weight: 600;">
-          Sınıf Asistanı El Terminali • <span id="settings-modal-version" style="color: #4f46e5; font-weight: 800;">v1.0.101</span>
+          Sınıf Asistanı El Terminali • <span id="settings-modal-version" style="color: #4f46e5; font-weight: 800;">v1.0.102</span>
         </div>
 
       </div>

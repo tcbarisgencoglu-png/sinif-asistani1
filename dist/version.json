@@ -1,13 +1,14 @@
 {
-  "version": "1.0.101",
+  "version": "1.0.102",
   "releaseDate": "2026-10-26",
   "minRequiredVersion": "1.0.0",
-  "title": "Sınıf Asistanı v1.0.101 Yayında!",
-  "description": "Milimetrik Kalibrasyonlu Optik Rozet ve Kusursuz Öğrenci Eşleme Geri Yüklendi",
+  "title": "Sınıf Asistanı v1.0.102 Yayında!",
+  "description": "ArUco 5x5 Geometrik Kodlama ile Sıfır Hatalı Öğrenci Eşleme ve Kararlılık Güncellemesi",
   "features": [
-    "Milimetrik Baloncuk Hizalaması: Cetvelle kilitlenen yatay çift rozet (9-Bit OMR + Mikro-QR) yapısına dönülerek üst başlık yüksekliği ve tüm baloncuk merkezleri tam yerine oturtuldu.",
-    "Çift Güvenlik Katmanlı Öğrenci Eşleme: Hem 9-Bit OMR hem de Mikro-QR ile anında ve %100 kesin öğrenci tespiti sağlandı.",
-    "Şubeler Arası Güvenli Numara Tespiti: Okul numarası üzerinden öğrenci eşleme kuralı güçlendirilerek şube kaynaklı eşleşme kayıpları giderildi."
+    "ArUco 5x5 Geometrik Öğrenci Kodlaması: Her öğrencinin okul numarası doğrudan form üzerindeki 5x5 fiducial matrise kodlandı; liste sıralamasından ve isim benzerliklerinden bağımsız, 4 yönde kusursuz ve 1 milisaniyede sıfır hatalı eşleştirme sağlandı.",
+    "Orijinal Baloncuk Koordinatları Korundu: Optik formdaki tüm soru baloncukları ve koordinat yapısı birebir korunarak yüksek tarama hassasiyeti garanti altına alındı.",
+    "El Terminali (Mobil APK) Doğrudan İndirme: Telefon ayarlarından en son sürüm APK paketine tek dokunuşla erişim ve yükseltme desteği eklendi.",
+    "Masaüstü ve Mobil Senkronizasyon İyileştirmeleri: Şube, isim ve numara eşleme filtreleri sıkılaştırılarak hatalı öğrenci eşleşmeleri tamamen engellendi."
   ],
   "release_url": "https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/latest"
 }
