@@ -1731,12 +1731,13 @@
           this.renderHub();
         }
 
-        const isUnmatched = !this.activeCardResult.studentId || 
+        const isUnmatched = this.activeCardResult.isUnmatched || 
+                            !this.activeCardResult.studentId || 
                             (this.activeCardResult.studentId.startsWith('temp_') && (!this.activeCardResult.studentNo || this.activeCardResult.studentNo === '-')) || 
                             !this.activeCardResult.studentNo || 
                             this.activeCardResult.studentNo === '-' || 
                             this.activeCardResult.studentName === 'Öğrenci' || 
-                            (typeof this.activeCardResult.studentName === 'string' && this.activeCardResult.studentName.startsWith('Öğrenci #'));
+                            (typeof this.activeCardResult.studentName === 'string' && (this.activeCardResult.studentName.startsWith('Öğrenci #') || this.activeCardResult.studentName.includes('Eşleştirilemedi')));
 
         if (isUnmatched) {
           this.openStudentPickerModal();
@@ -1869,12 +1870,13 @@
       }
 
       // Eşleşmeyen Öğrenci Uyarısı
-      const isUnmatched = !res.studentId || 
+      const isUnmatched = res.isUnmatched || 
+                          !res.studentId || 
                           res.studentId.startsWith('temp_') || 
                           !res.studentNo || 
                           res.studentNo === '-' || 
                           res.studentName === 'Öğrenci' || 
-                          (typeof res.studentName === 'string' && res.studentName.startsWith('Öğrenci #'));
+                          (typeof res.studentName === 'string' && (res.studentName.startsWith('Öğrenci #') || res.studentName.includes('Eşleştirilemedi')));
       const unmatchedAlert = document.getElementById('omr-unmatched-alert');
       if (unmatchedAlert) {
         unmatchedAlert.style.display = isUnmatched ? 'flex' : 'none';

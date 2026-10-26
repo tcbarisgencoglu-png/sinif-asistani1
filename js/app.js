@@ -2364,8 +2364,13 @@ async function initApp() {
   // Diğer modüllerde state değiştirildiğinde aktif ekranı yenile
   document.addEventListener('stateChanged', () => {
     updateVisibilityByEducationLevel();
-    const activeTab = document.querySelector('.nav-item.active').getAttribute('data-tab');
-    switchTab(activeTab, false); // Sayfa geçiş animasyonu yapmadan sadece veriyi yeniler
+    const activeNav = document.querySelector('.nav-item.active');
+    if (activeNav) {
+      const activeTab = activeNav.getAttribute('data-tab');
+      if (activeTab) {
+        switchTab(activeTab, false); // Sayfa geçiş animasyonu yapmadan sadece veriyi yeniler
+      }
+    }
   });
 
   // 9. Sistem Sıfırlama Olayları
@@ -2694,7 +2699,7 @@ async function initApp() {
 }
 
 // Mevcut uygulama sürümü (her güncellemede değişir)
-const APP_VERSION = '1.0.96';
+const APP_VERSION = '1.0.97';
 
 // GitHub & Tauri Auto-Updater kontrolü
 async function checkForUpdates() {

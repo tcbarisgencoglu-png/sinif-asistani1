@@ -1309,6 +1309,11 @@
       // Soru satırları 1. satırdan başlayarak flex-start düzeninde aşağıya doğru yerleşir.
       const maxQuestions = Math.max(...examSubjects.map(s => parseInt(s.questionCount, 10) || 0), 1);
 
+      // ==========================================================================
+      // 🛑 KİLİTLİ KOORDİNATLAR - ASLA DEĞİŞTİRİLEMEZ 🛑
+      // Fiziksel cetvel kalibrasyonu (126mm x 188mm A5 2'li form) ile doğrulanmış ve kilitlenmiştir.
+      // Her ne olursa olsun vFirstRowBase, vCompactStep ve colBounds değerleri asla değiştirilemez!
+      // ==========================================================================
       let vFirstRowBase = 0.2619;
       let vCompactStep = 0.0490;
 
@@ -1982,8 +1987,9 @@
     function unwarpAndScanBadge(context, mapFn, targetW, targetH, maxValidIdx = 50) {
       if (typeof mapFn !== 'function') return { qrResult: null, binaryId: null };
 
-      const badgeW = 360;
-      const badgeH = 200;
+      // Yüksek çözünürlüklü tarayıcı / CamScanner sayfalarında QR modüllerinin net çözülmesi için dinamik boyut
+      const badgeW = Math.max(480, Math.min(840, Math.round(targetW * 0.32)));
+      const badgeH = Math.round(badgeW * 0.55);
       const bCanvas = document.createElement('canvas');
       bCanvas.width = badgeW;
       bCanvas.height = badgeH;
@@ -2140,7 +2146,7 @@
             const minL = Math.min(...cells);
             const maxL = Math.max(...cells);
             const contrast = maxL - minL;
-            if (contrast >= 40 && contrast > bestContrast) {
+            if (contrast >= 65 && contrast > bestContrast) {
               const thresh = (minL + maxL) * 0.5;
               let decoded = 0;
               for (let i = 0; i < 9; i++) {
@@ -2199,7 +2205,7 @@
             const minL = Math.min(...cells);
             const maxL = Math.max(...cells);
             const contrast = maxL - minL;
-            if (contrast > 60 && contrast > bestDirectContrast) {
+            if (contrast >= 65 && contrast > bestDirectContrast) {
               const thresh = (minL + maxL) * 0.5;
               let dec = 0;
               for (let i = 0; i < 9; i++) {
@@ -2247,7 +2253,7 @@
             }
 
             const borderScore = (topD + botD + leftD + rightD) / (4 * side);
-            if (borderScore >= 0.50) {
+            if (borderScore >= 0.55) {
               // 3x3 hücreleri incele
               const cw = side / 3.0;
               const ch = side / 3.0;
@@ -2277,7 +2283,7 @@
               const maxL = Math.max(...cells);
               const contrast = maxL - minL;
 
-              if (contrast >= 35) {
+              if (contrast >= 65) {
                 const thresh = (minL + maxL) * 0.5;
                 let decoded = 0;
                 for (let i = 0; i < 9; i++) {
@@ -2588,41 +2594,30 @@
         }
       }
 
-      // 4. DÖRDÜNCÜ ÖNCELİK: Sayfa ve Kart Sırası (Baskı Şablonuna Göre Fallback)
-      let candidate = null;
-      if (!matched && sortedRoster.length > 0) {
-        let expectedIdx = -1;
-        if (typeof options.pageNumber === 'number' && options.pageNumber > 0) {
-          const perPage = detectedCards.length > 1 ? 2 : 1;
-          expectedIdx = (options.pageNumber - 1) * perPage + idx;
-        } else if (detectedCards.length > 1 && idx < sortedRoster.length) {
-          expectedIdx = idx;
-        }
-        if (expectedIdx >= 0 && expectedIdx < sortedRoster.length) {
-          candidate = sortedRoster[expectedIdx];
-          if (!rawStudentName) rawStudentName = `${candidate.name} ${candidate.surname || ''}`.trim();
-          if (!rawStudentNo) rawStudentNo = candidate.number || '';
-        }
+      // 4. KESİN KURAL: KÖRÜ KÖRÜNE TAHMİN / SAYFA SIRASI ATAMASI ASLA YAPILMAZ!
+      // Öğrenci tanıma yalnızca doğrulanmış QR kod veya doğrulanmış 9-bit OMR matrisine dayanır.
+      // Eşleştirilemeyen tüm formlar doğrudan "Eşleştirilemedi (Öğrenci Seç)" durumuna çekilerek öğretmene bırakılır.
+      if (!matched) {
+        card.matched = null;
+        card.candidate = null;
+        card.isUnmatched = true;
+        card.rawStudentName = (rawStuNo && rawStuNo !== '......') ? `Öğrenci No: ${rawStuNo}` : 'Eşleştirilemedi (Öğrenci Seç)';
+        card.rawStudentNo = (rawStuNo && rawStuNo !== '......') ? rawStuNo : '-';
+        card.rawStudentIndex = 0;
+        card.studentName = card.rawStudentName;
+        card.studentNo = card.rawStudentNo;
+        card.studentId = '';
+      } else {
+        card.matched = matched;
+        card.candidate = null;
+        card.isUnmatched = false;
+        card.rawStudentName = rawStudentName;
+        card.rawStudentNo = rawStudentNo;
+        card.rawStudentIndex = card.binaryId || rawStuIdx || 0;
+        card.studentName = rawStudentName;
+        card.studentNo = rawStudentNo;
+        card.studentId = matched.id || '';
       }
-
-      if (!matched && rawStuNo && rawStuNo !== '......') {
-        rawStudentNo = rawStuNo;
-        if (!rawStudentName) rawStudentName = `Öğrenci No: ${rawStuNo}`;
-      } else if (!matched && (card.binaryId || rawStuIdx)) {
-        const validIdx = card.binaryId || rawStuIdx;
-        if (validIdx > 0 && validIdx <= sortedRoster.length) {
-          if (!rawStudentName) rawStudentName = `Öğrenci #${validIdx}`;
-        }
-      }
-
-      card.matched = matched;
-      card.candidate = candidate;
-      card.rawStudentName = rawStudentName;
-      card.rawStudentNo = rawStudentNo;
-      card.rawStudentIndex = card.binaryId || rawStuIdx || 0;
-      card.studentName = rawStudentName;
-      card.studentNo = rawStudentNo;
-      card.studentId = matched ? matched.id : (candidate ? candidate.id : '');
     });
 
     return {

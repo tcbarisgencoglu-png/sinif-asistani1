@@ -97,6 +97,7 @@
     // Register Close Actions
     const closeFn = () => {
       modal.classList.remove('active');
+      modal.style.display = 'none';
       activeStudentId = null;
       isWholeClass = false;
     };
@@ -384,7 +385,10 @@
     }
 
     // Close modal
-    if (modal) modal.classList.remove('active');
+    if (modal) {
+      modal.classList.remove('active');
+      modal.style.display = 'none';
+    }
     activeStudentId = null;
     isWholeClass = false;
 

@@ -204,6 +204,18 @@
     }
   }
 
+  function closeQuickCallerModal() {
+    initDOMElements();
+    if (!modal) modal = document.getElementById('modal-quick-caller');
+    if (!modal) return;
+    modal.classList.remove('active');
+    modal.style.display = 'none';
+    if (card) card.classList.remove('winner');
+    hideAwardContainer();
+    activeStudentId = null;
+  }
+  window.closeQuickCallerModal = closeQuickCallerModal;
+
   window.openQuickCallerModal = function() {
     initDOMElements();
     if (!modal) modal = document.getElementById('modal-quick-caller');
@@ -350,6 +362,9 @@
     // Hide points container to prevent double award
     hideAwardContainer();
 
+    // Puanlama tamamlandığında modalı temiz bir şekilde kapat
+    closeQuickCallerModal();
+
     // Trigger global UI redraw
     const event = new CustomEvent('stateChanged');
     document.dispatchEvent(event);
@@ -361,9 +376,13 @@
 
     // Close buttons
     modal.querySelectorAll('.close-btn, .close-btn-action').forEach(btn => {
-      btn.addEventListener('click', () => {
+      btn.addEventListener('click', (e) => {
+        if (e) {
+          e.preventDefault();
+          e.stopPropagation();
+        }
         if (!isDrawing) {
-          modal.classList.remove('active');
+          closeQuickCallerModal();
         }
       });
     });
@@ -371,7 +390,14 @@
     // Backdrop click closer
     modal.addEventListener('click', (e) => {
       if (e.target === modal && !isDrawing) {
-        modal.classList.remove('active');
+        closeQuickCallerModal();
+      }
+    });
+
+    // ESC key support
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && modal && (modal.classList.contains('active') || modal.style.display === 'flex') && !isDrawing) {
+        closeQuickCallerModal();
       }
     });
 

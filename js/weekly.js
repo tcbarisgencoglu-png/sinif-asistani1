@@ -2945,10 +2945,22 @@ function setupWeeklyTab(showToast) {
     }
 
     const rawNo = String(cardStudentNo || '').trim();
-    const digitsAi = rawNo.replace(/\D/g, '');
-    const normAi = normalizeOpticalName(cardStudentName);
-    const wordsAi = normAi.split(' ').filter(w => w.length > 1);
-    const sortedWordsAi = [...wordsAi].sort().join(' ');
+    const rawName = String(cardStudentName || '').trim();
+    const isPlaceholderName = !rawName || 
+      rawName === 'Eşleştirilemedi (Öğrenci Seç)' || 
+      rawName.startsWith('Eşleştirilemedi') || 
+      rawName === 'Öğrenci' || 
+      rawName.startsWith('Öğrenci #') || 
+      rawName.startsWith('Öğrenci No:');
+
+    const digitsAi = (rawNo !== '-' && rawNo !== '......') ? rawNo.replace(/\D/g, '') : '';
+    const normAi = !isPlaceholderName ? normalizeOpticalName(rawName) : '';
+    const wordsAi = normAi ? normAi.split(' ').filter(w => w.length > 1) : [];
+    const sortedWordsAi = wordsAi.length > 0 ? [...wordsAi].sort().join(' ') : '';
+
+    if (!digitsAi && !normAi) {
+      return { matched: null, score: 0, candidate: null, candidateScore: 0 };
+    }
 
     let bestStudent = null;
     let bestScore = 0;
