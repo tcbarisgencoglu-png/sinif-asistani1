@@ -1885,86 +1885,6 @@
   }
 
   // ==========================================================================
-  // 4b. EVRENSEL ÖĞRENCİ QR KOD ÇÖZÜMLEME (Ultra-Sade ve Geriye Dönük Tam Uyumlu)
-  // ==========================================================================
-  function parseStudentQrData(raw) {
-    if (!raw || typeof raw !== 'string') return null;
-    const str = raw.trim();
-    if (!str) return null;
-
-    let rawStuId = '';
-    let rawStuNo = '';
-    let rawStuIdx = 0;
-
-    // 1. Format: SA:STU:studentId:studentNo:studentIndex:examId (Legacy)
-    if (str.startsWith('SA:STU:') || str.startsWith('SA:SMP:') || str.startsWith('SA:BLK:')) {
-      const parts = str.split(':');
-      rawStuId = parts[2] || '';
-      rawStuNo = (parts[3] && parts[3] !== '......') ? parts[3].trim() : '';
-      rawStuIdx = parseInt(parts[4], 10) || 0;
-      return { rawStuId, rawStuNo, rawStuIdx, source: 'SA:STU' };
-    }
-
-    // 2. Format: SA:idx:studentNo (ile isteğe bağlı :P2 veya sayfa etiketi)
-    if (str.startsWith('SA:')) {
-      const parts = str.split(':');
-      if (parts.length >= 3 && parts[1] && parts[2]) {
-        rawStuIdx = parseInt(parts[1], 10) || 0;
-        rawStuNo = (parts[2] !== '......') ? parts[2].trim() : '';
-      } else if (parts.length === 2) {
-        if (parts[1].startsWith('#')) {
-          rawStuIdx = parseInt(parts[1].slice(1), 10) || 0;
-        } else if (parts[1].includes('#')) {
-          const sub = parts[1].split('#');
-          rawStuNo = (sub[0] !== '......') ? sub[0].trim() : '';
-          rawStuIdx = parseInt(sub[1], 10) || 0;
-        } else {
-          rawStuNo = (parts[1] !== '......') ? parts[1].trim() : '';
-        }
-      }
-      return { rawStuId, rawStuNo, rawStuIdx, source: 'SA' };
-    }
-
-    // 3. Format: std_... veya stu_... (Veritabanı Doğrudan ID)
-    if (str.startsWith('std_') || str.startsWith('stu_')) {
-      rawStuId = str;
-      return { rawStuId, rawStuNo, rawStuIdx, source: 'ID' };
-    }
-
-    // 4. Ultra-Sade Format: 240#7 (OkulNo#SıraNo)
-    if (str.includes('#')) {
-      const parts = str.split('#');
-      const noPart = parts[0].trim();
-      const idxPart = parts[1].trim();
-      if (noPart && noPart !== '......') {
-        rawStuNo = noPart.replace(/^NO:?/i, '').trim();
-      }
-      rawStuIdx = parseInt(idxPart.replace(/^ID:?/i, ''), 10) || 0;
-      return { rawStuId, rawStuNo, rawStuIdx, source: 'NO#IDX' };
-    }
-
-    // 5. Ultra-Sade Format: #7 veya ID:7 (Sadece Sıra No)
-    if (str.startsWith('#') || /^ID:\s*\d+/i.test(str)) {
-      rawStuIdx = parseInt(str.replace(/^(#|ID:\s*)/i, ''), 10) || 0;
-      return { rawStuId, rawStuNo, rawStuIdx, source: 'IDX' };
-    }
-
-    // 6. Ultra-Sade Format: NO:240 (Sadece Okul No)
-    if (/^NO:\s*\S+/i.test(str)) {
-      rawStuNo = str.replace(/^NO:\s*/i, '').trim();
-      return { rawStuId, rawStuNo, rawStuIdx, source: 'NO' };
-    }
-
-    // 7. Salt Rakamlar (Örn: "240" veya "105") -> Okul numarası
-    if (/^\d+$/.test(str)) {
-      rawStuNo = str;
-      return { rawStuId, rawStuNo, rawStuIdx, source: 'NUM' };
-    }
-
-    return { rawStuId, rawStuNo: str, rawStuIdx, source: 'RAW' };
-  }
-
-  // ==========================================================================
   // 5. SAYFA AYRIŞTIRICI & ÇOKLU FORM BULUCU (1 veya 2 Form)
   // ==========================================================================
 
@@ -2062,8 +1982,8 @@
     function unwarpAndScanBadge(context, mapFn, targetW, targetH, maxValidIdx = 50) {
       if (typeof mapFn !== 'function') return { qrResult: null, binaryId: null };
 
-      const badgeW = 400;
-      const badgeH = 240;
+      const badgeW = 360;
+      const badgeH = 200;
       const bCanvas = document.createElement('canvas');
       bCanvas.width = badgeW;
       bCanvas.height = badgeH;
@@ -2075,9 +1995,9 @@
       const srcData = context.getImageData(0, 0, targetW, targetH).data;
 
       for (let by = 0; by < badgeH; by++) {
-        const v = 0.01 + (by / badgeH) * 0.34;
+        const v = 0.03 + (by / badgeH) * 0.32;
         for (let bx = 0; bx < badgeW; bx++) {
-          const u = 0.65 + (bx / badgeW) * 0.34;
+          const u = 0.70 + (bx / badgeW) * 0.28;
           const pt = mapFn(u, v);
           const px = Math.max(0, Math.min(targetW - 1, pt.x));
           const py = Math.max(0, Math.min(targetH - 1, pt.y));
@@ -2096,10 +2016,7 @@
       // 1. QR Kod Çözümleme (Düzeltilmiş, Eğimden Arındırılmış Rozet)
       let qrRes = null;
       if (typeof window.jsQR === 'function') {
-        // 1a. Tam rozet alanı (yeni ultra-sade tekil QR rozetleri için doğrudan tam isabet)
         qrRes = window.jsQR(bData, badgeW, badgeH, { inversionAttempts: 'attemptBoth' });
-
-        // 1b. 2x büyütülmüş tam alan (uzak çekim veya düşük çözünürlüklü kameralar için)
         if (!qrRes) {
           const upCanvas = document.createElement('canvas');
           upCanvas.width = badgeW * 2;
@@ -2113,7 +2030,7 @@
           }
         }
 
-        // 1c. Sağ yarıdaki Micro-QR kodunu ayrıca odaklanarak tara (eski çiftli rozet formları için)
+        // Sağ yarıdaki Micro-QR kodunu ayrıca odaklanarak tara
         if (!qrRes) {
           const qrW = Math.round(badgeW * 0.55);
           const qrH = badgeH;
@@ -2140,25 +2057,10 @@
           }
         }
 
-        // 1d. Sol yarıyı odaklanarak tara (farklı baskı marjları için)
+        // 4 Köşe Çapalı kart formatında sağ üst köşe QR arama (u: 0.78-0.99, v: 0.01-0.20)
         if (!qrRes) {
-          const qlW = Math.round(badgeW * 0.60);
-          const qlH = badgeH;
-          const qlCanvas = document.createElement('canvas');
-          qlCanvas.width = qlW;
-          qlCanvas.height = qlH;
-          const qlCtx = qlCanvas.getContext('2d');
-          if (qlCtx) {
-            qlCtx.drawImage(bCanvas, 0, 0, qlW, qlH, 0, 0, qlW, qlH);
-            const qlData = qlCtx.getImageData(0, 0, qlW, qlH);
-            qrRes = window.jsQR(qlData.data, qlW, qlH, { inversionAttempts: 'attemptBoth' });
-          }
-        }
-
-        // 1e. 4 Köşe Çapalı kart formatında sağ üst köşe QR arama (u: 0.78-0.99, v: 0.01-0.20)
-        if (!qrRes) {
-          const trW = 220;
-          const trH = 160;
+          const trW = 200;
+          const trH = 150;
           const trCanvas = document.createElement('canvas');
           trCanvas.width = trW;
           trCanvas.height = trH;
@@ -2167,9 +2069,9 @@
             const trImgData = trCtx.createImageData(trW, trH);
             const trData = trImgData.data;
             for (let ty = 0; ty < trH; ty++) {
-              const v = 0.01 + (ty / trH) * 0.20;
+              const v = 0.01 + (ty / trH) * 0.19;
               for (let tx = 0; tx < trW; tx++) {
-                const u = 0.75 + (tx / trW) * 0.24;
+                const u = 0.78 + (tx / trW) * 0.21;
                 const pt = mapFn(u, v);
                 const px = Math.max(0, Math.min(targetW - 1, pt.x));
                 const py = Math.max(0, Math.min(targetH - 1, pt.y));
@@ -2199,12 +2101,7 @@
         }
       }
 
-      // QR kod başarıyla çözüldüyse binaryId aramasına hiç gerek yoktur (sıfır hata koruması)
-      if (qrRes) {
-        return { qrResult: qrRes, binaryId: null };
-      }
-
-      // 2. 9-Bit Binary OMR Matrisi (SADECE QR HİÇ BULUNAMAZSA VE ÇOK YÜKSEK KONTRAST VARSA)
+      // 2. 9-Bit Binary OMR Matrisi (3x3 kutucuk)
       let binaryId = null;
       let bestContrast = 0;
       const effectiveMaxIdx = (maxValidIdx && maxValidIdx > 0) ? maxValidIdx : 50;
@@ -2243,8 +2140,7 @@
             const minL = Math.min(...cells);
             const maxL = Math.max(...cells);
             const contrast = maxL - minL;
-            // Yanlış öğrenci eşleşmesini önlemek için sıkı kontrast (>= 95) ve gerçek siyah/beyaz farkı
-            if (contrast >= 95 && minL < 75 && maxL > 175 && contrast > bestContrast) {
+            if (contrast >= 40 && contrast > bestContrast) {
               const thresh = (minL + maxL) * 0.5;
               let decoded = 0;
               for (let i = 0; i < 9; i++) {
@@ -2303,7 +2199,7 @@
             const minL = Math.min(...cells);
             const maxL = Math.max(...cells);
             const contrast = maxL - minL;
-            if (contrast >= 95 && minL < 75 && maxL > 175 && contrast > bestDirectContrast) {
+            if (contrast > 60 && contrast > bestDirectContrast) {
               const thresh = (minL + maxL) * 0.5;
               let dec = 0;
               for (let i = 0; i < 9; i++) {
@@ -2335,9 +2231,9 @@
 
       let bestCandidate = null;
 
-      for (let y = minY; y <= maxY - minSide; y += 2) {
-        for (let x = minX; x <= maxX - minSide; x += 2) {
-          for (let side = minSide; side <= maxSide; side += 4) {
+      for (let y = minY; y <= maxY - minSide; y += 1) {
+        for (let x = minX; x <= maxX - minSide; x += 1) {
+          for (let side = minSide; side <= maxSide; side += 2) {
             if (x + side >= maxX || y + side >= maxY) continue;
 
             let topD = 0, botD = 0, leftD = 0, rightD = 0;
@@ -2351,7 +2247,7 @@
             }
 
             const borderScore = (topD + botD + leftD + rightD) / (4 * side);
-            if (borderScore >= 0.70) {
+            if (borderScore >= 0.50) {
               // 3x3 hücreleri incele
               const cw = side / 3.0;
               const ch = side / 3.0;
@@ -2381,7 +2277,7 @@
               const maxL = Math.max(...cells);
               const contrast = maxL - minL;
 
-              if (contrast >= 95 && minL < 75 && maxL > 175) {
+              if (contrast >= 35) {
                 const thresh = (minL + maxL) * 0.5;
                 let decoded = 0;
                 for (let i = 0; i < 9; i++) {
@@ -2544,13 +2440,7 @@
       const cardFull = scanSingleCard(canvas, gray, targetW, targetH, cornersFull, exam, classStudents, options);
       const fullBadge = unwarpAndScanBadge(ctx, createProjectiveHomography(cornersFull), targetW, targetH, maxRosterCount);
       cardFull.qrResult = fullBadge.qrResult;
-
-      // Canlı vizör döngüsünde daha önce yakalanmış QR kod varsa ilk öncelikli yedek olarak kullan
-      if (!cardFull.qrResult && options && options.liveDetectedQr) {
-        cardFull.qrResult = options.liveDetectedQr;
-      }
-
-      cardFull.binaryId = cardFull.qrResult ? null : (detectBinaryIdInCard(gray, targetW, targetH, cornersFullOrig, maxRosterCount) || fullBadge.binaryId);
+      cardFull.binaryId = detectBinaryIdInCard(gray, targetW, targetH, cornersFullOrig, maxRosterCount) || fullBadge.binaryId;
       if (!cardFull.qrResult) {
         if (cornersFullOrig && cornersFullOrig.tr) {
           const subW = Math.round(targetW * 0.45);
@@ -2565,9 +2455,6 @@
         if (!cardFull.qrResult) {
           cardFull.qrResult = scanQrInRegion(ctx, 0, 0, targetW, targetH);
         }
-        if (cardFull.qrResult) {
-          cardFull.binaryId = null; // QR kod yakalandıysa binary ID sahte tahminini iptal et
-        }
       }
       if (!cardFull.binaryId && !cardFull.qrResult && scaledBounds) {
         // Eğer vizör sınırıyla bulunan köşelerden rozet / ID çözülemediyse, tüm kare üzerinden tekrar dene
@@ -2580,7 +2467,7 @@
             cornersFull = globalCorners;
             cardFull = gCard;
             cardFull.qrResult = gBadge.qrResult || cardFull.qrResult;
-            cardFull.binaryId = cardFull.qrResult ? null : gBinaryId;
+            cardFull.binaryId = gBinaryId;
           }
         }
       }
@@ -2614,45 +2501,50 @@
 
       const qrData = (card.qrResult && card.qrResult.data) ? String(card.qrResult.data).trim() : '';
       if (qrData) {
-        const parsed = parseStudentQrData(qrData);
-        if (parsed) {
-          rawStuId = parsed.rawStuId || '';
-          rawStuNo = parsed.rawStuNo || '';
-          rawStuIdx = parsed.rawStuIdx || 0;
+        const parts = qrData.split(':');
+        if (parts[0] === 'SA') {
+          if (parts[1] === 'STU' || parts[1] === 'SMP' || parts[1] === 'BLK') {
+            // Eski format: SA:STU:studentId:studentNo:studentIndex:examId
+            rawStuId = parts[2];
+            rawStuNo = parts[3];
+            rawStuIdx = parseInt(parts[4], 10) || 0;
+          } else {
+            // Yeni format: SA:studentIndex:studentNo
+            rawStuIdx = parseInt(parts[1], 10) || 0;
+            rawStuNo = parts[2] || '';
+          }
+        } else if (qrData.includes('#')) {
+          const sub = qrData.split('#');
+          rawStuNo = sub[0].replace(/^NO:?/i, '').trim();
+          rawStuIdx = parseInt(sub[1], 10) || 0;
+        } else if (/^\d+$/.test(qrData)) {
+          rawStuNo = qrData;
+        }
 
-          // 1a. Okul numarasına göre eşleme (EN KESİN - şube ve sıralamadan bağımsız)
-          if (rawStuNo && rawStuNo !== '......') {
-            const targetNo = String(rawStuNo).trim();
-            matched = sortedRoster.find(s => String(s?.number || '').trim() === targetNo) ||
-                      classStudents.find(s => String(s?.number || '').trim() === targetNo);
-          }
-          // 1b. Sistem ID'sine göre eşleme
-          if (!matched && rawStuId) {
-            matched = sortedRoster.find(s => String(s?.id) === String(rawStuId)) ||
-                      classStudents.find(s => String(s?.id) === String(rawStuId));
-          }
-          // 1c. Sıra numarasına / indeksine göre eşleme (Baskı anındaki kanonik sıra)
-          if (!matched && rawStuIdx > 0 && rawStuIdx <= sortedRoster.length) {
-            matched = sortedRoster[rawStuIdx - 1];
-          }
-          // 1d. Salt sayısal QR (örn. "4") girildiyse ve okul no olarak bulunamadıysa indeks olarak dene
-          if (!matched && parsed.source === 'NUM' && rawStuNo) {
-            const numAsIdx = parseInt(rawStuNo, 10);
-            if (numAsIdx > 0 && numAsIdx <= sortedRoster.length) {
-              matched = sortedRoster[numAsIdx - 1];
-            }
-          }
+        // 1a. Okul numarasına göre eşleme
+        if (rawStuNo && rawStuNo !== '......') {
+          matched = sortedRoster.find(s => String(s.number).trim() === String(rawStuNo).trim()) ||
+                    classStudents.find(s => String(s.number).trim() === String(rawStuNo).trim());
+        }
+        // 1b. Sıra numarasına göre eşleme
+        if (!matched && rawStuIdx > 0 && rawStuIdx <= sortedRoster.length) {
+          matched = sortedRoster[rawStuIdx - 1];
+        }
+        // 1c. Sistem ID'sine göre eşleme
+        if (!matched && rawStuId) {
+          matched = sortedRoster.find(s => String(s.id) === String(rawStuId)) ||
+                    classStudents.find(s => String(s.id) === String(rawStuId));
+        }
 
-          if (matched) {
-            rawStudentName = `${matched.name} ${matched.surname || ''}`.trim();
-            rawStudentNo = matched.number || '';
-          }
+        if (matched) {
+          rawStudentName = `${matched.name} ${matched.surname || ''}`.trim();
+          rawStudentNo = matched.number || '';
         }
       }
 
-      // 2. İKİNCİ ÖNCELİK: OPTİK BINARY ID (SADECE QR HİÇ OKUNAMADIYSA VE KUSURSUZ KONTRAST VARSA)
-      if (card.qrResult) {
-        card.binaryId = null; // QR kod okunduysa binary ID'yi tamamen yok say
+      // 2. İKİNCİ ÖNCELİK: OPTİK BINARY ID (Sadece sınıf mevcudu sınırları içindeyse)
+      if (card.binaryId && (sortedRoster.length > 0 ? (card.binaryId > sortedRoster.length || card.binaryId <= 0) : (card.binaryId > 50 || card.binaryId <= 0))) {
+        card.binaryId = null; // Sınıf mevcudunu aşan sahte gürültü / sınır dışı binary ID'yi sıfırla
       }
 
       if (!matched && card.binaryId && card.binaryId > 0 && card.binaryId <= sortedRoster.length) {
@@ -2663,8 +2555,8 @@
         }
       }
 
-      // 3. ÜÇÜNCÜ ÖNCELİK: Küresel Öğrenci Havuzundan Numara / ID ile Kurtarma
-      if (!matched && (rawStuNo || rawStuId)) {
+      // 3. ÜÇÜNCÜ ÖNCELİK: Küresel Öğrenci Havuzundan Numara / Sıra ile Kurtarma
+      if (!matched && (rawStuNo || card.binaryId || rawStuIdx)) {
         let globalList = [];
         try {
           if (typeof window !== 'undefined') {
@@ -2681,11 +2573,13 @@
 
         if (globalList.length > 0) {
           if (rawStuNo && rawStuNo !== '......') {
-            const targetNo = String(rawStuNo).trim();
-            matched = globalList.find(s => String(s?.number || '').trim() === targetNo);
+            matched = globalList.find(s => String(s.number).trim() === String(rawStuNo).trim());
           }
-          if (!matched && rawStuId) {
-            matched = globalList.find(s => String(s?.id) === String(rawStuId));
+          if (!matched && (card.binaryId || rawStuIdx)) {
+            const idxToFind = card.binaryId || rawStuIdx;
+            if (idxToFind > 0 && idxToFind <= globalList.length) {
+              matched = globalList.find(s => parseInt(s.index || s.studentIndex, 10) === idxToFind) || globalList[idxToFind - 1];
+            }
           }
           if (matched) {
             rawStudentName = `${matched.name} ${matched.surname || ''}`.trim();
@@ -2694,12 +2588,16 @@
         }
       }
 
-      // 4. DÖRDÜNCÜ ÖNCELİK: Sadece çoklu sayfalı PDF toplu taramalarda sıra numarası fallback'i
-      // DİKKAT: Mobil kameradan tekil form taranırken asla varsayılan olarak listenin 1. veya 2. öğrencisi sahte olarak seçilmez!
+      // 4. DÖRDÜNCÜ ÖNCELİK: Sayfa ve Kart Sırası (Baskı Şablonuna Göre Fallback)
       let candidate = null;
-      if (!matched && sortedRoster.length > 0 && typeof options.pageNumber === 'number' && options.pageNumber > 0) {
-        const perPage = detectedCards.length > 1 ? 2 : 1;
-        const expectedIdx = (options.pageNumber - 1) * perPage + idx;
+      if (!matched && sortedRoster.length > 0) {
+        let expectedIdx = -1;
+        if (typeof options.pageNumber === 'number' && options.pageNumber > 0) {
+          const perPage = detectedCards.length > 1 ? 2 : 1;
+          expectedIdx = (options.pageNumber - 1) * perPage + idx;
+        } else if (detectedCards.length > 1 && idx < sortedRoster.length) {
+          expectedIdx = idx;
+        }
         if (expectedIdx >= 0 && expectedIdx < sortedRoster.length) {
           candidate = sortedRoster[expectedIdx];
           if (!rawStudentName) rawStudentName = `${candidate.name} ${candidate.surname || ''}`.trim();
@@ -2710,9 +2608,10 @@
       if (!matched && rawStuNo && rawStuNo !== '......') {
         rawStudentNo = rawStuNo;
         if (!rawStudentName) rawStudentName = `Öğrenci No: ${rawStuNo}`;
-      } else if (!matched && rawStuIdx) {
-        if (rawStuIdx > 0 && rawStuIdx <= sortedRoster.length) {
-          if (!rawStudentName) rawStudentName = `Öğrenci #${rawStuIdx}`;
+      } else if (!matched && (card.binaryId || rawStuIdx)) {
+        const validIdx = card.binaryId || rawStuIdx;
+        if (validIdx > 0 && validIdx <= sortedRoster.length) {
+          if (!rawStudentName) rawStudentName = `Öğrenci #${validIdx}`;
         }
       }
 
@@ -2720,9 +2619,9 @@
       card.candidate = candidate;
       card.rawStudentName = rawStudentName;
       card.rawStudentNo = rawStudentNo;
-      card.rawStudentIndex = rawStuIdx || card.binaryId || 0;
-      card.studentName = card.rawStudentName;
-      card.studentNo = card.rawStudentNo;
+      card.rawStudentIndex = card.binaryId || rawStuIdx || 0;
+      card.studentName = rawStudentName;
+      card.studentNo = rawStudentNo;
       card.studentId = matched ? matched.id : (candidate ? candidate.id : '');
     });
 
@@ -2743,7 +2642,6 @@
 
   window.OmrEngine = {
     scanDocumentPage,
-    parseStudentQrData,
     scanSingleCard,
     detectCornerAnchors,
     createProjectiveHomography,
