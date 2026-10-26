@@ -1515,28 +1515,37 @@
       // 🛑 KİLİTLİ KOORDİNATLAR - ASLA DEĞİŞTİRİLEMEZ 🛑
       // Fiziksel cetvel kalibrasyonu (126mm x 188mm A5 2'li form) ile doğrulanmış ve kilitlenmiştir.
       // Her ne olursa olsun vFirstRowBase, vCompactStep ve colBounds değerleri asla değiştirilemez!
+      // Tüm ders kutuları daima kartın tepesinden (vFirstRowBase = 0.2619) başlar.
       // ==========================================================================
       let vFirstRowBase = 0.2619;
       let vCompactStep = 0.0490;
+      let vMidBase = 0.6049;
 
       if (perPage === 1) {
         // A4 Tam Sayfa
         vFirstRowBase = 0.2000;
         vCompactStep = 0.0260;
+        vMidBase = 0.4470;
       } else if (perPage === 2) {
         // A5 Yatay (Sayfada 2 Form - 126mm Çıpa Boyu)
         vFirstRowBase = 0.2619;
         vCompactStep = 0.0490;
+        vMidBase = 0.6049;
       } else if (perPage === 4) {
         // A6 Çeyrek Sayfa (118mm Çıpa Boyu)
         vFirstRowBase = 0.2760;
         vCompactStep = 0.0524;
+        vMidBase = 0.5642;
       }
 
       if (maxQuestions > 20) {
         // Sıkışık ders satırları (.compact-rows: 16px row height)
         vCompactStep = vCompactStep * 0.82;
       }
+
+      // Kilitli ve sabit dikey başlangıç konumu (flex-start)
+      const vTopFirstRow = vFirstRowBase;
+      const vCenteredFirstRow = vMidBase - ((maxQuestions - 1) / 2) * vCompactStep;
 
       // Ders sütunlarının yatay geometri haritası (5 Sabit Yuva / Fixed Slot Mimarisi)
       function getSubjectColumnGeometry(sIdx) {
@@ -1621,17 +1630,29 @@
       }
 
       // Global aday ızgaralar: Mikro dikey kaydırmalar (dv) ve adımlama ölçekleri (scale)
-      const candidateVFirstOffsets = [0.000, -0.003, 0.003, -0.006, 0.006];
+      // Sabit ve kilitli cetvel pozisyonu (vTopFirstRow = 0.2619) daima birincil ve varsayılan ızgaradır.
+      // Eski hatalı CSS (justify-content: center) ile basılmış formlar için tolerans payı içerir.
+      const candidateBases = [vTopFirstRow];
+      if (Math.abs(vCenteredFirstRow - vTopFirstRow) > 0.015) {
+        candidateBases.push(vCenteredFirstRow);
+      }
+
+      const microOffsets = [0.000, -0.003, 0.003, -0.006, 0.006, -0.010, 0.010, -0.015, 0.015];
+      const candidateVFirstOffsets = [];
+      candidateBases.forEach(base => {
+        microOffsets.forEach(dv => {
+          candidateVFirstOffsets.push(base + dv);
+        });
+      });
       const candidateStepScales = [1.00, 0.99, 1.01, 0.98, 1.02];
 
       let bestGlobalStep = vCompactStep;
-      let bestGlobalVFirst = vFirstRowBase;
+      let bestGlobalVFirst = vTopFirstRow;
       let bestGlobalScore = -1;
 
       candidateStepScales.forEach(scale => {
         const testStep = vCompactStep * scale;
-        candidateVFirstOffsets.forEach(dv => {
-          const testVFirst = vFirstRowBase + dv;
+        candidateVFirstOffsets.forEach(testVFirst => {
           const score = evaluateGlobalGridConfidence(testStep, testVFirst);
           if (score > bestGlobalScore) {
             bestGlobalScore = score;

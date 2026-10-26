@@ -5817,7 +5817,7 @@ Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi ve
       flex: 1;
       display: flex;
       flex-direction: column;
-      justify-content: center;
+      justify-content: flex-start !important;
     }
     .omr-grid-container {
       display: grid;
@@ -5866,6 +5866,7 @@ Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi ve
       display: grid;
       gap: 8px;
       width: 100%;
+      align-items: start;
     }
     .omr-multi-subjects-grid.cols-2 { grid-template-columns: 1fr 1fr; }
     .omr-multi-subjects-grid.cols-3 { grid-template-columns: 1fr 1fr 1fr; }

@@ -1,8 +1,8 @@
 {
-  "version": "1.0.103",
+  "version": "1.0.104",
   "releaseDate": "2026-10-26",
   "minRequiredVersion": "1.0.0",
-  "title": "Sınıf Asistanı v1.0.103 Yayında!",
+  "title": "Sınıf Asistanı v1.0.104 Yayında!",
   "description": "Mobil Kamera Optik Form ve ArUco Öğrenci Eşleme Hassasiyeti Güncellemesi",
   "features": [
     "Dinamik ArUco 5x5 Algılayıcı: Telefon kameralarının uzak mesafeli çekimlerinde (20-30px küçük rozetler) ve farklı ışık koşullarında anında ve %100 kesin öğrenci numarası tespiti sağlandı.",

@@ -2,12 +2,21 @@
   let activeStudentId = null;
   let audioCtx = null;
   let isDrawing = false;
+  let isMinimized = false;
+  let minimizeTimeout = null;
 
   // DOM elements
-  let modal, card, photoContainer, photo, avatar, nameDisplay, noDisplay, poolIndicator, awardContainer, btnPlusOne, btnResetPool, btnDraw;
+  let modal, modalContainer, fullView, miniView, fullHeaderHandle;
+  let card, photoContainer, photo, avatar, nameDisplay, noDisplay, poolIndicator, awardContainer, btnPlusOne, btnResetPool, btnDraw, btnMinimize;
+  let miniDragHandle, miniAvatar, miniPhoto, miniName, miniBtnPlusOne, miniBtnDraw, miniBtnExpand, miniBtnClose;
 
   function initDOMElements() {
     modal = document.getElementById('modal-quick-caller');
+    modalContainer = modal ? (modal.querySelector('#caller-modal-container') || modal.querySelector('.modal-content')) : null;
+    fullView = document.getElementById('caller-full-view');
+    miniView = document.getElementById('caller-mini-view');
+    fullHeaderHandle = document.getElementById('caller-full-header');
+
     card = modal ? modal.querySelector('.caller-display-card') : null;
     photoContainer = document.getElementById('caller-student-photo-container');
     photo = document.getElementById('caller-student-photo');
@@ -19,6 +28,17 @@
     btnPlusOne = document.getElementById('btn-caller-plus-one');
     btnResetPool = document.getElementById('btn-caller-reset-pool');
     btnDraw = document.getElementById('btn-caller-draw');
+    btnMinimize = document.getElementById('btn-caller-minimize');
+
+    // Mini floating elements
+    miniDragHandle = document.getElementById('caller-mini-drag-handle');
+    miniAvatar = document.getElementById('caller-mini-avatar');
+    miniPhoto = document.getElementById('caller-mini-photo');
+    miniName = document.getElementById('caller-mini-name');
+    miniBtnPlusOne = document.getElementById('btn-caller-mini-plus-one');
+    miniBtnDraw = document.getElementById('btn-caller-mini-draw');
+    miniBtnExpand = document.getElementById('btn-caller-mini-expand');
+    miniBtnClose = document.getElementById('btn-caller-mini-close');
   }
 
   function initAudio() {
@@ -167,27 +187,53 @@
 
   function displayStudent(student) {
     if (!student) return;
+    const fullName = `${student.name} ${student.surname}`;
+
+    // Full modal display
     if (student.photo) {
-      avatar.style.display = 'none';
-      photoContainer.style.display = 'block';
-      photo.src = student.photo;
+      if (avatar) avatar.style.display = 'none';
+      if (photoContainer) photoContainer.style.display = 'block';
+      if (photo) photo.src = student.photo;
+      if (miniPhoto) {
+        miniPhoto.src = student.photo;
+        miniPhoto.style.display = 'block';
+      }
+      if (miniAvatar) miniAvatar.style.display = 'none';
     } else {
-      photoContainer.style.display = 'none';
-      avatar.style.display = 'flex';
-      const initials = `${student.name[0] || ''}${student.surname[0] || ''}`;
-      avatar.textContent = initials.toUpperCase();
+      if (photoContainer) photoContainer.style.display = 'none';
+      const initials = `${student.name[0] || ''}${student.surname[0] || ''}`.toUpperCase();
       
-      // Use gender colors for initials background
-      if (student.gender === 'female') {
-        avatar.style.backgroundColor = 'rgba(236, 72, 153, 0.1)';
-        avatar.style.color = 'rgb(236, 72, 153)';
-      } else {
-        avatar.style.backgroundColor = 'var(--primary-light)';
-        avatar.style.color = 'var(--primary)';
+      if (avatar) {
+        avatar.style.display = 'flex';
+        avatar.textContent = initials;
+        if (student.gender === 'female') {
+          avatar.style.backgroundColor = 'rgba(236, 72, 153, 0.1)';
+          avatar.style.color = 'rgb(236, 72, 153)';
+        } else {
+          avatar.style.backgroundColor = 'var(--primary-light)';
+          avatar.style.color = 'var(--primary)';
+        }
+      }
+
+      if (miniPhoto) miniPhoto.style.display = 'none';
+      if (miniAvatar) {
+        miniAvatar.style.display = 'flex';
+        miniAvatar.textContent = initials;
+        if (student.gender === 'female') {
+          miniAvatar.style.backgroundColor = 'rgba(236, 72, 153, 0.15)';
+          miniAvatar.style.color = 'rgb(236, 72, 153)';
+          miniAvatar.style.borderColor = 'rgb(236, 72, 153)';
+        } else {
+          miniAvatar.style.backgroundColor = 'rgba(99, 102, 241, 0.15)';
+          miniAvatar.style.color = 'var(--primary)';
+          miniAvatar.style.borderColor = 'var(--primary)';
+        }
       }
     }
-    nameDisplay.textContent = `${student.name} ${student.surname}`;
-    noDisplay.textContent = `Okul No: ${student.number}`;
+
+    if (nameDisplay) nameDisplay.textContent = fullName;
+    if (noDisplay) noDisplay.textContent = `Okul No: ${student.number}`;
+    if (miniName) miniName.textContent = fullName;
   }
 
   function showAwardContainer() {
@@ -204,15 +250,162 @@
     }
   }
 
+  function setMinimized(minimized) {
+    if (!modal) initDOMElements();
+    if (!modal) return;
+
+    if (minimizeTimeout) {
+      clearTimeout(minimizeTimeout);
+      minimizeTimeout = null;
+    }
+
+    isMinimized = !!minimized;
+
+    if (isMinimized) {
+      modal.classList.add('minimized');
+      if (fullView) fullView.style.display = 'none';
+      if (miniView) miniView.style.display = 'flex';
+
+      // Sürüklenmemişse varsayılan konuma yerleştir
+      if (modalContainer && !modalContainer.dataset.dragged) {
+        modalContainer.style.left = '';
+        modalContainer.style.top = '';
+        modalContainer.style.right = '';
+        modalContainer.style.bottom = '';
+        modalContainer.style.margin = '';
+        modalContainer.style.transform = '';
+
+        // Süre ölçer de yüzen moddaysa üst üste çakışmasın
+        const timerModal = document.getElementById('modal-timer');
+        if (timerModal && timerModal.classList.contains('active') && timerModal.classList.contains('minimized')) {
+          modalContainer.style.top = '78px';
+        }
+      }
+    } else {
+      modal.classList.remove('minimized');
+      if (fullView) fullView.style.display = 'block';
+      if (miniView) miniView.style.display = 'none';
+
+      // Tam görünüme dönerken konumu sıfırla (ortala)
+      if (modalContainer) {
+        modalContainer.style.left = '';
+        modalContainer.style.top = '';
+        modalContainer.style.right = '';
+        modalContainer.style.bottom = '';
+        modalContainer.style.margin = '';
+        modalContainer.style.transform = '';
+        delete modalContainer.dataset.dragged;
+      }
+    }
+
+    if (window.safeCreateIcons) {
+      window.safeCreateIcons();
+    }
+  }
+
+  function makeDraggable(element, handle) {
+    if (!element || !handle) return;
+    if (handle.dataset.draggableBound) return;
+    handle.dataset.draggableBound = 'true';
+
+    let isDragging = false;
+    let startX = 0, startY = 0, initialLeft = 0, initialTop = 0;
+
+    function getCoords(e) {
+      if (e.touches && e.touches.length > 0) {
+        return { clientX: e.touches[0].clientX, clientY: e.touches[0].clientY };
+      }
+      return { clientX: e.clientX, clientY: e.clientY };
+    }
+
+    function onPointerDown(e) {
+      // Buton veya tıklanabilir nesneler sürükleme başlatmasın
+      if (e.target.closest('button, input, a, select, textarea, .close-btn, .btn, .caller-header-btn, .btn-caller-mini')) {
+        return;
+      }
+      isDragging = true;
+      const coords = getCoords(e);
+      startX = coords.clientX;
+      startY = coords.clientY;
+
+      const rect = element.getBoundingClientRect();
+      initialLeft = rect.left;
+      initialTop = rect.top;
+
+      element.style.position = 'fixed';
+      element.style.left = `${initialLeft}px`;
+      element.style.top = `${initialTop}px`;
+      element.style.right = 'auto';
+      element.style.bottom = 'auto';
+      element.style.margin = '0';
+      element.style.transform = 'none';
+      element.dataset.dragged = 'true';
+
+      document.addEventListener('mousemove', onPointerMove, { passive: false });
+      document.addEventListener('mouseup', onPointerUp);
+      document.addEventListener('touchmove', onPointerMove, { passive: false });
+      document.addEventListener('touchend', onPointerUp);
+    }
+
+    function onPointerMove(e) {
+      if (!isDragging) return;
+      if (e.cancelable) e.preventDefault();
+      const coords = getCoords(e);
+      const dx = coords.clientX - startX;
+      const dy = coords.clientY - startY;
+
+      let newLeft = initialLeft + dx;
+      let newTop = initialTop + dy;
+
+      // Ekran sınırları içinde kalmasını sağla
+      const maxLeft = Math.max(10, window.innerWidth - element.offsetWidth - 10);
+      const maxTop = Math.max(10, window.innerHeight - element.offsetHeight - 10);
+      newLeft = Math.max(10, Math.min(maxLeft, newLeft));
+      newTop = Math.max(10, Math.min(maxTop, newTop));
+
+      element.style.left = `${newLeft}px`;
+      element.style.top = `${newTop}px`;
+    }
+
+    function onPointerUp() {
+      isDragging = false;
+      document.removeEventListener('mousemove', onPointerMove);
+      document.removeEventListener('mouseup', onPointerUp);
+      document.removeEventListener('touchmove', onPointerMove);
+      document.removeEventListener('touchend', onPointerUp);
+    }
+
+    handle.addEventListener('mousedown', onPointerDown);
+    handle.addEventListener('touchstart', onPointerDown, { passive: false });
+  }
+
   function closeQuickCallerModal() {
     initDOMElements();
     if (!modal) modal = document.getElementById('modal-quick-caller');
     if (!modal) return;
+    if (minimizeTimeout) {
+      clearTimeout(minimizeTimeout);
+      minimizeTimeout = null;
+    }
     modal.classList.remove('active');
+    modal.classList.remove('minimized');
     modal.style.display = 'none';
     if (card) card.classList.remove('winner');
     hideAwardContainer();
     activeStudentId = null;
+
+    if (modalContainer) {
+      modalContainer.style.left = '';
+      modalContainer.style.top = '';
+      modalContainer.style.right = '';
+      modalContainer.style.bottom = '';
+      modalContainer.style.margin = '';
+      modalContainer.style.transform = '';
+      delete modalContainer.dataset.dragged;
+    }
+    if (fullView) fullView.style.display = 'block';
+    if (miniView) miniView.style.display = 'none';
+    isMinimized = false;
   }
   window.closeQuickCallerModal = closeQuickCallerModal;
 
@@ -220,6 +413,12 @@
     initDOMElements();
     if (!modal) modal = document.getElementById('modal-quick-caller');
     if (!modal) return;
+    if (minimizeTimeout) {
+      clearTimeout(minimizeTimeout);
+      minimizeTimeout = null;
+    }
+    // Her yeni açılışta önce normal modal şeklinde aç
+    setMinimized(false);
     modal.style.display = 'flex';
     modal.classList.add('active');
     window.initQuickCallerModal();
@@ -240,6 +439,12 @@
       }
       if (nameDisplay) nameDisplay.textContent = 'Öğrenci Seçilmedi';
       if (noDisplay) noDisplay.textContent = 'Tahtaya çağırmak için butona basın';
+      if (miniName) miniName.textContent = 'Öğrenci Seçilmedi';
+      if (miniAvatar) {
+        miniAvatar.style.display = 'flex';
+        miniAvatar.textContent = '?';
+      }
+      if (miniPhoto) miniPhoto.style.display = 'none';
       hideAwardContainer();
       activeStudentId = null;
     }
@@ -272,6 +477,7 @@
     }
     if (nameDisplay) nameDisplay.textContent = 'Öğrenci Seçilmedi';
     if (noDisplay) noDisplay.textContent = 'Tahtaya çağırmak için butona basın';
+    if (miniName) miniName.textContent = 'Öğrenci Seçilmedi';
     hideAwardContainer();
     activeStudentId = null;
 
@@ -290,6 +496,11 @@
         window.showToast("Rastgele seçim yapmak için sınıfa öğrenci eklemelisiniz.", "warning");
       }
       return;
+    }
+
+    if (minimizeTimeout) {
+      clearTimeout(minimizeTimeout);
+      minimizeTimeout = null;
     }
 
     isDrawing = true;
@@ -324,6 +535,16 @@
 
         updatePoolIndicator();
         playWinSound();
+
+        // Birkaç kez animasyonla gösterildikten sonra otomatik olarak yüzen moda geç
+        // Böylece arka plandaki ders içeriği rahatlıkla görünür
+        if (minimizeTimeout) clearTimeout(minimizeTimeout);
+        minimizeTimeout = setTimeout(() => {
+          if (modal && (modal.classList.contains('active') || modal.style.display === 'flex') && !isDrawing) {
+            setMinimized(true);
+          }
+        }, 1300);
+
         return;
       }
 
@@ -374,7 +595,13 @@
     initDOMElements();
     if (!modal) return;
 
-    // Close buttons
+    // Draggable setup
+    if (modalContainer) {
+      if (fullHeaderHandle) makeDraggable(modalContainer, fullHeaderHandle);
+      if (miniDragHandle) makeDraggable(modalContainer, miniDragHandle);
+    }
+
+    // Close buttons (Full view & general)
     modal.querySelectorAll('.close-btn, .close-btn-action').forEach(btn => {
       btn.addEventListener('click', (e) => {
         if (e) {
@@ -387,9 +614,9 @@
       });
     });
 
-    // Backdrop click closer
+    // Backdrop click closer (only in non-minimized mode)
     modal.addEventListener('click', (e) => {
-      if (e.target === modal && !isDrawing) {
+      if (e.target === modal && !isDrawing && !isMinimized) {
         closeQuickCallerModal();
       }
     });
@@ -408,16 +635,65 @@
       });
     }
 
-    // Draw button
+    // Draw button (Full modal)
     if (btnDraw) {
       btnDraw.addEventListener('click', () => {
         if (!isDrawing) drawStudent();
       });
     }
 
-    // Award button
+    // Award button (Full modal)
     if (btnPlusOne) {
       btnPlusOne.addEventListener('click', awardPoint);
+    }
+
+    // Minimize button in full view header
+    if (btnMinimize) {
+      btnMinimize.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!isDrawing) {
+          setMinimized(true);
+        }
+      });
+    }
+
+    // Mini Floating View buttons
+    if (miniBtnPlusOne) {
+      miniBtnPlusOne.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        awardPoint();
+      });
+    }
+
+    if (miniBtnDraw) {
+      miniBtnDraw.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!isDrawing) {
+          setMinimized(false);
+          setTimeout(() => {
+            drawStudent();
+          }, 120);
+        }
+      });
+    }
+
+    if (miniBtnExpand) {
+      miniBtnExpand.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setMinimized(false);
+      });
+    }
+
+    if (miniBtnClose) {
+      miniBtnClose.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        closeQuickCallerModal();
+      });
     }
   }
 
