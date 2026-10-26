@@ -1293,23 +1293,26 @@
       const sNameStr = String(stuName || '').trim().toLocaleLowerCase('tr-TR');
 
       // 1. Direct ID match
-      if (sIdStr) {
+      if (sIdStr && !sIdStr.startsWith('temp_')) {
         const found = studentsList.find(s => String(s.id).trim() === sIdStr);
         if (found) return found;
       }
 
-      // 2. School number match
-      if (sNumStr) {
-        const found = studentsList.find(s => String(s.number || '').trim() === sNumStr);
+      // 2. School number match (Doğrudan ve Sayısal Eşleme)
+      if (sNumStr && sNumStr !== '-' && sNumStr !== '......' && sNumStr !== '0') {
+        const found = studentsList.find(s => {
+          const lNum = String(s.number || '').trim();
+          return lNum === sNumStr || (parseInt(lNum, 10) === parseInt(sNumStr, 10) && parseInt(sNumStr, 10) > 0);
+        });
         if (found) return found;
       }
 
-      // 3. Name & Surname match
-      if (sNameStr) {
+      // 3. Name & Surname EXACT match (Tam Eşleşme - Kısmi includes YASAKLANDI)
+      if (sNameStr && sNameStr !== 'öğrenci' && !sNameStr.startsWith('öğrenci #') && !sNameStr.startsWith('eşleştirilemedi') && !sNameStr.startsWith('form #')) {
         const cleanName = sNameStr.replace(/\s+/g, ' ');
         const found = studentsList.find(s => {
           const sFullName = `${s.name || ''} ${s.surname || ''}`.trim().toLocaleLowerCase('tr-TR').replace(/\s+/g, ' ');
-          return sFullName === cleanName || sFullName.includes(cleanName) || cleanName.includes(sFullName);
+          return sFullName === cleanName;
         });
         if (found) return found;
       }

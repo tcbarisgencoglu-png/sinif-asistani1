@@ -5293,106 +5293,42 @@ Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi ve
     }
   }
 
-  // Optik Kart Kimlik Rozeti (9-Bit OMR Matrisi + Mikro QR Kod Çift Güvenlik Katmanı)
-  // Ortaöğretim ve kalabalık kademeler için 511 öğrenciye kadar tam kapasite
-  // Soru baloncukları boyutunda (16x16 px) OMR kutucukları ve 21x21 Version 1 Micro-QR ile %100 eşleşme
+  // Optik Kart Kimlik Rozeti (ArUco 5x5 Süper Sade Geometrik Matris)
+  // Masif 1 hücrelik siyah çerçeve ve 5x5 iç bloklar ile doğrudan öğrencinin okul numarasını kodlar.
+  // Kamera açısından bağımsız (0°, 90°, 180°, 270°) anında ve sıfır hata ile tanınır.
   function generateOpticalBinaryIdSVG(options) {
     const { studentIndex = 0, studentId = '', studentNo = '', examId = '' } = options || {};
-    const idx = parseInt(studentIndex, 10) || 0;
+    const effectiveNo = (studentNo && studentNo !== '......' && studentNo !== '-') ? studentNo : (studentIndex > 0 ? String(studentIndex) : '0');
+    const num = parseInt(effectiveNo, 10) || 0;
 
-    // 9-bit ikili temsil (3 Satır x 3 Sütun = 9 Bit -> 1..511 Öğrenci)
-    // Satır 0: Bit 0, 1, 2
-    // Satır 1: Bit 3, 4, 5
-    // Satır 2: Bit 6, 7, 8
-    const bits = [];
-    for (let b = 0; b < 9; b++) {
-      bits.push((idx >> b) & 1);
+    // OmrEngine üzerinden ArUco SVG üretimi
+    let arucoSvg = '';
+    if (window.OmrEngine && typeof window.OmrEngine.generateArucoSVG === 'function') {
+      arucoSvg = window.OmrEngine.generateArucoSVG(num, 48);
+    } else {
+      const cellSize = 8;
+      const totalSize = 56;
+      let rects = `<rect x="0" y="0" width="${totalSize}" height="${totalSize}" fill="#000000" rx="3" /><rect x="8" y="8" width="40" height="40" fill="#ffffff" />`;
+      arucoSvg = `<svg viewBox="0 0 ${totalSize} ${totalSize}" width="48" height="48" shape-rendering="crispEdges" style="display: block; border-radius: 4px;">${rects}</svg>`;
     }
 
-    // 3 Satır x 3 Sütun = 9 Büyük Kutucuk
-    // Her kutucuk: 16x16 px, aralarındaki boşluk: 4px, kenar boşluğu: 4px
-    const boxSize = 16;
-    const gap = 4;
-    const padding = 4;
-    const totalW = padding * 2 + boxSize * 3 + gap * 2; // 64
-    const totalH = totalW; // 64
+    const isNamed = studentNo && studentNo !== '......' && studentNo !== '-';
+    const caption = isNamed ? `NO: ${studentNo}` : (studentIndex > 0 ? `NO: #${studentIndex}` : 'BOŞ FORM');
 
-    let rects = '';
-    for (let r = 0; r < 3; r++) {
-      for (let c = 0; c < 3; c++) {
-        const bitIdx = r * 3 + c;
-        const x = padding + c * (boxSize + gap);
-        const y = padding + r * (boxSize + gap);
-        if (bits[bitIdx] === 1) {
-          rects += `<rect x="${x}" y="${y}" width="${boxSize}" height="${boxSize}" fill="#000000" rx="2" />`;
-        } else {
-          rects += `<rect x="${x}" y="${y}" width="${boxSize}" height="${boxSize}" fill="#ffffff" stroke="#000000" stroke-width="2" rx="2" />`;
-        }
-      }
-    }
-
-    // Micro-QR Kod Bölümü (js/qrcode.min.js ile Version 1 - 21x21 Modül Anında Çözümleme)
-    let qrSvgHtml = '';
-    const qrcodeFn = (typeof window !== 'undefined' && (window.qrcode || (typeof qrcode === 'function' ? qrcode : null))) || null;
-    if (qrcodeFn && idx > 0) {
-      try {
-        const qr = qrcodeFn(0, 'M');
-        const pTag = options && options.perPage ? `:P${options.perPage}` : ':P2';
-        qr.addData(`SA:${idx}:${studentNo || ''}${pTag}`);
-        qr.make();
-        qrSvgHtml = qr.createSvgTag(2, 2);
-        if (qrSvgHtml) {
-          qrSvgHtml = qrSvgHtml.replace(/width="[^"]*"/, 'width="46"').replace(/height="[^"]*"/, 'height="46"');
-        }
-      } catch (e) {
-        console.warn('Micro-QR üretilemedi:', e);
-      }
-    }
-
-    if (qrSvgHtml) {
-      // ÇİFT ROZET (9-BİT OMR MATRİSİ + MİKRO-QR KOD)
-      return `
-        <div class="omr-id-badge omr-dual-id-badge" title="Öğrenci Optik ve QR Kimlik Kodu #${idx}">
-          <div class="omr-binary-strip-wrap" style="background: #ffffff; padding: 2px 5px; display: flex; align-items: center; gap: 6px; border: 2px solid #000000; border-radius: 6px; box-sizing: border-box;">
-            <!-- 9-Bit OMR Matrisi -->
-            <div style="display: flex; flex-direction: column; align-items: center;">
-              <div style="font-size: 0.48rem; font-weight: 800; color: #000000; letter-spacing: 0.4px; margin-bottom: 1px; text-transform: uppercase;">OMR ID</div>
-              <svg viewBox="0 0 ${totalW} ${totalH}" width="46" height="46" shape-rendering="crispEdges" style="display: block;">
-                <rect x="1" y="1" width="${totalW - 2}" height="${totalH - 2}" fill="#ffffff" stroke="#000000" stroke-width="2.5" rx="3" />
-                ${rects}
-              </svg>
-              <div class="omr-id-caption" style="font-size: 0.60rem; font-weight: 800; font-family: monospace; color: #000000; margin-top: 1px;">
-                ${idx > 0 ? ('ID:#' + idx) : 'ID:---'}
-              </div>
-            </div>
-            <!-- Micro-QR Kod -->
-            <div style="display: flex; flex-direction: column; align-items: center;">
-              <div style="font-size: 0.48rem; font-weight: 800; color: #000000; letter-spacing: 0.4px; margin-bottom: 1px; text-transform: uppercase;">QR KOD</div>
-              <div style="width: 46px; height: 46px; display: flex; align-items: center; justify-content: center; overflow: hidden;">
-                ${qrSvgHtml}
-              </div>
-              <div class="omr-id-caption" style="font-size: 0.58rem; font-weight: 800; font-family: monospace; color: #000000; margin-top: 1px;">
-                ${studentNo ? ('NO:' + studentNo) : 'KOD'}
-              </div>
-            </div>
-          </div>
-        </div>
-      `;
-    }
-
-    // QR kütüphanesi hazır değilse veya boş formda sadece 9-bit OMR matrisi
     return `
-      <div class="omr-id-badge omr-binary-badge" title="Öğrenci Optik Kimlik Kodu #${idx}">
-        <div class="omr-binary-strip-wrap" style="background: #ffffff; padding: 4px 6px; display: flex; flex-direction: column; align-items: center; border: 2px solid #000000; border-radius: 6px; box-sizing: border-box;">
-          <div style="font-size: 0.50rem; font-weight: 800; color: #000000; letter-spacing: 0.5px; margin-bottom: 2px; text-transform: uppercase;">KİMLİK KODU</div>
-          <svg viewBox="0 0 ${totalW} ${totalH}" width="56" height="56" shape-rendering="crispEdges" style="display: block;">
-            <rect x="1" y="1" width="${totalW - 2}" height="${totalH - 2}" fill="#ffffff" stroke="#000000" stroke-width="2.5" rx="3" />
-            ${rects}
-          </svg>
-          <div class="omr-id-caption" style="font-size: 0.65rem; font-weight: 800; font-family: monospace; color: #000000; margin-top: 2px;">
-            ${idx > 0 ? ('ID:#' + idx) : 'ID:---'}
+      <div class="omr-id-badge omr-aruco-badge" title="Öğrenci ArUco Kimlik Kodu: ${caption}">
+        <div class="omr-binary-strip-wrap" style="background: #ffffff; padding: 3px 6px; display: flex; flex-direction: column; align-items: center; border: 2px solid #000000; border-radius: 6px; box-sizing: border-box;">
+          <div style="font-size: 0.46rem; font-weight: 800; color: #000000; letter-spacing: 0.5px; margin-bottom: 2px; text-transform: uppercase;">KİMLİK ARMASI</div>
+          <div style="width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; overflow: hidden;">
+            ${arucoSvg}
+          </div>
+          <div class="omr-id-caption" style="font-size: 0.62rem; font-weight: 800; font-family: monospace; color: #000000; margin-top: 2px;">
+            ${caption}
           </div>
         </div>
+      </div>
+    `;
+  }
       </div>
     `;
   }

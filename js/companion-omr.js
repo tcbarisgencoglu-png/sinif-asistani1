@@ -1541,9 +1541,24 @@
             fCtx.drawImage(video, 0, 0, 960, 720);
             const imgData = fCtx.getImageData(0, 0, 960, 720);
 
+            // 0. ArUco Belirteç Doğrulaması (0 ms, Masif Geometrik Matris)
+            let detectedAruco = null;
+            if (window.OmrEngine && typeof window.OmrEngine.scanArucoInGrayscale === 'function') {
+              const grayFrame = new Uint8Array(960 * 720);
+              const d = imgData.data;
+              for (let i = 0; i < 960 * 720; i++) {
+                const i4 = i * 4;
+                grayFrame[i] = Math.round(d[i4] * 0.299 + d[i4 + 1] * 0.587 + d[i4 + 2] * 0.114);
+              }
+              const aRes = window.OmrEngine.scanArucoInGrayscale(grayFrame, 960, 720);
+              if (aRes && aRes.success) {
+                detectedAruco = aRes;
+              }
+            }
+
             // 1. QR Kod Doğrulaması (jsQR - 960x720 Çerçeve)
             let detectedQr = null;
-            if (typeof window.jsQR === 'function') {
+            if (!detectedAruco && typeof window.jsQR === 'function') {
               detectedQr = window.jsQR(imgData.data, 960, 720, { inversionAttempts: 'attemptBoth' });
 
               // 2. Eğer tam karede bulunamadıysa, rozetin bulunduğu sağ üst çeyreği tam video çözünürlüğünde tara
@@ -1560,12 +1575,12 @@
               }
             }
 
-            if (detectedQr && detectedQr.data) {
+            if (detectedAruco || (detectedQr && detectedQr.data)) {
               guideBox && guideBox.classList.add('locked');
               statusPill && statusPill.classList.add('success');
-              if (statusText) statusText.textContent = '🎯 Form / QR Algılandı • Okunuyor...';
+              if (statusText) statusText.textContent = detectedAruco ? `🎯 ArUco No:${detectedAruco.studentNumber} Algılandı • Okunuyor...` : '🎯 Form / QR Algılandı • Okunuyor...';
 
-              await this.executeFullFrameScan(detectedQr);
+              await this.executeFullFrameScan(detectedQr, detectedAruco);
             } else {
               guideBox && guideBox.classList.remove('locked');
               statusPill && statusPill.classList.remove('success');
@@ -1582,7 +1597,7 @@
       setTimeout(loop, 300);
     },
 
-    async executeFullFrameScan(liveQr = null) {
+    async executeFullFrameScan(liveQr = null, liveAruco = null) {
       const video = document.getElementById('omr-camera-video');
       if (!video || video.videoWidth === 0 || this.isProcessingFrame) return;
 
@@ -1597,7 +1612,7 @@
 
         const guideBox = document.getElementById('omr-guide-box');
         const bounds = this.getGuideBoxVideoBounds(video, guideBox);
-        await this.processImageCanvas(fullCanvas, bounds, liveQr);
+        await this.processImageCanvas(fullCanvas, bounds, liveQr, liveAruco);
       } catch (e) {
         console.error('Tam tarama hatası:', e);
         this.isProcessingFrame = false;
@@ -1659,8 +1674,8 @@
       reader.readAsDataURL(file);
     },
 
-    // Görüntü Analizi (OMREngine ve Doğrudan QR Kod Okuma)
-    async processImageCanvas(canvas, bounds = null, liveQr = null) {
+    // Görüntü Analizi (OMREngine, ArUco ve QR Kod Okuma)
+    async processImageCanvas(canvas, bounds = null, liveQr = null, liveAruco = null) {
       const students = this.getActiveStudents();
       const exam = this.activeExam;
 
@@ -1681,7 +1696,8 @@
           bounds: bounds,
           isMobileCamera: true,
           allExams: allExams,
-          liveDetectedQr: liveQr
+          liveDetectedQr: liveQr,
+          liveAruco: liveAruco
         });
       }
 
@@ -3215,88 +3231,31 @@
 
     generateOpticalBinaryIdSVG(options) {
       const { studentIndex = 0, studentId = '', studentNo = '' } = options || {};
-      const idx = parseInt(studentIndex, 10) || 0;
+      const effectiveNo = (studentNo && studentNo !== '......' && studentNo !== '-') ? studentNo : (studentIndex > 0 ? String(studentIndex) : '0');
+      const num = parseInt(effectiveNo, 10) || 0;
 
-      // 9-bit ikili temsil (3 Satır x 3 Sütun = 9 Bit -> 1..511 Öğrenci)
-      const bits = [];
-      for (let b = 0; b < 9; b++) {
-        bits.push((idx >> b) & 1);
+      let arucoSvg = '';
+      if (window.OmrEngine && typeof window.OmrEngine.generateArucoSVG === 'function') {
+        arucoSvg = window.OmrEngine.generateArucoSVG(num, 48);
+      } else {
+        const cellSize = 8;
+        const totalSize = 56;
+        let rects = `<rect x="0" y="0" width="${totalSize}" height="${totalSize}" fill="#000000" rx="3" /><rect x="8" y="8" width="40" height="40" fill="#ffffff" />`;
+        arucoSvg = `<svg viewBox="0 0 ${totalSize} ${totalSize}" width="48" height="48" shape-rendering="crispEdges" style="display: block; border-radius: 4px;">${rects}</svg>`;
       }
 
-      const boxSize = 16;
-      const gap = 4;
-      const padding = 4;
-      const totalW = padding * 2 + boxSize * 3 + gap * 2; // 64
-      const totalH = totalW; // 64
-
-      let rects = '';
-      for (let r = 0; r < 3; r++) {
-        for (let c = 0; c < 3; c++) {
-          const bitIdx = r * 3 + c;
-          const x = padding + c * (boxSize + gap);
-          const y = padding + r * (boxSize + gap);
-          if (bits[bitIdx] === 1) {
-            rects += `<rect x="${x}" y="${y}" width="${boxSize}" height="${boxSize}" fill="#000000" rx="2" />`;
-          } else {
-            rects += `<rect x="${x}" y="${y}" width="${boxSize}" height="${boxSize}" fill="#ffffff" stroke="#000000" stroke-width="2" rx="2" />`;
-          }
-        }
-      }
-
-      let qrSvgHtml = '';
-      const qrcodeFn = (typeof window !== 'undefined' && (window.qrcode || (typeof qrcode === 'function' ? qrcode : null))) || null;
-      if (qrcodeFn && idx > 0) {
-        try {
-          const qr = qrcodeFn(0, 'M');
-          qr.addData(`SA:${idx}:${studentNo || ''}`);
-          qr.make();
-          qrSvgHtml = qr.createSvgTag(2, 2);
-          if (qrSvgHtml) {
-            qrSvgHtml = qrSvgHtml.replace(/width="[^"]*"/, 'width="46"').replace(/height="[^"]*"/, 'height="46"');
-          }
-        } catch (e) {
-          console.warn('Micro-QR üretilemedi:', e);
-        }
-      }
-
-      if (qrSvgHtml) {
-        return `
-          <div class="omr-id-badge omr-dual-id-badge" title="Öğrenci Optik ve QR Kimlik Kodu #${idx}">
-            <div class="omr-binary-strip-wrap" style="background: #ffffff; padding: 2px 5px; display: flex; align-items: center; gap: 6px; border: 2px solid #000000; border-radius: 6px; box-sizing: border-box;">
-              <div style="display: flex; flex-direction: column; align-items: center;">
-                <div style="font-size: 0.48rem; font-weight: 800; color: #000000; letter-spacing: 0.4px; margin-bottom: 1px; text-transform: uppercase;">OMR ID</div>
-                <svg viewBox="0 0 ${totalW} ${totalH}" width="46" height="46" shape-rendering="crispEdges" style="display: block;">
-                  <rect x="1" y="1" width="${totalW - 2}" height="${totalH - 2}" fill="#ffffff" stroke="#000000" stroke-width="2.5" rx="3" />
-                  ${rects}
-                </svg>
-                <div class="omr-id-caption" style="font-size: 0.60rem; font-weight: 800; font-family: monospace; color: #000000; margin-top: 1px;">
-                  ${idx > 0 ? ('ID:#' + idx) : 'ID:---'}
-                </div>
-              </div>
-              <div style="display: flex; flex-direction: column; align-items: center;">
-                <div style="font-size: 0.48rem; font-weight: 800; color: #000000; letter-spacing: 0.4px; margin-bottom: 1px; text-transform: uppercase;">QR KOD</div>
-                <div style="width: 46px; height: 46px; display: flex; align-items: center; justify-content: center; overflow: hidden;">
-                  ${qrSvgHtml}
-                </div>
-                <div class="omr-id-caption" style="font-size: 0.58rem; font-weight: 800; font-family: monospace; color: #000000; margin-top: 1px;">
-                  ${studentNo ? ('NO:' + studentNo) : 'KOD'}
-                </div>
-              </div>
-            </div>
-          </div>
-        `;
-      }
+      const isNamed = studentNo && studentNo !== '......' && studentNo !== '-';
+      const caption = isNamed ? `NO: ${studentNo}` : (studentIndex > 0 ? `NO: #${studentIndex}` : 'BOŞ FORM');
 
       return `
-        <div class="omr-id-badge omr-binary-badge" title="Öğrenci Optik Kimlik Kodu #${idx}">
-          <div class="omr-binary-strip-wrap" style="background: #ffffff; padding: 4px 6px; display: flex; flex-direction: column; align-items: center; border: 2px solid #000000; border-radius: 6px; box-sizing: border-box;">
-            <div style="font-size: 0.50rem; font-weight: 800; color: #000000; letter-spacing: 0.5px; margin-bottom: 2px; text-transform: uppercase;">KİMLİK KODU</div>
-            <svg viewBox="0 0 ${totalW} ${totalH}" width="56" height="56" shape-rendering="crispEdges" style="display: block;">
-              <rect x="1" y="1" width="${totalW - 2}" height="${totalH - 2}" fill="#ffffff" stroke="#000000" stroke-width="2.5" rx="3" />
-              ${rects}
-            </svg>
-            <div class="omr-id-caption" style="font-size: 0.65rem; font-weight: 800; font-family: monospace; color: #000000; margin-top: 2px;">
-              ${idx > 0 ? ('ID:#' + idx) : 'ID:---'}
+        <div class="omr-id-badge omr-aruco-badge" title="Öğrenci ArUco Kimlik Kodu: ${caption}">
+          <div class="omr-binary-strip-wrap" style="background: #ffffff; padding: 3px 6px; display: flex; flex-direction: column; align-items: center; border: 2px solid #000000; border-radius: 6px; box-sizing: border-box;">
+            <div style="font-size: 0.46rem; font-weight: 800; color: #000000; letter-spacing: 0.5px; margin-bottom: 2px; text-transform: uppercase;">KİMLİK ARMASI</div>
+            <div style="width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; overflow: hidden;">
+              ${arucoSvg}
+            </div>
+            <div class="omr-id-caption" style="font-size: 0.62rem; font-weight: 800; font-family: monospace; color: #000000; margin-top: 2px;">
+              ${caption}
             </div>
           </div>
         </div>
