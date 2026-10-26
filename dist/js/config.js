@@ -427,6 +427,35 @@
       }
     }
 
+    // --- Veritabanını İyileştir ve Hızlandır ---
+    const configCompactDatabase = document.getElementById('config-compact-database');
+    if (configCompactDatabase) {
+      configCompactDatabase.addEventListener('click', () => {
+        if (!confirm('Veritabanı optimizasyonu başlatılsın mı?\n\nBu işlem; yetim performans puanlarını, mükerrer kayıtları, eski geçici önbellekleri ve sınav atıklarını temizleyerek uygulamanın yanıt verme hızını maksimum seviyeye çıkarır. Hiçbir öğrenciniz veya aktif veriniz silinmez.')) {
+          return;
+        }
+
+        const stats = stateManager.compactAndOptimizeDatabase();
+        if (!stats || !stats.success) {
+          alert('Optimizasyon sırasında bir hata oluştu veya işlem tamamlanamadı.');
+          return;
+        }
+        const msg = `⚡ Veritabanı Başarıyla Optimize Edildi!\n\n` +
+          `• Temizlenen yetim puan kaydı: ${stats.removedPerf || 0}\n` +
+          `• Temizlenen sınav önbelleği/atığı: ${stats.removedThumbs || 0}\n` +
+          `• Temizlenen geçersiz ödev kaydı: ${stats.removedHwStatuses || 0}\n` +
+          `• Veri Boyutu: ${stats.beforeKB} KB ➔ ${stats.afterKB} KB (%${stats.savedRatio} tasarruf)\n\n` +
+          `Uygulama önbelleği temizlendi ve sistem maksimum çalışma hızına ulaştı.`;
+
+        alert(msg);
+        if (toastCallback) {
+          toastCallback('Veritabanı optimize edildi ve hızlandırıldı!', 'success');
+        }
+        const event = new CustomEvent('stateChanged');
+        document.dispatchEvent(event);
+      });
+    }
+
     if (configSystemReset) {
       configSystemReset.addEventListener('click', () => {
         const modalSystemReset = document.getElementById('modal-system-reset');

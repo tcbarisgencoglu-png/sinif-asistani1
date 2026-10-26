@@ -2699,7 +2699,7 @@ async function initApp() {
 }
 
 // Mevcut uygulama sürümü (her güncellemede değişir)
-const APP_VERSION = '1.0.99';
+const APP_VERSION = '1.0.100';
 
 // GitHub & Tauri Auto-Updater kontrolü
 async function checkForUpdates() {
@@ -3082,7 +3082,11 @@ function switchTab(tabId, animate = true) {
         if (toolsLandingView) toolsLandingView.style.display = 'block';
       }
       break;
-    // Weekly kendi iç listenerları ile veri yüklemesini idare eder
+    case 'weekly':
+      if (typeof window.renderExamsList === 'function') {
+        window.renderExamsList();
+      }
+      break;
   }
 
   // Menü kapanmasını tetikle (Mobil uyumluluk için yararlı)

@@ -3186,22 +3186,42 @@ function renderLeaderboard() {
   const today = new Date();
   const todayPure = new Date(today.getFullYear(), today.getMonth(), today.getDate());
 
+  const bookMap = new Map((state.books?.library || []).map(b => [b.id, b]));
+
+  // 0. İşlemleri tek bir geçişte (O(T)) öğrencilere göre grupla (iç içe O(S*T*B) döngüleri önler)
+  const studentReturnedMap = new Map();
+  const studentActiveMap = new Map();
+
+  (state.books?.transactions || []).forEach(t => {
+    if (!t || !t.studentId) return;
+    const sId = String(t.studentId);
+    if (t.status === 'returned') {
+      let list = studentReturnedMap.get(sId);
+      if (!list) { list = []; studentReturnedMap.set(sId, list); }
+      list.push(t);
+    } else if (t.status === 'reading') {
+      let list = studentActiveMap.get(sId);
+      if (!list) { list = []; studentActiveMap.set(sId, list); }
+      list.push(t);
+    }
+  });
+
   // 1. Her öğrenci için okuma verilerini ve gecikme durumunu topla
   const studentData = activeStudents.map(student => {
-    // Bu öğrencinin iade ettiği işlemleri filtrele
-    const returnedTransactions = state.books.transactions.filter(t => t.studentId === student.id && t.status === 'returned');
+    const sId = String(student.id);
+    const returnedTransactions = studentReturnedMap.get(sId) || [];
     
     // Toplam sayfa sayısı
     let totalPages = 0;
     returnedTransactions.forEach(t => {
-      const book = state.books.library.find(b => b.id === t.bookId);
+      const book = bookMap.get(t.bookId);
       if (book) {
         totalPages += book.pages || 0;
       }
     });
 
     // Aktif ödünç alınan (okunmakta olan) kitaplar ve seviyeye göre gecikme kontrolü
-    const activeTxs = state.books.transactions.filter(t => t.studentId === student.id && t.status === 'reading');
+    const activeTxs = studentActiveMap.get(sId) || [];
     let hasOverdue = false;
     let maxOverdueDays = 0;
     let overdueBookTitle = '';
@@ -3209,7 +3229,7 @@ function renderLeaderboard() {
     let overdueLimitDays = 0;
 
     activeTxs.forEach(t => {
-      const book = state.books.library.find(b => b.id === t.bookId);
+      const book = bookMap.get(t.bookId);
       const isLevel2 = (book && book.level === 'seviye_2');
       const lvlSettings = isLevel2 ? (bookSettings.level2 || {}) : (bookSettings.level1 || {});
       const limitDays = (lvlSettings.limitDays !== undefined && lvlSettings.limitDays !== null) ? lvlSettings.limitDays : (isLevel2 ? 20 : 10);
@@ -3373,14 +3393,17 @@ function renderLateBooksList() {
     lateInfoL2.textContent = (bookSettings.level2 && bookSettings.level2.limitDays) || 20;
   }
 
-  const activeTransactions = state.books.transactions.filter(t => t.status === 'reading');
+  const activeTransactions = (state.books?.transactions || []).filter(t => t.status === 'reading');
   const lateTransactions = [];
   
   const today = new Date();
   const todayPure = new Date(today.getFullYear(), today.getMonth(), today.getDate());
 
+  const bookMap = new Map((state.books?.library || []).map(b => [b.id, b]));
+  const studentMap = new Map((state.students || []).map(s => [s.id, s]));
+
   activeTransactions.forEach(t => {
-    const book = state.books.library.find(b => b.id === t.bookId);
+    const book = bookMap.get(t.bookId);
     const borrowDate = new Date(t.borrowDate);
     const borrowDatePure = new Date(borrowDate.getFullYear(), borrowDate.getMonth(), borrowDate.getDate());
     const diffTime = todayPure - borrowDatePure;
@@ -3419,8 +3442,8 @@ function renderLateBooksList() {
     const t = item.transaction;
     const diffDays = item.diffDays;
     
-    const student = state.students.find(s => s.id === t.studentId) || { name: 'Bilinmeyen', surname: 'Öğrenci', number: '-' };
-    const book = state.books.library.find(b => b.id === t.bookId) || { title: 'Silinmiş Kitap', author: 'Bilinmiyor', bookNo: '-' };
+    const student = studentMap.get(t.studentId) || { name: 'Bilinmeyen', surname: 'Öğrenci', number: '-' };
+    const book = bookMap.get(t.bookId) || { title: 'Silinmiş Kitap', author: 'Bilinmiyor', bookNo: '-' };
 
     const row = document.createElement('tr');
     

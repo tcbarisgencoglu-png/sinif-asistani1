@@ -1095,10 +1095,13 @@ function openEditOrCreateHomework(dateStr, dayName) {
   modalHomework.classList.add('active');
 }
 
-// Buluttan / El Terminalinden canlı ödev veya veri değişikliği geldiğinde tabloyu anında güncelle
+// Buluttan / El Terminalinden canlı ödev veya veri değişikliği geldiğinde tabloyu anında güncelle (sadece Ödev sekmesi aktifken)
 document.addEventListener('stateChanged', () => {
-  if (typeof renderHomeworkMatrix === 'function') {
-    renderHomeworkMatrix();
+  const hwSec = document.getElementById('homework');
+  if (hwSec && hwSec.classList.contains('active')) {
+    if (typeof renderHomeworkMatrix === 'function') {
+      renderHomeworkMatrix();
+    }
   }
 });
 

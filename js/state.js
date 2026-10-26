@@ -260,23 +260,27 @@ async function saveStateToIndexedDB(stateObj, reason = 'Kayıt güncellendi') {
           data: stateObj
         });
 
-        // 3. Son 7 Günlük Rotasyon (7 günden eski gün paketlerini temizle)
-        const allReq = backupStore.getAll();
-        allReq.onsuccess = () => {
-          const allItems = allReq.result || [];
-          const uniqueDates = [...new Set(allItems.map(it => it.dateKey).filter(Boolean))].sort();
-          if (uniqueDates.length > 7) {
-            const datesToRemove = uniqueDates.slice(0, uniqueDates.length - 7);
-            allItems.forEach(it => {
-              if (it.dateKey && datesToRemove.includes(it.dateKey)) {
-                backupStore.delete(it.id);
-              } else if (typeof it.id === 'number') {
-                // Eski numaralı yedek kalıntılarını da temizle
-                backupStore.delete(it.id);
-              }
-            });
-          }
-        };
+        // 3. Son 7 Günlük Rotasyon (Günde sadece 1 kez çalışır, her tıklamada disk/getAll kilitlemesini önler)
+        const lastRotation = (typeof localStorage !== 'undefined') ? localStorage.getItem('sinif_last_backup_rotation_date') : null;
+        if (lastRotation !== dateKey) {
+          try { localStorage.setItem('sinif_last_backup_rotation_date', dateKey); } catch (e) {}
+          const allReq = backupStore.getAll();
+          allReq.onsuccess = () => {
+            const allItems = allReq.result || [];
+            const uniqueDates = [...new Set(allItems.map(it => it.dateKey).filter(Boolean))].sort();
+            if (uniqueDates.length > 7) {
+              const datesToRemove = uniqueDates.slice(0, uniqueDates.length - 7);
+              allItems.forEach(it => {
+                if (it.dateKey && datesToRemove.includes(it.dateKey)) {
+                  backupStore.delete(it.id);
+                } else if (typeof it.id === 'number') {
+                  // Eski numaralı yedek kalıntılarını da temizle
+                  backupStore.delete(it.id);
+                }
+              });
+            }
+          };
+        }
       }
 
       tx.oncomplete = () => resolve(true);
@@ -2416,6 +2420,15 @@ window.reconcileHomeworkStateObject = reconcileHomeworkStateObject;
 
 class StateManager {
   constructor() {
+    this._saveTimeout = null;
+    this._pendingSaveReason = null;
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('beforeunload', () => {
+        this.flushPendingSave();
+      });
+    }
+
     const data = localStorage.getItem(STORAGE_KEY);
     this.state = this.loadState(true); // Load unfiltered for internal state to prevent data loss
     this.subscribers = [];
@@ -2968,130 +2981,245 @@ class StateManager {
     return wrapState(JSON.parse(JSON.stringify(DEFAULT_STATE)), unfiltered);
   }
 
-  saveState(reason = 'Kayıt güncellendi') {
+  flushPendingSave() {
+    if (this._saveTimeout) {
+      clearTimeout(this._saveTimeout);
+      this._saveTimeout = null;
+      this.saveState(this._pendingSaveReason || 'Kapanış Kaydı', true);
+    }
+  }
+
+  saveState(reason = 'Kayıt güncellendi', immediate = false) {
+    // 0. Arayüz abonelerini anında bilgilendir (0ms - UI thread asla kilitlenmez)
+    this.notify();
+
+    if (this._saveTimeout) {
+      clearTimeout(this._saveTimeout);
+      this._saveTimeout = null;
+    }
+
+    const performDiskWrite = () => {
+      this._saveTimeout = null;
+      this._pendingSaveReason = null;
+      try {
+        // 1. Doğrudan this.state.documents üzerindeki ağır ikili dosyaları temizle (IndexedDB'de saklanır)
+        if (this.state.documents && Array.isArray(this.state.documents)) {
+          this.state.documents.forEach(d => {
+            if (d.content || d.htmlContent) {
+              delete d.content;
+              delete d.htmlContent;
+            }
+          });
+        }
+
+        const toSave = { ...this.state };
+        delete toSave.rawStudents;
+        if (toSave.documents && Array.isArray(toSave.documents)) {
+          toSave.documents = toSave.documents.map(d => {
+            if (d.content || d.htmlContent) {
+              const { content, htmlContent, ...rest } = d;
+              return rest;
+            }
+            return d;
+          });
+        }
+
+        // Optik form taranması sonucu oluşabilecek ağır PDF/JPEG görsellerini doğrudan this.state ve localStorage kopyasından temizle (5MB kota koruması)
+        if (this.state.weeklyEvaluations && Array.isArray(this.state.weeklyEvaluations)) {
+          this.state.weeklyEvaluations.forEach(we => {
+            if (we && we.studentResults && typeof we.studentResults === 'object') {
+              for (const sId in we.studentResults) {
+                const sr = we.studentResults[sId];
+                if (sr) {
+                  if (sr.pdfDataUrl) delete sr.pdfDataUrl;
+                  if (sr.thumbUrl && typeof sr.thumbUrl === 'string' && sr.thumbUrl.length > 25000) {
+                    sr.thumbUrl = '';
+                  }
+                }
+              }
+            }
+          });
+        }
+
+        if (toSave.weeklyEvaluations && Array.isArray(toSave.weeklyEvaluations)) {
+          toSave.weeklyEvaluations = toSave.weeklyEvaluations.map(we => {
+            if (we.studentResults && typeof we.studentResults === 'object') {
+              const cleanedSR = {};
+              for (const sId in we.studentResults) {
+                const sr = we.studentResults[sId];
+                if (sr) {
+                  const { pdfDataUrl, ...restSr } = sr;
+                  if (restSr.thumbUrl && typeof restSr.thumbUrl === 'string' && restSr.thumbUrl.length > 25000) {
+                    restSr.thumbUrl = '';
+                  }
+                  cleanedSR[sId] = restSr;
+                }
+              }
+              return { ...we, studentResults: cleanedSR };
+            }
+            return we;
+          });
+        }
+
+        // Kullanıcının gerçek veritabanı olduğunu işaretle (ASLA otomatik demoya dönmeyi engeller)
+        const hasRealData = (Array.isArray(toSave.students) && toSave.students.length > 0) || 
+                            (toSave.books && toSave.books.library && toSave.books.library.length > 0);
+        if (hasRealData) {
+          try {
+            localStorage.setItem('sinif_asistani_has_real_data', 'true');
+          } catch (e) {}
+        }
+
+        const jsonString = JSON.stringify(toSave);
+
+        // 2. Birincil Kalıcı Depolama: IndexedDB (Kotası yüzlerce MB'tır, çökme korumalıdır + Son 5 yedek noktası oluşturur)
+        if (typeof window !== 'undefined' && window.indexedDB && typeof saveStateToIndexedDB === 'function') {
+          saveStateToIndexedDB(toSave, reason).catch(err => {
+            console.warn('[IndexedDB] Kayıt uyarısı:', err);
+          });
+        }
+
+        // 3. Masaüstü Yerel Disk Dosyası (Tauri Native File - Sıfır kota limiti, doğrudan bilgisayarın diskine yazar)
+        if (typeof syncDesktopNativeData === 'function') {
+          syncDesktopNativeData(jsonString);
+        }
+
+        // 4. Taşınabilir Flash Bellek Senkronizasyonu (varsa)
+        if (typeof window.syncPortableDataToFlash === 'function') {
+          window.syncPortableDataToFlash();
+        }
+
+        // 5. LocalStorage Senkron Önbellek Kaydı
+        try {
+          localStorage.setItem(STORAGE_KEY, jsonString);
+        } catch (storageErr) {
+          if (storageErr && (storageErr.name === 'QuotaExceededError' || storageErr.code === 22 || storageErr.number === -2147024882)) {
+            console.warn("saveState: LocalStorage kotası doldu (5MB sınırı). Verileriniz IndexedDB ve Masaüstü Dosyasına başarıyla kaydedildi.");
+            try {
+              const lightweight = { ...toSave };
+              if (Array.isArray(lightweight.students)) {
+                lightweight.students = lightweight.students.map(s => {
+                  if (s.photo && typeof s.photo === 'string' && s.photo.length > 300) {
+                    const { photo, ...rest } = s;
+                    return rest;
+                  }
+                  return s;
+                });
+              }
+              localStorage.setItem(STORAGE_KEY, JSON.stringify(lightweight));
+              console.log("saveState: Fotoğraflar hafifletilerek localStorage kopyası güncellendi.");
+            } catch (lightErr) {
+              console.warn("saveState: LocalStorage kopyası güncellenemedi, ana veritabanı IndexedDB ve Masaüstü Diskte %100 güvendedir.");
+            }
+          } else {
+            console.error("saveState depolama hatası:", storageErr);
+          }
+        }
+      } catch (e) {
+        console.error("Veri kaydedilirken hata oluştu:", e);
+      }
+    };
+
+    if (immediate) {
+      performDiskWrite();
+    } else {
+      this._pendingSaveReason = reason;
+      this._saveTimeout = setTimeout(performDiskWrite, 250);
+    }
+    return true;
+  }
+
+  // Veritabanını Hafiflet, Yetim Kayıtları Temizle ve Hızlandır
+  compactAndOptimizeDatabase() {
     try {
-      // 1. Doğrudan this.state.documents üzerindeki ağır ikili dosyaları temizle (IndexedDB'de saklanır)
-      if (this.state.documents && Array.isArray(this.state.documents)) {
-        this.state.documents.forEach(d => {
-          if (d.content || d.htmlContent) {
-            delete d.content;
-            delete d.htmlContent;
+      const beforeStr = JSON.stringify(this.state);
+      const beforeBytes = beforeStr.length;
+      let removedPerf = 0;
+      let removedThumbs = 0;
+      let removedHwStatuses = 0;
+
+      const validStudentIds = new Set((this.state.students || []).map(s => String(s.id)));
+
+      // 1. Yetim / Mükerrer Performans Kayıtlarını Temizle
+      if (Array.isArray(this.state.performance)) {
+        const seenPerfKeys = new Set();
+        const validPerfs = [];
+        this.state.performance.forEach(p => {
+          if (!p) return;
+          const sId = String(p.studentId || '');
+          if (!validStudentIds.has(sId)) {
+            removedPerf++;
+            return; // Yetim kayıt (öğrenci silinmiş)
           }
+          const pKey = `${p.id || ''}_${sId}_${p.date || ''}_${p.reason || ''}_${p.point || 0}`;
+          if (seenPerfKeys.has(pKey)) {
+            removedPerf++;
+            return; // Mükerrer kayıt
+          }
+          seenPerfKeys.add(pKey);
+          validPerfs.push(p);
         });
+        this.state.performance = validPerfs;
       }
 
-      const toSave = { ...this.state };
-      delete toSave.rawStudents;
-      if (toSave.documents && Array.isArray(toSave.documents)) {
-        toSave.documents = toSave.documents.map(d => {
-          if (d.content || d.htmlContent) {
-            const { content, htmlContent, ...rest } = d;
-            return rest;
-          }
-          return d;
-        });
-      }
-
-      // Optik form taranması sonucu oluşabilecek ağır PDF/JPEG görsellerini doğrudan this.state ve localStorage kopyasından temizle (5MB kota koruması)
-      if (this.state.weeklyEvaluations && Array.isArray(this.state.weeklyEvaluations)) {
+      // 2. Optik Sınavlardaki Ağır Görsel ve Geçici Verileri Temizle
+      if (Array.isArray(this.state.weeklyEvaluations)) {
         this.state.weeklyEvaluations.forEach(we => {
           if (we && we.studentResults && typeof we.studentResults === 'object') {
             for (const sId in we.studentResults) {
               const sr = we.studentResults[sId];
               if (sr) {
-                if (sr.pdfDataUrl) delete sr.pdfDataUrl;
-                if (sr.thumbUrl && typeof sr.thumbUrl === 'string' && sr.thumbUrl.length > 25000) {
-                  sr.thumbUrl = '';
-                }
+                if (sr.pdfDataUrl) { delete sr.pdfDataUrl; removedThumbs++; }
+                if (sr.thumbUrl) { sr.thumbUrl = ''; removedThumbs++; }
               }
             }
           }
         });
       }
 
-      if (toSave.weeklyEvaluations && Array.isArray(toSave.weeklyEvaluations)) {
-        toSave.weeklyEvaluations = toSave.weeklyEvaluations.map(we => {
-          if (we.studentResults && typeof we.studentResults === 'object') {
-            const cleanedSR = {};
-            for (const sId in we.studentResults) {
-              const sr = we.studentResults[sId];
-              if (sr) {
-                const { pdfDataUrl, ...restSr } = sr;
-                if (restSr.thumbUrl && typeof restSr.thumbUrl === 'string' && restSr.thumbUrl.length > 25000) {
-                  restSr.thumbUrl = '';
-                }
-                cleanedSR[sId] = restSr;
+      // 3. Ödevlerdeki Silinmiş Öğrenci Durumlarını Temizle
+      if (Array.isArray(this.state.homeworks)) {
+        this.state.homeworks.forEach(hw => {
+          if (hw && hw.status && typeof hw.status === 'object') {
+            for (const sId in hw.status) {
+              if (!validStudentIds.has(String(sId))) {
+                delete hw.status[sId];
+                removedHwStatuses++;
               }
             }
-            return { ...we, studentResults: cleanedSR };
           }
-          return we;
         });
       }
 
-      // Kullanıcının gerçek veritabanı olduğunu işaretle (ASLA otomatik demoya dönmeyi engeller)
-      const hasRealData = (Array.isArray(toSave.students) && toSave.students.length > 0) || 
-                          (toSave.books && toSave.books.library && toSave.books.library.length > 0);
-      if (hasRealData) {
-        try {
-          localStorage.setItem('sinif_asistani_has_real_data', 'true');
-        } catch (e) {}
-      }
-
-      const jsonString = JSON.stringify(toSave);
-
-      // 2. Birincil Kalıcı Depolama: IndexedDB (Kotası yüzlerce MB'tır, çökme korumalıdır + Son 5 yedek noktası oluşturur)
-      if (typeof window !== 'undefined' && window.indexedDB && typeof saveStateToIndexedDB === 'function') {
-        saveStateToIndexedDB(toSave, reason).catch(err => {
-          console.warn('[IndexedDB] Kayıt uyarısı:', err);
+      // 4. Kitaplık İşlemlerini Temizle
+      if (this.state.books && Array.isArray(this.state.books.transactions)) {
+        const validBookIds = new Set((this.state.books.library || []).map(b => String(b.id)));
+        this.state.books.transactions = this.state.books.transactions.filter(t => {
+          return validStudentIds.has(String(t.studentId)) && validBookIds.has(String(t.bookId));
         });
       }
 
-      // 3. Masaüstü Yerel Disk Dosyası (Tauri Native File - Sıfır kota limiti, doğrudan bilgisayarın diskine yazar)
-      if (typeof syncDesktopNativeData === 'function') {
-        syncDesktopNativeData(jsonString);
-      }
+      // 5. Değişiklikleri hemen diske yaz (immediate = true)
+      this.saveState('Veritabanı Optimize Edildi', true);
 
-      // 4. Taşınabilir Flash Bellek Senkronizasyonu (varsa)
-      if (typeof window.syncPortableDataToFlash === 'function') {
-        window.syncPortableDataToFlash();
-      }
+      const afterStr = JSON.stringify(this.state);
+      const afterBytes = afterStr.length;
+      const savedBytes = Math.max(0, beforeBytes - afterBytes);
+      const savedRatio = beforeBytes > 0 ? Math.round((savedBytes / beforeBytes) * 100) : 0;
 
-      // 5. LocalStorage Senkron Önbellek Kaydı
-      try {
-        localStorage.setItem(STORAGE_KEY, jsonString);
-      } catch (storageErr) {
-        if (storageErr && (storageErr.name === 'QuotaExceededError' || storageErr.code === 22 || storageErr.number === -2147024882)) {
-          // KESİNLİKLE removeItem(STORAGE_KEY) ÇAĞRILMAZ! Eski veri silinmez!
-          console.warn("saveState: LocalStorage kotası doldu (5MB sınırı). Verileriniz IndexedDB ve Masaüstü Dosyasına başarıyla kaydedildi.");
-          
-          // LocalStorage'a sığabilmesi için ağır fotoğrafları hafifletip önbelleği güncellemeyi dene
-          try {
-            const lightweight = { ...toSave };
-            if (Array.isArray(lightweight.students)) {
-              lightweight.students = lightweight.students.map(s => {
-                if (s.photo && typeof s.photo === 'string' && s.photo.length > 300) {
-                  const { photo, ...rest } = s;
-                  return rest;
-                }
-                return s;
-              });
-            }
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(lightweight));
-            console.log("saveState: Fotoğraflar hafifletilerek localStorage kopyası güncellendi.");
-          } catch (lightErr) {
-            console.warn("saveState: LocalStorage kopyası güncellenemedi, ana veritabanı IndexedDB ve Masaüstü Diskte %100 güvendedir.");
-          }
-        } else {
-          console.error("saveState depolama hatası:", storageErr);
-        }
-      }
-
-      this.notify();
-      return true;
+      return {
+        success: true,
+        beforeKB: (beforeBytes / 1024).toFixed(1),
+        afterKB: (afterBytes / 1024).toFixed(1),
+        savedKB: (savedBytes / 1024).toFixed(1),
+        savedRatio,
+        removedPerf,
+        removedThumbs,
+        removedHwStatuses
+      };
     } catch (e) {
-      console.error("Veri kaydedilirken hata oluştu:", e);
-      return false;
+      console.error("Optimize hatası:", e);
+      return { success: false, error: e.message };
     }
   }
 
@@ -3631,7 +3759,6 @@ class StateManager {
         this.state.performance.push(record);
       }
 
-      this.recalculateAllHomeworkPoints(false);
       this.saveState();
       return true;
     }

@@ -9220,6 +9220,12 @@ function renderPipContent(win) {
   // Global state değiştiğinde (örneğin terminalden canlı sınav, cevap anahtarı veya sonuç geldiğinde) arayüzü anında tazele
   document.addEventListener('stateChanged', () => {
     try {
+      const weeklySec = document.getElementById('weekly');
+      const isWeeklyActive = weeklySec && weeklySec.classList.contains('active');
+      const isModalOpen = modalEditExamAnswerKey && modalEditExamAnswerKey.classList.contains('active');
+      if (!isWeeklyActive && !isModalOpen) {
+        return;
+      }
       renderExamsList();
       const currentActiveId = (activeExam && activeExam.id) || (window.activeWeeklyExam && window.activeWeeklyExam.id);
       if (currentActiveId) {
