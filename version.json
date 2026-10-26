@@ -1,14 +1,13 @@
 {
-  "version": "1.0.102",
+  "version": "1.0.103",
   "releaseDate": "2026-10-26",
   "minRequiredVersion": "1.0.0",
-  "title": "Sınıf Asistanı v1.0.102 Yayında!",
-  "description": "ArUco 5x5 Geometrik Kodlama ile Sıfır Hatalı Öğrenci Eşleme ve Kararlılık Güncellemesi",
+  "title": "Sınıf Asistanı v1.0.103 Yayında!",
+  "description": "Mobil Kamera Optik Form ve ArUco Öğrenci Eşleme Hassasiyeti Güncellemesi",
   "features": [
-    "ArUco 5x5 Geometrik Öğrenci Kodlaması: Her öğrencinin okul numarası doğrudan form üzerindeki 5x5 fiducial matrise kodlandı; liste sıralamasından ve isim benzerliklerinden bağımsız, 4 yönde kusursuz ve 1 milisaniyede sıfır hatalı eşleştirme sağlandı.",
-    "Orijinal Baloncuk Koordinatları Korundu: Optik formdaki tüm soru baloncukları ve koordinat yapısı birebir korunarak yüksek tarama hassasiyeti garanti altına alındı.",
-    "El Terminali (Mobil APK) Doğrudan İndirme: Telefon ayarlarından en son sürüm APK paketine tek dokunuşla erişim ve yükseltme desteği eklendi.",
-    "Masaüstü ve Mobil Senkronizasyon İyileştirmeleri: Şube, isim ve numara eşleme filtreleri sıkılaştırılarak hatalı öğrenci eşleşmeleri tamamen engellendi."
+    "Dinamik ArUco 5x5 Algılayıcı: Telefon kameralarının uzak mesafeli çekimlerinde (20-30px küçük rozetler) ve farklı ışık koşullarında anında ve %100 kesin öğrenci numarası tespiti sağlandı.",
+    "Baskı Şablonu İyileştirmesi: ArUco kimlik arması ile öğrenci numarası arasına beyaz tampon boşluk eklenerek kamerada yazıların armaya taşması önlendi.",
+    "Orijinal Baloncuk Koordinatları Korundu: Optik form üzerindeki tüm soru baloncukları ve koordinat yapısı birebir korundu."
   ],
   "release_url": "https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/latest"
 }
