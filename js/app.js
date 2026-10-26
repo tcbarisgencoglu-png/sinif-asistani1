@@ -2182,6 +2182,20 @@ async function initApp() {
     }
   }
 
+  // 2.6. Eski sürümlerden kalan veritabanı şişkinliğini tek seferlik otomatik temizle
+  const lastCompactedVer = localStorage.getItem('sinif_db_compacted_version');
+  if (lastCompactedVer !== '1.0.101' && window.stateManager && typeof window.stateManager.compactAndOptimizeDatabase === 'function') {
+    try {
+      const optResult = window.stateManager.compactAndOptimizeDatabase();
+      localStorage.setItem('sinif_db_compacted_version', '1.0.101');
+      if (optResult && optResult.savedRatio > 0) {
+        console.log(`[Optimizasyon] Veritabanı otomatik optimize edildi: ${optResult.beforeKB}KB -> ${optResult.afterKB}KB (%${optResult.savedRatio} tasarruf).`);
+      }
+    } catch (e) {
+      console.warn('[Optimizasyon] Otomatik veritabanı temizleme hatası:', e);
+    }
+  }
+
   // 3. Modül Tetikleyicilerini Kaydet
   setupDashboardTab(showToast);
   setupPerformanceTab(showToast);
@@ -2699,7 +2713,7 @@ async function initApp() {
 }
 
 // Mevcut uygulama sürümü (her güncellemede değişir)
-const APP_VERSION = '1.0.100';
+const APP_VERSION = '1.0.101';
 
 // GitHub & Tauri Auto-Updater kontrolü
 async function checkForUpdates() {
