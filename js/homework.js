@@ -57,6 +57,18 @@ let _viewingDayName = null;
 const STATUS_CYCLE = ['none', 'completed', 'incomplete', 'missing', 'excused'];
 const WEEKDAYS_TR = ['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma'];
 
+// Şube ve Eğitim Kademesine Göre Ödev Eşleşme Kontrolü
+function isHomeworkMatchingBranch(hw, branchFilter, educationLevel, studentBranch = null) {
+  if (!hw) return false;
+  if (educationLevel === 'primary') return true;
+  if (studentBranch && (hw.branch === studentBranch || !hw.branch || hw.branch === 'all')) {
+    return true;
+  }
+  if (!branchFilter || branchFilter === 'all') return true;
+  if (!hw.branch || hw.branch === 'all') return true;
+  return hw.branch === branchFilter;
+}
+
 // -------------------------------------------------------
 // Yardımcı: Tarih formatlama
 // -------------------------------------------------------
@@ -307,7 +319,7 @@ function saveHomeworkFromSendModal(sendToWA) {
   // Aynı tarihe ait ödev zaten var mı kontrol et
   let hw = state.homeworks.find(h =>
     h.dueDate === dateStr &&
-    (state.educationLevel === 'primary' || h.branch === branchFilter)
+    isHomeworkMatchingBranch(h, branchFilter, state.educationLevel)
   );
 
   if (hw) {
@@ -588,7 +600,7 @@ function setupHomeworkTab(showToast) {
 
     const filteredHws = state.homeworks.filter(hw => {
       const matchDate = hw.dueDate >= startIso && hw.dueDate <= endIso;
-      const matchBranch = state.educationLevel === 'primary' || branchFilter === 'all' || hw.branch === branchFilter;
+      const matchBranch = isHomeworkMatchingBranch(hw, branchFilter, state.educationLevel);
       return matchDate && matchBranch;
     });
 
@@ -840,7 +852,7 @@ function renderHomeworkMatrix() {
   weekDates.forEach(day => {
     const hw = state.homeworks.find(h =>
       h.dueDate === day.dateStr &&
-      (state.educationLevel === 'primary' || h.branch === branchFilter)
+      isHomeworkMatchingBranch(h, branchFilter, state.educationLevel)
     );
 
     const parts = day.dateStr.split('-');
@@ -968,7 +980,7 @@ function renderHomeworkMatrix() {
       const dayData = weekDates.map(day => {
         const hw = state.homeworks.find(h =>
           h.dueDate === day.dateStr &&
-          (state.educationLevel === 'primary' || h.branch === branchFilter)
+          isHomeworkMatchingBranch(h, branchFilter, state.educationLevel, std.branch)
         );
         const currentStatus = (hw && hw.status && hw.status[std.id]) || 'none';
 
@@ -1017,7 +1029,7 @@ function renderHomeworkMatrix() {
               title: `${day.dayName} Ödevi`,
               description: '',
               dueDate: day.dateStr,
-              branch: (state.educationLevel === 'middle') ? branchFilter : ''
+              branch: (state.educationLevel === 'middle') ? (branchFilter === 'all' ? (std.branch || '') : branchFilter) : ''
             });
             targetHwId = newHw.id;
           }
@@ -1062,7 +1074,7 @@ function openEditOrCreateHomework(dateStr, dayName) {
 
   let hw = state.homeworks.find(h =>
     h.dueDate === dateStr &&
-    (state.educationLevel === 'primary' || h.branch === branchFilter)
+    isHomeworkMatchingBranch(h, branchFilter, state.educationLevel)
   );
 
   if (!hw) {
@@ -1070,7 +1082,7 @@ function openEditOrCreateHomework(dateStr, dayName) {
       title: `${dayName} Ödevi`,
       description: '',
       dueDate: dateStr,
-      branch: (state.educationLevel === 'middle') ? branchFilter : ''
+      branch: (state.educationLevel === 'middle') ? (branchFilter === 'all' ? '' : branchFilter) : ''
     });
   }
 
@@ -1082,6 +1094,13 @@ function openEditOrCreateHomework(dateStr, dayName) {
   modalHomeworkTitle.textContent = `${dayName} Günü Ödev Detayları`;
   modalHomework.classList.add('active');
 }
+
+// Buluttan / El Terminalinden canlı ödev veya veri değişikliği geldiğinde tabloyu anında güncelle
+document.addEventListener('stateChanged', () => {
+  if (typeof renderHomeworkMatrix === 'function') {
+    renderHomeworkMatrix();
+  }
+});
 
 window.setupHomeworkTab = setupHomeworkTab;
 window.renderHomeworkMatrix = renderHomeworkMatrix;

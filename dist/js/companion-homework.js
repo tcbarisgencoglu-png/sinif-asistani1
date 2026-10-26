@@ -38,7 +38,15 @@
     },
 
     getActiveSection() {
-      return (window.Companion && window.Companion.activeSection) || '5-A';
+      if (window.Companion && window.Companion.activeSection) {
+        return window.Companion.activeSection;
+      }
+      const data = this.getData();
+      const students = Array.isArray(data.students) ? data.students : [];
+      if (students.length > 0 && students[0].branch) {
+        return students[0].branch;
+      }
+      return '5-A';
     },
 
     // Modülü Başlat (Sayfa açıldığında veya Şube değiştiğinde)

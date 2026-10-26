@@ -1570,18 +1570,22 @@
           return matchDate && matchBranch;
         });
 
+        const allStudents = window.stateManager.state.students || [];
+        const fallbackBranch = (allStudents.length > 0 && allStudents[0].branch) ? allStudents[0].branch : '';
+        const effectiveBranch = isPrimary ? '' : (branch || fallbackBranch);
+
         if (!hw) {
           hw = window.stateManager.addHomework({
             title: title,
             description: 'El terminalinden günlük kontrol',
             dueDate: dateStr,
-            branch: isPrimary ? '' : branch
+            branch: effectiveBranch
           });
-        } else if (title && hw.title !== title) {
-          hw.title = title;
+        } else {
+          if (title && hw.title !== title) hw.title = title;
+          if (!hw.branch && effectiveBranch) hw.branch = effectiveBranch;
         }
 
-        const allStudents = window.stateManager.state.students || [];
         for (const stuId in statusMap) {
           const status = statusMap[stuId];
           const matched = this.resolveDesktopStudent(stuId, '', '', allStudents);
@@ -1597,6 +1601,9 @@
         document.dispatchEvent(new CustomEvent('stateChanged'));
         if (typeof window.renderDashboard === 'function') {
           window.renderDashboard();
+        }
+        if (typeof window.renderHomeworkMatrix === 'function') {
+          window.renderHomeworkMatrix();
         }
         this.playDesktopLiveChime();
         const toastMsg = `📱 El Terminalinden Canlı Ödev: ${branch || 'Sınıf'} (${title})`;
@@ -2011,6 +2018,9 @@
                 const matched = this.resolveDesktopStudent(sKey, '', '', allStudents);
                 const targetId = matched ? matched.id : sKey;
                 existing.status[targetId] = cloudHw.status[sKey];
+                if (window.stateManager && typeof window.stateManager.updateHomeworkStatus === 'function') {
+                  window.stateManager.updateHomeworkStatus(existing.id, targetId, cloudHw.status[sKey]);
+                }
               });
               stateModified = true;
             }
@@ -2066,6 +2076,7 @@
           window.stateManager.saveState('El Terminalinden Veriler Eşitlendi');
           document.dispatchEvent(new CustomEvent('stateChanged'));
           if (typeof window.renderDashboard === 'function') window.renderDashboard();
+          if (typeof window.renderHomeworkMatrix === 'function') window.renderHomeworkMatrix();
           if (typeof window.renderWeeklyEvaluations === 'function') window.renderWeeklyEvaluations();
           if (typeof window.renderExamsList === 'function') window.renderExamsList();
           if (window.activeWeeklyExam) {
