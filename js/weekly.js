@@ -5329,9 +5329,6 @@ Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi ve
       </div>
     `;
   }
-      </div>
-    `;
-  }
 
   // Vektörel Köşe Referans Çapası (Yazıcı/Tarayıcı Dostu SVG - Asla Silinmez ve Yüksek Kontrastlı)
   function renderCornerAnchorSVG(posClass) {
