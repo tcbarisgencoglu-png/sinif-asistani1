@@ -180,13 +180,14 @@ try {
   results.push({ file: 'index.html', status: '❌', detail: e.message });
 }
 
-// H. mobile.html (Kullanım Kılavuzu & Drawer Sürüm Metni)
+// H. mobile.html (El Terminali Rozeti & Ayarlar Sürüm Metni)
 try {
   if (fs.existsSync(PATHS.mobileHtml)) {
     let mobileHtml = fs.readFileSync(PATHS.mobileHtml, 'utf8');
-    mobileHtml = mobileHtml.replace(/Versiyon:\s*<strong>v[^<]+<\/strong>/g, `Versiyon: <strong>v${targetVer}</strong>`);
+    mobileHtml = mobileHtml.replace(/id="companion-version-badge"[^>]*>v[^<]+<\/span>/g, `id="companion-version-badge" style="font-size: 10px; background: rgba(255,255,255,0.22); padding: 1.5px 7px; border-radius: 999px; font-weight: 700; color: #fff; margin-left: 6px; letter-spacing: 0.3px;">v${targetVer}</span>`);
+    mobileHtml = mobileHtml.replace(/id="settings-modal-version"[^>]*>v[^<]+<\/span>/g, `id="settings-modal-version" style="color: #4f46e5; font-weight: 800;">v${targetVer}</span>`);
     fs.writeFileSync(PATHS.mobileHtml, mobileHtml, 'utf8');
-    results.push({ file: 'mobile.html', status: '✅', detail: `Versiyon: v${targetVer}` });
+    results.push({ file: 'mobile.html', status: '✅', detail: `El Terminali Rozeti: v${targetVer}` });
   }
 } catch (e) {
   results.push({ file: 'mobile.html', status: '❌', detail: e.message });
