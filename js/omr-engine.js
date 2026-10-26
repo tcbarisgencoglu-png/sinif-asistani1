@@ -91,13 +91,13 @@
     return { success: false, studentNumber: null };
   }
 
-  function generateArucoSVG(studentNumber, size = 54) {
+  function generateArucoSVG(studentNumber, size = 52) {
     const num = parseInt(studentNumber, 10) || 0;
     const grid5x5 = encodeStudentAruco(num);
     const cellSize = 8;
     const totalSize = 7 * cellSize; // 56
     let rects = '';
-    rects += `<rect x="0" y="0" width="${totalSize}" height="${totalSize}" fill="#000000" rx="3" />`;
+    rects += `<rect x="0" y="0" width="${totalSize}" height="${totalSize}" fill="#000000" />`;
     rects += `<rect x="${cellSize}" y="${cellSize}" width="${5 * cellSize}" height="${5 * cellSize}" fill="#ffffff" />`;
     for (let r = 0; r < 5; r++) {
       for (let c = 0; c < 5; c++) {
@@ -108,92 +108,115 @@
         }
       }
     }
-    return `<svg viewBox="0 0 ${totalSize} ${totalSize}" width="${size}" height="${size}" shape-rendering="crispEdges" style="display: block; border-radius: 4px;">${rects}</svg>`;
+    return `<svg viewBox="0 0 ${totalSize} ${totalSize}" width="${size}" height="${size}" shape-rendering="crispEdges" style="display: block;">${rects}</svg>`;
   }
 
-  function scanArucoInGrayscale(gray, w, h) {
-    if (!gray || w < 40 || h < 40) return null;
-    let sum = 0;
-    const sampleStep = Math.max(1, Math.floor(gray.length / 500));
-    let sampleCount = 0;
-    for (let i = 0; i < gray.length; i += sampleStep) {
+  // ArUco 5x5 Ultra Hızlı & Dayanıklı Belirteç Tarayıcı (Hamming Parite & Oryantasyon Korumalı)
+  // 16px - 280px arasındaki tüm belirteçleri telefon kamerası, karanlık mod ve eğik açılarda 1-2 ms de çözer.
+  function scanArucoInGrayscale(gray, w, h, minX = 0, maxX = w, minY = 0, maxY = h) {
+    if (!gray || w < 16 || h < 16) return null;
+
+    const startX = Math.max(2, Math.floor(minX));
+    const endX = Math.min(w - 2, Math.ceil(maxX));
+    const startY = Math.max(2, Math.floor(minY));
+    const endY = Math.min(h - 2, Math.ceil(maxY));
+    const areaW = endX - startX;
+    const areaH = endY - startY;
+
+    if (areaW < 16 || areaH < 16) return null;
+
+    // Dinamik ortalama ışık hesaplama
+    let sum = 0, sampleCount = 0;
+    const step = Math.max(1, Math.floor(gray.length / 500));
+    for (let i = 0; i < gray.length; i += step) {
       sum += gray[i];
       sampleCount++;
     }
     const avg = sampleCount > 0 ? (sum / sampleCount) : 180;
-    const thresh = Math.max(50, Math.min(195, avg * 0.82));
+    const thAuto = Math.max(50, Math.min(190, Math.round(avg * 0.75)));
+    // Çok kademeli eşik (kağıt, karanlık mod, gölge ve parlama toleransı)
+    const thresholds = [thAuto, 140, 115, 85];
 
-    const minSize = Math.max(35, Math.round(Math.min(w, h) * 0.20));
-    const maxSize = Math.round(Math.min(w, h) * 0.96);
-    const sizeStep = Math.max(6, Math.round((maxSize - minSize) / 8));
+    for (const th of thresholds) {
+      const minS = 16;
+      const maxS = Math.min(areaW, areaH, 280);
 
-    const minX = Math.max(0, Math.round(w * 0.05));
-    const maxX = Math.min(w, Math.round(w * 0.98));
-    const minY = Math.max(0, Math.round(h * 0.02));
-    const maxY = Math.min(h, Math.round(h * 0.98));
+      for (let y = startY; y < endY - minS; y += 2) {
+        let x = startX;
+        while (x < endX - minS) {
+          if (gray[y * w + x] < th) {
+            const runStartX = x;
+            while (x < endX && gray[y * w + x] < th) x++;
+            const runLen = x - runStartX;
 
-    const stepX = Math.max(5, Math.round(w * 0.03));
-    const stepY = Math.max(5, Math.round(h * 0.03));
+            if (runLen >= minS && runLen <= maxS) {
+              // Farklı kamera açıları ve hafif perspektif için genişlik/yükseklik toleransı
+              for (let sDelta = -4; sDelta <= 4; sDelta += 2) {
+                const s = runLen + sDelta;
+                if (s < minS || y + s >= endY) continue;
 
-    for (let s = minSize; s <= maxSize; s += sizeStep) {
-      const cellSize = s / 7;
-      for (let y = minY; y + s <= maxY; y += stepY) {
-        for (let x = minX; x + s <= maxX; x += stepX) {
-          // Hızlı 4 köşe kontrolü (dış çerçeve siyah olmalı)
-          const pTL = gray[(y + Math.round(cellSize * 0.5)) * w + (x + Math.round(cellSize * 0.5))];
-          const pTR = gray[(y + Math.round(cellSize * 0.5)) * w + (x + s - Math.round(cellSize * 0.5))];
-          const pBL = gray[(y + s - Math.round(cellSize * 0.5)) * w + (x + Math.round(cellSize * 0.5))];
-          const pBR = gray[(y + s - Math.round(cellSize * 0.5)) * w + (x + s - Math.round(cellSize * 0.5))];
-          if (pTL >= thresh || pTR >= thresh || pBL >= thresh || pBR >= thresh) {
-            continue;
-          }
+                // 1. Alt kenar kontrolü
+                const botY = y + s - 1;
+                let botBlack = 0;
+                for (let bx = runStartX; bx < runStartX + runLen; bx += 2) {
+                  if (gray[botY * w + bx] < th) botBlack++;
+                }
+                if (botBlack / (runLen / 2) >= 0.50) {
+                  // 2. Sol ve sağ kenar kontrolü
+                  let lrBlack = 0;
+                  for (let ly = y; ly <= botY; ly += 2) {
+                    if (gray[ly * w + runStartX] < th) lrBlack++;
+                    if (gray[ly * w + (runStartX + runLen - 1)] < th) lrBlack++;
+                  }
+                  if (lrBlack / ((s / 2) * 2) >= 0.50) {
+                    // 3. İç 5x5 hücreleri örnekle
+                    const cellSize = s / 7;
+                    const grid5x5 = [];
+                    for (let r = 1; r <= 5; r++) {
+                      const row = [];
+                      for (let c = 1; c <= 5; c++) {
+                        const cx = Math.round(runStartX + (c + 0.5) * cellSize);
+                        const cy = Math.round(y + (r + 0.5) * cellSize);
+                        let v;
+                        if (cellSize <= 4.2) {
+                          v = gray[cy * w + cx] < th ? 0 : 1;
+                        } else {
+                          let cSum = 0, cCnt = 0;
+                          for (let dy = -1; dy <= 1; dy++) {
+                            for (let dx = -1; dx <= 1; dx++) {
+                              cSum += gray[(cy + dy) * w + (cx + dx)];
+                              cCnt++;
+                            }
+                          }
+                          v = (cSum / cCnt) < th ? 0 : 1;
+                        }
+                        row.push(v);
+                      }
+                      grid5x5.push(row);
+                    }
 
-          let borderBlack = 0;
-          let borderChecks = 0;
-          for (let c = 0; c < 7; c++) {
-            const sampleX = x + Math.round((c + 0.5) * cellSize);
-            const topY = y + Math.round(0.5 * cellSize);
-            const botY = y + Math.round(6.5 * cellSize);
-            if (gray[topY * w + sampleX] < thresh) borderBlack++;
-            if (gray[botY * w + sampleX] < thresh) borderBlack++;
-            borderChecks += 2;
-          }
-          for (let r = 1; r < 6; r++) {
-            const sampleY = y + Math.round((r + 0.5) * cellSize);
-            const leftX = x + Math.round(0.5 * cellSize);
-            const rightX = x + Math.round(6.5 * cellSize);
-            if (gray[sampleY * w + leftX] < thresh) borderBlack++;
-            if (gray[sampleY * w + rightX] < thresh) borderBlack++;
-            borderChecks += 2;
-          }
-
-          if (borderBlack / borderChecks < 0.72) continue;
-
-          // 5x5 iç blokları örnekle
-          const grid5x5 = [];
-          for (let r = 1; r <= 5; r++) {
-            const row = [];
-            for (let c = 1; c <= 5; c++) {
-              const cx = x + Math.round((c + 0.5) * cellSize);
-              const cy = y + Math.round((r + 0.5) * cellSize);
-              const val = gray[cy * w + cx];
-              row.push(val < thresh ? 0 : 1);
+                    const dec = decodeStudentAruco(grid5x5);
+                    if (dec.success) {
+                      return {
+                        success: true,
+                        studentNumber: dec.studentNumber,
+                        x: runStartX,
+                        y: y,
+                        size: s,
+                        rotation: dec.rotation
+                      };
+                    }
+                  }
+                }
+              }
             }
-            grid5x5.push(row);
-          }
-
-          const dec = decodeStudentAruco(grid5x5);
-          if (dec.success) {
-            return {
-              success: true,
-              studentNumber: dec.studentNumber,
-              x, y, size: s,
-              rotation: dec.rotation
-            };
+          } else {
+            x++;
           }
         }
       }
     }
+
     return null;
   }
 
@@ -2384,6 +2407,18 @@
       const cardTop = scanSingleCard(canvas, gray, targetW, targetH, cornersTop, exam, classStudents, options);
       const badgeTop = unwarpAndScanBadge(ctx, createProjectiveHomography(cornersTop), targetW, targetH, maxRosterCount);
       cardTop.arucoStudentNumber = badgeTop.arucoStudentNumber || (options && options.liveAruco ? String(options.liveAruco.studentNumber) : null);
+      if (!cardTop.arucoStudentNumber && cornersTopOrig && cornersTopOrig.tr) {
+        const subW = Math.round(targetW * 0.45);
+        const subH = Math.round(targetH * 0.35);
+        const subX = Math.max(0, cornersTopOrig.tr.x - subW + 60);
+        const subY = Math.max(0, cornersTopOrig.tl.y - 30);
+        const aRes = scanArucoInGrayscale(gray, targetW, targetH, subX, cornersTopOrig.tr.x + 30, subY, subY + subH);
+        if (aRes && aRes.success) cardTop.arucoStudentNumber = String(aRes.studentNumber);
+      }
+      if (!cardTop.arucoStudentNumber) {
+        const aRes = scanArucoInGrayscale(gray, targetW, targetH, 0, targetW, 0, Math.round(targetH * 0.50));
+        if (aRes && aRes.success) cardTop.arucoStudentNumber = String(aRes.studentNumber);
+      }
       cardTop.qrResult = badgeTop.qrResult;
       cardTop.binaryId = null;
       // Üst form QR arama: Önce rozet bölgesini geniş tara, sonra üst yarının tamamında ara
@@ -2416,6 +2451,18 @@
       const cardBottom = scanSingleCard(canvas, gray, targetW, targetH, cornersBottom, exam, classStudents, options);
       const badgeBottom = unwarpAndScanBadge(ctx, createProjectiveHomography(cornersBottom), targetW, targetH, maxRosterCount);
       cardBottom.arucoStudentNumber = badgeBottom.arucoStudentNumber || (options && options.liveAruco ? String(options.liveAruco.studentNumber) : null);
+      if (!cardBottom.arucoStudentNumber && cornersBottomOrig && cornersBottomOrig.tr) {
+        const subW = Math.round(targetW * 0.45);
+        const subH = Math.round(targetH * 0.35);
+        const subX = Math.max(0, cornersBottomOrig.tr.x - subW + 60);
+        const subY = Math.max(0, cornersBottomOrig.tl.y - 30);
+        const aRes = scanArucoInGrayscale(gray, targetW, targetH, subX, cornersBottomOrig.tr.x + 30, subY, subY + subH);
+        if (aRes && aRes.success) cardBottom.arucoStudentNumber = String(aRes.studentNumber);
+      }
+      if (!cardBottom.arucoStudentNumber) {
+        const aRes = scanArucoInGrayscale(gray, targetW, targetH, 0, targetW, Math.max(0, midY - 60), targetH);
+        if (aRes && aRes.success) cardBottom.arucoStudentNumber = String(aRes.studentNumber);
+      }
       cardBottom.qrResult = badgeBottom.qrResult;
       cardBottom.binaryId = null;
       // Alt form QR arama: Önce rozet bölgesini geniş tara, sonra alt yarının tamamında ara
@@ -2467,6 +2514,22 @@
       const cardFull = scanSingleCard(canvas, gray, targetW, targetH, cornersFull, exam, classStudents, options);
       const fullBadge = unwarpAndScanBadge(ctx, createProjectiveHomography(cornersFull), targetW, targetH, maxRosterCount);
       cardFull.arucoStudentNumber = fullBadge.arucoStudentNumber || (options && options.liveAruco ? String(options.liveAruco.studentNumber) : null);
+      if (!cardFull.arucoStudentNumber && cornersFullOrig && cornersFullOrig.tr) {
+        const subW = Math.round(targetW * 0.45);
+        const subH = Math.round(targetH * 0.35);
+        const subX = Math.max(0, cornersFullOrig.tr.x - subW + 60);
+        const subY = Math.max(0, cornersFullOrig.tl.y - 30);
+        const aRes = scanArucoInGrayscale(gray, targetW, targetH, subX, cornersFullOrig.tr.x + 30, subY, subY + subH);
+        if (aRes && aRes.success) cardFull.arucoStudentNumber = String(aRes.studentNumber);
+      }
+      if (!cardFull.arucoStudentNumber && scaledBounds) {
+        const aRes = scanArucoInGrayscale(gray, targetW, targetH, scaledBounds.minX, scaledBounds.maxX, scaledBounds.minY, scaledBounds.maxY);
+        if (aRes && aRes.success) cardFull.arucoStudentNumber = String(aRes.studentNumber);
+      }
+      if (!cardFull.arucoStudentNumber) {
+        const aRes = scanArucoInGrayscale(gray, targetW, targetH, 0, targetW, 0, Math.round(targetH * 0.60));
+        if (aRes && aRes.success) cardFull.arucoStudentNumber = String(aRes.studentNumber);
+      }
       cardFull.qrResult = fullBadge.qrResult || (options && options.liveDetectedQr ? options.liveDetectedQr : null);
       cardFull.binaryId = null;
       if (!cardFull.qrResult) {

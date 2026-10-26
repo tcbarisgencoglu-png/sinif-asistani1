@@ -3236,12 +3236,12 @@
 
       let arucoSvg = '';
       if (window.OmrEngine && typeof window.OmrEngine.generateArucoSVG === 'function') {
-        arucoSvg = window.OmrEngine.generateArucoSVG(num, 48);
+        arucoSvg = window.OmrEngine.generateArucoSVG(num, 50);
       } else {
         const cellSize = 8;
         const totalSize = 56;
-        let rects = `<rect x="0" y="0" width="${totalSize}" height="${totalSize}" fill="#000000" rx="3" /><rect x="8" y="8" width="40" height="40" fill="#ffffff" />`;
-        arucoSvg = `<svg viewBox="0 0 ${totalSize} ${totalSize}" width="48" height="48" shape-rendering="crispEdges" style="display: block; border-radius: 4px;">${rects}</svg>`;
+        let rects = `<rect x="0" y="0" width="${totalSize}" height="${totalSize}" fill="#000000" /><rect x="8" y="8" width="40" height="40" fill="#ffffff" />`;
+        arucoSvg = `<svg viewBox="0 0 ${totalSize} ${totalSize}" width="50" height="50" shape-rendering="crispEdges" style="display: block;">${rects}</svg>`;
       }
 
       const isNamed = studentNo && studentNo !== '......' && studentNo !== '-';
@@ -3249,12 +3249,12 @@
 
       return `
         <div class="omr-id-badge omr-aruco-badge" title="Öğrenci ArUco Kimlik Kodu: ${caption}">
-          <div class="omr-binary-strip-wrap" style="background: #ffffff; padding: 3px 6px; display: flex; flex-direction: column; align-items: center; border: 2px solid #000000; border-radius: 6px; box-sizing: border-box;">
-            <div style="font-size: 0.46rem; font-weight: 800; color: #000000; letter-spacing: 0.5px; margin-bottom: 2px; text-transform: uppercase;">KİMLİK ARMASI</div>
-            <div style="width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; overflow: hidden;">
+          <div class="omr-binary-strip-wrap" style="background: #ffffff; padding: 4px 6px; display: flex; flex-direction: column; align-items: center; border: 2px solid #000000; border-radius: 4px; box-sizing: border-box;">
+            <div style="font-size: 0.46rem; font-weight: 800; color: #000000; letter-spacing: 0.5px; margin-bottom: 3px; text-transform: uppercase;">KİMLİK ARMASI</div>
+            <div style="width: 50px; height: 50px; display: flex; align-items: center; justify-content: center; overflow: hidden;">
               ${arucoSvg}
             </div>
-            <div class="omr-id-caption" style="font-size: 0.62rem; font-weight: 800; font-family: monospace; color: #000000; margin-top: 2px;">
+            <div class="omr-id-caption" style="font-size: 0.62rem; font-weight: 800; font-family: monospace; color: #000000; margin-top: 4px;">
               ${caption}
             </div>
           </div>
