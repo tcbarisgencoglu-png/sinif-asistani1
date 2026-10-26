@@ -2107,202 +2107,17 @@
         }
       }
 
-      // 2. 9-Bit Binary OMR Matrisi (3x3 kutucuk)
-      let binaryId = null;
-      let bestContrast = 0;
-      const effectiveMaxIdx = (maxValidIdx && maxValidIdx > 0) ? maxValidIdx : 50;
-      const bGray = new Uint8Array(badgeW * badgeH);
-      for (let i = 0, p = 0; i < bData.length; i += 4, p++) {
-        bGray[p] = (bData[i] * 77 + bData[i + 1] * 150 + bData[i + 2] * 29) >> 8;
-      }
-
-      for (let side = 40; side <= 120; side += 4) {
-        for (let y = 10; y <= badgeH - side - 5; y += 4) {
-          for (let x = 5; x <= Math.round(badgeW * 0.60) - side; x += 4) {
-            const cw = side / 3.0;
-            const ch = side / 3.0;
-            const sR = Math.max(1, Math.round(cw * 0.18));
-            const cells = [];
-
-            for (let r = 0; r < 3; r++) {
-              for (let c = 0; c < 3; c++) {
-                const cx = Math.round(x + (c + 0.5) * cw);
-                const cy = Math.round(y + (r + 0.5) * ch);
-                let sum = 0, cnt = 0;
-                for (let ddy = -sR; ddy <= sR; ddy++) {
-                  for (let ddx = -sR; ddx <= sR; ddx++) {
-                    const px = cx + ddx;
-                    const py = cy + ddy;
-                    if (px >= 0 && px < badgeW && py >= 0 && py < badgeH) {
-                      sum += bGray[py * badgeW + px];
-                      cnt++;
-                    }
-                  }
-                }
-                cells.push(cnt > 0 ? (sum / cnt) : 255);
-              }
-            }
-
-            const minL = Math.min(...cells);
-            const maxL = Math.max(...cells);
-            const contrast = maxL - minL;
-            if (contrast >= 65 && contrast > bestContrast) {
-              const thresh = (minL + maxL) * 0.5;
-              let decoded = 0;
-              for (let i = 0; i < 9; i++) {
-                if (cells[i] < thresh) decoded |= (1 << i);
-              }
-              if (decoded > 0 && decoded <= effectiveMaxIdx) {
-                bestContrast = contrast;
-                binaryId = decoded;
-              }
-            }
-          }
-        }
-      }
-
-      return { qrResult: qrRes, binaryId: binaryId };
+      // Öğrenci kimliği Reed-Solomon hata düzeltmeli Micro-QR kod üzerinden %100 kesinlikle doğrulanır.
+      // Sahte OMR eşleştirmelerini engellemek için binaryId null döndürülür.
+      return { qrResult: qrRes, binaryId: null };
     }
 
-    // ── YENİ: OPTİK BINARY ID DEDEKTÖRÜ (BÜYÜK 3x3 OMR MATRİSİ - 9 BİT / 512 ÖĞRENCİ) ──
-    // Ortaöğretim ve kalabalık kademeler için 511 öğrenciye kadar tam kapasite destekler.
-    // Kart başlığında (0.65 - 0.98 U, -0.03 - 0.25 V) 3x3 kutucuk rozetini dinamik tespit eder.
+    // ── GÜVENLİ ÖĞRENCİ TANIMA: KONTROLSÜZ OMR YERİNE %100 KESİN QR DOĞRULAMA ──
+    // Kontrolsüz 3x3 kutucuk taraması, rozetteki QR kodun siyah modüllerini veya başlık yazılarını
+    // sahte bir binary numara (1, 2, 3, 4) sanarak yanlış öğrenci eşleştirmesine yol açtığı için devre dışı bırakılmıştır.
+    // Öğrenci kimlik doğrulaması Reed-Solomon hata düzeltmeli QR kod üzerinden hatasız yapılır.
     function detectBinaryIdInCard(grayBuf, imgW, imgH, cardCorners, maxValidIdx = 50) {
-      if (!cardCorners || !cardCorners.tl || !cardCorners.tr || !cardCorners.bl) return null;
-      const effectiveMaxIdx = (maxValidIdx && maxValidIdx > 0) ? maxValidIdx : 50;
-
-      // 1. Homografi ile doğrudan kalibre edilmiş 3x3 OMR bölgesi örneği
-      if (typeof createProjectiveHomography === 'function') {
-        const mapFn = createProjectiveHomography(cardCorners);
-        const uStart = 0.810, uEnd = 0.880;
-        const vStart = 0.045, vEnd = 0.160;
-        let bestDirectDecoded = null, bestDirectContrast = 0;
-
-        for (let dv = -0.015; dv <= 0.025; dv += 0.003) {
-          for (let du = -0.020; du <= 0.020; du += 0.003) {
-            const curU0 = uStart + du, curU1 = uEnd + du;
-            const curV0 = vStart + dv, curV1 = vEnd + dv;
-            const cw = (curU1 - curU0) / 3;
-            const ch = (curV1 - curV0) / 3;
-            const cells = [];
-
-            for (let r = 0; r < 3; r++) {
-              for (let c = 0; c < 3; c++) {
-                const pt = mapFn(curU0 + (c + 0.5) * cw, curV0 + (r + 0.5) * ch);
-                let sum = 0, count = 0;
-                for (let dy = -2; dy <= 2; dy++) {
-                  for (let dx = -2; dx <= 2; dx++) {
-                    const px = pt.x + dx, py = pt.y + dy;
-                    if (px >= 0 && px < imgW && py >= 0 && py < imgH) {
-                      sum += grayBuf[py * imgW + px];
-                      count++;
-                    }
-                  }
-                }
-                cells.push(count > 0 ? (sum / count) : 255);
-              }
-            }
-            const minL = Math.min(...cells);
-            const maxL = Math.max(...cells);
-            const contrast = maxL - minL;
-            if (contrast >= 65 && contrast > bestDirectContrast) {
-              const thresh = (minL + maxL) * 0.5;
-              let dec = 0;
-              for (let i = 0; i < 9; i++) {
-                if (cells[i] < thresh) dec |= (1 << i);
-              }
-              if (dec > 0 && dec <= effectiveMaxIdx) {
-                bestDirectContrast = contrast;
-                bestDirectDecoded = dec;
-              }
-            }
-          }
-        }
-        if (bestDirectDecoded) return bestDirectDecoded;
-      }
-
-      const cardW = Math.hypot(cardCorners.tr.x - cardCorners.tl.x, cardCorners.tr.y - cardCorners.tl.y);
-      const cardH = Math.hypot(cardCorners.bl.x - cardCorners.tl.x, cardCorners.bl.y - cardCorners.tl.y);
-      if (cardW < 50 || cardH < 50) return null;
-
-      // 3x3 OMR matrisi başlık bölgesinde, sağ çeyrekte (0.65 - 0.98 U) ve üst kısımda (-0.03 - 0.25 V) bulunur
-      const minX = Math.max(0, Math.round(cardCorners.tl.x + cardW * 0.65));
-      const maxX = Math.min(imgW - 1, Math.round(cardCorners.tl.x + cardW * 0.98));
-      const minY = Math.max(0, Math.round(cardCorners.tl.y - cardH * 0.03));
-      const maxY = Math.min(imgH - 1, Math.round(cardCorners.tl.y + cardH * 0.25));
-
-      // Boyut: cardW * 0.04 ile cardW * 0.10 arası
-      const minSide = Math.max(16, Math.round(cardW * 0.04));
-      const maxSide = Math.max(minSide + 6, Math.round(cardW * 0.10));
-
-      let bestCandidate = null;
-
-      for (let y = minY; y <= maxY - minSide; y += 1) {
-        for (let x = minX; x <= maxX - minSide; x += 1) {
-          for (let side = minSide; side <= maxSide; side += 2) {
-            if (x + side >= maxX || y + side >= maxY) continue;
-
-            let topD = 0, botD = 0, leftD = 0, rightD = 0;
-            for (let dx = 0; dx < side; dx++) {
-              if (grayBuf[y * imgW + (x + dx)] < 145) topD++;
-              if (grayBuf[(y + side) * imgW + (x + dx)] < 145) botD++;
-            }
-            for (let dy = 0; dy < side; dy++) {
-              if (grayBuf[(y + dy) * imgW + x] < 145) leftD++;
-              if (grayBuf[(y + dy) * imgW + (x + side)] < 145) rightD++;
-            }
-
-            const borderScore = (topD + botD + leftD + rightD) / (4 * side);
-            if (borderScore >= 0.55) {
-              // 3x3 hücreleri incele
-              const cw = side / 3.0;
-              const ch = side / 3.0;
-              const sR = Math.max(1, Math.round(cw * 0.20));
-              const cells = [];
-
-              for (let r = 0; r < 3; r++) {
-                for (let c = 0; c < 3; c++) {
-                  const cx = x + (c + 0.5) * cw;
-                  const cy = y + (r + 0.5) * ch;
-                  let sum = 0, cnt = 0;
-                  for (let ddy = -sR; ddy <= sR; ddy++) {
-                    for (let ddx = -sR; ddx <= sR; ddx++) {
-                      const px = Math.round(cx + ddx);
-                      const py = Math.round(cy + ddy);
-                      if (px >= 0 && px < imgW && py >= 0 && py < imgH) {
-                        sum += grayBuf[py * imgW + px];
-                        cnt++;
-                      }
-                    }
-                  }
-                  cells.push(cnt > 0 ? (sum / cnt) : 255);
-                }
-              }
-
-              const minL = Math.min(...cells);
-              const maxL = Math.max(...cells);
-              const contrast = maxL - minL;
-
-              if (contrast >= 65) {
-                const thresh = (minL + maxL) * 0.5;
-                let decoded = 0;
-                for (let i = 0; i < 9; i++) {
-                  if (cells[i] < thresh) decoded |= (1 << i);
-                }
-
-                if (decoded > 0 && decoded <= effectiveMaxIdx) {
-                  const totalScore = borderScore * 0.5 + (contrast / 255) * 0.5;
-                  if (!bestCandidate || totalScore > bestCandidate.totalScore) {
-                    bestCandidate = { x, y, side, decoded, totalScore, borderScore, contrast };
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-
-      return bestCandidate ? bestCandidate.decoded : null;
+      return null;
     }
 
     // Sayfada 2 form var mı? (A4 Sayfa Başına 2 Form Tespiti)
@@ -2373,7 +2188,7 @@
         br: { ...cornersTop.br }
       };
       const cardTop = scanSingleCard(canvas, gray, targetW, targetH, cornersTop, exam, classStudents, options);
-      cardTop.binaryId = detectBinaryIdInCard(gray, targetW, targetH, cornersTopOrig, maxRosterCount);
+      cardTop.binaryId = null;
       // Üst form QR arama: Önce rozet bölgesini geniş tara, sonra üst yarının tamamında ara
       if (cornersTopOrig && cornersTopOrig.tr) {
         const subW = Math.round(targetW * 0.45);
@@ -2384,6 +2199,9 @@
       }
       if (!cardTop.qrResult) {
         cardTop.qrResult = scanQrInRegion(ctx, 0, 0, targetW, Math.min(targetH, midY + 60));
+      }
+      if (!cardTop.qrResult && options && options.liveDetectedQr) {
+        cardTop.qrResult = options.liveDetectedQr;
       }
 
       if (!cornersBottom || !isSubFormGeometricallyValid(cornersBottom, targetW, targetH)) {
@@ -2399,7 +2217,7 @@
         br: { ...cornersBottom.br }
       };
       const cardBottom = scanSingleCard(canvas, gray, targetW, targetH, cornersBottom, exam, classStudents, options);
-      cardBottom.binaryId = detectBinaryIdInCard(gray, targetW, targetH, cornersBottomOrig, maxRosterCount);
+      cardBottom.binaryId = null;
       // Alt form QR arama: Önce rozet bölgesini geniş tara, sonra alt yarının tamamında ara
       if (cornersBottomOrig && cornersBottomOrig.tr) {
         const subW = Math.round(targetW * 0.45);
@@ -2410,6 +2228,9 @@
       }
       if (!cardBottom.qrResult) {
         cardBottom.qrResult = scanQrInRegion(ctx, 0, Math.max(0, midY - 60), targetW, targetH - Math.max(0, midY - 60));
+      }
+      if (!cardBottom.qrResult && options && options.liveDetectedQr) {
+        cardBottom.qrResult = options.liveDetectedQr;
       }
 
       detectedCards.push(cardTop, cardBottom);
@@ -2445,8 +2266,8 @@
       };
       const cardFull = scanSingleCard(canvas, gray, targetW, targetH, cornersFull, exam, classStudents, options);
       const fullBadge = unwarpAndScanBadge(ctx, createProjectiveHomography(cornersFull), targetW, targetH, maxRosterCount);
-      cardFull.qrResult = fullBadge.qrResult;
-      cardFull.binaryId = detectBinaryIdInCard(gray, targetW, targetH, cornersFullOrig, maxRosterCount) || fullBadge.binaryId;
+      cardFull.qrResult = fullBadge.qrResult || (options && options.liveDetectedQr ? options.liveDetectedQr : null);
+      cardFull.binaryId = null;
       if (!cardFull.qrResult) {
         if (cornersFullOrig && cornersFullOrig.tr) {
           const subW = Math.round(targetW * 0.45);
@@ -2461,19 +2282,21 @@
         if (!cardFull.qrResult) {
           cardFull.qrResult = scanQrInRegion(ctx, 0, 0, targetW, targetH);
         }
+        if (!cardFull.qrResult && options && options.liveDetectedQr) {
+          cardFull.qrResult = options.liveDetectedQr;
+        }
       }
-      if (!cardFull.binaryId && !cardFull.qrResult && scaledBounds) {
+      if (!cardFull.qrResult && scaledBounds) {
         // Eğer vizör sınırıyla bulunan köşelerden rozet / ID çözülemediyse, tüm kare üzerinden tekrar dene
         const globalCorners = detectCornerAnchors(gray, targetW, targetH, threshold, null);
         if (globalCorners) {
           const gCard = scanSingleCard(canvas, gray, targetW, targetH, globalCorners, exam, classStudents, options);
           const gBadge = unwarpAndScanBadge(ctx, createProjectiveHomography(globalCorners), targetW, targetH, maxRosterCount);
-          const gBinaryId = detectBinaryIdInCard(gray, targetW, targetH, globalCorners, maxRosterCount) || gBadge.binaryId;
-          if (gBinaryId || gBadge.qrResult) {
+          if (gBadge.qrResult) {
             cornersFull = globalCorners;
             cardFull = gCard;
-            cardFull.qrResult = gBadge.qrResult || cardFull.qrResult;
-            cardFull.binaryId = gBinaryId;
+            cardFull.qrResult = gBadge.qrResult;
+            cardFull.binaryId = null;
           }
         }
       }

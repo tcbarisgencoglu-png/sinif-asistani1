@@ -580,7 +580,7 @@
         const qr = qrcodeFn(0, 'M');
         qr.addData(`SA:${idx}:${studentNo || ''}`);
         qr.make();
-        qrSvgHtml = qr.createSvgTag(2, 0);
+        qrSvgHtml = qr.createSvgTag(2, 2);
         if (qrSvgHtml) {
           qrSvgHtml = qrSvgHtml.replace(/width="[^"]*"/, 'width="46"').replace(/height="[^"]*"/, 'height="46"');
         }

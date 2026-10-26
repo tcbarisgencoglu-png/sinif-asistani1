@@ -1518,9 +1518,14 @@
       const statusText = document.getElementById('omr-status-text');
 
       const fastCanvas = document.createElement('canvas');
-      fastCanvas.width = 640;
-      fastCanvas.height = 480;
+      fastCanvas.width = 960;
+      fastCanvas.height = 720;
       const fCtx = fastCanvas.getContext('2d', { willReadFrequently: true });
+
+      const subQrCanvas = document.createElement('canvas');
+      subQrCanvas.width = 440;
+      subQrCanvas.height = 360;
+      const subQrCtx = subQrCanvas.getContext('2d', { willReadFrequently: true });
 
       const loop = async () => {
         if (!this.isScanningLoop) return;
@@ -1533,13 +1538,26 @@
 
         if (video && video.readyState >= 2 && !video.paused) {
           try {
-            fCtx.drawImage(video, 0, 0, 640, 480);
-            const imgData = fCtx.getImageData(0, 0, 640, 480);
+            fCtx.drawImage(video, 0, 0, 960, 720);
+            const imgData = fCtx.getImageData(0, 0, 960, 720);
 
-            // QR Kod Doğrulaması (jsQR - attemptBoth)
+            // 1. QR Kod Doğrulaması (jsQR - 960x720 Çerçeve)
             let detectedQr = null;
             if (typeof window.jsQR === 'function') {
-              detectedQr = window.jsQR(imgData.data, 640, 480, { inversionAttempts: 'attemptBoth' });
+              detectedQr = window.jsQR(imgData.data, 960, 720, { inversionAttempts: 'attemptBoth' });
+
+              // 2. Eğer tam karede bulunamadıysa, rozetin bulunduğu sağ üst çeyreği tam video çözünürlüğünde tara
+              if (!detectedQr && video.videoWidth > 0 && subQrCtx) {
+                const vw = video.videoWidth;
+                const vh = video.videoHeight;
+                const cropW = Math.round(vw * 0.45);
+                const cropH = Math.round(vh * 0.45);
+                const cropX = Math.max(0, vw - cropW);
+                const cropY = 0;
+                subQrCtx.drawImage(video, cropX, cropY, cropW, cropH, 0, 0, 440, 360);
+                const subData = subQrCtx.getImageData(0, 0, 440, 360);
+                detectedQr = window.jsQR(subData.data, 440, 360, { inversionAttempts: 'attemptBoth' });
+              }
             }
 
             if (detectedQr && detectedQr.data) {
@@ -3232,7 +3250,7 @@
           const qr = qrcodeFn(0, 'M');
           qr.addData(`SA:${idx}:${studentNo || ''}`);
           qr.make();
-          qrSvgHtml = qr.createSvgTag(2, 0);
+          qrSvgHtml = qr.createSvgTag(2, 2);
           if (qrSvgHtml) {
             qrSvgHtml = qrSvgHtml.replace(/width="[^"]*"/, 'width="46"').replace(/height="[^"]*"/, 'height="46"');
           }
