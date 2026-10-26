@@ -34,6 +34,10 @@
     </div>
 
     <div class="c-appbar-right">
+      <!-- Yenile / Güncelle Butonu -->
+      <button class="c-icon-btn" id="btn-companion-refresh" title="Uygulamayı Güncelle / Yenile" onclick="window.Companion.forceReloadApp()">
+        <i data-lucide="rotate-cw" style="width: 18px; height: 18px;"></i>
+      </button>
       <!-- Ayarlar Butonu (YENİ) -->
       <button class="c-icon-btn" id="btn-companion-settings" title="Terminal Ayarları" onclick="window.Companion.openSettingsModal()">
         <i data-lucide="settings" style="width: 18px; height: 18px;"></i>
@@ -1362,6 +1366,14 @@
           <button type="button" class="c-btn-secondary" style="width: 100%; justify-content: center; gap: 6px; padding: 10px; font-size: 12px; font-weight: 700; border-color: #cbd5e1;" onclick="window.Companion.relaunchSetupWizard()">
             <i data-lucide="sparkles" style="width: 15px; height: 15px; color: #4f46e5;"></i>
             <span>Kurulum Sihirbazını Baştan Başlat</span>
+          </button>
+        </div>
+
+        <!-- Önbelleği Temizle ve Zorunlu Güncelle Butonu -->
+        <div style="margin-top: 8px;">
+          <button type="button" class="c-btn-secondary" style="width: 100%; justify-content: center; gap: 6px; padding: 10px; font-size: 12px; font-weight: 700; border-color: #cbd5e1; background: #ffffff;" onclick="window.Companion.forceReloadApp()">
+            <i data-lucide="rotate-cw" style="width: 15px; height: 15px; color: #0284c7;"></i>
+            <span>Önbelleği Temizle ve En Son Sürüme Yenile</span>
           </button>
         </div>
 

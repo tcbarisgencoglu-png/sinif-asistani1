@@ -70,6 +70,7 @@
     init() {
       this.loadProfile();
       this.bindEvents();
+      this.initPullToRefresh();
 
       // Bulut canlı dinleyicisini başlat (Masaüstüyle tam eşgüdüm)
       if (window.CloudSync && typeof window.CloudSync.startLiveListener === 'function') {
@@ -597,6 +598,44 @@
       if ((viewId === 'setup' || viewId === 'sync') && window.CloudSync) {
         window.CloudSync.updateSyncUI();
       }
+    },
+
+    // Uygulama Önbelleğini Temizle ve Zorunlu Yenile
+    async forceReloadApp() {
+      this.showToast('🔄 Önbellek temizleniyor ve güncelleniyor...', 'info', 2000);
+      try {
+        if ('caches' in window) {
+          const keys = await caches.keys();
+          await Promise.all(keys.map(k => caches.delete(k)));
+        }
+      } catch (e) {}
+      setTimeout(() => {
+        const cleanUrl = window.location.origin + window.location.pathname + '?r=' + Date.now();
+        window.location.replace(cleanUrl);
+      }, 300);
+    },
+
+    // Aşağı Çekerek Yenileme (Pull to Refresh Desteği)
+    initPullToRefresh() {
+      let startY = 0;
+      let isPulling = false;
+      window.addEventListener('touchstart', (e) => {
+        if (window.scrollY <= 5 && e.touches.length === 1) {
+          startY = e.touches[0].pageY;
+          isPulling = true;
+        } else {
+          isPulling = false;
+        }
+      }, { passive: true });
+
+      window.addEventListener('touchmove', (e) => {
+        if (!isPulling) return;
+        const currentY = e.touches[0].pageY;
+        if (currentY - startY > 110 && window.scrollY <= 5) {
+          isPulling = false;
+          this.forceReloadApp();
+        }
+      }, { passive: true });
     },
 
     // PIN Kilit Sistemi
