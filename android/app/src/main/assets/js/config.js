@@ -340,15 +340,22 @@
           item.style.display = 'flex';
           item.style.justifyContent = 'space-between';
           item.style.alignItems = 'center';
+          item.style.gap = '0.75rem';
+          item.style.flexWrap = 'wrap';
           item.style.borderRadius = '8px';
           item.style.border = '1px solid var(--border-color)';
           item.style.background = 'var(--bg-secondary)';
 
-          const stdCountText = b.studentCount !== undefined ? `(${b.studentCount} Öğrenci)` : '';
+          const detailsParts = [];
+          if (b.studentCount !== undefined) detailsParts.push(`${b.studentCount} Öğrenci`);
+          if (b.hwCount !== undefined && b.hwCount > 0) detailsParts.push(`${b.hwCount} Ödev Kaydı`);
+          if (b.perfCount !== undefined && b.perfCount > 0) detailsParts.push(`${b.perfCount} Puan`);
+          if (b.evalCount !== undefined && b.evalCount > 0) detailsParts.push(`${b.evalCount} Sınav`);
+          const stdCountText = detailsParts.length > 0 ? `(${detailsParts.join(' • ')})` : '';
           const badgeBg = b.badgeColor || '#10b981';
 
           item.innerHTML = `
-            <div>
+            <div style="flex: 1; min-width: 220px;">
               <div style="font-weight: 700; font-size: 0.88rem; color: var(--text-primary); display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
                 <span style="display: flex; align-items: center; gap: 4px;">
                   <i data-lucide="calendar" style="width: 14px; height: 14px; color: var(--text-muted);"></i>
@@ -363,31 +370,68 @@
                 ${b.reason || 'Kayıt noktası'} <strong style="color: var(--text-secondary);">${stdCountText}</strong>
               </div>
             </div>
-            <button type="button" class="btn btn-primary btn-sm restore-rolling-btn" style="padding: 0.4rem 0.85rem; font-size: 0.8rem; font-weight: 700; background: #10b981; border: none; gap: 5px; flex-shrink: 0;">
-              <i data-lucide="rotate-ccw" style="width: 14px; height: 14px;"></i> Geri Yükle
-            </button>
+            <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
+              <button type="button" class="btn btn-secondary btn-sm merge-rolling-btn" title="Mevcut güncel verilerinizi silmeden sadece bu yedekteki eksik ödev, puan ve fotoğrafları tamamlar" style="padding: 0.4rem 0.7rem; font-size: 0.76rem; font-weight: 700; background: rgba(14, 165, 233, 0.14); color: #0284c7; border: 1px solid rgba(14, 165, 233, 0.35); gap: 4px;">
+                <i data-lucide="git-merge" style="width: 13px; height: 13px;"></i> Eksikleri Tamamla
+              </button>
+              <button type="button" class="btn btn-primary btn-sm restore-rolling-btn" title="Sınıf verilerini tamamen bu yedek anına döndürür" style="padding: 0.4rem 0.8rem; font-size: 0.78rem; font-weight: 700; background: #10b981; border: none; gap: 5px;">
+                <i data-lucide="rotate-ccw" style="width: 14px; height: 14px;"></i> Tam Geri Yükle
+              </button>
+            </div>
           `;
+
+          const resolveBackupPayload = async () => {
+            if (b.data && typeof b.data === 'object') return b.data;
+            if (b.diskFileName && typeof window.loadDesktopBackupDataByFileName === 'function') {
+              return await window.loadDesktopBackupDataByFileName(b.diskFileName);
+            }
+            return null;
+          };
+
+          const btnMerge = item.querySelector('.merge-rolling-btn');
+          if (btnMerge) {
+            btnMerge.addEventListener('click', async () => {
+              const labelText = `${b.dayLabel || ''} - ${b.typeLabel || ''} (${b.dateStr || ''})`;
+              const confirmed = window.confirmAsync
+                ? await window.confirmAsync(`"${labelText}" yedeğindeki eksik verileri ve öğrenci fotoğraflarını mevcut veritabanınızla birleştirmek istiyor musunuz?\n\nYeni girdiğiniz veriler silinmez; sadece bu yedekte olup şu an eksik olan kayıtlar tamamlanır.`)
+                : confirm(`"${labelText}" yedeğindeki eksik kayıtları mevcut verilerinizle birleştirmek istiyor musunuz?`);
+              if (!confirmed) return;
+
+              const payload = await resolveBackupPayload();
+              if (!payload || !window.stateManager || typeof window.stateManager.restoreStateFromObject !== 'function') {
+                if (toastCallback) toastCallback('Yedek verisi okunamadı!', 'danger');
+                return;
+              }
+              const ok = await window.stateManager.restoreStateFromObject(payload, `Yedek birleştirildi (${b.dateStr || ''})`, true);
+              if (ok) {
+                modalRollingBackups.classList.remove('active');
+                if (toastCallback) toastCallback(`"${b.dayLabel || 'Yedek'}" paketindeki eksik veriler ve fotoğraflar başarıyla tamamlandı!`, 'success');
+              } else {
+                if (toastCallback) toastCallback('Birleştirme sırasında hata oluştu!', 'danger');
+              }
+            });
+          }
 
           const btnRestore = item.querySelector('.restore-rolling-btn');
           btnRestore.addEventListener('click', async () => {
             const labelText = `${b.dayLabel || ''} - ${b.typeLabel || ''} (${b.dateStr || ''})`;
             const confirmed = window.confirmAsync 
-              ? await window.confirmAsync(`"${labelText}" tarihli yedek paketine dönmek istediğinize emin misiniz?\n${stdCountText}\n\nMevcut sınıf verileriniz bu paketteki duruma geri yüklenecektir.`)
+              ? await window.confirmAsync(`"${labelText}" tarihli yedek paketine dönmek istediğinize emin misiniz?\n${stdCountText}\n\n(Güvenliğiniz için mevcut durumunuzun da otomatik yedeği alınacaktır.)`)
               : confirm(`"${labelText}" tarihli yedeğe dönmek istediğinize emin misiniz?`);
             
-            if (confirmed && b.data) {
+            if (confirmed) {
               try {
-                localStorage.setItem('sinif_asistani_data', JSON.stringify(b.data));
-                localStorage.setItem('sinif_asistani_has_real_data', 'true');
-                if (window.stateManager) {
-                  window.stateManager.state = window.stateManager.loadState(true);
-                  window.stateManager.saveState('Günlük yedek paketinden geri yüklendi');
-                  window.stateManager.notify();
+                const payload = await resolveBackupPayload();
+                if (!payload) {
+                  if (toastCallback) toastCallback('Yedek dosyası okunamadı!', 'danger');
+                  return;
+                }
+                if (window.stateManager && typeof window.stateManager.restoreStateFromObject === 'function') {
+                  const ok = await window.stateManager.restoreStateFromObject(payload, `Yedekten geri yüklendi (${b.dateStr || ''})`, false);
+                  if (!ok) throw new Error('restoreStateFromObject failed');
                 }
                 modalRollingBackups.classList.remove('active');
                 if (toastCallback) toastCallback(`"${b.dayLabel || 'Yedek'}" paketi başarıyla geri yüklendi!`, 'success');
-                const event = new CustomEvent('stateChanged');
-                document.dispatchEvent(event);
               } catch (err) {
                 if (toastCallback) toastCallback('Geri yükleme sırasında hata oluştu!', 'danger');
               }

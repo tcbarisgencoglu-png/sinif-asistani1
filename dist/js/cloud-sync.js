@@ -614,7 +614,28 @@
           });
         }
         if (Array.isArray(masterItem.books.transactions)) {
-          localData.books.transactions = masterItem.books.transactions;
+          if (!Array.isArray(localData.books.transactions) || !window.stateManager) {
+            localData.books.transactions = masterItem.books.transactions;
+          } else {
+            const txMap = new Map();
+            localData.books.transactions.forEach(t => {
+              if (t && t.id) txMap.set(String(t.id), { ...t });
+            });
+            masterItem.books.transactions.forEach(t => {
+              if (!t || !t.id) return;
+              const mappedStuId = cloudToLocalMap.get(String(t.studentId)) || t.studentId;
+              const cloudTx = { ...t, studentId: mappedStuId };
+              const prev = txMap.get(String(t.id));
+              if (!prev) {
+                txMap.set(String(t.id), cloudTx);
+              } else {
+                const status = (prev.status === 'returned' || cloudTx.status === 'returned') ? 'returned' : cloudTx.status;
+                const returnDate = cloudTx.returnDate || prev.returnDate || null;
+                txMap.set(String(t.id), { ...prev, ...cloudTx, status, returnDate });
+              }
+            });
+            localData.books.transactions = Array.from(txMap.values());
+          }
         }
       }
 
@@ -692,8 +713,29 @@
           }
         });
       }
-      if (masterItem.contributions) {
-        localData.contributions = masterItem.contributions;
+      if (Array.isArray(masterItem.contributions)) {
+        if (!Array.isArray(localData.contributions) || !window.stateManager) {
+          localData.contributions = masterItem.contributions;
+        } else {
+          const cMap = new Map();
+          localData.contributions.forEach(c => {
+            if (c && c.id) cMap.set(String(c.id), { ...c, records: { ...(c.records || {}) } });
+          });
+          masterItem.contributions.forEach(c => {
+            if (!c || !c.id) return;
+            const prev = cMap.get(String(c.id));
+            if (!prev) {
+              cMap.set(String(c.id), { ...c, records: { ...(c.records || {}) } });
+            } else {
+              cMap.set(String(c.id), {
+                ...prev,
+                ...c,
+                records: { ...(prev.records || {}), ...(c.records || {}) }
+              });
+            }
+          });
+          localData.contributions = Array.from(cMap.values());
+        }
       }
       if (masterItem.educationLevel) {
         localData.educationLevel = masterItem.educationLevel;
@@ -705,30 +747,84 @@
       }
 
       // 6. Yoklama Verileri (Devamsızlık Kayıtları)
-      if (masterItem.attendance) {
-        localData.attendance = masterItem.attendance;
+      if (masterItem.attendance && typeof masterItem.attendance === 'object') {
+        if (!localData.attendance || typeof localData.attendance !== 'object' || !window.stateManager) {
+          localData.attendance = masterItem.attendance;
+        } else {
+          for (const [dateKey, stuArr] of Object.entries(masterItem.attendance)) {
+            if (Array.isArray(stuArr)) {
+              const mappedArr = stuArr.map(sid => cloudToLocalMap.get(String(sid)) || sid);
+              const existingArr = Array.isArray(localData.attendance[dateKey]) ? localData.attendance[dateKey] : [];
+              localData.attendance[dateKey] = Array.from(new Set([...existingArr, ...mappedArr]));
+            }
+          }
+        }
       }
 
-      // 7. Ödev Kayıtları (Tüm Şubeler & Günler)
+      // 7. Ödev Kayıtları (Tüm Şubeler & Günler - Yerel ödevleri silmeden birleştir)
       if (masterItem.homeworks || masterItem.homework) {
         const hwList = masterItem.homeworks || masterItem.homework || [];
-        localData.homeworks = hwList;
-        localData.homework = hwList;
+        if (!Array.isArray(localData.homeworks) || !window.stateManager) {
+          localData.homeworks = hwList;
+          localData.homework = hwList;
+        } else {
+          const isPrimaryLevel = localData.educationLevel === 'primary';
+          const hwKey = (hw) => `${hw.dueDate || ''}__${isPrimaryLevel ? '' : String(hw.branch || '').trim()}`;
+          const hwMap = new Map();
+
+          localData.homeworks.forEach(hw => {
+            if (!hw || !hw.dueDate) return;
+            hwMap.set(hwKey(hw), { ...hw, status: { ...(hw.status || {}) } });
+          });
+
+          hwList.forEach(hw => {
+            if (!hw || !hw.dueDate) return;
+            const mappedStatus = {};
+            if (hw.status && typeof hw.status === 'object') {
+              for (const [sId, stVal] of Object.entries(hw.status)) {
+                const targetId = cloudToLocalMap.get(String(sId)) || sId;
+                mappedStatus[targetId] = stVal;
+              }
+            }
+            const k = hwKey(hw);
+            if (!hwMap.has(k)) {
+              hwMap.set(k, { ...hw, status: mappedStatus });
+            } else {
+              const prev = hwMap.get(k);
+              hwMap.set(k, {
+                ...prev,
+                ...hw,
+                id: prev.id || hw.id,
+                title: hw.title || prev.title,
+                description: hw.description || prev.description,
+                status: { ...(prev.status || {}), ...mappedStatus }
+              });
+            }
+          });
+
+          const mergedHwList = Array.from(hwMap.values());
+          localData.homeworks = mergedHwList;
+          localData.homework = mergedHwList;
+        }
       }
 
       if (typeof window.reconcileHomeworkStateObject === 'function') {
         window.reconcileHomeworkStateObject(localData);
       }
 
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(localData));
-
-      // Masaüstü StateManager varsa güncelle
+      // Masaüstü StateManager varsa güvenli şekilde güncelle (5MB localStorage kotasına takılmadan IndexedDB ve Tauri diske yazar)
       if (window.stateManager) {
-        window.stateManager.state = localData;
+        window.stateManager.state = typeof window.wrapState === 'function'
+          ? window.wrapState(localData, true)
+          : localData;
         if (typeof window.stateManager.saveState === 'function') {
-          window.stateManager.saveState('Kalıcı El Terminali Verileri Eşitlendi');
+          window.stateManager.saveState('Kalıcı El Terminali Verileri Eşitlendi', true);
         }
         document.dispatchEvent(new CustomEvent('stateChanged'));
+      } else {
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(localData));
+        } catch (e) {}
       }
 
       // Mobil Companion varsa profil ve şubeleri otomatik uyarla
@@ -822,11 +918,16 @@
           transactions: Array.isArray(masterItem.books.transactions) ? masterItem.books.transactions : []
         };
 
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(localData));
-
         if (window.stateManager) {
           window.stateManager.state.books = localData.books;
+          if (typeof window.stateManager.saveState === 'function') {
+            window.stateManager.saveState('Bulut Kitaplığı Eşitlendi', true);
+          }
           document.dispatchEvent(new CustomEvent('stateChanged'));
+        } else {
+          try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(localData));
+          } catch (e) {}
         }
 
         const libraryCount = (localData.books.library || []).filter(b => !b.isDeleted).length;

@@ -1538,33 +1538,40 @@
 
         if (video && video.readyState >= 2 && !video.paused) {
           try {
-            fCtx.drawImage(video, 0, 0, 960, 720);
-            const imgData = fCtx.getImageData(0, 0, 960, 720);
+            const vw = video.videoWidth || 960;
+            const vh = video.videoHeight || 720;
+            const fw = 720;
+            const fh = Math.max(400, Math.min(1280, Math.round(fw * (vh / Math.max(1, vw)))));
+            if (fastCanvas.width !== fw || fastCanvas.height !== fh) {
+              fastCanvas.width = fw;
+              fastCanvas.height = fh;
+            }
+            fCtx.drawImage(video, 0, 0, fw, fh);
+            const imgData = fCtx.getImageData(0, 0, fw, fh);
 
-            // 0. ArUco Belirteç Doğrulaması (0 ms, Masif Geometrik Matris)
+            // 0. ArUco Belirteç Doğrulaması (0 ms, 1:1 Oranlı Masif Geometrik Matris)
             let detectedAruco = null;
             if (window.OmrEngine && typeof window.OmrEngine.scanArucoInGrayscale === 'function') {
-              const grayFrame = new Uint8Array(960 * 720);
+              const totalPx = fw * fh;
+              const grayFrame = new Uint8Array(totalPx);
               const d = imgData.data;
-              for (let i = 0; i < 960 * 720; i++) {
+              for (let i = 0; i < totalPx; i++) {
                 const i4 = i * 4;
                 grayFrame[i] = Math.round(d[i4] * 0.299 + d[i4 + 1] * 0.587 + d[i4 + 2] * 0.114);
               }
-              const aRes = window.OmrEngine.scanArucoInGrayscale(grayFrame, 960, 720);
+              const aRes = window.OmrEngine.scanArucoInGrayscale(grayFrame, fw, fh);
               if (aRes && aRes.success) {
                 detectedAruco = aRes;
               }
             }
 
-            // 1. QR Kod Doğrulaması (jsQR - 960x720 Çerçeve)
+            // 1. QR Kod Doğrulaması (jsQR)
             let detectedQr = null;
             if (!detectedAruco && typeof window.jsQR === 'function') {
-              detectedQr = window.jsQR(imgData.data, 960, 720, { inversionAttempts: 'attemptBoth' });
+              detectedQr = window.jsQR(imgData.data, fw, fh, { inversionAttempts: 'attemptBoth' });
 
               // 2. Eğer tam karede bulunamadıysa, rozetin bulunduğu sağ üst çeyreği tam video çözünürlüğünde tara
               if (!detectedQr && video.videoWidth > 0 && subQrCtx) {
-                const vw = video.videoWidth;
-                const vh = video.videoHeight;
                 const cropW = Math.round(vw * 0.45);
                 const cropH = Math.round(vh * 0.45);
                 const cropX = Math.max(0, vw - cropW);
@@ -1717,12 +1724,29 @@
         }
 
         const currentActiveExam = this.activeExam || exam;
+        const activeRoster = this.getActiveStudents();
+        const globalStudents = Array.isArray(data.students) ? data.students : [];
         const savedResults = [];
 
         scanResult.cards.forEach((card, cIdx) => {
-          const matched = card.matched || card.candidate || (students.length === 1 ? students[0] : null);
+          let matched = card.matched || card.candidate || null;
+          if (!matched) {
+            const rawNo = String(card.arucoStudentNumber || card.rawStudentNo || '').trim();
+            const rawInt = parseInt(rawNo, 10);
+            if (rawNo && rawNo !== '-' && rawNo !== '0') {
+              const matchFn = (s) => {
+                if (!s) return false;
+                const sn = String(s.number ?? s.no ?? s.studentNo ?? '').trim();
+                return sn && (sn === rawNo || (rawInt > 0 && parseInt(sn, 10) === rawInt));
+              };
+              matched = activeRoster.find(matchFn) || students.find(matchFn) || globalStudents.find(matchFn) || null;
+            }
+          }
+          if (!matched && activeRoster.length === 1) {
+            matched = activeRoster[0];
+          }
           const stuName = matched ? `${matched.name} ${matched.surname || ''}`.trim() : (card.studentName || card.rawStudentName || (scanResult.cards.length > 1 ? `Form #${cIdx + 1}` : 'Öğrenci'));
-          const stuNo = matched ? (matched.number || '-') : (card.studentNo || card.rawStudentNo || '-');
+          const stuNo = matched ? (matched.number || matched.no || '-') : (card.studentNo || card.rawStudentNo || '-');
           const stuId = matched ? matched.id : (card.studentId || ('temp_' + Date.now() + '_' + cIdx));
 
           const cardResult = {

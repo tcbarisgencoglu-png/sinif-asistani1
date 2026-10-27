@@ -61,12 +61,15 @@ const WEEKDAYS_TR = ['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma'];
 function isHomeworkMatchingBranch(hw, branchFilter, educationLevel, studentBranch = null) {
   if (!hw) return false;
   if (educationLevel === 'primary') return true;
-  if (studentBranch && (hw.branch === studentBranch || !hw.branch || hw.branch === 'all')) {
-    return true;
+  const hwBr = String(hw.branch || '').trim();
+  if (studentBranch) {
+    const stuBr = String(studentBranch).trim();
+    if (!hwBr || hwBr === 'all') return true;
+    return hwBr === stuBr;
   }
   if (!branchFilter || branchFilter === 'all') return true;
-  if (!hw.branch || hw.branch === 'all') return true;
-  return hw.branch === branchFilter;
+  if (!hwBr || hwBr === 'all') return true;
+  return hwBr === String(branchFilter).trim();
 }
 
 // -------------------------------------------------------
@@ -286,13 +289,13 @@ function openSendHomeworkModal(dateStr, dayName) {
 
   // Önizleme güncelleyicileri bağla
   if (hwSendTitleInput) {
-    hwSendTitleInput.addEventListener('input', updateSendPreview);
+    hwSendTitleInput.oninput = updateSendPreview;
   }
   if (hwSendDescInput) {
-    hwSendDescInput.addEventListener('input', updateSendPreview);
+    hwSendDescInput.oninput = updateSendPreview;
   }
   if (hwSendDueInput) {
-    hwSendDueInput.addEventListener('change', updateSendPreview);
+    hwSendDueInput.onchange = updateSendPreview;
   }
 }
 
@@ -894,11 +897,12 @@ function renderHomeworkMatrix() {
         openViewHomeworkModal(hw, day.dayName);
       });
 
-      dayCard.querySelector('.delete-hw-btn').addEventListener('click', (e) => {
+      dayCard.querySelector('.delete-hw-btn').addEventListener('click', async (e) => {
         e.stopPropagation();
-        if (confirm(`"${day.dayName} (${formattedDate})" gününe ait ödev başlığını ve bu güne girilmiş tüm öğrenci puanlarını sıfırlamak istediğinize emin misiniz?`)) {
+        const msg = `"${day.dayName} (${formattedDate})" gününe ait ödev başlığını ve bu güne girilmiş tüm öğrenci puanlarını sıfırlamak istediğinize emin misiniz?`;
+        const ok = typeof window.confirmAsync === 'function' ? await window.confirmAsync(msg) : confirm(msg);
+        if (ok) {
           stateManager.deleteHomework(hw.id);
-          renderHomeworkMatrix();
           const event = new CustomEvent('stateChanged');
           document.dispatchEvent(event);
         }
@@ -978,11 +982,15 @@ function renderHomeworkMatrix() {
       let weeklyScoreSum = 0;
 
       const dayData = weekDates.map(day => {
-        const hw = state.homeworks.find(h =>
+        const matchingHws = state.homeworks.filter(h =>
           h.dueDate === day.dateStr &&
           isHomeworkMatchingBranch(h, branchFilter, state.educationLevel, std.branch)
         );
-        const currentStatus = (hw && hw.status && hw.status[std.id]) || 'none';
+        const hw = matchingHws.find(h => h.status && (h.status[std.id] || h.status[String(std.id)])) ||
+                   matchingHws.find(h => std.branch && String(h.branch || '').trim() === String(std.branch).trim()) ||
+                   matchingHws[0] ||
+                   null;
+        const currentStatus = (hw && hw.status && (hw.status[std.id] || hw.status[String(std.id)])) || 'none';
 
         let badgeText = '-';
         let pointText = '';
@@ -1018,11 +1026,13 @@ function renderHomeworkMatrix() {
       dayData.forEach(({ day, hw, currentStatus, labelToShow, shortName, formattedDate, cellId }) => {
         const tdDay = document.createElement('td');
         tdDay.className = 'td-day';
+        tdDay.style.cursor = 'pointer';
         tdDay.innerHTML = `
           <div class="hw-mobile-header" style="display: none;">${shortName}<span class="hw-mobile-date"> ${formattedDate}</span></div>
           <span class="status-badge status-interactive ${currentStatus}" id="${cellId}">${labelToShow}</span>
         `;
-        tdDay.querySelector(`#${cellId}`).addEventListener('click', () => {
+        const handleHomeworkCellClick = (e) => {
+          e.stopPropagation();
           let targetHwId = hw ? hw.id : null;
           if (!targetHwId) {
             const newHw = stateManager.addHomework({
@@ -1037,10 +1047,10 @@ function renderHomeworkMatrix() {
           const nextIndex = (currentIndex + 1) % STATUS_CYCLE.length;
           const nextStatus = STATUS_CYCLE[nextIndex];
           stateManager.updateHomeworkStatus(targetHwId, std.id, nextStatus);
-          renderHomeworkMatrix();
           const event = new CustomEvent('stateChanged');
           document.dispatchEvent(event);
-        });
+        };
+        tdDay.addEventListener('click', handleHomeworkCellClick);
         row.appendChild(tdDay);
       });
 

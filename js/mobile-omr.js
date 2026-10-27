@@ -539,54 +539,30 @@
   // Soru baloncukları boyutunda (16x16 px) OMR kutucukları ve 21x21 Version 1 Micro-QR ile %100 eşleşme
   function generateOpticalBinaryIdSVG(options) {
     const { studentIndex = 0, studentNo = '' } = options || {};
-    const idx = parseInt(studentIndex, 10) || 0;
+    const effectiveNo = (studentNo && studentNo !== '......' && studentNo !== '-') ? studentNo : (studentIndex > 0 ? String(studentIndex) : '0');
+    const num = parseInt(effectiveNo, 10) || 0;
 
-    // OmrEngine ArUco 5x5 motorunu kullan
+    let arucoSvg = '';
     if (window.OmrEngine && typeof window.OmrEngine.generateArucoSVG === 'function') {
-      return window.OmrEngine.generateArucoSVG({
-        studentIndex: idx,
-        studentNo: studentNo,
-        size: 46
-      });
+      arucoSvg = window.OmrEngine.generateArucoSVG(num, 46);
+    } else {
+      const totalSize = 56;
+      let rects = `<rect x="0" y="0" width="${totalSize}" height="${totalSize}" fill="#000000" /><rect x="8" y="8" width="40" height="40" fill="#ffffff" />`;
+      arucoSvg = `<svg viewBox="0 0 ${totalSize} ${totalSize}" width="46" height="46" shape-rendering="crispEdges" style="display: block;">${rects}</svg>`;
     }
 
-    // Fallback: OmrEngine henüz yüklenmemişse yerel 5x5 ArUco üretimi
-    const bits = [];
-    for (let i = 0; i < 6; i++) bits.push((idx >> i) & 1);
-    const r0 = [bits[0], bits[1], bits[0] ^ bits[1]];
-    const r1 = [bits[2], bits[3], bits[2] ^ bits[3]];
-    const r2 = [bits[4], bits[5], bits[0] ^ bits[2] ^ bits[4]];
-    const grid = [
-      [1, 1, 1, 1, 1],
-      [1, r0[0], r0[1], r0[2], 1],
-      [1, r1[0], r1[1], r1[2], 1],
-      [1, r2[0], r2[1], r2[2], 1],
-      [1, 1, 1, 0, 1]
-    ];
-
-    const cellSize = 14;
-    const quiet = 6;
-    const totalW = quiet * 2 + cellSize * 5; // 82
-    let rects = '';
-    for (let r = 0; r < 5; r++) {
-      for (let c = 0; c < 5; c++) {
-        const x = quiet + c * cellSize;
-        const y = quiet + r * cellSize;
-        const fill = grid[r][c] === 1 ? '#000000' : '#ffffff';
-        rects += `<rect x="${x}" y="${y}" width="${cellSize}" height="${cellSize}" fill="${fill}" />`;
-      }
-    }
+    const isNamed = studentNo && studentNo !== '......' && studentNo !== '-';
+    const caption = isNamed ? `NO:${studentNo}` : (studentIndex > 0 ? `ID:#${studentIndex}` : 'ID:---');
 
     return `
-      <div class="omr-id-badge omr-aruco-badge" title="Öğrenci ArUco 5x5 Kimlik Matrisi #${idx}">
+      <div class="omr-id-badge omr-aruco-badge" title="Öğrenci ArUco Kimlik Kodu: ${caption}">
         <div class="omr-binary-strip-wrap" style="background: #ffffff; padding: 2px 5px; display: flex; flex-direction: column; align-items: center; border: 2px solid #000000; border-radius: 6px; box-sizing: border-box;">
-          <div style="font-size: 0.48rem; font-weight: 900; color: #000000; letter-spacing: 0.5px; margin-bottom: 1px; text-transform: uppercase;">OPTİK KİMLİK</div>
-          <svg viewBox="0 0 ${totalW} ${totalW}" width="46" height="46" shape-rendering="crispEdges" style="display: block;">
-            <rect x="0" y="0" width="${totalW}" height="${totalW}" fill="#ffffff" />
-            ${rects}
-          </svg>
-          <div class="omr-id-caption" style="font-size: 0.60rem; font-weight: 900; font-family: monospace; color: #000000; margin-top: 1px; line-height: 1;">
-            ${idx > 0 ? ('ID:#' + idx + (studentNo ? ' • ' + studentNo : '')) : 'BOŞ FORM'}
+          <div style="font-size: 0.48rem; font-weight: 800; color: #000000; letter-spacing: 0.4px; margin-bottom: 1px; text-transform: uppercase;">KİMLİK KODU</div>
+          <div style="width: 46px; height: 46px; display: flex; align-items: center; justify-content: center; overflow: hidden;">
+            ${arucoSvg}
+          </div>
+          <div class="omr-id-caption" style="font-size: 0.60rem; font-weight: 800; font-family: monospace; color: #000000; margin-top: 1px; line-height: 1;">
+            ${caption}
           </div>
         </div>
       </div>
