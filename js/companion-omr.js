@@ -1188,6 +1188,8 @@
       if (!confirm(`"${examName}" sınavını silmek istediğinize emin misiniz?`)) return;
 
       data.weeklyEvaluations = (data.weeklyEvaluations || []).filter(e => String(e.id) !== String(examId));
+      if (!Array.isArray(data.deletedExamIds)) data.deletedExamIds = [];
+      if (!data.deletedExamIds.includes(String(examId))) data.deletedExamIds.push(String(examId));
       this.saveData(data);
 
       if (this.activeExam && String(this.activeExam.id) === String(examId)) {
@@ -1209,6 +1211,9 @@
       if (!examData || !examData.id) return;
       const data = this.getData();
       if (!Array.isArray(data.weeklyEvaluations)) data.weeklyEvaluations = [];
+      if (Array.isArray(data.deletedExamIds)) {
+        data.deletedExamIds = data.deletedExamIds.filter(id => String(id) !== String(examData.id));
+      }
 
       const existingIdx = data.weeklyEvaluations.findIndex(e => String(e.id) === String(examData.id));
       if (existingIdx >= 0) {
@@ -1237,9 +1242,11 @@
     handleRemoteExamDeleted(examId, examName) {
       if (!examId) return;
       const data = this.getData();
-      if (!Array.isArray(data.weeklyEvaluations)) return;
+      if (!Array.isArray(data.weeklyEvaluations)) data.weeklyEvaluations = [];
 
       data.weeklyEvaluations = data.weeklyEvaluations.filter(e => String(e.id) !== String(examId));
+      if (!Array.isArray(data.deletedExamIds)) data.deletedExamIds = [];
+      if (!data.deletedExamIds.includes(String(examId))) data.deletedExamIds.push(String(examId));
       this.saveData(data);
 
       if (this.activeExam && String(this.activeExam.id) === String(examId)) {

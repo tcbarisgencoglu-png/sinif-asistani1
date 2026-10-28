@@ -39,6 +39,12 @@
         setTimeout(() => {
           this.autoPushMasterDebounced();
         }, 1500);
+        if (!this._stateChangedBound) {
+          this._stateChangedBound = true;
+          document.addEventListener('stateChanged', () => {
+            this.autoPushMasterDebounced();
+          });
+        }
       }
 
       this.updateSyncUI();
@@ -466,6 +472,7 @@
           transactions: Array.isArray(books.transactions) ? books.transactions : []
         },
         weeklyEvaluations: weeklyEvaluations,
+        deletedExamIds: Array.isArray(localData.deletedExamIds) ? localData.deletedExamIds : [],
         homework: homework,
         homeworks: homework,
         contributions: contributions,
@@ -484,6 +491,11 @@
 
       if (!this.lastSeenUpdatedAtByExamId) this.lastSeenUpdatedAtByExamId = {};
       this.lastSeenUpdatedAtByExamId['MASTER_STATE'] = nowIso;
+
+      // Eski MASTER_STATE satırlarını temizle ki veritabanında eski sınavları barındıran mükerrer satır kalmasın
+      try {
+        await this.request('DELETE', `teacher_sync?sync_code=eq.${encodeURIComponent(this.syncCode)}&exam_id=eq.MASTER_STATE`);
+      } catch (e) {}
 
       const res = await this.request('POST', 'teacher_sync', record);
       this.isSyncing = false;
@@ -512,36 +524,39 @@
       this.isSyncing = true;
       this.updateSyncUI();
 
-      const res = await this.request('GET', `teacher_sync?sync_code=eq.${encodeURIComponent(this.syncCode)}&exam_id=eq.MASTER_STATE&select=*`);
+      const allRes = await this.request('GET', `teacher_sync?sync_code=eq.${encodeURIComponent(this.syncCode)}&order=updated_at.desc&select=*`);
       this.isSyncing = false;
 
-      if (res && res.error) {
+      if (allRes && allRes.error) {
         this.updateSyncUI();
-        const msg = (res.message && (res.message.toLowerCase().includes('fetch') || res.message.toLowerCase().includes('network')))
+        const msg = (allRes.message && (allRes.message.toLowerCase().includes('fetch') || allRes.message.toLowerCase().includes('network')))
           ? 'İnternet bağlantısı kurulamadı. Lütfen telefonunuzun Wi-Fi veya mobil veri bağlantısını açıp tekrar deneyin.'
-          : ('Bulut bağlantı hatası: ' + (res.message || res.status || 'Sunucuya erişilemedi.'));
+          : ('Bulut bağlantı hatası: ' + (allRes.message || allRes.status || 'Sunucuya erişilemedi.'));
         return { success: false, error: msg };
       }
 
       let masterItem = null;
-      if (Array.isArray(res) && res.length > 0) {
-        masterItem = res[0].payload;
-      }
+      const remoteDeletedExamIds = [];
+      if (Array.isArray(allRes) && allRes.length > 0) {
+        // Telefondayken öncelikle masaüstünün gönderdiği en güncel MASTER_STATE paketini tercih et
+        const desktopMaster = !window.stateManager
+          ? allRes.find(r => r && r.exam_id === 'MASTER_STATE' && r.payload && r.payload.source === 'desktop')
+          : null;
+        const anyMaster = allRes.find(r => r && r.exam_id === 'MASTER_STATE' && r.payload);
+        const chosenMaster = desktopMaster || anyMaster;
+        if (chosenMaster) masterItem = chosenMaster.payload;
 
-      // Eğer MASTER_STATE tek başına bulunamadıysa tüm kayıtları çekip içinden ara
-      if (!masterItem) {
-        const allRes = await this.request('GET', `teacher_sync?sync_code=eq.${encodeURIComponent(this.syncCode)}&select=*`);
-        if (allRes && allRes.error) {
-          this.updateSyncUI();
-          return {
-            success: false,
-            error: 'İnternet bağlantısı kurulamadı. Lütfen telefonunuzun Wi-Fi veya mobil veri bağlantısını açıp tekrar deneyin.'
-          };
-        }
-        if (Array.isArray(allRes)) {
-          const match = allRes.find(r => r.exam_id === 'MASTER_STATE');
-          if (match) masterItem = match.payload;
-        }
+        // Tüm MASTER_STATE ve LIVE_EVENT (exam_deleted) kayıtlarındaki silinmiş sınav ID'lerini topla
+        allRes.forEach(r => {
+          if (!r || !r.payload) return;
+          if (r.exam_id === 'MASTER_STATE' && Array.isArray(r.payload.deletedExamIds)) {
+            r.payload.deletedExamIds.forEach(id => {
+              if (id) remoteDeletedExamIds.push(String(id));
+            });
+          } else if (r.exam_id === 'LIVE_EVENT' && r.payload.type === 'exam_deleted' && r.payload.examId) {
+            remoteDeletedExamIds.push(String(r.payload.examId));
+          }
+        });
       }
 
       if (!masterItem) {
@@ -639,11 +654,35 @@
         }
       }
 
-      // 3. Sınavları birleştir (Yerel taranan sonuçları ve buluttaki güncel cevap anahtarını koru)
+      // 3. Sınavları birleştir (Silinen sınavları temizle, yerel taranan sonuçları ve buluttaki güncel cevap anahtarını koru)
+      if (!Array.isArray(localData.deletedExamIds)) localData.deletedExamIds = [];
+      remoteDeletedExamIds.forEach(dId => {
+        if (dId && !localData.deletedExamIds.includes(String(dId))) {
+          localData.deletedExamIds.push(String(dId));
+        }
+      });
+      if (Array.isArray(masterItem.deletedExamIds)) {
+        masterItem.deletedExamIds.forEach(dId => {
+          if (dId && !localData.deletedExamIds.includes(String(dId))) {
+            localData.deletedExamIds.push(String(dId));
+          }
+        });
+      }
+      const deletedExamSet = new Set(localData.deletedExamIds.map(String));
+
       if (Array.isArray(masterItem.weeklyEvaluations)) {
         if (!localData.weeklyEvaluations) localData.weeklyEvaluations = [];
-        masterItem.weeklyEvaluations.forEach(cloudExam => {
-          if (!cloudExam || !cloudExam.id) return;
+        const validMasterExams = masterItem.weeklyEvaluations.filter(ce => ce && ce.id && !deletedExamSet.has(String(ce.id)));
+        const masterExamIdSet = new Set(validMasterExams.map(ce => String(ce.id)));
+
+        // Eğer El Terminalindeysek ve paket Masaüstünden geldiyse, Masaüstünde silinmiş sınavları Terminalden de kaldır
+        if (!window.stateManager && masterItem.source === 'desktop') {
+          localData.weeklyEvaluations = localData.weeklyEvaluations.filter(le => le && le.id && masterExamIdSet.has(String(le.id)));
+        } else {
+          localData.weeklyEvaluations = localData.weeklyEvaluations.filter(le => le && le.id && !deletedExamSet.has(String(le.id)));
+        }
+
+        validMasterExams.forEach(cloudExam => {
           const eIdx = localData.weeklyEvaluations.findIndex(le => String(le.id) === String(cloudExam.id));
           if (eIdx >= 0) {
             const localExam = localData.weeklyEvaluations[eIdx];
@@ -1177,10 +1216,12 @@
 
       this.pushLiveEvent('exam_deleted', payload);
 
-      // Veritabanındaki satırı da temizle
+      // Veritabanındaki satırı da temizle ve MASTER_STATE paketini de hemen güncelle
       try {
         await this.request('DELETE', `teacher_sync?sync_code=eq.${encodeURIComponent(this.syncCode)}&exam_id=eq.${encodeURIComponent(examId)}`);
       } catch (e) {}
+
+      this.scheduleDebouncedMasterPush();
     },
 
     // 2e. Anlık Canlı Optik Sonuç Silme Gönder (Terminal veya Masaüstü)
@@ -2287,7 +2328,7 @@
       this.isSyncing = true;
       this.updateSyncUI();
 
-      const res = await this.request('GET', `teacher_sync?sync_code=eq.${encodeURIComponent(this.syncCode)}&select=*`);
+      const res = await this.request('GET', `teacher_sync?sync_code=eq.${encodeURIComponent(this.syncCode)}&order=updated_at.asc&select=*`);
       this.isSyncing = false;
 
       if (Array.isArray(res)) {
@@ -2308,16 +2349,49 @@
         }
 
         if (!localData.weeklyEvaluations) localData.weeklyEvaluations = [];
+        if (!Array.isArray(localData.deletedExamIds)) localData.deletedExamIds = [];
+
+        const deletedExamSet = new Set(localData.deletedExamIds.map(id => String(id)));
+
+        // En güncel MASTER_STATE kaydını ve silme olaylarını tespit et
+        let latestMasterItem = null;
+        let latestDesktopMasterItem = null;
+        res.forEach(item => {
+          if (!item || !item.payload) return;
+          if (item.exam_id === 'MASTER_STATE') {
+            latestMasterItem = item;
+            if (item.payload.source === 'desktop') {
+              latestDesktopMasterItem = item;
+            }
+            if (Array.isArray(item.payload.deletedExamIds)) {
+              item.payload.deletedExamIds.forEach(id => deletedExamSet.add(String(id)));
+            }
+          } else if (item.exam_id === 'LIVE_EVENT' && item.payload.type === 'exam_deleted' && item.payload.examId) {
+            deletedExamSet.add(String(item.payload.examId));
+          }
+        });
+
+        // Masaüstünün en son MASTER_STATE'inde yer almayan eski sınavları da silinmiş kabul et
+        const desktopMasterTime = latestDesktopMasterItem && latestDesktopMasterItem.updated_at
+          ? new Date(latestDesktopMasterItem.updated_at).getTime()
+          : 0;
+        const desktopMasterExamIds = (latestDesktopMasterItem && Array.isArray(latestDesktopMasterItem.payload.weeklyEvaluations))
+          ? new Set(latestDesktopMasterItem.payload.weeklyEvaluations.filter(e => e && e.id).map(e => String(e.id)))
+          : null;
+        const newerLiveExamIds = new Set();
 
         let updatedCount = 0;
         res.forEach(item => {
           if (!item || !item.payload) return;
 
-          // MASTER_STATE içindeki sınavları da göz önünde bulundur
+          // Sadece en güncel MASTER_STATE içindeki sınavları göz önünde bulundur
           if (item.exam_id === 'MASTER_STATE') {
+            if (item !== latestMasterItem) return;
             if (Array.isArray(item.payload.weeklyEvaluations)) {
               item.payload.weeklyEvaluations.forEach(mExam => {
                 if (!mExam || !mExam.id) return;
+                if (deletedExamSet.has(String(mExam.id))) return;
+                if (desktopMasterExamIds && !desktopMasterExamIds.has(String(mExam.id))) return;
                 const eIdx = localData.weeklyEvaluations.findIndex(e => String(e.id) === String(mExam.id));
                 if (eIdx >= 0) {
                   localData.weeklyEvaluations[eIdx] = this.mergeExamObjects(localData.weeklyEvaluations[eIdx], mExam);
@@ -2332,6 +2406,14 @@
           let cloudExam = item.payload;
           if (item.exam_id === 'LIVE_EVENT') {
             if ((cloudExam.type === 'exam_created' || cloudExam.type === 'exam_results') && cloudExam.exam && cloudExam.exam.id) {
+              const eventTime = item.updated_at ? new Date(item.updated_at).getTime() : 0;
+              // Masaüstü MASTER_STATE'inden daha eski bir LIVE_EVENT ise ve masaüstü listesinde yoksa (silinmişse) atla
+              if (desktopMasterExamIds && eventTime <= desktopMasterTime && !desktopMasterExamIds.has(String(cloudExam.exam.id))) {
+                return;
+              }
+              if (eventTime > desktopMasterTime) {
+                newerLiveExamIds.add(String(cloudExam.exam.id));
+              }
               cloudExam = cloudExam.exam;
             } else {
               return;
@@ -2339,6 +2421,11 @@
           }
 
           if (!cloudExam || !cloudExam.id) return;
+          if (deletedExamSet.has(String(cloudExam.id))) return;
+          if (window.stateManager && desktopMasterExamIds && !desktopMasterExamIds.has(String(cloudExam.id))) {
+            const itemTime = item.updated_at ? new Date(item.updated_at).getTime() : 0;
+            if (itemTime <= desktopMasterTime) return;
+          }
 
           // Masaüstündeysek öğrenci kimliklerini eşle
           if (window.stateManager && Array.isArray(localData.students) && cloudExam.studentResults && typeof cloudExam.studentResults === 'object') {
@@ -2398,16 +2485,35 @@
           updatedCount++;
         });
 
+        // Silinen ve masaüstü ana paketinden kaldırılmış sınavları yerel listeden temizle
+        localData.deletedExamIds = Array.from(deletedExamSet);
+        localData.weeklyEvaluations = (localData.weeklyEvaluations || []).filter(exam => {
+          if (!exam || !exam.id) return false;
+          const idStr = String(exam.id);
+          if (deletedExamSet.has(idStr)) return false;
+          if (!window.stateManager && desktopMasterExamIds && !desktopMasterExamIds.has(idStr) && !newerLiveExamIds.has(idStr)) {
+            return false;
+          }
+          return true;
+        });
+
         try {
           localStorage.setItem(STORAGE_KEY, JSON.stringify(localData));
         } catch (e) {}
 
         if (window.stateManager) {
+          if (Array.isArray(localData.students) && typeof restoreStudentPhotosToList === 'function') {
+            restoreStudentPhotosToList(localData.students);
+            if (typeof cacheStudentPhotosFromList === 'function') {
+              cacheStudentPhotosFromList(localData.students);
+            }
+          }
           window.stateManager.state = localData;
           if (typeof window.stateManager.saveState === 'function') {
             window.stateManager.saveState('El Terminalinden Sınav ve Cevap Anahtarı Eşitlendi');
           }
           document.dispatchEvent(new CustomEvent('stateChanged'));
+          this.scheduleDebouncedMasterPush();
         }
 
         this.lastSyncTime = new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });

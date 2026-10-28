@@ -642,7 +642,7 @@ function syncDesktopNativeData(stateJson, immediate = false) {
   }
 }
 
-// 5. Masaüstü Tauri Yerel Dosyadan Veri Oku
+// 5. Masaüstü Tauri Yerel Dosyadan Veri Oku (Sınırsız Sabit Disk)
 async function loadDesktopNativeData() {
   if (typeof window === 'undefined') return null;
   const invoke = (window.__TAURI__?.core?.invoke) || window.__TAURI__?.invoke;
@@ -652,19 +652,27 @@ async function loadDesktopNativeData() {
     const rawContent = await invoke('load_desktop_data');
     if (rawContent && typeof rawContent === 'string') {
       const parsed = JSON.parse(rawContent);
+      let dataObj = null;
       if (parsed && parsed.sinif_asistani_data) {
-        const dataObj = typeof parsed.sinif_asistani_data === 'string'
+        dataObj = typeof parsed.sinif_asistani_data === 'string'
           ? JSON.parse(parsed.sinif_asistani_data)
           : parsed.sinif_asistani_data;
-        if (dataObj && typeof dataObj === 'object') {
-          if (!dataObj._updatedAt && parsed.updated_at) {
-            dataObj._updatedAt = Number(parsed.updated_at) * 1000;
-          }
-          if (Array.isArray(dataObj.students)) {
-            cacheStudentPhotosFromList(dataObj.students, false);
-          }
-          return dataObj;
+      } else if (parsed && typeof parsed === 'object') {
+        dataObj = parsed;
+      }
+
+      if (dataObj && typeof dataObj === 'object') {
+        if (!dataObj._updatedAt && parsed && parsed.updated_at) {
+          dataObj._updatedAt = Number(parsed.updated_at) * 1000;
         }
+        const stuList = Array.isArray(dataObj.rawStudents) && dataObj.rawStudents.length > 0
+          ? dataObj.rawStudents
+          : (Array.isArray(dataObj.students) ? dataObj.students : []);
+        if (stuList.length > 0) {
+          cacheStudentPhotosFromList(stuList, false);
+          restoreStudentPhotosToList(stuList);
+        }
+        return dataObj;
       }
     }
   } catch (err) {
@@ -2766,18 +2774,20 @@ class StateManager {
         this.recalculateAllExamPoints();
       }
       this.state._examCompetitionRankingFixed_v1077 = true;
-      this.saveState('Sınav sıralama güncellemesi');
-      console.log("[Migration] Sınav derece puanları standart yarışma sıralamasına göre otomatik düzeltildi.");
     }
 
-    if (!data && !hasRealDataEver) {
+    if (!data && !hasRealDataEver && (!window.__TAURI__)) {
       this.saveState('İlk kurulum veritabanı');
       this.loadDefaultStateFromServer();
     }
 
     // Her açılışta Masaüstü Yerel Disk + IndexedDB + Öğrenci Fotoğraf Deposunu karşılaştırıp en güncel ve eksiksiz haliyle birleştir
+    this._isHydrated = false;
+    this._saveLock = false;
     if (typeof window !== 'undefined') {
       this._hydrationPromise = this.hydrateFromAllStorages();
+    } else {
+      this._isHydrated = true;
     }
   }
 
@@ -3131,9 +3141,11 @@ class StateManager {
       }
 
       await this.healMissingStudentPhotos();
+      this._isHydrated = true;
       return this.state;
     } catch (err) {
       console.error('[Veri Senkronizasyonu] Açılış birleştirme hatası:', err);
+      this._isHydrated = true;
       return this.state;
     }
   }
@@ -3667,6 +3679,20 @@ class StateManager {
   }
 
   saveState(reason = 'Kayıt güncellendi', immediate = false) {
+    if (this._saveLock) return false;
+
+    // SaveGuard: Açılışta henüz masaüstü sabit diskinden veya IndexedDB'den veriler tam hydrate edilmediyse,
+    // diskteki sağlam fotoğraflı verinin üzerine henüz yüklenmemiş eksik veriyi yazmayı engelle ve kuyruğa al!
+    if (!this._isHydrated && typeof window !== 'undefined' && window.__TAURI__) {
+      console.log(`[SaveGuard] Açılış senkronizasyonu bekleniyor, kayıt güvenle kuyruğa alındı: ${reason}`);
+      if (this._hydrationPromise) {
+        this._hydrationPromise.then(() => {
+          this.saveState(reason, immediate);
+        });
+      }
+      return true;
+    }
+
     if (this.state) {
       this.state._updatedAt = Date.now();
       this.state._revision = (Number(this.state._revision || 0) + 1);
@@ -4933,6 +4959,12 @@ class StateManager {
       this.state.weeklyEvaluations = [];
     }
     this.state.weeklyEvaluations = this.state.weeklyEvaluations.filter(e => e && String(e.id) !== String(examId));
+    if (!Array.isArray(this.state.deletedExamIds)) {
+      this.state.deletedExamIds = [];
+    }
+    if (!this.state.deletedExamIds.includes(String(examId))) {
+      this.state.deletedExamIds.push(String(examId));
+    }
     // Bu sınava ait ödülleri Dojo performans akışından da sil
     if (Array.isArray(this.state.performance)) {
       this.state.performance = this.state.performance.filter(p => !p || String(p.examId) !== String(examId));

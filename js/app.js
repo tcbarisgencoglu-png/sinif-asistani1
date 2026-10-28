@@ -2067,7 +2067,12 @@ function syncPortableDataToFlash() {
       const invoke = (window.__TAURI__?.core?.invoke) || window.__TAURI__?.invoke;
       if (!invoke) return;
 
-      const dataJson = localStorage.getItem('sinif_asistani_data') || '';
+      let dataJson = '';
+      if (window.stateManager && window.stateManager.state) {
+        dataJson = JSON.stringify(window.stateManager.state);
+      } else {
+        dataJson = localStorage.getItem('sinif_asistani_data') || '';
+      }
       const apiKey = localStorage.getItem('sinif_asistani_gemini_api_key') || '';
       if (!dataJson) return;
 
@@ -2671,7 +2676,7 @@ async function initApp() {
 }
 
 // Mevcut uygulama sürümü (her güncellemede değişir)
-const APP_VERSION = '1.0.107';
+const APP_VERSION = '1.0.111';
 
 // GitHub & Tauri Auto-Updater kontrolü
 async function checkForUpdates() {

@@ -192,7 +192,7 @@ fn save_desktop_data(
             .unwrap_or(0);
 
         let json_obj = serde_json::json!({
-            "version": "1.0.107",
+            "version": env!("CARGO_PKG_VERSION"),
             "updated_at": now_sec,
             "sinif_asistani_data": data_json,
             "sinif_asistani_gemini_api_key": api_key,

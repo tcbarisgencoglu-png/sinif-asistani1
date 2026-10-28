@@ -59,10 +59,13 @@
     return res;
   }
 
-  function decodeStudentAruco(grid5x5) {
+  function decodeStudentAruco(grid5x5, validStudentNumbers = null) {
     let cur = grid5x5;
+    let glareCandidate = null;
+
     for (let rot = 0; rot < 4; rot++) {
       let valid = true;
+      const rowStatus = [];
       for (let r = 0; r < 5; r++) {
         const d0 = cur[r][0];
         const d1 = cur[r][1];
@@ -71,11 +74,14 @@
         const p1 = cur[r][4];
         let expP0 = (r === 0) ? (d0 ^ d1 ^ 1) : (d0 ^ d1);
         let expP1 = (r === 4) ? (d1 ^ d2 ^ 1) : (d1 ^ d2);
-        if (p0 !== expP0 || p1 !== expP1) {
+        const rowValid = (p0 === expP0 && p1 === expP1);
+        rowStatus.push(rowValid);
+        if (!rowValid) {
           valid = false;
-          break;
         }
       }
+
+      // 1. Standart 5/5 tam parite eşleşmesi (Yüksek Güvenilirlik)
       if (valid) {
         let num = 0;
         for (let r = 0; r < 5; r++) {
@@ -84,10 +90,53 @@
           const d2 = cur[r][2];
           num = (num << 3) | (d0 << 2) | (d1 << 1) | d2;
         }
-        return { success: true, studentNumber: num, rotation: rot * 90 };
+        if (num > 0 && num < 32767) {
+          if (!validStudentNumbers || validStudentNumbers.length === 0 || validStudentNumbers.includes(String(num)) || validStudentNumbers.includes(num)) {
+            return { success: true, studentNumber: num, rotation: rot * 90 };
+          }
+        }
       }
+
+      // 2. Parlama / Yansıma Toleranslı Kurtarma:
+      // Eğer üst sıralar ışık yansımasıyla beyaza doymuşsa ancak alt sıralar (satır 2 ve 3) pariteyi geçiyorsa
+      // 0..511 arası okul numaraları (alt 9-bit) parite garantisiyle doğrulanır
+      if (rowStatus[2] && rowStatus[3]) {
+        const d0 = cur[2][0], d1 = cur[2][1], d2 = cur[2][2];
+        const d3 = cur[3][0], d4 = cur[3][1], d5 = cur[3][2];
+        const d6 = cur[4][0], d7 = cur[4][1], d8 = cur[4][2];
+        const num9 = (d0 << 8) | (d1 << 7) | (d2 << 6) | (d3 << 5) | (d4 << 4) | (d5 << 3) | (d6 << 2) | (d7 << 1) | d8;
+        if (num9 > 0 && num9 < 511) {
+          if (!validStudentNumbers || validStudentNumbers.length === 0 || validStudentNumbers.includes(String(num9)) || validStudentNumbers.includes(num9)) {
+            if (!glareCandidate) {
+              glareCandidate = { success: true, studentNumber: num9, rotation: rot * 90, recoveredFromGlare: true };
+            }
+          }
+        }
+      }
+
+      // 3. 4/5 satır parite eşleşmesi
+      const validCount = rowStatus.filter(Boolean).length;
+      if (validCount >= 4) {
+        let num = 0;
+        for (let r = 0; r < 5; r++) {
+          const d0 = cur[r][0];
+          const d1 = cur[r][1];
+          const d2 = cur[r][2];
+          num = (num << 3) | (d0 << 2) | (d1 << 1) | d2;
+        }
+        if (num > 0 && num < 32767) {
+          if (validStudentNumbers && validStudentNumbers.length > 0 && (validStudentNumbers.includes(String(num)) || validStudentNumbers.includes(num))) {
+            if (!glareCandidate) {
+              glareCandidate = { success: true, studentNumber: num, rotation: rot * 90, recoveredFromGlare: true };
+            }
+          }
+        }
+      }
+
       cur = rotateMatrix5x5(cur);
     }
+
+    if (glareCandidate) return glareCandidate;
     return { success: false, studentNumber: null };
   }
 
@@ -113,7 +162,7 @@
 
   // ArUco 5x5 Ultra Hızlı & Dayanıklı Belirteç Tarayıcı (Hamming Parite & Oryantasyon Korumalı)
   // 16px - 280px arasındaki tüm belirteçleri telefon kamerası, karanlık mod ve eğik açılarda 1-2 ms de çözer.
-  function scanArucoInGrayscale(gray, w, h, minX = 0, maxX = w, minY = 0, maxY = h) {
+  function scanArucoInGrayscale(gray, w, h, minX = 0, maxX = w, minY = 0, maxY = h, validStudentNumbers = null) {
     if (!gray || w < 16 || h < 16) return null;
 
     const startX = Math.max(2, Math.floor(minX));
@@ -141,12 +190,12 @@
     const thLight = Math.max(60, Math.min(205, Math.round(avg * 0.84)));
     const thDark = Math.max(45, Math.min(175, Math.round(avg * 0.65)));
     // Çok kademeli eşik (kağıt, karanlık mod, gölge ve parlama toleransı)
-    const thresholds = Array.from(new Set([thAuto, thLight, thDark, 145, 120, 95]));
+    const thresholds = Array.from(new Set([thAuto, thLight, thDark, 175, 160, 145, 120, 95]));
+
+    const minS = 16;
+    const maxS = Math.min(areaW, areaH, 280);
 
     for (const th of thresholds) {
-      const minS = 16;
-      const maxS = Math.min(areaW, areaH, 280);
-
       for (let y = startY; y < endY - minS; y += 2) {
         let x = startX;
         while (x < endX - minS) {
@@ -165,76 +214,86 @@
 
               for (let si = 0; si < sYCandidates.length; si++) {
                 const sY = sYCandidates[si];
-                if (sY < minS || y + sY >= endY) continue;
 
-                const botY = y + sY - 1;
-                // Hafif yatay eğim (shear/tilt) toleransı
-                const dxCandidates = [0, -2, 2, -4, 4];
-                for (let di = 0; di < dxCandidates.length; di++) {
-                  const dxBot = dxCandidates[di];
-                  const botStartX = runStartX + dxBot;
-                  if (botStartX < startX || botStartX + runLen >= endX) continue;
+                // İki yön kontrolü: 1) Bulunan yatay çizgi üst kenarsa (aşağı doğru), 2) Alt kenarsa (yukarı doğru parlama kurtarma)
+                const dirCases = [
+                  { topY: y, botY: y + sY - 1 },
+                  { topY: y - sY + 1, botY: y }
+                ];
 
-                  // 1. Alt kenar ve üst kalın çerçeve (1 hücrelik ArUco dış halkası) kontrolü
-                  const cellSizeX = runLen / 7;
-                  const cellSizeY = sY / 7;
-                  const topInnerY = Math.min(botY, y + Math.max(1, Math.round(cellSizeY * 0.42)));
-                  let botBlack = 0, topInnerBlack = 0, botTotal = 0;
-                  for (let bx = botStartX; bx < botStartX + runLen; bx += 2) {
-                    botTotal++;
-                    if (gray[botY * w + bx] < th) botBlack++;
-                    const tx = bx - dxBot;
-                    if (tx >= startX && tx < endX && gray[topInnerY * w + tx] < th) topInnerBlack++;
-                  }
-                  if (botTotal > 0 && (botBlack / botTotal) >= 0.50 && (topInnerBlack / botTotal) >= 0.50) {
-                    // 2. Sol ve sağ kenar kontrolü (üstten alta eğim interpolasyonlu)
-                    let lrBlack = 0, lrTotal = 0;
-                    for (let ly = y; ly <= botY; ly += 2) {
-                      const t = (ly - y) / Math.max(1, sY - 1);
-                      const lx = Math.round(runStartX + dxBot * t);
-                      const rx = lx + runLen - 1;
-                      lrTotal += 2;
-                      if (gray[ly * w + lx] < th) lrBlack++;
-                      if (gray[ly * w + rx] < th) lrBlack++;
+                for (let dci = 0; dci < dirCases.length; dci++) {
+                  const boxTopY = dirCases[dci].topY;
+                  const boxBotY = dirCases[dci].botY;
+                  if (boxTopY < startY || boxBotY >= endY) continue;
+
+                  // Hafif yatay eğim (shear/tilt) toleransı
+                  const dxCandidates = [0, -2, 2, -4, 4];
+                  for (let di = 0; di < dxCandidates.length; di++) {
+                    const dxBot = dxCandidates[di];
+                    const botStartX = runStartX + dxBot;
+                    if (botStartX < startX || botStartX + runLen >= endX) continue;
+
+                    // 1. Kenar kontrolü (1 hücrelik ArUco dış halkası)
+                    const cellSizeX = runLen / 7;
+                    const cellSizeY = sY / 7;
+                    const topInnerY = Math.min(boxBotY, boxTopY + Math.max(1, Math.round(cellSizeY * 0.42)));
+                    const botInnerY = Math.max(boxTopY, boxBotY - Math.max(1, Math.round(cellSizeY * 0.42)));
+
+                    let botBlack = 0, topBlack = 0, botTotal = 0;
+                    for (let bx = botStartX; bx < botStartX + runLen; bx += 2) {
+                      botTotal++;
+                      if (gray[boxBotY * w + bx] < th || gray[botInnerY * w + bx] < th) botBlack++;
+                      const tx = bx - dxBot;
+                      if (tx >= startX && tx < endX && (gray[boxTopY * w + tx] < th || gray[topInnerY * w + tx] < th)) topBlack++;
                     }
-                    if (lrTotal > 0 && (lrBlack / lrTotal) >= 0.50) {
-                      // 3. İç 5x5 hücreleri örnekle (bağımsız X/Y adımı ve eğim telafisi ile)
-                      const grid5x5 = [];
-                      for (let r = 1; r <= 5; r++) {
-                        const row = [];
-                        const fy = (r + 0.5) / 7;
-                        const cy = Math.round(y + (r + 0.5) * cellSizeY);
-                        const rowShiftX = dxBot * fy;
-                        for (let c = 1; c <= 5; c++) {
-                          const cx = Math.round(runStartX + rowShiftX + (c + 0.5) * cellSizeX);
-                          let v;
-                          if (cellSizeX <= 4.2 || cellSizeY <= 4.2) {
-                            v = gray[cy * w + cx] < th ? 0 : 1;
-                          } else {
-                            let cSum = 0, cCnt = 0;
-                            for (let dy = -1; dy <= 1; dy++) {
-                              for (let dx = -1; dx <= 1; dx++) {
-                                cSum += gray[(cy + dy) * w + (cx + dx)];
-                                cCnt++;
-                              }
-                            }
-                            v = (cSum / cCnt) < th ? 0 : 1;
-                          }
-                          row.push(v);
-                        }
-                        grid5x5.push(row);
-                      }
 
-                      const dec = decodeStudentAruco(grid5x5);
-                      if (dec.success && dec.studentNumber > 0) {
-                        return {
-                          success: true,
-                          studentNumber: dec.studentNumber,
-                          x: runStartX,
-                          y: y,
-                          size: Math.round((runLen + sY) * 0.5),
-                          rotation: dec.rotation
-                        };
+                    // Işık parlaması / yansıma toleransı: Üst veya alt kenardan biri sağlam olmalı
+                    const bestEdgeRatio = Math.max(botBlack, topBlack) / Math.max(1, botTotal);
+                    const bothEdgeRatio = (botBlack + topBlack) / Math.max(1, 2 * botTotal);
+
+                    if (bestEdgeRatio >= 0.45 && bothEdgeRatio >= 0.22) {
+                      // 2. Çok kademeli hücre eşikleme (Parlama altındaki soluk siyah hücreleri tam algılama)
+                      const cellThList = [th, 140, 160, 175, 190];
+                      for (let cti = 0; cti < cellThList.length; cti++) {
+                        const cellTh = cellThList[cti];
+                        const grid5x5 = [];
+                        for (let r = 1; r <= 5; r++) {
+                          const row = [];
+                          const fy = (r + 0.5) / 7;
+                          const cy = Math.round(boxTopY + (r + 0.5) * cellSizeY);
+                          const rowShiftX = dxBot * fy;
+                          for (let c = 1; c <= 5; c++) {
+                            const cx = Math.round(runStartX + rowShiftX + (c + 0.5) * cellSizeX);
+                            let v;
+                            if (cellSizeX <= 4.2 || cellSizeY <= 4.2) {
+                              v = gray[cy * w + cx] < cellTh ? 0 : 1;
+                            } else {
+                              let cSum = 0, cCnt = 0;
+                              for (let dy = -1; dy <= 1; dy++) {
+                                for (let dx = -1; dx <= 1; dx++) {
+                                  cSum += gray[(cy + dy) * w + (cx + dx)];
+                                  cCnt++;
+                                }
+                              }
+                              v = (cSum / cCnt) < cellTh ? 0 : 1;
+                            }
+                            row.push(v);
+                          }
+                          grid5x5.push(row);
+                        }
+
+                        const dec = decodeStudentAruco(grid5x5, validStudentNumbers);
+                        if (dec.success && dec.studentNumber > 0) {
+                          return {
+                            success: true,
+                            studentNumber: dec.studentNumber,
+                            x: runStartX,
+                            y: boxTopY,
+                            size: Math.round((runLen + sY) * 0.5),
+                            rotation: dec.rotation,
+                            recoveredFromGlare: !!dec.recoveredFromGlare
+                          };
+                        }
                       }
                     }
                   }
@@ -540,7 +599,15 @@
           const c1 = ringLum - coreLum;
           const c2 = ringLum - outerLum;
           if (c1 > 22 && c2 > 12) {
-            candidateScore = Math.max(candidateScore, (c1 * 0.5) + (c2 * 0.5));
+            // 4 kardinal yön beyaz halka simetri kontrolü (Kenar ve kenarlık çizgilerini eler)
+            const rMid = Math.round((rCore + rRing) * 0.5);
+            const wT = gray[(y - rMid) * w + x];
+            const wB = gray[(y + rMid) * w + x];
+            const wL = gray[y * w + (x - rMid)];
+            const wR = gray[y * w + (x + rMid)];
+            if (Math.min(wT, wB, wL, wR) - coreLum >= 16) {
+              candidateScore = Math.max(candidateScore, (c1 * 0.5) + (c2 * 0.5));
+            }
           }
         }
 
@@ -551,7 +618,14 @@
           const c1 = ringLum - coreLum;
           const c2 = ringLum - outerLum;
           if (c1 > 20 && c2 > 10) {
-            candidateScore = Math.max(candidateScore, (c1 * 0.6) + (c2 * 0.4));
+            const rMid = Math.round((rCore + rRing) * 0.5);
+            const wT = gray[(y - rMid) * w + x];
+            const wB = gray[(y + rMid) * w + x];
+            const wL = gray[y * w + (x - rMid)];
+            const wR = gray[y * w + (x + rMid)];
+            if (Math.min(wT, wB, wL, wR) - coreLum >= 16) {
+              candidateScore = Math.max(candidateScore, (c1 * 0.6) + (c2 * 0.4));
+            }
           }
         }
 
@@ -935,33 +1009,20 @@
     }
 
     // 1. İLK ÖNCELİK: 4 Köşe Referans Çapası (Hedef Nişangahı - CamScanner & ÖSYM Standardı)
-    const qW = Math.round(subW * 0.24);
-    const qH = Math.round(subH * 0.28);
+    // Köşe çapa arama alanı formun en dış uçlarına sınırlandırılır (İç ders kutucukları veya başlıkların çapa sanılmasını engeller)
+    const qW = Math.round(subW * 0.16);
+    const qH = Math.round(subH * 0.18);
     const rOpt = Math.round(subW * 0.013);
-    const scalesToTry = [8, 9, 10, 11, 12, 13, 14, 15, 16, 18, 20, 22, 24, rOpt].filter((v, i, a) => v >= 7 && a.indexOf(v) === i);
+    const radiiToTry = [rOpt, rOpt - 1, rOpt + 1, rOpt - 2, rOpt + 2, rOpt - 3, rOpt + 3, 10, 12, 14, 16].filter((v, i, a) => v >= 6 && a.indexOf(v) === i);
 
     function findBestConcentricInQuad(x1, x2, y1, y2, type) {
       let best = null;
-      let bestMetric = (type === 'tl' || type === 'bl') ? 999999 : -999999;
-      for (const r of scalesToTry) {
+      for (const r of radiiToTry) {
         const cand = findConcentricTargetAnchor(gray, w, h, x1, x2, y1, y2, r);
-        if (cand && cand.score >= 28) {
-          let metric = 0;
-          if (type === 'tl') metric = cand.x + cand.y;
-          else if (type === 'tr') metric = cand.x - cand.y;
-          else if (type === 'bl') metric = cand.x - cand.y;
-          else if (type === 'br') metric = cand.x + cand.y;
-
-          if (type === 'tl' || type === 'bl') {
-            if (metric < bestMetric) {
-              bestMetric = metric;
-              best = cand;
-            }
-          } else {
-            if (metric > bestMetric) {
-              bestMetric = metric;
-              best = cand;
-            }
+        if (cand && cand.score >= 35) {
+          // En yüksek dairesel kontrast/skor sahibi adayı seç (Köşe çizgisi değil, gerçek nişangah çapasını kilitler)
+          if (!best || cand.score > best.score) {
+            best = cand;
           }
         }
       }
@@ -969,10 +1030,12 @@
     }
 
     let tlFound = findBestConcentricInQuad(minX, minX + qW, minY, minY + qH, 'tl');
-    // TR ve BR için x >= subW * 0.86 sınırı OMR ID / QR rozet kutusunun (x <= 0.84) çapa sanılmasını %100 engeller!
-    let trFound = findBestConcentricInQuad(Math.max(minX + Math.round(subW * 0.86), maxX - qW), maxX, minY, minY + qH, 'tr');
-    let brFound = findBestConcentricInQuad(Math.max(minX + Math.round(subW * 0.86), maxX - qW), maxX, Math.max(minY + Math.round(subH * 0.70), maxY - qH), maxY, 'br');
-    let blFound = findBestConcentricInQuad(minX, minX + qW, Math.max(minY + Math.round(subH * 0.70), maxY - qH), maxY, 'bl');
+    // TR ve BR için x >= subW * 0.84 sınırı OMR ID / QR rozet kutusunun çapa sanılmasını %100 engeller!
+    let trFound = findBestConcentricInQuad(Math.max(minX + Math.round(subW * 0.84), maxX - qW), maxX, minY, minY + qH, 'tr');
+    // BR: trFound varsa onunla dikey hizada kalmalıdır (Fen bilimleri sonrası 4 ve 5. derslerdeki kaymayı %100 engeller)
+    const brMinX = trFound ? Math.max(trFound.x - Math.round(subW * 0.08), minX + Math.round(subW * 0.84)) : Math.max(minX + Math.round(subW * 0.84), maxX - qW);
+    let brFound = findBestConcentricInQuad(brMinX, maxX, Math.max(minY + Math.round(subH * 0.80), maxY - qH), maxY, 'br');
+    let blFound = findBestConcentricInQuad(minX, minX + qW, Math.max(minY + Math.round(subH * 0.80), maxY - qH), maxY, 'bl');
 
     let foundCount = (tlFound ? 1 : 0) + (trFound ? 1 : 0) + (brFound ? 1 : 0) + (blFound ? 1 : 0);
 
@@ -1227,27 +1290,37 @@
   }
 
   function analyzeBubble(gray, w, h, cx, cy, radius, rowPaperLum) {
-    // Çember kenar çizgilerini değil, sadece baloncuğun iç kurşun kalem çekirdeğini örnekle
-    const rInner = Math.max(2, Math.round(radius * 0.45));
+    // Çemberin iç alanını geniş örnekle (0.62 * radius): Öğrencinin baloncuğu yarım,
+    // alt/üst/yan ağırlıklı veya ortası hafif boşluklu işaretlemelerini tam kapsar.
+    const rInner = Math.max(3, Math.round(radius * 0.62));
     const rInner2 = rInner * rInner;
 
-    // 1. Baloncuğun tam geometrik merkez çekirdeği (3x3 piksel)
-    // Gerçek bir kurşun kalem işaretlemesinde merkez doludur.
-    // Eğer merkez çekirdeği bembeyaz ise, rInner kenarındaki koyuluk sadece tablo çizgisi veya çember çizgisidir!
-    let coreSumLum = 0;
-    let corePixels = 0;
-    for (let cdy = -1; cdy <= 1; cdy++) {
-      const cpy = cy + cdy;
-      if (cpy < 0 || cpy >= h) continue;
-      for (let cdx = -1; cdx <= 1; cdx++) {
-        const cpx = cx + cdx;
-        if (cpx < 0 || cpx >= w) continue;
-        coreSumLum += gray[cpy * w + cpx];
-        corePixels++;
+    // 1. Baloncuk iç bölgesindeki en koyu 3x3 kurşun kalem çekirdeğini bul
+    // (Sadece tek bir (cx, cy) noktasına bakmak yerine iç bölgedeki en güçlü kalem darbesini baz alır)
+    const rCoreSearch = Math.max(1, Math.round(rInner * 0.55));
+    let maxCoreDarkness = 0;
+    for (let sy = -rCoreSearch; sy <= rCoreSearch; sy++) {
+      for (let sx = -rCoreSearch; sx <= rCoreSearch; sx++) {
+        if (sx * sx + sy * sy > rCoreSearch * rCoreSearch) continue;
+        let patchSum = 0, patchCnt = 0;
+        for (let dy = -1; dy <= 1; dy++) {
+          const py = cy + sy + dy;
+          if (py < 0 || py >= h) continue;
+          for (let dx = -1; dx <= 1; dx++) {
+            const px = cx + sx + dx;
+            if (px < 0 || px >= w) continue;
+            patchSum += gray[py * w + px];
+            patchCnt++;
+          }
+        }
+        if (patchCnt > 0) {
+          const patchLum = patchSum / patchCnt;
+          const d = Math.max(0, (rowPaperLum - patchLum) / Math.max(1, rowPaperLum));
+          if (d > maxCoreDarkness) maxCoreDarkness = d;
+        }
       }
     }
-    const meanCoreLum = corePixels > 0 ? (coreSumLum / corePixels) : rowPaperLum;
-    const coreDarkness = Math.max(0, (rowPaperLum - meanCoreLum) / Math.max(1, rowPaperLum));
+    const coreDarkness = maxCoreDarkness;
 
     let totalPixels = 0;
     const darknessValues = [];
@@ -1276,27 +1349,36 @@
     let medianDarkness = darknessValues[Math.floor(totalPixels * 0.50)];
     const p75Darkness = darknessValues[Math.floor(totalPixels * 0.75)];
 
+    // En koyu %45'lik piksel diliminin ortalaması (yarım/kayık işaretlemeleri yakalar)
+    const topStartIdx = Math.floor(totalPixels * 0.55);
+    let topSum = 0, topCnt = 0;
+    for (let i = topStartIdx; i < totalPixels; i++) {
+      topSum += darknessValues[i];
+      topCnt++;
+    }
+    const topDarkness = topCnt > 0 ? (topSum / topCnt) : p75Darkness;
+
     let darkCount = 0;
     let sumDark = 0;
     for (let i = 0; i < totalPixels; i++) {
       const v = darknessValues[i];
       sumDark += v;
-      if (v >= 0.28) darkCount++;
+      if (v >= 0.25) darkCount++;
     }
 
     let fillRatio = darkCount / totalPixels;
     let meanDarkness = sumDark / totalPixels;
 
-    // Merkez çekirdek beyazlık koruması:
-    // Eğer baloncuğun merkezi kağıt beyazı ise (coreDarkness < 0.12), kenardan sızan çizgiye rağmen bu baloncuk boştur!
-    if (coreDarkness < 0.12) {
+    // Yalnızca baloncuğun tamamı kağıt beyazıysa (ne kalem çekirdeği ne de çeyrek doluluk varsa) gürültüyü bastır
+    if (coreDarkness < 0.10 && p75Darkness < 0.15) {
       medianDarkness = Math.min(medianDarkness, 0.05);
       fillRatio = Math.min(fillRatio, 0.15);
       meanDarkness = Math.min(meanDarkness, 0.15);
     }
 
-    let score = (medianDarkness * 0.35) + (meanDarkness * 0.35) + (fillRatio * 0.30);
-    if (coreDarkness < 0.12) {
+    // Çevre alan + en koyu %45 kalem yoğunluğu + genel doluluk birleşik skoru
+    let score = (medianDarkness * 0.25) + (meanDarkness * 0.30) + (topDarkness * 0.20) + (fillRatio * 0.25);
+    if (coreDarkness < 0.10 && p75Darkness < 0.15) {
       score = Math.min(score, 0.20);
     }
 
@@ -1399,9 +1481,9 @@
   }
 
   function snapToBubbleRing(gray, w, h, initialPt, radius) {
-    // Merkezin komşu satırlara veya tablo sınır çizgilerine taşmasını önlemek için sıkı arama penceresi (maksimum ±6px)
-    const searchRx = Math.min(6, Math.max(3, Math.round(radius * 0.42)));
-    const searchRy = Math.min(5, Math.max(3, Math.round(radius * 0.35)));
+    // Merkezin komşu satırlara veya baloncuk kenarındaki beyaz boşluğa kaçmasını önlemek için dar pencere
+    const searchRx = Math.min(4, Math.max(2, Math.round(radius * 0.30)));
+    const searchRy = Math.min(4, Math.max(2, Math.round(radius * 0.28)));
     const rRing = Math.max(7, Math.round(radius * 0.85));
     const rOuter = Math.max(11, Math.round(radius * 1.35));
 
@@ -1446,9 +1528,22 @@
           symBonus += Math.min(ringVals[a], ringVals[a + 4]);
         }
 
-        // Başlangıç noktasından uzaklaşma cezası: Komşu çizgilere sıçramayı engelle
+        // İç doluluk çekimi: Öğrenci baloncuğu karaladığında odak noktasının kalemden kaçıp
+        // baloncuğun üst/yan beyaz boşluğuna kaymasını engeller, kalem ağırlık merkezini tutar.
+        let innerDarkSum = 0;
+        for (let idy = -1; idy <= 1; idy++) {
+          const ipy = cy + idy;
+          if (ipy < 0 || ipy >= h) continue;
+          for (let idx = -1; idx <= 1; idx++) {
+            const ipx = cx + idx;
+            if (ipx < 0 || ipx >= w) continue;
+            innerDarkSum += (255 - gray[ipy * w + ipx]);
+          }
+        }
+
+        // Başlangıç noktasından uzaklaşma cezası: Sabit koordinattan gereksiz sapmayı engeller
         const dist = Math.hypot(dx, dy);
-        const score = ringDark + symBonus * 1.2 + outerWhite * 0.4 - dist * 5.5;
+        const score = ringDark + symBonus * 1.2 + innerDarkSum * 0.65 + outerWhite * 0.25 - dist * 8.5;
         if (score > bestScore) {
           bestScore = score;
           bestX = cx;
@@ -1660,6 +1755,11 @@
               if (isAnchor || isMobile) {
                 snappedPt = snapToBubbleRing(gray, w, h, initialPt, sampleRadius);
                 metrics = analyzeBubble(gray, w, h, snappedPt.x, snappedPt.y, sampleRadius, rowPaperLum);
+                const metricsInit = analyzeBubble(gray, w, h, initialPt.x, initialPt.y, sampleRadius, rowPaperLum);
+                if (metricsInit.score > metrics.score + 0.02) {
+                  snappedPt = initialPt;
+                  metrics = metricsInit;
+                }
               } else {
                 const searchR = Math.max(6, Math.round(sampleRadius * 1.3));
                 snappedPt = refineBubbleCenter(gray, w, h, initialPt, sampleRadius, rowPaperLum, searchR, searchR);
@@ -2038,12 +2138,12 @@
     }
 
     // ── YENİ: ROZET VE QR ALANINI HOMOGRAFİ İLE DÜZLEŞTİREREK TARAMA (0 EĞİM, %100 HASSASİYET) ──
-    function unwarpAndScanBadge(context, mapFn, targetW, targetH, maxValidIdx = 50) {
+    function unwarpAndScanBadge(context, mapFn, targetW, targetH, maxValidIdx = 50, validStudentNumbers = null) {
       if (typeof mapFn !== 'function') return { qrResult: null, arucoStudentNumber: null, binaryId: null };
 
       // Gerçek fiziksel en/boy oranını (1:1 izometrik kare) homografi noktalarından hesapla
-      const uMin = 0.72, uSpan = 0.27; // u: 0.72 .. 0.99
-      const vMin = -0.025, vSpan = 0.25; // v: -0.025 .. 0.225 (üst çapa hizasındaki ArUco üst kenarını tam kapsar)
+      const uMin = 0.70, uSpan = 0.29; // u: 0.70 .. 0.99
+      const vMin = -0.075, vSpan = 0.32; // v: -0.075 .. 0.245 (üst çapa hizasındaki ArUco ve rozetin tamamını eksiksiz kapsar)
       const pt00 = mapFn(uMin, vMin);
       const pt10 = mapFn(uMin + uSpan, vMin);
       const pt01 = mapFn(uMin, vMin + vSpan);
@@ -2088,7 +2188,7 @@
       // 0. ArUco 5x5 Doğrudan Öğrenci Numarası Çözümleme (0 ms, 1:1 İzometrik Düzleştirilmiş Matris)
       let arucoStudentNo = null;
       try {
-        const arucoRes = scanArucoInGrayscale(grayBadge, badgeW, badgeH);
+        const arucoRes = scanArucoInGrayscale(grayBadge, badgeW, badgeH, 0, badgeW, 0, badgeH, validStudentNumbers);
         if (arucoRes && arucoRes.success) {
           arucoStudentNo = String(arucoRes.studentNumber);
         }
@@ -2136,6 +2236,9 @@
     // 1) Sayfanın 2 form barındırabilmesi için mutlaka DİKEY (PORTRAIT, targetH > targetW * 1.15) olması gerekir.
     // Yatay (landscape) taranan A5 veya tekil optik kartlar asla 2 form içeremez.
     const maxRosterCount = Array.isArray(classStudents) && classStudents.length > 0 ? classStudents.length : 50;
+    const validStudentNumbers = Array.isArray(classStudents) ? classStudents
+      .map(s => String(s?.number ?? s?.no ?? s?.studentNo ?? '').trim())
+      .filter(n => n && n !== '......' && n !== '-') : [];
     const isPortrait = targetH > targetW * 1.15;
     let isDoubleForm = false;
     let cornersTop = null;
@@ -2200,18 +2303,18 @@
         br: { ...cornersTop.br }
       };
       const cardTop = scanSingleCard(canvas, gray, targetW, targetH, cornersTop, exam, classStudents, options);
-      const badgeTop = unwarpAndScanBadge(ctx, createProjectiveHomography(cornersTop), targetW, targetH, maxRosterCount);
+      const badgeTop = unwarpAndScanBadge(ctx, createProjectiveHomography(cornersTop), targetW, targetH, maxRosterCount, validStudentNumbers);
       cardTop.arucoStudentNumber = badgeTop.arucoStudentNumber || (options && options.liveAruco ? String(options.liveAruco.studentNumber) : null);
       if (!cardTop.arucoStudentNumber && cornersTopOrig && cornersTopOrig.tr) {
         const subW = Math.round(targetW * 0.45);
         const subH = Math.round(targetH * 0.35);
         const subX = Math.max(0, cornersTopOrig.tr.x - subW + 60);
         const subY = Math.max(0, cornersTopOrig.tl.y - 30);
-        const aRes = scanArucoInGrayscale(gray, targetW, targetH, subX, cornersTopOrig.tr.x + 30, subY, subY + subH);
+        const aRes = scanArucoInGrayscale(gray, targetW, targetH, subX, cornersTopOrig.tr.x + 30, subY, subY + subH, validStudentNumbers);
         if (aRes && aRes.success) cardTop.arucoStudentNumber = String(aRes.studentNumber);
       }
       if (!cardTop.arucoStudentNumber) {
-        const aRes = scanArucoInGrayscale(gray, targetW, targetH, 0, targetW, 0, Math.round(targetH * 0.50));
+        const aRes = scanArucoInGrayscale(gray, targetW, targetH, 0, targetW, 0, Math.round(targetH * 0.50), validStudentNumbers);
         if (aRes && aRes.success) cardTop.arucoStudentNumber = String(aRes.studentNumber);
       }
       cardTop.qrResult = badgeTop.qrResult;
@@ -2244,18 +2347,18 @@
         br: { ...cornersBottom.br }
       };
       const cardBottom = scanSingleCard(canvas, gray, targetW, targetH, cornersBottom, exam, classStudents, options);
-      const badgeBottom = unwarpAndScanBadge(ctx, createProjectiveHomography(cornersBottom), targetW, targetH, maxRosterCount);
+      const badgeBottom = unwarpAndScanBadge(ctx, createProjectiveHomography(cornersBottom), targetW, targetH, maxRosterCount, validStudentNumbers);
       cardBottom.arucoStudentNumber = badgeBottom.arucoStudentNumber || (options && options.liveAruco ? String(options.liveAruco.studentNumber) : null);
       if (!cardBottom.arucoStudentNumber && cornersBottomOrig && cornersBottomOrig.tr) {
         const subW = Math.round(targetW * 0.45);
         const subH = Math.round(targetH * 0.35);
         const subX = Math.max(0, cornersBottomOrig.tr.x - subW + 60);
         const subY = Math.max(0, cornersBottomOrig.tl.y - 30);
-        const aRes = scanArucoInGrayscale(gray, targetW, targetH, subX, cornersBottomOrig.tr.x + 30, subY, subY + subH);
+        const aRes = scanArucoInGrayscale(gray, targetW, targetH, subX, cornersBottomOrig.tr.x + 30, subY, subY + subH, validStudentNumbers);
         if (aRes && aRes.success) cardBottom.arucoStudentNumber = String(aRes.studentNumber);
       }
       if (!cardBottom.arucoStudentNumber) {
-        const aRes = scanArucoInGrayscale(gray, targetW, targetH, 0, targetW, Math.max(0, midY - 60), targetH);
+        const aRes = scanArucoInGrayscale(gray, targetW, targetH, 0, targetW, Math.max(0, midY - 60), targetH, validStudentNumbers);
         if (aRes && aRes.success) cardBottom.arucoStudentNumber = String(aRes.studentNumber);
       }
       cardBottom.qrResult = badgeBottom.qrResult;
@@ -2307,22 +2410,22 @@
         br: { ...cornersFull.br }
       };
       let cardFull = scanSingleCard(canvas, gray, targetW, targetH, cornersFull, exam, classStudents, options);
-      const fullBadge = unwarpAndScanBadge(ctx, createProjectiveHomography(cornersFull), targetW, targetH, maxRosterCount);
+      const fullBadge = unwarpAndScanBadge(ctx, createProjectiveHomography(cornersFull), targetW, targetH, maxRosterCount, validStudentNumbers);
       cardFull.arucoStudentNumber = fullBadge.arucoStudentNumber || (options && options.liveAruco ? String(options.liveAruco.studentNumber) : null);
       if (!cardFull.arucoStudentNumber && cornersFullOrig && cornersFullOrig.tr) {
         const subW = Math.round(targetW * 0.45);
         const subH = Math.round(targetH * 0.35);
         const subX = Math.max(0, cornersFullOrig.tr.x - subW + 60);
         const subY = Math.max(0, cornersFullOrig.tl.y - 30);
-        const aRes = scanArucoInGrayscale(gray, targetW, targetH, subX, cornersFullOrig.tr.x + 30, subY, subY + subH);
+        const aRes = scanArucoInGrayscale(gray, targetW, targetH, subX, cornersFullOrig.tr.x + 30, subY, subY + subH, validStudentNumbers);
         if (aRes && aRes.success) cardFull.arucoStudentNumber = String(aRes.studentNumber);
       }
       if (!cardFull.arucoStudentNumber && scaledBounds) {
-        const aRes = scanArucoInGrayscale(gray, targetW, targetH, scaledBounds.minX, scaledBounds.maxX, scaledBounds.minY, scaledBounds.maxY);
+        const aRes = scanArucoInGrayscale(gray, targetW, targetH, scaledBounds.minX, scaledBounds.maxX, scaledBounds.minY, scaledBounds.maxY, validStudentNumbers);
         if (aRes && aRes.success) cardFull.arucoStudentNumber = String(aRes.studentNumber);
       }
       if (!cardFull.arucoStudentNumber) {
-        const aRes = scanArucoInGrayscale(gray, targetW, targetH, 0, targetW, 0, Math.round(targetH * 0.60));
+        const aRes = scanArucoInGrayscale(gray, targetW, targetH, 0, targetW, 0, Math.round(targetH * 0.60), validStudentNumbers);
         if (aRes && aRes.success) cardFull.arucoStudentNumber = String(aRes.studentNumber);
       }
       cardFull.qrResult = fullBadge.qrResult || (options && options.liveDetectedQr ? options.liveDetectedQr : null);
@@ -2350,7 +2453,7 @@
         const globalCorners = detectCornerAnchors(gray, targetW, targetH, threshold, null);
         if (globalCorners) {
           const gCard = scanSingleCard(canvas, gray, targetW, targetH, globalCorners, exam, classStudents, options);
-          const gBadge = unwarpAndScanBadge(ctx, createProjectiveHomography(globalCorners), targetW, targetH, maxRosterCount);
+          const gBadge = unwarpAndScanBadge(ctx, createProjectiveHomography(globalCorners), targetW, targetH, maxRosterCount, validStudentNumbers);
           if (gBadge.arucoStudentNumber || gBadge.qrResult) {
             cornersFull = globalCorners;
             cardFull = gCard;

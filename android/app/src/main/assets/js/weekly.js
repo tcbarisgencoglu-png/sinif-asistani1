@@ -6280,18 +6280,28 @@ function renderOlderExamsModalList() {
     if (btnDelete) {
       btnDelete.addEventListener('click', async (e) => {
         e.stopPropagation();
-        const confirmed = window.showConfirm
-          ? await window.showConfirm(`"${exam.examName || 'Sınav'}" sınavını ve tüm öğrenci sonuçlarını silmek istediğinize emin misiniz?`)
-          : confirm(`"${exam.examName || 'Sınav'}" sınavını silmek istediğinize emin misiniz?`);
+        const examNameToDelete = exam.examName || 'Sınav';
+        const examIdToDelete = exam.id;
+
+        const confirmed = window.showConfirmDialog
+          ? await window.showConfirmDialog({
+              title: 'Sınavı Sil',
+              message: `<strong>"${examNameToDelete}"</strong> sınavını ve bu sınava ait tüm öğrenci değerlendirme sonuçlarını tamamen silmek istediğinize emin misiniz?<br><span style="color:#ef4444; font-weight:700;">Bu işlem geri alınamaz!</span>`,
+              confirmText: 'Sınavı Sil',
+              cancelText: 'Vazgeç',
+              type: 'danger'
+            })
+          : confirm(`"${examNameToDelete}" sınavını silmek istediğinize emin misiniz?`);
         if (!confirmed) return;
 
-        let currentState = stateManager.loadState();
-        currentState.weeklyEvaluations = (currentState.weeklyEvaluations || []).filter(item => String(item.id) !== String(exam.id));
-        stateManager.saveState(currentState);
-        if (window.cloudSync && typeof window.cloudSync.deleteExamFromCloud === 'function') {
-          window.cloudSync.deleteExamFromCloud(exam.id);
+        stateManager.deleteExam(examIdToDelete);
+
+        // Canlı El Terminali ve Bulut Eşitlemesi (Sınavı Terminalden ve Buluttan da Sil)
+        if (window.CloudSync && typeof window.CloudSync.pushLiveExamDeleted === 'function') {
+          window.CloudSync.pushLiveExamDeleted(examIdToDelete, examNameToDelete, 'desktop').catch(() => {});
         }
-        if (activeExam && String(activeExam.id) === String(exam.id)) {
+
+        if (activeExam && String(activeExam.id) === String(examIdToDelete)) {
           activeExam = null;
           window.activeWeeklyExam = null;
           if (activeExamCard) activeExamCard.style.display = 'none';
@@ -6299,7 +6309,8 @@ function renderOlderExamsModalList() {
         }
         renderExamsList();
         renderOlderExamsModalList();
-        if (window.showToast) window.showToast('Sınav silindi.', 'info');
+        document.dispatchEvent(new CustomEvent('stateChanged'));
+        if (window.showToast) window.showToast(`"${examNameToDelete}" sınavı silindi ve El Terminalinden kaldırıldı.`, 'success');
       });
     }
 

@@ -1,13 +1,13 @@
 {
-  "version": "1.0.107",
-  "releaseDate": "2026-10-27",
+  "version": "1.0.111",
+  "releaseDate": "2026-10-28",
   "minRequiredVersion": "1.0.0",
-  "title": "Sınıf Asistanı v1.0.107 Yayında!",
-  "description": "Mobil Kamera Optik Form ve ArUco Öğrenci Eşleme Hassasiyeti Güncellemesi",
+  "title": "Sınıf Asistanı v1.0.111 Yayında!",
+  "description": "Sınırsız Yerel Sabit Disk Depolama ve Öğrenci Fotoğraf Koruma Güncellemesi",
   "features": [
-    "Dinamik ArUco 5x5 Algılayıcı: Telefon kameralarının uzak mesafeli çekimlerinde (20-30px küçük rozetler) ve farklı ışık koşullarında anında ve %100 kesin öğrenci numarası tespiti sağlandı.",
-    "Baskı Şablonu İyileştirmesi: ArUco kimlik arması ile öğrenci numarası arasına beyaz tampon boşluk eklenerek kamerada yazıların armaya taşması önlendi.",
-    "Orijinal Baloncuk Koordinatları Korundu: Optik form üzerindeki tüm soru baloncukları ve koordinat yapısı birebir korundu."
+    "Sınırsız Yerel Disk Mimarisi: Masaüstü (Windows, Pardus/Linux, macOS) sürümünde 5 MB web önbellek sınırı kaldırılarak tüm veriler doğrudan bilgisayarın sabit diskinde kayıpsız olarak saklanıyor.",
+    "Öğrenci Fotoğraf Kalkanı: Yeni sürüm güncellemelerinde veya yoğun sınav/ödev kayıtlarında öğrenci fotoğraflarının silinmesi tamamen engellendi.",
+    "Açılış Koruma Kilidi (Save Guard): Diskten fotoğraflar ve sınavlar tam okunup belleğe yerleşmeden hiçbir yazma işleminin sağlam veriyi ezmesine izin verilmez."
   ],
   "release_url": "https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/latest"
 }
