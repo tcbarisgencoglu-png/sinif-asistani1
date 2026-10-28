@@ -98,9 +98,9 @@
       }
 
       // 2. Parlama / Yansıma Toleranslı Kurtarma:
-      // Eğer üst sıralar ışık yansımasıyla beyaza doymuşsa ancak alt sıralar (satır 2 ve 3) pariteyi geçiyorsa
-      // 0..511 arası okul numaraları (alt 9-bit) parite garantisiyle doğrulanır
-      if (rowStatus[2] && rowStatus[3]) {
+      // Eğer en üst sıralar ışık yansımasıyla beyaza doymuşsa ancak alt 3 sıra (satır 2, 3 ve oryantasyon kilitli satır 4) pariteyi geçiyorsa
+      // 0..511 arası okul numaraları (alt 9-bit) tam parite ve yön garantisiyle doğrulanır
+      if (rowStatus[2] && rowStatus[3] && rowStatus[4]) {
         const d0 = cur[2][0], d1 = cur[2][1], d2 = cur[2][2];
         const d3 = cur[3][0], d4 = cur[3][1], d5 = cur[3][2];
         const d6 = cur[4][0], d7 = cur[4][1], d8 = cur[4][2];
@@ -146,22 +146,24 @@
     const cellSize = 8;
     const totalSize = 7 * cellSize; // 56
     let rects = '';
+    // Dış siyah çerçeve (6px kalınlık) + 2px beyaz sessiz bölge (parlama önleyici beyaz iç arka plan)
     rects += `<rect x="0" y="0" width="${totalSize}" height="${totalSize}" fill="#000000" />`;
-    rects += `<rect x="${cellSize}" y="${cellSize}" width="${5 * cellSize}" height="${5 * cellSize}" fill="#ffffff" />`;
+    rects += `<rect x="6" y="6" width="${totalSize - 12}" height="${totalSize - 12}" fill="#ffffff" />`;
+    // Beyaz arka plan üzerinde yalnızca "1" bitleri ayrık siyah kare olarak çizilir ("0" bitleri mat beyaz kağıt kalır)
     for (let r = 0; r < 5; r++) {
       for (let c = 0; c < 5; c++) {
-        if (grid5x5[r][c] === 0) {
-          const x = (c + 1) * cellSize;
-          const y = (r + 1) * cellSize;
-          rects += `<rect x="${x}" y="${y}" width="${cellSize}" height="${cellSize}" fill="#000000" />`;
+        if (grid5x5[r][c] === 1) {
+          const x = (c + 1) * cellSize + 0.5;
+          const y = (r + 1) * cellSize + 0.5;
+          rects += `<rect x="${x}" y="${y}" width="${cellSize - 1}" height="${cellSize - 1}" fill="#000000" />`;
         }
       }
     }
     return `<svg viewBox="0 0 ${totalSize} ${totalSize}" width="${size}" height="${size}" shape-rendering="crispEdges" style="display: block;">${rects}</svg>`;
   }
 
-  // ArUco 5x5 Ultra Hızlı & Dayanıklı Belirteç Tarayıcı (Hamming Parite & Oryantasyon Korumalı)
-  // 16px - 280px arasındaki tüm belirteçleri telefon kamerası, karanlık mod ve eğik açılarda 1-2 ms de çözer.
+  // ArUco 5x5 Beyaz Arka Planlı & Parlama Korumalı Belirteç Tarayıcı (Hamming Parite & Oryantasyon Korumalı)
+  // "0" bitleri mat beyaz arka plan, "1" bitleri siyah kare olarak okunur.
   function scanArucoInGrayscale(gray, w, h, minX = 0, maxX = w, minY = 0, maxY = h, validStudentNumbers = null) {
     if (!gray || w < 16 || h < 16) return null;
 
@@ -186,14 +188,15 @@
       }
     }
     const avg = sampleCount > 0 ? (sum / sampleCount) : 180;
+    const thLight = Math.max(65, Math.min(215, Math.round(avg * 0.86)));
     const thAuto = Math.max(50, Math.min(195, Math.round(avg * 0.76)));
-    const thLight = Math.max(60, Math.min(205, Math.round(avg * 0.84)));
     const thDark = Math.max(45, Math.min(175, Math.round(avg * 0.65)));
-    // Çok kademeli eşik (kağıt, karanlık mod, gölge ve parlama toleransı)
-    const thresholds = Array.from(new Set([thAuto, thLight, thDark, 175, 160, 145, 120, 95]));
+    // Çok kademeli eşik (Önce parlama dostu yüksek eşik thLight ile dış çerçevenin üst kenarını yakala)
+    const thresholds = Array.from(new Set([thLight, thAuto, thDark, 185, 170, 150, 125, 95]));
 
     const minS = 16;
     const maxS = Math.min(areaW, areaH, 280);
+    let fallbackGlareCandidate = null;
 
     for (const th of thresholds) {
       for (let y = startY; y < endY - minS; y += 2) {
@@ -233,11 +236,11 @@
                     const botStartX = runStartX + dxBot;
                     if (botStartX < startX || botStartX + runLen >= endX) continue;
 
-                    // 1. Kenar kontrolü (1 hücrelik ArUco dış halkası)
+                    // 1. Kenar kontrolü (4 kenarlı dış siyah çerçeve: Üst, Alt, Sol ve Sağ)
                     const cellSizeX = runLen / 7;
                     const cellSizeY = sY / 7;
-                    const topInnerY = Math.min(boxBotY, boxTopY + Math.max(1, Math.round(cellSizeY * 0.42)));
-                    const botInnerY = Math.max(boxTopY, boxBotY - Math.max(1, Math.round(cellSizeY * 0.42)));
+                    const topInnerY = Math.min(boxBotY, boxTopY + Math.max(1, Math.round(cellSizeY * 0.36)));
+                    const botInnerY = Math.max(boxTopY, boxBotY - Math.max(1, Math.round(cellSizeY * 0.36)));
 
                     let botBlack = 0, topBlack = 0, botTotal = 0;
                     for (let bx = botStartX; bx < botStartX + runLen; bx += 2) {
@@ -247,44 +250,86 @@
                       if (tx >= startX && tx < endX && (gray[boxTopY * w + tx] < th || gray[topInnerY * w + tx] < th)) topBlack++;
                     }
 
-                    // Işık parlaması / yansıma toleransı: Üst veya alt kenardan biri sağlam olmalı
+                    // Sol ve sağ dikey çerçeve kontrolü (İç veri hücrelerinin sahte çerçeve sanılmasını %100 engeller)
+                    let leftBlack = 0, rightBlack = 0, sideTotal = 0;
+                    const innerShiftX = Math.max(1, Math.round(cellSizeX * 0.36));
+                    for (let sy = boxTopY; sy <= boxBotY; sy += 2) {
+                      sideTotal++;
+                      const fy = (sy - boxTopY) / Math.max(1, sY);
+                      const curLeftX = Math.round(runStartX + dxBot * fy);
+                      const curRightX = Math.round(runStartX + runLen - 1 + dxBot * fy);
+                      if (curLeftX >= startX && curLeftX + innerShiftX < endX) {
+                        if (gray[sy * w + curLeftX] < th || gray[sy * w + curLeftX + innerShiftX] < th) leftBlack++;
+                      }
+                      if (curRightX - innerShiftX >= startX && curRightX < endX) {
+                        if (gray[sy * w + curRightX] < th || gray[sy * w + curRightX - innerShiftX] < th) rightBlack++;
+                      }
+                    }
+
+                    // Işık parlaması / yansıma toleransı: Dış çerçevenin 4 kenarı da süreklilik göstermeli
                     const bestEdgeRatio = Math.max(botBlack, topBlack) / Math.max(1, botTotal);
                     const bothEdgeRatio = (botBlack + topBlack) / Math.max(1, 2 * botTotal);
+                    const leftRatio = leftBlack / Math.max(1, sideTotal);
+                    const rightRatio = rightBlack / Math.max(1, sideTotal);
 
-                    if (bestEdgeRatio >= 0.45 && bothEdgeRatio >= 0.22) {
-                      // 2. Çok kademeli hücre eşikleme (Parlama altındaki soluk siyah hücreleri tam algılama)
-                      const cellThList = [th, 140, 160, 175, 190];
+                    if (bestEdgeRatio >= 0.70 && bothEdgeRatio >= 0.35 && leftRatio >= 0.65 && rightRatio >= 0.65) {
+                      // 2. 5x5 hücrelerin ham parlaklık değerlerini tek seferde oku
+                      const rawGrid = [];
+                      const flatVals = [];
+                      for (let r = 1; r <= 5; r++) {
+                        const rowVals = [];
+                        const fy = (r + 0.5) / 7;
+                        const cy = Math.round(boxTopY + (r + 0.5) * cellSizeY);
+                        const rowShiftX = dxBot * fy;
+                        for (let c = 1; c <= 5; c++) {
+                          const cx = Math.round(runStartX + rowShiftX + (c + 0.5) * cellSizeX);
+                          let val;
+                          if (cellSizeX <= 4.2 || cellSizeY <= 4.2) {
+                            val = gray[cy * w + cx];
+                          } else {
+                            let cSum = 0, cCnt = 0;
+                            for (let dy = -1; dy <= 1; dy++) {
+                              for (let dx = -1; dx <= 1; dx++) {
+                                cSum += gray[(cy + dy) * w + (cx + dx)];
+                                cCnt++;
+                              }
+                            }
+                            val = cSum / cCnt;
+                          }
+                          rowVals.push(val);
+                          flatVals.push(val);
+                        }
+                        rawGrid.push(rowVals);
+                      }
+
+                      // Beyaz arka plan referansını (75. yüzdelik dilim) ve en koyu siyah hücreyi bul
+                      const sortedVals = [...flatVals].sort((a, b) => a - b);
+                      const localDark = sortedVals[0];
+                      const localWhite = sortedVals[18]; // >%70 hücre beyaz (0) olduğu için yerel beyaz kağıt parlaklığıdır
+                      const contrastSpan = localWhite - localDark;
+                      if (contrastSpan < 10) continue;
+
+                      // Beyaz arka plana göre dinamik eşikler (Siyah kare = 1, Beyaz arka plan = 0)
+                      const midTh = Math.round((localWhite + localDark) * 0.50);
+                      const glareTh = Math.round(localWhite - Math.max(11, contrastSpan * 0.34));
+                      const deepTh = Math.round(localWhite - Math.max(15, contrastSpan * 0.62));
+                      const cellThList = Array.from(new Set([midTh, glareTh, deepTh, th]));
+
                       for (let cti = 0; cti < cellThList.length; cti++) {
                         const cellTh = cellThList[cti];
                         const grid5x5 = [];
-                        for (let r = 1; r <= 5; r++) {
+                        for (let r = 0; r < 5; r++) {
                           const row = [];
-                          const fy = (r + 0.5) / 7;
-                          const cy = Math.round(boxTopY + (r + 0.5) * cellSizeY);
-                          const rowShiftX = dxBot * fy;
-                          for (let c = 1; c <= 5; c++) {
-                            const cx = Math.round(runStartX + rowShiftX + (c + 0.5) * cellSizeX);
-                            let v;
-                            if (cellSizeX <= 4.2 || cellSizeY <= 4.2) {
-                              v = gray[cy * w + cx] < cellTh ? 0 : 1;
-                            } else {
-                              let cSum = 0, cCnt = 0;
-                              for (let dy = -1; dy <= 1; dy++) {
-                                for (let dx = -1; dx <= 1; dx++) {
-                                  cSum += gray[(cy + dy) * w + (cx + dx)];
-                                  cCnt++;
-                                }
-                              }
-                              v = (cSum / cCnt) < cellTh ? 0 : 1;
-                            }
-                            row.push(v);
+                          for (let c = 0; c < 5; c++) {
+                            // Koyu hücre (< cellTh) -> 1 (Siyah nokta), Açık hücre (>= cellTh) -> 0 (Beyaz arka plan)
+                            row.push(rawGrid[r][c] < cellTh ? 1 : 0);
                           }
                           grid5x5.push(row);
                         }
 
                         const dec = decodeStudentAruco(grid5x5, validStudentNumbers);
                         if (dec.success && dec.studentNumber > 0) {
-                          return {
+                          const candidateRes = {
                             success: true,
                             studentNumber: dec.studentNumber,
                             x: runStartX,
@@ -293,6 +338,44 @@
                             rotation: dec.rotation,
                             recoveredFromGlare: !!dec.recoveredFromGlare
                           };
+                          if (!dec.recoveredFromGlare) {
+                            return candidateRes;
+                          }
+                          if (!fallbackGlareCandidate) {
+                            fallbackGlareCandidate = candidateRes;
+                          }
+                        }
+                      }
+
+                      // 3. Satır Bazlı Parlama Dengeleme (Yarı parlamalı / yarı gölgeli ekstrem açı kurtarma)
+                      // Her satırda en az 1 beyaz ("0") hücre bulunması matematiksel olarak garantilidir
+                      const gridRowAdaptive = [];
+                      const rowDelta = Math.max(12, contrastSpan * 0.36);
+                      for (let r = 0; r < 5; r++) {
+                        const rVals = rawGrid[r];
+                        const rowWhite = Math.max(rVals[0], rVals[1], rVals[2], rVals[3], rVals[4]);
+                        const row = [];
+                        for (let c = 0; c < 5; c++) {
+                          row.push(rVals[c] < (rowWhite - rowDelta) ? 1 : 0);
+                        }
+                        gridRowAdaptive.push(row);
+                      }
+                      const decAdaptive = decodeStudentAruco(gridRowAdaptive, validStudentNumbers);
+                      if (decAdaptive.success && decAdaptive.studentNumber > 0) {
+                        const adaptiveRes = {
+                          success: true,
+                          studentNumber: decAdaptive.studentNumber,
+                          x: runStartX,
+                          y: boxTopY,
+                          size: Math.round((runLen + sY) * 0.5),
+                          rotation: decAdaptive.rotation,
+                          recoveredFromGlare: !!decAdaptive.recoveredFromGlare
+                        };
+                        if (!decAdaptive.recoveredFromGlare) {
+                          return adaptiveRes;
+                        }
+                        if (!fallbackGlareCandidate) {
+                          fallbackGlareCandidate = adaptiveRes;
                         }
                       }
                     }
@@ -307,7 +390,7 @@
       }
     }
 
-    return null;
+    return fallbackGlareCandidate;
   }
 
   // ==========================================================================
