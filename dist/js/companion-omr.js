@@ -1566,7 +1566,9 @@
                 const i4 = i * 4;
                 grayFrame[i] = Math.round(d[i4] * 0.299 + d[i4 + 1] * 0.587 + d[i4 + 2] * 0.114);
               }
-              const aRes = window.OmrEngine.scanArucoInGrayscale(grayFrame, fw, fh);
+              const activeStus = typeof this.getActiveStudents === 'function' ? this.getActiveStudents() : [];
+              const validNums = Array.isArray(activeStus) ? activeStus.map(s => String(s?.number ?? s?.no ?? '').trim()).filter(Boolean) : null;
+              const aRes = window.OmrEngine.scanArucoInGrayscale(grayFrame, fw, fh, Math.round(fw * 0.45), fw, 0, Math.round(fh * 0.55), validNums);
               if (aRes && aRes.success) {
                 detectedAruco = aRes;
               }

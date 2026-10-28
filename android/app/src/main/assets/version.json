@@ -1,8 +1,8 @@
 {
-  "version": "1.0.113",
+  "version": "1.0.114",
   "releaseDate": "2026-10-28",
   "minRequiredVersion": "1.0.0",
-  "title": "Sınıf Asistanı v1.0.113 Yayında!",
+  "title": "Sınıf Asistanı v1.0.114 Yayında!",
   "description": "Yeni Bulut Eşitleme Sunucusu, Fotoğraf Önbellekleme ve %99.9 Kota Tasarrufu Güncellemesi",
   "features": [
     "Yeni Bulut Eşitleme ve Lisans Sunucusu: El Terminali eşitleme (402 hatası) giderildi ve yeni yüksek hızlı Supabase sunucusuna geçiş yapıldı.",

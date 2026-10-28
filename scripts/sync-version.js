@@ -180,17 +180,31 @@ try {
   results.push({ file: 'index.html', status: '❌', detail: e.message });
 }
 
-// H. mobile.html (El Terminali Rozeti & Ayarlar Sürüm Metni)
+// H. mobile.html (El Terminali Rozeti, Ayarlar Sürüm Metni & Script Cache-Busting)
 try {
   if (fs.existsSync(PATHS.mobileHtml)) {
     let mobileHtml = fs.readFileSync(PATHS.mobileHtml, 'utf8');
     mobileHtml = mobileHtml.replace(/id="companion-version-badge"[^>]*>v[^<]+<\/span>/g, `id="companion-version-badge" style="font-size: 10px; background: rgba(255,255,255,0.22); padding: 1.5px 7px; border-radius: 999px; font-weight: 700; color: #fff; margin-left: 6px; letter-spacing: 0.3px;">v${targetVer}</span>`);
     mobileHtml = mobileHtml.replace(/id="settings-modal-version"[^>]*>v[^<]+<\/span>/g, `id="settings-modal-version" style="color: #4f46e5; font-weight: 800;">v${targetVer}</span>`);
+    mobileHtml = mobileHtml.replace(/(\.(?:js|css))\?v=[0-9a-zA-Z._-]+/g, `$1?v=${targetVer}`);
     fs.writeFileSync(PATHS.mobileHtml, mobileHtml, 'utf8');
-    results.push({ file: 'mobile.html', status: '✅', detail: `El Terminali Rozeti: v${targetVer}` });
+    results.push({ file: 'mobile.html', status: '✅', detail: `El Terminali Rozeti & Script ?v=${targetVer}` });
   }
 } catch (e) {
   results.push({ file: 'mobile.html', status: '❌', detail: e.message });
+}
+
+// H2. sw.js (Service Worker Cache Sürümü)
+try {
+  const swPath = path.join(ROOT_DIR, 'sw.js');
+  if (fs.existsSync(swPath)) {
+    let swJs = fs.readFileSync(swPath, 'utf8');
+    swJs = swJs.replace(/const\s+CACHE_NAME\s*=\s*'[^']+';/g, `const CACHE_NAME = 'sinif-asistani-cache-v${targetVer}';`);
+    fs.writeFileSync(swPath, swJs, 'utf8');
+    results.push({ file: 'sw.js', status: '✅', detail: `CACHE_NAME = 'sinif-asistani-cache-v${targetVer}'` });
+  }
+} catch (e) {
+  results.push({ file: 'sw.js', status: '❌', detail: e.message });
 }
 
 // I. tanitim/index.html (İndirme Linkleri & Sürüm Rozeti)

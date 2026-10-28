@@ -60,6 +60,25 @@
   }
 
   function decodeStudentAruco(grid5x5, validStudentNumbers = null) {
+    // Köşe çapalarını (merkezi 3x3 siyah, dış halkası beyaz eşmerkezli hedef) kesin olarak reddet
+    let centerBlack = 0, outerBlack = 0;
+    for (let r = 0; r < 5; r++) {
+      for (let c = 0; c < 5; c++) {
+        if (grid5x5[r][c] === 1) {
+          if (r >= 1 && r <= 3 && c >= 1 && c <= 3) centerBlack++;
+          else outerBlack++;
+        }
+      }
+    }
+    if (centerBlack >= 7 && outerBlack <= 1) {
+      return { success: false, studentNumber: null };
+    }
+    // Toplam siyah hücre sayısı aşırı düşük (< 2) veya aşırı yüksek (> 21) ise geçersizdir
+    const totalBlack = centerBlack + outerBlack;
+    if (totalBlack < 2 || totalBlack > 21) {
+      return { success: false, studentNumber: null };
+    }
+
     let cur = grid5x5;
     let glareCandidate = null;
 
@@ -81,7 +100,7 @@
         }
       }
 
-      // 1. Standart 5/5 tam parite eşleşmesi (Yüksek Güvenilirlik)
+      // 1. Standart 5/5 tam parite eşleşmesi (Yüksek Güvenilirlik - Üst satır [0,0,0,1,0] sabit senkron başlığıyla 1..4095 aralığı)
       if (valid) {
         let num = 0;
         for (let r = 0; r < 5; r++) {
@@ -90,17 +109,30 @@
           const d2 = cur[r][2];
           num = (num << 3) | (d0 << 2) | (d1 << 1) | d2;
         }
-        if (num > 0 && num < 32767) {
+        if (num > 0 && num < 4096) {
           if (!validStudentNumbers || validStudentNumbers.length === 0 || validStudentNumbers.includes(String(num)) || validStudentNumbers.includes(num)) {
             return { success: true, studentNumber: num, rotation: rot * 90 };
           }
         }
       }
 
-      // 2. Parlama / Yansıma Toleranslı Kurtarma:
-      // Eğer en üst sıralar ışık yansımasıyla beyaza doymuşsa ancak alt 3 sıra (satır 2, 3 ve oryantasyon kilitli satır 4) pariteyi geçiyorsa
-      // 0..511 arası okul numaraları (alt 9-bit) tam parite ve yön garantisiyle doğrulanır
-      if (rowStatus[2] && rowStatus[3] && rowStatus[4]) {
+      // 2. Parlama / Yansıma Toleranslı Kurtarma (Yalnızca paritesi %100 doğrulanan veri satırları kullanılır!):
+      // Veri taşıyan satırlardan (satır 1..4 veya 2..4) herhangi birinin paritesi bozuksa asla yanlış öğrenci numarası üretilmez.
+      if (rowStatus[1] && rowStatus[2] && rowStatus[3] && rowStatus[4]) {
+        // Sadece en üst senkron satırı (satır 0) parlamadan etkilenmiş, 12-bitlik tüm veri satırları (1..4) %100 pariteyi geçmiş:
+        let num12 = 0;
+        for (let r = 1; r < 5; r++) {
+          num12 = (num12 << 3) | (cur[r][0] << 2) | (cur[r][1] << 1) | cur[r][2];
+        }
+        if (num12 > 0 && num12 < 4096) {
+          if (!validStudentNumbers || validStudentNumbers.length === 0 || validStudentNumbers.includes(String(num12)) || validStudentNumbers.includes(num12)) {
+            if (!glareCandidate) {
+              glareCandidate = { success: true, studentNumber: num12, rotation: rot * 90, recoveredFromGlare: true };
+            }
+          }
+        }
+      } else if (rowStatus[2] && rowStatus[3] && rowStatus[4]) {
+        // Üst 2 satır (satır 0 ve 1) parlamadan etkilenmiş, alt 3 veri satırı (satır 2, 3 ve yön kilitli satır 4) %100 pariteyi geçmiş (1..511):
         const d0 = cur[2][0], d1 = cur[2][1], d2 = cur[2][2];
         const d3 = cur[3][0], d4 = cur[3][1], d5 = cur[3][2];
         const d6 = cur[4][0], d7 = cur[4][1], d8 = cur[4][2];
@@ -109,25 +141,6 @@
           if (!validStudentNumbers || validStudentNumbers.length === 0 || validStudentNumbers.includes(String(num9)) || validStudentNumbers.includes(num9)) {
             if (!glareCandidate) {
               glareCandidate = { success: true, studentNumber: num9, rotation: rot * 90, recoveredFromGlare: true };
-            }
-          }
-        }
-      }
-
-      // 3. 4/5 satır parite eşleşmesi
-      const validCount = rowStatus.filter(Boolean).length;
-      if (validCount >= 4) {
-        let num = 0;
-        for (let r = 0; r < 5; r++) {
-          const d0 = cur[r][0];
-          const d1 = cur[r][1];
-          const d2 = cur[r][2];
-          num = (num << 3) | (d0 << 2) | (d1 << 1) | d2;
-        }
-        if (num > 0 && num < 32767) {
-          if (validStudentNumbers && validStudentNumbers.length > 0 && (validStudentNumbers.includes(String(num)) || validStudentNumbers.includes(num))) {
-            if (!glareCandidate) {
-              glareCandidate = { success: true, studentNumber: num, rotation: rot * 90, recoveredFromGlare: true };
             }
           }
         }
@@ -194,8 +207,9 @@
     // Çok kademeli eşik (Önce parlama dostu yüksek eşik thLight ile dış çerçevenin üst kenarını yakala)
     const thresholds = Array.from(new Set([thLight, thAuto, thDark, 185, 170, 150, 125, 95]));
 
-    const minS = 16;
+    const minS = Math.max(24, Math.min(60, Math.round(Math.min(w, h) * 0.042)));
     const maxS = Math.min(areaW, areaH, 280);
+    let bestFullCandidate = null;
     let fallbackGlareCandidate = null;
 
     for (const th of thresholds) {
@@ -208,6 +222,9 @@
             const runLen = x - runStartX;
 
             if (runLen >= minS && runLen <= maxS) {
+              // Eğer halihazırda çok daha büyük bir tam eşleşme bulduysak küçük gürültüleri atla
+              if (bestFullCandidate && runLen < bestFullCandidate.size * 0.85) continue;
+
               // Farklı kamera açıları, perspektif ve en/boy oranları için dikey yükseklik adayları (Önce 1:1 kare)
               const sStep = Math.max(2, Math.round(runLen * 0.05));
               const sYCandidates = [runLen];
@@ -272,7 +289,7 @@
                     const leftRatio = leftBlack / Math.max(1, sideTotal);
                     const rightRatio = rightBlack / Math.max(1, sideTotal);
 
-                    if (bestEdgeRatio >= 0.70 && bothEdgeRatio >= 0.35 && leftRatio >= 0.65 && rightRatio >= 0.65) {
+                    if (bestEdgeRatio >= 0.72 && bothEdgeRatio >= 0.42 && leftRatio >= 0.68 && rightRatio >= 0.68) {
                       // 2. 5x5 hücrelerin ham parlaklık değerlerini tek seferde oku
                       const rawGrid = [];
                       const flatVals = [];
@@ -307,7 +324,7 @@
                       const localDark = sortedVals[0];
                       const localWhite = sortedVals[18]; // >%70 hücre beyaz (0) olduğu için yerel beyaz kağıt parlaklığıdır
                       const contrastSpan = localWhite - localDark;
-                      if (contrastSpan < 10) continue;
+                      if (contrastSpan < 14) continue;
 
                       // Beyaz arka plana göre dinamik eşikler (Siyah kare = 1, Beyaz arka plan = 0)
                       const midTh = Math.round((localWhite + localDark) * 0.50);
@@ -329,19 +346,21 @@
 
                         const dec = decodeStudentAruco(grid5x5, validStudentNumbers);
                         if (dec.success && dec.studentNumber > 0) {
+                          const candSize = Math.round((runLen + sY) * 0.5);
                           const candidateRes = {
                             success: true,
                             studentNumber: dec.studentNumber,
                             x: runStartX,
                             y: boxTopY,
-                            size: Math.round((runLen + sY) * 0.5),
+                            size: candSize,
                             rotation: dec.rotation,
                             recoveredFromGlare: !!dec.recoveredFromGlare
                           };
                           if (!dec.recoveredFromGlare) {
-                            return candidateRes;
-                          }
-                          if (!fallbackGlareCandidate) {
+                            if (!bestFullCandidate || candSize > bestFullCandidate.size) {
+                              bestFullCandidate = candidateRes;
+                            }
+                          } else if (!fallbackGlareCandidate || candSize > fallbackGlareCandidate.size) {
                             fallbackGlareCandidate = candidateRes;
                           }
                         }
@@ -362,19 +381,21 @@
                       }
                       const decAdaptive = decodeStudentAruco(gridRowAdaptive, validStudentNumbers);
                       if (decAdaptive.success && decAdaptive.studentNumber > 0) {
+                        const candSize = Math.round((runLen + sY) * 0.5);
                         const adaptiveRes = {
                           success: true,
                           studentNumber: decAdaptive.studentNumber,
                           x: runStartX,
                           y: boxTopY,
-                          size: Math.round((runLen + sY) * 0.5),
+                          size: candSize,
                           rotation: decAdaptive.rotation,
                           recoveredFromGlare: !!decAdaptive.recoveredFromGlare
                         };
                         if (!decAdaptive.recoveredFromGlare) {
-                          return adaptiveRes;
-                        }
-                        if (!fallbackGlareCandidate) {
+                          if (!bestFullCandidate || candSize > bestFullCandidate.size) {
+                            bestFullCandidate = adaptiveRes;
+                          }
+                        } else if (!fallbackGlareCandidate || candSize > fallbackGlareCandidate.size) {
                           fallbackGlareCandidate = adaptiveRes;
                         }
                       }
@@ -388,9 +409,10 @@
           }
         }
       }
+      if (bestFullCandidate) return bestFullCandidate;
     }
 
-    return fallbackGlareCandidate;
+    return bestFullCandidate || fallbackGlareCandidate;
   }
 
   // ==========================================================================
@@ -1685,8 +1707,8 @@
       // Tüm derslerde 1. sorular daima aynı değişmeyen başlangıç noktasından (vFirstRowBase) başlar.
       const maxQuestions = Math.max(...examSubjects.map(s => parseInt(s.questionCount, 10) || 0), 1);
 
-      let vFirstRowBase = 0.2619;
-      let vCompactStep = 0.0490;
+      let vFirstRowBase = 0.2400;
+      let vCompactStep = 0.0494;
 
       if (perPage === 1) {
         // A4 Tam Sayfa
@@ -1694,8 +1716,8 @@
         vCompactStep = 0.0260;
       } else if (perPage === 2) {
         // A5 Yatay (Sayfada 2 Form - 126mm Çıpa Boyu)
-        vFirstRowBase = 0.2619;
-        vCompactStep = 0.0490;
+        vFirstRowBase = 0.2400;
+        vCompactStep = 0.0494;
       } else if (perPage === 4) {
         // A6 Çeyrek Sayfa (118mm Çıpa Boyu)
         vFirstRowBase = 0.2760;
@@ -1712,15 +1734,15 @@
         let colU_A, choiceStep;
         // 1..5 ders için her ders kendi sabit sütununda (Slot 0..4) yer alır (188mm Çıpa Eni)
         const colBounds = [
-          { uA: 0.0638, uD: 0.1729 }, // 1. Yuva (Türkçe: 12.0mm - 32.5mm)
-          { uA: 0.2660, uD: 0.3750 }, // 2. Yuva (Matematik: 50.0mm - 70.5mm)
-          { uA: 0.4681, uD: 0.5718 }, // 3. Yuva (Fen Bilgisi: 88.0mm - 107.5mm)
-          { uA: 0.6648, uD: 0.7739 }, // 4. Yuva (Sosyal Bilgiler / Ders 4: tam 0.1091 genişlik)
-          { uA: 0.8723, uD: 0.9761 }  // 5. Yuva (İngilizce: 164.0mm - 183.5mm)
+          { uA: 0.0634, uD: 0.1732 }, // 1. Yuva (Türkçe)
+          { uA: 0.2648, uD: 0.3739 }, // 2. Yuva (Matematik)
+          { uA: 0.4645, uD: 0.5729 }, // 3. Yuva (Sosyal Bilgiler / Ders 3)
+          { uA: 0.6651, uD: 0.7721 }, // 4. Yuva (Fen Bilgisi / Ders 4)
+          { uA: 0.8679, uD: 0.9717 }  // 5. Yuva (İngilizce / Ders 5)
         ];
 
         if (numSubjects <= 5) {
-          const cb = colBounds[sIdx] || { uA: 0.0638 + sIdx * 0.2021, uD: 0.1729 + sIdx * 0.2021 };
+          const cb = colBounds[sIdx] || { uA: 0.0634 + sIdx * 0.2011, uD: 0.1732 + sIdx * 0.2011 };
           colU_A = cb.uA;
           choiceStep = letters.length > 1 ? ((cb.uD - cb.uA) / (letters.length - 1)) : 0.0363;
         } else if (numSubjects === 6) {
@@ -1789,9 +1811,13 @@
         return totalConfidence;
       }
 
-      // Global aday ızgaralar: Mikro dikey kaydırmalar (dv) ve adımlama ölçekleri (scale)
-      const candidateVFirstOffsets = [0.000, -0.003, 0.003, -0.006, 0.006];
-      const candidateStepScales = [1.00, 0.99, 1.01, 0.98, 1.02];
+      // Global aday ızgaralar: Çapa kilidi varken yalnızca mikro dikey ince ayar (±0.003) yapılır; çapa yoksa daha geniş aranır
+      const candidateVFirstOffsets = isAnchor
+        ? [0.000, -0.0015, 0.0015, -0.003, 0.003]
+        : [0.000, -0.003, 0.003, -0.006, 0.006, -0.010, 0.010];
+      const candidateStepScales = isAnchor
+        ? [1.00, 0.995, 1.005]
+        : [1.00, 0.99, 1.01, 0.98, 1.02];
 
       let bestGlobalStep = vCompactStep;
       let bestGlobalVFirst = vFirstRowBase;
@@ -2225,16 +2251,17 @@
       if (typeof mapFn !== 'function') return { qrResult: null, arucoStudentNumber: null, binaryId: null };
 
       // Gerçek fiziksel en/boy oranını (1:1 izometrik kare) homografi noktalarından hesapla
-      const uMin = 0.70, uSpan = 0.29; // u: 0.70 .. 0.99
-      const vMin = -0.075, vSpan = 0.32; // v: -0.075 .. 0.245 (üst çapa hizasındaki ArUco ve rozetin tamamını eksiksiz kapsar)
+      // u: 0.78 .. 0.98 aralığı KİMLİK KODU kutusunu (u=0.88..0.96) tam kapsar ve sağ üst köşe çapasını (u=1.0) dışarıda bırakır
+      const uMin = 0.78, uSpan = 0.20;
+      const vMin = -0.02, vSpan = 0.22;
       const pt00 = mapFn(uMin, vMin);
       const pt10 = mapFn(uMin + uSpan, vMin);
       const pt01 = mapFn(uMin, vMin + vSpan);
       const physW = Math.max(1, Math.hypot(pt10.x - pt00.x, pt10.y - pt00.y));
       const physH = Math.max(1, Math.hypot(pt01.x - pt00.x, pt01.y - pt00.y));
 
-      const badgeW = Math.max(360, Math.min(720, Math.round(targetW * 0.30)));
-      const badgeH = Math.max(220, Math.min(680, Math.round(badgeW * (physH / physW))));
+      const badgeW = Math.max(320, Math.min(480, Math.round(targetW * 0.20)));
+      const badgeH = Math.max(200, Math.min(480, Math.round(badgeW * (physH / physW))));
       const bCanvas = document.createElement('canvas');
       bCanvas.width = badgeW;
       bCanvas.height = badgeH;
@@ -2389,15 +2416,16 @@
       const badgeTop = unwarpAndScanBadge(ctx, createProjectiveHomography(cornersTop), targetW, targetH, maxRosterCount, validStudentNumbers);
       cardTop.arucoStudentNumber = badgeTop.arucoStudentNumber || (options && options.liveAruco ? String(options.liveAruco.studentNumber) : null);
       if (!cardTop.arucoStudentNumber && cornersTopOrig && cornersTopOrig.tr) {
-        const subW = Math.round(targetW * 0.45);
-        const subH = Math.round(targetH * 0.35);
-        const subX = Math.max(0, cornersTopOrig.tr.x - subW + 60);
-        const subY = Math.max(0, cornersTopOrig.tl.y - 30);
-        const aRes = scanArucoInGrayscale(gray, targetW, targetH, subX, cornersTopOrig.tr.x + 30, subY, subY + subH, validStudentNumbers);
+        const cardSpanW = Math.max(100, Math.abs(cornersTopOrig.tr.x - cornersTopOrig.tl.x));
+        const subXMin = Math.max(0, Math.round(cornersTopOrig.tl.x + cardSpanW * 0.68));
+        const subXMax = Math.min(targetW, Math.round(cornersTopOrig.tr.x - cardSpanW * 0.04));
+        const subYMin = Math.max(0, Math.round(Math.min(cornersTopOrig.tl.y, cornersTopOrig.tr.y)));
+        const subYMax = Math.min(targetH, subYMin + Math.round(targetH * 0.30));
+        const aRes = scanArucoInGrayscale(gray, targetW, targetH, subXMin, subXMax, subYMin, subYMax, validStudentNumbers);
         if (aRes && aRes.success) cardTop.arucoStudentNumber = String(aRes.studentNumber);
       }
       if (!cardTop.arucoStudentNumber) {
-        const aRes = scanArucoInGrayscale(gray, targetW, targetH, 0, targetW, 0, Math.round(targetH * 0.50), validStudentNumbers);
+        const aRes = scanArucoInGrayscale(gray, targetW, targetH, Math.round(targetW * 0.55), Math.round(targetW * 0.94), Math.round(targetH * 0.03), Math.round(targetH * 0.35), validStudentNumbers);
         if (aRes && aRes.success) cardTop.arucoStudentNumber = String(aRes.studentNumber);
       }
       cardTop.qrResult = badgeTop.qrResult;
@@ -2433,15 +2461,16 @@
       const badgeBottom = unwarpAndScanBadge(ctx, createProjectiveHomography(cornersBottom), targetW, targetH, maxRosterCount, validStudentNumbers);
       cardBottom.arucoStudentNumber = badgeBottom.arucoStudentNumber || (options && options.liveAruco ? String(options.liveAruco.studentNumber) : null);
       if (!cardBottom.arucoStudentNumber && cornersBottomOrig && cornersBottomOrig.tr) {
-        const subW = Math.round(targetW * 0.45);
-        const subH = Math.round(targetH * 0.35);
-        const subX = Math.max(0, cornersBottomOrig.tr.x - subW + 60);
-        const subY = Math.max(0, cornersBottomOrig.tl.y - 30);
-        const aRes = scanArucoInGrayscale(gray, targetW, targetH, subX, cornersBottomOrig.tr.x + 30, subY, subY + subH, validStudentNumbers);
+        const cardSpanW = Math.max(100, Math.abs(cornersBottomOrig.tr.x - cornersBottomOrig.tl.x));
+        const subXMin = Math.max(0, Math.round(cornersBottomOrig.tl.x + cardSpanW * 0.68));
+        const subXMax = Math.min(targetW, Math.round(cornersBottomOrig.tr.x - cardSpanW * 0.04));
+        const subYMin = Math.max(0, Math.round(Math.min(cornersBottomOrig.tl.y, cornersBottomOrig.tr.y)));
+        const subYMax = Math.min(targetH, subYMin + Math.round(targetH * 0.30));
+        const aRes = scanArucoInGrayscale(gray, targetW, targetH, subXMin, subXMax, subYMin, subYMax, validStudentNumbers);
         if (aRes && aRes.success) cardBottom.arucoStudentNumber = String(aRes.studentNumber);
       }
       if (!cardBottom.arucoStudentNumber) {
-        const aRes = scanArucoInGrayscale(gray, targetW, targetH, 0, targetW, Math.max(0, midY - 60), targetH, validStudentNumbers);
+        const aRes = scanArucoInGrayscale(gray, targetW, targetH, Math.round(targetW * 0.55), Math.round(targetW * 0.94), Math.max(0, midY - 20), Math.round(targetH * 0.85), validStudentNumbers);
         if (aRes && aRes.success) cardBottom.arucoStudentNumber = String(aRes.studentNumber);
       }
       cardBottom.qrResult = badgeBottom.qrResult;
@@ -2496,19 +2525,21 @@
       const fullBadge = unwarpAndScanBadge(ctx, createProjectiveHomography(cornersFull), targetW, targetH, maxRosterCount, validStudentNumbers);
       cardFull.arucoStudentNumber = fullBadge.arucoStudentNumber || (options && options.liveAruco ? String(options.liveAruco.studentNumber) : null);
       if (!cardFull.arucoStudentNumber && cornersFullOrig && cornersFullOrig.tr) {
-        const subW = Math.round(targetW * 0.45);
-        const subH = Math.round(targetH * 0.35);
-        const subX = Math.max(0, cornersFullOrig.tr.x - subW + 60);
-        const subY = Math.max(0, cornersFullOrig.tl.y - 30);
-        const aRes = scanArucoInGrayscale(gray, targetW, targetH, subX, cornersFullOrig.tr.x + 30, subY, subY + subH, validStudentNumbers);
+        const cardSpanW = Math.max(100, Math.abs(cornersFullOrig.tr.x - cornersFullOrig.tl.x));
+        const subXMin = Math.max(0, Math.round(cornersFullOrig.tl.x + cardSpanW * 0.68));
+        const subXMax = Math.min(targetW, Math.round(cornersFullOrig.tr.x - cardSpanW * 0.04));
+        const subYMin = Math.max(0, Math.round(Math.min(cornersFullOrig.tl.y, cornersFullOrig.tr.y)));
+        const subYMax = Math.min(targetH, subYMin + Math.round(targetH * 0.35));
+        const aRes = scanArucoInGrayscale(gray, targetW, targetH, subXMin, subXMax, subYMin, subYMax, validStudentNumbers);
         if (aRes && aRes.success) cardFull.arucoStudentNumber = String(aRes.studentNumber);
       }
       if (!cardFull.arucoStudentNumber && scaledBounds) {
-        const aRes = scanArucoInGrayscale(gray, targetW, targetH, scaledBounds.minX, scaledBounds.maxX, scaledBounds.minY, scaledBounds.maxY, validStudentNumbers);
+        const sbW = scaledBounds.maxX - scaledBounds.minX;
+        const aRes = scanArucoInGrayscale(gray, targetW, targetH, Math.round(scaledBounds.minX + sbW * 0.55), Math.round(scaledBounds.maxX - sbW * 0.04), scaledBounds.minY, Math.round(scaledBounds.minY + (scaledBounds.maxY - scaledBounds.minY) * 0.40), validStudentNumbers);
         if (aRes && aRes.success) cardFull.arucoStudentNumber = String(aRes.studentNumber);
       }
       if (!cardFull.arucoStudentNumber) {
-        const aRes = scanArucoInGrayscale(gray, targetW, targetH, 0, targetW, 0, Math.round(targetH * 0.60), validStudentNumbers);
+        const aRes = scanArucoInGrayscale(gray, targetW, targetH, Math.round(targetW * 0.55), Math.round(targetW * 0.94), Math.round(targetH * 0.03), Math.round(targetH * 0.45), validStudentNumbers);
         if (aRes && aRes.success) cardFull.arucoStudentNumber = String(aRes.studentNumber);
       }
       cardFull.qrResult = fullBadge.qrResult || (options && options.liveDetectedQr ? options.liveDetectedQr : null);
