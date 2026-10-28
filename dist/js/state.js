@@ -4897,18 +4897,28 @@ class StateManager {
     }
 
     const allStudents = Array.isArray(this.state.students) ? this.state.students : [];
-    const studentScoreList = [];
-    for (const stdId in scoreMap) {
-      let resolvedStudentId = stdId;
-      const matched = allStudents.find(s => s && (String(s.id) === String(stdId) || String(s.number) === String(stdId)));
-      if (matched) resolvedStudentId = matched.id;
-
-      studentScoreList.push({
-        studentId: resolvedStudentId,
-        score: scoreMap[stdId],
-        net: netMap[stdId] !== undefined ? netMap[stdId] : 0
-      });
+    if (typeof window !== 'undefined' && window.CloudSync && typeof window.CloudSync.deduplicateExamResults === 'function') {
+      window.CloudSync.deduplicateExamResults(examData, allStudents);
     }
+
+    const dedupScoreByStudent = new Map();
+    for (const stdId in scoreMap) {
+      let resolvedStudentId = String(stdId);
+      const matched = allStudents.find(s => s && (String(s.id) === String(stdId) || String(s.number) === String(stdId)));
+      if (matched) resolvedStudentId = String(matched.id);
+
+      const currentScore = scoreMap[stdId];
+      const currentNet = netMap[stdId] !== undefined ? netMap[stdId] : 0;
+      const prev = dedupScoreByStudent.get(resolvedStudentId);
+      if (!prev || currentScore > prev.score) {
+        dedupScoreByStudent.set(resolvedStudentId, {
+          studentId: resolvedStudentId,
+          score: currentScore,
+          net: currentNet
+        });
+      }
+    }
+    const studentScoreList = Array.from(dedupScoreByStudent.values());
 
     // Skorlara göre büyükten küçüğe, eşitlikte nete göre sırala
     studentScoreList.sort((a, b) => {

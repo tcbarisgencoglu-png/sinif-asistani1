@@ -5976,24 +5976,51 @@ Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi ve
 }
 
 function computeExamSummaryStats(rawExam, state) {
-  const exam = (activeExam && String(activeExam.id) === String(rawExam.id)) ? activeExam : rawExam;
+  if (activeExam && rawExam && String(activeExam.id) === String(rawExam.id)) {
+    activeExam = rawExam;
+    window.activeWeeklyExam = rawExam;
+  }
+  const exam = rawExam || activeExam;
+  const allRoster = (state && (state.rawStudents || state.students)) || [];
+  if (window.CloudSync && typeof window.CloudSync.deduplicateExamResults === 'function') {
+    window.CloudSync.deduplicateExamResults(exam, allRoster);
+  }
   const scoreMap = {};
+  const resolveStuKey = (rawKey, resObj) => {
+    const sNo = resObj ? String(resObj.studentNo || resObj.studentNumber || '').trim() : '';
+    const stu = allRoster.find(s =>
+      s && (
+        String(s.id) === String(rawKey) ||
+        (sNo && sNo !== '-' && String(s.number || '').trim() === sNo) ||
+        (!isNaN(parseInt(rawKey, 10)) && parseInt(s.number, 10) > 0 && parseInt(s.number, 10) === parseInt(rawKey, 10))
+      )
+    );
+    return stu ? String(stu.id) : String(rawKey);
+  };
+
   if (exam.examScores && typeof exam.examScores === 'object') {
     for (const stdId in exam.examScores) {
       const score = exam.examScores[stdId];
       if (score !== undefined && score !== null && score !== '') {
         const num = parseFloat(score);
-        if (!isNaN(num)) scoreMap[stdId] = num;
+        if (!isNaN(num)) {
+          const canonicalKey = resolveStuKey(stdId, exam.studentResults ? exam.studentResults[stdId] : null);
+          scoreMap[canonicalKey] = num;
+        }
       }
     }
   }
   if (exam.studentResults && typeof exam.studentResults === 'object') {
     for (const stdId in exam.studentResults) {
-      if (scoreMap[stdId] === undefined && exam.studentResults[stdId]) {
-        const score = exam.studentResults[stdId].score;
-        if (score !== undefined && score !== null && score !== '') {
-          const num = parseFloat(score);
-          if (!isNaN(num)) scoreMap[stdId] = num;
+      const sr = exam.studentResults[stdId];
+      if (sr) {
+        const canonicalKey = resolveStuKey(stdId, sr);
+        if (scoreMap[canonicalKey] === undefined) {
+          const score = sr.score;
+          if (score !== undefined && score !== null && score !== '') {
+            const num = parseFloat(score);
+            if (!isNaN(num)) scoreMap[canonicalKey] = num;
+          }
         }
       }
     }
@@ -6010,7 +6037,6 @@ function computeExamSummaryStats(rawExam, state) {
 
   scores.sort((a, b) => b.score - a.score);
   const topThree = scores.slice(0, 3);
-  const allRoster = (state && (state.rawStudents || state.students)) || [];
 
   const getStudentShortName = (studentId) => {
     const student = allRoster.find(s => s && String(s.id) === String(studentId));
@@ -9211,13 +9237,6 @@ function renderPipContent(win) {
   // Global state değiştiğinde (örneğin terminalden canlı sınav, cevap anahtarı veya sonuç geldiğinde) arayüzü anında tazele
   document.addEventListener('stateChanged', () => {
     try {
-      const weeklySec = document.getElementById('weekly');
-      const isWeeklyActive = weeklySec && weeklySec.classList.contains('active');
-      const isModalOpen = modalEditExamAnswerKey && modalEditExamAnswerKey.classList.contains('active');
-      if (!isWeeklyActive && !isModalOpen) {
-        return;
-      }
-      renderExamsList();
       const currentActiveId = (activeExam && activeExam.id) || (window.activeWeeklyExam && window.activeWeeklyExam.id);
       if (currentActiveId) {
         const state = (stateManager && stateManager.state) ? stateManager.state : stateManager.loadState();
@@ -9225,12 +9244,22 @@ function renderPipContent(win) {
         if (updated) {
           activeExam = updated;
           window.activeWeeklyExam = updated;
-          if (activeExamCard && activeExamCard.style.display !== 'none') {
-            openActiveExam(updated);
-          }
-          if (modalEditExamAnswerKey && modalEditExamAnswerKey.classList.contains('active') && typeof window.openDesktopAnswerKeyModal === 'function') {
-            window.openDesktopAnswerKeyModal();
-          }
+        }
+      }
+
+      const weeklySec = document.getElementById('weekly');
+      const isWeeklyActive = weeklySec && weeklySec.classList.contains('active');
+      const isModalOpen = modalEditExamAnswerKey && modalEditExamAnswerKey.classList.contains('active');
+      if (!isWeeklyActive && !isModalOpen) {
+        return;
+      }
+      renderExamsList();
+      if (activeExam) {
+        if (activeExamCard && activeExamCard.style.display !== 'none') {
+          openActiveExam(activeExam);
+        }
+        if (modalEditExamAnswerKey && modalEditExamAnswerKey.classList.contains('active') && typeof window.openDesktopAnswerKeyModal === 'function') {
+          window.openDesktopAnswerKeyModal();
         }
       }
     } catch (e) {

@@ -2676,7 +2676,7 @@ async function initApp() {
 }
 
 // Mevcut uygulama sürümü (her güncellemede değişir)
-const APP_VERSION = '1.0.114';
+const APP_VERSION = '1.0.115';
 
 // GitHub & Tauri Auto-Updater kontrolü
 async function checkForUpdates() {
@@ -3060,8 +3060,21 @@ function switchTab(tabId, animate = true) {
       }
       break;
     case 'weekly':
+      if (window.CloudSync && typeof window.CloudSync.checkLiveUpdates === 'function') {
+        window.CloudSync.checkLiveUpdates();
+      }
       if (typeof window.renderExamsList === 'function') {
         window.renderExamsList();
+      }
+      if (window.activeWeeklyExam && typeof window.openActiveExam === 'function') {
+        const activeCard = document.getElementById('active-exam-card');
+        if (activeCard && activeCard.style.display !== 'none') {
+          const freshExam = (window.stateManager?.state?.weeklyEvaluations || []).find(e => String(e.id) === String(window.activeWeeklyExam.id));
+          if (freshExam) {
+            window.activeWeeklyExam = freshExam;
+            window.openActiveExam(freshExam);
+          }
+        }
       }
       break;
   }

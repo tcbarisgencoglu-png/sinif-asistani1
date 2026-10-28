@@ -202,6 +202,86 @@
       return [];
     },
 
+    // Sınav içindeki çift öğrenci kayıtlarını (ID + Okul No veya İsim tekrarı) tekilleştir
+    deduplicateExamStudentResults(exam) {
+      if (!exam || typeof exam !== 'object') return false;
+      const students = this.getActiveStudents();
+      const beforeKeys = Object.keys(exam.studentResults || {});
+
+      if (window.CloudSync && typeof window.CloudSync.deduplicateExamResults === 'function') {
+        window.CloudSync.deduplicateExamResults(exam, students);
+      }
+
+      if (exam.studentResults && typeof exam.studentResults === 'object') {
+        const cleanResults = {};
+        const cleanScores = {};
+        const byStudentKey = new Map();
+
+        Object.keys(exam.studentResults).forEach(rawKey => {
+          const res = exam.studentResults[rawKey];
+          if (!res || typeof res !== 'object') return;
+
+          const sNo = String(res.studentNo || res.studentNumber || '').trim();
+          const sName = String(res.studentName || '').trim().toLocaleLowerCase('tr-TR').replace(/\s+/g, ' ');
+
+          const matchedStu = students.find(s =>
+            String(s.id) === String(rawKey) ||
+            (res.studentId && String(s.id) === String(res.studentId)) ||
+            (sNo && sNo !== '-' && String(s.number || '').trim() === sNo) ||
+            (sNo && sNo !== '-' && parseInt(s.number, 10) > 0 && parseInt(s.number, 10) === parseInt(sNo, 10)) ||
+            (!isNaN(parseInt(rawKey, 10)) && parseInt(s.number, 10) > 0 && parseInt(s.number, 10) === parseInt(rawKey, 10)) ||
+            (sName && `${s.name || ''} ${s.surname || ''}`.trim().toLocaleLowerCase('tr-TR').replace(/\s+/g, ' ') === sName)
+          );
+
+          const canonicalId = matchedStu ? String(matchedStu.id) : String(res.studentId || rawKey);
+          const dedupGroupKey = matchedStu
+            ? `stu_${matchedStu.id}`
+            : (sNo && sNo !== '-' ? `no_${parseInt(sNo, 10) || sNo}` : (sName ? `name_${sName}` : `id_${canonicalId}`));
+
+          const enrichedRes = {
+            ...res,
+            studentId: canonicalId,
+            studentName: matchedStu ? `${matchedStu.name || ''} ${matchedStu.surname || ''}`.trim() : (res.studentName || 'Öğrenci'),
+            studentNo: matchedStu && matchedStu.number ? matchedStu.number : (res.studentNo || res.studentNumber || '-')
+          };
+
+          const existing = byStudentKey.get(dedupGroupKey);
+          if (!existing) {
+            byStudentKey.set(dedupGroupKey, { canonicalId, res: enrichedRes });
+          } else {
+            const oldTime = new Date(existing.res.updatedAt || 0).getTime() || 0;
+            const newTime = new Date(enrichedRes.updatedAt || 0).getTime() || 0;
+            const preferNew = (newTime > oldTime) ||
+              (newTime === oldTime && String(rawKey) === String(canonicalId)) ||
+              (!existing.res.thumbUrl && enrichedRes.thumbUrl);
+            if (preferNew) {
+              if (!enrichedRes.thumbUrl && existing.res.thumbUrl) {
+                enrichedRes.thumbUrl = existing.res.thumbUrl;
+              }
+              byStudentKey.set(dedupGroupKey, { canonicalId, res: enrichedRes });
+            } else if (!existing.res.thumbUrl && enrichedRes.thumbUrl) {
+              existing.res.thumbUrl = enrichedRes.thumbUrl;
+            }
+          }
+        });
+
+        byStudentKey.forEach(({ canonicalId, res }) => {
+          cleanResults[canonicalId] = res;
+          if (res.score !== undefined) {
+            cleanScores[canonicalId] = res.score;
+          } else if (exam.examScores && exam.examScores[canonicalId] !== undefined) {
+            cleanScores[canonicalId] = exam.examScores[canonicalId];
+          }
+        });
+
+        exam.studentResults = cleanResults;
+        exam.examScores = cleanScores;
+      }
+
+      const afterKeys = Object.keys(exam.studentResults || {});
+      return beforeKeys.length !== afterKeys.length || beforeKeys.some((k, idx) => k !== afterKeys[idx]);
+    },
+
     // Aktif Sınavı Güvenle Sağla
     ensureActiveExam() {
       const data = this.getData();
@@ -275,6 +355,11 @@
     renderExamsListView(container) {
       const data = this.getData();
       const exams = Array.isArray(data.weeklyEvaluations) ? data.weeklyEvaluations : [];
+      let anyDeduped = false;
+      exams.forEach(ex => {
+        if (this.deduplicateExamStudentResults(ex)) anyDeduped = true;
+      });
+      if (anyDeduped) this.saveData(data);
       const students = this.getActiveStudents();
       const totalStudents = students.length || 1;
 
@@ -368,6 +453,14 @@
 
     renderExamDetailView(container) {
       const exam = this.activeExam;
+      if (this.deduplicateExamStudentResults(exam)) {
+        const data = this.getData();
+        const idx = (data.weeklyEvaluations || []).findIndex(e => String(e.id) === String(exam.id));
+        if (idx >= 0) {
+          data.weeklyEvaluations[idx] = exam;
+          this.saveData(data);
+        }
+      }
       const students = this.getActiveStudents();
       const studentResults = exam.studentResults || {};
       const scannedKeys = Object.keys(studentResults);
@@ -382,7 +475,12 @@
       // Öğrenci listesini hazırla
       let studentListItems = scannedKeys.map(stuId => {
         const res = studentResults[stuId];
-        const stu = students.find(s => String(s.id) === String(stuId)) || { name: res.studentName || 'Öğrenci', surname: '', number: res.studentNo || '-' };
+        const sNo = String(res.studentNo || res.studentNumber || '').trim();
+        const stu = students.find(s =>
+          String(s.id) === String(stuId) ||
+          (sNo && sNo !== '-' && String(s.number || '').trim() === sNo) ||
+          (sNo && sNo !== '-' && parseInt(s.number, 10) > 0 && parseInt(s.number, 10) === parseInt(sNo, 10))
+        ) || { name: res.studentName || 'Öğrenci', surname: '', number: res.studentNo || '-' };
         return {
           studentId: stuId,
           stu: stu,
@@ -512,7 +610,10 @@
                 else if (rankNum === 3) { rankBadgeClass = 'bronze'; rankText = '🥉'; }
               }
 
-              const initials = (stu.name || 'Ö')[0] + ((stu.surname || '')[0] || '');
+              const fullNameWords = `${stu.name || ''} ${stu.surname || ''}`.trim().split(/\s+/).filter(Boolean);
+              const initials = fullNameWords.length > 1
+                ? (fullNameWords[0][0] + fullNameWords[fullNameWords.length - 1][0])
+                : ((stu.name || 'Ö')[0] || 'Ö');
               
               // Çok dersli özet
               let subSummaryText = `No: ${stu.number || '-'} • ${res.correct || 0}D ${res.wrong || 0}Y ${res.blank || 0}B`;
@@ -582,6 +683,8 @@
       const data = this.getData();
       const exam = (data.weeklyEvaluations || []).find(e => String(e.id) === String(this.activeExam.id));
       if (!exam) return;
+
+      this.deduplicateExamStudentResults(exam);
 
       const studentResults = exam.studentResults || {};
       const count = Object.keys(studentResults).length;
@@ -1217,18 +1320,25 @@
 
       const existingIdx = data.weeklyEvaluations.findIndex(e => String(e.id) === String(examData.id));
       if (existingIdx >= 0) {
-        data.weeklyEvaluations[existingIdx] = {
-          ...data.weeklyEvaluations[existingIdx],
-          ...examData,
-          updatedAt: new Date().toISOString()
-        };
+        if (window.CloudSync && typeof window.CloudSync.mergeExamObjects === 'function') {
+          data.weeklyEvaluations[existingIdx] = window.CloudSync.mergeExamObjects(data.weeklyEvaluations[existingIdx], examData);
+        } else {
+          data.weeklyEvaluations[existingIdx] = {
+            ...data.weeklyEvaluations[existingIdx],
+            ...examData,
+            updatedAt: new Date().toISOString()
+          };
+        }
+        this.deduplicateExamStudentResults(data.weeklyEvaluations[existingIdx]);
       } else {
+        this.deduplicateExamStudentResults(examData);
         data.weeklyEvaluations.unshift(examData);
       }
       this.saveData(data);
 
       if (this.activeExam && String(this.activeExam.id) === String(examData.id)) {
-        this.activeExam = { ...this.activeExam, ...examData };
+        const refreshed = data.weeklyEvaluations.find(e => String(e.id) === String(examData.id));
+        if (refreshed) this.activeExam = refreshed;
       }
 
       this.renderHub();
@@ -2127,9 +2237,41 @@
       if (!exam.studentResults) exam.studentResults = {};
       if (!exam.examScores) exam.examScores = {};
 
-      exam.studentResults[studentId] = {
-        studentName: res.studentName,
-        studentNo: res.studentNo,
+      // Aynı öğrencinin okul numarası veya farklı bir ID ile kaydedilmiş eski girdilerini temizle
+      const students = this.getActiveStudents();
+      const sNoStr = String(res.studentNo || res.studentNumber || '').trim();
+      const matchedStu = students.find(s =>
+        String(s.id) === String(studentId) ||
+        (sNoStr && sNoStr !== '-' && String(s.number || '').trim() === sNoStr) ||
+        (sNoStr && sNoStr !== '-' && parseInt(s.number, 10) > 0 && parseInt(s.number, 10) === parseInt(sNoStr, 10))
+      );
+      const canonicalStudentId = matchedStu ? String(matchedStu.id) : String(studentId);
+      const canonicalName = matchedStu ? `${matchedStu.name || ''} ${matchedStu.surname || ''}`.trim() : res.studentName;
+      const canonicalNo = matchedStu && matchedStu.number ? matchedStu.number : res.studentNo;
+
+      let prevThumb = null;
+      Object.keys(exam.studentResults).forEach(k => {
+        const existingRes = exam.studentResults[k];
+        if (!existingRes) return;
+        const kNo = String(existingRes.studentNo || existingRes.studentNumber || '').trim();
+        const isSameStudent =
+          String(k) === canonicalStudentId ||
+          String(k) === String(studentId) ||
+          (canonicalNo && canonicalNo !== '-' && (String(k) === String(canonicalNo) || kNo === String(canonicalNo))) ||
+          (canonicalName && existingRes.studentName && existingRes.studentName.trim().toLocaleLowerCase('tr-TR') === canonicalName.trim().toLocaleLowerCase('tr-TR'));
+        if (isSameStudent) {
+          if (existingRes.thumbUrl && !prevThumb) prevThumb = existingRes.thumbUrl;
+          if (String(k) !== canonicalStudentId) {
+            delete exam.studentResults[k];
+            if (exam.examScores) delete exam.examScores[k];
+          }
+        }
+      });
+
+      exam.studentResults[canonicalStudentId] = {
+        studentId: canonicalStudentId,
+        studentName: canonicalName,
+        studentNo: canonicalNo,
         correct: res.correct,
         wrong: res.wrong,
         blank: res.blank,
@@ -2137,21 +2279,22 @@
         score: res.score,
         answers: res.answers,
         subjectBreakdown: res.subjectBreakdown || {},
-        thumbUrl: res.thumbUrl || (exam.studentResults[studentId] && exam.studentResults[studentId].thumbUrl) || null,
+        thumbUrl: res.thumbUrl || prevThumb || null,
         updatedAt: new Date().toISOString()
       };
-      exam.examScores[studentId] = res.score;
+      exam.examScores[canonicalStudentId] = res.score;
+      this.deduplicateExamStudentResults(exam);
       exam.allResultsCleared = false;
       if (Array.isArray(exam.deletedStudentIds)) {
-        exam.deletedStudentIds = exam.deletedStudentIds.filter(id => id !== String(studentId) && (!res.studentNo || id !== String(res.studentNo)));
+        exam.deletedStudentIds = exam.deletedStudentIds.filter(id => id !== canonicalStudentId && id !== String(studentId) && (!canonicalNo || id !== String(canonicalNo)));
       }
       exam.updatedAt = new Date().toISOString();
 
       if (res.thumbUrl) {
         this.scannedCardImages = this.scannedCardImages || {};
-        this.scannedCardImages[studentId] = res.thumbUrl;
+        this.scannedCardImages[canonicalStudentId] = res.thumbUrl;
         try {
-          sessionStorage.setItem('omr_thumb_' + studentId, res.thumbUrl);
+          sessionStorage.setItem('omr_thumb_' + canonicalStudentId, res.thumbUrl);
         } catch (e) {}
       }
 
@@ -2162,7 +2305,7 @@
       if (window.CloudSync) {
         window.CloudSync.pushExam(exam).catch(() => {});
         if (typeof window.CloudSync.pushLiveOmr === 'function') {
-          window.CloudSync.pushLiveOmr(exam.id, exam.examName, studentId, res.studentName, res);
+          window.CloudSync.pushLiveOmr(exam.id, exam.examName, canonicalStudentId, canonicalName, exam.studentResults[canonicalStudentId]);
         }
       }
     },
