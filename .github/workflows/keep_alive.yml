@@ -14,9 +14,9 @@ jobs:
         run: |
           echo "Pinging Supabase database to keep it active..."
           STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
-            -H "apikey: sb_publishable_FVth3wbbG-2XZiJmpO0-rw_mNiU0_Ci" \
-            -H "Authorization: Bearer sb_publishable_FVth3wbbG-2XZiJmpO0-rw_mNiU0_Ci" \
-            "https://tzwewboqhjsmoezriadg.supabase.co/rest/v1/licenses?select=count&limit=1")
+            -H "apikey: sb_publishable_imv0QQkNvBDzVlLY2Gogrw_NWkbAWAR" \
+            -H "Authorization: Bearer sb_publishable_imv0QQkNvBDzVlLY2Gogrw_NWkbAWAR" \
+            "https://qcxpslujddythbpkaupn.supabase.co/rest/v1/licenses?select=count&limit=1")
           echo "Supabase Response HTTP Code: $STATUS"
           if [ "$STATUS" -ge 200 ] && [ "$STATUS" -lt 400 ]; then
             echo "Supabase is active and ping successful! ✅"

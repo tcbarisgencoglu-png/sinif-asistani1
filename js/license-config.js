@@ -189,8 +189,8 @@
   async function supabaseRequest(method, path, body = null) {
     if (!window.SupabaseConfig) {
       window.SupabaseConfig = {
-        url: 'https://tzwewboqhjsmoezriadg.supabase.co',
-        anonKey: 'sb_publishable_FVth3wbbG-2XZiJmpO0-rw_mNiU0_Ci'
+        url: 'https://qcxpslujddythbpkaupn.supabase.co',
+        anonKey: 'sb_publishable_imv0QQkNvBDzVlLY2Gogrw_NWkbAWAR'
       };
     }
     const url = `${window.SupabaseConfig.url}/rest/v1/${path}`;

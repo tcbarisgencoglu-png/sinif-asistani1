@@ -22,8 +22,8 @@
     wsHeartbeat: null,
     pollingInterval: null,
     debouncedMasterTimer: null,
-    supabaseUrl: 'https://tzwewboqhjsmoezriadg.supabase.co',
-    anonKey: 'sb_publishable_FVth3wbbG-2XZiJmpO0-rw_mNiU0_Ci',
+    supabaseUrl: 'https://qcxpslujddythbpkaupn.supabase.co',
+    anonKey: 'sb_publishable_imv0QQkNvBDzVlLY2Gogrw_NWkbAWAR',
 
     init() {
       if (window.SupabaseConfig) {
@@ -50,18 +50,20 @@
       this.updateSyncUI();
     },
 
-    // Masaüstü verilerini sessizce arka planda buluta hazırla
+    // Masaüstü verilerini sessizce arka planda buluta hazırla (Trafik dostu 15sn debounce + özet kontrolü)
     autoPushMasterDebounced() {
       if (!window.stateManager) return;
+      if (this._quotaErrorUntil && Date.now() < this._quotaErrorUntil) return;
       if (this.debouncedMasterTimer) clearTimeout(this.debouncedMasterTimer);
       this.debouncedMasterTimer = setTimeout(async () => {
         try {
+          if (this._quotaErrorUntil && Date.now() < this._quotaErrorUntil) return;
           console.log('[CloudSync] Masaüstü verileri otomatik olarak buluta aktarılıyor (Kod: ' + this.syncCode + ')...');
-          await this.pushMasterData();
+          await this.pushMasterData(true);
         } catch (e) {
           console.warn('[CloudSync] Otomatik master veri eşitleme uyarısı:', e);
         }
-      }, 1000);
+      }, 15000);
     },
 
     // 6 Haneli Çakışmasız, Kolay Okunur Alfanümerik Kod Üretici
@@ -127,7 +129,7 @@
       return clean;
     },
 
-    // Supabase API Çağrısı
+    // Supabase API Çağrısı (Kota ve Trafik Korumalı)
     async request(method, path, body = null) {
       const url = `${this.supabaseUrl}/rest/v1/${path}`;
       const headers = {
@@ -144,10 +146,19 @@
       try {
         const res = await fetch(url, options);
         if (res.ok) {
+          this._quotaErrorUntil = 0;
           const text = await res.text();
           return text ? JSON.parse(text) : { success: true };
         }
-        return { error: true, status: res.status, text: await res.text() };
+        const errText = await res.text();
+        if (res.status === 402 || res.status === 429) {
+          // Kota dolduğunda arka plan sorgularını 5 dakika durdur (Trafik kalkanı)
+          this._quotaErrorUntil = Date.now() + 5 * 60 * 1000;
+        }
+        const customMsg = res.status === 402
+          ? '402 (Bulut aylık veri trafiği kotası doldu. QR Kod ile çevrimdışı eşitleyebilir veya yeni bulut anahtarı tanımlayabilirsiniz)'
+          : null;
+        return { error: true, status: res.status, message: customMsg, text: errText };
       } catch (err) {
         return { error: true, message: err.message };
       }
@@ -386,7 +397,10 @@
     // ==========================================================================
 
     // Tüm Sınıfları, Öğrencileri, Sınavları ve Kitaplığı Buluta Gönder
-    async pushMasterData() {
+    async pushMasterData(isAuto = false) {
+      if (isAuto && this._quotaErrorUntil && Date.now() < this._quotaErrorUntil) {
+        return { success: false, skipped: true };
+      }
       this.isSyncing = true;
       this.updateSyncUI();
 
@@ -401,7 +415,24 @@
       }
 
       const students = Array.isArray(localData.students) ? localData.students : [];
-      const weeklyEvaluations = Array.isArray(localData.weeklyEvaluations) ? localData.weeklyEvaluations : [];
+      const rawWeeklyEvaluations = Array.isArray(localData.weeklyEvaluations) ? localData.weeklyEvaluations : [];
+      // Bulut trafiği (Egress) tasarrufu: Sınav sonuçlarındaki ağır questionDetails/thumbUrl alanlarını sadeleştir (answers ve answerKey'den otomatik üretilir)
+      const weeklyEvaluations = rawWeeklyEvaluations.map(we => {
+        if (!we || typeof we !== 'object') return we;
+        const slimExam = { ...we };
+        if (slimExam.studentResults && typeof slimExam.studentResults === 'object') {
+          const slimSR = {};
+          Object.keys(slimExam.studentResults).forEach(sId => {
+            const sr = slimExam.studentResults[sId];
+            if (sr && typeof sr === 'object') {
+              const { questionDetails, pdfDataUrl, thumbUrl, ...restSr } = sr;
+              slimSR[sId] = restSr;
+            }
+          });
+          slimExam.studentResults = slimSR;
+        }
+        return slimExam;
+      });
       const books = localData.books || { library: [], transactions: [] };
       const homework = Array.isArray(localData.homeworks) ? localData.homeworks : (Array.isArray(localData.homework) ? localData.homework : []);
       const contributions = localData.contributions || [];
@@ -463,7 +494,8 @@
           branch: s.branch || '',
           schoolLevel: s.schoolLevel || educationLevel,
           gender: s.gender || '',
-          photo: s.photo || '',
+          photo: '',
+          hasPhoto: !!(s.photo && typeof s.photo === 'string' && s.photo.length > 50),
           parentPhone: s.parentPhone || '',
           notes: s.notes || ''
         })),
@@ -473,13 +505,51 @@
         },
         weeklyEvaluations: weeklyEvaluations,
         deletedExamIds: Array.isArray(localData.deletedExamIds) ? localData.deletedExamIds : [],
-        homework: homework,
         homeworks: homework,
         contributions: contributions,
         performanceBehaviors: performanceBehaviors,
         attendance: (localData.attendance || (window.stateManager && window.stateManager.state ? window.stateManager.state.attendance : {})) || {},
         performance: cleanPerformance
       };
+
+      // Öğrenci fotoğraflarını ayrı bir satırda (STUDENT_PHOTOS) tut ve sadece fotoğraflar değiştiğinde gönder
+      const photosMap = {};
+      const photoFpParts = [];
+      students.forEach(s => {
+        if (s && s.id && s.photo && typeof s.photo === 'string' && s.photo.length > 50) {
+          photosMap[String(s.id)] = s.photo;
+          photoFpParts.push(`${s.id}:${s.photo.length}:${s.photo.slice(-24)}`);
+        }
+      });
+      const currentPhotosFingerprint = photoFpParts.join('|');
+      const needPhotoPush = photoFpParts.length > 0 && (this._lastPushedPhotosFingerprint !== currentPhotosFingerprint);
+
+      // Otomatik arka plan gönderimlerinde içerik değişmediyse gereksiz trafik (Egress) harcama
+      const fingerprintObj = { ...masterPayload, timestamp: '' };
+      const currentFingerprint = JSON.stringify(fingerprintObj);
+      if (isAuto && this._lastPushedMasterFingerprint === currentFingerprint && !needPhotoPush) {
+        this.isSyncing = false;
+        this.updateSyncUI();
+        return { success: true, unchanged: true };
+      }
+
+      if (needPhotoPush && source === 'desktop') {
+        try {
+          await this.request('DELETE', `teacher_sync?sync_code=eq.${encodeURIComponent(this.syncCode)}&exam_id=eq.STUDENT_PHOTOS`);
+          const photoRes = await this.request('POST', 'teacher_sync', {
+            sync_code: this.syncCode,
+            exam_id: 'STUDENT_PHOTOS',
+            exam_name: 'Öğrenci Fotoğrafları (Önbellek)',
+            payload: { type: 'STUDENT_PHOTOS', photos: photosMap, timestamp: nowIso },
+            updated_at: nowIso
+          });
+          if (photoRes && !photoRes.error) {
+            this._lastPushedPhotosFingerprint = currentPhotosFingerprint;
+            if (!this.lastSeenUpdatedAtByExamId) this.lastSeenUpdatedAtByExamId = {};
+            this.lastSeenUpdatedAtByExamId['STUDENT_PHOTOS'] = nowIso;
+          }
+        } catch (e) {}
+      }
 
       const record = {
         sync_code: this.syncCode,
@@ -501,6 +571,7 @@
       this.isSyncing = false;
 
       if (res && !res.error) {
+        this._lastPushedMasterFingerprint = currentFingerprint;
         this.lastSyncTime = new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
         localStorage.setItem(LAST_SYNC_KEY, this.lastSyncTime);
         this.updateSyncUI();
@@ -524,7 +595,8 @@
       this.isSyncing = true;
       this.updateSyncUI();
 
-      const allRes = await this.request('GET', `teacher_sync?sync_code=eq.${encodeURIComponent(this.syncCode)}&order=updated_at.desc&select=*`);
+      // Kota tasarrufu: Ağır STUDENT_PHOTOS satırını standart senkronizasyonda çekme (yalnızca eksik fotoğraf varsa aşağıda tek seferlik çekilir)
+      const allRes = await this.request('GET', `teacher_sync?sync_code=eq.${encodeURIComponent(this.syncCode)}&exam_id=neq.STUDENT_PHOTOS&order=updated_at.desc&select=*`);
       this.isSyncing = false;
 
       if (allRes && allRes.error) {
@@ -580,6 +652,7 @@
 
       // 1. Öğrencileri birleştir (Kalıcı Liste) ve ID eşleme haritası oluştur
       const cloudToLocalMap = new Map();
+      let missingPhotoCount = 0;
       if (Array.isArray(masterItem.students)) {
         if (!localData.students) localData.students = [];
         masterItem.students.forEach(cloudStudent => {
@@ -603,18 +676,49 @@
             const memStudent = window.stateManager?.state?.students?.find(s => String(s.id) === String(canonicalId) || (s.number && String(s.number) === String(existing.number)));
             const existingPhoto = (memStudent && memStudent.photo && memStudent.photo.length > 50) ? memStudent.photo : ((existing.photo && existing.photo.length > 50) ? existing.photo : '');
             const newPhoto = (cloudStudent.photo && typeof cloudStudent.photo === 'string' && cloudStudent.photo.length > 50) ? cloudStudent.photo : '';
+            const finalPhoto = newPhoto || existingPhoto || '';
+
+            if (!finalPhoto && cloudStudent.hasPhoto) {
+              missingPhotoCount++;
+            }
 
             localData.students[idx] = {
               ...cloudStudent,
               ...existing,
               id: canonicalId,
-              photo: newPhoto || existingPhoto || ''
+              photo: finalPhoto
             };
           } else {
             cloudToLocalMap.set(String(cloudStudent.id), cloudStudent.id);
+            if ((!cloudStudent.photo || cloudStudent.photo.length <= 50) && cloudStudent.hasPhoto) {
+              missingPhotoCount++;
+            }
             localData.students.push(cloudStudent);
           }
         });
+      }
+
+      // Yalnızca cihazda fotoğrafı eksik olan öğrenci varsa STUDENT_PHOTOS paketini tek seferlik çek
+      if (missingPhotoCount > 0) {
+        try {
+          const photoRows = await this.request(
+            'GET',
+            `teacher_sync?sync_code=eq.${encodeURIComponent(this.syncCode)}&exam_id=eq.STUDENT_PHOTOS&limit=1&select=*`
+          );
+          const remotePhotos = (Array.isArray(photoRows) && photoRows[0] && photoRows[0].payload && photoRows[0].payload.photos)
+            ? photoRows[0].payload.photos
+            : null;
+          if (remotePhotos && typeof remotePhotos === 'object' && Array.isArray(localData.students)) {
+            localData.students.forEach(stu => {
+              if (stu && (!stu.photo || stu.photo.length <= 50)) {
+                const p = remotePhotos[String(stu.id)];
+                if (p && typeof p === 'string' && p.length > 50) {
+                  stu.photo = p;
+                }
+              }
+            });
+          }
+        } catch (e) {}
       }
 
       // 2. Kitaplığı birleştir
@@ -1282,12 +1386,13 @@
 
     // 4. Arka Planda Master Eşitlemeyi Gecikmeli Gönder (Debounce)
     scheduleDebouncedMasterPush() {
+      if (this._quotaErrorUntil && Date.now() < this._quotaErrorUntil) return;
       if (this.debouncedMasterTimer) clearTimeout(this.debouncedMasterTimer);
       this.debouncedMasterTimer = setTimeout(async () => {
         try {
-          await this.pushMasterData();
+          await this.pushMasterData(true);
         } catch (e) {}
-      }, 2500);
+      }, 8000);
     },
 
     // 5. Canlı Dinleyiciyi Başlat (WebSockets + Polling Fallback)
@@ -1304,12 +1409,12 @@
       // A) Supabase Realtime WebSocket Bağlantısı
       this.connectRealtimeWebSocket();
 
-      // B) Dayanıklı Kalp Atışı / Yedek Polling (Her 3 saniyede bir)
+      // B) Dayanıklı Kalp Atışı / Yedek Polling (Kota dostu: Her 20 saniyede bir hafif başlık kontrolü)
       if (this.pollingInterval) clearInterval(this.pollingInterval);
-      setTimeout(() => this.checkLiveUpdates(), 500);
+      setTimeout(() => this.checkLiveUpdates(), 1500);
       this.pollingInterval = setInterval(() => {
         this.checkLiveUpdates();
-      }, 3000);
+      }, 20000);
 
       this.updateSyncUI();
     },
@@ -1373,54 +1478,58 @@
       }
     },
 
-    // Yedek Kontrolcü (Heartbeat Polling - Saat farkı ve çoklu kayıt korumalı)
+    // Yedek Kontrolcü (Kota Dostu Heartbeat Polling - Önce sadece ~150 byte meta veri çeker, değişen varsa içeriği indirir)
     async checkLiveUpdates() {
       if (!this.syncCode) return;
+      if (this._quotaErrorUntil && Date.now() < this._quotaErrorUntil) return;
       if (!window.stateManager && !window.Companion && !window.CompanionOmr) return;
 
       try {
-        const res = await this.request('GET', `teacher_sync?sync_code=eq.${encodeURIComponent(this.syncCode)}&order=updated_at.desc&limit=20&select=*`);
-        if (Array.isArray(res) && res.length > 0) {
+        // 1. Adım: Sadece exam_id ve updated_at çek (~150 Byte - %99.9 Egress tasarrufu)
+        const metaRes = await this.request(
+          'GET',
+          `teacher_sync?sync_code=eq.${encodeURIComponent(this.syncCode)}&order=updated_at.desc&limit=20&select=exam_id,updated_at`
+        );
+        if (Array.isArray(metaRes) && metaRes.length > 0) {
           if (!this.lastSeenUpdatedAtByExamId) this.lastSeenUpdatedAtByExamId = {};
 
           if (!this.initialPollDone) {
             this.initialPollDone = true;
-            res.forEach(rec => {
+            metaRes.forEach(rec => {
               if (rec && rec.exam_id && rec.updated_at) {
                 this.lastSeenUpdatedAtByExamId[rec.exam_id] = rec.updated_at;
-              }
-              // İlk açılışta bulutta daha güncel bir sınav/cevap anahtarı varsa sessizce masaüstüne eşitle
-              if (window.stateManager && window.stateManager.state && rec && rec.exam_id && rec.exam_id !== 'LIVE_EVENT' && rec.exam_id !== 'MASTER_STATE') {
-                const cloudExam = rec.payload;
-                if (cloudExam && cloudExam.id) {
-                  const exams = window.stateManager.state.weeklyEvaluations || [];
-                  const idx = exams.findIndex(e => String(e.id) === String(cloudExam.id));
-                  if (idx >= 0) {
-                    const localKeyLen = Object.keys(exams[idx].answerKey || {}).length;
-                    const cloudKeyLen = Object.keys(cloudExam.answerKey || {}).length;
-                    const localTime = new Date(exams[idx].updatedAt || 0).getTime() || 0;
-                    const cloudTime = new Date(cloudExam.updatedAt || 0).getTime() || 0;
-                    if ((localKeyLen === 0 && cloudKeyLen > 0) || (cloudTime > localTime && cloudKeyLen > 0)) {
-                      this.handleIncomingLiveRecord(rec);
-                    }
-                  }
-                }
               }
             });
             return;
           }
 
-          // Kronolojik sırayla (eskiden yeniye) değişen tüm kayıtları işle
-          const ordered = [...res].reverse();
-          ordered.forEach(rec => {
+          // 2. Adım: Sadece updated_at değeri gerçekten değişen kayıtları belirle
+          const orderedMeta = [...metaRes].reverse();
+          const changedIds = [];
+          orderedMeta.forEach(rec => {
             if (!rec || !rec.exam_id || !rec.updated_at) return;
             const prevTime = this.lastSeenUpdatedAtByExamId[rec.exam_id];
             if (prevTime !== rec.updated_at) {
               this.lastSeenUpdatedAtByExamId[rec.exam_id] = rec.updated_at;
-              this.handleIncomingLiveRecord(rec);
+              // STUDENT_PHOTOS yalnızca eksik fotoğraf olduğunda pullMasterData içinde çekilir
+              if (rec.exam_id === 'STUDENT_PHOTOS') return;
+              // Masaüstü uygulaması MASTER_STATE'in kendisini zaten üretir, geri indirmesine gerek yok
+              if (window.stateManager && rec.exam_id === 'MASTER_STATE') return;
+              changedIds.push(rec.exam_id);
             }
           });
-        } else if (Array.isArray(res)) {
+
+          // 3. Adım: Yalnızca değişen kayıtların tam verisini (payload) çek
+          for (const changedExamId of changedIds) {
+            const fullRes = await this.request(
+              'GET',
+              `teacher_sync?sync_code=eq.${encodeURIComponent(this.syncCode)}&exam_id=eq.${encodeURIComponent(changedExamId)}&limit=1&select=*`
+            );
+            if (Array.isArray(fullRes) && fullRes[0]) {
+              this.handleIncomingLiveRecord(fullRes[0]);
+            }
+          }
+        } else if (Array.isArray(metaRes)) {
           this.initialPollDone = true;
         }
       } catch (e) {}
@@ -2328,7 +2437,7 @@
       this.isSyncing = true;
       this.updateSyncUI();
 
-      const res = await this.request('GET', `teacher_sync?sync_code=eq.${encodeURIComponent(this.syncCode)}&order=updated_at.asc&select=*`);
+      const res = await this.request('GET', `teacher_sync?sync_code=eq.${encodeURIComponent(this.syncCode)}&exam_id=neq.STUDENT_PHOTOS&order=updated_at.asc&select=*`);
       this.isSyncing = false;
 
       if (Array.isArray(res)) {

@@ -1,13 +1,13 @@
 {
-  "version": "1.0.111",
+  "version": "1.0.112",
   "releaseDate": "2026-10-28",
   "minRequiredVersion": "1.0.0",
-  "title": "Sınıf Asistanı v1.0.111 Yayında!",
-  "description": "Sınırsız Yerel Sabit Disk Depolama ve Öğrenci Fotoğraf Koruma Güncellemesi",
+  "title": "Sınıf Asistanı v1.0.112 Yayında!",
+  "description": "Yeni Bulut Eşitleme Sunucusu, Fotoğraf Önbellekleme ve %99.9 Kota Tasarrufu Güncellemesi",
   "features": [
-    "Sınırsız Yerel Disk Mimarisi: Masaüstü (Windows, Pardus/Linux, macOS) sürümünde 5 MB web önbellek sınırı kaldırılarak tüm veriler doğrudan bilgisayarın sabit diskinde kayıpsız olarak saklanıyor.",
-    "Öğrenci Fotoğraf Kalkanı: Yeni sürüm güncellemelerinde veya yoğun sınav/ödev kayıtlarında öğrenci fotoğraflarının silinmesi tamamen engellendi.",
-    "Açılış Koruma Kilidi (Save Guard): Diskten fotoğraflar ve sınavlar tam okunup belleğe yerleşmeden hiçbir yazma işleminin sağlam veriyi ezmesine izin verilmez."
+    "Yeni Bulut Eşitleme ve Lisans Sunucusu: El Terminali eşitleme (402 hatası) giderildi ve yeni yüksek hızlı Supabase sunucusuna geçiş yapıldı.",
+    "Akıllı Fotoğraf Önbellekleme (STUDENT_PHOTOS): Öğrenci fotoğrafları el terminaline yalnızca ilk eşleşmede bir kez indirilir, sonraki yoklama/puan/ödev eşitlemelerinde sıfır fotoğraf trafiği harcanır.",
+    "%99.9 Bant Genişliği (Egress) Tasarrufu: Arka plan canlı kontrolü tüm veriyi çekmek yerine yalnızca ~150 byte başlık kontrolü yaparak sadece değişen kaydı indirir."
   ],
   "release_url": "https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/latest"
 }
