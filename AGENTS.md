@@ -14,10 +14,12 @@ Bu projede çalışan tüm yapay zeka ajanları, herhangi bir kod değişikliği
 - **Fotoğraf Koruma Kalkanı:** Öğrenci fotoğrafları (`student.photo`) hiçbir senkronizasyon, güncelleme veya yedek birleştirme işleminde boş veriyle ezilemez.
 
 ## 3. Optik Okuma (OMR & ArUco) Kuralları
+- **Optik Okuma Kodları ve Geometrisi Kilitlidir (Onaysız Değişiklik Kesinlikle Yasaktır):** El terminali (mobil/Android) ve masaüstü sürümlerinde optik okuma sistemine ait hiçbir kodda (baloncuk merkezleri, ders cebi konumları, köşe tespiti, hizalama/perspektif algoritmaları, OMR tarama mantığı, piksel eşik değerleri ve ArUco tarayıcı dahil) kullanıcıdan doğrudan ve açık onay alınmadan **kesinlikle değişiklik yapılamaz**. Optik okumaya ait tüm form geometrisi, baloncuk/cep koordinatları ve algoritmik kodlar kilitlidir.
 - **Beyaz Arka Planlı ArUco Kimlik Kodu:** Parlama (yansıma) oluşmaması için öğrenci kimlik matrisinde (`generateArucoSVG`) arka plan ve `0` bitleri mat beyaz (`#ffffff`), yalnızca `1` bitleri ayrık siyah kare (`#000000`) olarak üretilir.
 - **4 Kenar Çerçeve ve Satır Bazlı Parlama Doğrulaması:** `scanArucoInGrayscale` içinde iç veri hücrelerinin dış çerçeve sanılmaması için 4 dış kenar sürekliliği kontrol edilmeli ve değişiklik sonrası 1..1000 öğrenci numarası için sentetik parlama/rotasyon testi çalıştırılmalıdır.
 
 ## 4. Paketleme ve Dağıtım Senkronizasyonu
+- **Onay Alınmadan Asla Derleme Yapılamaz:** Kullanıcıdan doğrudan ve açık onay alınmadan asla derleme yapılmayacaktır (Android APK/AAB, Tauri masaüstü derlemesi, `./gradlew assemble...`, `cargo tauri build` veya herhangi bir production build komutu izinsiz çalıştırılamaz).
 - `js/`, `css/`, `index.html`, `mobile.html` üzerinde yapılan her değişiklikten sonra:
   1. `node -c <dosya.js>` ile sözdizimi doğrulaması yapılmalıdır.
   2. `npm run sync` çalıştırılarak `dist/` ve `android/app/src/main/assets/` güncellenmelidir.

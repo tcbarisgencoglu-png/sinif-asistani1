@@ -62,11 +62,39 @@ function getSchoolOpeningMonday(year) {
 window.getSchoolOpeningMonday = getSchoolOpeningMonday;
 
 /**
+ * Hafta kodunu ('W6', '6', '2026-W43' vb.) standart ISO hafta koduna ('2026-W43') dönüştürür.
+ */
+function normalizeWeekId(weekId, defaultYear = null) {
+  if (!weekId) return '';
+  const str = String(weekId).trim();
+  if (/^\d{4}-W\d{2}$/i.test(str)) {
+    return str.toUpperCase();
+  }
+  const m = str.match(/^W?(\d{1,2})$/i);
+  if (m) {
+    const academicWeekNo = parseInt(m[1], 10);
+    if (academicWeekNo >= 1 && academicWeekNo <= 52) {
+      let startYear = defaultYear;
+      if (!startYear) {
+        const now = new Date();
+        startYear = (now.getMonth() >= 8) ? now.getFullYear() : (now.getFullYear() - 1);
+      }
+      const opening = typeof getSchoolOpeningMonday === 'function' ? getSchoolOpeningMonday(startYear) : new Date(startYear, 8, 14);
+      const targetMonday = new Date(opening.getTime() + (academicWeekNo - 1) * 7 * 86400000);
+      return typeof getISOWeek === 'function' ? getISOWeek(targetMonday) : `${startYear}-W${String(academicWeekNo).padStart(2, '0')}`;
+    }
+  }
+  return str;
+}
+window.normalizeWeekId = normalizeWeekId;
+
+/**
  * ISO Hafta kodunu (örn: '2026-W38') MEB Eğitim-Öğretim Haftası bilgisine dönüştürür.
  */
 function getEducationWeekInfo(weekId) {
   if (!weekId) return null;
-  const parts = weekId.split('-W');
+  const normalized = normalizeWeekId(weekId);
+  const parts = normalized.split('-W');
   if (parts.length !== 2) return null;
 
   const year = parseInt(parts[0], 10);
@@ -2776,6 +2804,28 @@ class StateManager {
       this.state._examCompetitionRankingFixed_v1077 = true;
     }
 
+    // Hafta Kodlarını Standartlaştırma ve Sınav Puanlarını Yenileme (v1.0.116)
+    if (this.state && !this.state._weekIdNormalized_v1080) {
+      if (Array.isArray(this.state.weeklyEvaluations)) {
+        this.state.weeklyEvaluations.forEach(e => {
+          if (e && e.weekId && typeof normalizeWeekId === 'function') {
+            e.weekId = normalizeWeekId(e.weekId);
+          }
+        });
+      }
+      if (Array.isArray(this.state.performance)) {
+        this.state.performance.forEach(p => {
+          if (p && p.weekId && typeof normalizeWeekId === 'function') {
+            p.weekId = normalizeWeekId(p.weekId);
+          }
+        });
+      }
+      if (Array.isArray(this.state.weeklyEvaluations) && this.state.weeklyEvaluations.length > 0) {
+        this.recalculateAllExamPoints();
+      }
+      this.state._weekIdNormalized_v1080 = true;
+    }
+
     if (!data && !hasRealDataEver && (!window.__TAURI__)) {
       this.saveState('İlk kurulum veritabanı');
       this.loadDefaultStateFromServer();
@@ -3128,6 +3178,27 @@ class StateManager {
               this.recalculateAllExamPoints();
             }
             this.state._examCompetitionRankingFixed_v1077 = true;
+          }
+
+          if (!this.state._weekIdNormalized_v1080) {
+            if (Array.isArray(this.state.weeklyEvaluations)) {
+              this.state.weeklyEvaluations.forEach(e => {
+                if (e && e.weekId && typeof normalizeWeekId === 'function') {
+                  e.weekId = normalizeWeekId(e.weekId);
+                }
+              });
+            }
+            if (Array.isArray(this.state.performance)) {
+              this.state.performance.forEach(p => {
+                if (p && p.weekId && typeof normalizeWeekId === 'function') {
+                  p.weekId = normalizeWeekId(p.weekId);
+                }
+              });
+            }
+            if (Array.isArray(this.state.weeklyEvaluations) && this.state.weeklyEvaluations.length > 0) {
+              this.recalculateAllExamPoints();
+            }
+            this.state._weekIdNormalized_v1080 = true;
           }
 
           if (afterScore !== beforeScore || afterTime > beforeTime || usableCandidates[0].name !== 'localStorage') {
@@ -3545,6 +3616,7 @@ class StateManager {
       _revision: parsed._revision || 0,
       _deletedIds: Array.isArray(parsed._deletedIds) ? parsed._deletedIds : [],
       _examCompetitionRankingFixed_v1077: parsed._examCompetitionRankingFixed_v1077 || false,
+      _weekIdNormalized_v1080: parsed._weekIdNormalized_v1080 || false,
       educationLevel: parsed.educationLevel || 'middle',
       students: parsed.students || [],
       homeworks: parsed.homeworks || [],
@@ -3577,6 +3649,22 @@ class StateManager {
       classLeaders: parsed.classLeaders || {},
       whatsappGroupLink: parsed.whatsappGroupLink || ''
     };
+
+    // Sınav ve performans hafta kodlarını ('W6', 'W4' vb.) standart ISO hafta formatına ('2026-W43' vb.) dönüştür
+    if (Array.isArray(loaded.weeklyEvaluations)) {
+      loaded.weeklyEvaluations.forEach(e => {
+        if (e && e.weekId && typeof normalizeWeekId === 'function') {
+          e.weekId = normalizeWeekId(e.weekId);
+        }
+      });
+    }
+    if (Array.isArray(loaded.performance)) {
+      loaded.performance.forEach(p => {
+        if (p && p.weekId && typeof normalizeWeekId === 'function') {
+          p.weekId = normalizeWeekId(p.weekId);
+        }
+      });
+    }
 
     // Görev kayıtlarını performans tablosuna bağlama (taskId senkronizasyonu)
     if (loaded.tasks && loaded.performance) {
@@ -4291,6 +4379,7 @@ class StateManager {
 
   getStudentWeeklyScore(studentId, weekId) {
     if (!weekId) weekId = (this.getSelectedWeek ? this.getSelectedWeek() : (window.getISOWeek ? window.getISOWeek() : ''));
+    const targetWeekNorm = typeof normalizeWeekId === 'function' ? normalizeWeekId(weekId) : weekId;
     return this.state.performance
       .filter(p => {
         if (String(p.studentId) !== String(studentId)) return false;
@@ -4298,19 +4387,34 @@ class StateManager {
           if (!this.state.homeworks) return false;
           const hw = this.state.homeworks.find(h => h.id === p.homeworkId);
           if (!hw) return false;
-          return hw.dueDate ? (window.getISOWeek(hw.dueDate) === weekId) : false;
+          const hwWeekNorm = hw.dueDate ? (typeof normalizeWeekId === 'function' ? normalizeWeekId(window.getISOWeek(hw.dueDate)) : window.getISOWeek(hw.dueDate)) : '';
+          return hwWeekNorm === targetWeekNorm;
         }
         if (p.taskId && this.state.tasks) {
           const task = this.state.tasks.find(t => t.id === p.taskId || t.performanceId === p.id);
-          if (task && task.completedDate) return window.getISOWeek(task.completedDate) === weekId;
-          if (task && task.dueDate) return window.getISOWeek(task.dueDate) === weekId;
+          if (task && task.completedDate) {
+            const taskWeekNorm = typeof normalizeWeekId === 'function' ? normalizeWeekId(window.getISOWeek(task.completedDate)) : window.getISOWeek(task.completedDate);
+            return taskWeekNorm === targetWeekNorm;
+          }
+          if (task && task.dueDate) {
+            const taskWeekNorm = typeof normalizeWeekId === 'function' ? normalizeWeekId(window.getISOWeek(task.dueDate)) : window.getISOWeek(task.dueDate);
+            return taskWeekNorm === targetWeekNorm;
+          }
         }
-        if (p.weekId) return p.weekId === weekId;
+        if (p.weekId) {
+          const pWeekNorm = typeof normalizeWeekId === 'function' ? normalizeWeekId(p.weekId) : p.weekId;
+          if (pWeekNorm && targetWeekNorm && pWeekNorm === targetWeekNorm) return true;
+          if (p.weekId === weekId) return true;
+        }
         if (this.state.tasks) {
           const linkedTask = this.state.tasks.find(t => t.performanceId === p.id);
-          if (linkedTask && linkedTask.completedDate) return window.getISOWeek(linkedTask.completedDate) === weekId;
+          if (linkedTask && linkedTask.completedDate) {
+            const linkedWeekNorm = typeof normalizeWeekId === 'function' ? normalizeWeekId(window.getISOWeek(linkedTask.completedDate)) : window.getISOWeek(linkedTask.completedDate);
+            return linkedWeekNorm === targetWeekNorm;
+          }
         }
-        return p.date ? (window.getISOWeek(p.date) === weekId) : false;
+        const pDateWeekNorm = p.date ? (typeof normalizeWeekId === 'function' ? normalizeWeekId(window.getISOWeek(p.date)) : window.getISOWeek(p.date)) : '';
+        return pDateWeekNorm === targetWeekNorm;
       })
       .reduce((sum, p) => sum + p.point, 0);
   }
@@ -4852,6 +4956,10 @@ class StateManager {
       }
     }
 
+    if (examData.weekId && typeof normalizeWeekId === 'function') {
+      examData.weekId = normalizeWeekId(examData.weekId);
+    }
+
     const index = this.state.weeklyEvaluations.findIndex(e => e && String(e.id) === String(examData.id));
     if (index !== -1) {
       this.state.weeklyEvaluations[index] = examData;
@@ -4946,6 +5054,7 @@ class StateManager {
       }
 
       if (rewardPoint > 0) {
+        const normWeek = typeof normalizeWeekId === 'function' ? normalizeWeekId(examData.weekId) : examData.weekId;
         this.state.performance.push({
           id: 'perf_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5) + '_' + i,
           studentId: studentScoreList[i].studentId,
@@ -4953,7 +5062,7 @@ class StateManager {
           point: rewardPoint,
           reason: reasonLabel,
           date: examData.date || examData.updatedAt || new Date().toISOString(),
-          weekId: examData.weekId,
+          weekId: normWeek || examData.weekId,
           examId: examData.id
         });
       }
@@ -5026,6 +5135,9 @@ class StateManager {
     // 2. Her sınav için ödülleri baştan doğru standart yarışma sıralamasıyla (Competition Ranking) hesapla
     this.state.weeklyEvaluations.forEach(exam => {
       if (!exam) return;
+      if (exam.weekId && typeof normalizeWeekId === 'function') {
+        exam.weekId = normalizeWeekId(exam.weekId);
+      }
 
       const scoreMap = {};
       const netMap = {};
@@ -5089,6 +5201,7 @@ class StateManager {
         }
 
         if (rewardPoint > 0) {
+          const normWeek = typeof normalizeWeekId === 'function' ? normalizeWeekId(exam.weekId) : exam.weekId;
           this.state.performance.push({
             id: 'perf_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5) + '_' + i,
             studentId: studentScoreList[i].studentId,
@@ -5096,7 +5209,7 @@ class StateManager {
             point: rewardPoint,
             reason: reasonLabel,
             date: exam.date || exam.updatedAt || new Date().toISOString(),
-            weekId: exam.weekId,
+            weekId: normWeek || exam.weekId,
             examId: exam.id || undefined
           });
         }

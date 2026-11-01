@@ -1343,7 +1343,11 @@ function setupWeeklyTab(showToast) {
 
     const state = stateManager.loadState();
     const selectedWeek = stateManager.getSelectedWeek();
-    const weekExams = (state.weeklyEvaluations || []).filter(e => e.weekId === selectedWeek);
+    const normSelected = window.normalizeWeekId ? window.normalizeWeekId(selectedWeek) : selectedWeek;
+    const weekExams = (state.weeklyEvaluations || []).filter(e => {
+      const eNorm = window.normalizeWeekId ? window.normalizeWeekId(e.weekId) : e.weekId;
+      return eNorm === normSelected;
+    });
 
     if (weekExams.length === 0) {
       if (toastCallback) toastCallback('Seçili haftada tanımlı sınav bulunmuyor!', 'warning');
@@ -1395,7 +1399,11 @@ function setupWeeklyTab(showToast) {
 
       if (selectedValue === 'week_avg') {
         isAverageReport = true;
-        examsToPrint = (state.weeklyEvaluations || []).filter(e => e.weekId === selectedWeek);
+        const normSelected = window.normalizeWeekId ? window.normalizeWeekId(selectedWeek) : selectedWeek;
+        examsToPrint = (state.weeklyEvaluations || []).filter(e => {
+          const eNorm = window.normalizeWeekId ? window.normalizeWeekId(e.weekId) : e.weekId;
+          return eNorm === normSelected;
+        });
         const formattedWeek = window.formatWeekTR ? window.formatWeekTR(selectedWeek, 'full') : selectedWeek;
         reportTitle = 'SINAV ORTALAMA RAPORU (SEÇİLİ HAFTA)';
         reportSubtitle = `Uygulama Dönemi: ${formattedWeek} | Rapor Tarihi: ${new Date().toLocaleDateString('tr-TR')}`;
@@ -6036,7 +6044,20 @@ function computeExamSummaryStats(rawExam, state) {
     : '0';
 
   scores.sort((a, b) => b.score - a.score);
+  const examSettings = exam.settings || {};
+  const topCount = Math.max(3, parseInt(examSettings.topCount, 10) || 3);
+  const topList = scores.slice(0, topCount);
   const topThree = scores.slice(0, 3);
+  const rankPointsMap = examSettings.rankPoints || { 1: 5, 2: 3, 3: 1 };
+
+  let currentRank = 1;
+  const rankedItems = topList.map((item, idx) => {
+    if (idx > 0 && item.score < topList[idx - 1].score) {
+      currentRank = idx + 1;
+    }
+    const reward = rankPointsMap[currentRank] || 0;
+    return { ...item, rank: currentRank, reward };
+  });
 
   const getStudentShortName = (studentId) => {
     const student = allRoster.find(s => s && String(s.id) === String(studentId));
@@ -6045,27 +6066,33 @@ function computeExamSummaryStats(rawExam, state) {
   };
 
   let topStudentsHTML = '<div class="exam-card-topstudents" style="border-top: 1px solid var(--border-color); padding-top: 0.5rem; margin-top: 0.5rem;">';
-  if (topThree.length === 0) {
+  if (rankedItems.length === 0) {
     topStudentsHTML += '<span style="color: var(--text-muted); font-size: 0.75rem;">Henüz puan girişi yapılmamış.</span>';
   } else {
-    topThree.forEach((item, index) => {
+    rankedItems.forEach((item) => {
       const name = getStudentShortName(item.studentId);
       let medal = '';
-      if (index === 0) medal = '🥇';
-      else if (index === 1) medal = '🥈';
-      else if (index === 2) medal = '🥉';
+      if (item.rank === 1) medal = '🥇';
+      else if (item.rank === 2) medal = '🥈';
+      else if (item.rank === 3) medal = '🥉';
+      else medal = `<span style="display:inline-block; min-width:1.2rem; font-weight:700; color:var(--text-secondary);">${item.rank}.</span>`;
+
+      const rewardBadge = item.reward > 0
+        ? ` <span style="font-size: 0.68rem; color: #10b981; font-weight: 700;">(+${item.reward})</span>`
+        : '';
+
       topStudentsHTML += `
-        <div style="display: flex; justify-content: space-between; font-size: 0.75rem; font-weight: 500; margin-bottom: 0.15rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.75rem; font-weight: 500; margin-bottom: 0.2rem;">
           <span style="color: var(--text-secondary);">${medal} ${name}</span>
-          <strong style="color: var(--text-primary);">${item.score} Puan</strong>
+          <strong style="color: var(--text-primary);">${item.score} Puan${rewardBadge}</strong>
         </div>
       `;
     });
   }
   topStudentsHTML += '</div>';
 
-  const topOneText = topThree.length > 0
-    ? `🥇 ${getStudentShortName(topThree[0].studentId)} (${topThree[0].score})`
+  const topOneText = rankedItems.length > 0
+    ? `🥇 ${getStudentShortName(rankedItems[0].studentId)} (${rankedItems[0].score})`
     : '-';
 
   const formattedWeek = window.formatWeekTR ? window.formatWeekTR(exam.weekId, 'full') : (exam.weekId || '');

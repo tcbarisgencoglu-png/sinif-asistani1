@@ -9266,3 +9266,183 @@ input:checked + .slider:before {
   background: var(--bg-surface, #fff);
 }
 
+/* ==========================================================================
+   KİTAPLIK BARKOD & ETİKET YAZDIRMA MERKEZİ (ÖNİZLEME & BASKI TASARIMI)
+   ========================================================================== */
+.barcode-sheet-page {
+  background: #ffffff !important;
+  color: #000000 !important;
+  width: 210mm;
+  min-height: 297mm;
+  height: 297mm;
+  padding: 0;
+  margin: 0 auto;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+  box-sizing: border-box;
+  page-break-after: always;
+  break-after: page;
+  display: grid;
+  position: relative;
+  overflow: hidden;
+  transform-origin: top center;
+}
+
+/* Tanex 24'lü Şablon (3 sütun x 8 satır - 70mm x 37mm) */
+.barcode-sheet-page.tanex_24 {
+  padding: 13mm 7mm;
+  grid-template-columns: repeat(3, 65.3mm);
+  grid-template-rows: repeat(8, 33.8mm);
+  justify-content: space-between;
+  align-content: space-between;
+}
+
+/* Tanex 40'lı Şablon (4 sütun x 10 satır - 48.5mm x 25.4mm) */
+.barcode-sheet-page.tanex_40 {
+  padding: 10mm 8mm;
+  grid-template-columns: repeat(4, 48.5mm);
+  grid-template-rows: repeat(10, 27.7mm);
+  justify-content: space-between;
+  align-content: space-between;
+}
+
+/* Kitap Sırtı İnce Şerit (4 sütun x 12 satır - 48mm x 20mm) */
+.barcode-sheet-page.spine_48 {
+  padding: 10mm 9mm;
+  grid-template-columns: repeat(4, 48mm);
+  grid-template-rows: repeat(12, 23mm);
+  justify-content: space-between;
+  align-content: space-between;
+}
+
+/* Düz A4 Izgara (3 sütun x 7 satır - Kılavuz Çizgili) */
+.barcode-sheet-page.custom_grid {
+  padding: 10mm 8mm;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(7, 39mm);
+}
+
+.barcode-sheet-page.custom_grid .barcode-label-cell {
+  border: 1px dashed #cbd5e1;
+}
+
+/* Tekil Etiket Hücresi */
+.barcode-label-cell {
+  box-sizing: border-box;
+  padding: 2mm 3mm;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  overflow: hidden;
+  position: relative;
+  background: #ffffff;
+}
+
+.barcode-label-cell.is-empty {
+  opacity: 0.15;
+  background: #f8fafc;
+}
+
+.barcode-label-header {
+  font-size: 7pt;
+  font-weight: 800;
+  color: #1e293b;
+  text-transform: uppercase;
+  letter-spacing: 0.2px;
+  line-height: 1.1;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 0.8mm;
+}
+
+.barcode-label-code-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.barcode-label-code-wrap svg,
+.barcode-label-code-wrap canvas,
+.barcode-label-code-wrap img {
+  max-width: 100%;
+  max-height: 100%;
+  display: block;
+}
+
+.barcode-label-footer {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin-top: 0.8mm;
+  line-height: 1.15;
+}
+
+.barcode-label-title {
+  font-size: 7.5pt;
+  font-weight: 800;
+  color: #0f172a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.barcode-label-meta {
+  font-size: 6.5pt;
+  font-weight: 600;
+  color: #475569;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+/* Baskı Esnasında (@media print) */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 0mm !important;
+  }
+
+  body.print-book-barcodes {
+    background: #ffffff !important;
+    color: #000000 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  body.print-book-barcodes > *:not(#book-barcodes-print-container) {
+    display: none !important;
+  }
+
+  body.print-book-barcodes #book-barcodes-print-container {
+    display: block !important;
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 210mm !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+  }
+
+  body.print-book-barcodes .barcode-sheet-page {
+    box-shadow: none !important;
+    margin: 0 !important;
+    page-break-after: always !important;
+    break-after: page !important;
+  }
+}
+
+

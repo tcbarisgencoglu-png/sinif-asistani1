@@ -182,7 +182,7 @@
       <div id="sidebar-demo-container"></div>
       
       <div class="sidebar-footer" style="padding: 1rem; text-align: center; font-size: 0.8rem; color: var(--text-muted); border-top: 1px solid var(--border-color);">
-        <span id="app-sidebar-version-text">Sınıf Asistanı v1.0.115</span>
+        <span id="app-sidebar-version-text">Sınıf Asistanı v1.0.116</span>
       </div>
     </aside>
 
@@ -448,6 +448,9 @@
                 <span id="library-books-count-badge" class="badge" style="background: rgba(99, 102, 241, 0.15); color: var(--primary); font-size: 0.78rem; font-weight: 700; padding: 0.25rem 0.65rem; border-radius: 6px;">0 Kitap</span>
               </div>
               <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                <button type="button" class="btn btn-secondary btn-sm" id="btn-print-library-barcodes" style="font-size: 0.8rem; display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.4rem 0.75rem; color: #4338ca; border-color: rgba(99, 102, 241, 0.4); background: rgba(99, 102, 241, 0.08); font-weight: 700;" title="Kitap etiketlerini ve barkodlarını A4 kağıda yazdır">
+                  <i data-lucide="printer" style="width: 14px; height: 14px;"></i> Barkod / Etiket Yazdır
+                </button>
                 <button type="button" class="btn btn-secondary btn-sm" id="btn-toggle-bulk-delete-books" style="font-size: 0.8rem; display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.4rem 0.75rem;">
                   <i data-lucide="check-square" style="width: 14px; height: 14px;"></i> Toplu Seç & Sil
                 </button>
@@ -463,16 +466,33 @@
                 <i data-lucide="search" style="position: absolute; left: 0.75rem; top: 50%; transform: translateY(-50%); width: 15px; height: 15px; color: var(--text-muted);"></i>
                 <input type="text" id="input-library-search" class="form-control" placeholder="Kitap adı, yazar veya kitap no ile ara..." style="padding-left: 2.25rem; height: 36px; font-size: 0.85rem;">
               </div>
-              <div style="display: flex; align-items: center; gap: 0.5rem;">
-                <select id="select-library-filter" class="form-control" style="height: 36px; font-size: 0.85rem; padding: 0.3rem 0.75rem; min-width: 150px;">
-                  <option value="all">Tüm Kitaplar</option>
-                  <option value="available">Sadece Boşta Olanlar</option>
-                  <option value="reading">Şu Anda Okunanlar</option>
-                  <option value="level_1">1. Seviye Kitaplar (Kolay)</option>
-                  <option value="level_2">2. Seviye Kitaplar (İleri)</option>
-                  <option value="has_questions">Sorusu Olanlar</option>
-                  <option value="no_questions">Sorusu Olmayanlar</option>
-                </select>
+              <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+                <!-- Durum Filtresi -->
+                <div style="display: flex; align-items: center; gap: 0.35rem;">
+                  <span style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); white-space: nowrap;">Filtre:</span>
+                  <select id="select-library-filter" class="form-control" style="height: 36px; font-size: 0.85rem; padding: 0.3rem 0.75rem; min-width: 150px;">
+                    <option value="all">Tüm Kitaplar</option>
+                    <option value="available">Sadece Boşta Olanlar</option>
+                    <option value="reading">Şu Anda Okunanlar</option>
+                    <option value="level_1">1. Seviye Kitaplar (Kolay)</option>
+                    <option value="level_2">2. Seviye Kitaplar (İleri)</option>
+                    <option value="has_questions">Sorusu Olanlar</option>
+                    <option value="no_questions">Sorusu Olmayanlar</option>
+                  </select>
+                </div>
+                <!-- Sıralama Süzgeci -->
+                <div style="display: flex; align-items: center; gap: 0.35rem;">
+                  <span style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); white-space: nowrap;">Sırala:</span>
+                  <select id="select-library-sort" class="form-control" style="height: 36px; font-size: 0.85rem; padding: 0.3rem 0.75rem; min-width: 175px;">
+                    <option value="no_asc" selected>🔢 Sıra No (1 → 999)</option>
+                    <option value="no_desc">🔢 Sıra No (999 → 1)</option>
+                    <option value="title_asc">🔤 Kitap Adı (A → Z)</option>
+                    <option value="title_desc">🔤 Kitap Adı (Z → A)</option>
+                    <option value="author_asc">✍️ Yazar Adı (A → Z)</option>
+                    <option value="pages_desc">📄 Sayfa Sayısı (Çoktan Aza)</option>
+                    <option value="pages_asc">📄 Sayfa Sayısı (Azdan Çoğa)</option>
+                  </select>
+                </div>
               </div>
             </div>
 
@@ -9812,12 +9832,12 @@
         <div style="display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 1rem; background: var(--bg-secondary); border-radius: 10px; border: 1px solid var(--border-color);">
           <div style="display: flex; align-items: center; gap: 0.4rem;">
             <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600;">Mevcut:</span>
-            <span id="update-current-version" class="badge" style="font-size: 0.8rem; font-weight: 700; background: var(--border-color); color: var(--text-secondary); padding: 0.2rem 0.5rem; border-radius: 6px;">v1.0.115</span>
+            <span id="update-current-version" class="badge" style="font-size: 0.8rem; font-weight: 700; background: var(--border-color); color: var(--text-secondary); padding: 0.2rem 0.5rem; border-radius: 6px;">v1.0.116</span>
           </div>
           <i data-lucide="arrow-right" style="width: 16px; height: 16px; color: #6366f1;"></i>
           <div style="display: flex; align-items: center; gap: 0.4rem;">
             <span style="font-size: 0.75rem; color: #6366f1; font-weight: 600;">Yeni Sürüm:</span>
-            <span id="update-latest-version" class="badge" style="font-size: 0.8rem; font-weight: 700; background: #6366f1; color: white; padding: 0.2rem 0.5rem; border-radius: 6px;">v1.0.115</span>
+            <span id="update-latest-version" class="badge" style="font-size: 0.8rem; font-weight: 700; background: #6366f1; color: white; padding: 0.2rem 0.5rem; border-radius: 6px;">v1.0.116</span>
           </div>
         </div>
 
@@ -10037,7 +10057,7 @@
           <div>
             <h3 style="margin: 0; font-size: 1.2rem; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
               Sınıf Asistanı Masaüstü Uygulaması
-              <span id="download-app-version-badge" class="badge" style="font-size: 0.75rem; background: var(--primary); color: white; padding: 0.2rem 0.5rem; border-radius: 6px; font-weight: 600;">v1.0.115 (En Son)</span>
+              <span id="download-app-version-badge" class="badge" style="font-size: 0.75rem; background: var(--primary); color: white; padding: 0.2rem 0.5rem; border-radius: 6px; font-weight: 600;">v1.0.116 (En Son)</span>
             </h3>
             <p style="margin: 0; font-size: 0.85rem; color: var(--text-secondary);">Akıllı tahta ve bilgisayarınızda internet olmadan da tam performans çalışın.</p>
           </div>
@@ -10065,7 +10085,7 @@
               </p>
             </div>
             <div>
-              <a id="btn-download-deb" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/download/v1.0.115/sinif-asistani_1.0.115_amd64.deb" target="_blank" class="btn btn-primary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem; background: #ef4444; border-color: #ef4444; font-weight: 600;">
+              <a id="btn-download-deb" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/download/v1.0.116/sinif-asistani_1.0.116_amd64.deb" target="_blank" class="btn btn-primary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem; background: #ef4444; border-color: #ef4444; font-weight: 600;">
                 <i data-lucide="download" style="width: 16px; height: 16px;"></i> Pardus (.deb) İndir
               </a>
               <button type="button" onclick="window.openPardusInstallHelpModal()" style="width: 100%; margin-top: 0.5rem; background: rgba(239, 68, 68, 0.12); border: 1px dashed rgba(239, 68, 68, 0.5); color: #f87171; border-radius: var(--radius-sm, 8px); padding: 0.45rem 0.5rem; font-size: 0.78rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.35rem; transition: all 0.2s ease;">
@@ -10092,7 +10112,7 @@
               </p>
             </div>
             <div>
-              <a id="btn-download-exe" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/download/v1.0.115/sinif-asistani_1.0.115_x64-setup.exe" target="_blank" class="btn btn-primary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem; background: #0284c7; border-color: #0284c7; font-weight: 600;">
+              <a id="btn-download-exe" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/download/v1.0.116/sinif-asistani_1.0.116_x64-setup.exe" target="_blank" class="btn btn-primary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem; background: #0284c7; border-color: #0284c7; font-weight: 600;">
                 <i data-lucide="download" style="width: 16px; height: 16px;"></i> Windows (.exe) İndir
               </a>
               <button type="button" onclick="window.openWinInstallHelpModal()" style="width: 100%; margin-top: 0.5rem; background: rgba(2, 132, 199, 0.12); border: 1px dashed rgba(2, 132, 199, 0.5); color: #38bdf8; border-radius: var(--radius-sm, 8px); padding: 0.45rem 0.5rem; font-size: 0.78rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.35rem; transition: all 0.2s ease;">
@@ -10120,13 +10140,13 @@
             </div>
             <div>
               <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem;">
-                <a id="btn-download-dmg" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/download/v1.0.115/sinif-asistani_1.0.115_aarch64.dmg" target="_blank" class="btn btn-primary" style="flex: 1.1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.15rem; background: #8b5cf6; border-color: #8b5cf6; font-weight: 600; padding: 0.5rem 0.35rem; font-size: 0.78rem; text-align: center; text-decoration: none;">
+                <a id="btn-download-dmg" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/download/v1.0.116/sinif-asistani_1.0.116_aarch64.dmg" target="_blank" class="btn btn-primary" style="flex: 1.1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.15rem; background: #8b5cf6; border-color: #8b5cf6; font-weight: 600; padding: 0.5rem 0.35rem; font-size: 0.78rem; text-align: center; text-decoration: none;">
                   <span style="display: flex; align-items: center; gap: 0.25rem; font-weight: 700;">
                     <i data-lucide="download" style="width: 14px; height: 14px;"></i> Apple Silicon
                   </span>
                   <span style="font-size: 0.67rem; opacity: 0.92; font-weight: 500;">(M1 / M2 / M3 / M4)</span>
                 </a>
-                <a id="btn-download-dmg-intel" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/download/v1.0.115/sinif-asistani_1.0.115_x64.dmg" target="_blank" class="btn btn-secondary" style="flex: 0.9; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.15rem; font-weight: 600; padding: 0.5rem 0.35rem; font-size: 0.78rem; text-align: center; text-decoration: none; border: 1px solid rgba(139, 92, 246, 0.45); color: var(--text-primary);">
+                <a id="btn-download-dmg-intel" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/download/v1.0.116/sinif-asistani_1.0.116_x64.dmg" target="_blank" class="btn btn-secondary" style="flex: 0.9; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.15rem; font-weight: 600; padding: 0.5rem 0.35rem; font-size: 0.78rem; text-align: center; text-decoration: none; border: 1px solid rgba(139, 92, 246, 0.45); color: var(--text-primary);">
                   <span style="display: flex; align-items: center; gap: 0.25rem; font-weight: 700;">
                     <i data-lucide="download" style="width: 14px; height: 14px;"></i> Intel Mac
                   </span>
@@ -10156,7 +10176,7 @@
                 Derste masaları gezerken tek dokunuşla ödev kontrolü, ders akışı ve hızlı yoklama için mobil uygulama paketi.
               </p>
             </div>
-            <a id="btn-download-apk" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/download/v1.0.115/sinif-asistani.apk" target="_blank" class="btn btn-primary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem; background: #16a34a; border-color: #16a34a; font-weight: 600;">
+            <a id="btn-download-apk" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/download/v1.0.116/sinif-asistani.apk" target="_blank" class="btn btn-primary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem; background: #16a34a; border-color: #16a34a; font-weight: 600;">
               <i data-lucide="download" style="width: 16px; height: 16px;"></i> Android (.apk) İndir
             </a>
           </div>
@@ -10178,7 +10198,7 @@
                 <strong>Kurulum gerektirmez!</strong> Özellikle ortaokul modunda sınıf sınıf gezen branş öğretmenleri, uygulamayı Flash diskine (USB) yükleyerek tüm sınıflardaki akıllı tahtalarda doğrudan flash bellek üzerinden tak-çalıştır şeklinde kullanabilir.
               </p>
             </div>
-            <a id="btn-download-appimage" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/download/v1.0.115/sinif-asistani_1.0.115_amd64.AppImage" target="_blank" class="btn btn-primary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem; background: #10b981; border-color: #10b981; font-weight: 600;">
+            <a id="btn-download-appimage" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/download/v1.0.116/sinif-asistani_1.0.116_amd64.AppImage" target="_blank" class="btn btn-primary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem; background: #10b981; border-color: #10b981; font-weight: 600;">
               <i data-lucide="download" style="width: 16px; height: 16px;"></i> AppImage (USB Uyumlu) İndir
             </a>
           </div>
@@ -10533,5 +10553,181 @@
   </div>
   <!-- Katkı & Tedarik Yazdırma Alanı (Sadece Yazdırmada Görünür) -->
   <div id="contribution-print-area" style="display: none;"></div>
+
+  <!-- MODAL: KİTAPLIK BARKOD & ETİKET YAZDIRMA MERKEZİ -->
+  <div class="modal" id="modal-book-barcode-labels" style="--max-width: 1100px;">
+    <div class="modal-content" style="max-width: 1100px; width: 95vw; max-height: 92vh; display: flex; flex-direction: column;">
+      <div class="modal-header" style="background: linear-gradient(135deg, rgba(79, 70, 229, 0.08), rgba(99, 102, 241, 0.12)); border-bottom: 1px solid var(--border-color);">
+        <h3 style="display: flex; align-items: center; gap: 0.6rem; font-size: 1.15rem; font-weight: 800; color: var(--primary); margin: 0;">
+          <i data-lucide="printer" style="width: 22px; height: 22px;"></i>
+          <span>Kitaplık Barkod &amp; Etiket Yazdırma Merkezi</span>
+        </h3>
+        <button class="close-btn">&times;</button>
+      </div>
+
+      <div class="modal-body" style="padding: 1.25rem; overflow-y: auto; flex: 1; display: grid; grid-template-columns: 360px 1fr; gap: 1.5rem;">
+        
+        <!-- Sol Panel: Etiket ve Sayfa Ayarları -->
+        <div style="display: flex; flex-direction: column; gap: 1rem; background: var(--bg-secondary); padding: 1.25rem; border-radius: var(--radius-md); border: 1px solid var(--border-color); overflow-y: auto; max-height: calc(90vh - 170px);">
+          
+          <!-- 1. Şablon Seçimi -->
+          <div>
+            <label style="display: block; font-size: 0.82rem; font-weight: 700; color: var(--text-primary); margin-bottom: 0.35rem;">
+              📄 A4 Etiket Şablonu
+            </label>
+            <select id="barcode-label-template-select" class="form-control" style="font-size: 0.85rem; height: 38px;">
+              <option value="tanex_24" selected>Tanex 24'lü (70 x 37 mm - 3 sütun x 8 satır) [Önerilen]</option>
+              <option value="tanex_40">Tanex 40'lı (48.5 x 25.4 mm - 4 sütun x 10 satır)</option>
+              <option value="spine_48">Kitap Sırtı İnce Şerit (48 x 20 mm - 4 sütun x 12 satır)</option>
+              <option value="custom_grid">Düz A4 Kağıt (3 x 7 Kılavuz Çizgili / Makasla Kesim)</option>
+            </select>
+          </div>
+
+          <!-- 2. Barkod Türü -->
+          <div>
+            <label style="display: block; font-size: 0.82rem; font-weight: 700; color: var(--text-primary); margin-bottom: 0.35rem;">
+              🏁 Kod Türü
+            </label>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+              <label style="display: flex; align-items: center; gap: 0.4rem; padding: 0.5rem; background: var(--bg-primary); border: 1.5px solid var(--border-color); border-radius: var(--radius-sm); cursor: pointer; font-size: 0.8rem; font-weight: 600;" id="label-opt-barcode">
+                <input type="radio" name="barcode-code-type" value="code128" checked style="cursor: pointer;">
+                <span>Çizgili Barkod (Code-128)</span>
+              </label>
+              <label style="display: flex; align-items: center; gap: 0.4rem; padding: 0.5rem; background: var(--bg-primary); border: 1.5px solid var(--border-color); border-radius: var(--radius-sm); cursor: pointer; font-size: 0.8rem; font-weight: 600;" id="label-opt-qr">
+                <input type="radio" name="barcode-code-type" value="qr" style="cursor: pointer;">
+                <span>Karekod (QR Kod)</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- 3. Yazdırılacak Kitaplar -->
+          <div>
+            <label style="display: block; font-size: 0.82rem; font-weight: 700; color: var(--text-primary); margin-bottom: 0.35rem;">
+              📚 Yazdırılacak Kitap Kapsamı
+            </label>
+            <select id="barcode-books-scope-select" class="form-control" style="font-size: 0.85rem; height: 38px;">
+              <option value="all" selected>Tüm Kitaplar</option>
+              <option value="range">Numara Aralığı Belirt (Örn: 1 - 24)</option>
+              <option value="selected">Sadece Kütüphanede Seçilenler</option>
+            </select>
+          </div>
+
+          <!-- Numara Aralığı Girişleri -->
+          <div id="barcode-range-inputs-row" style="display: none; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+            <div>
+              <label style="font-size: 0.75rem; color: var(--text-secondary);">Başlangıç No:</label>
+              <input type="number" id="barcode-range-start" class="form-control" placeholder="1" min="1" style="height: 34px; font-size: 0.82rem;">
+            </div>
+            <div>
+              <label style="font-size: 0.75rem; color: var(--text-secondary);">Bitiş No:</label>
+              <input type="number" id="barcode-range-end" class="form-control" placeholder="24" min="1" style="height: 34px; font-size: 0.82rem;">
+            </div>
+          </div>
+
+          <!-- 4. Etiket Üst Başlığı -->
+          <div>
+            <label style="display: block; font-size: 0.82rem; font-weight: 700; color: var(--text-primary); margin-bottom: 0.35rem;">
+              🏫 Etiket Üst Başlığı
+            </label>
+            <input type="text" id="barcode-label-header-input" class="form-control" placeholder="Örn: 5-A Sınıf Kitaplığı" value="Sınıf Kitaplığı" style="height: 36px; font-size: 0.85rem;">
+          </div>
+
+          <!-- 5. Boş Etiket Atlama -->
+          <div>
+            <label style="display: flex; align-items: center; justify-content: space-between; font-size: 0.82rem; font-weight: 700; color: var(--text-primary); margin-bottom: 0.35rem;">
+              <span style="display: inline-flex; align-items: center; gap: 0.35rem;">
+                <span>⏩ İlk Sayfada Boş Etiket Atla</span>
+                <button type="button" id="btn-skip-labels-info" style="background: none; border: none; padding: 0; cursor: pointer; color: var(--primary); display: inline-flex; align-items: center; border-radius: 50%;" title="Bu özellik ne işe yarar? Bilgi almak için tıklayın">
+                  <i data-lucide="help-circle" style="width: 15px; height: 15px;"></i>
+                </button>
+              </span>
+              <span style="font-size: 0.72rem; color: var(--text-muted); font-weight: normal;">(Kısmen kullanılmış A4)</span>
+            </label>
+            <input type="number" id="barcode-skip-labels-input" class="form-control" value="0" min="0" max="60" style="height: 36px; font-size: 0.85rem;" title="Sayfadaki ilk X etiketi boş bırakır">
+          </div>
+
+          <!-- 6. Gösterilecek Bilgiler -->
+          <div style="background: var(--bg-primary); padding: 0.75rem; border-radius: var(--radius-sm); border: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 0.4rem;">
+            <span style="font-size: 0.78rem; font-weight: 700; color: var(--text-secondary); margin-bottom: 2px;">Etikette Gösterilecek Alanlar:</span>
+            <label style="display: flex; align-items: center; gap: 0.4rem; font-size: 0.78rem; cursor: pointer; margin: 0;">
+              <input type="checkbox" id="chk-show-school" checked> Sınıf / Okul Başlığı
+            </label>
+            <label style="display: flex; align-items: center; gap: 0.4rem; font-size: 0.78rem; cursor: pointer; margin: 0;">
+              <input type="checkbox" id="chk-show-title" checked> Kitap Adı
+            </label>
+            <label style="display: flex; align-items: center; gap: 0.4rem; font-size: 0.78rem; cursor: pointer; margin: 0;">
+              <input type="checkbox" id="chk-show-author" checked> Yazar
+            </label>
+            <label style="display: flex; align-items: center; gap: 0.4rem; font-size: 0.78rem; cursor: pointer; margin: 0;">
+              <input type="checkbox" id="chk-show-bookno" checked> Kitap Numarası (No: ...)
+            </label>
+          </div>
+
+        </div>
+
+        <!-- Sağ Panel: Canlı A4 Baskı Önizlemesi -->
+        <div style="display: flex; flex-direction: column; gap: 0.75rem; min-width: 0;">
+          <div style="display: flex; align-items: center; justify-content: space-between; padding: 0 4px;">
+            <div style="font-size: 0.85rem; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 6px;">
+              <i data-lucide="eye" style="width: 16px; height: 16px; color: var(--primary);"></i>
+              <span>Canlı Baskı Önizleme</span>
+              <span id="barcode-preview-summary-badge" class="badge" style="background: rgba(99, 102, 241, 0.15); color: var(--primary); font-size: 0.75rem; margin-left: 6px;">0 Etiket (0 Sayfa A4)</span>
+            </div>
+            <div style="font-size: 0.75rem; color: var(--text-muted);">
+              Ölçek: A4 Standart (210 x 297 mm)
+            </div>
+          </div>
+
+          <!-- Scrollable Önizleme Sahnesi -->
+          <div id="barcode-preview-viewport" style="flex: 1; background: #525659; border-radius: var(--radius-md); padding: 1.5rem; overflow: auto; display: flex; flex-direction: column; align-items: center; gap: 1.5rem; max-height: calc(90vh - 210px); box-shadow: inset 0 2px 8px rgba(0,0,0,0.2);">
+            <!-- Sayfalar buraya dinamik eklenecek -->
+          </div>
+        </div>
+
+      </div>
+
+      <div class="modal-footer" style="padding: 1rem 1.5rem; display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--border-color); background: var(--bg-secondary);">
+        <div style="font-size: 0.8rem; color: var(--text-muted); display: flex; align-items: center; gap: 6px;">
+          <i data-lucide="info" style="width: 14px; height: 14px; color: var(--info);"></i>
+          <span>Yazdırırken tarayıcı ayarlarında <strong>"Kenar Boşlukları: Yok"</strong> ve <strong>"Arka Plan Grafikleri: Açık"</strong> seçiniz.</span>
+        </div>
+        <div style="display: flex; gap: 0.75rem;">
+          <button type="button" class="btn btn-secondary close-btn-action" style="padding: 0.5rem 1rem;">İptal</button>
+          <button type="button" class="btn btn-primary" id="btn-do-print-barcodes" style="padding: 0.5rem 1.25rem; font-weight: 700; display: inline-flex; align-items: center; gap: 0.5rem; box-shadow: 0 4px 14px rgba(79, 70, 229, 0.35);">
+            <i data-lucide="printer" style="width: 17px; height: 17px;"></i>
+            <span>🖨️ Yazdır / PDF Olarak Kaydet</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Gizli Yazdırma Konteyneri (Yalnızca @media print sırasında aktif) -->
+  <div id="book-barcodes-print-container" style="display: none;"></div>
+
+  <!-- MODAL: BOŞ ETİKET ATLAMA BİLGİ PENCERESİ -->
+  <div class="modal" id="modal-skip-labels-info" style="--max-width: 440px; z-index: 10050;">
+    <div class="modal-content" style="max-width: 440px; padding: 1.5rem; border-radius: var(--radius-lg); background: var(--bg-secondary); border: 1px solid var(--border-color); box-shadow: 0 20px 40px rgba(0,0,0,0.3);">
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.75rem;">
+        <h4 style="margin: 0; display: flex; align-items: center; gap: 0.5rem; font-size: 1rem; font-weight: 700; color: var(--primary);">
+          <i data-lucide="help-circle" style="width: 18px; height: 18px;"></i>
+          <span>Boş Etiket Atlama Nedir?</span>
+        </h4>
+        <button type="button" class="close-btn" style="background: none; border: none; font-size: 1.25rem; cursor: pointer; color: var(--text-muted);">&times;</button>
+      </div>
+      <div style="font-size: 0.88rem; line-height: 1.5; color: var(--text-secondary); display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 1.25rem;">
+        <p style="margin: 0;">Daha önce birkaç etiketi kullanılmış <strong>yapışkanlı A4 etiket sayfalarını çöpe atmadan değerlendirmenizi</strong> sağlar.</p>
+        <div style="background: rgba(99, 102, 241, 0.08); border-left: 3px solid var(--primary); padding: 0.65rem 0.85rem; border-radius: 4px; font-size: 0.83rem; color: var(--text-primary);">
+          <strong>Örnek:</strong> 24'lü bir etiket sayfasının ilk <strong>5</strong> etiketini daha önce soyup kullandıysanız, buraya <strong>5</strong> yazın. Sistem ilk 5 gözü boş bırakıp yeni kitapları <strong>6. yuvadan</strong> basmaya başlar.
+        </div>
+        <p style="margin: 0; font-size: 0.8rem; color: var(--text-muted);">Böylece mürekkep ve etiketleriniz ziyan olmaz, yarım sayfaları sonuna kadar kullanabilirsiniz.</p>
+      </div>
+      <div style="display: flex; justify-content: flex-end;">
+        <button type="button" class="btn btn-primary btn-sm close-btn-action" style="padding: 0.4rem 1.2rem; font-weight: 600;">
+          Anladım
+        </button>
+      </div>
+    </div>
+  </div>
 </body>
 </html>

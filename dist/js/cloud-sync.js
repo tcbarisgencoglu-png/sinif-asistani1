@@ -1841,7 +1841,12 @@
         }
       });
 
-      // Ödev kayıtları ile performans tablosundaki ödev puanlarını birebir senkronize et
+      // Sınav ve Ödev kayıtları ile performans tablosundaki puanları birebir senkronize et
+      if (typeof window.stateManager.recalculateAllExamPoints === 'function') {
+        if (window.stateManager.recalculateAllExamPoints(false)) {
+          changed = true;
+        }
+      }
       if (typeof window.stateManager.recalculateAllHomeworkPoints === 'function') {
         if (window.stateManager.recalculateAllHomeworkPoints(false)) {
           changed = true;
@@ -2072,6 +2077,11 @@
           window.stateManager.updateHomeworkStatus(hw.id, targetStudentId, status);
         }
 
+        if (typeof window.stateManager.recalculateAllExamPoints === 'function') {
+          if (window.stateManager.recalculateAllExamPoints(false)) {
+            stateModified = true;
+          }
+        }
         if (typeof window.stateManager.recalculateAllHomeworkPoints === 'function') {
           window.stateManager.recalculateAllHomeworkPoints(false);
         }
@@ -2534,6 +2544,11 @@
           });
         }
 
+        if (typeof window.stateManager.recalculateAllExamPoints === 'function') {
+          if (window.stateManager.recalculateAllExamPoints(false)) {
+            stateModified = true;
+          }
+        }
         if (typeof window.stateManager.recalculateAllHomeworkPoints === 'function') {
           window.stateManager.recalculateAllHomeworkPoints(false);
         }

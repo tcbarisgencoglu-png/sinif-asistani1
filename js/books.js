@@ -686,6 +686,13 @@ let selectedStudentId = null;
 let currentStudentDetailLevelFilter = 'all';
 let currentStudentDetailSearchQuery = '';
 
+// Kitaplık Arama, Filtreleme ve Toplu Silme Durum Değişkenleri
+let librarySearchQuery = '';
+let libraryFilterStatus = 'all';
+let librarySortOption = (typeof localStorage !== 'undefined' && localStorage.getItem('sinif_library_sort_option')) || 'no_asc';
+let isBulkDeleteMode = false;
+const selectedBookIds = new Set();
+
 // Modallar ve Formlar
 const btnAddBook = document.getElementById('btn-add-book');
 const modalBook = document.getElementById('modal-book');
@@ -2416,6 +2423,19 @@ SADECE VE SADECE GEÇERLİ BİR JSON DİZİSİ DÖNDÜR. Markdown (örneğin \`\
     });
   }
 
+  // Kitaplık Sıralama Süzgeci
+  const selectLibrarySort = document.getElementById('select-library-sort');
+  if (selectLibrarySort) {
+    selectLibrarySort.value = librarySortOption;
+    selectLibrarySort.addEventListener('change', (e) => {
+      librarySortOption = e.target.value;
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem('sinif_library_sort_option', librarySortOption);
+      }
+      renderBooksList();
+    });
+  }
+
   // Toplu Silme Modu Açma/Kapatma
   const btnToggleBulk = document.getElementById('btn-toggle-bulk-delete-books');
   const bulkBar = document.getElementById('bulk-delete-books-bar');
@@ -2575,6 +2595,362 @@ SADECE VE SADECE GEÇERLİ BİR JSON DİZİSİ DÖNDÜR. Markdown (örneğin \`\
         const event = new CustomEvent('stateChanged');
         document.dispatchEvent(event);
       }
+    });
+  }
+
+  // Barkod & Etiket Yazdırma Modülünü Başlat
+  try {
+    initBookBarcodeLabelsModule();
+  } catch (err) {
+    console.error('initBookBarcodeLabelsModule başlatma hatası:', err);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// KİTAPLIK BARKOD & ETİKET YAZDIRMA MERKEZİ (DESKTOP)
+// ---------------------------------------------------------------------------
+const CODE128_PATTERNS = [
+  "212222","222122","222221","121223","121322","131222","122213","122312","132212","221213",
+  "221312","231212","112232","122132","122231","113222","123122","123221","223211","221132",
+  "221231","213212","223112","312131","311222","321122","321221","312212","322112","322211",
+  "212123","212321","232121","111323","131123","131321","112313","132113","132311","211313",
+  "231113","231311","112133","112331","132131","113123","113321","133121","313121","211331",
+  "231131","213113","213311","213131","311123","311321","331121","312113","312311","332111",
+  "314111","221411","431111","111224","111422","121124","121421","141122","141221","112214",
+  "112412","122114","122411","142112","142211","241211","221114","413111","241112","134111",
+  "111242","121142","121241","114212","124112","124211","411212","421112","421211","212141",
+  "214121","412121","111143","111341","131141","114113","114311","411113","411311","113141",
+  "114131","311141","411131","211412","211214","211232","2331112"
+];
+
+function generateCode128Svg(text, height = 28) {
+  if (!text) return '';
+  const clean = String(text).trim();
+  let checksum = 104; // Start Code B
+  const codes = [104];
+  for (let i = 0; i < clean.length; i++) {
+    const code = clean.charCodeAt(i) - 32;
+    const validCode = (code >= 0 && code <= 95) ? code : 0;
+    codes.push(validCode);
+    checksum += validCode * (i + 1);
+  }
+  codes.push(checksum % 103);
+  codes.push(106); // Stop Code
+
+  let bars = "";
+  for (const c of codes) {
+    bars += CODE128_PATTERNS[c] || "212222";
+  }
+
+  let totalModules = 0;
+  for (let i = 0; i < bars.length; i++) {
+    totalModules += parseInt(bars[i], 10);
+  }
+
+  let rects = "";
+  let curX = 0;
+  for (let i = 0; i < bars.length; i++) {
+    const width = parseInt(bars[i], 10);
+    if (i % 2 === 0) {
+      rects += `<rect x="${curX}" y="0" width="${width}" height="${height}" fill="#000000" />`;
+    }
+    curX += width;
+  }
+
+  return `<svg viewBox="0 0 ${totalModules} ${height}" preserveAspectRatio="none" style="width: 100%; height: ${height}px; display: block;">${rects}</svg>`;
+}
+
+function generateQrCodeSvg(text, size = 48) {
+  if (!text) return '';
+  try {
+    if (typeof window.qrcode === 'function') {
+      const qr = window.qrcode(0, 'M');
+      qr.addData(String(text).trim());
+      qr.make();
+      const count = qr.getModuleCount();
+      const cellSize = Math.max(1, Math.floor(size / count));
+      return qr.createSvgTag(cellSize, 0);
+    }
+  } catch (e) {
+    console.warn('QR kod üretme hatası:', e);
+  }
+  return generateCode128Svg(text, Math.round(size * 0.6));
+}
+
+function safeEscape(str) {
+  return String(str || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function openBookBarcodeLabelsModal() {
+  const modal = document.getElementById('modal-book-barcode-labels');
+  if (!modal) return;
+
+  const state = (window.stateManager && window.stateManager.loadState) ? window.stateManager.loadState() : {};
+  const headerInput = document.getElementById('barcode-label-header-input');
+  if (headerInput && (!headerInput.value || headerInput.value === 'Sınıf Kitaplığı')) {
+    const activeBranch = state.selectedBranch || (state.students && state.students[0] && state.students[0].branch) || '';
+    headerInput.value = activeBranch ? `${activeBranch} Sınıf Kitaplığı` : 'Sınıf Kitaplığı';
+  }
+
+  modal.classList.add('active');
+  renderBarcodeLabelsPreview();
+  if (window.safeCreateIcons) window.safeCreateIcons();
+}
+
+function renderBarcodeLabelsPreview() {
+  const viewport = document.getElementById('barcode-preview-viewport');
+  const badge = document.getElementById('barcode-preview-summary-badge');
+  if (!viewport) return;
+
+  const templateSelect = document.getElementById('barcode-label-template-select');
+  const templateType = templateSelect ? templateSelect.value : 'tanex_24';
+  const codeType = document.querySelector('input[name="barcode-code-type"]:checked')?.value || 'code128';
+  const scopeSelect = document.getElementById('barcode-books-scope-select');
+  const scope = scopeSelect ? scopeSelect.value : 'all';
+  const headerInput = document.getElementById('barcode-label-header-input');
+  const headerText = headerInput ? headerInput.value.trim() : 'Sınıf Kitaplığı';
+  const skipInput = document.getElementById('barcode-skip-labels-input');
+  const skipCount = Math.max(0, parseInt(skipInput ? skipInput.value : 0, 10) || 0);
+
+  const showSchool = document.getElementById('chk-show-school')?.checked ?? true;
+  const showTitle = document.getElementById('chk-show-title')?.checked ?? true;
+  const showAuthor = document.getElementById('chk-show-author')?.checked ?? true;
+  const showBookNo = document.getElementById('chk-show-bookno')?.checked ?? true;
+
+  // Kitapları al
+  const state = (window.stateManager && window.stateManager.loadState) ? window.stateManager.loadState() : { books: { library: [] } };
+  let books = Array.isArray(state.books && state.books.library) ? [...state.books.library] : [];
+  books = books.filter(b => !b.isDeleted);
+
+  // Kapsama göre filtrele
+  if (scope === 'range') {
+    const start = parseInt(document.getElementById('barcode-range-start')?.value, 10) || 1;
+    const end = parseInt(document.getElementById('barcode-range-end')?.value, 10) || 999;
+    books = books.filter(b => {
+      const num = parseInt(b.bookNo, 10);
+      return !isNaN(num) && num >= start && num <= end;
+    });
+  } else if (scope === 'selected') {
+    if (typeof selectedBookIds !== 'undefined' && selectedBookIds.size > 0) {
+      books = books.filter(b => selectedBookIds.has(b.id));
+    }
+  }
+
+  // Kitapları numaralarına göre sırala
+  books = sortBooksByBookNo(books);
+
+  // Şablon kapasiteleri
+  let labelsPerPage = 24;
+  let codeHeight = 30;
+  let qrSize = 52;
+  if (templateType === 'tanex_40') {
+    labelsPerPage = 40;
+    codeHeight = 22;
+    qrSize = 42;
+  } else if (templateType === 'spine_48') {
+    labelsPerPage = 48;
+    codeHeight = 18;
+    qrSize = 36;
+  } else if (templateType === 'custom_grid') {
+    labelsPerPage = 21;
+    codeHeight = 36;
+    qrSize = 60;
+  }
+
+  // Sayfaları oluştur
+  viewport.innerHTML = '';
+  const totalSlots = skipCount + books.length;
+  const totalPages = Math.max(1, Math.ceil(totalSlots / labelsPerPage));
+
+  if (badge) {
+    badge.textContent = `${books.length} Etiket (${totalPages} Sayfa A4)`;
+  }
+
+  if (books.length === 0) {
+    viewport.innerHTML = `
+      <div style="background: #ffffff; padding: 40px; border-radius: 12px; text-align: center; color: #64748b;">
+        <i data-lucide="inbox" style="width: 48px; height: 48px; margin: 0 auto 12px; color: #cbd5e1;"></i>
+        <h4 style="font-size: 15px; font-weight: 700; color: #1e293b; margin-bottom: 4px;">Yazdırılacak Kitap Bulunamadı</h4>
+        <p style="font-size: 13px;">Seçilen kriterde veya kütüphanenizde henüz kitap bulunmuyor.</p>
+      </div>
+    `;
+    if (window.safeCreateIcons) window.safeCreateIcons();
+    return;
+  }
+
+  let bookIdx = 0;
+  for (let p = 0; p < totalPages; p++) {
+    const pageEl = document.createElement('div');
+    pageEl.className = `barcode-sheet-page ${templateType}`;
+    pageEl.setAttribute('data-page-num', p + 1);
+
+    for (let s = 0; s < labelsPerPage; s++) {
+      const slotGlobalIdx = p * labelsPerPage + s;
+      const cell = document.createElement('div');
+      cell.className = 'barcode-label-cell';
+
+      // Boş bırakılan slot mu?
+      if (slotGlobalIdx < skipCount || bookIdx >= books.length) {
+        cell.classList.add('is-empty');
+        cell.innerHTML = '<span style="font-size: 8px; color: #cbd5e1;">(Boş)</span>';
+        pageEl.appendChild(cell);
+        continue;
+      }
+
+      const b = books[bookIdx];
+      bookIdx++;
+
+      const bookCode = b.bookNo || b.barcode || b.id || '0';
+      let codeHtml = '';
+      if (codeType === 'qr') {
+        codeHtml = generateQrCodeSvg(bookCode, qrSize);
+      } else {
+        codeHtml = generateCode128Svg(bookCode, codeHeight);
+      }
+
+      const headerHtml = (showSchool && headerText) ? `<div class="barcode-label-header">${safeEscape(headerText)}</div>` : '';
+      const titleHtml = showTitle ? `<div class="barcode-label-title" title="${safeEscape(b.title)}">${safeEscape(b.title)}</div>` : '';
+      
+      let metaParts = [];
+      if (showBookNo && b.bookNo) metaParts.push(`No: ${safeEscape(b.bookNo)}`);
+      if (showAuthor && b.author) metaParts.push(safeEscape(b.author));
+      const metaHtml = metaParts.length > 0 ? `<div class="barcode-label-meta">${metaParts.join(' • ')}</div>` : '';
+
+      cell.innerHTML = `
+        ${headerHtml}
+        <div class="barcode-label-code-wrap">
+          ${codeHtml}
+        </div>
+        <div class="barcode-label-footer">
+          ${titleHtml}
+          ${metaHtml}
+        </div>
+      `;
+      pageEl.appendChild(cell);
+    }
+
+    viewport.appendChild(pageEl);
+  }
+
+  if (window.safeCreateIcons) window.safeCreateIcons();
+}
+
+function printBookBarcodeLabels() {
+  const viewport = document.getElementById('barcode-preview-viewport');
+  const printContainer = document.getElementById('book-barcodes-print-container');
+  if (!viewport || !printContainer) return;
+
+  printContainer.innerHTML = viewport.innerHTML;
+  document.body.classList.add('print-book-barcodes');
+
+  window.print();
+
+  const cleanup = () => {
+    document.body.classList.remove('print-book-barcodes');
+    printContainer.innerHTML = '';
+    window.removeEventListener('afterprint', cleanup);
+  };
+
+  window.addEventListener('afterprint', cleanup);
+  setTimeout(cleanup, 2500);
+}
+
+function initBookBarcodeLabelsModule() {
+  const btnPrintHeader = document.getElementById('btn-print-book-barcodes');
+  const btnPrintLib = document.getElementById('btn-print-library-barcodes');
+  const modal = document.getElementById('modal-book-barcode-labels');
+  if (!modal) return;
+
+  if (btnPrintHeader) {
+    btnPrintHeader.addEventListener('click', (e) => {
+      e.preventDefault();
+      openBookBarcodeLabelsModal();
+    });
+  }
+
+  if (btnPrintLib) {
+    btnPrintLib.addEventListener('click', (e) => {
+      e.preventDefault();
+      openBookBarcodeLabelsModal();
+    });
+  }
+
+  // Modal Kapatma
+  modal.querySelectorAll('.close-btn, .close-btn-action').forEach(btn => {
+    btn.addEventListener('click', () => {
+      modal.classList.remove('active');
+    });
+  });
+
+  // Kontrolleri Dinle -> Önizlemeyi Canlı Güncelle
+  const templateSelect = document.getElementById('barcode-label-template-select');
+  if (templateSelect) templateSelect.addEventListener('change', renderBarcodeLabelsPreview);
+
+  document.querySelectorAll('input[name="barcode-code-type"]').forEach(radio => {
+    radio.addEventListener('change', renderBarcodeLabelsPreview);
+  });
+
+  const scopeSelect = document.getElementById('barcode-books-scope-select');
+  const rangeRow = document.getElementById('barcode-range-inputs-row');
+  if (scopeSelect) {
+    scopeSelect.addEventListener('change', () => {
+      if (rangeRow) {
+        rangeRow.style.display = scopeSelect.value === 'range' ? 'grid' : 'none';
+      }
+      renderBarcodeLabelsPreview();
+    });
+  }
+
+  const rangeStart = document.getElementById('barcode-range-start');
+  const rangeEnd = document.getElementById('barcode-range-end');
+  if (rangeStart) rangeStart.addEventListener('input', renderBarcodeLabelsPreview);
+  if (rangeEnd) rangeEnd.addEventListener('input', renderBarcodeLabelsPreview);
+
+  const headerInput = document.getElementById('barcode-label-header-input');
+  if (headerInput) headerInput.addEventListener('input', renderBarcodeLabelsPreview);
+
+  const skipInput = document.getElementById('barcode-skip-labels-input');
+  if (skipInput) skipInput.addEventListener('input', renderBarcodeLabelsPreview);
+
+  ['chk-show-school', 'chk-show-title', 'chk-show-author', 'chk-show-bookno'].forEach(id => {
+    const chk = document.getElementById(id);
+    if (chk) chk.addEventListener('change', renderBarcodeLabelsPreview);
+  });
+
+  // Boş Etiket Atlama Bilgi Penceresi
+  const btnSkipInfo = document.getElementById('btn-skip-labels-info');
+  const modalSkipInfo = document.getElementById('modal-skip-labels-info');
+  if (btnSkipInfo && modalSkipInfo) {
+    btnSkipInfo.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      modalSkipInfo.classList.add('active');
+      if (window.safeCreateIcons) window.safeCreateIcons();
+    });
+
+    modalSkipInfo.querySelectorAll('.close-btn, .close-btn-action').forEach(btn => {
+      btn.addEventListener('click', () => {
+        modalSkipInfo.classList.remove('active');
+      });
+    });
+
+    modalSkipInfo.addEventListener('click', (e) => {
+      if (e.target === modalSkipInfo) {
+        modalSkipInfo.classList.remove('active');
+      }
+    });
+  }
+
+  // Yazdır Butonu
+  const btnDoPrint = document.getElementById('btn-do-print-barcodes');
+  if (btnDoPrint) {
+    btnDoPrint.addEventListener('click', (e) => {
+      e.preventDefault();
+      printBookBarcodeLabels();
     });
   }
 }
@@ -2757,12 +3133,6 @@ function updateBorrowBookSelect() {
   }
 }
 
-// Kitaplık Arama, Filtreleme ve Toplu Silme Durum Değişkenleri
-let librarySearchQuery = '';
-let libraryFilterStatus = 'all';
-let isBulkDeleteMode = false;
-const selectedBookIds = new Set();
-
 // Kitap Silme Onay ve Gerçekleştirme Yardımcısı
 async function confirmAndDeleteBook(book) {
   if (!book) return;
@@ -2902,7 +3272,42 @@ function renderBooksList() {
       `;
       if (window.safeCreateIcons) window.safeCreateIcons();
     } else {
-      const sortedLibrary = [...filteredBooks].sort((a, b) => (a.title || '').localeCompare(b.title || '', 'tr'));
+      let sortedLibrary = [...filteredBooks];
+      if (librarySortOption === 'no_asc') {
+        sortedLibrary = sortBooksByBookNo(sortedLibrary);
+      } else if (librarySortOption === 'no_desc') {
+        sortedLibrary.sort((a, b) => {
+          const noA = parseInt(a.bookNo, 10);
+          const noB = parseInt(b.bookNo, 10);
+          if (!isNaN(noA) && !isNaN(noB)) {
+            if (noA !== noB) return noB - noA;
+          } else if (!isNaN(noA)) {
+            return -1;
+          } else if (!isNaN(noB)) {
+            return 1;
+          } else if (a.bookNo && b.bookNo) {
+            const cmp = b.bookNo.localeCompare(a.bookNo, 'tr', { numeric: true });
+            if (cmp !== 0) return cmp;
+          } else if (a.bookNo) {
+            return -1;
+          } else if (b.bookNo) {
+            return 1;
+          }
+          return (b.title || '').localeCompare(a.title || '', 'tr');
+        });
+      } else if (librarySortOption === 'title_asc') {
+        sortedLibrary.sort((a, b) => (a.title || '').localeCompare(b.title || '', 'tr'));
+      } else if (librarySortOption === 'title_desc') {
+        sortedLibrary.sort((a, b) => (b.title || '').localeCompare(a.title || '', 'tr'));
+      } else if (librarySortOption === 'author_asc') {
+        sortedLibrary.sort((a, b) => (a.author || '').localeCompare(b.author || '', 'tr'));
+      } else if (librarySortOption === 'pages_desc') {
+        sortedLibrary.sort((a, b) => (parseInt(b.pages, 10) || 0) - (parseInt(a.pages, 10) || 0));
+      } else if (librarySortOption === 'pages_asc') {
+        sortedLibrary.sort((a, b) => (parseInt(a.pages, 10) || 0) - (parseInt(b.pages, 10) || 0));
+      } else {
+        sortedLibrary = sortBooksByBookNo(sortedLibrary);
+      }
 
       sortedLibrary.forEach(book => {
         const activeTxForBook = state.books.transactions.find(t => t.bookId === book.id && t.status === 'reading');

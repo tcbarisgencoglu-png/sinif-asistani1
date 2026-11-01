@@ -69,6 +69,11 @@
   user-select: none;
 }
 
+html,
+body {
+  overscroll-behavior-y: none;
+}
+
 body {
   font-family: var(--c-font);
   background: linear-gradient(180deg, #1e3a8a 0%, #1e40af 45%, #0f172a 100%);
@@ -79,6 +84,7 @@ body {
   min-height: 100vh;
   padding-top: var(--c-safe-top);
   padding-bottom: calc(var(--c-safe-bottom) + 24px);
+  overscroll-behavior-y: none;
 }
 
 /* ==========================================================================
@@ -3361,6 +3367,419 @@ body {
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.9);
   user-select: none;
   -webkit-user-drag: none;
+}
+
+/* ==========================================================================
+   KİTAPLIK & BARKOD — BÜYÜK FAB VE CANLI BARKOD VİZÖRÜ TASARIMI
+   ========================================================================== */
+
+#view-books {
+  padding-bottom: 110px;
+}
+
+/* 1. Sabit Büyük Barkod FAB (Floating Action Button) */
+.c-books-barcode-fab-wrap {
+  position: fixed;
+  bottom: calc(var(--c-safe-bottom) + 20px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 90;
+  width: calc(100% - 32px);
+  max-width: 440px;
+  pointer-events: none;
+}
+
+.c-books-barcode-fab {
+  pointer-events: auto;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 12px 18px;
+  background: linear-gradient(135deg, #4f46e5 0%, #3730a3 100%);
+  color: #ffffff;
+  border: 1.5px solid rgba(255, 255, 255, 0.25);
+  border-radius: 20px;
+  box-shadow: 0 10px 28px rgba(79, 70, 229, 0.45), 0 2px 8px rgba(0, 0, 0, 0.15);
+  cursor: pointer;
+  transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.18s ease;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.c-books-barcode-fab:active {
+  transform: scale(0.97);
+  box-shadow: 0 4px 14px rgba(79, 70, 229, 0.35);
+}
+
+.c-barcode-fab-icon-wrap {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.18);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.c-barcode-fab-label {
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+}
+
+.c-barcode-fab-title {
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.3px;
+  line-height: 1.2;
+}
+
+.c-barcode-fab-sub {
+  font-size: 11px;
+  color: #c7d2fe;
+  font-weight: 600;
+  margin-top: 2px;
+}
+
+/* 2. Kamera Canlı Vizör Modalı */
+.c-barcode-scanner-modal {
+  z-index: 1000;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.c-scanner-panel {
+  width: 100%;
+  height: 100%;
+  max-width: 540px;
+  background: #020617;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+}
+
+.c-scanner-top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: calc(var(--c-safe-top) + 12px) 16px 12px;
+  background: rgba(2, 6, 23, 0.85);
+  backdrop-filter: blur(8px);
+  z-index: 10;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.c-scanner-icon-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.c-scanner-icon-btn:active {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.c-scanner-icon-btn.active {
+  background: #f59e0b;
+  color: #0f172a;
+  border-color: #fbbf24;
+}
+
+.c-scanner-header-text {
+  text-align: center;
+  min-width: 0;
+  padding: 0 8px;
+}
+
+.c-scanner-title {
+  font-size: 15px;
+  font-weight: 800;
+  color: #ffffff;
+  margin: 0;
+}
+
+.c-scanner-sub {
+  font-size: 11px;
+  color: #94a3b8;
+  font-weight: 600;
+}
+
+.c-scanner-viewport-box {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #000000;
+}
+
+#barcode-scanner-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* Vizör & Hedef Çerçevesi */
+.c-scanner-reticle-box {
+  position: absolute;
+  width: 250px;
+  height: 250px;
+  max-width: 75vw;
+  max-height: 75vw;
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  border-radius: 20px;
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.55);
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.c-reticle-corner {
+  position: absolute;
+  width: 28px;
+  height: 28px;
+  border-color: #6366f1;
+  border-style: solid;
+  border-width: 0;
+}
+
+.c-reticle-corner.c-tl {
+  top: 0;
+  left: 0;
+  border-top-width: 4px;
+  border-left-width: 4px;
+  border-top-left-radius: 18px;
+}
+
+.c-reticle-corner.c-tr {
+  top: 0;
+  right: 0;
+  border-top-width: 4px;
+  border-right-width: 4px;
+  border-top-right-radius: 18px;
+}
+
+.c-reticle-corner.c-bl {
+  bottom: 0;
+  left: 0;
+  border-bottom-width: 4px;
+  border-left-width: 4px;
+  border-bottom-left-radius: 18px;
+}
+
+.c-reticle-corner.c-br {
+  bottom: 0;
+  right: 0;
+  border-bottom-width: 4px;
+  border-right-width: 4px;
+  border-bottom-right-radius: 18px;
+}
+
+.c-scanner-laser-beam {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, #38bdf8, #818cf8, #38bdf8, transparent);
+  box-shadow: 0 0 12px #818cf8, 0 0 24px #38bdf8;
+  animation: laserScan 2.2s ease-in-out infinite alternate;
+}
+
+@keyframes laserScan {
+  0% {
+    top: 6%;
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    top: 92%;
+    opacity: 0.4;
+  }
+}
+
+.c-scanner-aim-hint {
+  position: absolute;
+  bottom: 24px;
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(6px);
+  color: #e2e8f0;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 6px 14px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.c-scanner-bottom-strip {
+  padding: 12px 16px calc(var(--c-safe-bottom) + 16px);
+  background: rgba(2, 6, 23, 0.95);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.c-scanner-manual-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: #94a3b8;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 8px;
+  cursor: pointer;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.c-scanner-manual-box {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+/* 3. Akıllı Sonuç & Öneri Modalı */
+.c-smart-result-sheet {
+  max-height: 88vh;
+  padding-bottom: calc(var(--c-safe-bottom) + 20px);
+}
+
+.c-smart-result-icon-badge {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: #eef2ff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #4f46e5;
+  flex-shrink: 0;
+}
+
+.c-smart-card {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.c-smart-card.highlight {
+  background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
+  border-color: #a7f3d0;
+}
+
+.c-smart-card.borrowed {
+  background: linear-gradient(135deg, #eff6ff 0%, #e0e7ff 100%);
+  border-color: #bfdbfe;
+}
+
+.c-smart-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10.5px;
+  font-weight: 800;
+  padding: 3px 8px;
+  border-radius: 999px;
+  width: fit-content;
+}
+
+.c-smart-badge.success {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.c-smart-badge.info {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.c-smart-badge.warning {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.c-smart-recommend-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.c-smart-recommend-title {
+  font-size: 12px;
+  font-weight: 800;
+  color: #334155;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.c-smart-item-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.c-smart-item-row:hover {
+  border-color: #cbd5e1;
+}
+
+.c-smart-item-info {
+  min-width: 0;
+  flex: 1;
+}
+
+.c-smart-item-name {
+  font-size: 13px;
+  font-weight: 800;
+  color: #0f172a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.c-smart-item-sub {
+  font-size: 11px;
+  color: #64748b;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 2px;
+  flex-wrap: wrap;
 }
 
 

@@ -9,6 +9,53 @@
   const STORAGE_KEY = 'sinif_asistani_data';
   const OMR_SETTINGS_KEY = 'sinif_companion_omr_settings';
 
+  // Hafta & Tarih Yardımcıları (Desktop & Mobile Uyumlu ISO Formatı)
+  function getISOWeekSafe(dateInput) {
+    if (typeof window.getISOWeek === 'function') return window.getISOWeek(dateInput);
+    let date = dateInput ? (dateInput instanceof Date ? dateInput : new Date(dateInput)) : new Date();
+    if (isNaN(date.getTime())) return '';
+    const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+    const dayNum = d.getUTCDay() || 7;
+    d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+    const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+    const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+    const weekStr = weekNo < 10 ? '0' + weekNo : weekNo;
+    return `${d.getUTCFullYear()}-W${weekStr}`;
+  }
+
+  function getSchoolOpeningMondaySafe(year) {
+    if (typeof window.getSchoolOpeningMonday === 'function') return window.getSchoolOpeningMonday(year);
+    const sept1 = new Date(year, 8, 1);
+    const dayOfSept1 = sept1.getDay() || 7;
+    const firstMondayDate = 1 + ((8 - dayOfSept1) % 7);
+    const openingDate = firstMondayDate < 8 ? firstMondayDate + 7 : firstMondayDate;
+    return new Date(year, 8, openingDate);
+  }
+
+  function normalizeWeekIdSafe(weekId, defaultYear = null) {
+    if (typeof window.normalizeWeekId === 'function') return window.normalizeWeekId(weekId, defaultYear);
+    if (!weekId) return '';
+    const str = String(weekId).trim();
+    if (/^\d{4}-W\d{2}$/i.test(str)) return str.toUpperCase();
+    const m = str.match(/^W?(\d{1,2})$/i);
+    if (m) {
+      const academicWeekNo = parseInt(m[1], 10);
+      if (academicWeekNo >= 1 && academicWeekNo <= 52) {
+        let startYear = defaultYear;
+        if (!startYear) {
+          const now = new Date();
+          startYear = (now.getMonth() >= 8) ? now.getFullYear() : (now.getFullYear() - 1);
+        }
+        const opening = getSchoolOpeningMondaySafe(startYear);
+        const targetMonday = new Date(opening.getTime() + (academicWeekNo - 1) * 7 * 86400000);
+        return getISOWeekSafe(targetMonday);
+      }
+    }
+    return str;
+  }
+  if (!window.normalizeWeekId) window.normalizeWeekId = normalizeWeekIdSafe;
+  if (!window.getISOWeek) window.getISOWeek = getISOWeekSafe;
+
   // Ses Sentezleyicileri (Web Audio API - Çevrim Dışı & Sıfır Bağımlılık)
   let audioCtx = null;
   function getAudioContext() {
@@ -608,6 +655,7 @@
                 if (rankNum === 1) { rankBadgeClass = 'gold'; rankText = '🥇'; }
                 else if (rankNum === 2) { rankBadgeClass = 'silver'; rankText = '🥈'; }
                 else if (rankNum === 3) { rankBadgeClass = 'bronze'; rankText = '🥉'; }
+                else if (rankNum <= 5) { rankBadgeClass = 'top5'; rankText = `🎖️ ${rankNum}.`; }
               }
 
               const fullNameWords = `${stu.name || ''} ${stu.surname || ''}`.trim().split(/\s+/).filter(Boolean);
@@ -623,7 +671,7 @@
               }
 
               return `
-                <div class="c-student-scan-card ${this.isRanked && rankNum <= 3 ? `rank-${rankNum}` : ''}">
+                <div class="c-student-scan-card ${this.isRanked && rankNum <= 5 ? `rank-${rankNum}` : ''}">
                   <div class="c-student-scan-info">
                     ${this.isRanked ? `
                       <div class="c-rank-badge-item ${rankBadgeClass}">${rankText}</div>
@@ -763,16 +811,32 @@
         }
       }
 
-      // Hafta Seçicisini Doldur (MEB 1. - 36. Hafta)
+      // Hafta Seçicisini Doldur (MEB 1. - 36. Hafta - Standart ISO Hafta Eşleşmesi)
       const weekSelect = document.getElementById('wizard-exam-week');
       if (weekSelect) {
         weekSelect.innerHTML = '';
+        const now = new Date();
+        const startYear = (now.getMonth() >= 8) ? now.getFullYear() : (now.getFullYear() - 1);
+        const opening = getSchoolOpeningMondaySafe(startYear);
+        const currentIsoWeek = getISOWeekSafe(now);
+
         for (let w = 1; w <= 36; w++) {
           const opt = document.createElement('option');
-          opt.value = `W${w}`;
-          opt.textContent = `${w}. Hafta`;
-          if (w === 4) opt.selected = true;
+          const monday = new Date(opening.getTime() + (w - 1) * 7 * 86400000);
+          const friday = new Date(monday.getTime() + 4 * 86400000);
+          const isoWeek = getISOWeekSafe(monday);
+          opt.value = isoWeek;
+          const trMonths = ['Oca','Şub','Mar','Nis','May','Haz','Tem','Ağu','Eyl','Eki','Kas','Ara'];
+          const mDateStr = `${monday.getDate()} ${trMonths[monday.getMonth()]}`;
+          const fDateStr = `${friday.getDate()} ${trMonths[friday.getMonth()]}`;
+          opt.textContent = `${w}. Hafta (${mDateStr} - ${fDateStr})`;
+          if (isoWeek === currentIsoWeek) {
+            opt.selected = true;
+          }
           weekSelect.appendChild(opt);
+        }
+        if (!weekSelect.value && weekSelect.options.length > 0) {
+          weekSelect.selectedIndex = 0;
         }
       }
 
@@ -1189,7 +1253,7 @@
       }
 
       const weekSelect = document.getElementById('wizard-exam-week');
-      const week = weekSelect ? weekSelect.value : 'W4';
+      const week = weekSelect && weekSelect.value ? normalizeWeekIdSafe(weekSelect.value) : normalizeWeekIdSafe('W4');
 
       const durInput = document.getElementById('wizard-exam-duration');
       const duration = parseInt(durInput ? durInput.value : 40, 10) || 40;
@@ -2657,11 +2721,23 @@
       const weekSelect = document.getElementById('settings-exam-week');
       if (weekSelect) {
         weekSelect.innerHTML = '';
+        const now = new Date();
+        const startYear = (now.getMonth() >= 8) ? now.getFullYear() : (now.getFullYear() - 1);
+        const opening = getSchoolOpeningMondaySafe(startYear);
+        const activeNorm = normalizeWeekIdSafe(this.settingsState.weekId);
+
         for (let w = 1; w <= 36; w++) {
           const opt = document.createElement('option');
-          opt.value = `W${w}`;
-          opt.textContent = `${w}. Hafta`;
-          if (`W${w}` === this.settingsState.weekId || w === parseInt(String(this.settingsState.weekId).replace('W', ''), 10)) {
+          const monday = new Date(opening.getTime() + (w - 1) * 7 * 86400000);
+          const friday = new Date(monday.getTime() + 4 * 86400000);
+          const isoWeek = getISOWeekSafe(monday);
+          opt.value = isoWeek;
+          const trMonths = ['Oca','Şub','Mar','Nis','May','Haz','Tem','Ağu','Eyl','Eki','Kas','Ara'];
+          const mDateStr = `${monday.getDate()} ${trMonths[monday.getMonth()]}`;
+          const fDateStr = `${friday.getDate()} ${trMonths[friday.getMonth()]}`;
+          opt.textContent = `${w}. Hafta (${mDateStr} - ${fDateStr})`;
+
+          if (isoWeek === activeNorm || `W${w}` === this.settingsState.weekId || w === parseInt(String(this.settingsState.weekId).replace('W', ''), 10)) {
             opt.selected = true;
           }
           weekSelect.appendChild(opt);
@@ -3057,7 +3133,7 @@
       const branch = sectionSelect && sectionSelect.value ? sectionSelect.value : this.settingsState.branch;
 
       const weekSelect = document.getElementById('settings-exam-week');
-      const week = weekSelect && weekSelect.value ? weekSelect.value : this.settingsState.weekId;
+      const week = normalizeWeekIdSafe(weekSelect && weekSelect.value ? weekSelect.value : this.settingsState.weekId);
 
       const wrongAffCheck = document.getElementById('settings-wrong-affects');
       const wrongAffects = wrongAffCheck ? wrongAffCheck.checked : false;

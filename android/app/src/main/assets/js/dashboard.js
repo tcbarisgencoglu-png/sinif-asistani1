@@ -1479,7 +1479,9 @@ function renderDashboardWeekly() {
         }
       }
       
-      return selectedWeek ? (recordWeek === selectedWeek) : true;
+      const normRecord = typeof normalizeWeekId === 'function' ? normalizeWeekId(recordWeek) : recordWeek;
+      const normSelected = typeof normalizeWeekId === 'function' ? normalizeWeekId(selectedWeek) : selectedWeek;
+      return selectedWeek ? (normRecord === normSelected || recordWeek === selectedWeek) : true;
     });
 
     let dojoPoints = 0;
@@ -1681,7 +1683,8 @@ function renderDashboardMonthly() {
           recordMonth = task.dueDate.substring(0, 7);
         }
       } else if (p.weekId) {
-        const parts = p.weekId.split('-W');
+        const normWeek = typeof normalizeWeekId === 'function' ? normalizeWeekId(p.weekId) : p.weekId;
+        const parts = normWeek.split('-W');
         if (parts.length === 2) {
           const year = parseInt(parts[0]);
           const week = parseInt(parts[1]);
@@ -3492,7 +3495,7 @@ function updateFlowContent(syncWithRealTime = true) {
         const releases = await response.json();
         if (Array.isArray(releases) && releases.length > 0) {
           const latestRelease = releases[0];
-          const tagName = latestRelease.tag_name || 'v1.0.115';
+          const tagName = latestRelease.tag_name || 'v1.0.116';
           
           const badge = document.getElementById('download-app-version-badge');
           if (badge) badge.textContent = `${tagName} (En Son)`;

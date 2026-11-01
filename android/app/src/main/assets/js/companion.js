@@ -70,7 +70,6 @@
     init() {
       this.loadProfile();
       this.bindEvents();
-      this.initPullToRefresh();
 
       // Bulut canlı dinleyicisini başlat (Masaüstüyle tam eşgüdüm)
       if (window.CloudSync && typeof window.CloudSync.startLiveListener === 'function') {
@@ -615,27 +614,10 @@
       }, 300);
     },
 
-    // Aşağı Çekerek Yenileme (Pull to Refresh Desteği)
+    // Aşağı Çekerek Yenileme (Pull to Refresh) özelliği veri kaybını önlemek amacıyla kaldırıldı.
+    // Yenileme işlemi yalnızca üst bardaki yenile butonu ('btn-companion-refresh') ile yapılır.
     initPullToRefresh() {
-      let startY = 0;
-      let isPulling = false;
-      window.addEventListener('touchstart', (e) => {
-        if (window.scrollY <= 5 && e.touches.length === 1) {
-          startY = e.touches[0].pageY;
-          isPulling = true;
-        } else {
-          isPulling = false;
-        }
-      }, { passive: true });
-
-      window.addEventListener('touchmove', (e) => {
-        if (!isPulling) return;
-        const currentY = e.touches[0].pageY;
-        if (currentY - startY > 110 && window.scrollY <= 5) {
-          isPulling = false;
-          this.forceReloadApp();
-        }
-      }, { passive: true });
+      // Devre dışı bırakıldı
     },
 
     // PIN Kilit Sistemi

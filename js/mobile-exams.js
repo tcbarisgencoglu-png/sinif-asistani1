@@ -129,7 +129,11 @@
     // Filtreleme
     let displayedExams = [];
     if (weeklyFilterMode === 'week') {
-      displayedExams = allExams.filter(e => e.weekId === curWeek);
+      const curNorm = window.normalizeWeekId ? window.normalizeWeekId(curWeek) : curWeek;
+      displayedExams = allExams.filter(e => {
+        const eNorm = window.normalizeWeekId ? window.normalizeWeekId(e.weekId) : e.weekId;
+        return eNorm === curNorm;
+      });
     } else {
       displayedExams = [...allExams];
     }
@@ -171,25 +175,31 @@
         : null;
 
       scores.sort((a, b) => b.score - a.score);
-      const topThree = scores.slice(0, 3);
+      const topCount = Math.max(3, parseInt(settings.topCount, 10) || 3);
+      const topList = scores.slice(0, topCount);
 
       let topStudentsHtml = '';
-      if (topThree.length === 0) {
+      if (topList.length === 0) {
         topStudentsHtml = `
           <div style="text-align: center; color: var(--m-text-muted); font-size: 0.74rem; padding: 4px 0;">
             Henüz not girişi yapılmamış • Not girmek için dokunun
           </div>
         `;
       } else {
-        topStudentsHtml = topThree.map((item, idx) => {
+        let currentRank = 1;
+        topStudentsHtml = topList.map((item, idx) => {
+          if (idx > 0 && item.score < topList[idx - 1].score) {
+            currentRank = idx + 1;
+          }
           const student = getStudentByIdSafe(item.studentId);
           const name = student ? `${student.name} ${student.surname || ''}` : 'Öğrenci';
           const medals = ['🥇 1.', '🥈 2.', '🥉 3.'];
-          const rankPoint = (settings.rankPoints && settings.rankPoints[idx + 1]) || 0;
+          const rankLabel = currentRank <= 3 ? medals[currentRank - 1] : `🎖️ ${currentRank}.`;
+          const rankPoint = (settings.rankPoints && settings.rankPoints[currentRank]) || 0;
           return `
             <div class="m-weekly-top-row">
               <span class="m-weekly-top-student">
-                <span>${medals[idx]}</span>
+                <span>${rankLabel}</span>
                 <span>${escapeHTML(name)}</span>
               </span>
               <span class="m-weekly-top-score">
@@ -516,7 +526,7 @@
 
     const examData = {
       id: 'exam_' + Date.now(),
-      weekId: week,
+      weekId: window.normalizeWeekId ? window.normalizeWeekId(week) : week,
       examName: name,
       totalQuestions: questions,
       duration: duration,
