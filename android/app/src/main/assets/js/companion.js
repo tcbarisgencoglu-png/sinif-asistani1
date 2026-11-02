@@ -172,6 +172,12 @@
       const dashSection = document.getElementById('dash-active-section-name');
       if (dashName) dashName.textContent = this.profile.name || 'Öğretmen';
       if (dashSection) dashSection.textContent = isClassT ? `${this.activeSection} Sınıfı` : this.activeSection;
+
+      const codeBadge = document.getElementById('appbar-sync-code-badge');
+      if (codeBadge) {
+        const cCode = (window.CloudSync && window.CloudSync.syncCode) || localStorage.getItem('sinif_sync_pair_code') || '';
+        codeBadge.textContent = cCode ? `Kod: ${cCode}` : 'Kod: Yok';
+      }
     },
 
     // Şube Seçici Barı (Sınıf Öğretmeninde veya tek şubede GİZLENİR)
@@ -746,32 +752,44 @@
     async handleRefreshButton() {
       const btn = document.getElementById('btn-companion-refresh');
       if (btn) btn.classList.add('c-spin-active');
-      this.showToast('🔄 Masaüstü verileri kontrol ediliyor...');
+      const currentCode = (window.CloudSync && window.CloudSync.syncCode) || localStorage.getItem('sinif_sync_pair_code') || '';
+      this.showToast(`🔄 Bulut kontrol ediliyor... (Kod: ${currentCode || 'Yok'})`);
 
-      if (window.CloudSync && typeof window.CloudSync.pullMasterData === 'function') {
-        const res = await window.CloudSync.pullMasterData();
-        if (btn) btn.classList.remove('c-spin-active');
-        if (res && res.success) {
-          this.vibrate([40, 30, 40]);
-          this.showToast(`✅ Eşitlendi! ${res.studentCount} öğrenci, ${res.examCount} sınav yüklendi.`);
-          this.updateHeader();
-          this.renderSectionBar();
-          if (window.CompanionBehavior) window.CompanionBehavior.init();
-          if (window.CompanionOmr) {
-            window.CompanionOmr.ensureActiveExam();
-            window.CompanionOmr.renderHub();
-          }
-          if (window.CompanionHomework) window.CompanionHomework.init();
-          if (window.CompanionBooks) window.CompanionBooks.init();
-          return;
-        } else if (res && res.error) {
-          this.showToast(res.error);
+      try {
+        if (!currentCode) {
+          this.showToast('⚠️ Eşleşme kodu girilmemiş! Lütfen ⚙️ Ayarlar menüsünden tahtadaki kodu girin.');
+          if (typeof this.openSettingsModal === 'function') this.openSettingsModal();
           return;
         }
+
+        if (window.CloudSync && typeof window.CloudSync.pullMasterData === 'function') {
+          const res = await window.CloudSync.pullMasterData();
+          if (res && res.success) {
+            this.vibrate([40, 30, 40]);
+            this.showToast(`✅ Eşitlendi! ${res.studentCount} öğrenci, ${res.examCount} sınav yüklendi. (Kod: ${currentCode})`);
+            this.updateHeader();
+            this.renderSectionBar();
+            if (window.CompanionBehavior) window.CompanionBehavior.init();
+            if (window.CompanionOmr) {
+              window.CompanionOmr.ensureActiveExam();
+              window.CompanionOmr.renderHub();
+            }
+            if (window.CompanionHomework) window.CompanionHomework.init();
+            if (window.CompanionBooks) window.CompanionBooks.init();
+            return;
+          } else if (res && res.error) {
+            this.showToast(res.error);
+            return;
+          }
+        }
+        if (window.CompanionBehavior) window.CompanionBehavior.init();
+        this.showToast('Arayüz yenilendi.');
+      } catch (err) {
+        console.error('Yenileme hatası:', err);
+        this.showToast('⚠️ Yenileme hatası: ' + (err.message || 'Bilinmeyen hata'));
+      } finally {
+        if (btn) btn.classList.remove('c-spin-active');
       }
-      if (btn) btn.classList.remove('c-spin-active');
-      if (window.CompanionBehavior) window.CompanionBehavior.init();
-      this.showToast('Arayüz yenilendi.');
     },
 
     // Titreşim (Haptic)

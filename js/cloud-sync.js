@@ -122,15 +122,16 @@
       this.syncCode = clean;
       localStorage.setItem(SYNC_CODE_KEY, clean);
 
+      // Hem masaüstünde hem mobil el terminalinde yeni koda ait canlı köprüyü anında başlat
+      this.startLiveListener(true);
       if (window.stateManager) {
-        this.startLiveListener(true);
         this.autoPushMasterDebounced();
       }
       return clean;
     },
 
-    // Supabase API Çağrısı (Kota ve Trafik Korumalı)
-    async request(method, path, body = null) {
+    // Supabase API Çağrısı (Kota, Trafik Korumalı ve 12 sn Zaman Aşımı Güvenlikli)
+    async request(method, path, body = null, timeoutMs = 12000) {
       const url = `${this.supabaseUrl}/rest/v1/${path}`;
       const headers = {
         'apikey': this.anonKey,
@@ -143,8 +144,19 @@
       const options = { method, headers };
       if (body) options.body = JSON.stringify(body);
 
+      // Zaman aşımı koruması (Ağ takılmalarında butonun sonsuz dönmesini önler)
+      let timer = null;
+      if (typeof AbortController !== 'undefined') {
+        const controller = new AbortController();
+        options.signal = controller.signal;
+        timer = setTimeout(() => {
+          try { controller.abort(); } catch (e) {}
+        }, timeoutMs);
+      }
+
       try {
         const res = await fetch(url, options);
+        if (timer) clearTimeout(timer);
         if (res.ok) {
           this._quotaErrorUntil = 0;
           const text = await res.text();
@@ -160,7 +172,12 @@
           : null;
         return { error: true, status: res.status, message: customMsg, text: errText };
       } catch (err) {
-        return { error: true, message: err.message };
+        if (timer) clearTimeout(timer);
+        const isAbort = err.name === 'AbortError' || (err.message && err.message.toLowerCase().includes('abort'));
+        const errMsg = isAbort
+          ? 'Sunucu yanıt vermedi (12 sn zaman aşımı). Lütfen telefonunuzun internet bağlantısını kontrol edin.'
+          : err.message;
+        return { error: true, message: errMsg };
       }
     },
 
@@ -771,15 +788,24 @@
       this.isSyncing = true;
       this.updateSyncUI();
 
+      if (!this.syncCode) {
+        this.isSyncing = false;
+        this.updateSyncUI();
+        return {
+          success: false,
+          error: 'Cihaz eşleşme kodu tanımlı değil. Lütfen Ayarlar (⚙️) menüsünden tahtadaki kodu girin.'
+        };
+      }
+
       // Kota tasarrufu: Ağır STUDENT_PHOTOS satırını standart senkronizasyonda çekme (yalnızca eksik fotoğraf varsa aşağıda tek seferlik çekilir)
       const allRes = await this.request('GET', `teacher_sync?sync_code=eq.${encodeURIComponent(this.syncCode)}&exam_id=neq.STUDENT_PHOTOS&order=updated_at.desc&select=*`);
       this.isSyncing = false;
 
       if (allRes && allRes.error) {
         this.updateSyncUI();
-        const msg = (allRes.message && (allRes.message.toLowerCase().includes('fetch') || allRes.message.toLowerCase().includes('network')))
-          ? 'İnternet bağlantısı kurulamadı. Lütfen telefonunuzun Wi-Fi veya mobil veri bağlantısını açıp tekrar deneyin.'
-          : ('Bulut bağlantı hatası: ' + (allRes.message || allRes.status || 'Sunucuya erişilemedi.'));
+        const msg = (allRes.message && (allRes.message.toLowerCase().includes('fetch') || allRes.message.toLowerCase().includes('network') || allRes.message.toLowerCase().includes('zaman aşımı')))
+          ? `İnternet bağlantısı kurulamadı veya zaman aşımına uğradı (Kod: ${this.syncCode}). Lütfen Wi-Fi veya mobil verinizi kontrol edin.`
+          : (`Bulut bağlantı hatası: ` + (allRes.message || allRes.status || 'Sunucuya erişilemedi.'));
         return { success: false, error: msg };
       }
 
