@@ -136,15 +136,21 @@
         try {
           const savedIds = JSON.parse(savedOrderRaw);
           if (Array.isArray(savedIds) && savedIds.length > 0) {
-            const idMap = new Map();
-            savedIds.forEach((id, idx) => idMap.set(String(id), idx));
+            // Eğer kaydedilen sıra yalnızca demo_ id'lerinden oluşuyorsa ve artık gerçek öğrenciler varsa, eski demo sırasını temizle
+            const hasOnlyDemo = savedIds.every(id => String(id).startsWith('demo_'));
+            if (hasOnlyDemo && filtered.some(s => !String(s.id).startsWith('demo_'))) {
+              localStorage.removeItem(ORDER_KEY_PREFIX + activeSection);
+            } else {
+              const idMap = new Map();
+              savedIds.forEach((id, idx) => idMap.set(String(id), idx));
 
-            filtered.sort((a, b) => {
-              const posA = idMap.has(String(a.id)) ? idMap.get(String(a.id)) : 9999;
-              const posB = idMap.has(String(b.id)) ? idMap.get(String(b.id)) : 9999;
-              if (posA !== posB) return posA - posB;
-              return (parseInt(a.number, 10) || 0) - (parseInt(b.number, 10) || 0);
-            });
+              filtered.sort((a, b) => {
+                const posA = idMap.has(String(a.id)) ? idMap.get(String(a.id)) : 9999;
+                const posB = idMap.has(String(b.id)) ? idMap.get(String(b.id)) : 9999;
+                if (posA !== posB) return posA - posB;
+                return (parseInt(a.number, 10) || 0) - (parseInt(b.number, 10) || 0);
+              });
+            }
           }
         } catch (e) {}
       } else {

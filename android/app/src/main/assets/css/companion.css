@@ -3782,6 +3782,16 @@ body {
   flex-wrap: wrap;
 }
 
+@keyframes c-spin-anim {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.c-spin-active i,
+.c-spin-active svg {
+  animation: c-spin-anim 0.8s linear infinite;
+}
+
 
 
 

@@ -729,6 +729,24 @@
       this.isSyncing = false;
 
       if (res && !res.error) {
+        // Masaüstünden gönderildiyse el terminalini anında uyarmak için canlı sinyal (LIVE_EVENT) fırlat
+        if (source === 'desktop') {
+          try {
+            await this.request('POST', 'teacher_sync', {
+              sync_code: this.syncCode,
+              exam_id: 'LIVE_EVENT',
+              exam_name: 'Masaüstü Ana Verileri Gönderildi',
+              payload: {
+                type: 'master_updated',
+                source: 'desktop',
+                studentCount: students.length,
+                examCount: weeklyEvaluations.length,
+                timestamp: nowIso
+              },
+              updated_at: nowIso
+            });
+          } catch (e) {}
+        }
         this._lastPushedMasterFingerprint = currentFingerprint;
         this.lastSyncTime = new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
         localStorage.setItem(LAST_SYNC_KEY, this.lastSyncTime);
@@ -813,6 +831,12 @@
       let missingPhotoCount = 0;
       if (Array.isArray(masterItem.students)) {
         if (!localData.students) localData.students = [];
+
+        // El terminalindeysek ve masaüstünden MASTER_STATE geldiyse, terminaldeki geçici/örnek (demo_) öğrencileri temizle
+        if (!window.stateManager && masterItem.source === 'desktop') {
+          localData.students = localData.students.filter(s => s && s.id && !String(s.id).startsWith('demo_'));
+        }
+
         masterItem.students.forEach(cloudStudent => {
           const cNameNorm = `${cloudStudent.name || ''} ${cloudStudent.surname || ''}`.trim().toLocaleLowerCase('tr-TR');
           const cNum = String(cloudStudent.number || '').trim();
@@ -1143,6 +1167,10 @@
 
       // Mobil Companion varsa profil ve şubeleri otomatik uyarla
       if (window.Companion) {
+        const isPrimary = (masterItem.educationLevel === 'primary') ||
+                          (localData.educationLevel === 'primary') ||
+                          (typeof window.Companion.isClassTeacher === 'function' && window.Companion.isClassTeacher());
+
         const uniqueSections = [...new Set((localData.students || []).map(s => {
           const b = s.branch || s.section || '';
           return b.replace('/', '-').trim().toUpperCase();
@@ -1154,7 +1182,19 @@
           if (!window.Companion.profile.sections.includes(window.Companion.activeSection)) {
             window.Companion.activeSection = uniqueSections[0];
           }
+        } else if (isPrimary && window.Companion.activeSection) {
+          // İlkokulda öğrenciler şubesiz (boş) olabilir; mevcut şubeyi ("4-C") koru ve öğrencilere ata
+          if (!window.Companion.profile.sections || window.Companion.profile.sections.length === 0) {
+            window.Companion.profile.sections = [window.Companion.activeSection];
+          }
+          localData.students.forEach(stu => {
+            if (!stu.branch) stu.branch = window.Companion.activeSection;
+          });
+          try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(localData));
+          } catch (e) {}
         }
+
         if (masterItem.teacherProfile?.name && (!window.Companion.profile.name || window.Companion.profile.name === 'Öğretmen')) {
           window.Companion.profile.name = masterItem.teacherProfile.name;
         }
@@ -1169,9 +1209,19 @@
         window.Companion.renderSectionBar();
       }
 
-      // Mobil Davranış Modülü varsa anında tazele
+      // Mobil Companion Modülleri varsa anında tazele
       if (window.CompanionBehavior && typeof window.CompanionBehavior.init === 'function') {
         window.CompanionBehavior.init();
+      }
+      if (window.CompanionOmr && typeof window.CompanionOmr.renderHub === 'function') {
+        window.CompanionOmr.ensureActiveExam();
+        window.CompanionOmr.renderHub();
+      }
+      if (window.CompanionHomework && typeof window.CompanionHomework.init === 'function') {
+        window.CompanionHomework.init();
+      }
+      if (window.CompanionBooks && typeof window.CompanionBooks.init === 'function') {
+        window.CompanionBooks.init();
       }
 
       this.lastSyncTime = new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
@@ -1713,6 +1763,26 @@
                 }
               } else if (window.stateManager && rec.exam_id === 'LIVE_EVENT') {
                 initialChangedIds.push('LIVE_EVENT');
+              } else if (!window.stateManager) {
+                // El Terminalindeysek (Mobil / Companion):
+                if (rec.exam_id === 'MASTER_STATE') {
+                  let localStuCount = 0;
+                  try {
+                    const raw = localStorage.getItem(STORAGE_KEY);
+                    if (raw) {
+                      const parsed = JSON.parse(raw);
+                      if (Array.isArray(parsed.students)) localStuCount = parsed.students.length;
+                    }
+                  } catch (e) {}
+                  // Eğer yerelde hiç öğrenci yoksa VEYA buluttaki MASTER_STATE daha önce görülenden farklıysa açılışta hemen çek
+                  if (localStuCount === 0 || !prevSeen || prevSeen !== rec.updated_at) {
+                    initialChangedIds.push('MASTER_STATE');
+                  }
+                } else if (rec.exam_id === 'LIVE_EVENT') {
+                  initialChangedIds.push('LIVE_EVENT');
+                } else if (String(rec.exam_id).startsWith('exam_')) {
+                  initialChangedIds.push(rec.exam_id);
+                }
               }
             });
 
@@ -2583,27 +2653,27 @@
 
     // Mobil El Terminali Canlı Olay İşleyicisi
     handleMobileIncomingLiveRecord(record, payload) {
-      if (!window.CompanionOmr) return;
+      if (!window.CompanionOmr && !window.Companion) return;
 
       // 1. CANLI SINAV SİLİNDİ (Masaüstünden silinince terminalden de sil)
       if (record.exam_id === 'LIVE_EVENT' && payload.type === 'exam_deleted') {
         const examId = String(payload.examId);
         const examName = payload.examName || 'Sınav';
-        if (typeof window.CompanionOmr.handleRemoteExamDeleted === 'function') {
+        if (window.CompanionOmr && typeof window.CompanionOmr.handleRemoteExamDeleted === 'function') {
           window.CompanionOmr.handleRemoteExamDeleted(examId, examName);
         }
       }
 
       // 1b. CANLI OPTİK SONUÇ SİLİNDİ (Masaüstünden silinince terminalden de sil)
       else if (record.exam_id === 'LIVE_EVENT' && payload.type === 'omr_delete') {
-        if (typeof window.CompanionOmr.handleRemoteResultDeleted === 'function') {
+        if (window.CompanionOmr && typeof window.CompanionOmr.handleRemoteResultDeleted === 'function') {
           window.CompanionOmr.handleRemoteResultDeleted(payload.examId, payload.studentId, payload.studentNo);
         }
       }
 
       // 1c. CANLI TÜM OPTİK SONUÇLAR SIFIRLANDI
       else if (record.exam_id === 'LIVE_EVENT' && payload.type === 'omr_clear_all') {
-        if (typeof window.CompanionOmr.handleRemoteAllResultsCleared === 'function') {
+        if (window.CompanionOmr && typeof window.CompanionOmr.handleRemoteAllResultsCleared === 'function') {
           window.CompanionOmr.handleRemoteAllResultsCleared(payload.examId);
         }
       }
@@ -2614,13 +2684,16 @@
         (record.exam_id === 'LIVE_EVENT' && (payload.type === 'exam_created' || payload.type === 'exam_results'))
       ) {
         const examData = (payload.type === 'exam_created' || payload.type === 'exam_results') ? (payload.exam || payload) : payload;
-        if (examData && examData.id && typeof window.CompanionOmr.handleRemoteExamUpsert === 'function') {
+        if (examData && examData.id && window.CompanionOmr && typeof window.CompanionOmr.handleRemoteExamUpsert === 'function') {
           window.CompanionOmr.handleRemoteExamUpsert(examData, payload.type);
         }
       }
 
-      // 3. MASTER_STATE (Masaüstünden tam veri paketi fırlatılmışsa)
-      else if (record.exam_id === 'MASTER_STATE' && payload && payload.source === 'desktop') {
+      // 3. MASTER_STATE VEYA CANLI MASTER GÜNCELLEMESİ (Masaüstünden tam veri paketi fırlatılmışsa)
+      else if (
+        (record.exam_id === 'MASTER_STATE' && payload && payload.source === 'desktop') ||
+        (record.exam_id === 'LIVE_EVENT' && payload && payload.type === 'master_updated' && payload.source === 'desktop')
+      ) {
         if (window.Companion && typeof window.Companion.pullMasterDataFromCloud === 'function') {
           window.Companion.pullMasterDataFromCloud(true);
         }

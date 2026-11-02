@@ -691,16 +691,16 @@
     },
 
     // Masaüstünden Tüm Sınıf & Verileri Kalıcı Çek
-    async pullMasterDataFromCloud() {
+    async pullMasterDataFromCloud(isSilent = false) {
       const btn = document.getElementById('btn-mobile-pull-master');
       if (btn) {
         btn.disabled = true;
         btn.innerHTML = '<span>Masaüstünden Yükleniyor...</span>';
       }
-      this.showToast('Masaüstü veritabanı kontrol ediliyor...');
+      if (!isSilent) this.showToast('Masaüstü veritabanı kontrol ediliyor...');
 
       if (!window.CloudSync) {
-        this.showToast('Bulut motoru henüz başlatılmadı.');
+        if (!isSilent) this.showToast('Bulut motoru henüz başlatılmadı.');
         if (btn) btn.disabled = false;
         return;
       }
@@ -736,8 +736,42 @@
       } else {
         const errorMsg = res.error || 'Masaüstünden veri bulunamadı. Lütfen masaüstünden "Terminale Gönder" butonuna basın.';
         this.showToast(errorMsg);
-        alert('⚠️ Eşitleme Bekleniyor\n\n' + errorMsg);
+        if (!isSilent) {
+          alert('⚠️ Eşitleme Bekleniyor\n\n' + errorMsg);
+        }
       }
+    },
+
+    // Üst Bar Yenile Butonu: Masaüstünden en güncel verileri çek ve ekranı tazele
+    async handleRefreshButton() {
+      const btn = document.getElementById('btn-companion-refresh');
+      if (btn) btn.classList.add('c-spin-active');
+      this.showToast('🔄 Masaüstü verileri kontrol ediliyor...');
+
+      if (window.CloudSync && typeof window.CloudSync.pullMasterData === 'function') {
+        const res = await window.CloudSync.pullMasterData();
+        if (btn) btn.classList.remove('c-spin-active');
+        if (res && res.success) {
+          this.vibrate([40, 30, 40]);
+          this.showToast(`✅ Eşitlendi! ${res.studentCount} öğrenci, ${res.examCount} sınav yüklendi.`);
+          this.updateHeader();
+          this.renderSectionBar();
+          if (window.CompanionBehavior) window.CompanionBehavior.init();
+          if (window.CompanionOmr) {
+            window.CompanionOmr.ensureActiveExam();
+            window.CompanionOmr.renderHub();
+          }
+          if (window.CompanionHomework) window.CompanionHomework.init();
+          if (window.CompanionBooks) window.CompanionBooks.init();
+          return;
+        } else if (res && res.error) {
+          this.showToast(res.error);
+          return;
+        }
+      }
+      if (btn) btn.classList.remove('c-spin-active');
+      if (window.CompanionBehavior) window.CompanionBehavior.init();
+      this.showToast('Arayüz yenilendi.');
     },
 
     // Titreşim (Haptic)

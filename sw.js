@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sinif-asistani-cache-v1.0.116';
+const CACHE_NAME = 'sinif-asistani-cache-v1.0.117';
 const ASSETS = [
   './index.html',
   './manifest.json',
