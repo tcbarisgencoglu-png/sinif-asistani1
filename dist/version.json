@@ -1,8 +1,8 @@
 {
-  "version": "1.0.118",
+  "version": "1.0.119",
   "releaseDate": "2026-11-02",
   "minRequiredVersion": "1.0.0",
-  "title": "Sınıf Asistanı v1.0.118 Yayında!",
+  "title": "Sınıf Asistanı v1.0.119 Yayında!",
   "description": "El Terminali Akıllı Kitap & Barkod Okuyucu, Masaüstü Etiket/Barkod Yazdırma Merkezi ve Kitaplık Sıralama Güncellemesi",
   "features": [
     "El Terminali Akıllı Kamera Barkod / QR Okuyucu: Kitap takip ekranına eklenen yüzen buton ve kamera tarayıcısıyla kitaplar anında taranır; kitabın öğrencide mi rafta mı olduğu algılanarak tek tıkla teslim alma, ödünç verme ve öğrenciye özel akıllı kitap tavsiyeleri sunulur.",

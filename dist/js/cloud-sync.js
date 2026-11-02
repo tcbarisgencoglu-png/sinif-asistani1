@@ -587,6 +587,11 @@
       if (isAuto && this._quotaErrorUntil && Date.now() < this._quotaErrorUntil) {
         return { success: false, skipped: true };
       }
+      // KORUMA KALKANI: El Terminali ASLA MASTER_STATE paketini ezemez ve silemez!
+      // MASTER_STATE (öğrenci kadrosu ve ana veritabanı) yalnızca masaüstü uygulaması tarafından üretilir.
+      if (!window.stateManager) {
+        return { success: false, skipped: true, error: 'El terminali ana sınıf listesini (MASTER_STATE) ezemez.' };
+      }
       this.isSyncing = true;
       this.updateSyncUI();
 
@@ -812,12 +817,11 @@
       let masterItem = null;
       const remoteDeletedExamIds = [];
       if (Array.isArray(allRes) && allRes.length > 0) {
-        // Telefondayken öncelikle masaüstünün gönderdiği en güncel MASTER_STATE paketini tercih et
-        const desktopMaster = !window.stateManager
-          ? allRes.find(r => r && r.exam_id === 'MASTER_STATE' && r.payload && r.payload.source === 'desktop')
-          : null;
+        // Telefondayken öncelikle masaüstünün gönderdiği ve öğrencisi olan MASTER_STATE paketini tercih et
+        const desktopMaster = allRes.find(r => r && r.exam_id === 'MASTER_STATE' && r.payload && r.payload.source === 'desktop' && Array.isArray(r.payload.students) && r.payload.students.length > 0);
+        const anyMasterWithStudents = allRes.find(r => r && r.exam_id === 'MASTER_STATE' && r.payload && Array.isArray(r.payload.students) && r.payload.students.length > 0);
         const anyMaster = allRes.find(r => r && r.exam_id === 'MASTER_STATE' && r.payload);
-        const chosenMaster = desktopMaster || anyMaster;
+        const chosenMaster = desktopMaster || anyMasterWithStudents || anyMaster;
         if (chosenMaster) masterItem = chosenMaster.payload;
 
         // Tüm MASTER_STATE ve LIVE_EVENT (exam_deleted) kayıtlarındaki silinmiş sınav ID'lerini topla
@@ -1648,8 +1652,9 @@
       return this._liveEventQueue;
     },
 
-    // 4. Arka Planda Master Eşitlemeyi Gecikmeli Gönder (Debounce)
+    // 4. Arka Planda Master Eşitlemeyi Gecikmeli Gönder (Debounce - Yalnızca Masaüstü)
     scheduleDebouncedMasterPush() {
+      if (!window.stateManager) return; // El terminalinde asla arka planda master_state fırlatılmaz!
       if (this._quotaErrorUntil && Date.now() < this._quotaErrorUntil) return;
       if (this.debouncedMasterTimer) clearTimeout(this.debouncedMasterTimer);
       this.debouncedMasterTimer = setTimeout(async () => {

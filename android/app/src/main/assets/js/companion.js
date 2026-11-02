@@ -911,12 +911,25 @@
         this.showToast('Bulut motoru hazır değil.');
         return;
       }
-      this.showToast('Terminal verileri masaüstüne gönderiliyor...');
-      const res = await window.CloudSync.pushMasterData();
-      if (res && res.success) {
-        this.showToast('✅ Veriler masaüstüne başarıyla aktarıldı!');
-      } else {
-        this.showToast((res && res.error) || 'Aktarım sırasında bir sorun oluştu.');
+      this.showToast('Terminal sonuçları masaüstüne aktarılıyor...');
+      try {
+        const data = (window.CompanionOmr && typeof window.CompanionOmr.getData === 'function')
+          ? window.CompanionOmr.getData()
+          : JSON.parse(localStorage.getItem('sinif_asistani_data') || '{}');
+        let examCount = 0;
+        if (Array.isArray(data.weeklyEvaluations)) {
+          for (const ex of data.weeklyEvaluations) {
+            if (ex && ex.id && ex.studentResults && Object.keys(ex.studentResults).length > 0) {
+              if (typeof window.CloudSync.pushLiveExam === 'function') {
+                await window.CloudSync.pushLiveExam(ex);
+                examCount++;
+              }
+            }
+          }
+        }
+        this.showToast(`✅ ${examCount} sınavın optik sonuçları masaüstüne gönderildi!`);
+      } catch (e) {
+        this.showToast('Aktarım sırasında bir sorun oluştu: ' + e.message);
       }
     },
 
