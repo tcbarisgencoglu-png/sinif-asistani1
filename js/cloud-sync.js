@@ -978,6 +978,9 @@
             localData.books.transactions = Array.from(txMap.values());
           }
         }
+        if (window.stateManager && typeof window.stateManager.reconcileMissingBookPoints === 'function') {
+          window.stateManager.reconcileMissingBookPoints();
+        }
       }
 
       // 3. Sınavları birleştir (Silinen sınavları temizle, yerel taranan sonuçları ve buluttaki güncel cevap anahtarını koru)
@@ -1504,6 +1507,7 @@
         borrowDate: extra.borrowDate || (window.formatLocalDate ? window.formatLocalDate() : new Date().toISOString().split('T')[0]),
         studentName: extra.studentName || '',
         bookTitle: extra.bookTitle || '',
+        bookLevel: extra.bookLevel || 'seviye_1',
         timestamp: new Date().toISOString()
       };
 
@@ -2218,7 +2222,7 @@
 
         const library = window.stateManager.state.books.library || [];
         const targetBook = library.find(b => String(b.id) === String(payload.bookId));
-        const bookTitle = targetBook ? targetBook.title : (payload.bookTitle || 'Kitap');
+        const bookTitle = (targetBook && targetBook.title) ? targetBook.title : (payload.bookTitle || 'Kitap');
 
         if (payload.action === 'borrow') {
           window.stateManager.borrowBook(targetStudentId, payload.bookId, payload.borrowDate);
@@ -2227,20 +2231,61 @@
             window.showToast(`📖 El Terminalinden: ${studentName} '${bookTitle}' kitabını ödünç aldı.`, 'info');
           }
         } else if (payload.action === 'return') {
-          const tx = window.stateManager.state.books.transactions.find(
-            t => String(t.studentId) === String(targetStudentId) && String(t.bookId) === String(payload.bookId) && t.status === 'reading'
-          );
+          const txList = window.stateManager.state.books.transactions || [];
+          let tx = null;
+          if (payload.transactionId) {
+            tx = txList.find(t => String(t.id) === String(payload.transactionId));
+          }
+          if (!tx) {
+            tx = txList.find(t => String(t.studentId) === String(targetStudentId) && String(t.bookId) === String(payload.bookId) && t.status === 'reading');
+          }
+          if (!tx) {
+            tx = txList.find(t => String(t.studentId) === String(targetStudentId) && String(t.bookId) === String(payload.bookId));
+          }
+
+          let pointResult = null;
           if (tx) {
             window.stateManager.returnBook(tx.id, payload.returnDate);
+            if (typeof window.stateManager.awardBookReturnPoints === 'function') {
+              pointResult = window.stateManager.awardBookReturnPoints(tx.id, payload.returnDate, {
+                bookTitle,
+                isLevel2: targetBook ? targetBook.level === 'seviye_2' : (payload.bookLevel === 'seviye_2')
+              });
+            }
+          } else {
+            const newTxId = payload.transactionId || ('tx_' + Date.now());
+            const newTx = {
+              id: newTxId,
+              studentId: targetStudentId,
+              bookId: payload.bookId,
+              borrowDate: payload.borrowDate || payload.returnDate || (window.formatLocalDate ? window.formatLocalDate() : new Date().toISOString().split('T')[0]),
+              returnDate: payload.returnDate || (window.formatLocalDate ? window.formatLocalDate() : new Date().toISOString().split('T')[0]),
+              status: 'returned'
+            };
+            txList.push(newTx);
+            window.stateManager.saveState('El Terminalinden İade Kaydı Eklendi');
+            if (typeof window.stateManager.awardBookReturnPoints === 'function') {
+              pointResult = window.stateManager.awardBookReturnPoints(newTx, payload.returnDate, {
+                bookTitle,
+                isLevel2: targetBook ? targetBook.level === 'seviye_2' : (payload.bookLevel === 'seviye_2')
+              });
+            }
           }
+
           this.playDesktopLiveChime();
           if (window.showToast) {
-            window.showToast(`✅ El Terminalinden: ${studentName} '${bookTitle}' kitabını teslim etti.`, 'success');
+            const finalTitle = pointResult?.bookTitle || bookTitle;
+            const ptsText = pointResult ? ` (+${pointResult.points} Puan)` : '';
+            window.showToast(`✅ El Terminalinden: ${studentName} '${finalTitle}' kitabını teslim etti.${ptsText}`, 'success');
+            if (pointResult) {
+              window.showToast(`${studentName} öğrencisine kitap okuduğu için (${pointResult.levelLabel}, ${pointResult.timingLabel}) ${pointResult.points >= 0 ? '+' : ''}${pointResult.points} Performans puanı eklendi!`, 'info');
+            }
           }
         }
 
         document.dispatchEvent(new CustomEvent('stateChanged'));
         if (typeof window.renderDashboard === 'function') window.renderDashboard();
+        if (typeof window.renderBooksTab === 'function') window.renderBooksTab();
       }
 
       // 2. CANLI OPTİK SINAV SONUCU ENTEGRASYONU

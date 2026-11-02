@@ -2826,6 +2826,11 @@ class StateManager {
       this.state._weekIdNormalized_v1080 = true;
     }
 
+    // Otomatik Kitap İade Puanı Eşitlemesi (Eksik İade Puanlarını Tamamla)
+    if (this.state && Array.isArray(this.state.books?.transactions)) {
+      this.reconcileMissingBookPoints();
+    }
+
     if (!data && !hasRealDataEver && (!window.__TAURI__)) {
       this.saveState('İlk kurulum veritabanı');
       this.loadDefaultStateFromServer();
@@ -3212,6 +3217,7 @@ class StateManager {
       }
 
       await this.healMissingStudentPhotos();
+      this.reconcileMissingBookPoints();
       this._isHydrated = true;
       return this.state;
     } catch (err) {
@@ -4838,6 +4844,130 @@ class StateManager {
       return true;
     }
     return false;
+  }
+
+  // Kitap İadesi İçin Performans Puanı Hesapla ve Ekle (Masaüstü ve El Terminali Entegrasyonu)
+  awardBookReturnPoints(transactionOrId, returnDate = null, options = {}) {
+    if (!this.state.books || !Array.isArray(this.state.books.transactions)) return null;
+
+    let tx = null;
+    if (typeof transactionOrId === 'object' && transactionOrId !== null) {
+      tx = transactionOrId;
+    } else {
+      tx = this.state.books.transactions.find(t => String(t.id) === String(transactionOrId));
+    }
+    if (!tx || !tx.studentId || !tx.bookId) return null;
+
+    const library = (this.state.books && Array.isArray(this.state.books.library)) ? this.state.books.library : [];
+    const book = library.find(b => String(b.id) === String(tx.bookId));
+    const bookTitle = (book && book.title) || options.bookTitle || 'Kitap';
+
+    // Daha önce bu öğrenciye bu kitap için iade puanı verilmiş mi kontrol et (Mükerrer puanı önle)
+    if (!Array.isArray(this.state.performance)) this.state.performance = [];
+    const alreadyAwarded = this.state.performance.some(p => {
+      if (String(p.studentId) !== String(tx.studentId)) return false;
+      const r = (p.reason || '').toLowerCase();
+      if (!r.includes('kitap okuma') && !r.includes('kitap teslim')) return false;
+      if (p.extraData && p.extraData.transactionId && String(p.extraData.transactionId) === String(tx.id)) return true;
+      return bookTitle && r.includes(bookTitle.toLowerCase());
+    });
+
+    if (alreadyAwarded) {
+      return null;
+    }
+
+    const actualReturnDate = returnDate || tx.returnDate || formatLocalDate();
+    const borrowDate = tx.borrowDate ? new Date(tx.borrowDate) : new Date(actualReturnDate);
+    const retDateObj = new Date(actualReturnDate);
+    const diffTime = Math.max(0, retDateObj.getTime() - borrowDate.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    const bookSettings = this.getBookSettings();
+    const isLevel2 = (book && book.level === 'seviye_2') || options.isLevel2;
+    const lvlSettings = isLevel2 ? (bookSettings.level2 || {}) : (bookSettings.level1 || {});
+    const limitDays = lvlSettings.limitDays || (isLevel2 ? 20 : 10);
+    const isOnTime = diffDays <= limitDays;
+    const points = isOnTime
+      ? (lvlSettings.onTimePoints !== undefined ? lvlSettings.onTimePoints : (isLevel2 ? 4 : 2))
+      : (lvlSettings.latePoints !== undefined ? lvlSettings.latePoints : 0);
+
+    const levelLabel = isLevel2 ? '2. Seviye' : '1. Seviye';
+    const timingLabel = isOnTime ? 'Zamanında' : 'Gecikmeli';
+    const reason = `Kitap Okuma Tamamlandı: ${bookTitle}${isOnTime ? '' : ' (Gecikmeli)'}`;
+
+    let targetWeek = options.weekId;
+    if (!targetWeek && actualReturnDate && typeof window.getISOWeek === 'function') {
+      try {
+        targetWeek = window.getISOWeek(actualReturnDate);
+      } catch (e) {}
+    }
+    if (!targetWeek) {
+      targetWeek = (this.getSelectedWeek ? this.getSelectedWeek() : (window.getISOWeek ? window.getISOWeek() : 'week_1'));
+    }
+
+    const perfRecord = this.addPerformance(
+      tx.studentId,
+      points >= 0 ? 'positive' : 'development',
+      points,
+      reason,
+      targetWeek,
+      {
+        transactionId: tx.id,
+        bookId: tx.bookId,
+        bookTitle: bookTitle,
+        isLevel2,
+        isOnTime,
+        diffDays
+      }
+    );
+
+    return {
+      points,
+      levelLabel,
+      timingLabel,
+      bookTitle,
+      record: perfRecord
+    };
+  }
+
+  // Terminalden iade edilip puanı henüz eklenmemiş kitapları tespit et ve puanlarını otomatik ver
+  reconcileMissingBookPoints() {
+    if (!this.state.books || !Array.isArray(this.state.books.transactions)) return 0;
+    if (!Array.isArray(this.state.performance)) this.state.performance = [];
+
+    const returnedTxs = this.state.books.transactions.filter(t => t.status === 'returned');
+    let addedCount = 0;
+
+    returnedTxs.forEach(tx => {
+      const library = (this.state.books && Array.isArray(this.state.books.library)) ? this.state.books.library : [];
+      const book = library.find(b => String(b.id) === String(tx.bookId));
+      const bookTitle = (book && book.title) ? book.title.trim() : '';
+
+      const alreadyAwarded = this.state.performance.some(p => {
+        if (String(p.studentId) !== String(tx.studentId)) return false;
+        const r = (p.reason || '').toLowerCase();
+        if (!r.includes('kitap okuma') && !r.includes('kitap teslim')) return false;
+        if (p.extraData && p.extraData.transactionId && String(p.extraData.transactionId) === String(tx.id)) return true;
+        if (bookTitle && r.includes(bookTitle.toLowerCase())) return true;
+        return false;
+      });
+
+      if (!alreadyAwarded) {
+        const res = this.awardBookReturnPoints(tx, tx.returnDate || tx.borrowDate, {
+          bookTitle: bookTitle || 'Kitap'
+        });
+        if (res) addedCount++;
+      }
+    });
+
+    if (addedCount > 0) {
+      this.saveState(`${addedCount} adet eksik kitap okuma puanı eşitlendi`);
+      if (typeof document !== 'undefined') {
+        document.dispatchEvent(new CustomEvent('stateChanged'));
+      }
+      if (typeof window.renderDashboard === 'function') window.renderDashboard();
+    }
+    return addedCount;
   }
 
   cancelBorrow(transactionId) {

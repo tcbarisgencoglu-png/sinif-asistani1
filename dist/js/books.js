@@ -3526,18 +3526,16 @@ function renderBooksList() {
               toastCallback(`"${book.title}" iade alındı.`, 'success');
             }
             
-            stateManager.addPerformance(
-              student.id,
-              points >= 0 ? 'positive' : 'development',
-              points,
-              `Kitap Okuma Tamamlandı: ${book.title}${isOnTime ? '' : ' (Gecikmeli)'}`,
-              stateManager.getSelectedWeek()
-            );
+            const pointResult = stateManager.awardBookReturnPoints(t.id, null, {
+              bookTitle: book.title,
+              isLevel2
+            });
             
-            const levelLabel = isLevel2 ? '2. Seviye' : '1. Seviye';
-            const timingLabel = isOnTime ? 'Zamanında' : 'Gecikmeli';
+            const levelLabel = pointResult ? pointResult.levelLabel : (isLevel2 ? '2. Seviye' : '1. Seviye');
+            const timingLabel = pointResult ? pointResult.timingLabel : (isOnTime ? 'Zamanında' : 'Gecikmeli');
+            const awardedPts = pointResult ? pointResult.points : points;
             if (toastCallback) {
-              toastCallback(`${student.name} öğrencisine kitap okuduğu için (${levelLabel}, ${timingLabel}) ${points >= 0 ? '+' : ''}${points} Performans puanı eklendi!`, 'info');
+              toastCallback(`${student.name} öğrencisine kitap okuduğu için (${levelLabel}, ${timingLabel}) ${awardedPts >= 0 ? '+' : ''}${awardedPts} Performans puanı eklendi!`, 'info');
             }
 
             const event = new CustomEvent('stateChanged');
@@ -3908,17 +3906,15 @@ function renderLateBooksList() {
           toastCallback(`"${book.title}" iade alındı.`, 'success');
         }
 
-        stateManager.addPerformance(
-          student.id,
-          points >= 0 ? 'positive' : 'development',
-          points,
-          `Kitap Okuma Tamamlandı: ${book.title} (Gecikmeli)`,
-          stateManager.getSelectedWeek()
-        );
+        const pointResult = stateManager.awardBookReturnPoints(t.id, null, {
+          bookTitle: book.title,
+          isLevel2
+        });
 
-        const levelLabel = isLevel2 ? '2. Seviye' : '1. Seviye';
+        const levelLabel = pointResult ? pointResult.levelLabel : (isLevel2 ? '2. Seviye' : '1. Seviye');
+        const awardedPts = pointResult ? pointResult.points : points;
         if (toastCallback) {
-          toastCallback(`${student.name} öğrencisine kitap okuduğu için (${levelLabel}, Gecikmeli) ${points >= 0 ? '+' : ''}${points} Performans puanı eklendi!`, 'info');
+          toastCallback(`${student.name} öğrencisine kitap okuduğu için (${levelLabel}, Gecikmeli) ${awardedPts >= 0 ? '+' : ''}${awardedPts} Performans puanı eklendi!`, 'info');
         }
 
         const event = new CustomEvent('stateChanged');
@@ -4093,18 +4089,16 @@ function renderStudentDetailPanel() {
             toastCallback(`"${bookTitle}" iade alındı.`, 'success');
           }
 
-          stateManager.addPerformance(
-            student.id,
-            points >= 0 ? 'positive' : 'development',
-            points,
-            `Kitap Okuma Tamamlandı: ${bookTitle}${isOnTime ? '' : ' (Gecikmeli)'}`,
-            stateManager.getSelectedWeek()
-          );
+          const pointResult = stateManager.awardBookReturnPoints(txId, null, {
+            bookTitle,
+            isLevel2
+          });
 
-          const levelLabel = isLevel2 ? '2. Seviye' : '1. Seviye';
-          const timingLabel = isOnTime ? 'Zamanında' : 'Gecikmeli';
+          const levelLabel = pointResult ? pointResult.levelLabel : (isLevel2 ? '2. Seviye' : '1. Seviye');
+          const timingLabel = pointResult ? pointResult.timingLabel : (isOnTime ? 'Zamanında' : 'Gecikmeli');
+          const awardedPts = pointResult ? pointResult.points : points;
           if (toastCallback) {
-            toastCallback(`${student.name} öğrencisine kitap okuduğu için (${levelLabel}, ${timingLabel}) ${points >= 0 ? '+' : ''}${points} Performans puanı eklendi!`, 'info');
+            toastCallback(`${student.name} öğrencisine kitap okuduğu için (${levelLabel}, ${timingLabel}) ${awardedPts >= 0 ? '+' : ''}${awardedPts} Performans puanı eklendi!`, 'info');
           }
 
           window._focusStudentDetailBookSearch = true;
