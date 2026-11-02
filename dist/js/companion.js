@@ -370,7 +370,7 @@
 
       // Sınıf Öğretmeni için okuttuğu sınıfı otomatik seç
       const singleClassSelect = document.getElementById('setup-single-class-select');
-      if (singleClassSelect) {
+      if (singleClassSelect && singleClassSelect.options) {
         const matchingSec = uniqueSections[0];
         let exists = false;
         for (let i = 0; i < singleClassSelect.options.length; i++) {

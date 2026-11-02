@@ -11,7 +11,9 @@
 
   // Hafta & Tarih Yardımcıları (Desktop & Mobile Uyumlu ISO Formatı)
   function getISOWeekSafe(dateInput) {
-    if (typeof window.getISOWeek === 'function') return window.getISOWeek(dateInput);
+    if (typeof window.getISOWeek === 'function' && window.getISOWeek !== getISOWeekSafe) {
+      return window.getISOWeek(dateInput);
+    }
     let date = dateInput ? (dateInput instanceof Date ? dateInput : new Date(dateInput)) : new Date();
     if (isNaN(date.getTime())) return '';
     const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
@@ -24,7 +26,9 @@
   }
 
   function getSchoolOpeningMondaySafe(year) {
-    if (typeof window.getSchoolOpeningMonday === 'function') return window.getSchoolOpeningMonday(year);
+    if (typeof window.getSchoolOpeningMonday === 'function' && window.getSchoolOpeningMonday !== getSchoolOpeningMondaySafe) {
+      return window.getSchoolOpeningMonday(year);
+    }
     const sept1 = new Date(year, 8, 1);
     const dayOfSept1 = sept1.getDay() || 7;
     const firstMondayDate = 1 + ((8 - dayOfSept1) % 7);
@@ -33,7 +37,9 @@
   }
 
   function normalizeWeekIdSafe(weekId, defaultYear = null) {
-    if (typeof window.normalizeWeekId === 'function') return window.normalizeWeekId(weekId, defaultYear);
+    if (typeof window.normalizeWeekId === 'function' && window.normalizeWeekId !== normalizeWeekIdSafe) {
+      return window.normalizeWeekId(weekId, defaultYear);
+    }
     if (!weekId) return '';
     const str = String(weekId).trim();
     if (/^\d{4}-W\d{2}$/i.test(str)) return str.toUpperCase();
