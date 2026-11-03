@@ -98,11 +98,15 @@
       return code;
     },
 
-    regenerateSyncCode() {
-      const ok = confirm(
-        'Yeni bir cihaz eşleşme kodu oluşturmak istiyor musunuz?\n\n' +
-        'Not: Yeni kod oluşturulduğunda, telefonunuza bu yeni 6 haneli kodu girmeniz gerekecektir.'
-      );
+    async regenerateSyncCode() {
+      const msg = 'Yeni bir cihaz eşleşme kodu oluşturmak istiyor musunuz?\n\n' +
+        'Not: Yeni kod oluşturulduğunda, telefonunuza bu yeni 6 haneli kodu girmeniz gerekecektir.';
+      let ok = false;
+      if (typeof window.confirmAsync === 'function') {
+        ok = await window.confirmAsync(msg);
+      } else {
+        ok = window.confirm(msg);
+      }
       if (!ok) return;
       const newCode = this.generateSyncCode();
       this.setSyncCode(newCode);
@@ -178,11 +182,16 @@
       if (window.lucide && typeof window.lucide.createIcons === 'function') window.lucide.createIcons();
     },
 
-    deletePairing() {
-      const ok = confirm(
-        'El terminali eşleştirmesini sonlandırmak istediğinize emin misiniz?\n\n' +
-        'Eşleşme silindiğinde cihaz bağlantısı kesilecek ve tekrar kurulum yapmanız gerekecektir.'
-      );
+    async deletePairing() {
+      const msg = 'El terminali eşleştirmesini sonlandırmak istediğinize emin misiniz?\n\n' +
+        'Eşleşme silindiğinde cihaz bağlantısı kesilecek ve tekrar kurulum yapmanız gerekecektir.';
+      
+      let ok = false;
+      if (typeof window.confirmAsync === 'function') {
+        ok = await window.confirmAsync(msg);
+      } else {
+        ok = window.confirm(msg);
+      }
       if (!ok) return;
 
       this.setDevicePaired(false);
