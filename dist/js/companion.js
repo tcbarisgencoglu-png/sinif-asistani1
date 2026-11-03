@@ -78,8 +78,12 @@
         window.CloudSync.startLiveListener();
       }
 
-      // Profil var mı kontrol et
-      if (!this.profile || !this.profile.isComplete) {
+      // Profil var mı ve cihaz eşleştirilmiş mi kontrol et (Masaüstü eşleşmeyi silmişse kurulum başlat)
+      const hasPairedDevice = window.CloudSync && typeof window.CloudSync.isDevicePaired === 'function'
+        ? window.CloudSync.isDevicePaired()
+        : (localStorage.getItem('sinif_device_paired') === 'true');
+
+      if (!this.profile || !this.profile.isComplete || !hasPairedDevice) {
         this.showView('setup');
         this.renderSetupForm();
       } else {
@@ -87,6 +91,13 @@
         this.updateHeader();
         this.renderSectionBar();
         this.showView('dashboard');
+
+        // Arka planda masaüstünün eşleşmeyi sonlandırıp sonlandırmadığını doğrula (Masaüstü Karar Vericidir)
+        if (window.CloudSync && typeof window.CloudSync.checkPairingStatusOnTerminal === 'function') {
+          setTimeout(() => {
+            window.CloudSync.checkPairingStatusOnTerminal();
+          }, 1200);
+        }
       }
 
       this.renderIcons();
@@ -740,6 +751,19 @@
         return;
       }
 
+      // Önce masaüstünün eşleşmeyi sonlandırıp sonlandırmadığını doğrula (Masaüstü Karar Vericidir)
+      if (typeof window.CloudSync.checkPairingStatusOnTerminal === 'function') {
+        const isStillValid = await window.CloudSync.checkPairingStatusOnTerminal();
+        if (!isStillValid) {
+          if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<i data-lucide="refresh-cw" style="width: 18px; height: 18px;"></i><span>Tüm Sınıf & Verileri Masaüstünden Eşitle</span>';
+            this.renderIcons();
+          }
+          return;
+        }
+      }
+
       const res = await window.CloudSync.pullMasterData();
 
       if (btn) {
@@ -792,6 +816,15 @@
           this.showToast('⚠️ Eşleşme kodu girilmemiş! Lütfen ⚙️ Ayarlar menüsünden tahtadaki kodu girin.');
           if (typeof this.openSettingsModal === 'function') this.openSettingsModal();
           return;
+        }
+
+        // Önce masaüstünün eşleşmeyi sonlandırıp sonlandırmadığını doğrula (Masaüstü Karar Vericidir)
+        if (window.CloudSync && typeof window.CloudSync.checkPairingStatusOnTerminal === 'function') {
+          const isStillValid = await window.CloudSync.checkPairingStatusOnTerminal();
+          if (!isStillValid) {
+            if (btn) btn.classList.remove('c-spin-active');
+            return;
+          }
         }
 
         if (window.CloudSync && typeof window.CloudSync.pullMasterData === 'function') {

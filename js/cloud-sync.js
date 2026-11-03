@@ -184,7 +184,7 @@
 
     async deletePairing() {
       const msg = 'El terminali eşleştirmesini sonlandırmak istediğinize emin misiniz?\n\n' +
-        'Eşleşme silindiğinde cihaz bağlantısı kesilecek ve tekrar kurulum yapmanız gerekecektir.';
+        'Eşleşme silindiğinde el terminali bağlantısı kesilecek ve terminal otomatik olarak kurulum sihirbazına dönecektir.';
       
       let ok = false;
       if (typeof window.confirmAsync === 'function') {
@@ -194,14 +194,83 @@
       }
       if (!ok) return;
 
+      const oldCode = this.syncCode;
+
+      // 1. Buluta Eşleşmenin Sonlandırıldığı bilgisini yaz (Terminal anında bilsin ve kurulum sihirbazına dönsün)
+      try {
+        if (oldCode) {
+          // Eski koddaki MASTER_STATE kaydını sil
+          await this.request('DELETE', `teacher_sync?sync_code=eq.${encodeURIComponent(oldCode)}&exam_id=eq.MASTER_STATE`);
+          
+          // Eşleşme sonlandırıldı bildirim kaydı gönder (Soket ve polling için)
+          await this.request('POST', 'teacher_sync', {
+            sync_code: oldCode,
+            exam_id: 'PAIRING_STATUS',
+            source: 'desktop',
+            payload: { status: 'unpaired', action: 'TERMINATE', timestamp: Date.now() },
+            updated_at: new Date().toISOString()
+          });
+        }
+      } catch (err) {
+        console.warn('[CloudSync] Buluttan eşleşme sonlandırma bildirimi gönderilemedi:', err);
+      }
+
+      // 2. Masaüstünü yerelde sıfırla ve yeni kod üret
       this.setDevicePaired(false);
       this.wizardActive = false;
       this.wizardStep = 1;
       const newCode = this.generateSyncCode();
       this.setSyncCode(newCode);
+
       if (window.showToast) window.showToast('🗑️ Eşleşme sonlandırıldı. Tekrar kurulum başlatabilirsiniz.', 'info');
       this.updateSyncUI();
       if (window.lucide && typeof window.lucide.createIcons === 'function') window.lucide.createIcons();
+    },
+
+    // El Terminalinde Masaüstü Eşleşme Durumunu Doğrula (Masaüstü Karar Vericidir)
+    async checkPairingStatusOnTerminal() {
+      if (!window.Companion && !window.CompanionOmr) return true;
+      if (!this.syncCode) return false;
+
+      try {
+        const res = await this.request(
+          'GET',
+          `teacher_sync?sync_code=eq.${encodeURIComponent(this.syncCode)}&exam_id=in.(PAIRING_STATUS,MASTER_STATE)&order=updated_at.desc&limit=5&select=exam_id,payload,updated_at`
+        );
+
+        if (Array.isArray(res)) {
+          const statusRec = res.find(r => r.exam_id === 'PAIRING_STATUS');
+          if (statusRec && statusRec.payload && statusRec.payload.status === 'unpaired') {
+            console.log('[CloudSync] Masaüstü eşleştirmeyi sonlandırmış. Terminal sıfırlanıyor...');
+            this.handleRemotePairingTerminated();
+            return false;
+          }
+        }
+      } catch (e) {
+        console.warn('[CloudSync] Eşleşme durumu kontrol uyarısı:', e);
+      }
+      return true;
+    },
+
+    // Masaüstü Eşleşmeyi Sonlandırdığında Terminali Kurulum Moduna Al
+    handleRemotePairingTerminated() {
+      this.setDevicePaired(false);
+      this.syncCode = '';
+      localStorage.removeItem(SYNC_CODE_KEY);
+      localStorage.removeItem('sinif_device_paired');
+
+      if (window.Companion) {
+        if (typeof window.Companion.showToast === 'function') {
+          window.Companion.showToast('ℹ️ Masaüstü bilgisayardan eşleşme sonlandırıldı. Lütfen yeni kurulumu başlatın.', 'warning', 5000);
+        }
+        if (typeof window.Companion.showView === 'function') {
+          window.Companion.showView('setup');
+          if (typeof window.Companion.renderSetupForm === 'function') {
+            window.Companion.renderSetupForm();
+          }
+        }
+      }
+      this.updateSyncUI();
     },
 
     renderApkDownloadQRCode() {
@@ -2086,6 +2155,14 @@
       const payload = record.payload;
       if (!payload) return;
 
+      // 0. EŞLEŞME SONLANDIRMA OLAYI (Masaüstü Karar Vericidir)
+      if (record.exam_id === 'PAIRING_STATUS' && payload.status === 'unpaired') {
+        if (!window.stateManager) {
+          this.handleRemotePairingTerminated();
+          return;
+        }
+      }
+
       const eventKey = `${record.updated_at}_${record.exam_id}_${payload.timestamp || ''}`;
       if (this.processedEventIds && this.processedEventIds.has(eventKey)) return;
       if (!this.processedEventIds) this.processedEventIds = new Set();
@@ -3243,27 +3320,27 @@
             if (step1) step1.style.display = 'flex';
             if (step2) step2.style.display = 'none';
             if (tab1) {
-              tab1.style.background = '#6366f1';
-              tab1.style.color = '#fff';
+              tab1.style.background = '#4f46e5';
+              tab1.style.color = '#ffffff';
               tab1.style.border = 'none';
             }
             if (tab2) {
-              tab2.style.background = 'rgba(255,255,255,0.05)';
-              tab2.style.color = '#94a3b8';
-              tab2.style.border = '1px solid rgba(255,255,255,0.2)';
+              tab2.style.background = '#f1f5f9';
+              tab2.style.color = '#475569';
+              tab2.style.border = '1px solid #cbd5e1';
             }
             this.renderApkDownloadQRCode();
           } else {
             if (step1) step1.style.display = 'none';
             if (step2) step2.style.display = 'flex';
             if (tab1) {
-              tab1.style.background = 'rgba(255,255,255,0.05)';
-              tab1.style.color = '#94a3b8';
-              tab1.style.border = '1px solid rgba(255,255,255,0.2)';
+              tab1.style.background = '#f1f5f9';
+              tab1.style.color = '#475569';
+              tab1.style.border = '1px solid #cbd5e1';
             }
             if (tab2) {
-              tab2.style.background = '#6366f1';
-              tab2.style.color = '#fff';
+              tab2.style.background = '#4f46e5';
+              tab2.style.color = '#ffffff';
               tab2.style.border = 'none';
             }
             this.renderDesktopQRCode();
