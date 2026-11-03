@@ -27,20 +27,20 @@
     'Rehberlik / Diğer'
   ];
 
-  // Varsayılan Ortaokul Şubeleri
+  // Varsayılan Ortaokul Şubeleri (A, B, C, D, E)
   const DEFAULT_SECTIONS = [
-    '5-A', '5-B', '5-C',
-    '6-A', '6-B', '6-C',
-    '7-A', '7-B', '7-C',
-    '8-A', '8-B', '8-C'
+    '5-A', '5-B', '5-C', '5-D', '5-E',
+    '6-A', '6-B', '6-C', '6-D', '6-E',
+    '7-A', '7-B', '7-C', '7-D', '7-E',
+    '8-A', '8-B', '8-C', '8-D', '8-E'
   ];
 
-  // Varsayılan İlkokul Sınıfları (Sınıf Öğretmenleri İçin Tek Sınıf)
+  // Varsayılan İlkokul Sınıfları (Sınıf Öğretmenleri İçin Tek Sınıf: A, B, C, D, E)
   const PRIMARY_SECTIONS = [
-    '1-A', '1-B', '1-C', '1-D',
-    '2-A', '2-B', '2-C', '2-D',
-    '3-A', '3-B', '3-C', '3-D',
-    '4-A', '4-B', '4-C', '4-D'
+    '1-A', '1-B', '1-C', '1-D', '1-E',
+    '2-A', '2-B', '2-C', '2-D', '2-E',
+    '3-A', '3-B', '3-C', '3-D', '3-E',
+    '4-A', '4-B', '4-C', '4-D', '4-E'
   ];
 
   // Sınıf Öğretmeni kontrolü
@@ -69,7 +69,9 @@
     // Uygulamayı Başlat
     init() {
       this.loadProfile();
+      this.initTheme();
       this.bindEvents();
+      this.initHistoryBack();
 
       // Bulut canlı dinleyicisini başlat (Masaüstüyle tam eşgüdüm)
       if (window.CloudSync && typeof window.CloudSync.startLiveListener === 'function') {
@@ -548,6 +550,13 @@
     // Ekran Geçişleri
     showView(viewId) {
       this.currentView = viewId;
+      if (viewId !== 'dashboard' && viewId !== 'setup') {
+        try {
+          if (window.history && window.history.pushState) {
+            window.history.pushState({ view: viewId }, '');
+          }
+        } catch (e) {}
+      }
       const views = document.querySelectorAll('.c-view');
       views.forEach(v => {
         v.style.display = (v.id === `view-${viewId}`) ? 'block' : 'none';
@@ -599,6 +608,11 @@
         window.CompanionBooks.init();
       }
 
+      // Ders & Planlama Modülü açıldığında verileri başlat ve render et
+      if (viewId === 'schedule-plan' && window.CompanionSchedule) {
+        window.CompanionSchedule.init();
+      }
+
       // Eşitleme veya Ayarlar açıldığında bulut göstergelerini tazele
       if ((viewId === 'setup' || viewId === 'sync') && window.CloudSync) {
         window.CloudSync.updateSyncUI();
@@ -628,7 +642,22 @@
 
     // PIN Kilit Sistemi
     lockApp() {
-      if (!this.profile || !this.profile.pin) return;
+      const pinStr = (this.profile && this.profile.pin) ? String(this.profile.pin).trim() : '';
+      if (!pinStr) {
+        this.vibrate([40, 60, 40]);
+        if (typeof this.showToast === 'function') {
+          this.showToast('⚠️ Uygulamayı kilitlemek için önce Ayarlardan bir PIN şifresi belirlemelisiniz.', 'warning', 3500);
+        }
+        const setNow = confirm(
+          '🔒 Kilit Şifresi Belirlenmedi!\n\n' +
+          'Uygulamayı kilitleyebilmeniz için önce 4 haneli bir güvenlik PIN kodu belirlemeniz gerekmektedir.\n\n' +
+          'Şimdi Ayarlar ekranından şifre belirlemek ister misiniz?'
+        );
+        if (setNow) {
+          this.openSettingsModal();
+        }
+        return;
+      }
       this.isLocked = true;
       this.enteredPin = '';
       this.updatePinDots();
@@ -738,6 +767,9 @@
         }
         if (window.CompanionBooks) {
           window.CompanionBooks.init();
+        }
+        if (window.CompanionSchedule) {
+          window.CompanionSchedule.init();
         }
       } else {
         const errorMsg = res.error || 'Masaüstünden veri bulunamadı. Lütfen masaüstünden "Terminale Gönder" butonuna basın.';
@@ -940,16 +972,53 @@
       }
     },
 
+    // Tema Yönetimi (Karanlık / Aydınlık Mod)
+    initTheme() {
+      const savedTheme = localStorage.getItem('companion_theme') || 'dark';
+      this.applyTheme(savedTheme, false);
+    },
+
+    toggleTheme() {
+      const current = document.documentElement.getAttribute('data-theme') || document.body.getAttribute('data-theme') || 'dark';
+      const nextTheme = current === 'dark' ? 'light' : 'dark';
+      this.applyTheme(nextTheme, true);
+      this.vibrate(20);
+      if (typeof this.showToast === 'function') {
+        this.showToast(nextTheme === 'dark' ? '🌙 Karanlık mod aktif' : '☀️ Aydınlık mod aktif', 'info', 1800);
+      }
+    },
+
+    applyTheme(theme, animate = false) {
+      document.documentElement.setAttribute('data-theme', theme);
+      document.body.setAttribute('data-theme', theme);
+      document.body.dataset.theme = theme;
+      localStorage.setItem('companion_theme', theme);
+
+      const themeBtn = document.getElementById('btn-companion-theme');
+      if (themeBtn) {
+        themeBtn.innerHTML = theme === 'dark'
+          ? '<i data-lucide="sun" style="width: 18px; height: 18px; color: #fbbf24;"></i>'
+          : '<i data-lucide="moon" style="width: 18px; height: 18px; color: #334155;"></i>';
+        themeBtn.title = theme === 'dark' ? 'Aydınlık Temaya Geç' : 'Karanlık Temaya Geç';
+        this.renderIcons();
+      }
+    },
+
+    // Tarayıcı ve Donanım Geri Tuşu Geçmişi
+    initHistoryBack() {
+      window.addEventListener('popstate', (e) => {
+        if (typeof window.handleAndroidBack === 'function') {
+          window.handleAndroidBack();
+        }
+      });
+    },
+
     // Olay Dinleyicileri
     bindEvents() {
       // Tema Butonu
       const themeBtn = document.getElementById('btn-companion-theme');
       if (themeBtn) {
-        themeBtn.addEventListener('click', () => {
-          const current = document.body.dataset.theme;
-          document.body.dataset.theme = current === 'dark' ? 'light' : 'dark';
-          this.vibrate(15);
-        });
+        themeBtn.onclick = () => this.toggleTheme();
       }
 
       // Branş Değiştiğinde
@@ -960,6 +1029,188 @@
         });
       }
     }
+  };
+
+  // =========================================================================
+  // TELEFON DONANIM / SİSTEM GERİ TUŞU ENTEGRASYONU (ANDROID BACK BUTTON)
+  // =========================================================================
+  window.handleAndroidBack = function() {
+    // 0. Kilit Ekranı Açıksa (Güvenlik: Kilit ekranından geri tuşuyla çıkılamaz)
+    const lockOverlay = document.getElementById('companion-lock-overlay');
+    if (lockOverlay && lockOverlay.style.display !== 'none') {
+      return true;
+    }
+
+    // 1. QR Tarayıcı Modalı Açıksa Kapat
+    const qrModal = document.getElementById('mobile-qr-scanner-modal');
+    if (qrModal && qrModal.style.display !== 'none') {
+      if (window.CloudSync && typeof window.CloudSync.closeQrScanner === 'function') {
+        window.CloudSync.closeQrScanner();
+      } else {
+        qrModal.style.display = 'none';
+      }
+      return true;
+    }
+
+    // 2. Terminal Ayarları Modalı Açıksa Kapat
+    const settingsModal = document.getElementById('companion-settings-modal');
+    if (settingsModal && settingsModal.style.display !== 'none') {
+      if (window.Companion && typeof window.Companion.closeSettingsModal === 'function') {
+        window.Companion.closeSettingsModal();
+      } else {
+        settingsModal.style.display = 'none';
+      }
+      return true;
+    }
+
+    // 3. Ödev Modülü: Yeni Ödev Verme Modalı Açıksa Kapat
+    const createHwModal = document.getElementById('modal-create-homework');
+    if (createHwModal && createHwModal.style.display !== 'none') {
+      if (window.CompanionHomework && typeof window.CompanionHomework.closeCreateModal === 'function') {
+        window.CompanionHomework.closeCreateModal();
+      } else {
+        createHwModal.style.display = 'none';
+      }
+      return true;
+    }
+
+    // 4. Davranış Puanı Modalleri Açıksa Kapat
+    const randModal = document.getElementById('companion-random-caller-modal');
+    if (randModal && randModal.style.display !== 'none') {
+      if (window.CompanionBehavior && typeof window.CompanionBehavior.closeRandomCallerModal === 'function') {
+        window.CompanionBehavior.closeRandomCallerModal();
+      } else {
+        randModal.style.display = 'none';
+      }
+      return true;
+    }
+
+    const bulkModal = document.getElementById('companion-bulk-score-modal');
+    if (bulkModal && bulkModal.style.display !== 'none') {
+      if (window.CompanionBehavior && typeof window.CompanionBehavior.closeBulkScoreModal === 'function') {
+        window.CompanionBehavior.closeBulkScoreModal();
+      } else {
+        bulkModal.style.display = 'none';
+      }
+      return true;
+    }
+
+    const attModal = document.getElementById('companion-attendance-modal');
+    if (attModal && attModal.style.display !== 'none') {
+      if (window.CompanionBehavior && typeof window.CompanionBehavior.closeAttendanceModal === 'function') {
+        window.CompanionBehavior.closeAttendanceModal();
+      } else {
+        attModal.style.display = 'none';
+      }
+      return true;
+    }
+
+    const scoreModal = document.getElementById('companion-score-modal');
+    if (scoreModal && scoreModal.style.display !== 'none') {
+      if (window.CompanionBehavior && typeof window.CompanionBehavior.closeScoreModal === 'function') {
+        window.CompanionBehavior.closeScoreModal();
+      } else {
+        scoreModal.style.display = 'none';
+      }
+      return true;
+    }
+
+    // 5. Kitap Takip Modalleri Açıksa Kapat
+    const bookLendModal = document.getElementById('modal-book-lend');
+    if (bookLendModal && bookLendModal.style.display !== 'none') {
+      if (window.CompanionBooks && typeof window.CompanionBooks.closeLendModal === 'function') {
+        window.CompanionBooks.closeLendModal();
+      } else {
+        bookLendModal.style.display = 'none';
+      }
+      return true;
+    }
+
+    // 6. Optik Okuma (OMR) Modalleri ve Kamerası Açıksa Kapat
+    const examPickerModal = document.getElementById('omr-quick-exam-picker-modal');
+    if (examPickerModal && examPickerModal.style.display !== 'none') {
+      if (window.CompanionOmr && typeof window.CompanionOmr.closeExamPickerModal === 'function') {
+        window.CompanionOmr.closeExamPickerModal();
+      } else {
+        examPickerModal.style.display = 'none';
+      }
+      return true;
+    }
+
+    const inspectModal = document.getElementById('companion-optical-inspect-modal');
+    if (inspectModal && inspectModal.style.display !== 'none') {
+      if (window.CompanionOmr && typeof window.CompanionOmr.closeOpticalInspectModal === 'function') {
+        window.CompanionOmr.closeOpticalInspectModal();
+      } else {
+        inspectModal.style.display = 'none';
+      }
+      return true;
+    }
+
+    const studentPickerModal = document.getElementById('omr-student-picker-modal');
+    if (studentPickerModal && studentPickerModal.style.display !== 'none') {
+      if (window.CompanionOmr && typeof window.CompanionOmr.closeStudentPickerModal === 'function') {
+        window.CompanionOmr.closeStudentPickerModal();
+      } else {
+        studentPickerModal.style.display = 'none';
+      }
+      return true;
+    }
+
+    const printModal = document.getElementById('companion-optical-print-modal');
+    if (printModal && printModal.style.display !== 'none') {
+      if (window.CompanionOmr && typeof window.CompanionOmr.closeMobileOpticalPrintModal === 'function') {
+        window.CompanionOmr.closeMobileOpticalPrintModal();
+      } else {
+        printModal.style.display = 'none';
+      }
+      return true;
+    }
+
+    const wizardModal = document.getElementById('companion-exam-wizard-modal');
+    if (wizardModal && wizardModal.style.display !== 'none') {
+      if (window.CompanionOmr && typeof window.CompanionOmr.closeCreateExamModal === 'function') {
+        window.CompanionOmr.closeCreateExamModal();
+      } else {
+        wizardModal.style.display = 'none';
+      }
+      return true;
+    }
+
+    const cameraModal = document.getElementById('companion-omr-camera-modal');
+    if (cameraModal && cameraModal.style.display !== 'none') {
+      if (window.CompanionOmr && typeof window.CompanionOmr.closeCamera === 'function') {
+        window.CompanionOmr.closeCamera();
+      } else {
+        cameraModal.style.display = 'none';
+      }
+      return true;
+    }
+
+    // 7. OMR Sınav Detay Ekranındaysa Sınav Listesine Dön
+    if (window.CompanionOmr && window.CompanionOmr.viewState === 'detail') {
+      window.CompanionOmr.backToExamsList();
+      return true;
+    }
+
+    // 8. Diğer Herhangi Bir Açık Modal Varsa Kapat
+    const openModals = document.querySelectorAll('.c-modal, [id$="-modal"]');
+    for (const m of openModals) {
+      if (m.style.display && m.style.display !== 'none' && m.id !== 'companion-lock-overlay') {
+        m.style.display = 'none';
+        return true;
+      }
+    }
+
+    // 9. Menülerden Ana Menüye (Dashboard) Dönüş:
+    // Öğretmen Ödev, Planlama, Kitap, Sınavlar veya Eşitleme menüsündeyse geri tuşuyla Dashboard'a döner!
+    if (window.Companion && window.Companion.currentView && window.Companion.currentView !== 'dashboard' && window.Companion.currentView !== 'setup') {
+      window.Companion.showView('dashboard');
+      return true;
+    }
+
+    // Eğer zaten Dashboard'taysa false döner (uygulamadan çıkış veya sistem davranışı)
+    return false;
   };
 
   window.Companion = Companion;

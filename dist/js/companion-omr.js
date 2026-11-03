@@ -4362,60 +4362,62 @@
 
   window.CompanionOmr = CompanionOmr;
 
-  // Android Donanım Geri Tuşu Entegrasyonu
-  window.handleAndroidBack = function() {
-    const examPickerModal = document.getElementById('omr-quick-exam-picker-modal');
-    if (examPickerModal && examPickerModal.style.display !== 'none') {
-      CompanionOmr.closeExamPickerModal();
-      return true;
-    }
-
-    const inspectModal = document.getElementById('companion-optical-inspect-modal');
-    if (inspectModal && inspectModal.style.display !== 'none') {
-      CompanionOmr.closeOpticalInspectModal();
-      return true;
-    }
-
-    const pickerModal = document.getElementById('omr-student-picker-modal');
-    if (pickerModal && pickerModal.style.display !== 'none') {
-      CompanionOmr.closeStudentPickerModal();
-      return true;
-    }
-
-    const printModal = document.getElementById('companion-optical-print-modal');
-    if (printModal && printModal.style.display !== 'none') {
-      CompanionOmr.closeMobileOpticalPrintModal();
-      return true;
-    }
-
-    const wizardModal = document.getElementById('companion-exam-wizard-modal');
-    if (wizardModal && wizardModal.style.display !== 'none') {
-      CompanionOmr.closeCreateExamModal();
-      return true;
-    }
-
-    const settingsModal = document.getElementById('companion-settings-modal');
-    if (settingsModal && settingsModal.style.display !== 'none') {
-      if (window.Companion && typeof window.Companion.closeSettingsModal === 'function') {
-        window.Companion.closeSettingsModal();
-      } else {
-        settingsModal.style.display = 'none';
+  // Android Donanım Geri Tuşu Entegrasyonu (Geriye Dönük Uyumluluk Fallback)
+  if (!window.handleAndroidBack) {
+    window.handleAndroidBack = function() {
+      const examPickerModal = document.getElementById('omr-quick-exam-picker-modal');
+      if (examPickerModal && examPickerModal.style.display !== 'none') {
+        CompanionOmr.closeExamPickerModal();
+        return true;
       }
-      return true;
-    }
 
-    const cameraModal = document.getElementById('companion-omr-camera-modal');
-    if (cameraModal && cameraModal.style.display !== 'none') {
-      CompanionOmr.closeCamera();
-      return true;
-    }
+      const inspectModal = document.getElementById('companion-optical-inspect-modal');
+      if (inspectModal && inspectModal.style.display !== 'none') {
+        CompanionOmr.closeOpticalInspectModal();
+        return true;
+      }
 
-    if (CompanionOmr.viewState === 'detail') {
-      CompanionOmr.backToExamsList();
-      return true;
-    }
+      const pickerModal = document.getElementById('omr-student-picker-modal');
+      if (pickerModal && pickerModal.style.display !== 'none') {
+        CompanionOmr.closeStudentPickerModal();
+        return true;
+      }
 
-    return false;
-  };
+      const printModal = document.getElementById('companion-optical-print-modal');
+      if (printModal && printModal.style.display !== 'none') {
+        CompanionOmr.closeMobileOpticalPrintModal();
+        return true;
+      }
+
+      const wizardModal = document.getElementById('companion-exam-wizard-modal');
+      if (wizardModal && wizardModal.style.display !== 'none') {
+        CompanionOmr.closeCreateExamModal();
+        return true;
+      }
+
+      const settingsModal = document.getElementById('companion-settings-modal');
+      if (settingsModal && settingsModal.style.display !== 'none') {
+        if (window.Companion && typeof window.Companion.closeSettingsModal === 'function') {
+          window.Companion.closeSettingsModal();
+        } else {
+          settingsModal.style.display = 'none';
+        }
+        return true;
+      }
+
+      const cameraModal = document.getElementById('companion-omr-camera-modal');
+      if (cameraModal && cameraModal.style.display !== 'none') {
+        CompanionOmr.closeCamera();
+        return true;
+      }
+
+      if (CompanionOmr.viewState === 'detail') {
+        CompanionOmr.backToExamsList();
+        return true;
+      }
+
+      return false;
+    };
+  }
 
 })(window);

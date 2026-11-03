@@ -61,6 +61,138 @@
   --c-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
 }
 
+/* Aydınlık Tema */
+[data-theme="light"] {
+  --c-bg: #f1f5f9;
+  --c-surface: #ffffff;
+  --c-surface-hover: #f8fafc;
+  --c-border: #e2e8f0;
+  --c-border-strong: #cbd5e1;
+  --c-text: #0f172a;
+  --c-text-muted: #64748b;
+  --c-text-light: #94a3b8;
+  --c-primary-light: #eef2ff;
+  --c-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05);
+  --c-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+/* Aydınlık Tema Sayfa ve Arayüz Uyarlamaları */
+[data-theme="light"] body,
+body[data-theme="light"] {
+  background: linear-gradient(180deg, #e0e7ff 0%, #f1f5f9 35%, #f8fafc 100%) !important;
+  color: #0f172a !important;
+}
+
+[data-theme="light"] .c-appbar,
+body[data-theme="light"] .c-appbar {
+  background-color: rgba(255, 255, 255, 0.95) !important;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1) !important;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05) !important;
+}
+
+[data-theme="light"] .c-appbar-name,
+body[data-theme="light"] .c-appbar-name {
+  color: #0f172a !important;
+}
+
+[data-theme="light"] .c-appbar-branch,
+body[data-theme="light"] .c-appbar-branch {
+  color: #64748b !important;
+}
+
+[data-theme="light"] .c-icon-btn,
+body[data-theme="light"] .c-icon-btn {
+  background: rgba(0, 0, 0, 0.06) !important;
+  color: #334155 !important;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+}
+
+[data-theme="light"] .c-section-chip,
+body[data-theme="light"] .c-section-chip {
+  background: rgba(0, 0, 0, 0.05) !important;
+  color: #475569 !important;
+  border: 1px solid rgba(0, 0, 0, 0.1) !important;
+}
+
+[data-theme="light"] .c-section-chip.active,
+body[data-theme="light"] .c-section-chip.active {
+  background: #4f46e5 !important;
+  color: #ffffff !important;
+}
+
+[data-theme="light"] .c-card,
+body[data-theme="light"] .c-card {
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05) !important;
+}
+
+[data-theme="light"] .c-card-title,
+body[data-theme="light"] .c-card-title {
+  color: #0f172a !important;
+}
+
+[data-theme="light"] .c-card-desc,
+body[data-theme="light"] .c-card-desc {
+  color: #64748b !important;
+}
+
+[data-theme="light"] .c-action-card,
+body[data-theme="light"] .c-action-card {
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05) !important;
+}
+
+[data-theme="light"] .c-action-card-title,
+body[data-theme="light"] .c-action-card-title {
+  color: #0f172a !important;
+}
+
+[data-theme="light"] .c-action-card-desc,
+body[data-theme="light"] .c-action-card-desc {
+  color: #64748b !important;
+}
+
+[data-theme="light"] .c-behavior-quick-btn,
+body[data-theme="light"] .c-behavior-quick-btn {
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04) !important;
+}
+
+[data-theme="light"] .c-quick-btn-title,
+body[data-theme="light"] .c-quick-btn-title {
+  color: #0f172a !important;
+}
+
+[data-theme="light"] .c-quick-btn-sub,
+body[data-theme="light"] .c-quick-btn-sub {
+  color: #64748b !important;
+}
+
+[data-theme="light"] .c-view h2,
+body[data-theme="light"] .c-view h2 {
+  color: #0f172a !important;
+}
+
+[data-theme="light"] .c-bottom-nav,
+body[data-theme="light"] .c-bottom-nav {
+  background: rgba(255, 255, 255, 0.95) !important;
+  border-top: 1px solid rgba(0, 0, 0, 0.08) !important;
+  box-shadow: 0 -4px 15px rgba(0, 0, 0, 0.05) !important;
+}
+
+[data-theme="light"] .c-nav-item,
+body[data-theme="light"] .c-nav-item {
+  color: #64748b !important;
+}
+
+[data-theme="light"] .c-nav-item.active,
+body[data-theme="light"] .c-nav-item.active {
+  color: #4f46e5 !important;
+}
+
 * {
   box-sizing: border-box;
   margin: 0;
@@ -3018,6 +3150,286 @@ body {
   border-color: #475569;
   color: #ffffff;
   box-shadow: 0 2px 6px rgba(100, 116, 139, 0.35);
+}
+
+/* Yeni Ödev Verme Modal Çipleri & Butonları */
+.c-hw-date-chip {
+  transition: all 0.15s ease;
+  user-select: none;
+}
+.c-hw-date-chip:active {
+  transform: scale(0.96);
+}
+.c-hw-date-chip.active {
+  background: #eef2ff !important;
+  color: #4338ca !important;
+  border-color: #818cf8 !important;
+  box-shadow: 0 1px 4px rgba(99, 102, 241, 0.2);
+}
+.c-hw-sub-chip {
+  transition: all 0.15s ease;
+  user-select: none;
+}
+.c-hw-sub-chip:active {
+  transform: scale(0.94);
+}
+.c-hw-sub-chip.active {
+  background: #0284c7 !important;
+  color: #ffffff !important;
+  border-color: #0284c7 !important;
+  box-shadow: 0 1px 4px rgba(2, 132, 199, 0.25);
+}
+
+/* ==========================================================================
+   DERS & PLANLAMA (CANLI DERS AKIŞI & GÜNLÜK MÜFREDAT PLANI)
+   ========================================================================== */
+.c-sch-live-card {
+  background: #ffffff;
+  border-radius: 18px;
+  padding: 14px 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(226, 232, 240, 0.8);
+}
+
+.c-sch-live-card.lesson {
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+}
+
+.c-sch-live-card.break {
+  background: linear-gradient(135deg, #f0f9ff 0%, #ffffff 100%);
+  border-left: 5px solid #0284c7;
+}
+
+.c-sch-live-card.lunch {
+  background: linear-gradient(135deg, #ecfdf5 0%, #ffffff 100%);
+  border-left: 5px solid #10b981;
+}
+
+.c-sch-live-card.outside {
+  background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
+  border-left: 5px solid #64748b;
+}
+
+.c-sch-live-top-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.c-sch-live-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 3px 9px;
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.c-sch-live-pill.live {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.c-sch-live-pill.break {
+  background: #e0f2fe;
+  color: #0284c7;
+}
+
+.c-sch-live-pill.lunch {
+  background: #d1fae5;
+  color: #059669;
+}
+
+.c-sch-live-pill.outside {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.c-sch-live-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #ef4444;
+  animation: c-sch-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes c-sch-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.3; transform: scale(0.8); }
+}
+
+.c-sch-live-time-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #475569;
+  background: #f1f5f9;
+  padding: 3px 8px;
+  border-radius: 8px;
+}
+
+.c-sch-progress-track {
+  height: 5px;
+  background: #e2e8f0;
+  border-radius: 999px;
+  overflow: hidden;
+  margin: 4px 0 10px;
+}
+
+.c-sch-progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.4s ease;
+}
+
+.c-sch-plan-box {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 10px 12px;
+}
+
+.c-sch-day-tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.c-sch-day-btn {
+  flex: 1;
+  padding: 8px 4px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.c-sch-day-btn:active {
+  transform: scale(0.95);
+}
+
+.c-sch-day-btn.active {
+  background: #ffffff !important;
+  color: #4338ca !important;
+  border-color: #ffffff !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+  font-weight: 900;
+}
+
+.c-sch-today-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #10b981;
+}
+
+.c-sch-day-btn.active .c-sch-today-dot {
+  background: #059669;
+}
+
+.c-sch-lessons-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-bottom: 24px;
+}
+
+.c-sch-lesson-card {
+  background: #ffffff;
+  border-radius: 14px;
+  padding: 12px 14px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  border: 1px solid #f1f5f9;
+  transition: transform 0.15s ease;
+}
+
+.c-sch-lesson-card:active {
+  transform: scale(0.99);
+}
+
+.c-sch-lesson-card.is-current {
+  border-left-width: 6px !important;
+  box-shadow: 0 4px 18px rgba(99, 102, 241, 0.25) !important;
+  background: #ffffff;
+  border-color: rgba(99, 102, 241, 0.3);
+}
+
+.c-sch-lesson-card.empty {
+  opacity: 0.75;
+  background: rgba(255, 255, 255, 0.85);
+}
+
+.c-sch-period-pill {
+  font-size: 11px;
+  font-weight: 800;
+  color: #334155;
+  background: #f1f5f9;
+  padding: 2px 7px;
+  border-radius: 6px;
+}
+
+.c-sch-period-pill.empty {
+  background: #f1f5f9;
+  color: #94a3b8;
+}
+
+.c-sch-time-span {
+  font-size: 11px;
+  font-weight: 600;
+  color: #64748b;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.c-sch-lesson-tag {
+  font-size: 11.5px;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 7px;
+}
+
+.c-sch-badge-now {
+  font-size: 9.5px;
+  font-weight: 800;
+  color: #059669;
+  background: #ecfdf5;
+  padding: 2px 6px;
+  border-radius: 6px;
+  border: 1px solid #a7f3d0;
+  letter-spacing: 0.3px;
+}
+
+.c-sch-lunch-divider {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background: rgba(16, 185, 129, 0.12);
+  color: #065f46;
+  border: 1px dashed rgba(16, 185, 129, 0.35);
+  border-radius: 10px;
+  font-size: 11.5px;
+  font-weight: 700;
+  margin: 4px 0;
 }
 
 /* ==========================================================================

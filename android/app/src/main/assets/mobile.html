@@ -11,7 +11,7 @@
   <link rel="shortcut icon" href="icons/icon-128.png" type="image/png">
 
   <!-- Hafif Mobil Tasarım Sistemi -->
-  <link rel="stylesheet" href="css/companion.css?v=1.0.122">
+  <link rel="stylesheet" href="css/companion.css?v=1.0.123">
 
   <!-- Çevrim Dışı İkon Kütüphanesi -->
   <script src="js/lucide.min.js"></script>
@@ -27,7 +27,7 @@
       <div class="c-appbar-info">
         <div style="display: flex; align-items: center; gap: 4px; flex-wrap: wrap;">
           <div class="c-appbar-name" id="appbar-teacher-name">Öğretmen</div>
-          <span id="companion-version-badge" style="font-size: 10px; background: rgba(255,255,255,0.22); padding: 1.5px 7px; border-radius: 999px; font-weight: 700; color: #fff; margin-left: 6px; letter-spacing: 0.3px;">v1.0.122</span>
+          <span id="companion-version-badge" style="font-size: 10px; background: rgba(255,255,255,0.22); padding: 1.5px 7px; border-radius: 999px; font-weight: 700; color: #fff; margin-left: 6px; letter-spacing: 0.3px;">v1.0.123</span>
           <span id="appbar-sync-code-badge" onclick="window.Companion.openSettingsModal()" style="font-size: 10px; background: rgba(79, 70, 229, 0.45); border: 1px solid rgba(165, 180, 252, 0.45); padding: 1.5px 6px; border-radius: 6px; font-weight: 800; color: #e0e7ff; font-family: monospace; letter-spacing: 0.5px; cursor: pointer;" title="Cihaz Eşleşme Kodu (Değiştirmek için dokunun)">SA-......</span>
         </div>
         <div class="c-appbar-branch" id="appbar-branch-name">Branş Seçilmedi</div>
@@ -48,7 +48,7 @@
         <i data-lucide="lock" style="width: 18px; height: 18px;"></i>
       </button>
       <!-- Tema Değiştirici -->
-      <button class="c-icon-btn" id="btn-companion-theme" title="Karanlık/Aydınlık Tema">
+      <button class="c-icon-btn" id="btn-companion-theme" title="Karanlık/Aydınlık Tema" onclick="window.Companion.toggleTheme()">
         <i data-lucide="moon" style="width: 18px; height: 18px;"></i>
       </button>
     </div>
@@ -156,15 +156,23 @@
             <option value="1-A">1-A</option>
             <option value="1-B">1-B</option>
             <option value="1-C">1-C</option>
+            <option value="1-D">1-D</option>
+            <option value="1-E">1-E</option>
             <option value="2-A">2-A</option>
             <option value="2-B">2-B</option>
             <option value="2-C">2-C</option>
+            <option value="2-D">2-D</option>
+            <option value="2-E">2-E</option>
             <option value="3-A" selected>3-A</option>
             <option value="3-B">3-B</option>
             <option value="3-C">3-C</option>
+            <option value="3-D">3-D</option>
+            <option value="3-E">3-E</option>
             <option value="4-A">4-A</option>
             <option value="4-B">4-B</option>
             <option value="4-C">4-C</option>
+            <option value="4-D">4-D</option>
+            <option value="4-E">4-E</option>
           </select>
           <span style="font-size: 11px; color: var(--c-text-muted); display: block; margin-top: 4px;">
             🔒 Sınıf öğretmeni tek bir şubeden sorumlu olduğu için diğer şubeler otomatik olarak kapatılmıştır.
@@ -426,13 +434,13 @@
           <div class="c-tile-subtitle">Akıllı Tahta Köprüsü</div>
         </div>
 
-        <!-- 6. Sınıf & Öğrenci Yönetimi -->
-        <div class="c-tile-card" onclick="window.Companion.showView('setup'); window.Companion.renderSetupForm();">
-          <div class="c-tile-icon-wrap purple">
-            <i data-lucide="users" style="width: 32px; height: 32px;"></i>
+        <!-- 6. Ders & Planlama -->
+        <div class="c-tile-card" onclick="window.Companion.showView('schedule-plan'); if (window.CompanionSchedule) window.CompanionSchedule.init();">
+          <div class="c-tile-icon-wrap indigo" style="background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(129, 140, 248, 0.1)); color: #6366f1;">
+            <i data-lucide="calendar-clock" style="width: 32px; height: 32px;"></i>
           </div>
-          <div class="c-tile-title">Sınıf & Öğrenciler</div>
-          <div class="c-tile-subtitle">Kalıcı Bellek & Şube</div>
+          <div class="c-tile-title">Ders & Planlama</div>
+          <div class="c-tile-subtitle">Canlı Ders & Günün Planı</div>
         </div>
 
       </div>
@@ -461,21 +469,27 @@
          ----------------------------------------------------------------------- -->
     <section class="c-view" id="view-homework" style="display: none;">
       <!-- Üst Gezinme Başlığı -->
-      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
-        <div style="display: flex; align-items: center; gap: 10px;">
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; gap: 8px;">
+        <div style="display: flex; align-items: center; gap: 10px; min-width: 0;">
           <button type="button" class="c-icon-btn" onclick="window.Companion.showView('dashboard')">
             <i data-lucide="arrow-left" style="width: 20px; height: 20px;"></i>
           </button>
-          <div>
+          <div style="overflow: hidden;">
             <h2 style="font-size: 18px; font-weight: 800; color: #ffffff; line-height: 1.2;">Ödev Kontrolü</h2>
             <span style="font-size: 11px; color: #93c5fd;" id="homework-view-subtitle">5-A Şubesi • Günlük Görünüm</span>
           </div>
         </div>
 
-        <button type="button" class="c-btn-secondary" style="padding: 6px 12px; font-size: 12px; border-radius: 10px; background: rgba(255, 255, 255, 0.15); color: #fff; border: 1px solid rgba(255, 255, 255, 0.25);" onclick="window.CompanionHomework.goToToday()" title="Bugüne Dön">
-          <i data-lucide="calendar" style="width: 14px; height: 14px;"></i>
-          <span>Bugün</span>
-        </button>
+        <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
+          <button type="button" class="c-btn-secondary" style="padding: 6px 10px; font-size: 12px; border-radius: 10px; background: rgba(255, 255, 255, 0.15); color: #fff; border: 1px solid rgba(255, 255, 255, 0.25); display: inline-flex; align-items: center; gap: 4px;" onclick="window.CompanionHomework.goToToday()" title="Bugüne Dön">
+            <i data-lucide="calendar" style="width: 14px; height: 14px;"></i>
+            <span>Bugün</span>
+          </button>
+          <button type="button" id="btn-open-create-hw" style="display: inline-flex; align-items: center; gap: 5px; padding: 6px 12px; font-size: 12px; font-weight: 800; border-radius: 10px; background: linear-gradient(135deg, #10b981, #059669); color: #fff; border: 1px solid rgba(255,255,255,0.3); box-shadow: 0 2px 8px rgba(16, 185, 129, 0.4); cursor: pointer;" onclick="window.CompanionHomework.openCreateModal()" title="Yeni Ödev Ver">
+            <i data-lucide="plus-circle" style="width: 15px; height: 15px;"></i>
+            <span>Ödev Ver</span>
+          </button>
+        </div>
       </div>
 
       <!-- Günlük Tarih Gezinme Bandı (Sol Ok, Takvim Seçici, Sağ Ok) -->
@@ -520,6 +534,10 @@
           </button>
           <button type="button" class="c-btn-sm-action" style="flex: 1; justify-content: center;" onclick="window.CompanionHomework.markAll('none')">
             <i data-lucide="rotate-ccw" style="width: 14px; height: 14px;"></i> Sıfırla
+          </button>
+          <button type="button" class="c-btn-sm-action" style="padding: 0 10px; justify-content: center; background: #ecfdf5; color: #15803d; border-color: #a7f3d0;" onclick="window.CompanionHomework.shareCurrentHomeworkWhatsApp()" title="Bu Günün Ödevini WhatsApp'ta Paylaş">
+            <svg style="width: 14px; height: 14px; fill: #16a34a;" viewBox="0 0 24 24"><path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.816 9.816 0 0 0 12.04 2m.01 1.67c4.54 0 8.24 3.7 8.24 8.24 0 2.2-.86 4.27-2.42 5.82a8.188 8.188 0 0 1-5.82 2.42c-1.44 0-2.85-.38-4.09-1.11l-.29-.17-3.11.82.83-3.03-.19-.31a8.214 8.214 0 0 1-1.26-4.39c0-4.54 3.7-8.24 8.24-8.24m4.52 11.66c-.25-.13-1.47-.72-1.7-.81-.23-.08-.39-.13-.56.13-.17.25-.64.81-.79.97-.14.17-.29.19-.54.06-.25-.13-1.06-.39-2.02-1.25-.75-.67-1.26-1.5-1.41-1.75-.14-.25-.02-.39.11-.51.11-.11.25-.29.37-.44.13-.14.17-.25.25-.42.08-.17.04-.31-.02-.44-.06-.13-.56-1.34-.76-1.84-.2-.49-.4-.42-.56-.43h-.48c-.17 0-.44.06-.67.31-.23.25-.88.86-.88 2.1 0 1.24.9 2.44 1.03 2.61.13.17 1.78 2.71 4.3 3.8.6.26 1.07.42 1.44.54.6.19 1.15.16 1.58.1.48-.07 1.47-.6 1.68-1.18.21-.58.21-1.07.14-1.18-.06-.12-.22-.19-.47-.32"/></svg>
+            <span style="font-size: 11px; font-weight: 700; margin-left: 2px;">Paylaş</span>
           </button>
         </div>
       </div>
@@ -702,7 +720,178 @@
       </div>
     </section>
 
+    <!-- -----------------------------------------------------------------------
+         EKRAN: DERS & PLANLAMA (CANLI DERS AKIŞI & GÜNLÜK MÜFREDAT PLANI)
+         ----------------------------------------------------------------------- -->
+    <section class="c-view" id="view-schedule-plan" style="display: none;">
+      <!-- Üst Gezinme Başlığı -->
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; gap: 8px;">
+        <div style="display: flex; align-items: center; gap: 10px; min-width: 0;">
+          <button type="button" class="c-icon-btn" onclick="window.Companion.showView('dashboard')">
+            <i data-lucide="arrow-left" style="width: 20px; height: 20px;"></i>
+          </button>
+          <div style="overflow: hidden;">
+            <h2 style="font-size: 18px; font-weight: 800; color: #ffffff; line-height: 1.2;">Ders & Planlama</h2>
+            <span style="font-size: 11px; color: #93c5fd;" id="sch-view-subtitle">Canlı Ders Akışı • Müfredat Planı</span>
+          </div>
+        </div>
+
+        <button type="button" class="c-btn-secondary" style="padding: 6px 12px; font-size: 12px; border-radius: 10px; background: rgba(255, 255, 255, 0.15); color: #fff; border: 1px solid rgba(255, 255, 255, 0.25); display: inline-flex; align-items: center; gap: 5px;" onclick="window.CompanionSchedule.refreshLiveStatus()" title="Yenile">
+          <i data-lucide="refresh-cw" style="width: 14px; height: 14px;"></i>
+          <span>Yenile</span>
+        </button>
+      </div>
+
+      <!-- 1. BÖLÜM: CANLI DERS KARTI (Masaüstü Canlı Gösterge Düzeni) -->
+      <div id="sch-live-card-container" style="margin-bottom: 14px;">
+        <!-- companion-schedule.js dinamik dolduracak -->
+      </div>
+
+      <!-- 2. BÖLÜM: GÜN SEÇİCİ SEKMELER & GÜNÜN PROGRAMI -->
+      <div class="c-sch-program-section">
+        <!-- Gün Seçici Haplar (Pazartesi .. Cuma) -->
+        <div class="c-sch-day-tabs" id="sch-day-tabs">
+          <!-- companion-schedule.js render edecek -->
+        </div>
+
+        <!-- Gün Başlığı & Hafta Bilgisi -->
+        <div style="display: flex; align-items: center; justify-content: space-between; margin: 10px 2px 8px;">
+          <div style="font-size: 13px; font-weight: 800; color: #ffffff; display: flex; align-items: center; gap: 6px;">
+            <i data-lucide="calendar" style="width: 15px; height: 15px; color: #93c5fd;"></i>
+            <span id="sch-selected-day-label">Günün Dersleri</span>
+          </div>
+          <span id="sch-week-badge" style="font-size: 11px; font-weight: 700; color: #c7d2fe; background: rgba(99, 102, 241, 0.25); padding: 2px 8px; border-radius: 8px;">
+            Plan
+          </span>
+        </div>
+
+        <!-- Günün Dersleri ve Konuları Listesi -->
+        <div id="sch-daily-lessons-list" class="c-sch-lessons-list">
+          <!-- companion-schedule.js dinamik basacak -->
+        </div>
+      </div>
+    </section>
+
   </main>
+
+  <!-- ==========================================================================
+       YENİ ÖDEV VERME MODÜLÜ (BOTTOM SHEET MODAL)
+       ========================================================================== -->
+  <div class="c-modal-overlay" id="companion-create-hw-modal" style="display: none;" onclick="if(event.target === this) window.CompanionHomework.closeCreateModal();">
+    <div class="c-score-sheet" style="max-height: 90vh;">
+      <!-- Çekme Çubuğu -->
+      <div class="c-sheet-grabber"></div>
+
+      <!-- Başlık ve Kapat Butonu -->
+      <div class="c-score-sheet-header" style="margin-bottom: 12px; padding-bottom: 10px;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div style="width: 38px; height: 38px; border-radius: 12px; background: linear-gradient(135deg, #ede9fe, #ddd6fe); color: #6366f1; display: flex; align-items: center; justify-content: center; font-size: 20px;">
+            📝
+          </div>
+          <div>
+            <h3 style="font-size: 16px; font-weight: 800; color: #0f172a; margin: 0; line-height: 1.2;">Yeni Ödev Ver</h3>
+            <span id="new-hw-branch-pill" style="font-size: 11px; color: #64748b; font-weight: 700;">5-A Şubesi</span>
+          </div>
+        </div>
+        <button type="button" class="c-score-modal-close" onclick="window.CompanionHomework.closeCreateModal()">
+          <i data-lucide="x" style="width: 20px; height: 20px;"></i>
+        </button>
+      </div>
+
+      <!-- Form İçeriği -->
+      <div style="display: flex; flex-direction: column; gap: 14px;">
+        
+        <!-- 1. Teslim Tarihi (Varsayılan Yarın) -->
+        <div>
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+            <label for="new-hw-due-date" style="font-size: 12px; font-weight: 700; color: #334155; display: flex; align-items: center; gap: 5px;">
+              <i data-lucide="calendar" style="width: 14px; height: 14px; color: #4f46e5;"></i>
+              Teslim Tarihi
+            </label>
+            <span id="new-hw-date-summary" style="font-size: 11px; color: #4f46e5; font-weight: 800; background: #eef2ff; padding: 2px 8px; border-radius: 6px;">Yarın</span>
+          </div>
+
+          <div style="position: relative;">
+            <input type="date" id="new-hw-due-date" class="c-input" style="width: 100%; height: 42px; font-size: 14px; font-weight: 600; border-radius: 10px; border: 1.5px solid #cbd5e1; background: #ffffff;" onchange="window.CompanionHomework.onNewHwDateChanged(this.value)" />
+          </div>
+
+          <!-- Hızlı Tarih Seçim Butonları -->
+          <div style="display: flex; gap: 6px; margin-top: 8px;">
+            <button type="button" class="c-hw-date-chip active" id="chip-date-tomorrow" onclick="window.CompanionHomework.setQuickDate(1)" style="flex: 1; padding: 6px 4px; font-size: 11px; font-weight: 700; border-radius: 8px; border: 1px solid #818cf8; background: #eef2ff; color: #4338ca; cursor: pointer; text-align: center;">
+              📅 Yarın
+            </button>
+            <button type="button" class="c-hw-date-chip" id="chip-date-dayafter" onclick="window.CompanionHomework.setQuickDate(2)" style="flex: 1; padding: 6px 4px; font-size: 11px; font-weight: 700; border-radius: 8px; border: 1px solid #e2e8f0; background: #f8fafc; color: #64748b; cursor: pointer; text-align: center;">
+              +2 Gün
+            </button>
+            <button type="button" class="c-hw-date-chip" id="chip-date-monday" onclick="window.CompanionHomework.setQuickDate('next_monday')" style="flex: 1; padding: 6px 4px; font-size: 11px; font-weight: 700; border-radius: 8px; border: 1px solid #e2e8f0; background: #f8fafc; color: #64748b; cursor: pointer; text-align: center;">
+              Pazartesi
+            </button>
+          </div>
+        </div>
+
+        <!-- 2. Ders Adı & Hızlı Ders Seçimi -->
+        <div>
+          <label for="new-hw-subject" style="display: block; font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 6px;">
+            <span style="display: flex; align-items: center; gap: 5px;">
+              <i data-lucide="book-open" style="width: 14px; height: 14px; color: #0284c7;"></i>
+              Ders Adı
+            </span>
+          </label>
+          <input type="text" id="new-hw-subject" class="c-input" placeholder="Ders adı (Örn: Matematik, Türkçe)..." style="width: 100%; height: 40px; font-size: 13px; font-weight: 600; border-radius: 10px; border: 1.5px solid #cbd5e1; background: #ffffff;" />
+          
+          <!-- Hızlı Ders Çipleri -->
+          <div style="display: flex; gap: 5px; flex-wrap: wrap; margin-top: 6px;" id="new-hw-subject-chips">
+            <button type="button" class="c-hw-sub-chip" onclick="window.CompanionHomework.selectSubject('Türkçe')" style="padding: 4px 8px; font-size: 11px; font-weight: 600; border-radius: 6px; border: 1px solid #e2e8f0; background: #f1f5f9; color: #334155; cursor: pointer;">Türkçe</button>
+            <button type="button" class="c-hw-sub-chip" onclick="window.CompanionHomework.selectSubject('Matematik')" style="padding: 4px 8px; font-size: 11px; font-weight: 600; border-radius: 6px; border: 1px solid #e2e8f0; background: #f1f5f9; color: #334155; cursor: pointer;">Matematik</button>
+            <button type="button" class="c-hw-sub-chip" onclick="window.CompanionHomework.selectSubject('Fen Bilimleri')" style="padding: 4px 8px; font-size: 11px; font-weight: 600; border-radius: 6px; border: 1px solid #e2e8f0; background: #f1f5f9; color: #334155; cursor: pointer;">Fen Bilimleri</button>
+            <button type="button" class="c-hw-sub-chip" onclick="window.CompanionHomework.selectSubject('Sosyal Bilgiler')" style="padding: 4px 8px; font-size: 11px; font-weight: 600; border-radius: 6px; border: 1px solid #e2e8f0; background: #f1f5f9; color: #334155; cursor: pointer;">Sosyal Bilgiler</button>
+            <button type="button" class="c-hw-sub-chip" onclick="window.CompanionHomework.selectSubject('İngilizce')" style="padding: 4px 8px; font-size: 11px; font-weight: 600; border-radius: 6px; border: 1px solid #e2e8f0; background: #f1f5f9; color: #334155; cursor: pointer;">İngilizce</button>
+            <button type="button" class="c-hw-sub-chip" onclick="window.CompanionHomework.selectSubject('Din Kültürü')" style="padding: 4px 8px; font-size: 11px; font-weight: 600; border-radius: 6px; border: 1px solid #e2e8f0; background: #f1f5f9; color: #334155; cursor: pointer;">Din Kültürü</button>
+          </div>
+        </div>
+
+        <!-- 3. Ödev Konusu & Görev Detayı -->
+        <div>
+          <label for="new-hw-title" style="display: block; font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 6px;">
+            <span style="display: flex; align-items: center; gap: 5px;">
+              <i data-lucide="file-text" style="width: 14px; height: 14px; color: #e11d48;"></i>
+              Ödev Konusu & Görevi <span style="color: #ef4444;">*</span>
+            </span>
+          </label>
+          <textarea id="new-hw-title" class="c-input" rows="3" placeholder="Ödev detaylarını yazın (Örn: Ders kitabı sayfa 54-56 alıştırmaları yapılacak)..." style="width: 100%; font-size: 13px; line-height: 1.4; border-radius: 10px; border: 1.5px solid #cbd5e1; background: #ffffff; padding: 8px 10px; resize: none;"></textarea>
+        </div>
+
+        <!-- 4. Ek Açıklama / Not (Opsiyonel) -->
+        <div>
+          <label for="new-hw-description" style="display: block; font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 6px;">
+            <span style="display: flex; align-items: center; gap: 5px;">
+              <i data-lucide="info" style="width: 14px; height: 14px; color: #64748b;"></i>
+              Velilere Not / Ek Açıklama <span style="font-size: 10px; color: #94a3b8; font-weight: 500;">(İsteğe bağlı)</span>
+            </span>
+          </label>
+          <input type="text" id="new-hw-description" class="c-input" placeholder="Örn: Çalışma kağıdı çantada, lütfen kontrol ediniz." style="width: 100%; height: 38px; font-size: 12px; border-radius: 10px; border: 1.5px solid #cbd5e1; background: #ffffff;" />
+        </div>
+
+        <!-- İşlem Butonları (Kaydet & WhatsApp) -->
+        <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 6px;">
+          <!-- 1. Kaydet & WhatsApp'ta Paylaş -->
+          <button type="button" id="btn-save-hw-whatsapp" class="c-btn-primary" style="width: 100%; height: 46px; font-size: 14px; font-weight: 800; border-radius: 12px; background: linear-gradient(135deg, #16a34a, #22c55e); color: #ffffff; display: flex; align-items: center; justify-content: center; gap: 8px; border: none; box-shadow: 0 4px 12px rgba(34, 197, 94, 0.35); cursor: pointer;" onclick="window.CompanionHomework.saveNewHomework(true)">
+            <svg style="width: 20px; height: 20px; fill: currentColor;" viewBox="0 0 24 24">
+              <path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.816 9.816 0 0 0 12.04 2m.01 1.67c4.54 0 8.24 3.7 8.24 8.24 0 2.2-.86 4.27-2.42 5.82a8.188 8.188 0 0 1-5.82 2.42c-1.44 0-2.85-.38-4.09-1.11l-.29-.17-3.11.82.83-3.03-.19-.31a8.214 8.214 0 0 1-1.26-4.39c0-4.54 3.7-8.24 8.24-8.24m4.52 11.66c-.25-.13-1.47-.72-1.7-.81-.23-.08-.39-.13-.56.13-.17.25-.64.81-.79.97-.14.17-.29.19-.54.06-.25-.13-1.06-.39-2.02-1.25-.75-.67-1.26-1.5-1.41-1.75-.14-.25-.02-.39.11-.51.11-.11.25-.29.37-.44.13-.14.17-.25.25-.42.08-.17.04-.31-.02-.44-.06-.13-.56-1.34-.76-1.84-.2-.49-.4-.42-.56-.43h-.48c-.17 0-.44.06-.67.31-.23.25-.88.86-.88 2.1 0 1.24.9 2.44 1.03 2.61.13.17 1.78 2.71 4.3 3.8.6.26 1.07.42 1.44.54.6.19 1.15.16 1.58.1.48-.07 1.47-.6 1.68-1.18.21-.58.21-1.07.14-1.18-.06-.12-.22-.19-.47-.32"/>
+            </svg>
+            <span>Kaydet & WhatsApp'ta Paylaş</span>
+          </button>
+
+          <!-- 2. Sadece Kaydet -->
+          <button type="button" id="btn-save-hw-only" class="c-btn-secondary" style="width: 100%; height: 42px; font-size: 13px; font-weight: 700; border-radius: 12px; background: #f8fafc; color: #334155; border: 1.5px solid #cbd5e1; display: flex; align-items: center; justify-content: center; gap: 6px; cursor: pointer;" onclick="window.CompanionHomework.saveNewHomework(false)">
+            <i data-lucide="check" style="width: 16px; height: 16px; color: #475569;"></i>
+            <span>Sadece Kaydet</span>
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </div>
 
   <!-- ==========================================================================
        PUAN VERME MODÜLÜ (BOTTOM SHEET MODAL)
@@ -1401,7 +1590,7 @@
 
         <!-- Versiyon Bilgisi -->
         <div style="text-align: center; margin-top: 14px; font-size: 11px; color: #94a3b8; font-weight: 600;">
-          Sınıf Asistanı El Terminali • <span id="settings-modal-version" style="color: #4f46e5; font-weight: 800;">v1.0.122</span>
+          Sınıf Asistanı El Terminali • <span id="settings-modal-version" style="color: #4f46e5; font-weight: 800;">v1.0.123</span>
         </div>
 
       </div>
@@ -2051,17 +2240,18 @@
   </div>
 
   <!-- QR, Bulut & OMR Analiz Motorları -->
-  <script src="js/supabase-config.js?v=1.0.122"></script>
-  <script src="js/cloud-sync.js?v=1.0.122"></script>
+  <script src="js/supabase-config.js?v=1.0.123"></script>
+  <script src="js/cloud-sync.js?v=1.0.123"></script>
   <script src="js/qrcode.min.js"></script>
   <script src="js/jsqr.js"></script>
-  <script src="js/omr-engine.js?v=1.0.122"></script>
-  <script src="js/companion-omr.js?v=1.0.122"></script>
-  <script src="js/companion-behavior.js?v=1.0.122"></script>
-  <script src="js/companion-homework.js?v=1.0.122"></script>
-  <script src="js/companion-books.js?v=1.0.122"></script>
+  <script src="js/omr-engine.js?v=1.0.123"></script>
+  <script src="js/companion-omr.js?v=1.0.123"></script>
+  <script src="js/companion-behavior.js?v=1.0.123"></script>
+  <script src="js/companion-homework.js?v=1.0.123"></script>
+  <script src="js/companion-books.js?v=1.0.123"></script>
+  <script src="js/companion-schedule.js?v=1.0.123"></script>
 
   <!-- Çekirdek Kontrolcü -->
-  <script src="js/companion.js?v=1.0.122"></script>
+  <script src="js/companion.js?v=1.0.123"></script>
 </body>
 </html>

@@ -130,6 +130,92 @@
       return clean;
     },
 
+    // =========================================================================
+    // EL TERMİNALİ EŞLEŞTİRME YAŞAM DÖNGÜSÜ (UNPAIRED / WIZARD / CONNECTED)
+    // =========================================================================
+
+    wizardActive: false,
+    wizardStep: 1,
+
+    isDevicePaired() {
+      return localStorage.getItem('sinif_device_paired') === 'true';
+    },
+
+    setDevicePaired(val) {
+      if (val) {
+        localStorage.setItem('sinif_device_paired', 'true');
+      } else {
+        localStorage.removeItem('sinif_device_paired');
+      }
+      this.updateSyncUI();
+    },
+
+    startPairingWizard() {
+      this.wizardActive = true;
+      this.wizardStep = 1;
+      this.updateSyncUI();
+      if (window.lucide && typeof window.lucide.createIcons === 'function') window.lucide.createIcons();
+    },
+
+    setWizardStep(step) {
+      this.wizardStep = step;
+      this.updateSyncUI();
+      if (window.lucide && typeof window.lucide.createIcons === 'function') window.lucide.createIcons();
+    },
+
+    cancelPairingWizard() {
+      this.wizardActive = false;
+      this.wizardStep = 1;
+      this.updateSyncUI();
+      if (window.lucide && typeof window.lucide.createIcons === 'function') window.lucide.createIcons();
+    },
+
+    completePairing() {
+      this.wizardActive = false;
+      this.setDevicePaired(true);
+      if (window.showToast) window.showToast('✅ El Terminali eşleştirmesi başarıyla tamamlandı!', 'success');
+      this.updateSyncUI();
+      if (window.lucide && typeof window.lucide.createIcons === 'function') window.lucide.createIcons();
+    },
+
+    deletePairing() {
+      const ok = confirm(
+        'El terminali eşleştirmesini sonlandırmak istediğinize emin misiniz?\n\n' +
+        'Eşleşme silindiğinde cihaz bağlantısı kesilecek ve tekrar kurulum yapmanız gerekecektir.'
+      );
+      if (!ok) return;
+
+      this.setDevicePaired(false);
+      this.wizardActive = false;
+      this.wizardStep = 1;
+      const newCode = this.generateSyncCode();
+      this.setSyncCode(newCode);
+      if (window.showToast) window.showToast('🗑️ Eşleşme sonlandırıldı. Tekrar kurulum başlatabilirsiniz.', 'info');
+      this.updateSyncUI();
+      if (window.lucide && typeof window.lucide.createIcons === 'function') window.lucide.createIcons();
+    },
+
+    renderApkDownloadQRCode() {
+      const qrContainer = document.getElementById('desktop-apk-download-qrcode');
+      if (!qrContainer) return;
+      if (typeof window.qrcode !== 'function') return;
+      const apkUrl = 'https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/latest/download/sinif-asistani.apk';
+      try {
+        const qr = window.qrcode(0, 'M');
+        qr.addData(apkUrl);
+        qr.make();
+        qrContainer.innerHTML = qr.createSvgTag({ cellSize: 3.5, margin: 2 });
+        const svg = qrContainer.querySelector('svg');
+        if (svg) {
+          svg.style.width = '100%';
+          svg.style.height = '100%';
+          svg.style.display = 'block';
+        }
+      } catch (e) {
+        console.error('APK QR kod oluşturulamadı:', e);
+      }
+    },
+
     // Supabase API Çağrısı (Kota, Trafik Korumalı ve 12 sn Zaman Aşımı Güvenlikli)
     async request(method, path, body = null, timeoutMs = 12000) {
       const url = `${this.supabaseUrl}/rest/v1/${path}`;
@@ -689,7 +775,11 @@
         contributions: contributions,
         performanceBehaviors: performanceBehaviors,
         attendance: (localData.attendance || (window.stateManager && window.stateManager.state ? window.stateManager.state.attendance : {})) || {},
-        performance: cleanPerformance
+        performance: cleanPerformance,
+        scheduleGrid: localData.scheduleGrid || (window.stateManager && window.stateManager.state ? window.stateManager.state.scheduleGrid : {}) || {},
+        scheduleTimes: localData.scheduleTimes || (window.stateManager && window.stateManager.state ? window.stateManager.state.scheduleTimes : {}) || {},
+        definedLessons: Array.isArray(localData.definedLessons) ? localData.definedLessons : ((window.stateManager && window.stateManager.state && Array.isArray(window.stateManager.state.definedLessons)) ? window.stateManager.state.definedLessons : []),
+        plans: Array.isArray(localData.plans) ? localData.plans : ((window.stateManager && window.stateManager.state && Array.isArray(window.stateManager.state.plans)) ? window.stateManager.state.plans : [])
       };
 
       // Öğrenci fotoğraflarını ayrı bir satırda (STUDENT_PHOTOS) tut ve sadece fotoğraflar değiştiğinde gönder
@@ -1183,6 +1273,20 @@
         window.reconcileHomeworkStateObject(localData);
       }
 
+      // 8. Ders Programı & Yıllık Planlar (Haftalık Ders Akışı & Konular)
+      if (masterItem.scheduleGrid && typeof masterItem.scheduleGrid === 'object') {
+        localData.scheduleGrid = masterItem.scheduleGrid;
+      }
+      if (masterItem.scheduleTimes && typeof masterItem.scheduleTimes === 'object') {
+        localData.scheduleTimes = masterItem.scheduleTimes;
+      }
+      if (Array.isArray(masterItem.definedLessons) && masterItem.definedLessons.length > 0) {
+        localData.definedLessons = masterItem.definedLessons;
+      }
+      if (Array.isArray(masterItem.plans) && masterItem.plans.length > 0) {
+        localData.plans = masterItem.plans;
+      }
+
       // Masaüstü StateManager varsa güvenli şekilde güncelle (5MB localStorage kotasına takılmadan IndexedDB ve Tauri diske yazar)
       if (window.stateManager) {
         window.stateManager.state = typeof window.wrapState === 'function'
@@ -1398,6 +1502,7 @@
       }
 
       if (examRes.success || masterRes.success) {
+        this.setDevicePaired(true);
         const count = (examRes.count || 0) + (masterRes.studentCount || 0);
         const msg = `✅ Başarılı! Terminalden okunan sınav sonuçları ve öğrenci verileri masaüstüne aktarıldı.`;
         if (statusEl && textEl) {
@@ -1997,6 +2102,9 @@
 
     // Masaüstü Canlı Olay İşleyicisi
     handleDesktopIncomingLiveRecord(record, payload) {
+      if (!this.isDevicePaired()) {
+        this.setDevicePaired(true);
+      }
       // 1. CANLI DAVRANIŞ PUANI ENTEGRASYONU
       if (record.exam_id === 'LIVE_EVENT' && payload.type === 'performance' && payload.record) {
         const perf = payload.record;
@@ -3063,9 +3171,100 @@
         }
       }
 
-      // 2. Masaüstü Ayarlar alanındaki göstergeler
+      // 2. Masaüstü Ayarlar alanındaki göstergeler & 3 Aşamalı Yaşam Döngüsü
       const desktopCode = document.getElementById('desktop-sync-code-display');
       if (desktopCode) desktopCode.textContent = this.syncCode;
+
+      const unpairedView = document.getElementById('desktop-pairing-unpaired-view');
+      const wizardView = document.getElementById('desktop-pairing-wizard-view');
+      const connectedView = document.getElementById('desktop-pairing-connected-view');
+      const isPaired = this.isDevicePaired();
+
+      if (unpairedView && wizardView && connectedView) {
+        if (isPaired) {
+          unpairedView.style.display = 'none';
+          wizardView.style.display = 'none';
+          connectedView.style.display = 'flex';
+
+          const connCode = document.getElementById('connected-pairing-code');
+          if (connCode) connCode.textContent = this.syncCode;
+
+          const connTeacher = document.getElementById('connected-pairing-teacher');
+          const connBranches = document.getElementById('connected-pairing-branches');
+          const connStats = document.getElementById('connected-pairing-stats');
+          const connLastSync = document.getElementById('connected-pairing-last-sync');
+
+          let teacherName = 'Tanımlanmadı';
+          let branchList = [];
+          let stuCount = 0;
+          let examCount = 0;
+
+          try {
+            const raw = localStorage.getItem(STORAGE_KEY);
+            if (raw) {
+              const parsed = JSON.parse(raw);
+              if (parsed.userProfile && parsed.userProfile.name) {
+                teacherName = parsed.userProfile.name + (parsed.userProfile.branch ? ` (${parsed.userProfile.branch})` : '');
+              }
+              const students = parsed.students || [];
+              stuCount = students.length;
+              examCount = (parsed.weeklyEvaluations || []).length;
+              const setB = new Set();
+              students.forEach(s => { if (s.branch) setB.add(s.branch); });
+              branchList = Array.from(setB);
+            }
+          } catch (e) {}
+
+          if (connTeacher) connTeacher.textContent = teacherName;
+          if (connBranches) connBranches.textContent = branchList.length > 0 ? branchList.join(', ') : 'Tüm Sınıflar';
+          if (connStats) connStats.textContent = `${stuCount} Öğrenci • ${examCount} Sınav`;
+          if (connLastSync) connLastSync.textContent = `Son Senkronizasyon: ${this.lastSyncTime || 'Bugün'}`;
+
+        } else if (this.wizardActive) {
+          unpairedView.style.display = 'none';
+          wizardView.style.display = 'flex';
+          connectedView.style.display = 'none';
+
+          const tab1 = document.getElementById('wizard-tab-step-1');
+          const tab2 = document.getElementById('wizard-tab-step-2');
+          const step1 = document.getElementById('pairing-wizard-step-1');
+          const step2 = document.getElementById('pairing-wizard-step-2');
+
+          if (this.wizardStep === 1) {
+            if (step1) step1.style.display = 'flex';
+            if (step2) step2.style.display = 'none';
+            if (tab1) {
+              tab1.style.background = '#6366f1';
+              tab1.style.color = '#fff';
+              tab1.style.border = 'none';
+            }
+            if (tab2) {
+              tab2.style.background = 'rgba(255,255,255,0.05)';
+              tab2.style.color = '#94a3b8';
+              tab2.style.border = '1px solid rgba(255,255,255,0.2)';
+            }
+            this.renderApkDownloadQRCode();
+          } else {
+            if (step1) step1.style.display = 'none';
+            if (step2) step2.style.display = 'flex';
+            if (tab1) {
+              tab1.style.background = 'rgba(255,255,255,0.05)';
+              tab1.style.color = '#94a3b8';
+              tab1.style.border = '1px solid rgba(255,255,255,0.2)';
+            }
+            if (tab2) {
+              tab2.style.background = '#6366f1';
+              tab2.style.color = '#fff';
+              tab2.style.border = 'none';
+            }
+            this.renderDesktopQRCode();
+          }
+        } else {
+          unpairedView.style.display = 'flex';
+          wizardView.style.display = 'none';
+          connectedView.style.display = 'none';
+        }
+      }
 
       const desktopStats = document.getElementById('desktop-sync-stats-info');
       if (desktopStats) {
@@ -3242,6 +3441,20 @@
                 const cleanCode = rawData.replace(/^["']|["']$/g, '').trim();
 
                 if (cleanCode.length >= 3) {
+                  // Kullanıcı yanlışlıkla APK İndirme QR kodunu taradıysa koruma kalkanı
+                  if (cleanCode.includes('github.com') || cleanCode.includes('.apk') || cleanCode.startsWith('http://') || cleanCode.startsWith('https://')) {
+                    if (statusText) {
+                      statusText.textContent = '⚠️ Bu karekod uygulama indirme bağlantısıdır. Lütfen tahtadaki "Cihaz Eşleştirme" karekodunu okutunuz.';
+                    }
+                    if (window.Companion && typeof window.Companion.showToast === 'function') {
+                      window.Companion.showToast('⚠️ Bu indirme bağlantısıdır! Lütfen tahtadaki Eşleştirme QR kodunu okutunuz.', 'warning', 4000);
+                    }
+                    setTimeout(() => {
+                      if (this.qrScanLoopRunning) requestAnimationFrame(checkFrame);
+                    }, 2000);
+                    return;
+                  }
+
                   if (statusText) statusText.textContent = '🎯 QR Kod Algılandı! Eşleştiriliyor...';
                   if (navigator.vibrate) {
                     try { navigator.vibrate([50, 50, 100]); } catch (e) {}
@@ -3249,6 +3462,7 @@
 
                   this.closeQrScanner();
                   this.setSyncCode(cleanCode);
+                  this.setDevicePaired(true);
                   this.updateSyncUI();
 
                   if (window.Companion) {

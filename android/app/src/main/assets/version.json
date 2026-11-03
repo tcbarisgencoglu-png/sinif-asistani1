@@ -1,16 +1,16 @@
 {
-  "version": "1.0.122",
-  "releaseDate": "2026-11-02",
+  "version": "1.0.123",
+  "releaseDate": "2026-11-03",
   "minRequiredVersion": "1.0.0",
-  "title": "Sınıf Asistanı v1.0.122 Yayında!",
-  "description": "El Terminali Canlı Kitap İade Puanı Entegrasyonu, Akıllı Barkod Okuyucu ve Kitaplık Takip Güncellemesi",
+  "title": "Sınıf Asistanı v1.0.123 Yayında!",
+  "description": "El Terminali Akıllı Kurulum Sihirbazı, Güvenlik Kilidi ve Sistem Entegrasyon Güncellemesi",
   "features": [
-    "Canlı Kitap İade Puanı Entegrasyonu: El terminalinden teslim alınan kitapların okuma puanları anlık olarak masaüstü performans tablosuna otomatik yansıtılır.",
-    "Otomatik Geçmiş Kitap Puanı Onarımı: Terminalden daha önce iade edilmiş ancak puanı işlenmemiş öğrencilerin eksik kitap okuma puanları açılışta ve senkronizasyonda otomatik tamamlanır.",
-    "El Terminali Akıllı Kamera Barkod / QR Okuyucu: Kitap takip ekranına eklenen yüzen buton ve kamera tarayıcısıyla kitaplar anında taranır; kitabın öğrencide mi rafta mı olduğu algılanarak tek tıkla teslim alma, ödünç verme ve öğrenciye özel akıllı kitap tavsiyeleri sunulur.",
-    "Masaüstü Kitaplık Barkod & Etiket Yazdırma Merkezi: Tanex 24, Tanex 40, Kitap Sırtı İnce Şerit ve Düz A4 şablonlarıyla hem Code 128 hem QR kod formatında toplu barkod ve etiket yazdırma desteği.",
-    "Tasarruflu A4 Etiket Kullanımı (Boş Etiket Atlama): Kısmen kullanılmış etiket sayfalarında istenen sayıda göz boş bırakılarak yarım sayfaların ziyan olmadan değerlendirilmesi sağlandı.",
-    "Kitaplık Yönetimi Sıralama Süzgeci: Kitaplar artık Sıra No (1 → 999), Ters Sıra No, Kitap Adı, Yazar Adı ve Sayfa Sayısına göre filtrelenip sıralanabilir."
+    "D ve E Şubeleri Desteği: Kurulum sihirbazına hem ilkokul (1-A..4-E) hem de ortaokul (5-A..8-E) kademeleri için D ve E şube seçenekleri eklendi.",
+    "3 Aşamalı Akıllı Cihaz Eşleştirme Yaşam Döngüsü: Masaüstü ayarlar ekranında adım adım sihirbaz; 1. Adımda APK indirme QR kodu & Play Protect güvenlik kılavuzu, 2. Adımda eşleştirme QR kodu ve eşleşme sağlandığında kalıcı canlı durum paneli.",
+    "Yanlış QR Okutma Koruma Kalkanı: Terminal kamerasından eşleşme yapılırken yanlışlıkla indirme QR'ı okutulduğunda kullanıcıyı bilgilendiren akıllı koruma mekanizması eklendi.",
+    "PIN Kilit Güvenliği: Profilde PIN şifresi belirlenmemişse telefonun kilitleme moduna alınması engellendi; kullanıcıya şifre belirleme rehberi ve yönlendirmesi eklendi.",
+    "Karanlık / Aydınlık Mod Butonu: Terminal üst barındaki tema butonu aktif hale getirilerek tüm ekran ve kartlar için kusursuz açık/koyu tema geçişi sağlandı.",
+    "Telefon Donanımsal Geri Butonu Entegrasyonu: Android cihazın kendi geri tuşuna basıldığında açık modallerin kapanması ve alt menülerden ana ekrana (Dashboard) sorunsuz dönülmesi sağlandı."
   ],
   "release_url": "https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/latest"
 }

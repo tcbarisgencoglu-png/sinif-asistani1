@@ -403,6 +403,343 @@
         window.Companion.vibrate([40, 30, 40]);
         window.Companion.showToast(`✅ ${activeSection} "${title}" ödevi kaydedildi ve masaüstüne gönderildi!`);
       }
+    },
+
+    // =========================================================================
+    // YENİ ÖDEV TANIMLAMA & WHATSAPP PAYLAŞIM MODÜLÜ
+    // =========================================================================
+
+    getTomorrowDateString() {
+      const now = new Date();
+      now.setDate(now.getDate() + 1);
+      const y = now.getFullYear();
+      const m = String(now.getMonth() + 1).padStart(2, '0');
+      const d = String(now.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    },
+
+    openCreateModal() {
+      const modal = document.getElementById('companion-create-hw-modal');
+      if (!modal) return;
+
+      // Varsayılan olarak bir sonraki gün (Yarın) seçili gelir
+      const tomorrowStr = this.getTomorrowDateString();
+      const dateInput = document.getElementById('new-hw-due-date');
+      if (dateInput) {
+        dateInput.value = tomorrowStr;
+      }
+      this.updateCreateModalDateLabel(tomorrowStr);
+      this.updateDateChipActive('tomorrow');
+
+      // Alanları sıfırla
+      const subjectInput = document.getElementById('new-hw-subject');
+      if (subjectInput) subjectInput.value = '';
+
+      const titleInput = document.getElementById('new-hw-title');
+      if (titleInput) titleInput.value = '';
+
+      const descInput = document.getElementById('new-hw-description');
+      if (descInput) descInput.value = '';
+
+      // Şube etiketi
+      const branchPill = document.getElementById('new-hw-branch-pill');
+      if (branchPill) {
+        branchPill.textContent = `${this.getActiveSection()} Şubesi`;
+      }
+
+      // Konu çiplerini temizle
+      const subChips = document.querySelectorAll('#new-hw-subject-chips .c-hw-sub-chip');
+      subChips.forEach(c => c.classList.remove('active'));
+
+      modal.style.display = 'flex';
+      setTimeout(() => modal.classList.add('active'), 10);
+      if (window.Companion) window.Companion.vibrate(15);
+      if (window.lucide) window.lucide.createIcons();
+
+      if (titleInput) {
+        setTimeout(() => titleInput.focus(), 250);
+      }
+    },
+
+    closeCreateModal() {
+      const modal = document.getElementById('companion-create-hw-modal');
+      if (modal) {
+        modal.classList.remove('active');
+        setTimeout(() => {
+          modal.style.display = 'none';
+        }, 200);
+      }
+    },
+
+    updateCreateModalDateLabel(dateStr) {
+      const summaryEl = document.getElementById('new-hw-date-summary');
+      if (!summaryEl || !dateStr) return;
+
+      const parts = dateStr.split('-').map(Number);
+      const d = new Date(parts[0], parts[1] - 1, parts[2]);
+      const dayName = DAY_NAMES[d.getDay()] || '';
+      const todayStr = this.getTodayDateString();
+      const tomorrowStr = this.getTomorrowDateString();
+
+      if (dateStr === tomorrowStr) {
+        summaryEl.textContent = `Yarın (${dayName})`;
+      } else if (dateStr === todayStr) {
+        summaryEl.textContent = `Bugün (${dayName})`;
+      } else {
+        summaryEl.textContent = `${d.getDate()} ${MONTH_NAMES[d.getMonth()]} (${dayName})`;
+      }
+    },
+
+    setQuickDate(type) {
+      let targetDateStr = '';
+      let chipId = '';
+
+      if (type === 1) {
+        targetDateStr = this.getTomorrowDateString();
+        chipId = 'tomorrow';
+      } else if (type === 2) {
+        const d = new Date();
+        d.setDate(d.getDate() + 2);
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        targetDateStr = `${y}-${m}-${day}`;
+        chipId = 'dayafter';
+      } else if (type === 'next_monday') {
+        const d = new Date();
+        const currentDay = d.getDay(); // 0: Pazar, 1: Pazartesi
+        let diff = (1 + 7 - currentDay) % 7;
+        if (diff === 0) diff = 7;
+        d.setDate(d.getDate() + diff);
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        targetDateStr = `${y}-${m}-${day}`;
+        chipId = 'monday';
+      }
+
+      const dateInput = document.getElementById('new-hw-due-date');
+      if (dateInput && targetDateStr) {
+        dateInput.value = targetDateStr;
+        this.updateCreateModalDateLabel(targetDateStr);
+        this.updateDateChipActive(chipId);
+        if (window.Companion) window.Companion.vibrate(10);
+      }
+    },
+
+    updateDateChipActive(activeChip) {
+      const chips = {
+        tomorrow: document.getElementById('chip-date-tomorrow'),
+        dayafter: document.getElementById('chip-date-dayafter'),
+        monday: document.getElementById('chip-date-monday')
+      };
+      for (const key in chips) {
+        if (chips[key]) {
+          if (key === activeChip) chips[key].classList.add('active');
+          else chips[key].classList.remove('active');
+        }
+      }
+    },
+
+    onNewHwDateChanged(dateVal) {
+      if (!dateVal) return;
+      this.updateCreateModalDateLabel(dateVal);
+
+      const tomorrowStr = this.getTomorrowDateString();
+      if (dateVal === tomorrowStr) {
+        this.updateDateChipActive('tomorrow');
+      } else {
+        this.updateDateChipActive(null);
+      }
+    },
+
+    selectSubject(subjName) {
+      const subjectInput = document.getElementById('new-hw-subject');
+      if (!subjectInput) return;
+
+      const current = subjectInput.value.trim();
+      const chips = document.querySelectorAll('#new-hw-subject-chips .c-hw-sub-chip');
+
+      if (current === subjName) {
+        subjectInput.value = '';
+        chips.forEach(c => c.classList.remove('active'));
+      } else {
+        subjectInput.value = subjName;
+        chips.forEach(c => {
+          if (c.textContent.trim() === subjName) c.classList.add('active');
+          else c.classList.remove('active');
+        });
+      }
+      if (window.Companion) window.Companion.vibrate(10);
+    },
+
+    saveNewHomework(shareWhatsApp = false) {
+      const activeSection = this.getActiveSection();
+      const dateInput = document.getElementById('new-hw-due-date');
+      const subjectInput = document.getElementById('new-hw-subject');
+      const titleInput = document.getElementById('new-hw-title');
+      const descInput = document.getElementById('new-hw-description');
+
+      const dueDate = (dateInput && dateInput.value) || this.getTomorrowDateString();
+      const subject = (subjectInput && subjectInput.value.trim()) || '';
+      const rawTitle = (titleInput && titleInput.value.trim()) || '';
+      const description = (descInput && descInput.value.trim()) || '';
+
+      if (!rawTitle) {
+        if (window.Companion) {
+          window.Companion.vibrate([40, 40]);
+          window.Companion.showToast('⚠️ Lütfen ödev konusunu veya görevini yazın.');
+        } else {
+          alert('Lütfen ödev konusunu veya görevini yazın.');
+        }
+        if (titleInput) titleInput.focus();
+        return;
+      }
+
+      // Başlığı derle
+      let fullTitle = rawTitle;
+      if (subject && !rawTitle.toLowerCase().includes(subject.toLowerCase())) {
+        fullTitle = `${subject}: ${rawTitle}`;
+      }
+
+      const data = this.getData();
+      if (!Array.isArray(data.homeworks)) data.homeworks = [];
+      if (!Array.isArray(data.performance)) data.performance = [];
+
+      // İlgili tarih ve şubede mevcut bir ödev var mı?
+      let hw = data.homeworks.find(h => {
+        const matchDate = h.dueDate === dueDate;
+        const matchBranch = !activeSection || !h.branch || h.branch === activeSection || h.branch === 'all';
+        return matchDate && matchBranch;
+      });
+
+      if (!hw) {
+        hw = {
+          id: 'hw_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+          title: fullTitle,
+          description: description,
+          dueDate: dueDate,
+          branch: activeSection,
+          status: {},
+          createdAt: new Date().toISOString()
+        };
+        data.homeworks.push(hw);
+      } else {
+        hw.title = fullTitle;
+        if (description) hw.description = description;
+        if (!hw.status) hw.status = {};
+      }
+
+      data.homework = data.homeworks;
+      this.saveData(data);
+
+      // 1. Masaüstüne Canlı Olarak İlet
+      if (window.CloudSync && typeof window.CloudSync.pushLiveHomework === 'function') {
+        window.CloudSync.pushLiveHomework(dueDate, activeSection, fullTitle, hw.status);
+      }
+
+      // 2. WhatsApp Paylaşımı İstenmişse
+      if (shareWhatsApp) {
+        this.shareHomeworkViaWhatsApp({
+          branch: activeSection,
+          dueDate: dueDate,
+          subject: subject,
+          title: rawTitle,
+          fullTitle: fullTitle,
+          description: description
+        });
+      }
+
+      // 3. Modalı Kapat
+      this.closeCreateModal();
+
+      // 4. Günlük Ödev Görünümünü Yeni Ödevin Tarihine Ayarla ve Yükle
+      this.loadHomeworkForDate(dueDate);
+
+      if (window.Companion) {
+        window.Companion.vibrate([40, 30, 40]);
+        if (shareWhatsApp) {
+          window.Companion.showToast(`✅ "${fullTitle}" kaydedildi ve WhatsApp paylaşımı başlatıldı.`);
+        } else {
+          window.Companion.showToast(`✅ "${fullTitle}" başarıyla kaydedildi.`);
+        }
+      }
+    },
+
+    shareHomeworkViaWhatsApp(hwData) {
+      if (!hwData || !hwData.dueDate) return;
+
+      const parts = hwData.dueDate.split('-').map(Number);
+      const d = new Date(parts[0], parts[1] - 1, parts[2]);
+      const dayName = DAY_NAMES[d.getDay()] || '';
+      const monthName = MONTH_NAMES[d.getMonth()] || '';
+      const dueFormatted = `${d.getDate()} ${monthName} ${d.getFullYear()} (${dayName})`;
+
+      let msg = `📚 *ÖDEV BİLGİLENDİRMESİ*\n\n`;
+      if (hwData.branch) {
+        msg += `🏫 *Sınıf / Şube:* ${hwData.branch}\n`;
+      }
+      msg += `📅 *Teslim Tarihi:* ${dueFormatted}\n`;
+      if (hwData.subject) {
+        msg += `📖 *Ders:* ${hwData.subject}\n`;
+      }
+      msg += `📝 *Ödev:* ${hwData.title || hwData.fullTitle}\n`;
+      if (hwData.description && hwData.description.trim()) {
+        msg += `ℹ️ *Açıklama:* ${hwData.description.trim()}\n`;
+      }
+      msg += `\nSayın Velilerimiz, öğrencimizin ödevini zamanında tamamlamasını ve kontrol etmenizi rica ederiz.\n\n`;
+      msg += `_Sınıf Asistanı ile oluşturuldu_`;
+
+      const encoded = encodeURIComponent(msg);
+      const waUrl = `https://api.whatsapp.com/send?text=${encoded}`;
+
+      try {
+        if (window.AndroidBridge && typeof window.AndroidBridge.shareData === 'function') {
+          window.AndroidBridge.shareData(msg, 'Ödev Bildirimi', 'text/plain');
+        } else {
+          window.location.href = waUrl;
+        }
+      } catch (e) {
+        try {
+          window.open(waUrl, '_blank');
+        } catch (err) {
+          console.error('WhatsApp açma hatası:', err);
+        }
+      }
+    },
+
+    shareCurrentHomeworkWhatsApp() {
+      const dateStr = this.currentDate || this.getTodayDateString();
+      const activeSection = this.getActiveSection();
+      const data = this.getData();
+      const hwList = Array.isArray(data.homeworks) ? data.homeworks : [];
+
+      const hw = hwList.find(h => {
+        const matchDate = h.dueDate === dateStr;
+        const matchBranch = !activeSection || !h.branch || h.branch === activeSection || h.branch === 'all';
+        return matchDate && matchBranch;
+      });
+
+      const titleInput = document.getElementById('hw-title-input');
+      const currentTitle = (titleInput && titleInput.value.trim()) || (hw && hw.title) || this.currentTitle || '';
+      const description = (hw && hw.description) || '';
+
+      if (!currentTitle) {
+        if (window.Companion) window.Companion.showToast('⚠️ Paylaşılacak ödev başlığı bulunamadı.');
+        return;
+      }
+
+      this.shareHomeworkViaWhatsApp({
+        branch: activeSection,
+        dueDate: dateStr,
+        fullTitle: currentTitle,
+        description: description
+      });
+
+      if (window.Companion) {
+        window.Companion.vibrate(20);
+        window.Companion.showToast('📲 WhatsApp paylaşımı açılıyor...');
+      }
     }
   };
 
