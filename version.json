@@ -1,16 +1,15 @@
 {
-  "version": "1.0.123",
-  "releaseDate": "2026-11-03",
+  "version": "1.0.124",
+  "releaseDate": "2026-11-04",
   "minRequiredVersion": "1.0.0",
-  "title": "Sınıf Asistanı v1.0.123 Yayında!",
-  "description": "El Terminali Akıllı Kurulum Sihirbazı, Güvenlik Kilidi ve Sistem Entegrasyon Güncellemesi",
+  "title": "Sınıf Asistanı v1.0.124 Yayında!",
+  "description": "El Terminali Ödev Kontrol Sırası Yönetimi ve Sıralama Optimizasyonu",
   "features": [
-    "D ve E Şubeleri Desteği: Kurulum sihirbazına hem ilkokul (1-A..4-E) hem de ortaokul (5-A..8-E) kademeleri için D ve E şube seçenekleri eklendi.",
-    "3 Aşamalı Akıllı Cihaz Eşleştirme Yaşam Döngüsü: Masaüstü ayarlar ekranında adım adım sihirbaz; 1. Adımda APK indirme QR kodu & Play Protect güvenlik kılavuzu, 2. Adımda eşleştirme QR kodu ve eşleşme sağlandığında kalıcı canlı durum paneli.",
-    "Yanlış QR Okutma Koruma Kalkanı: Terminal kamerasından eşleşme yapılırken yanlışlıkla indirme QR'ı okutulduğunda kullanıcıyı bilgilendiren akıllı koruma mekanizması eklendi.",
-    "PIN Kilit Güvenliği: Profilde PIN şifresi belirlenmemişse telefonun kilitleme moduna alınması engellendi; kullanıcıya şifre belirleme rehberi ve yönlendirmesi eklendi.",
-    "Karanlık / Aydınlık Mod Butonu: Terminal üst barındaki tema butonu aktif hale getirilerek tüm ekran ve kartlar için kusursuz açık/koyu tema geçişi sağlandı.",
-    "Telefon Donanımsal Geri Butonu Entegrasyonu: Android cihazın kendi geri tuşuna basıldığında açık modallerin kapanması ve alt menülerden ana ekrana (Dashboard) sorunsuz dönülmesi sağlandı."
+    "Ödev Kontrol Sırası Yönetimi: El terminalinde öğretmenlerin ders esnasında kontrol rotasına göre öğrenci sırasını özelleştirebileceği 'Sıra Düzeni' modülü eklendi.",
+    "Hızlı Sıralama Şablonları (Presets): Numara sırası, isim sırası (A-Z), oturma planı / sınıf masa düzeni ve ters çevirme seçenekleriyle tek dokunuşla hazır liste oluşturma.",
+    "Dokunmatik Sürükle-Bırak & Konum Butonları: Öğrenci kartlarını tutamaçtan sürükleyerek veya ▲ ▼ butonlarıyla yer değiştirerek anında özel kontrol listesi oluşturabilme.",
+    "Öğrenci Kontrol Sıra Numarası: Ana ödev listesinde her öğrenci kartının başına kontrol rota numarası (#1, #2, #3...) rozeti eklendi.",
+    "Şube Bazlı Bağımsız Bellek: Her şubenin kontrol sırası kendi sınıfına özel olarak cihazda kalıcı olarak saklanır."
   ],
   "release_url": "https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/latest"
 }

@@ -1096,8 +1096,18 @@
       return true;
     }
 
-    // 3. Ödev Modülü: Yeni Ödev Verme Modalı Açıksa Kapat
-    const createHwModal = document.getElementById('modal-create-homework');
+    // 3. Ödev Modülü: Sıralama Modalı veya Yeni Ödev Modalı Açıksa Kapat
+    const hwOrderModal = document.getElementById('companion-hw-order-modal');
+    if (hwOrderModal && hwOrderModal.style.display !== 'none') {
+      if (window.CompanionHomework && typeof window.CompanionHomework.closeOrderModal === 'function') {
+        window.CompanionHomework.closeOrderModal();
+      } else {
+        hwOrderModal.style.display = 'none';
+      }
+      return true;
+    }
+
+    const createHwModal = document.getElementById('companion-create-hw-modal') || document.getElementById('modal-create-homework');
     if (createHwModal && createHwModal.style.display !== 'none') {
       if (window.CompanionHomework && typeof window.CompanionHomework.closeCreateModal === 'function') {
         window.CompanionHomework.closeCreateModal();

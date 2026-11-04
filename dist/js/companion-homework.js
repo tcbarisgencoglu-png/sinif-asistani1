@@ -8,6 +8,17 @@
   'use strict';
 
   const STORAGE_KEY = 'sinif_asistani_data';
+  const HW_ORDER_KEY_PREFIX = 'sinif_companion_hw_order_';
+
+  function escapeHTML(str) {
+    if (!str) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
 
   const DAY_NAMES = ['Pazar', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi'];
   const MONTH_NAMES = [
@@ -18,7 +29,8 @@
   const CompanionHomework = {
     currentDate: '',       // 'YYYY-MM-DD'
     currentTitle: '',      // Ödev konusu / başlığı
-    students: [],          // Aktif şubedeki öğrenciler
+    students: [],          // Aktif şubedeki öğrenciler (sıralı liste)
+    orderDraft: [],        // Sıralama modalı içindeki taslak liste
     statusMap: {},         // { [studentId]: 'completed' | 'incomplete' | 'missing' | 'excused' | 'none' }
 
     getData() {
@@ -49,14 +61,80 @@
       return '5-A';
     },
 
+    // Aktif şubeye ait öğrencileri öğretmenin belirlediği özel ödev sırasına göre getir
+    getOrderedStudents() {
+      const activeSection = this.getActiveSection();
+      const data = this.getData();
+      let allStudents = Array.isArray(data.students) ? data.students : [];
+
+      // Şubeye göre filtrele
+      let filtered = allStudents.filter(s => {
+        if (!s.branch && !s.section && !s.className) return true;
+        const b = String(s.branch || s.section || s.className || '').trim().toUpperCase();
+        const target = activeSection.trim().toUpperCase();
+        const normB = b.replace(/[\/\-\s]/g, '');
+        const normT = target.replace(/[\/\-\s]/g, '');
+        return normB === normT || b === target;
+      });
+
+      // Eğer kayıtlı öğrenci yoksa CompanionBehavior'ın öğrencilerini kontrol et
+      if (filtered.length === 0 && window.CompanionBehavior && typeof window.CompanionBehavior.getActiveStudents === 'function') {
+        filtered = window.CompanionBehavior.getActiveStudents().slice();
+      }
+
+      // 1. Ödev kontrolüne özel kayıtlı sıra var mı?
+      const savedHwOrder = localStorage.getItem(HW_ORDER_KEY_PREFIX + activeSection);
+      if (savedHwOrder) {
+        try {
+          const savedIds = JSON.parse(savedHwOrder);
+          if (Array.isArray(savedIds) && savedIds.length > 0) {
+            const idMap = new Map();
+            savedIds.forEach((id, idx) => idMap.set(String(id), idx));
+
+            filtered.sort((a, b) => {
+              const posA = idMap.has(String(a.id)) ? idMap.get(String(a.id)) : 9999;
+              const posB = idMap.has(String(b.id)) ? idMap.get(String(b.id)) : 9999;
+              if (posA !== posB) return posA - posB;
+              return (parseInt(a.number, 10) || 0) - (parseInt(b.number, 10) || 0);
+            });
+            return filtered;
+          }
+        } catch (e) {
+          console.error('Ödev kontrol sırası parse hatası:', e);
+        }
+      }
+
+      // 2. Genel companion öğrenci sırası var mı?
+      const savedGenOrder = localStorage.getItem('sinif_companion_student_order_' + activeSection);
+      if (savedGenOrder) {
+        try {
+          const genIds = JSON.parse(savedGenOrder);
+          if (Array.isArray(genIds) && genIds.length > 0) {
+            const gMap = new Map();
+            genIds.forEach((id, idx) => gMap.set(String(id), idx));
+            filtered.sort((a, b) => {
+              const posA = gMap.has(String(a.id)) ? gMap.get(String(a.id)) : 9999;
+              const posB = gMap.has(String(b.id)) ? gMap.get(String(b.id)) : 9999;
+              if (posA !== posB) return posA - posB;
+              return (parseInt(a.number, 10) || 0) - (parseInt(b.number, 10) || 0);
+            });
+            return filtered;
+          }
+        } catch (e) {}
+      }
+
+      // 3. Varsayılan numara sırası
+      filtered.sort((a, b) => (parseInt(a.number, 10) || 0) - (parseInt(b.number, 10) || 0));
+      return filtered;
+    },
+
+    refreshStudents() {
+      this.students = this.getOrderedStudents();
+    },
+
     // Modülü Başlat (Sayfa açıldığında veya Şube değiştiğinde)
     init() {
-      if (window.CompanionBehavior && typeof window.CompanionBehavior.getActiveStudents === 'function') {
-        this.students = window.CompanionBehavior.getActiveStudents();
-      } else {
-        const data = this.getData();
-        this.students = Array.isArray(data.students) ? data.students : [];
-      }
+      this.refreshStudents();
 
       if (!this.currentDate) {
         this.currentDate = this.getTodayDateString();
@@ -213,10 +291,11 @@
         return `
           <div class="c-hw-student-card">
             <div class="c-hw-student-info">
+              <div class="c-hw-order-seq" onclick="window.CompanionHomework.openOrderModal()" title="Kontrol Sırası #${idx + 1} (Sırayı düzenlemek için dokunun)">${idx + 1}</div>
               ${avatarHtml}
               <div style="overflow: hidden;">
-                <div class="c-hw-student-name">${s.name} ${s.surname || ''}</div>
-                <div class="c-hw-student-no">#${s.number || '-'}</div>
+                <div class="c-hw-student-name">${escapeHTML(s.name)} ${escapeHTML(s.surname || '')}</div>
+                <div class="c-hw-student-no">#${escapeHTML(s.number || '-')}</div>
               </div>
             </div>
 
@@ -739,6 +818,363 @@
       if (window.Companion) {
         window.Companion.vibrate(20);
         window.Companion.showToast('📲 WhatsApp paylaşımı açılıyor...');
+      }
+    },
+
+    // =========================================================================
+    // ÖDEV KONTROL SIRASI YÖNETİMİ & SIRALAMA MODÜLÜ
+    // =========================================================================
+
+    openOrderModal() {
+      const modal = document.getElementById('companion-hw-order-modal');
+      if (!modal) return;
+
+      this.refreshStudents();
+      if (!this.students || this.students.length === 0) {
+        if (window.Companion && typeof window.Companion.showToast === 'function') {
+          window.Companion.showToast('⚠️ Sıralanacak öğrenci bulunamadı.');
+        }
+        return;
+      }
+
+      this.orderDraft = this.students.map(s => ({ ...s }));
+
+      const sub = document.getElementById('hw-order-subtitle');
+      if (sub) {
+        sub.textContent = `${this.getActiveSection()} Şubesi • ${this.orderDraft.length} Öğrenci`;
+      }
+
+      this.renderOrderList();
+
+      modal.style.display = 'flex';
+      setTimeout(() => modal.classList.add('active'), 10);
+
+      if (window.Companion && typeof window.Companion.vibrate === 'function') {
+        window.Companion.vibrate(15);
+      }
+      if (window.lucide) window.lucide.createIcons();
+    },
+
+    closeOrderModal() {
+      const modal = document.getElementById('companion-hw-order-modal');
+      if (modal) {
+        modal.classList.remove('active');
+        setTimeout(() => {
+          modal.style.display = 'none';
+        }, 200);
+      }
+    },
+
+    renderOrderList() {
+      const container = document.getElementById('hw-order-list-container');
+      if (!container) return;
+
+      if (!this.orderDraft || this.orderDraft.length === 0) {
+        container.innerHTML = '<div style="padding: 24px 10px; text-align: center; color: #64748b; font-size: 13px;">Öğrenci bulunamadı.</div>';
+        return;
+      }
+
+      const colors = ['#3b82f6', '#ec4899', '#8b5cf6', '#10b981', '#f59e0b', '#06b6d4', '#6366f1'];
+
+      container.innerHTML = this.orderDraft.map((st, idx) => {
+        const sId = String(st.id);
+        const initials = ((st.name ? st.name[0] : '') + (st.surname ? st.surname[0] : '')).toUpperCase() || '?';
+        const color = st.gender === 'female' ? '#ec4899' : (st.gender === 'male' ? '#3b82f6' : colors[idx % colors.length]);
+
+        const avatarHtml = st.photo
+          ? `<img src="${st.photo}" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover; flex-shrink: 0;" />`
+          : `<div style="width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, ${color}, #1e3a8a); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; flex-shrink: 0;">${initials}</div>`;
+
+        const isFirst = (idx === 0);
+        const isLast = (idx === this.orderDraft.length - 1);
+
+        return `
+          <div class="c-hw-order-row" data-id="${sId}" data-index="${idx}" draggable="true">
+            <div class="c-hw-order-idx-badge">${idx + 1}</div>
+            <div class="c-hw-order-drag-handle" title="Taşımak için basılı tutup sürükleyin">
+              <i data-lucide="grip-vertical" style="width: 16px; height: 16px; color: #94a3b8;"></i>
+            </div>
+            ${avatarHtml}
+            <div style="flex: 1; min-width: 0; margin-left: 2px;">
+              <div class="c-hw-order-st-name">${escapeHTML(st.name)} ${escapeHTML(st.surname || '')}</div>
+              <div class="c-hw-order-st-no">#${escapeHTML(st.number || '-')}</div>
+            </div>
+            <div class="c-hw-order-nav-btns">
+              <button type="button" class="c-hw-order-btn" onclick="window.CompanionHomework.moveOrderItem(${idx}, -1)" ${isFirst ? 'disabled style="opacity: 0.25; cursor: default;"' : ''} title="Yukarı">
+                ▲
+              </button>
+              <button type="button" class="c-hw-order-btn" onclick="window.CompanionHomework.moveOrderItem(${idx}, 1)" ${isLast ? 'disabled style="opacity: 0.25; cursor: default;"' : ''} title="Aşağı">
+                ▼
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      this.attachOrderDragListeners(container);
+      if (window.lucide) window.lucide.createIcons();
+    },
+
+    attachOrderDragListeners(container) {
+      const rows = container.querySelectorAll('.c-hw-order-row');
+      let draggingRow = null;
+      let touchStartY = 0;
+      let isTouching = false;
+      let isDragging = false;
+      let longPressTimer = null;
+
+      rows.forEach(row => {
+        // --- 1. DOKUNMATİK (TOUCH) SÜRÜKLE-BIRAK ---
+        const handle = row.querySelector('.c-hw-order-drag-handle');
+        const touchTarget = handle || row;
+
+        touchTarget.addEventListener('touchstart', (e) => {
+          if (e.target.closest('button')) return;
+          const touch = e.touches[0];
+          touchStartY = touch.clientY;
+          isTouching = true;
+          isDragging = false;
+          draggingRow = row;
+
+          if (e.target.closest('.c-hw-order-drag-handle')) {
+            isDragging = true;
+            row.classList.add('is-dragging');
+            if (window.Companion && typeof window.Companion.vibrate === 'function') {
+              window.Companion.vibrate(20);
+            }
+          } else {
+            longPressTimer = setTimeout(() => {
+              if (isTouching) {
+                isDragging = true;
+                row.classList.add('is-dragging');
+                if (window.Companion && typeof window.Companion.vibrate === 'function') {
+                  window.Companion.vibrate(20);
+                }
+              }
+            }, 250);
+          }
+        }, { passive: true });
+
+        touchTarget.addEventListener('touchmove', (e) => {
+          if (!isTouching) return;
+          const touch = e.touches[0];
+          const diffY = Math.abs(touch.clientY - touchStartY);
+
+          if (!isDragging && diffY > 10) {
+            clearTimeout(longPressTimer);
+            isTouching = false;
+            return;
+          }
+
+          if (isDragging) {
+            if (e.cancelable) e.preventDefault();
+            const targetEl = document.elementFromPoint(touch.clientX, touch.clientY);
+            const targetRow = targetEl ? targetEl.closest('.c-hw-order-row') : null;
+
+            if (targetRow && targetRow !== row && targetRow.parentNode === container) {
+              const rect = targetRow.getBoundingClientRect();
+              const isBelow = touch.clientY > (rect.top + rect.height / 2);
+              if (isBelow) {
+                container.insertBefore(row, targetRow.nextSibling);
+              } else {
+                container.insertBefore(row, targetRow);
+              }
+              this.updateBadgesFromDOM(container);
+            }
+          }
+        }, { passive: false });
+
+        const endTouch = () => {
+          clearTimeout(longPressTimer);
+          if (isDragging) {
+            row.classList.remove('is-dragging');
+            isDragging = false;
+            this.syncDraftFromDOM(container);
+          }
+          isTouching = false;
+          draggingRow = null;
+        };
+
+        touchTarget.addEventListener('touchend', endTouch);
+        touchTarget.addEventListener('touchcancel', endTouch);
+
+        // --- 2. HTML5 MOUSE / DESKTOP SÜRÜKLE-BIRAK ---
+        row.addEventListener('dragstart', (e) => {
+          draggingRow = row;
+          row.classList.add('is-dragging');
+          e.dataTransfer.setData('text/plain', row.getAttribute('data-id'));
+          e.dataTransfer.effectAllowed = 'move';
+        });
+
+        row.addEventListener('dragover', (e) => {
+          e.preventDefault();
+          e.dataTransfer.dropEffect = 'move';
+          if (draggingRow && draggingRow !== row && row.parentNode === container) {
+            const rect = row.getBoundingClientRect();
+            const isBelow = e.clientY > (rect.top + rect.height / 2);
+            if (isBelow) {
+              container.insertBefore(draggingRow, row.nextSibling);
+            } else {
+              container.insertBefore(draggingRow, row);
+            }
+            this.updateBadgesFromDOM(container);
+          }
+        });
+
+        row.addEventListener('dragend', () => {
+          if (draggingRow) {
+            draggingRow.classList.remove('is-dragging');
+          }
+          draggingRow = null;
+          this.syncDraftFromDOM(container);
+        });
+      });
+    },
+
+    updateBadgesFromDOM(container) {
+      const rows = container.querySelectorAll('.c-hw-order-row');
+      rows.forEach((r, i) => {
+        const badge = r.querySelector('.c-hw-order-idx-badge');
+        if (badge) badge.textContent = i + 1;
+      });
+    },
+
+    syncDraftFromDOM(container) {
+      const rows = Array.from(container.querySelectorAll('.c-hw-order-row'));
+      const newDraft = [];
+      const map = new Map();
+      this.orderDraft.forEach(s => map.set(String(s.id), s));
+
+      rows.forEach(r => {
+        const id = r.getAttribute('data-id');
+        const st = map.get(id);
+        if (st) newDraft.push(st);
+      });
+
+      this.orderDraft = newDraft;
+      this.renderOrderList();
+    },
+
+    moveOrderItem(index, delta) {
+      const target = index + delta;
+      if (target < 0 || target >= this.orderDraft.length) return;
+      const temp = this.orderDraft[index];
+      this.orderDraft[index] = this.orderDraft[target];
+      this.orderDraft[target] = temp;
+      if (window.Companion && typeof window.Companion.vibrate === 'function') {
+        window.Companion.vibrate(15);
+      }
+      this.renderOrderList();
+    },
+
+    applyOrderPreset(preset) {
+      if (!this.orderDraft || this.orderDraft.length === 0) return;
+
+      if (preset === 'number') {
+        this.orderDraft.sort((a, b) => {
+          const numA = parseInt(a.number, 10) || 999999;
+          const numB = parseInt(b.number, 10) || 999999;
+          return numA - numB;
+        });
+        if (window.Companion && typeof window.Companion.showToast === 'function') {
+          window.Companion.showToast('🔢 Numara sırasına göre dizildi.');
+        }
+      } else if (preset === 'name') {
+        this.orderDraft.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'tr'));
+        if (window.Companion && typeof window.Companion.showToast === 'function') {
+          window.Companion.showToast('🔤 İsim sırasına (A-Z) göre dizildi.');
+        }
+      } else if (preset === 'reverse') {
+        this.orderDraft.reverse();
+        if (window.Companion && typeof window.Companion.showToast === 'function') {
+          window.Companion.showToast('🔄 Sıra tersine çevrildi.');
+        }
+      } else if (preset === 'seating') {
+        const data = this.getData();
+        const activeSection = this.getActiveSection();
+        const seatingPlans = data.seatingPlans || {};
+        let plan = seatingPlans[activeSection] || seatingPlans['all'];
+        if (!plan) {
+          const normTarget = activeSection.trim().toUpperCase().replace(/[\/\-\s]/g, '');
+          for (const key in seatingPlans) {
+            const normKey = key.trim().toUpperCase().replace(/[\/\-\s]/g, '');
+            if (normKey === normTarget) {
+              plan = seatingPlans[key];
+              break;
+            }
+          }
+        }
+
+        if (plan && Array.isArray(plan.desks) && plan.desks.length > 0) {
+          const sortedDesks = plan.desks.slice().sort((a, b) => {
+            if (Math.abs(a.y - b.y) > 6) return a.y - b.y;
+            return a.x - b.x;
+          });
+
+          const seatingStudentIds = [];
+          sortedDesks.forEach(desk => {
+            const stuArr = Array.isArray(desk.students) ? desk.students : (Array.isArray(desk.studentIds) ? desk.studentIds : []);
+            stuArr.forEach(sid => {
+              if (sid && !seatingStudentIds.includes(String(sid))) {
+                seatingStudentIds.push(String(sid));
+              }
+            });
+          });
+
+          if (seatingStudentIds.length > 0) {
+            const idMap = new Map();
+            seatingStudentIds.forEach((id, idx) => idMap.set(String(id), idx));
+
+            this.orderDraft.sort((a, b) => {
+              const posA = idMap.has(String(a.id)) ? idMap.get(String(a.id)) : 9999;
+              const posB = idMap.has(String(b.id)) ? idMap.get(String(b.id)) : 9999;
+              if (posA !== posB) return posA - posB;
+              return (parseInt(a.number, 10) || 0) - (parseInt(b.number, 10) || 0);
+            });
+            if (window.Companion && typeof window.Companion.showToast === 'function') {
+              window.Companion.showToast('🪑 Oturma planına göre dizildi.');
+            }
+          } else {
+            if (window.Companion && typeof window.Companion.showToast === 'function') {
+              window.Companion.showToast('⚠️ Oturma planındaki sıralarda öğrenci yerleşimi bulunamadı.');
+            }
+          }
+        } else {
+          if (window.Companion && typeof window.Companion.showToast === 'function') {
+            window.Companion.showToast('⚠️ Bu şubeye ait kayıtlı oturma planı bulunamadı.');
+          }
+        }
+      }
+
+      if (window.Companion && typeof window.Companion.vibrate === 'function') {
+        window.Companion.vibrate(20);
+      }
+      this.renderOrderList();
+    },
+
+    resetOrderToDefault() {
+      const activeSection = this.getActiveSection();
+      localStorage.removeItem(HW_ORDER_KEY_PREFIX + activeSection);
+      this.applyOrderPreset('number');
+      if (window.Companion && typeof window.Companion.showToast === 'function') {
+        window.Companion.showToast('🔄 Özel sıra sıfırlandı, numara sırasına döndü.');
+      }
+    },
+
+    saveOrderDraft() {
+      const activeSection = this.getActiveSection();
+      const ids = this.orderDraft.map(s => String(s.id));
+      localStorage.setItem(HW_ORDER_KEY_PREFIX + activeSection, JSON.stringify(ids));
+
+      this.refreshStudents();
+      this.renderStudentList();
+      this.closeOrderModal();
+
+      if (window.Companion && typeof window.Companion.vibrate === 'function') {
+        window.Companion.vibrate([25, 20, 25]);
+      }
+      if (window.Companion && typeof window.Companion.showToast === 'function') {
+        window.Companion.showToast('✅ Ödev kontrol sırası kaydedildi.');
       }
     }
   };

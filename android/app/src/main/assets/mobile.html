@@ -11,7 +11,7 @@
   <link rel="shortcut icon" href="icons/icon-128.png" type="image/png">
 
   <!-- Hafif Mobil Tasarım Sistemi -->
-  <link rel="stylesheet" href="css/companion.css?v=1.0.123">
+  <link rel="stylesheet" href="css/companion.css?v=1.0.124">
 
   <!-- Çevrim Dışı İkon Kütüphanesi -->
   <script src="js/lucide.min.js"></script>
@@ -27,7 +27,7 @@
       <div class="c-appbar-info">
         <div style="display: flex; align-items: center; gap: 4px; flex-wrap: wrap;">
           <div class="c-appbar-name" id="appbar-teacher-name">Öğretmen</div>
-          <span id="companion-version-badge" style="font-size: 10px; background: rgba(255,255,255,0.22); padding: 1.5px 7px; border-radius: 999px; font-weight: 700; color: #fff; margin-left: 6px; letter-spacing: 0.3px;">v1.0.123</span>
+          <span id="companion-version-badge" style="font-size: 10px; background: rgba(255,255,255,0.22); padding: 1.5px 7px; border-radius: 999px; font-weight: 700; color: #fff; margin-left: 6px; letter-spacing: 0.3px;">v1.0.124</span>
           <span id="appbar-sync-code-badge" onclick="window.Companion.openSettingsModal()" style="font-size: 10px; background: rgba(79, 70, 229, 0.45); border: 1px solid rgba(165, 180, 252, 0.45); padding: 1.5px 6px; border-radius: 6px; font-weight: 800; color: #e0e7ff; font-family: monospace; letter-spacing: 0.5px; cursor: pointer;" title="Cihaz Eşleşme Kodu (Değiştirmek için dokunun)">SA-......</span>
         </div>
         <div class="c-appbar-branch" id="appbar-branch-name">Branş Seçilmedi</div>
@@ -535,6 +535,10 @@
           <button type="button" class="c-btn-sm-action" style="flex: 1; justify-content: center;" onclick="window.CompanionHomework.markAll('none')">
             <i data-lucide="rotate-ccw" style="width: 14px; height: 14px;"></i> Sıfırla
           </button>
+          <button type="button" class="c-btn-sm-action" style="padding: 0 10px; justify-content: center; background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe;" onclick="window.CompanionHomework.openOrderModal()" title="Ödev Kontrol Sırasını Düzenle">
+            <i data-lucide="arrow-up-down" style="width: 14px; height: 14px; color: #2563eb;"></i>
+            <span style="font-size: 11px; font-weight: 700; margin-left: 2px;">Sıra Düzeni</span>
+          </button>
           <button type="button" class="c-btn-sm-action" style="padding: 0 10px; justify-content: center; background: #ecfdf5; color: #15803d; border-color: #a7f3d0;" onclick="window.CompanionHomework.shareCurrentHomeworkWhatsApp()" title="Bu Günün Ödevini WhatsApp'ta Paylaş">
             <svg style="width: 14px; height: 14px; fill: #16a34a;" viewBox="0 0 24 24"><path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.816 9.816 0 0 0 12.04 2m.01 1.67c4.54 0 8.24 3.7 8.24 8.24 0 2.2-.86 4.27-2.42 5.82a8.188 8.188 0 0 1-5.82 2.42c-1.44 0-2.85-.38-4.09-1.11l-.29-.17-3.11.82.83-3.03-.19-.31a8.214 8.214 0 0 1-1.26-4.39c0-4.54 3.7-8.24 8.24-8.24m4.52 11.66c-.25-.13-1.47-.72-1.7-.81-.23-.08-.39-.13-.56.13-.17.25-.64.81-.79.97-.14.17-.29.19-.54.06-.25-.13-1.06-.39-2.02-1.25-.75-.67-1.26-1.5-1.41-1.75-.14-.25-.02-.39.11-.51.11-.11.25-.29.37-.44.13-.14.17-.25.25-.42.08-.17.04-.31-.02-.44-.06-.13-.56-1.34-.76-1.84-.2-.49-.4-.42-.56-.43h-.48c-.17 0-.44.06-.67.31-.23.25-.88.86-.88 2.1 0 1.24.9 2.44 1.03 2.61.13.17 1.78 2.71 4.3 3.8.6.26 1.07.42 1.44.54.6.19 1.15.16 1.58.1.48-.07 1.47-.6 1.68-1.18.21-.58.21-1.07.14-1.18-.06-.12-.22-.19-.47-.32"/></svg>
             <span style="font-size: 11px; font-weight: 700; margin-left: 2px;">Paylaş</span>
@@ -889,6 +893,74 @@
           </button>
         </div>
 
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       ÖDEV KONTROL SIRASI DÜZENLEME MODÜLÜ (BOTTOM SHEET MODAL)
+       ========================================================================== -->
+  <div class="c-modal-overlay" id="companion-hw-order-modal" style="display: none;" onclick="if(event.target === this) window.CompanionHomework.closeOrderModal();">
+    <div class="c-score-sheet" style="max-height: 90vh; display: flex; flex-direction: column;">
+      <!-- Çekme Çubuğu -->
+      <div class="c-sheet-grabber"></div>
+
+      <!-- Başlık ve Kapat Butonu -->
+      <div class="c-score-sheet-header" style="margin-bottom: 10px; padding-bottom: 8px;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div style="width: 38px; height: 38px; border-radius: 12px; background: linear-gradient(135deg, #dbeafe, #bfdbfe); color: #2563eb; display: flex; align-items: center; justify-content: center; font-size: 20px;">
+            ↕️
+          </div>
+          <div>
+            <h3 style="font-size: 16px; font-weight: 800; color: #0f172a; margin: 0; line-height: 1.2;">Ödev Kontrol Sırası</h3>
+            <span id="hw-order-subtitle" style="font-size: 11px; color: #64748b; font-weight: 700;">Kontrol etmek istediğiniz sırayı belirleyin</span>
+          </div>
+        </div>
+        <button type="button" class="c-score-modal-close" onclick="window.CompanionHomework.closeOrderModal()">
+          <i data-lucide="x" style="width: 20px; height: 20px;"></i>
+        </button>
+      </div>
+
+      <!-- Hızlı Hazır Sıralama Butonları (Presets) -->
+      <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 10px;">
+        <button type="button" class="c-hw-order-preset-btn" onclick="window.CompanionHomework.applyOrderPreset('number')" title="Okul Numarasına Göre Sırala">
+          <span style="font-size: 14px;">🔢</span>
+          <span>Numara</span>
+        </button>
+        <button type="button" class="c-hw-order-preset-btn" onclick="window.CompanionHomework.applyOrderPreset('name')" title="İsim Sırasına (A-Z) Göre Sırala">
+          <span style="font-size: 14px;">🔤</span>
+          <span>İsim (A-Z)</span>
+        </button>
+        <button type="button" class="c-hw-order-preset-btn" onclick="window.CompanionHomework.applyOrderPreset('seating')" title="Sınıf Oturma / Masa Planına Göre Sırala">
+          <span style="font-size: 14px;">🪑</span>
+          <span>Sıra/Masa</span>
+        </button>
+        <button type="button" class="c-hw-order-preset-btn" onclick="window.CompanionHomework.applyOrderPreset('reverse')" title="Mevcut Sıralamayı Ters Çevir">
+          <span style="font-size: 14px;">🔄</span>
+          <span>Ters Çevir</span>
+        </button>
+      </div>
+
+      <!-- Bilgi İpucu ve Sıfırla -->
+      <div style="font-size: 11px; color: #64748b; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between; padding: 0 2px;">
+        <span>💡 Kartları sürükleyin veya ▲ ▼ butonlarıyla taşıyın</span>
+        <button type="button" onclick="window.CompanionHomework.resetOrderToDefault()" style="background: none; border: none; color: #ef4444; font-size: 11px; font-weight: 700; cursor: pointer; text-decoration: underline; padding: 0;">Sıfırla</button>
+      </div>
+
+      <!-- Kaydırılabilir Öğrenci Sıralama Listesi -->
+      <div id="hw-order-list-container" class="c-hw-order-items-list" style="flex: 1; overflow-y: auto; padding-right: 2px; min-height: 200px; max-height: calc(85vh - 230px);">
+        <!-- companion-homework.js dinamik basacak -->
+      </div>
+
+      <!-- Alt Aksiyon Butonları -->
+      <div style="display: flex; gap: 8px; margin-top: 12px; padding-top: 10px; border-top: 1px solid #e2e8f0;">
+        <button type="button" class="c-btn-secondary" style="flex: 1; height: 44px; border-radius: 12px; font-weight: 700;" onclick="window.CompanionHomework.closeOrderModal()">
+          İptal
+        </button>
+        <button type="button" class="c-btn-primary" style="flex: 2; height: 44px; border-radius: 12px; font-weight: 800; background: linear-gradient(135deg, #2563eb, #1d4ed8); box-shadow: 0 4px 12px rgba(37,99,235,0.35);" onclick="window.CompanionHomework.saveOrderDraft()">
+          <i data-lucide="check" style="width: 18px; height: 18px;"></i>
+          <span>Sıralamayı Kaydet</span>
+        </button>
       </div>
     </div>
   </div>
@@ -1590,7 +1662,7 @@
 
         <!-- Versiyon Bilgisi -->
         <div style="text-align: center; margin-top: 14px; font-size: 11px; color: #94a3b8; font-weight: 600;">
-          Sınıf Asistanı El Terminali • <span id="settings-modal-version" style="color: #4f46e5; font-weight: 800;">v1.0.123</span>
+          Sınıf Asistanı El Terminali • <span id="settings-modal-version" style="color: #4f46e5; font-weight: 800;">v1.0.124</span>
         </div>
 
       </div>
@@ -2240,18 +2312,18 @@
   </div>
 
   <!-- QR, Bulut & OMR Analiz Motorları -->
-  <script src="js/supabase-config.js?v=1.0.123"></script>
-  <script src="js/cloud-sync.js?v=1.0.123"></script>
+  <script src="js/supabase-config.js?v=1.0.124"></script>
+  <script src="js/cloud-sync.js?v=1.0.124"></script>
   <script src="js/qrcode.min.js"></script>
   <script src="js/jsqr.js"></script>
-  <script src="js/omr-engine.js?v=1.0.123"></script>
-  <script src="js/companion-omr.js?v=1.0.123"></script>
-  <script src="js/companion-behavior.js?v=1.0.123"></script>
-  <script src="js/companion-homework.js?v=1.0.123"></script>
-  <script src="js/companion-books.js?v=1.0.123"></script>
-  <script src="js/companion-schedule.js?v=1.0.123"></script>
+  <script src="js/omr-engine.js?v=1.0.124"></script>
+  <script src="js/companion-omr.js?v=1.0.124"></script>
+  <script src="js/companion-behavior.js?v=1.0.124"></script>
+  <script src="js/companion-homework.js?v=1.0.124"></script>
+  <script src="js/companion-books.js?v=1.0.124"></script>
+  <script src="js/companion-schedule.js?v=1.0.124"></script>
 
   <!-- Çekirdek Kontrolcü -->
-  <script src="js/companion.js?v=1.0.123"></script>
+  <script src="js/companion.js?v=1.0.124"></script>
 </body>
 </html>

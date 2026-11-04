@@ -3180,6 +3180,149 @@ body {
   box-shadow: 0 1px 4px rgba(2, 132, 199, 0.25);
 }
 
+/* Ödev Kontrol Sırası Düzenleme Butonu ve Modal Stilleri */
+.c-hw-order-preset-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 8px 4px;
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #334155;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.c-hw-order-preset-btn:active {
+  background: #e2e8f0;
+  transform: scale(0.96);
+}
+
+.c-hw-order-items-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.c-hw-order-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 6px 8px;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: pan-y;
+  transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.c-hw-order-row.is-dragging {
+  background: #eff6ff !important;
+  border-color: #3b82f6 !important;
+  box-shadow: 0 4px 14px rgba(59, 130, 246, 0.25) !important;
+  opacity: 0.95;
+  transform: scale(1.01);
+}
+
+.c-hw-order-idx-badge {
+  min-width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #e0e7ff;
+  color: #4338ca;
+  font-size: 11px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.c-hw-order-drag-handle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  cursor: grab;
+  touch-action: none;
+  color: #94a3b8;
+}
+.c-hw-order-drag-handle:active {
+  cursor: grabbing;
+  color: #3b82f6;
+}
+
+.c-hw-order-st-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: #0f172a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.2;
+}
+
+.c-hw-order-st-no {
+  font-size: 11px;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.c-hw-order-nav-btns {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.c-hw-order-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  background: #f8fafc;
+  color: #334155;
+  font-size: 11px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.12s ease;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.c-hw-order-btn:active {
+  background: #e2e8f0;
+  transform: scale(0.92);
+}
+
+/* Ana Ödev Listesindeki Sıra No Rozeti */
+.c-hw-order-seq {
+  min-width: 22px;
+  height: 22px;
+  border-radius: 7px;
+  background: #f1f5f9;
+  color: #475569;
+  font-size: 10px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border: 1px solid #e2e8f0;
+  cursor: pointer;
+}
+.c-hw-order-seq:active {
+  background: #e2e8f0;
+}
+
 /* ==========================================================================
    DERS & PLANLAMA (CANLI DERS AKIŞI & GÜNLÜK MÜFREDAT PLANI)
    ========================================================================== */
