@@ -177,19 +177,48 @@
       };
     }
 
-    // Print plan
+    // Print plan (A4 Yatay ve İri Baskı)
     if (btnPrint) {
       btnPrint.onclick = () => {
+        const state = (window.stateManager && window.stateManager.loadState()) || {};
+        const activeBranch = document.getElementById('dash-select-branch') ? document.getElementById('dash-select-branch').value : 'all';
+        const isMiddle = state.educationLevel === 'middle';
+        const branchTitle = (isMiddle && activeBranch && activeBranch !== 'all') ? `${activeBranch} Şubesi ` : '';
+        
+        // Başlığı şube adıyla güncelle
+        const headerTitleEl = document.querySelector('#tools-seating-view .page-header h2');
+        const originalTitle = headerTitleEl ? headerTitleEl.textContent : 'Sınıf Oturma Planı';
+        if (headerTitleEl) {
+          headerTitleEl.textContent = `${branchTitle}Sınıf Oturma Planı`.trim();
+        }
+
+        // A4 Yatay baskıyı kesin olarak garanti eden @page kuralı ekle
+        let printStyle = document.getElementById('seating-print-page-style');
+        if (!printStyle) {
+          printStyle = document.createElement('style');
+          printStyle.id = 'seating-print-page-style';
+          document.head.appendChild(printStyle);
+        }
+        printStyle.innerHTML = `
+          @page {
+            size: A4 landscape !important;
+            margin: 6mm 8mm !important;
+          }
+        `;
+
         document.body.classList.add('print-seating');
         window.print();
         
-        window.addEventListener('afterprint', () => {
+        const cleanup = () => {
           document.body.classList.remove('print-seating');
-        }, { once: true });
-        
-        setTimeout(() => {
-          document.body.classList.remove('print-seating');
-        }, 1500);
+          if (headerTitleEl) headerTitleEl.textContent = originalTitle;
+          if (printStyle && printStyle.parentNode) {
+            printStyle.parentNode.removeChild(printStyle);
+          }
+        };
+
+        window.addEventListener('afterprint', cleanup, { once: true });
+        setTimeout(cleanup, 3000);
       };
     }
 
@@ -350,7 +379,7 @@
         
         if (!studentId) {
           // Empty Seat
-          seat.innerHTML = `<span class="seating-seat-empty-btn"><i data-lucide="plus" style="width: 16px; height: 16px;"></i></span>`;
+          seat.innerHTML = `<span class="seating-seat-empty-btn"><i data-lucide="plus" style="width: 16px; height: 16px;"></i><span class="seating-empty-print-label" style="display:none;">BOŞ</span></span>`;
         } else {
           // Seated Student
           const s = students.find(item => item.id === studentId);
@@ -364,15 +393,19 @@
               ? `<img class="seating-seat-photo" src="${s.photo}">`
               : `<div class="seating-seat-initials" style="${avatarStyle}">${initials}</div>`;
 
+            const fullName = `${s.name} ${s.surname || ''}`.trim();
+            const studentNo = s.number ? `#${s.number}` : '';
+
             seat.innerHTML = `
               <div class="seating-seat-occupied">
                 ${photoHtml}
-                <div class="seating-seat-name" title="${s.name} ${s.surname}">${s.name}</div>
+                <div class="seating-seat-name" title="${fullName}">${fullName}</div>
+                ${studentNo ? `<div class="seating-seat-no">${studentNo}</div>` : ''}
               </div>
             `;
           } else {
             // Student deleted from system
-            seat.innerHTML = `<span class="seating-seat-empty-btn"><i data-lucide="plus" style="width: 16px; height: 16px;"></i></span>`;
+            seat.innerHTML = `<span class="seating-seat-empty-btn"><i data-lucide="plus" style="width: 16px; height: 16px;"></i><span class="seating-empty-print-label" style="display:none;">BOŞ</span></span>`;
             desk.students[seatIdx] = null; // reset slot
           }
         }

@@ -1,8 +1,8 @@
 {
-  "version": "1.0.124",
+  "version": "1.0.125",
   "releaseDate": "2026-11-04",
   "minRequiredVersion": "1.0.0",
-  "title": "Sınıf Asistanı v1.0.124 Yayında!",
+  "title": "Sınıf Asistanı v1.0.125 Yayında!",
   "description": "El Terminali Ödev Kontrol Sırası Yönetimi ve Sıralama Optimizasyonu",
   "features": [
     "Ödev Kontrol Sırası Yönetimi: El terminalinde öğretmenlerin ders esnasında kontrol rotasına göre öğrenci sırasını özelleştirebileceği 'Sıra Düzeni' modülü eklendi.",

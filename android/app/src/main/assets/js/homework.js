@@ -798,6 +798,11 @@ function setupHomeworkTab(showToast) {
     const event = new CustomEvent('stateChanged');
     document.dispatchEvent(event);
   });
+
+  // Kayıtlı görünüm modunu (Haftalık / Günlük) başlat
+  if (typeof setHomeworkViewMode === 'function') {
+    setHomeworkViewMode(currentHomeworkViewMode);
+  }
 }
 
 // -------------------------------------------------------
@@ -870,7 +875,9 @@ function renderHomeworkMatrix() {
     const thDay = document.createElement('th');
     thDay.className = 'th-day';
     thDay.style.padding = '0.5rem 0.25rem';
-    thDay.style.minWidth = '130px';
+    thDay.style.width = '13%';
+    thDay.style.maxWidth = '160px';
+    thDay.style.overflow = 'hidden';
     thDay.style.verticalAlign = 'top';
 
     const dayCard = document.createElement('div');
@@ -878,10 +885,11 @@ function renderHomeworkMatrix() {
 
     if (hw) {
       // Ödev VAR → Görüntüle + Sil butonları
+      const fullTooltip = `${hw.title || ''}${hw.description ? ' • ' + hw.description : ''}`;
       dayCard.innerHTML = `
         <div class="hw-day-name">${day.dayName}</div>
         <div class="hw-day-date">${formattedDate}</div>
-        ${subTitle ? `<div class="hw-day-subtitle" title="${hw.description || ''}">${subTitle}</div>` : ''}
+        ${subTitle ? `<div class="hw-day-subtitle" title="${fullTooltip}">${subTitle}</div>` : ''}
         <div class="hw-col-actions" style="margin-top: 0.4rem; display: flex; justify-content: center; gap: 0.25rem;">
           <button class="action-btn-sm hw-view-btn" title="Verilen Ödevi Görüntüle / WhatsApp'ta Paylaş" style="background: rgba(99,102,241,0.15); color: var(--primary); border: 1px solid rgba(99,102,241,0.3);">
             <i data-lucide="eye" style="width: 12px; height: 12px;"></i>
@@ -1105,12 +1113,467 @@ function openEditOrCreateHomework(dateStr, dayName) {
   modalHomework.classList.add('active');
 }
 
+// =========================================================================
+// MASAÜSTÜ: GÜNLÜK ÖDEV KONTROL GÖRÜNÜMÜ & MOD YÖNETİMİ
+// =========================================================================
+
+function escapeHTML(str) {
+  if (str == null) return '';
+  return String(str).replace(/[&<>'"]/g, tag => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+  }[tag] || tag));
+}
+
+let currentHomeworkViewMode = localStorage.getItem('sinif_hw_view_mode') || 'weekly';
+let currentDailyDate = null;
+let dailyStudentSearchQuery = '';
+
+function setHomeworkViewMode(mode) {
+  currentHomeworkViewMode = mode === 'daily' ? 'daily' : 'weekly';
+  localStorage.setItem('sinif_hw_view_mode', currentHomeworkViewMode);
+
+  const btnWeekly = document.getElementById('btn-hw-mode-weekly');
+  const btnDaily = document.getElementById('btn-hw-mode-daily');
+  const weeklyContainer = document.getElementById('homework-weekly-container');
+  const dailyContainer = document.getElementById('homework-daily-container');
+
+  if (btnWeekly) btnWeekly.classList.toggle('active', currentHomeworkViewMode === 'weekly');
+  if (btnDaily) btnDaily.classList.toggle('active', currentHomeworkViewMode === 'daily');
+
+  if (weeklyContainer) weeklyContainer.style.display = currentHomeworkViewMode === 'weekly' ? 'block' : 'none';
+  if (dailyContainer) dailyContainer.style.display = currentHomeworkViewMode === 'daily' ? 'block' : 'none';
+
+  if (currentHomeworkViewMode === 'weekly') {
+    renderHomeworkMatrix();
+  } else {
+    renderHomeworkDailyView();
+  }
+}
+window.setHomeworkViewMode = setHomeworkViewMode;
+
+function getDailyDayName(dateStr) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr + 'T12:00:00');
+  const days = ['Pazar', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi'];
+  return days[d.getDay()] || '';
+}
+
+function setHomeworkDailyDate(dateStr) {
+  currentDailyDate = dateStr;
+  renderHomeworkDailyView();
+}
+window.setHomeworkDailyDate = setHomeworkDailyDate;
+
+function changeHomeworkDailyDay(delta) {
+  const selectedWeek = stateManager.getSelectedWeek();
+  const weekDates = getWeekDates(selectedWeek);
+  if (weekDates.length === 0) return;
+
+  let currentIndex = weekDates.findIndex(w => w.dateStr === currentDailyDate);
+  if (currentIndex === -1) currentIndex = 0;
+
+  let newIndex = currentIndex + delta;
+  if (newIndex < 0) newIndex = 0;
+  if (newIndex >= weekDates.length) newIndex = weekDates.length - 1;
+
+  currentDailyDate = weekDates[newIndex].dateStr;
+  renderHomeworkDailyView();
+}
+window.changeHomeworkDailyDay = changeHomeworkDailyDay;
+
+function onHomeworkDailyDatePicked(val) {
+  if (val) {
+    currentDailyDate = val;
+    renderHomeworkDailyView();
+  }
+}
+window.onHomeworkDailyDatePicked = onHomeworkDailyDatePicked;
+
+function filterDailyHomeworkStudents(query) {
+  dailyStudentSearchQuery = query || '';
+  renderHomeworkDailyTableOnly();
+}
+window.filterDailyHomeworkStudents = filterDailyHomeworkStudents;
+
+// Günlük Görünüm: Tüm sınıfı belirli bir duruma getir (Tam veya Sıfırla)
+function markAllDailyHomework(targetStatus) {
+  if (!currentDailyDate) return;
+  const state = stateManager.loadState();
+  const selectBranch = document.getElementById('homework-select-branch');
+  const branchFilter = selectBranch ? selectBranch.value : 'all';
+
+  const activeStudents = state.students.filter(student => {
+    return state.educationLevel === 'primary' || branchFilter === 'all' || student.branch === branchFilter;
+  });
+
+  if (activeStudents.length === 0) return;
+
+  const dayName = getDailyDayName(currentDailyDate);
+  let hw = state.homeworks.find(h =>
+    h.dueDate === currentDailyDate &&
+    isHomeworkMatchingBranch(h, branchFilter, state.educationLevel)
+  );
+
+  if (!hw) {
+    hw = stateManager.addHomework({
+      title: `${dayName} Ödevi`,
+      description: '',
+      dueDate: currentDailyDate,
+      branch: (state.educationLevel === 'middle') ? (branchFilter === 'all' ? '' : branchFilter) : ''
+    });
+  }
+
+  activeStudents.forEach(std => {
+    stateManager.updateHomeworkStatus(hw.id, std.id, targetStatus);
+  });
+
+  const event = new CustomEvent('stateChanged');
+  document.dispatchEvent(event);
+
+  if (toastCallback) {
+    toastCallback(targetStatus === 'completed' ? 'Tüm sınıf için ödev Tam yapıldı.' : 'Ödev durumları sıfırlandı.', 'success');
+  } else if (window.showToast) {
+    window.showToast(targetStatus === 'completed' ? 'Tüm sınıf için ödev Tam yapıldı.' : 'Ödev durumları sıfırlandı.', 'success');
+  }
+}
+window.markAllDailyHomework = markAllDailyHomework;
+
+// Günlük Görünüm: Öğrenci Durumunu Doğrudan Değiştir (Tam, Yarım, Yapmadı, Muaf)
+function setDailyStudentStatus(studentId, nextStatus) {
+  if (!currentDailyDate || !studentId) return;
+  const state = stateManager.loadState();
+  const selectBranch = document.getElementById('homework-select-branch');
+  const branchFilter = selectBranch ? selectBranch.value : 'all';
+
+  const std = state.students.find(s => String(s.id) === String(studentId));
+  const dayName = getDailyDayName(currentDailyDate);
+
+  let hw = state.homeworks.find(h =>
+    h.dueDate === currentDailyDate &&
+    isHomeworkMatchingBranch(h, branchFilter, state.educationLevel, std ? std.branch : null)
+  );
+
+  if (!hw) {
+    hw = stateManager.addHomework({
+      title: `${dayName} Ödevi`,
+      description: '',
+      dueDate: currentDailyDate,
+      branch: (state.educationLevel === 'middle') ? (branchFilter === 'all' ? (std ? std.branch : '') : branchFilter) : ''
+    });
+  }
+
+  // Tıklanan buton zaten aktifse sıfırla ('none')
+  const currentVal = (hw && hw.status && (hw.status[studentId] || hw.status[String(studentId)])) || 'none';
+  const finalStatus = currentVal === nextStatus ? 'none' : nextStatus;
+
+  stateManager.updateHomeworkStatus(hw.id, studentId, finalStatus);
+  const event = new CustomEvent('stateChanged');
+  document.dispatchEvent(event);
+}
+window.setDailyStudentStatus = setDailyStudentStatus;
+
+// Günlük Görünüm Ana Render Fonksiyonu
+function renderHomeworkDailyView() {
+  const state = stateManager.loadState();
+  const selectedWeek = stateManager.getSelectedWeek();
+  const weekDates = getWeekDates(selectedWeek);
+
+  if (weekDates.length === 0) return;
+
+  // Seçili gün yoksa veya haftanın dışındaysa bugünü veya haftanın ilk gününü seç
+  const todayStr = new Date().toISOString().split('T')[0];
+  if (!currentDailyDate || !weekDates.some(w => w.dateStr === currentDailyDate)) {
+    const todayMatch = weekDates.find(w => w.dateStr === todayStr);
+    currentDailyDate = todayMatch ? todayMatch.dateStr : weekDates[0].dateStr;
+  }
+
+  const currentDayObj = weekDates.find(w => w.dateStr === currentDailyDate) || weekDates[0];
+  const currentDayName = currentDayObj ? currentDayObj.dayName : getDailyDayName(currentDailyDate);
+
+  // 1. Gün Gezinme Butonları (Pazartesi ... Cuma)
+  const daysStrip = document.getElementById('hw-daily-days-strip');
+  if (daysStrip) {
+    daysStrip.innerHTML = weekDates.map(w => {
+      const parts = w.dateStr.split('-');
+      const shortDate = parts.length === 3 ? `${parts[2]}.${parts[1]}` : '';
+      const isActive = w.dateStr === currentDailyDate;
+      return `
+        <button type="button" class="hw-daily-day-chip ${isActive ? 'active' : ''}" onclick="window.setHomeworkDailyDate('${w.dateStr}')">
+          <span>${w.dayName}</span>
+          <span style="opacity: 0.75; font-size: 0.72rem;">${shortDate}</span>
+        </button>
+      `;
+    }).join('');
+  }
+
+  // Tarih Etiketi
+  const dateLabel = document.getElementById('hw-daily-selected-date-label');
+  if (dateLabel) {
+    dateLabel.textContent = `${formatDateStr(currentDailyDate)}, ${currentDayName}`;
+  }
+
+  // 2. Günün Ödev Kartı
+  const selectBranch = document.getElementById('homework-select-branch');
+  const branchFilter = selectBranch ? selectBranch.value : 'all';
+
+  const hw = state.homeworks.find(h =>
+    h.dueDate === currentDailyDate &&
+    isHomeworkMatchingBranch(h, branchFilter, state.educationLevel)
+  );
+
+  const infoBox = document.getElementById('hw-daily-info-box');
+  if (infoBox) {
+    if (hw) {
+      infoBox.innerHTML = `
+        <div style="min-width: 0; flex: 1;">
+          <div class="hw-daily-info-title">
+            <span>📖</span>
+            <span style="word-break: break-word;">${escapeHTML(hw.title)}</span>
+            ${hw.branch ? `<span style="font-size: 0.75rem; font-weight: 700; color: #818cf8; background: rgba(99,102,241,0.15); padding: 2px 8px; border-radius: 6px;">${escapeHTML(hw.branch)}</span>` : ''}
+          </div>
+          <div class="hw-daily-info-desc">
+            ${hw.description ? escapeHTML(hw.description) : '<span style="color: var(--text-muted); font-style: italic;">Ek açıklama girilmemiş.</span>'}
+          </div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
+          <button type="button" class="btn btn-secondary action-btn-sm" title="WhatsApp ile Paylaş" style="background: rgba(37,211,102,0.15); color: #1a9e4f; border-color: rgba(37,211,102,0.35);" onclick="window.sendToWhatsAppFromDaily()">
+            <i data-lucide="share-2" style="width: 14px; height: 14px;"></i>
+            <span>WhatsApp</span>
+          </button>
+          <button type="button" class="btn btn-secondary action-btn-sm" title="Ödevi Düzenle" onclick="window.editHomeworkFromDaily()">
+            <i data-lucide="edit-3" style="width: 14px; height: 14px;"></i>
+            <span>Düzenle</span>
+          </button>
+          <button type="button" class="btn btn-secondary action-btn-sm delete" title="Ödevi Sil" onclick="window.deleteHomeworkFromDaily()">
+            <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i>
+          </button>
+        </div>
+      `;
+    } else {
+      infoBox.innerHTML = `
+        <div style="min-width: 0; flex: 1;">
+          <div class="hw-daily-info-title" style="color: var(--text-muted);">
+            <span>📝</span>
+            <span>Bu Güne Tanımlı Ödev Yok</span>
+          </div>
+          <div class="hw-daily-info-desc">
+            ${currentDayName} günü için henüz bir ödev konusu girilmemiş. Aşağıdan öğrencileri doğrudan kontrol edebilir veya ödev ekleyebilirsiniz.
+          </div>
+        </div>
+        <div>
+          <button type="button" class="btn btn-primary action-btn-sm" style="padding: 0.45rem 0.9rem; font-size: 0.8rem; font-weight: 700; background: linear-gradient(135deg, #10b981, #059669); border: none;" onclick="window.createHomeworkFromDaily()">
+            <i data-lucide="plus" style="width: 15px; height: 15px;"></i>
+            <span>Bu Güne Ödev Ver</span>
+          </button>
+        </div>
+      `;
+    }
+  }
+
+  // 3. İstatistikler & Öğrenci Tablosu
+  renderHomeworkDailyTableOnly();
+  window.safeCreateIcons();
+}
+window.renderHomeworkDailyView = renderHomeworkDailyView;
+
+function renderHomeworkDailyTableOnly() {
+  const state = stateManager.loadState();
+  const selectBranch = document.getElementById('homework-select-branch');
+  const branchFilter = selectBranch ? selectBranch.value : 'all';
+  const tbody = document.getElementById('homework-daily-table-body');
+  if (!tbody || !currentDailyDate) return;
+
+  const selectedWeek = stateManager.getSelectedWeek();
+  const weekDates = getWeekDates(selectedWeek);
+  const settings = stateManager.getHomeworkSettings();
+
+  const activeStudents = state.students.filter(student => {
+    return state.educationLevel === 'primary' || branchFilter === 'all' || student.branch === branchFilter;
+  });
+
+  // Filtreleme (arama sorgusu)
+  let displayStudents = [...activeStudents].sort((a, b) => (parseInt(a.number, 10) || 0) - (parseInt(b.number, 10) || 0));
+  if (dailyStudentSearchQuery && dailyStudentSearchQuery.trim()) {
+    const q = dailyStudentSearchQuery.trim().toLowerCase();
+    displayStudents = displayStudents.filter(s => {
+      const name = `${s.name || ''} ${s.surname || ''}`.toLowerCase();
+      const num = String(s.number || '');
+      return name.includes(q) || num.includes(q);
+    });
+  }
+
+  // İstatistik Sayaçları
+  let countCompleted = 0;
+  let countIncomplete = 0;
+  let countMissing = 0;
+  let countExcused = 0;
+
+  tbody.innerHTML = '';
+
+  if (displayStudents.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="4" style="text-align: center; color: var(--text-muted); padding: 2.5rem;">
+          Öğrenci bulunamadı.
+        </td>
+      </tr>
+    `;
+  } else {
+    displayStudents.forEach(std => {
+      // Öğrencinin seçili gündeki ödev durumu
+      const matchingHws = state.homeworks.filter(h =>
+        h.dueDate === currentDailyDate &&
+        isHomeworkMatchingBranch(h, branchFilter, state.educationLevel, std.branch)
+      );
+      const hw = matchingHws.find(h => h.status && (h.status[std.id] || h.status[String(std.id)])) ||
+                 matchingHws.find(h => std.branch && String(h.branch || '').trim() === String(std.branch).trim()) ||
+                 matchingHws[0] ||
+                 null;
+      const currentStatus = (hw && hw.status && (hw.status[std.id] || hw.status[String(std.id)])) || 'none';
+
+      if (currentStatus === 'completed') countCompleted++;
+      else if (currentStatus === 'incomplete') countIncomplete++;
+      else if (currentStatus === 'missing') countMissing++;
+      else if (currentStatus === 'excused') countExcused++;
+
+      // Öğrencinin haftalık toplam puanı
+      let weeklyScoreSum = 0;
+      weekDates.forEach(day => {
+        const mHws = state.homeworks.filter(h =>
+          h.dueDate === day.dateStr &&
+          isHomeworkMatchingBranch(h, branchFilter, state.educationLevel, std.branch)
+        );
+        const mHw = mHws.find(h => h.status && (h.status[std.id] || h.status[String(std.id)])) || mHws[0] || null;
+        const st = (mHw && mHw.status && (mHw.status[std.id] || mHw.status[String(std.id)])) || 'none';
+        if (st === 'completed') weeklyScoreSum += settings.completed;
+        else if (st === 'incomplete') weeklyScoreSum += settings.incomplete;
+        else if (st === 'missing') weeklyScoreSum += settings.missing;
+        else if (st === 'excused') weeklyScoreSum += (settings.excused !== undefined ? settings.excused : 0);
+      });
+
+      const isAbsentToday = stateManager.isStudentAbsent(std.id);
+      const tr = document.createElement('tr');
+      if (isAbsentToday) tr.classList.add('absent-row');
+
+      let totalBadgeClass = 'zero';
+      if (weeklyScoreSum > 0) totalBadgeClass = 'positive';
+      else if (weeklyScoreSum < 0) totalBadgeClass = 'negative';
+      const showSign = weeklyScoreSum >= 0 ? '+' : '';
+
+      tr.innerHTML = `
+        <td style="text-align: center; font-weight: 700; color: var(--text-muted);">${std.number || '-'}</td>
+        <td style="text-align: left;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span class="homework-weekly-student-name" onclick="window.openStudentDetailModal && window.openStudentDetailModal('${std.id}')" style="font-weight: 700; font-size: 0.9rem;">${escapeHTML(std.name)} ${escapeHTML(std.surname || '')}</span>
+            ${std.branch ? `<span style="font-size: 0.7rem; color: var(--text-muted); background: var(--bg-secondary); padding: 1px 6px; border-radius: 4px;">${escapeHTML(std.branch)}</span>` : ''}
+          </div>
+        </td>
+        <td style="text-align: center;">
+          <div class="hw-btn-group-status">
+            <button type="button" class="hw-btn-status completed ${currentStatus === 'completed' ? 'active' : ''}" onclick="window.setDailyStudentStatus('${std.id}', 'completed')" title="Tam (+Puan)">
+              <i data-lucide="check" style="width: 13px; height: 13px;"></i>
+              <span>Tam</span>
+            </button>
+            <button type="button" class="hw-btn-status incomplete ${currentStatus === 'incomplete' ? 'active' : ''}" onclick="window.setDailyStudentStatus('${std.id}', 'incomplete')" title="Yarım">
+              <i data-lucide="minus" style="width: 13px; height: 13px;"></i>
+              <span>Yarım</span>
+            </button>
+            <button type="button" class="hw-btn-status missing ${currentStatus === 'missing' ? 'active' : ''}" onclick="window.setDailyStudentStatus('${std.id}', 'missing')" title="Yapmadı (-Puan)">
+              <i data-lucide="x" style="width: 13px; height: 13px;"></i>
+              <span>Yapmadı</span>
+            </button>
+            <button type="button" class="hw-btn-status excused ${currentStatus === 'excused' ? 'active' : ''}" onclick="window.setDailyStudentStatus('${std.id}', 'excused')" title="Muaf (Puan Etkisi Yok)">
+              <i data-lucide="slash" style="width: 13px; height: 13px;"></i>
+              <span>Muaf</span>
+            </button>
+          </div>
+        </td>
+        <td style="text-align: center;">
+          <span class="weekly-total-badge ${totalBadgeClass}">${showSign}${weeklyScoreSum}</span>
+        </td>
+      `;
+
+      tbody.appendChild(tr);
+    });
+  }
+
+  // Sayaçları güncelle
+  const pillComp = document.getElementById('hw-daily-stat-completed');
+  const pillInc = document.getElementById('hw-daily-stat-incomplete');
+  const pillMiss = document.getElementById('hw-daily-stat-missing');
+  const pillExc = document.getElementById('hw-daily-stat-excused');
+  if (pillComp) pillComp.textContent = `Tam: ${countCompleted}`;
+  if (pillInc) pillInc.textContent = `Yarım: ${countIncomplete}`;
+  if (pillMiss) pillMiss.textContent = `Yapmadı: ${countMissing}`;
+  if (pillExc) pillExc.textContent = `Muaf: ${countExcused}`;
+
+  window.safeCreateIcons();
+}
+
+// Günlük Görünümden Eylemler
+window.createHomeworkFromDaily = function() {
+  if (!currentDailyDate) return;
+  const dayName = getDailyDayName(currentDailyDate);
+  openSendHomeworkModal(currentDailyDate, dayName);
+};
+
+window.editHomeworkFromDaily = function() {
+  if (!currentDailyDate) return;
+  const dayName = getDailyDayName(currentDailyDate);
+  openSendHomeworkModal(currentDailyDate, dayName);
+};
+
+window.deleteHomeworkFromDaily = async function() {
+  if (!currentDailyDate) return;
+  const state = stateManager.loadState();
+  const selectBranch = document.getElementById('homework-select-branch');
+  const branchFilter = selectBranch ? selectBranch.value : 'all';
+
+  const hw = state.homeworks.find(h =>
+    h.dueDate === currentDailyDate &&
+    isHomeworkMatchingBranch(h, branchFilter, state.educationLevel)
+  );
+
+  if (!hw) return;
+  const dayName = getDailyDayName(currentDailyDate);
+  const msg = `"${dayName} (${formatDateStr(currentDailyDate)})" gününe ait ödev kaydını silmek istediğinize emin misiniz?`;
+  const ok = typeof window.confirmAsync === 'function' ? await window.confirmAsync(msg) : confirm(msg);
+  if (ok) {
+    stateManager.deleteHomework(hw.id);
+    const event = new CustomEvent('stateChanged');
+    document.dispatchEvent(event);
+  }
+};
+
+window.sendToWhatsAppFromDaily = function() {
+  if (!currentDailyDate) return;
+  const state = stateManager.loadState();
+  const selectBranch = document.getElementById('homework-select-branch');
+  const branchFilter = selectBranch ? selectBranch.value : 'all';
+
+  const hw = state.homeworks.find(h =>
+    h.dueDate === currentDailyDate &&
+    isHomeworkMatchingBranch(h, branchFilter, state.educationLevel)
+  );
+
+  if (hw) {
+    const dayName = getDailyDayName(currentDailyDate);
+    sendToWhatsApp(hw, dayName);
+  }
+};
+
 // Buluttan / El Terminalinden canlı ödev veya veri değişikliği geldiğinde tabloyu anında güncelle (sadece Ödev sekmesi aktifken)
 document.addEventListener('stateChanged', () => {
   const hwSec = document.getElementById('homework');
   if (hwSec && hwSec.classList.contains('active')) {
-    if (typeof renderHomeworkMatrix === 'function') {
-      renderHomeworkMatrix();
+    if (currentHomeworkViewMode === 'daily') {
+      if (typeof renderHomeworkDailyView === 'function') {
+        renderHomeworkDailyView();
+      }
+    } else {
+      if (typeof renderHomeworkMatrix === 'function') {
+        renderHomeworkMatrix();
+      }
     }
   }
 });

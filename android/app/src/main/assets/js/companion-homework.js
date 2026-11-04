@@ -497,6 +497,16 @@
       return `${y}-${m}-${d}`;
     },
 
+    escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    },
+
     openCreateModal() {
       const modal = document.getElementById('companion-create-hw-modal');
       if (!modal) return;
@@ -511,11 +521,17 @@
       this.updateDateChipActive('tomorrow');
 
       // Alanları sıfırla
-      const subjectInput = document.getElementById('new-hw-subject');
-      if (subjectInput) subjectInput.value = '';
+      this.selectedSubjectTasks = {};
+      this.renderSubjectCards();
+
+      const defInput = document.getElementById('new-hw-definition');
+      if (defInput) defInput.value = '';
 
       const titleInput = document.getElementById('new-hw-title');
-      if (titleInput) titleInput.value = '';
+      if (titleInput) {
+        titleInput.value = '';
+        titleInput.placeholder = 'Ders kartlarına dokunarak görev ekleyin veya doğrudan buraya ödev konusunu yazın...';
+      }
 
       const descInput = document.getElementById('new-hw-description');
       if (descInput) descInput.value = '';
@@ -527,16 +543,15 @@
       }
 
       // Konu çiplerini temizle
-      const subChips = document.querySelectorAll('#new-hw-subject-chips .c-hw-sub-chip');
-      subChips.forEach(c => c.classList.remove('active'));
+      this.updateSubjectChipsState();
 
       modal.style.display = 'flex';
       setTimeout(() => modal.classList.add('active'), 10);
       if (window.Companion) window.Companion.vibrate(15);
       if (window.lucide) window.lucide.createIcons();
 
-      if (titleInput) {
-        setTimeout(() => titleInput.focus(), 250);
+      if (defInput) {
+        setTimeout(() => defInput.focus(), 250);
       }
     },
 
@@ -632,53 +647,173 @@
       }
     },
 
-    selectSubject(subjName) {
-      const subjectInput = document.getElementById('new-hw-subject');
-      if (!subjectInput) return;
-
-      const current = subjectInput.value.trim();
-      const chips = document.querySelectorAll('#new-hw-subject-chips .c-hw-sub-chip');
-
-      if (current === subjName) {
-        subjectInput.value = '';
-        chips.forEach(c => c.classList.remove('active'));
-      } else {
-        subjectInput.value = subjName;
-        chips.forEach(c => {
-          if (c.textContent.trim() === subjName) c.classList.add('active');
-          else c.classList.remove('active');
-        });
+    toggleSubject(subjName) {
+      if (!this.selectedSubjectTasks) {
+        this.selectedSubjectTasks = {};
       }
+
+      const isAlreadySelected = this.selectedSubjectTasks[subjName] !== undefined;
+      if (isAlreadySelected) {
+        delete this.selectedSubjectTasks[subjName];
+      } else {
+        this.selectedSubjectTasks[subjName] = '';
+      }
+
+      this.updateSubjectChipsState();
+      this.renderSubjectCards(isAlreadySelected ? null : subjName);
+
       if (window.Companion) window.Companion.vibrate(10);
+    },
+
+    selectSubject(subjName) {
+      this.toggleSubject(subjName);
+    },
+
+    removeSubjectRow(subjName) {
+      if (!this.selectedSubjectTasks) return;
+      delete this.selectedSubjectTasks[subjName];
+      this.updateSubjectChipsState();
+      this.renderSubjectCards();
+      if (window.Companion) window.Companion.vibrate(10);
+    },
+
+    onSubjectTaskChange(subjName, val) {
+      if (!this.selectedSubjectTasks) {
+        this.selectedSubjectTasks = {};
+      }
+      this.selectedSubjectTasks[subjName] = val;
+    },
+
+    updateSubjectChipsState() {
+      const chips = document.querySelectorAll('#new-hw-subject-chips .c-hw-sub-chip');
+      chips.forEach(chip => {
+        const sName = chip.getAttribute('data-subject') || chip.textContent.trim();
+        if (this.selectedSubjectTasks && this.selectedSubjectTasks[sName] !== undefined) {
+          chip.classList.add('active');
+        } else {
+          chip.classList.remove('active');
+        }
+      });
+    },
+
+    renderSubjectCards(focusSubject = null) {
+      const container = document.getElementById('new-hw-selected-subjects-list');
+      if (!container) return;
+
+      const keys = Object.keys(this.selectedSubjectTasks || {});
+      if (keys.length === 0) {
+        container.innerHTML = '';
+        container.style.display = 'none';
+
+        const titleInput = document.getElementById('new-hw-title');
+        if (titleInput) {
+          titleInput.placeholder = 'Ders kartlarına dokunarak görev ekleyin veya doğrudan buraya ödev konusunu yazın...';
+        }
+        return;
+      }
+
+      container.style.display = 'flex';
+      const titleInput = document.getElementById('new-hw-title');
+      if (titleInput) {
+        titleInput.placeholder = 'Ek açıklama / diğer genel ödev görevi (Opsiyonel)...';
+      }
+
+      const TAG_CLASSES = {
+        'Türkçe': 'tag-turkce',
+        'Matematik': 'tag-matematik',
+        'Fen Bilimleri': 'tag-fen',
+        'Sosyal Bilgiler': 'tag-sosyal',
+        'Hayat Bilgisi': 'tag-hayat',
+        'İngilizce': 'tag-ingilizce',
+        'Din Kültürü': 'tag-din'
+      };
+
+      let html = '';
+      keys.forEach(subj => {
+        const val = this.escapeHtml(this.selectedSubjectTasks[subj] || '');
+        const tagClass = TAG_CLASSES[subj] || '';
+        html += `
+          <div class="c-hw-subject-card" data-subject="${this.escapeHtml(subj)}">
+            <div class="c-hw-sub-card-header">
+              <span class="c-hw-sub-tag ${tagClass}">
+                ${this.escapeHtml(subj)}
+              </span>
+              <button type="button" class="c-hw-sub-del-btn" onclick="window.CompanionHomework.removeSubjectRow('${this.escapeHtml(subj)}')" title="Dersi kaldır">✕</button>
+            </div>
+            <input type="text" 
+                   class="c-hw-sub-task-input" 
+                   id="hw-task-input-${this.escapeHtml(subj)}"
+                   placeholder="${this.escapeHtml(subj)} ödev konusu / sayfalar (Örn: Sayfa 42-43)..." 
+                   value="${val}" 
+                   oninput="window.CompanionHomework.onSubjectTaskChange('${this.escapeHtml(subj)}', this.value)" />
+          </div>
+        `;
+      });
+
+      container.innerHTML = html;
+
+      if (focusSubject) {
+        setTimeout(() => {
+          const inp = document.getElementById(`hw-task-input-${focusSubject}`);
+          if (inp) inp.focus();
+        }, 50);
+      }
     },
 
     saveNewHomework(shareWhatsApp = false) {
       const activeSection = this.getActiveSection();
       const dateInput = document.getElementById('new-hw-due-date');
-      const subjectInput = document.getElementById('new-hw-subject');
+      const defInput = document.getElementById('new-hw-definition');
       const titleInput = document.getElementById('new-hw-title');
       const descInput = document.getElementById('new-hw-description');
 
       const dueDate = (dateInput && dateInput.value) || this.getTomorrowDateString();
-      const subject = (subjectInput && subjectInput.value.trim()) || '';
-      const rawTitle = (titleInput && titleInput.value.trim()) || '';
+      const definition = (defInput && defInput.value.trim()) || '';
+      const generalTask = (titleInput && titleInput.value.trim()) || '';
       const description = (descInput && descInput.value.trim()) || '';
 
-      if (!rawTitle) {
+      // Seçilen ders görevlerini topla
+      const subjectEntries = [];
+      if (this.selectedSubjectTasks) {
+        for (const [subj, taskText] of Object.entries(this.selectedSubjectTasks)) {
+          const cleanTask = (taskText || '').trim();
+          if (cleanTask) {
+            subjectEntries.push({ subject: subj, task: cleanTask });
+          } else {
+            subjectEntries.push({ subject: subj, task: 'Ödev verildi' });
+          }
+        }
+      }
+
+      // Doğrulama: En az bir ders veya genel görev veya tanım girilmiş olmalı
+      if (subjectEntries.length === 0 && !generalTask && !definition) {
         if (window.Companion) {
           window.Companion.vibrate([40, 40]);
-          window.Companion.showToast('⚠️ Lütfen ödev konusunu veya görevini yazın.');
+          window.Companion.showToast('⚠️ Lütfen bir ders seçin veya ödev konusunu yazın.');
         } else {
-          alert('Lütfen ödev konusunu veya görevini yazın.');
+          alert('Lütfen bir ders seçin veya ödev konusunu yazın.');
         }
         if (titleInput) titleInput.focus();
         return;
       }
 
-      // Başlığı derle
-      let fullTitle = rawTitle;
-      if (subject && !rawTitle.toLowerCase().includes(subject.toLowerCase())) {
-        fullTitle = `${subject}: ${rawTitle}`;
+      // Bütüncül ödev başlığını derle
+      let taskSummaryParts = [];
+      subjectEntries.forEach(e => {
+        taskSummaryParts.push(`${e.subject}: ${e.task}`);
+      });
+      if (generalTask) {
+        taskSummaryParts.push(generalTask);
+      }
+      const tasksSummary = taskSummaryParts.join(' • ');
+
+      let fullTitle = '';
+      if (definition && tasksSummary) {
+        fullTitle = `${definition}: ${tasksSummary}`;
+      } else if (definition) {
+        fullTitle = definition;
+      } else {
+        fullTitle = tasksSummary;
       }
 
       const data = this.getData();
@@ -696,6 +831,8 @@
         hw = {
           id: 'hw_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
           title: fullTitle,
+          definition: definition,
+          tasks: subjectEntries,
           description: description,
           dueDate: dueDate,
           branch: activeSection,
@@ -705,6 +842,8 @@
         data.homeworks.push(hw);
       } else {
         hw.title = fullTitle;
+        hw.definition = definition;
+        hw.tasks = subjectEntries;
         if (description) hw.description = description;
         if (!hw.status) hw.status = {};
       }
@@ -722,8 +861,9 @@
         this.shareHomeworkViaWhatsApp({
           branch: activeSection,
           dueDate: dueDate,
-          subject: subject,
-          title: rawTitle,
+          definition: definition,
+          subjectEntries: subjectEntries,
+          generalTask: generalTask,
           fullTitle: fullTitle,
           description: description
         });
@@ -759,12 +899,27 @@
         msg += `🏫 *Sınıf / Şube:* ${hwData.branch}\n`;
       }
       msg += `📅 *Teslim Tarihi:* ${dueFormatted}\n`;
-      if (hwData.subject) {
-        msg += `📖 *Ders:* ${hwData.subject}\n`;
+
+      if (hwData.definition) {
+        msg += `📌 *Ödev Tanımı:* ${hwData.definition}\n`;
       }
-      msg += `📝 *Ödev:* ${hwData.title || hwData.fullTitle}\n`;
+
+      msg += `\n📝 *Ödev Konusu & Görevler:*\n`;
+      if (Array.isArray(hwData.subjectEntries) && hwData.subjectEntries.length > 0) {
+        hwData.subjectEntries.forEach(entry => {
+          msg += `▫️ *${entry.subject}:* ${entry.task}\n`;
+        });
+        if (hwData.generalTask) {
+          msg += `▫️ *Ek Görev:* ${hwData.generalTask}\n`;
+        }
+      } else if (hwData.generalTask) {
+        msg += `▫️ ${hwData.generalTask}\n`;
+      } else {
+        msg += `▫️ ${hwData.fullTitle || hwData.title || 'Ödev verildi'}\n`;
+      }
+
       if (hwData.description && hwData.description.trim()) {
-        msg += `ℹ️ *Açıklama:* ${hwData.description.trim()}\n`;
+        msg += `\nℹ️ *Not / Açıklama:* ${hwData.description.trim()}\n`;
       }
       msg += `\nSayın Velilerimiz, öğrencimizin ödevini zamanında tamamlamasını ve kontrol etmenizi rica ederiz.\n\n`;
       msg += `_Sınıf Asistanı ile oluşturuldu_`;
@@ -811,7 +966,11 @@
       this.shareHomeworkViaWhatsApp({
         branch: activeSection,
         dueDate: dateStr,
+        definition: (hw && hw.definition) || '',
+        subjectEntries: (hw && Array.isArray(hw.tasks)) ? hw.tasks : [],
+        generalTask: '',
         fullTitle: currentTitle,
+        title: currentTitle,
         description: description
       });
 

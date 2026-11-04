@@ -67,6 +67,10 @@
     availableBooks: [],
     filteredAvailableBooks: [],
     justFinishedDrag: false,
+    currentRecommendStudentId: null,
+    currentRecommendFilter: 'all',
+    currentRecommendSearch: '',
+    lendingTargetStudent: null,
 
     getData() {
       try {
@@ -787,6 +791,9 @@
     async openBarcodeScanner() {
       const modal = document.getElementById('companion-barcode-scanner-modal');
       const statusText = document.getElementById('barcode-scanner-status-text');
+      const titleEl = document.querySelector('.c-scanner-title');
+      const banner = document.getElementById('scanner-lending-banner');
+      const bannerText = document.getElementById('scanner-lending-banner-text');
       if (!modal) return;
 
       this.scannerActive = true;
@@ -797,8 +804,15 @@
       const torchBtn = document.getElementById('btn-scanner-torch');
       if (torchBtn) torchBtn.classList.remove('active');
 
-      if (statusText) {
-        statusText.textContent = 'Kamerayı barkoda veya QR koda tutun';
+      if (this.lendingTargetStudent) {
+        if (titleEl) titleEl.textContent = 'Kitap Teslim Et';
+        if (statusText) statusText.textContent = `${this.lendingTargetStudent.name} için verilecek kitabı okutun`;
+        if (banner) banner.style.display = 'flex';
+        if (bannerText) bannerText.textContent = `🎯 Teslim Edilecek: ${this.lendingTargetStudent.name}`;
+      } else {
+        if (titleEl) titleEl.textContent = 'Kitap Barkod / QR Oku';
+        if (statusText) statusText.textContent = 'Kamerayı barkoda veya QR koda tutun';
+        if (banner) banner.style.display = 'none';
       }
 
       modal.style.display = 'flex';
@@ -819,6 +833,74 @@
 
       await this.startScannerCamera();
       if (window.lucide) window.lucide.createIcons();
+    },
+
+    // Teslim Modunu Başlat
+    startLendingBarcodeScanner(studentId, studentName) {
+      this.lendingTargetStudent = {
+        id: String(studentId),
+        name: String(studentName || '').trim()
+      };
+      this.closeResultModal();
+      setTimeout(() => {
+        this.openBarcodeScanner();
+      }, 180);
+    },
+
+    // Teslim Modundan Vazgeç
+    cancelLendingMode() {
+      this.lendingTargetStudent = null;
+      const banner = document.getElementById('scanner-lending-banner');
+      if (banner) banner.style.display = 'none';
+      const titleEl = document.querySelector('.c-scanner-title');
+      if (titleEl) titleEl.textContent = 'Kitap Barkod / QR Oku';
+      const statusText = document.getElementById('barcode-scanner-status-text');
+      if (statusText) statusText.textContent = 'Kamerayı barkoda veya QR koda tutun';
+    },
+
+    // Teslim Modundayken Okutulan Barkodu İşle
+    processLendingBarcode(codeStr, targetStudent) {
+      if (!targetStudent) return;
+      const cleanCode = String(codeStr || '').trim();
+      const statusText = document.getElementById('barcode-scanner-status-text');
+
+      const book = this.findBookByBarcodeOrNo(cleanCode);
+      if (!book) {
+        if (statusText) {
+          statusText.textContent = `⚠️ Kitap bulunamadı: "${cleanCode}". Tekrar okutun.`;
+        }
+        if (window.Companion && window.Companion.showToast) {
+          window.Companion.showToast(`Kütüphanede eşleşme yok: ${cleanCode}`);
+        }
+        if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+        return;
+      }
+
+      // Kitap şu an bir başkası tarafından okunuyor mu?
+      const data = this.getData();
+      const txList = Array.isArray(data.books && data.books.transactions) ? data.books.transactions : [];
+      const activeTx = txList.find(t => String(t.bookId) === String(book.id) && t.status === 'reading');
+
+      if (activeTx) {
+        const holder = (this.students || []).find(s => String(s.id) === String(activeTx.studentId)) ||
+          { name: activeTx.studentName || 'Başka bir öğrenci' };
+        const holderName = `${holder.name} ${holder.surname || ''}`.trim();
+        if (statusText) {
+          statusText.textContent = `⚠️ Bu kitap şu an ${holderName} üzerinde!`;
+        }
+        if (window.Companion && window.Companion.showToast) {
+          window.Companion.showToast(`Bu kitap şu an ${holderName} üzerinde!`);
+        }
+        if (navigator.vibrate) navigator.vibrate([150, 60, 150]);
+        return;
+      }
+
+      // Kitap müsait -> Teslim işlemini gerçekleştir
+      const sId = targetStudent.id;
+      const sName = targetStudent.name;
+      this.cancelLendingMode();
+      this.closeBarcodeScanner(true);
+      this.borrowBookFromSmartModal(sId, book.id);
     },
 
     // Kamerayı Başlat
@@ -954,6 +1036,12 @@
         statusText.textContent = `✓ Algılandı: ${cleanCode}`;
       }
 
+      // Eğer bir öğrenciye teslim modundaysak doğrudan teslim et
+      if (this.lendingTargetStudent) {
+        this.processLendingBarcode(cleanCode, this.lendingTargetStudent);
+        return;
+      }
+
       // Kamerayı kapat ve akıllı sonuç modalını aç
       setTimeout(() => {
         this.closeBarcodeScanner(true);
@@ -983,6 +1071,7 @@
     closeBarcodeScanner(immediate = false) {
       this.scannerActive = false;
       this.stopScannerStream();
+      this.cancelLendingMode();
       const modal = document.getElementById('companion-barcode-scanner-modal');
       if (modal) {
         modal.classList.remove('active');
@@ -1057,6 +1146,11 @@
         if (window.Companion && window.Companion.showToast) {
           window.Companion.showToast('Lütfen aramak için bir kitap no veya barkod girin.');
         }
+        return;
+      }
+      if (this.lendingTargetStudent) {
+        input.value = '';
+        this.processLendingBarcode(val, this.lendingTargetStudent);
         return;
       }
       this.closeBarcodeScanner(true);
@@ -1202,8 +1296,10 @@
             ? `<img src="${student.photo}" style="width: 44px; height: 44px; border-radius: 50%; object-fit: cover; border: 2px solid #e0e7ff;" />`
             : `<div style="width: 44px; height: 44px; border-radius: 50%; background: #4f46e5; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 16px;">${(student.name ? student.name[0] : '?').toUpperCase()}</div>`;
 
-          // Bu öğrenciye verilebilecek sıradaki uygun kitapları bul
-          const recommendations = this.getRecommendedBooksForStudent(student.id);
+          // Bu öğrenci için filtreleme durumunu sıfırla
+          this.currentRecommendStudentId = student.id;
+          this.currentRecommendFilter = 'all';
+          this.currentRecommendSearch = '';
 
           bodyEl.innerHTML = `
             <!-- Öğrenci ve Kitap Durumu Kartı -->
@@ -1235,37 +1331,9 @@
               </button>
             </div>
 
-            <!-- Bu Öğrenci İçin Sıradaki Kitap Önerileri -->
+            <!-- Bu Öğrenci İçin Sıradaki Kitap Önerileri (1. ve 2. Grup Filtreli) -->
             <div class="c-smart-recommend-block" id="smart-recommendations-section">
-              <div class="c-smart-recommend-title">
-                <i data-lucide="sparkles" style="width: 15px; height: 15px; color: #f59e0b;"></i>
-                <span>${escapeHTML(student.name)} İçin Sıradaki Kitap Önerileri</span>
-              </div>
-
-              <div style="display: flex; flex-direction: column; gap: 8px;">
-                ${recommendations.length > 0 ? recommendations.map(rb => `
-                  <div class="c-smart-item-row">
-                    <div class="c-smart-item-info">
-                      <div class="c-smart-item-name" title="${escapeHTML(rb.title)}">${escapeHTML(rb.title)}</div>
-                      <div class="c-smart-item-sub">
-                        <span>✍️ ${escapeHTML(rb.author || '-')}</span>
-                        <span>•</span>
-                        <span>No: ${rb.bookNo || '-'}</span>
-                        <span>•</span>
-                        <span style="color: #059669; font-weight: 700;">${rb.level === 'seviye_2' ? '2. Seviye' : '1. Seviye'}</span>
-                      </div>
-                    </div>
-                    <button type="button" class="c-btn-borrow-book" onclick="window.CompanionBooks.borrowBookFromSmartModal('${student.id}', '${rb.id}')">
-                      <i data-lucide="plus" style="width: 14px; height: 14px;"></i>
-                      <span>Ödünç Ver</span>
-                    </button>
-                  </div>
-                `).join('') : `
-                  <div style="text-align: center; padding: 16px; color: #94a3b8; font-size: 12px; font-weight: 600;">
-                    Öğrencinin okumadığı uygun boş kitap bulunamadı.
-                  </div>
-                `}
-              </div>
+              ${this.buildSmartRecommendationsHTML(student.id, 'all', '')}
             </div>
           `;
         } else {
@@ -1354,8 +1422,8 @@
       }
     },
 
-    // Belirli bir öğrenci için raftaki en uygun kitapları öner (Pedagojik Algoritma)
-    getRecommendedBooksForStudent(studentId) {
+    // Belirli bir öğrenci için raftaki en uygun kitapları öner (Pedagojik Algoritma + Grup Filtresi)
+    getRecommendedBooksForStudent(studentId, filterGroup = 'all', searchQuery = '') {
       const data = this.getData();
       const lib = Array.isArray(data.books && data.books.library) ? data.books.library : [];
       const txList = Array.isArray(data.books && data.books.transactions) ? data.books.transactions : [];
@@ -1371,23 +1439,163 @@
       );
 
       // Rafta olan ve bu öğrencinin henüz okumadığı kitaplar
-      const available = lib.filter(b => {
+      let available = lib.filter(b => {
         if (b.isDeleted) return false;
         if (currentlyReadingIds.has(String(b.id))) return false;
         if (studentReadIds.has(String(b.id))) return false;
         return true;
       });
 
-      // Puanlama: Seviye uyumu ve sayfa sayısı dengesi
+      // Seviye / Grup Filtresi
+      if (filterGroup === 'seviye_1') {
+        available = available.filter(b => (b.level || 'seviye_1') === 'seviye_1');
+      } else if (filterGroup === 'seviye_2') {
+        available = available.filter(b => b.level === 'seviye_2');
+      }
+
+      // Arama Metni Filtresi
+      if (searchQuery && searchQuery.trim()) {
+        const q = searchQuery.trim().toLowerCase();
+        available = available.filter(b => {
+          const t = (b.title || '').toLowerCase();
+          const a = (b.author || '').toLowerCase();
+          const n = String(b.bookNo || '').toLowerCase();
+          const bc = String(b.barcode || '').toLowerCase();
+          return t.includes(q) || a.includes(q) || n.includes(q) || bc.includes(q);
+        });
+      }
+
+      // Puanlama: Seviye uyumu ve kitap no sıralaması
       available.sort((a, b) => {
-        // Seviye 1 kitapları başlangıçta önceliklendir veya dengeli dağıt
         const levelScoreA = (a.level === 'seviye_1') ? 2 : 1;
         const levelScoreB = (b.level === 'seviye_1') ? 2 : 1;
         if (levelScoreA !== levelScoreB) return levelScoreB - levelScoreA;
         return (parseInt(a.bookNo, 10) || 0) - (parseInt(b.bookNo, 10) || 0);
       });
 
-      return available.slice(0, 4);
+      return available;
+    },
+
+    // Öneri Bölümü HTML'ini Üret (Çipler, Arama ve Liste)
+    buildSmartRecommendationsHTML(studentId, filterGroup = 'all', searchQuery = '') {
+      this.currentRecommendStudentId = studentId;
+      this.currentRecommendFilter = filterGroup || 'all';
+      this.currentRecommendSearch = searchQuery || '';
+
+      const stu = (this.students || []).find(s => String(s.id) === String(studentId));
+      const studentName = stu ? stu.name : 'Öğrenci';
+
+      // Sayaçlar için tüm okunmayan kitapları al
+      const allBooks = this.getRecommendedBooksForStudent(studentId, 'all', '');
+      const countAll = allBooks.length;
+      const countG1 = allBooks.filter(b => (b.level || 'seviye_1') === 'seviye_1').length;
+      const countG2 = allBooks.filter(b => b.level === 'seviye_2').length;
+
+      // Filtrelenmiş sonuçlar
+      const filteredBooks = this.getRecommendedBooksForStudent(studentId, this.currentRecommendFilter, this.currentRecommendSearch);
+      const displayBooks = filteredBooks.slice(0, (this.currentRecommendFilter !== 'all' || this.currentRecommendSearch) ? 25 : 8);
+
+      return `
+        <div class="c-smart-recommend-title" style="justify-content: space-between; margin-bottom: 2px;">
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <i data-lucide="sparkles" style="width: 15px; height: 15px; color: #f59e0b;"></i>
+            <span>${escapeHTML(studentName)} İçin Sıradaki Kitaplar</span>
+          </div>
+          <span style="font-size: 11px; font-weight: 700; color: #64748b;">${filteredBooks.length} Uygun</span>
+        </div>
+
+        <!-- 1. Grup / 2. Grup / Tümü Filtre Çipleri -->
+        <div class="c-smart-filters-strip">
+          <button type="button" class="c-smart-filter-chip ${this.currentRecommendFilter === 'all' ? 'active' : ''}" onclick="window.CompanionBooks.setRecommendFilter('all')">
+            <span>📚 Tümü (${countAll})</span>
+          </button>
+          <button type="button" class="c-smart-filter-chip c-chip-g1 ${this.currentRecommendFilter === 'seviye_1' ? 'active' : ''}" onclick="window.CompanionBooks.setRecommendFilter('seviye_1')">
+            <span>🟢 1. Grup (${countG1})</span>
+          </button>
+          <button type="button" class="c-smart-filter-chip c-chip-g2 ${this.currentRecommendFilter === 'seviye_2' ? 'active' : ''}" onclick="window.CompanionBooks.setRecommendFilter('seviye_2')">
+            <span>🟣 2. Grup (${countG2})</span>
+          </button>
+        </div>
+
+        <!-- Hızlı Arama Kutusu -->
+        <div style="position: relative;">
+          <input
+            type="text"
+            id="smart-recommend-search-input"
+            class="c-input"
+            placeholder="Okunmayan kitaplarda ara (isim, no)..."
+            value="${escapeHTML(this.currentRecommendSearch)}"
+            style="height: 34px; font-size: 12px; border-radius: 10px; padding-left: 30px; background: #ffffff; border: 1px solid #cbd5e1;"
+            oninput="window.CompanionBooks.onRecommendSearchInput(this.value)"
+          />
+          <i data-lucide="search" style="width: 14px; height: 14px; position: absolute; left: 10px; top: 10px; color: #94a3b8;"></i>
+        </div>
+
+        <!-- Kitap Listesi -->
+        <div style="display: flex; flex-direction: column; gap: 8px; max-height: 280px; overflow-y: auto; padding-right: 2px;">
+          ${displayBooks.length > 0 ? displayBooks.map(rb => {
+            const isG2 = rb.level === 'seviye_2';
+            const levelLabel = isG2 ? '2. Grup' : '1. Grup';
+            const levelColor = isG2 ? '#7c3aed' : '#059669';
+            const levelBg = isG2 ? '#f5f3ff' : '#ecfdf5';
+
+            return `
+              <div class="c-smart-item-row">
+                <div class="c-smart-item-info">
+                  <div class="c-smart-item-name" title="${escapeHTML(rb.title)}">${escapeHTML(rb.title)}</div>
+                  <div class="c-smart-item-sub">
+                    <span>✍️ ${escapeHTML(rb.author || '-')}</span>
+                    <span>•</span>
+                    <span>No: ${rb.bookNo || '-'}</span>
+                    <span>•</span>
+                    <span style="color: ${levelColor}; background: ${levelBg}; padding: 1px 6px; border-radius: 4px; font-weight: 700;">${levelLabel}</span>
+                  </div>
+                </div>
+                <button type="button" class="c-btn-borrow-book" onclick="window.CompanionBooks.borrowBookFromSmartModal('${escapeHTML(studentId)}', '${escapeHTML(rb.id)}')">
+                  <i data-lucide="plus" style="width: 14px; height: 14px;"></i>
+                  <span>Ödünç Ver</span>
+                </button>
+              </div>
+            `;
+          }).join('') : `
+            <div style="text-align: center; padding: 20px 12px; color: #94a3b8; font-size: 12px; font-weight: 600;">
+              ${this.currentRecommendSearch ? 'Aramaya uygun kitap bulunamadı.' : 'Bu grupta öğrencinin okumadığı uygun boş kitap bulunamadı.'}
+            </div>
+          `}
+        </div>
+      `;
+    },
+
+    setRecommendFilter(filterGroup) {
+      this.currentRecommendFilter = filterGroup;
+      this.renderSmartRecommendationsSection(this.currentRecommendStudentId, false);
+    },
+
+    onRecommendSearchInput(query) {
+      this.currentRecommendSearch = query;
+      this.renderSmartRecommendationsSection(this.currentRecommendStudentId, true);
+    },
+
+    renderSmartRecommendationsSection(studentId, refocusInput = false) {
+      if (!studentId) studentId = this.currentRecommendStudentId;
+      if (!studentId) return;
+
+      const container = document.getElementById('smart-recommendations-section');
+      if (!container) return;
+
+      container.innerHTML = this.buildSmartRecommendationsHTML(studentId, this.currentRecommendFilter, this.currentRecommendSearch);
+
+      if (window.lucide && typeof window.lucide.createIcons === 'function') {
+        window.lucide.createIcons();
+      }
+
+      if (refocusInput) {
+        const inp = document.getElementById('smart-recommend-search-input');
+        if (inp) {
+          inp.focus();
+          inp.setSelectionRange(inp.value.length, inp.value.length);
+        }
+      }
     },
 
     // Belirli bir kitap için sınıftaki en uygun öğrencileri öner (Pedagojik Algoritma)
@@ -1469,6 +1677,8 @@
 
       // Modaldaki kartı başarı kartına dönüştür ve önerileri taze tut
       const cardEl = document.getElementById('smart-borrowed-card');
+      const stuFullName = stu ? `${stu.name} ${stu.surname || ''}`.trim() : 'Öğrenci';
+
       if (cardEl) {
         cardEl.className = 'c-smart-card highlight';
         cardEl.innerHTML = `
@@ -1476,12 +1686,20 @@
             <div style="width: 28px; height: 28px; border-radius: 50%; background: #10b981; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 800;">✓</div>
             <div>
               <div style="font-size: 14px; font-weight: 800; color: #065f46;">Kitap Başarıyla Teslim Alındı!</div>
-              <div style="font-size: 11px; color: #047857;">Şimdi aşağıdaki listeden öğrenciye yeni bir kitap seçebilirsiniz.</div>
+              <div style="font-size: 11px; color: #047857;">Şimdi öğrenciye yeni bir kitap teslim edebilirsiniz:</div>
             </div>
           </div>
+
+          <button type="button" class="c-btn-barcode-lend" onclick="window.CompanionBooks.startLendingBarcodeScanner('${escapeHTML(studentId)}', '${escapeHTML(stuFullName)}')">
+            <i data-lucide="scan" style="width: 18px; height: 18px;"></i>
+            <span>📷 Yeni Kitabı Barkodla Okut ve Teslim Et</span>
+          </button>
         `;
-        if (window.lucide) window.lucide.createIcons();
+        if (window.lucide && typeof window.lucide.createIcons === 'function') window.lucide.createIcons();
       }
+
+      // Önerilen kitaplar listesini güncel tut
+      this.renderSmartRecommendationsSection(studentId, false);
 
       // Ana ızgarayı yenile
       this.renderGrid();

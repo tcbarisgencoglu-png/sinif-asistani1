@@ -4192,6 +4192,11 @@ body {
 
 /* Seating Print Styles */
 @media print {
+  @page {
+    size: A4 landscape;
+    margin: 8mm;
+  }
+
   body.print-seating > *:not(.seating-report-print) {
     display: none !important;
   }
@@ -4200,78 +4205,84 @@ body {
     display: block !important;
     background: #ffffff !important;
     color: #000000 !important;
-    padding: 1cm !important;
-    margin: 0 !important;
-    width: 100% !important;
+    padding: 0.5cm !important;
+    margin: 0 auto !important;
+    max-width: 280mm !important;
     font-family: system-ui, -apple-system, sans-serif !important;
   }
 
   body.print-seating .seating-print-header {
     text-align: center !important;
-    margin-bottom: 0.6cm !important;
+    margin-bottom: 0.4cm !important;
     border-bottom: 2px solid #000000 !important;
-    padding-bottom: 0.3cm !important;
+    padding-bottom: 0.2cm !important;
   }
 
   body.print-seating .seating-print-header h1 {
-    font-size: 18pt !important;
+    font-size: 20pt !important;
     font-weight: 800 !important;
-    margin: 0 0 0.2cm 0 !important;
+    margin: 0 0 0.15cm 0 !important;
+    letter-spacing: 1px !important;
   }
 
   body.print-seating .seating-print-header p {
-    font-size: 10pt !important;
-    color: #475569 !important;
+    font-size: 11pt !important;
+    font-weight: 600 !important;
+    color: #334155 !important;
     margin: 0 !important;
   }
 
   body.print-seating .seating-print-grid {
     display: grid !important;
-    grid-template-columns: repeat(3, 1fr) !important;
-    gap: 0.4cm !important;
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 0.35cm !important;
     width: 100% !important;
   }
 
   body.print-seating .seating-print-desk {
-    border: 1.5px solid #000000 !important;
-    border-radius: 6px !important;
-    padding: 0.25cm !important;
-    background: #f8fafc !important;
+    border: 1.8px solid #000000 !important;
+    border-radius: 8px !important;
+    padding: 0.3cm !important;
+    background: #ffffff !important;
     page-break-inside: avoid !important;
+    break-inside: avoid !important;
   }
 
   body.print-seating .seating-print-desk-title {
-    font-size: 8.5pt !important;
-    font-weight: bold !important;
-    color: #1e293b !important;
-    border-bottom: 1px solid #cbd5e1 !important;
+    font-size: 9.5pt !important;
+    font-weight: 800 !important;
+    color: #0f172a !important;
+    border-bottom: 1.5px solid #000000 !important;
     margin-bottom: 0.15cm !important;
     padding-bottom: 0.1cm !important;
   }
 
   body.print-seating .seating-print-seats {
     display: flex !important;
-    gap: 0.2cm !important;
+    gap: 0.25cm !important;
   }
 
   body.print-seating .seating-print-seat-item {
     flex: 1 !important;
-    background: #ffffff !important;
-    border: 1px solid #94a3b8 !important;
-    border-radius: 4px !important;
-    padding: 0.15cm !important;
+    background: #f8fafc !important;
+    border: 1.2px dashed #475569 !important;
+    border-radius: 6px !important;
+    padding: 0.25cm 0.15cm !important;
     text-align: center !important;
   }
 
   body.print-seating .seating-print-name {
-    font-size: 8pt !important;
-    font-weight: bold !important;
+    font-size: 10pt !important;
+    font-weight: 800 !important;
     color: #000000 !important;
+    line-height: 1.2 !important;
   }
 
   body.print-seating .seating-print-no {
-    font-size: 7pt !important;
-    color: #475569 !important;
+    font-size: 8.5pt !important;
+    font-weight: 700 !important;
+    color: #334155 !important;
+    margin-top: 2px !important;
   }
 }
 

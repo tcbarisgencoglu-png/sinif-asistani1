@@ -78,22 +78,20 @@
         window.CloudSync.startLiveListener();
       }
 
-      // Profil var mı ve cihaz eşleştirilmiş mi kontrol et (Masaüstü eşleşmeyi silmişse kurulum başlat)
-      const hasPairedDevice = window.CloudSync && typeof window.CloudSync.isDevicePaired === 'function'
-        ? window.CloudSync.isDevicePaired()
-        : (localStorage.getItem('sinif_device_paired') === 'true');
+      // Profil var mı kontrol et (Profil tamamlanmışsa doğrudan ana menü açılır)
+      const hasCompletedProfile = Boolean(this.profile && this.profile.isComplete);
 
-      if (!this.profile || !this.profile.isComplete || !hasPairedDevice) {
+      if (!hasCompletedProfile) {
         this.showView('setup');
         this.renderSetupForm();
       } else {
-        this.activeSection = localStorage.getItem(ACTIVE_SECTION_KEY) || this.profile.sections[0] || (this.isClassTeacher() ? '3-A' : '5-A');
+        this.activeSection = localStorage.getItem(ACTIVE_SECTION_KEY) || (this.profile.sections && this.profile.sections[0]) || (this.isClassTeacher() ? '3-A' : '5-A');
         this.updateHeader();
         this.renderSectionBar();
         this.showView('dashboard');
 
-        // Arka planda masaüstünün eşleşmeyi sonlandırıp sonlandırmadığını doğrula (Masaüstü Karar Vericidir)
-        if (window.CloudSync && typeof window.CloudSync.checkPairingStatusOnTerminal === 'function') {
+        // Arka planda masaüstünün eşleşmeyi sonlandırıp sonlandırmadığını doğrula (Eşleşme kodu varsa)
+        if (window.CloudSync && typeof window.CloudSync.checkPairingStatusOnTerminal === 'function' && window.CloudSync.syncCode) {
           setTimeout(() => {
             window.CloudSync.checkPairingStatusOnTerminal();
           }, 1200);
@@ -124,6 +122,10 @@
         updatedAt: new Date().toISOString()
       };
       localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(this.profile));
+      localStorage.setItem('sinif_device_paired', 'true');
+      if (window.CloudSync && typeof window.CloudSync.setDevicePaired === 'function') {
+        window.CloudSync.setDevicePaired(true);
+      }
       if (!this.profile.sections.includes(this.activeSection)) {
         this.activeSection = this.profile.sections[0] || (this.isClassTeacher() ? '3-A' : '5-A');
       }
@@ -470,6 +472,11 @@
         sections: sections.length > 0 ? sections : [isPrimary ? '3-A' : '5-A'],
         pin
       });
+
+      localStorage.setItem('sinif_device_paired', 'true');
+      if (window.CloudSync && typeof window.CloudSync.setDevicePaired === 'function') {
+        window.CloudSync.setDevicePaired(true);
+      }
 
       this.activeSection = sections[0] || (isPrimary ? '3-A' : '5-A');
       localStorage.setItem(ACTIVE_SECTION_KEY, this.activeSection);

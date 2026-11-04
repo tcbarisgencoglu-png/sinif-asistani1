@@ -1921,6 +1921,35 @@ body {
   transform: translateY(0);
 }
 
+/* Alt Çarşaf (Score Sheet & Form Modal) İçindeki Form Elemanları Metin Görünürlüğü */
+.c-score-sheet input,
+.c-score-sheet textarea,
+.c-score-sheet select,
+.c-score-sheet .c-input,
+.c-score-sheet .c-select,
+#companion-hw-create-modal input,
+#companion-hw-create-modal textarea,
+#companion-hw-create-modal select,
+#hw-title-input {
+  color: #0f172a !important;
+  background-color: #ffffff !important;
+  -webkit-text-fill-color: #0f172a !important;
+}
+
+.c-score-sheet input::placeholder,
+.c-score-sheet textarea::placeholder,
+#companion-hw-create-modal input::placeholder,
+#companion-hw-create-modal textarea::placeholder,
+#hw-title-input::placeholder {
+  color: #94a3b8 !important;
+  -webkit-text-fill-color: #94a3b8 !important;
+}
+
+.c-score-sheet label,
+#companion-hw-create-modal label {
+  color: #334155 !important;
+}
+
 .c-sheet-grabber {
   width: 42px;
   height: 5px;
@@ -3167,8 +3196,19 @@ body {
   box-shadow: 0 1px 4px rgba(99, 102, 241, 0.2);
 }
 .c-hw-sub-chip {
+  padding: 6px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  background: #f1f5f9;
+  color: #334155;
+  cursor: pointer;
   transition: all 0.15s ease;
   user-select: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }
 .c-hw-sub-chip:active {
   transform: scale(0.94);
@@ -3177,7 +3217,131 @@ body {
   background: #0284c7 !important;
   color: #ffffff !important;
   border-color: #0284c7 !important;
-  box-shadow: 0 1px 4px rgba(2, 132, 199, 0.25);
+  box-shadow: 0 2px 6px rgba(2, 132, 199, 0.3);
+}
+
+/* Dinamik Ders Görev Kartları */
+.c-hw-tasks-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.c-hw-subject-card {
+  background: #f8fafc;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transition: all 0.2s ease;
+  animation: cHwCardFadeIn 0.2s ease-out;
+}
+
+@keyframes cHwCardFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.c-hw-subject-card:focus-within {
+  border-color: #3b82f6;
+  background: #ffffff;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.12);
+}
+
+.c-hw-sub-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.c-hw-sub-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: #e2e8f0;
+  color: #1e293b;
+}
+
+/* Derse özel rozet renkleri */
+.c-hw-sub-tag.tag-turkce { background: #ffe4e6; color: #be123c; border: 1px solid #fecdd3; }
+.c-hw-sub-tag.tag-matematik { background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; }
+.c-hw-sub-tag.tag-fen { background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
+.c-hw-sub-tag.tag-sosyal { background: #fef3c7; color: #b45309; border: 1px solid #fde68a; }
+.c-hw-sub-tag.tag-hayat { background: #f3e8ff; color: #7e22ce; border: 1px solid #e9d5ff; }
+.c-hw-sub-tag.tag-ingilizce { background: #e0e7ff; color: #4338ca; border: 1px solid #c7d2fe; }
+.c-hw-sub-tag.tag-din { background: #ccfbf1; color: #0f766e; border: 1px solid #99f6e4; }
+
+.c-hw-sub-del-btn {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.c-hw-sub-del-btn:active {
+  background: #fee2e2;
+  color: #ef4444;
+}
+
+.c-hw-sub-task-input {
+  width: 100%;
+  height: 38px;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #0f172a !important;
+  -webkit-text-fill-color: #0f172a !important;
+  padding: 6px 10px;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.c-hw-sub-task-input:focus {
+  border-color: #3b82f6;
+}
+
+body.dark-mode .c-hw-subject-card {
+  background: #1e293b;
+  border-color: #334155;
+}
+body.dark-mode .c-hw-sub-task-input {
+  background: #0f172a;
+  border-color: #334155;
+  color: #f8fafc !important;
+  -webkit-text-fill-color: #f8fafc !important;
+}
+body.dark-mode .c-hw-sub-chip {
+  background: #1e293b;
+  border-color: #334155;
+  color: #cbd5e1;
+}
+body.dark-mode .c-hw-sub-chip.active {
+  background: #0284c7 !important;
+  color: #ffffff !important;
+  border-color: #38bdf8 !important;
 }
 
 /* Ödev Kontrol Sırası Düzenleme Butonu ve Modal Stilleri */
@@ -4350,6 +4514,95 @@ body {
 .c-spin-active svg {
   animation: c-spin-anim 0.8s linear infinite;
 }
+
+/* Akıllı Öneri Filtre Çipleri & Teslim Bannerı */
+.c-smart-filters-strip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.c-smart-filter-chip {
+  appearance: none;
+  border: 1px solid #cbd5e1;
+  background: #f8fafc;
+  color: #475569;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 5px 10px;
+  border-radius: 999px;
+  cursor: pointer;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.15s ease;
+}
+
+.c-smart-filter-chip:hover {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+}
+
+.c-smart-filter-chip.active {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.3);
+}
+
+.c-smart-filter-chip.active.c-chip-g1 {
+  background: #059669;
+  border-color: #059669;
+  box-shadow: 0 2px 6px rgba(5, 150, 105, 0.3);
+}
+
+.c-smart-filter-chip.active.c-chip-g2 {
+  background: #7c3aed;
+  border-color: #7c3aed;
+  box-shadow: 0 2px 6px rgba(124, 58, 237, 0.3);
+}
+
+.c-btn-barcode-lend {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: none;
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  color: #ffffff;
+  font-size: 13.5px;
+  font-weight: 800;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35);
+  cursor: pointer;
+  transition: transform 0.1s ease, box-shadow 0.15s ease;
+}
+
+.c-btn-barcode-lend:active {
+  transform: scale(0.98);
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.25);
+}
+
+.c-scanner-lending-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: linear-gradient(135deg, #1e3a8a, #2563eb);
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 700;
+  border-radius: 10px;
+  margin-bottom: 8px;
+  box-shadow: 0 2px 8px rgba(30, 58, 138, 0.4);
+}
+
 
 
 

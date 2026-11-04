@@ -2708,40 +2708,61 @@ select option {
   }
 }
 
-/* Haftalık Ödev Çizelgesi Ek Tasarımları */
+/* Haftalık Ödev Çizelgesi Ek Tasarımları (Sabit Sütun Genişlikleri) */
 #homework-weekly-table {
   border-collapse: separate;
   border-spacing: 0;
   width: 100%;
+  table-layout: fixed;
 }
 
 #homework-weekly-table th {
   text-align: center;
   vertical-align: middle;
   border-bottom: 2px solid var(--border-color);
-  padding: 0.75rem 0.5rem;
+  padding: 0.75rem 0.4rem;
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
 #homework-weekly-table th.th-no {
   text-align: center;
   width: 50px;
+  min-width: 50px;
+  max-width: 50px;
 }
 
 #homework-weekly-table th.th-name {
   text-align: left;
-  min-width: 180px;
+  width: 190px;
+  min-width: 170px;
+  max-width: 210px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#homework-weekly-table th.th-day {
+  text-align: center;
+  width: auto;
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
 #homework-weekly-table th.th-total {
   text-align: center;
-  width: 80px;
+  width: 75px;
+  min-width: 75px;
+  max-width: 75px;
 }
 
 #homework-weekly-table td {
   text-align: center;
   vertical-align: middle;
-  padding: 0.75rem 0.5rem;
+  padding: 0.75rem 0.4rem;
   border-bottom: 1px solid var(--border-color);
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
 #homework-weekly-table td.td-no {
@@ -2752,22 +2773,26 @@ select option {
 
 #homework-weekly-table td.td-name {
   text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 #homework-weekly-table td.td-day {
   text-align: center;
+  overflow: hidden;
 }
 
 #homework-weekly-table td.td-total {
   text-align: center;
 }
 
-/* Gün Başlık Kartı Tasarımı */
+/* Gün Başlık Kartı Tasarımı (Kutu Genişlemesi Korumalı) */
 .hw-day-card {
   background: var(--bg-secondary);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
-  padding: 0.6rem 0.4rem;
+  padding: 0.5rem 0.35rem;
   text-align: center;
   box-shadow: var(--shadow-sm);
   transition: all var(--transition-fast);
@@ -2776,6 +2801,10 @@ select option {
   gap: 0.15rem;
   align-items: center;
   justify-content: center;
+  max-width: 100%;
+  width: 100%;
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
 .hw-day-card:hover {
@@ -2787,28 +2816,34 @@ select option {
 
 .hw-day-name {
   font-weight: 700;
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   color: var(--text-primary);
+  white-space: nowrap;
 }
 
 .hw-day-date {
-  font-size: 0.72rem;
+  font-size: 0.7rem;
   color: var(--text-muted);
   font-weight: 500;
+  white-space: nowrap;
 }
 
 .hw-day-subtitle {
-  font-size: 0.7rem;
+  font-size: 0.68rem;
   color: var(--primary);
-  font-weight: 600;
+  font-weight: 700;
   margin-top: 0.2rem;
+  width: 100%;
   max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  padding: 1px 4px;
-  background: rgba(99, 102, 241, 0.08);
+  display: block;
+  padding: 2px 5px;
+  background: rgba(99, 102, 241, 0.1);
   border-radius: 4px;
+  box-sizing: border-box;
+  cursor: help;
 }
 
 .hw-col-actions {
@@ -2871,6 +2906,215 @@ th:hover .hw-col-actions {
 .homework-weekly-student-name:hover {
   color: var(--primary);
   text-decoration: underline;
+}
+
+/* Masaüstü Ödev Takip: Görünüm Modu Değiştirici (Haftalık vs Günlük) */
+.hw-view-mode-toggle {
+  display: flex;
+  background: var(--bg-secondary);
+  padding: 3px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  gap: 2px;
+}
+
+.btn-hw-mode-tab {
+  padding: 0.4rem 0.85rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  border-radius: var(--radius-sm);
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all var(--transition-fast);
+}
+
+.btn-hw-mode-tab:hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.btn-hw-mode-tab.active {
+  background: var(--primary);
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.35);
+}
+
+/* Günlük Ödev Görünümü Stilleri */
+.hw-daily-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.hw-daily-top-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 1rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.hw-daily-nav-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.hw-daily-days-strip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow-x: auto;
+}
+
+.hw-daily-day-chip {
+  padding: 0.35rem 0.8rem;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border-color);
+  background: var(--bg-primary);
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+}
+
+.hw-daily-day-chip:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.hw-daily-day-chip.active {
+  background: var(--primary);
+  color: #ffffff;
+  border-color: var(--primary);
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+}
+
+.hw-daily-info-box {
+  background: var(--bg-glass);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 0.85rem 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.hw-daily-info-title {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.hw-daily-info-desc {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  margin-top: 3px;
+  line-height: 1.4;
+}
+
+.hw-daily-stats-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  padding: 0.5rem 0;
+}
+
+.hw-daily-pills-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.hw-daily-stat-pill {
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.hw-daily-stat-pill.completed { background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3); }
+.hw-daily-stat-pill.incomplete { background: rgba(245, 158, 11, 0.15); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.3); }
+.hw-daily-stat-pill.missing { background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); }
+.hw-daily-stat-pill.excused { background: rgba(99, 102, 241, 0.15); color: #818cf8; border: 1px solid rgba(99, 102, 241, 0.3); }
+
+/* Günlük Öğrenci Tablosu Butonları */
+.hw-btn-group-status {
+  display: inline-flex;
+  border-radius: var(--radius-sm);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  padding: 2px;
+  gap: 2px;
+}
+
+.hw-btn-status {
+  padding: 4px 10px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  border-radius: 4px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.12s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.hw-btn-status:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary);
+}
+
+.hw-btn-status.completed.active {
+  background: #10b981;
+  color: #ffffff;
+  box-shadow: 0 1px 4px rgba(16, 185, 129, 0.4);
+}
+
+.hw-btn-status.incomplete.active {
+  background: #f59e0b;
+  color: #ffffff;
+  box-shadow: 0 1px 4px rgba(245, 158, 11, 0.4);
+}
+
+.hw-btn-status.missing.active {
+  background: #ef4444;
+  color: #ffffff;
+  box-shadow: 0 1px 4px rgba(239, 68, 68, 0.4);
+}
+
+.hw-btn-status.excused.active {
+  background: #6366f1;
+  color: #ffffff;
+  box-shadow: 0 1px 4px rgba(99, 102, 241, 0.4);
 }
 
 /* Alt Sekme Menüsü (Sub-tab menu) */
@@ -7698,13 +7942,12 @@ input:checked + .slider:before {
 
 /* Print View Styles */
 @media print {
-  @page seatingPlanPage {
-    size: landscape;
-    margin: 10mm;
+  @page {
+    size: A4 landscape;
+    margin: 6mm 8mm;
   }
 
   body.print-seating {
-    page: seatingPlanPage;
     background: white !important;
     color: black !important;
   }
@@ -7736,28 +7979,36 @@ input:checked + .slider:before {
 
   body.print-seating #tools-seating-view {
     display: block !important;
-    width: 277mm !important; /* Standard landscape workspace */
-    height: 190mm !important;
+    width: 281mm !important; /* Tam A4 Yatay Genişliği */
+    max-width: 281mm !important;
+    height: 196mm !important;
+    max-height: 196mm !important;
     background: white !important;
     color: black !important;
     padding: 0 !important;
     margin: 0 auto !important;
+    page-break-after: avoid !important;
+    page-break-inside: avoid !important;
+    break-after: avoid !important;
+    break-inside: avoid !important;
+    overflow: hidden !important;
   }
   
   body.print-seating #tools-seating-view .page-header {
     display: block !important;
     text-align: center !important;
-    border-bottom: 2px solid #000 !important;
-    padding-bottom: 0.5rem !important;
-    margin-bottom: 1.5rem !important;
+    border-bottom: 2.5px solid #000000 !important;
+    padding-bottom: 0.25rem !important;
+    margin-bottom: 0.4rem !important;
   }
 
   body.print-seating #tools-seating-view .page-header h2 {
-    font-size: 1.8rem !important;
+    font-size: 1.6rem !important;
     font-weight: 800 !important;
     color: black !important;
     margin: 0 !important;
     text-transform: uppercase !important;
+    letter-spacing: 1px !important;
   }
 
   body.print-seating #tools-seating-view .page-header p {
@@ -7782,25 +8033,31 @@ input:checked + .slider:before {
   }
   
   body.print-seating #seating-canvas {
-    border: 2px solid #475569 !important;
+    border: 2px solid #000000 !important;
     background: white !important;
     width: 100% !important;
-    height: 165mm !important;
+    height: 176mm !important;
     border-radius: 8px !important;
     box-shadow: none !important;
+    position: relative !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
   }
   
   body.print-seating .seating-element {
     background: white !important;
-    border: 2px solid #000 !important;
+    border: 2px solid #000000 !important;
     box-shadow: none !important;
     color: black !important;
   }
 
   body.print-seating .desk-header {
-    background: #f1f5f9 !important;
-    border-bottom: 1px solid #000 !important;
-    color: black !important;
+    background: #e2e8f0 !important;
+    border-bottom: 1.5px solid #000000 !important;
+    color: #0f172a !important;
+    font-size: 0.82rem !important;
+    font-weight: 800 !important;
+    padding: 0.2rem 0.4rem !important;
   }
 
   body.print-seating .desk-delete-btn,
@@ -7809,60 +8066,94 @@ input:checked + .slider:before {
   }
 
   body.print-seating .seating-element:not(.seating-whiteboard):not(.seating-teacher-desk-element) {
-    height: 95px !important;
-  }
-
-  body.print-seating .desk-header {
-    font-size: 0.72rem !important;
-    padding: 0.15rem 0.35rem !important;
+    height: 112px !important;
+    border-radius: 8px !important;
   }
 
   body.print-seating .desk-body {
-    padding: 0.3rem !important;
-    gap: 0.3rem !important;
+    padding: 0.35rem !important;
+    gap: 0.35rem !important;
   }
 
   body.print-seating .seating-seat {
-    border: 1.2px dashed #475569 !important;
+    border: 1.5px dashed #475569 !important;
     background: white !important;
     border-radius: 6px !important;
+    padding: 0.2rem 0.15rem !important;
   }
 
   body.print-seating .seating-seat-photo {
-    width: 42px !important;
-    height: 42px !important;
-    border: 1.2px solid #000 !important;
+    width: 48px !important;
+    height: 48px !important;
+    border: 1.5px solid #000000 !important;
+    border-radius: 50% !important;
+    object-fit: cover !important;
   }
 
   body.print-seating .seating-seat-initials {
-    width: 42px !important;
-    height: 42px !important;
-    font-size: 1.05rem !important;
-    border: 1.2px solid #000 !important;
+    width: 48px !important;
+    height: 48px !important;
+    font-size: 1.25rem !important;
+    font-weight: 800 !important;
+    border: 1.5px solid #000000 !important;
+    border-radius: 50% !important;
+    background: #f1f5f9 !important;
+    color: #0f172a !important;
   }
 
   body.print-seating .seating-seat-name {
-    color: black !important;
-    font-size: 0.88rem !important;
-    font-weight: 700 !important;
+    color: #000000 !important;
+    font-size: 0.96rem !important;
+    font-weight: 800 !important;
     margin-top: 0.15rem !important;
+    line-height: 1.15 !important;
+    white-space: normal !important;
+    text-align: center !important;
+    overflow: hidden !important;
+    display: -webkit-box !important;
+    -webkit-line-clamp: 2 !important;
+    -webkit-box-orient: vertical !important;
+  }
+
+  body.print-seating .seating-seat-no {
+    display: block !important;
+    font-size: 0.8rem !important;
+    font-weight: 700 !important;
+    color: #334155 !important;
+    line-height: 1 !important;
+    margin-top: 1px !important;
+  }
+
+  body.print-seating .seating-seat-empty-btn i,
+  body.print-seating .seating-seat-empty-btn svg {
+    display: none !important;
+  }
+
+  body.print-seating .seating-empty-print-label {
+    display: inline-block !important;
+    font-size: 0.85rem !important;
+    font-weight: 700 !important;
+    color: #94a3b8 !important;
   }
 
   body.print-seating .seating-whiteboard {
-    background: #f1f5f9 !important;
-    border: 3px solid #000 !important;
-    color: black !important;
+    background: #f8fafc !important;
+    border: 2.5px solid #000000 !important;
+    color: #000000 !important;
     box-shadow: none !important;
-    font-size: 1rem !important;
-    height: 45px !important;
+    font-size: 1.15rem !important;
+    font-weight: 800 !important;
+    height: 48px !important;
+    letter-spacing: 2px !important;
   }
 
   body.print-seating .seating-teacher-desk-element {
-    background: #f8fafc !important;
-    border: 2px solid #000 !important;
-    color: black !important;
-    font-size: 0.85rem !important;
-    height: 75px !important;
+    background: #f1f5f9 !important;
+    border: 2px solid #000000 !important;
+    color: #000000 !important;
+    font-size: 0.95rem !important;
+    font-weight: 800 !important;
+    height: 80px !important;
   }
 }
 

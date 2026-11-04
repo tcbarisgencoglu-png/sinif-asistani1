@@ -230,7 +230,7 @@
     // El Terminalinde Masaüstü Eşleşme Durumunu Doğrula (Masaüstü Karar Vericidir)
     async checkPairingStatusOnTerminal() {
       if (!window.Companion && !window.CompanionOmr) return true;
-      if (!this.syncCode) return false;
+      if (!this.syncCode) return true;
 
       try {
         const res = await this.request(
@@ -1441,6 +1441,7 @@
 
       this.lastSyncTime = new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
       localStorage.setItem(LAST_SYNC_KEY, this.lastSyncTime);
+      this.setDevicePaired(true);
       this.updateSyncUI();
 
       if (window.CompanionOmr && typeof window.CompanionOmr.ensureActiveExam === 'function') {
@@ -3584,6 +3585,7 @@
       const input = prompt('Tahtadaki Eşleşme Kodunu Girin (Örn: SA-8K4N2P veya sadece 8K4N2P):', current);
       if (input && input.trim()) {
         const clean = this.setSyncCode(input);
+        this.setDevicePaired(true);
         this.updateSyncUI();
         if (window.Companion) {
           if (typeof window.Companion.showToast === 'function') window.Companion.showToast(`Eşleşme kodu güncellendi: ${clean}`);

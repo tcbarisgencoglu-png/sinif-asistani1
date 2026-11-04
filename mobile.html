@@ -11,7 +11,7 @@
   <link rel="shortcut icon" href="icons/icon-128.png" type="image/png">
 
   <!-- Hafif Mobil Tasarım Sistemi -->
-  <link rel="stylesheet" href="css/companion.css?v=1.0.124">
+  <link rel="stylesheet" href="css/companion.css?v=1.0.125">
 
   <!-- Çevrim Dışı İkon Kütüphanesi -->
   <script src="js/lucide.min.js"></script>
@@ -27,7 +27,7 @@
       <div class="c-appbar-info">
         <div style="display: flex; align-items: center; gap: 4px; flex-wrap: wrap;">
           <div class="c-appbar-name" id="appbar-teacher-name">Öğretmen</div>
-          <span id="companion-version-badge" style="font-size: 10px; background: rgba(255,255,255,0.22); padding: 1.5px 7px; border-radius: 999px; font-weight: 700; color: #fff; margin-left: 6px; letter-spacing: 0.3px;">v1.0.124</span>
+          <span id="companion-version-badge" style="font-size: 10px; background: rgba(255,255,255,0.22); padding: 1.5px 7px; border-radius: 999px; font-weight: 700; color: #fff; margin-left: 6px; letter-spacing: 0.3px;">v1.0.125</span>
           <span id="appbar-sync-code-badge" onclick="window.Companion.openSettingsModal()" style="font-size: 10px; background: rgba(79, 70, 229, 0.45); border: 1px solid rgba(165, 180, 252, 0.45); padding: 1.5px 6px; border-radius: 6px; font-weight: 800; color: #e0e7ff; font-family: monospace; letter-spacing: 0.5px; cursor: pointer;" title="Cihaz Eşleşme Kodu (Değiştirmek için dokunun)">SA-......</span>
         </div>
         <div class="c-appbar-branch" id="appbar-branch-name">Branş Seçilmedi</div>
@@ -515,7 +515,7 @@
       <!-- Ödev Konusu & Başlığı Girişi -->
       <div style="margin-bottom: 10px;">
         <input type="text" id="hw-title-input" class="c-input" placeholder="Ödev konusu/açıklaması (Örn: Sayfa 45-48 Alıştırmalar)..."
-               style="height: 38px; font-size: 13px; border-radius: 12px; background: rgba(255, 255, 255, 0.95);"
+               style="height: 38px; font-size: 13px; border-radius: 12px; background: rgba(255, 255, 255, 0.95); color: #0f172a; -webkit-text-fill-color: #0f172a;"
                onchange="window.CompanionHomework.onTitleChanged(this.value)" />
       </div>
 
@@ -816,7 +816,7 @@
           </div>
 
           <div style="position: relative;">
-            <input type="date" id="new-hw-due-date" class="c-input" style="width: 100%; height: 42px; font-size: 14px; font-weight: 600; border-radius: 10px; border: 1.5px solid #cbd5e1; background: #ffffff;" onchange="window.CompanionHomework.onNewHwDateChanged(this.value)" />
+            <input type="date" id="new-hw-due-date" class="c-input" style="width: 100%; height: 42px; font-size: 14px; font-weight: 600; border-radius: 10px; border: 1.5px solid #cbd5e1; background: #ffffff; color: #0f172a; -webkit-text-fill-color: #0f172a;" onchange="window.CompanionHomework.onNewHwDateChanged(this.value)" />
           </div>
 
           <!-- Hızlı Tarih Seçim Butonları -->
@@ -833,36 +833,48 @@
           </div>
         </div>
 
-        <!-- 2. Ders Adı & Hızlı Ders Seçimi -->
+        <!-- 2. Ödev Tanımı (Genel Başlık / Fasikül / Hafta) -->
         <div>
-          <label for="new-hw-subject" style="display: block; font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 6px;">
-            <span style="display: flex; align-items: center; gap: 5px;">
-              <i data-lucide="book-open" style="width: 14px; height: 14px; color: #0284c7;"></i>
-              Ders Adı
+          <label for="new-hw-definition" style="display: block; font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 6px;">
+            <span style="display: flex; align-items: center; justify-content: space-between;">
+              <span style="display: flex; align-items: center; gap: 5px;">
+                <i data-lucide="bookmark" style="width: 14px; height: 14px; color: #0284c7;"></i>
+                Ödev Tanımı / Başlığı
+              </span>
+              <span style="font-size: 10px; color: #94a3b8; font-weight: 500;">(Opsiyonel)</span>
             </span>
           </label>
-          <input type="text" id="new-hw-subject" class="c-input" placeholder="Ders adı (Örn: Matematik, Türkçe)..." style="width: 100%; height: 40px; font-size: 13px; font-weight: 600; border-radius: 10px; border: 1.5px solid #cbd5e1; background: #ffffff;" />
-          
-          <!-- Hızlı Ders Çipleri -->
-          <div style="display: flex; gap: 5px; flex-wrap: wrap; margin-top: 6px;" id="new-hw-subject-chips">
-            <button type="button" class="c-hw-sub-chip" onclick="window.CompanionHomework.selectSubject('Türkçe')" style="padding: 4px 8px; font-size: 11px; font-weight: 600; border-radius: 6px; border: 1px solid #e2e8f0; background: #f1f5f9; color: #334155; cursor: pointer;">Türkçe</button>
-            <button type="button" class="c-hw-sub-chip" onclick="window.CompanionHomework.selectSubject('Matematik')" style="padding: 4px 8px; font-size: 11px; font-weight: 600; border-radius: 6px; border: 1px solid #e2e8f0; background: #f1f5f9; color: #334155; cursor: pointer;">Matematik</button>
-            <button type="button" class="c-hw-sub-chip" onclick="window.CompanionHomework.selectSubject('Fen Bilimleri')" style="padding: 4px 8px; font-size: 11px; font-weight: 600; border-radius: 6px; border: 1px solid #e2e8f0; background: #f1f5f9; color: #334155; cursor: pointer;">Fen Bilimleri</button>
-            <button type="button" class="c-hw-sub-chip" onclick="window.CompanionHomework.selectSubject('Sosyal Bilgiler')" style="padding: 4px 8px; font-size: 11px; font-weight: 600; border-radius: 6px; border: 1px solid #e2e8f0; background: #f1f5f9; color: #334155; cursor: pointer;">Sosyal Bilgiler</button>
-            <button type="button" class="c-hw-sub-chip" onclick="window.CompanionHomework.selectSubject('İngilizce')" style="padding: 4px 8px; font-size: 11px; font-weight: 600; border-radius: 6px; border: 1px solid #e2e8f0; background: #f1f5f9; color: #334155; cursor: pointer;">İngilizce</button>
-            <button type="button" class="c-hw-sub-chip" onclick="window.CompanionHomework.selectSubject('Din Kültürü')" style="padding: 4px 8px; font-size: 11px; font-weight: 600; border-radius: 6px; border: 1px solid #e2e8f0; background: #f1f5f9; color: #334155; cursor: pointer;">Din Kültürü</button>
-          </div>
+          <input type="text" id="new-hw-definition" class="c-input" placeholder="Örn: 2. Fasikül 7. Hafta / Hafta Sonu Ödevi..." style="width: 100%; height: 40px; font-size: 13px; font-weight: 600; border-radius: 10px; border: 1.5px solid #cbd5e1; background: #ffffff; color: #0f172a; -webkit-text-fill-color: #0f172a;" />
         </div>
 
-        <!-- 3. Ödev Konusu & Görev Detayı -->
+        <!-- 3. Ödev Konusu & Görevleri (Ders Kartları ile Dinamik) -->
         <div>
-          <label for="new-hw-title" style="display: block; font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 6px;">
-            <span style="display: flex; align-items: center; gap: 5px;">
-              <i data-lucide="file-text" style="width: 14px; height: 14px; color: #e11d48;"></i>
-              Ödev Konusu & Görevi <span style="color: #ef4444;">*</span>
-            </span>
-          </label>
-          <textarea id="new-hw-title" class="c-input" rows="3" placeholder="Ödev detaylarını yazın (Örn: Ders kitabı sayfa 54-56 alıştırmaları yapılacak)..." style="width: 100%; font-size: 13px; line-height: 1.4; border-radius: 10px; border: 1.5px solid #cbd5e1; background: #ffffff; padding: 8px 10px; resize: none;"></textarea>
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+            <label style="font-size: 12px; font-weight: 700; color: #334155; display: flex; align-items: center; gap: 5px;">
+              <i data-lucide="layers" style="width: 14px; height: 14px; color: #e11d48;"></i>
+              Ödev Konusu & Görevleri <span style="color: #ef4444;">*</span>
+            </label>
+            <span style="font-size: 10px; color: #64748b; font-weight: 600;">Ders kartına dokunarak ekleyin</span>
+          </div>
+
+          <!-- Hızlı Ders Kartları / Butonları -->
+          <div style="display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 8px;" id="new-hw-subject-chips">
+            <button type="button" class="c-hw-sub-chip" data-subject="Türkçe" onclick="window.CompanionHomework.toggleSubject('Türkçe')">Türkçe</button>
+            <button type="button" class="c-hw-sub-chip" data-subject="Matematik" onclick="window.CompanionHomework.toggleSubject('Matematik')">Matematik</button>
+            <button type="button" class="c-hw-sub-chip" data-subject="Fen Bilimleri" onclick="window.CompanionHomework.toggleSubject('Fen Bilimleri')">Fen Bilimleri</button>
+            <button type="button" class="c-hw-sub-chip" data-subject="Sosyal Bilgiler" onclick="window.CompanionHomework.toggleSubject('Sosyal Bilgiler')">Sosyal Bilgiler</button>
+            <button type="button" class="c-hw-sub-chip" data-subject="Hayat Bilgisi" onclick="window.CompanionHomework.toggleSubject('Hayat Bilgisi')">Hayat Bilgisi</button>
+            <button type="button" class="c-hw-sub-chip" data-subject="İngilizce" onclick="window.CompanionHomework.toggleSubject('İngilizce')">İngilizce</button>
+            <button type="button" class="c-hw-sub-chip" data-subject="Din Kültürü" onclick="window.CompanionHomework.toggleSubject('Din Kültürü')">Din Kültürü</button>
+          </div>
+
+          <!-- Seçilen Derslerin Dinamik Açılan Ödev Kartları Listesi -->
+          <div id="new-hw-selected-subjects-list" class="c-hw-tasks-container"></div>
+
+          <!-- Serbest / Genel Görev Metin Alanı (Ders seçilmediğinde veya ek görev için) -->
+          <div id="new-hw-general-task-wrap" style="margin-top: 6px;">
+            <textarea id="new-hw-title" class="c-input" rows="2" placeholder="Ders kartlarına dokunarak görev ekleyin veya doğrudan buraya ödev konusunu yazın..." style="width: 100%; font-size: 13px; line-height: 1.4; border-radius: 10px; border: 1.5px solid #cbd5e1; background: #ffffff; color: #0f172a; -webkit-text-fill-color: #0f172a; padding: 8px 10px; resize: none;"></textarea>
+          </div>
         </div>
 
         <!-- 4. Ek Açıklama / Not (Opsiyonel) -->
@@ -873,7 +885,7 @@
               Velilere Not / Ek Açıklama <span style="font-size: 10px; color: #94a3b8; font-weight: 500;">(İsteğe bağlı)</span>
             </span>
           </label>
-          <input type="text" id="new-hw-description" class="c-input" placeholder="Örn: Çalışma kağıdı çantada, lütfen kontrol ediniz." style="width: 100%; height: 38px; font-size: 12px; border-radius: 10px; border: 1.5px solid #cbd5e1; background: #ffffff;" />
+          <input type="text" id="new-hw-description" class="c-input" placeholder="Örn: Çalışma kağıdı çantada, lütfen kontrol ediniz." style="width: 100%; height: 38px; font-size: 12px; border-radius: 10px; border: 1.5px solid #cbd5e1; background: #ffffff; color: #0f172a; -webkit-text-fill-color: #0f172a;" />
         </div>
 
         <!-- İşlem Butonları (Kaydet & WhatsApp) -->
@@ -1662,7 +1674,7 @@
 
         <!-- Versiyon Bilgisi -->
         <div style="text-align: center; margin-top: 14px; font-size: 11px; color: #94a3b8; font-weight: 600;">
-          Sınıf Asistanı El Terminali • <span id="settings-modal-version" style="color: #4f46e5; font-weight: 800;">v1.0.124</span>
+          Sınıf Asistanı El Terminali • <span id="settings-modal-version" style="color: #4f46e5; font-weight: 800;">v1.0.125</span>
         </div>
 
       </div>
@@ -2214,6 +2226,13 @@
         </div>
       </div>
 
+      <!-- Teslim Modu Bilgi Şeridi -->
+      <div id="scanner-lending-banner" class="c-scanner-lending-banner" style="display: none;">
+        <i data-lucide="user-plus" style="width: 16px; height: 16px; flex-shrink: 0;"></i>
+        <span id="scanner-lending-banner-text" style="flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Öğrenciye Kitap Teslim Ediliyor</span>
+        <button type="button" onclick="window.CompanionBooks.cancelLendingMode()" style="background: rgba(255,255,255,0.2); border: none; color: #fff; padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 700; cursor: pointer;">Vazgeç</button>
+      </div>
+
       <!-- Kamera Canlı Akış Alanı -->
       <div class="c-scanner-viewport-box">
         <video id="barcode-scanner-video" playsinline autoplay muted></video>
@@ -2312,18 +2331,18 @@
   </div>
 
   <!-- QR, Bulut & OMR Analiz Motorları -->
-  <script src="js/supabase-config.js?v=1.0.124"></script>
-  <script src="js/cloud-sync.js?v=1.0.124"></script>
+  <script src="js/supabase-config.js?v=1.0.125"></script>
+  <script src="js/cloud-sync.js?v=1.0.125"></script>
   <script src="js/qrcode.min.js"></script>
   <script src="js/jsqr.js"></script>
-  <script src="js/omr-engine.js?v=1.0.124"></script>
-  <script src="js/companion-omr.js?v=1.0.124"></script>
-  <script src="js/companion-behavior.js?v=1.0.124"></script>
-  <script src="js/companion-homework.js?v=1.0.124"></script>
-  <script src="js/companion-books.js?v=1.0.124"></script>
-  <script src="js/companion-schedule.js?v=1.0.124"></script>
+  <script src="js/omr-engine.js?v=1.0.125"></script>
+  <script src="js/companion-omr.js?v=1.0.125"></script>
+  <script src="js/companion-behavior.js?v=1.0.125"></script>
+  <script src="js/companion-homework.js?v=1.0.125"></script>
+  <script src="js/companion-books.js?v=1.0.125"></script>
+  <script src="js/companion-schedule.js?v=1.0.125"></script>
 
   <!-- Çekirdek Kontrolcü -->
-  <script src="js/companion.js?v=1.0.124"></script>
+  <script src="js/companion.js?v=1.0.125"></script>
 </body>
 </html>
