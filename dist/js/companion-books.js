@@ -60,6 +60,56 @@
     } catch (e) {}
   }
 
+  // Ön Tanımlı Kitap Soruları Veritabanı
+  const PRELOADED_QUESTIONS = {
+    'book_1': [
+      { question: "Küçük Prens'in kendi gezegenindeki en değerli varlığı nedir ve ona nasıl bakardı?", answer: "En değerli varlığı tek bir güldür. Onu her gün sular, rüzgardan korumak için üzerine cam bir fanus örter ve tırtılları temizlerdi." },
+      { question: "Küçük Prens, Dünya'ya gelmeden önce uğradığı gezegenlerde kimlerle karşılaştı?", answer: "Kral, Kendini Beğenmiş Adam, Sarhoş, İş Adamı, Fenerci ve Coğrafyacı ile karşılaşmıştır." },
+      { question: "Küçük Prens ile tilki arasındaki dostluk bağı nasıl kuruldu? Tilkinin 'evcilleştirmek' kelimesine yüklediği anlam nedir?", answer: "Tilki, Küçük Prens'e kendisini evcilleştirmesini söylemiştir. 'Evcilleştirmek', bağ kurmak ve birbirleri için dünyada tek ve eşsiz hale gelmek demektir." },
+      { question: "Yazarın çölde Küçük Prens ile karşılaşması onun hayata bakışını nasıl değiştirdi?", answer: "Yazar, büyüklerin yüzeysel dünyasından sıyrılarak çocuksu masumiyeti, hayal gücünü ve hayattaki gerçek değerlerin gözle görülmeyen, sadece kalple hissedilen şeyler olduğunu yeniden keşfetmiştir." },
+      { question: "Küçük Prens kitabında büyüklerin dünyası ile çocukların dünyası nasıl karşılaştırılıyor?", answer: "Büyükler sayılarla, parayla ve mevkilerle ilgilenirken; çocuklar sevgiyle, merakla ve şeylerin özüyle ilgilenir." },
+      { question: "Küçük Prens'in gezegenindeki yanardağları ve baobab ağaçlarını neden düzenli olarak temizlemesi gerekiyordu?", answer: "Baobab ağaçları temizlenmezse gezegeni tamamen kaplayıp kökleriyle patlatabilirdi. Yanardağları ise düzenli temizlemek onların birden patlamasını önler ve yavaşça yanmalarını sağlardı." }
+    ],
+    'book_2': [
+      { question: "Zeze'nin en yakın dostu olan şeker portakalı fidanının adı nedir ve onunla nasıl konuşurdu?", answer: "Adı Minguinho'dur (veya Xururuca). Zeze onunla hayal gücü vasıtasıyla içinden konuşurdu; fidanın ona cevap verdiğini hissederdi." },
+      { question: "Zeze'nin hayatını derinden etkileyen ve ona gerçek sevgiyi öğreten Portekizli (Portuga) ile dostluğu nasıl başladı?", answer: "Başlangıçta Portuga'nın arabasına kaçak bindiği için dayak yiyen Zeze, daha sonra ayağı yaralandığında Portuga'nın onu eczaneye götürüp tedavi ettirmesiyle onunla dost olmuştur." },
+      { question: "Zeze'nin yaramazlıklarının arkasında yatan asıl sebepler nelerdir? Sınıftaki öğretmeni onun hakkında ne düşünüyordu?", answer: "Zeze çok zeki, hayal gücü geniş, sevgisiz kalmış ve ilgi arayan bir çocuktur. Öğretmeni onun çok iyi kalpli, paylaşımcı ve zeki olduğunu düşünür, ona sevgiyle yaklaşırdı." },
+      { question: "Portuga'nın geçirdiği kaza haberi Zeze'yi nasıl etkiledi ve bu olaydan sonra Zeze nasıl olgunlaştı?", answer: "Portuga'nın tren kazasında ölmesi Zeze'yi yatağa düşürecek kadar ağır bir yasa boğmuştur. Bu kayıpla Zeze çocukluk masumiyetini geride bırakıp 'acıyı ve sevgiyi' tam anlamıyla keşfederek erken yaşta olgunlaşmıştır." },
+      { question: "Şeker Portakalı kitabında 'acıyı keşfetmek' teması Zeze üzerinden nasıl işleniyor?", answer: "Zeze'nin fiziksel şiddete maruz kalması ve ardından hayattaki en sevdiği insan olan Portuga'yı aniden kaybetmesiyle, acının fiziksel bir yaradan çok kalpte hissedilen derin bir sızı olduğunu keşfetmesi üzerinden işlenir." },
+      { question: "Zeze'nin ailesiyle olan ilişkisi nasıldı ve ailesi onun yaramazlıklarına nasıl tepki verirdi?", answer: "Ailesi yoksulluk ve çaresizlikten ötürü gergindi. Zeze'nin hayal gücünü ve yaramazlıklarını anlamak yerine onu sık sık ağır şekilde döverlerdi." }
+    ],
+    'book_3': [
+      { question: "Christy Brown'ın doğumundan itibaren karşılaştığı en büyük fiziksel engel neydi ve ailesi buna nasıl yaklaştı?", answer: "Beyin felci (serebral palsi) nedeniyle tüm vücut kaslarını kontrol edemiyordu. Babası ve diğer insanlar onun zihinsel engelli olduğunu düşünürken, annesi onun zekasına inanmış ve onu asla dışlamamıştır." },
+      { question: "Christy'nin ailesine zihinsel olarak sağlıklı olduğunu kanıtladığı ilk an (tebeşirle yazı yazma sahnesi) nasıl gerçekleşti?", answer: "Ablasının tebeşirini sol ayağıyla kapıp, annesinin yoğun cesaretlendirmesiyle yere zorlukla da olsa 'A' harfini çizmeyi başarmasıyla kanıtlamıştır." },
+      { question: "Christy'nin resim yapmaya ve yazmaya başlamasında annesinin rolü nedir?", answer: "Annesi ona her zaman inanmış, maddi imkansızlıklara rağmen ona boyalar, kitaplar ve kağıtlar temin etmiş, onu pes etmemesi için sürekli desteklemiştir." },
+      { question: "Sol Ayağım kitabında Christy'nin kardeşleriyle olan ilişkisi ve çocukluk oyunları nasıl anlatılıyor?", answer: "Kardeşleri onu arabasıyla sokaklara taşımış, çamur savaşlarına ve oyunlara dahil etmiştir. Christy kendini kardeşleri sayesinde dışlanmış hissetmemiştir." },
+      { question: "Christy'nin ergenlik döneminde engeliyle yüzleşmesi ve yaşadığı içsel çatışmalar nelerdir?", answer: "Büyüdükçe diğer insanlardan farklı olduğunu, hiçbir zaman normal yürüyüp konuşamayacağını ve aşık olduğu kızlar tarafından sadece bir dost olarak görüldüğünü fark ederek derin bir bunalıma girmiştir." },
+      { question: "Christy Brown'ın sol ayağını kullanarak başardığı en önemli şeyler nelerdir?", answer: "Sol ayağıyla resim yapmayı, daktiloda yazı yazmayı öğrenmiş ve kendi otobiyografisini (Sol Ayağım) yazarak dünyaca ünlü bir yazar ve ressam olmuştur." }
+    ],
+    'book_4': [
+      { question: "Jim Hawkins'in hanında kalan gizemli denizci Billy Bones kimdir ve Jim'e ne bıraktı?", answer: "Kaptan Flint'in eski tayfasından olan eski bir korsandır. Korsanların elinden kaçırdığı ve içinde define adasının haritası olan eski bir sandık bırakmıştır." },
+      { question: "Define haritasının bulunmasından sonra çıkılan Hispaniola gemisi yolculuğunda Jim, Kaptan Flint'in tayfasıyla ilgili ne öğrendi?", answer: "Elma fıçısının içine saklandığında, gemi aşçısı Uzun John Silver'ın Flint'in eski tayfasından korsanlarla isyan planladığını kulak misafiri olarak öğrenmiştir." },
+      { question: "Uzun John Silver karakteri Jim için başlangıçta kimdi, sonradan nasıl bir tehlikeye dönüştü?", answer: "Başlangıçta cana yakın, korumacı bir gemi aşçısıydı. Ancak adaya varıldığında acımasız, kurnaz ve hazineye ulaşmak için herkesi öldürebilecek bir korsan lideri olduğu ortaya çıktı." },
+      { question: "Define Adası'nda yıllardır mahsur kalan Ben Gunn kimdir ve Jim'e defineyi bulmasında nasıl yardım etmiştir?", answer: "Eski bir korsan olan ve adada tek başına bırakılan bir denizcidir. Defineyi korsanlardan önce bulup bir mağaraya saklamış ve Jim'in grubuna defineyi teslim etmiştir." },
+      { question: "Jim Hawkins'in gemiyi korsanların elinden tek başına geri alma macerası nasıl gerçekleşti?", answer: "Ben Gunn'ın yaptığı küçük yerli derisi sandalla gece Hispaniola gemisine yaklaşmış, geminin çapa halatını kesmiş, korsan Israel Hands ile mücadele ederek gemiyi güvenli bir koya yönlendirmiştir." },
+      { question: "Define Adası macerasının sonunda Jim ve arkadaşları adadan nasıl ayrıldılar ve defineye ne oldu?", answer: "Hazineyi gemiye yükleyip yola çıktılar. Uzun John Silver yolda bir limanda hazinenin bir kısmıyla kaçtı. Jim ve diğerleri sağ salim dönüp paylarını aldılar." }
+    ]
+  };
+
+  // Her Kitap İçin Uygulanabilen Pedagojik Genel Anlama Soruları
+  const GENERIC_QUESTIONS = [
+    { question: "Bu kitabın baş kahramanı kimdir ve onun en belirgin kişilik özelliği nedir?", answer: "Kitabın baş kahramanını belirterek; onun cesaret, merak, dürüstlük veya yardımseverlik gibi öne çıkan yönlerini açıklaması beklenir." },
+    { question: "Kitabın geçtiği yer ve zaman hakkında bilgi verebilir misin?", answer: "Hikayenin yaşandığı mekanları (örn: bir köy, ada, okul) ve zaman dilimini (örn: geçmiş zaman, yaz mevsimi) tarif etmesi beklenir." },
+    { question: "Kitaptaki olayların başlangıcına sebep olan ana sorun veya macera nedir?", answer: "Hikayeyi başlatan temel çatışmayı, gizemi veya yerine getirilmesi gereken görevi açıklaması beklenir." },
+    { question: "Kitapta seni en çok şaşırtan veya heyecanlandıran olay hangisiydi?", answer: "Kendi okuma deneyiminde en çok şaşırdığı, heyecanlandığı veya üzüldüğü kırılma anını anlatması beklenir." },
+    { question: "Eğer kitabın sonunu sen yazsaydın, nasıl bitirmek isterdin?", answer: "Kitabın sonunu kendi yaratıcılığıyla değiştirerek, karakterlerin akıbetini nasıl görmek istediğini açıklaması beklenir." },
+    { question: "Bu kitaptan çıkardığın en önemli ders veya ana fikir nedir?", answer: "Kitabın okuyucuya vermek istediği ahlaki dersi, öğüdü veya ana temayı özetlemesi beklenir." },
+    { question: "Kitaptaki karakterlerden biri olsaydın, hangisi olmak isterdin ve neden?", answer: "Seçtiği bir karakterle empati kurarak, onun hangi davranışlarını veya rolünü beğendiğini ifade etmesi beklenir." },
+    { question: "Bu kitabı bir arkadaşına tavsiye eder miydin? Neden?", answer: "Kitabı sürükleyicilik, bilgilendiricilik veya duygusal yönlerden değerlendirip arkadaşına önerme sebeplerini söylemesi beklenir." },
+    { question: "Kitabın yazarı bu hikaye aracılığıyla okuyuculara ne anlatmak istemiş olabilir?", answer: "Yazarın vermeye çalıştığı toplumsal veya bireysel mesajları kendi kelimeleriyle yorumlaması beklenir." },
+    { question: "Kitapta en çok beğendiğin cümle veya paragraf hangisidir?", answer: "Kitaptan aklında kalan anlamlı bir sözü veya bölümü paylaşarak nedenini açıklaması beklenir." }
+  ];
+
   const CompanionBooks = {
     students: [],
     activeStudent: null,
@@ -71,6 +121,7 @@
     currentRecommendFilter: 'all',
     currentRecommendSearch: '',
     lendingTargetStudent: null,
+    currentQuestionSession: null,
 
     getData() {
       try {
@@ -533,10 +584,16 @@
               </div>
             </div>
           </div>
-          <button type="button" class="c-btn-return-book" onclick="window.CompanionBooks.returnActiveBook()">
-            <i data-lucide="corner-down-left" style="width: 18px; height: 18px;"></i>
-            <span>Kitabı Teslim Al (İade Et)</span>
-          </button>
+          <div style="display: flex; gap: 8px; margin-top: 10px;">
+            <button type="button" class="c-btn-secondary" style="flex: 1; justify-content: center; gap: 6px; padding: 11px 8px; font-size: 13px; font-weight: 700; border-radius: 10px; background: #faf5ff; border: 1.5px solid #d8b4fe; color: #7e22ce;" onclick="window.CompanionBooks.openBookQuestions('${this.activeStudent.id}', '${b.id}', '${tx.id}', 'student')">
+              <i data-lucide="help-circle" style="width: 16px; height: 16px; color: #9333ea;"></i>
+              <span>❓ Soru Sor</span>
+            </button>
+            <button type="button" class="c-btn-return-book" style="flex: 1.3; margin: 0; justify-content: center; padding: 11px 8px; font-size: 13px;" onclick="window.CompanionBooks.returnActiveBook()">
+              <i data-lucide="corner-down-left" style="width: 16px; height: 16px;"></i>
+              <span>Teslim Al (İade)</span>
+            </button>
+          </div>
         `;
 
         // Öğrencinin elinde zaten kitap varsa yeni ödünç listesi daha kompakt veya gizlenebilir
@@ -895,12 +952,110 @@
         return;
       }
 
-      // Kitap müsait -> Teslim işlemini gerçekleştir
-      const sId = targetStudent.id;
-      const sName = targetStudent.name;
-      this.cancelLendingMode();
+      // Kitap müsait -> Doğrudan teslim etmek yerine onaylama ön adımı modalını aç
       this.closeBarcodeScanner(true);
-      this.borrowBookFromSmartModal(sId, book.id);
+      setTimeout(() => {
+        this.openLendingConfirmModal(targetStudent, book);
+      }, 150);
+    },
+
+    // Teslim Etmeden Önce Onaylama Ön Adımı Modalı
+    openLendingConfirmModal(targetStudent, book) {
+      if (!targetStudent || !book) return;
+      const modal = document.getElementById('companion-barcode-result-modal');
+      const bodyEl = document.getElementById('barcode-result-dynamic-body');
+      const titleEl = document.getElementById('barcode-result-header-title');
+      const subEl = document.getElementById('barcode-result-header-subtitle');
+      const iconEl = document.getElementById('barcode-result-header-icon');
+      if (!modal || !bodyEl) return;
+
+      const student = (this.students || []).find(s => String(s.id) === String(targetStudent.id)) || targetStudent;
+      const stuFullName = `${student.name || ''} ${student.surname || ''}`.trim();
+      const activeSection = (window.Companion && window.Companion.activeSection) || '';
+
+      if (titleEl) titleEl.textContent = 'Kitap Teslim Onayı';
+      if (subEl) subEl.textContent = 'Ödünç vermeden önce bilgileri kontrol edin';
+      if (iconEl) {
+        iconEl.style.background = '#ecfdf5';
+        iconEl.innerHTML = `<i data-lucide="book-check" style="width: 20px; height: 20px; color: #10b981;"></i>`;
+      }
+
+      const avatarHtml = student.photo
+        ? `<img src="${student.photo}" style="width: 46px; height: 46px; border-radius: 50%; object-fit: cover; border: 2px solid #a7f3d0;" />`
+        : `<div style="width: 46px; height: 46px; border-radius: 50%; background: #4f46e5; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 16px;">${(student.name ? student.name[0] : '?').toUpperCase()}</div>`;
+
+      const levelBadge = book.level === 'seviye_2'
+        ? `<span style="background: #fef3c7; color: #b45309; padding: 2px 7px; border-radius: 6px; font-weight: 700; font-size: 10.5px;">2. Seviye</span>`
+        : `<span style="background: #e0e7ff; color: #4338ca; padding: 2px 7px; border-radius: 6px; font-weight: 700; font-size: 10.5px;">1. Seviye</span>`;
+
+      bodyEl.innerHTML = `
+        <!-- 1. Hedef Öğrenci Kartı -->
+        <div class="c-smart-card borrowed" style="border-color: #93c5fd; background: linear-gradient(135deg, #eff6ff 0%, #f0fdf4 100%);">
+          <div style="display: flex; align-items: center; justify-content: space-between;">
+            <span class="c-smart-badge info" style="background: #dbeafe; color: #1e40af;">
+              <i data-lucide="user-check" style="width: 12px; height: 12px;"></i>
+              <span>Kitap Teslim Edilecek Öğrenci</span>
+            </span>
+            <span style="font-size: 11px; color: #64748b; font-weight: 700;">${activeSection ? activeSection + ' Şubesi' : ''}</span>
+          </div>
+
+          <div style="display: flex; align-items: center; gap: 12px; margin: 4px 0;">
+            ${avatarHtml}
+            <div style="min-width: 0; flex: 1;">
+              <div style="font-size: 16px; font-weight: 800; color: #0f172a;">${escapeHTML(stuFullName)}</div>
+              <div style="font-size: 12px; color: #64748b; font-weight: 600;">Öğrenci No: #${student.number || '-'}</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. Okutulan Kitap Kartı -->
+        <div class="c-smart-card highlight" style="border-color: #86efac; background: #ffffff;">
+          <div style="display: flex; align-items: center; justify-content: space-between;">
+            <span class="c-smart-badge success">
+              <i data-lucide="check" style="width: 12px; height: 12px;"></i>
+              <span>Okutulan Kitap • Rafta Müsait</span>
+            </span>
+            <span style="font-size: 11px; color: #047857; font-weight: 800;">No: #${escapeHTML(book.bookNo || '-')}</span>
+          </div>
+
+          <div style="margin: 4px 0;">
+            <div style="font-size: 16px; font-weight: 800; color: #0f172a; line-height: 1.3;">📖 ${escapeHTML(book.title)}</div>
+            <div style="font-size: 12px; color: #64748b; margin-top: 4px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+              <span>✍️ ${escapeHTML(book.author || 'Yazar Belirtilmemiş')}</span>
+              <span>•</span>
+              <span>${book.pages ? book.pages + ' sayfa' : ''}</span>
+              ${levelBadge}
+            </div>
+            ${book.barcode ? `<div style="font-size: 11px; color: #94a3b8; margin-top: 4px;">Barkod: ${escapeHTML(book.barcode)}</div>` : ''}
+          </div>
+        </div>
+
+        <!-- 3. Onay Butonu & Seçenekler -->
+        <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 6px;">
+          <button type="button" class="c-btn-primary" style="justify-content: center; gap: 10px; padding: 14px; font-size: 15px; font-weight: 800; background: linear-gradient(135deg, #10b981, #059669); box-shadow: 0 4px 16px rgba(16, 185, 129, 0.4); border-radius: 12px;" onclick="window.CompanionBooks.confirmLendingBook('${escapeHTML(student.id)}', '${escapeHTML(book.id)}')">
+            <i data-lucide="check-circle" style="width: 20px; height: 20px;"></i>
+            <span>Ödünç Ver</span>
+          </button>
+
+          <button type="button" class="c-btn-secondary" style="justify-content: center; gap: 8px; padding: 11px; font-size: 13px; font-weight: 700; border-radius: 10px;" onclick="window.CompanionBooks.startLendingBarcodeScanner('${escapeHTML(student.id)}', '${escapeHTML(stuFullName)}')">
+            <i data-lucide="scan" style="width: 16px; height: 16px;"></i>
+            <span>Farklı Bir Kitap Okut</span>
+          </button>
+
+          <button type="button" class="c-btn-secondary" style="justify-content: center; padding: 9px; font-size: 12px; color: #64748b; background: transparent; border: none;" onclick="window.CompanionBooks.cancelLendingMode(); window.CompanionBooks.closeResultModal();">
+            <span>İptal Et</span>
+          </button>
+        </div>
+      `;
+
+      modal.style.display = 'flex';
+      requestAnimationFrame(() => modal.classList.add('active'));
+      if (window.lucide && typeof window.lucide.createIcons === 'function') window.lucide.createIcons();
+    },
+
+    confirmLendingBook(studentId, bookId) {
+      this.cancelLendingMode();
+      this.borrowBookFromSmartModal(studentId, bookId);
     },
 
     // Kamerayı Başlat
@@ -1325,10 +1480,16 @@
                 <div style="font-size: 11px; color: #64748b;">✍️ ${escapeHTML(book.author || 'Yazar Belirtilmemiş')} • ${book.pages ? book.pages + ' sf.' : ''}</div>
               </div>
 
-              <button type="button" class="c-btn-return-book" style="width: 100%; justify-content: center; padding: 12px; margin-top: 4px; font-weight: 800;" onclick="window.CompanionBooks.returnBookFromSmartModal('${activeTx.id}', '${student.id}', '${book.id}')">
-                <i data-lucide="corner-down-left" style="width: 18px; height: 18px;"></i>
-                <span>Kitabı Teslim Al (İade Et)</span>
-              </button>
+              <div style="display: flex; gap: 8px; margin-top: 6px;">
+                <button type="button" class="c-btn-secondary" style="flex: 1; justify-content: center; gap: 6px; padding: 11px 8px; font-size: 13px; font-weight: 700; border-radius: 10px; background: #faf5ff; border: 1.5px solid #d8b4fe; color: #7e22ce;" onclick="window.CompanionBooks.openBookQuestions('${student.id}', '${book.id}', '${activeTx.id}', 'smart')">
+                  <i data-lucide="help-circle" style="width: 16px; height: 16px; color: #9333ea;"></i>
+                  <span>❓ Soru Sor</span>
+                </button>
+                <button type="button" class="c-btn-return-book" style="flex: 1.3; margin: 0; justify-content: center; padding: 11px 8px; font-size: 13px;" onclick="window.CompanionBooks.returnBookFromSmartModal('${activeTx.id}', '${student.id}', '${book.id}')">
+                  <i data-lucide="corner-down-left" style="width: 16px; height: 16px;"></i>
+                  <span>Teslim Al (İade)</span>
+                </button>
+              </div>
             </div>
 
             <!-- Bu Öğrenci İçin Sıradaki Kitap Önerileri (1. ve 2. Grup Filtreli) -->
@@ -1750,10 +1911,199 @@
     },
 
     closeResultModal() {
+      this.cancelLendingMode();
       const modal = document.getElementById('companion-barcode-result-modal');
       if (modal) {
         modal.classList.remove('active');
         setTimeout(() => { modal.style.display = 'none'; }, 200);
+      }
+    },
+
+    // -------------------------------------------------------------------------
+    // KİTAP TESLİM ALIRKEN SORU SORMA & DEĞERLENDİRME MOTORU
+    // -------------------------------------------------------------------------
+    getBookQuestions(book) {
+      if (!book) return GENERIC_QUESTIONS;
+      // 1. Kitaba özel atanmış sorular
+      if (Array.isArray(book.questions) && book.questions.length > 0) {
+        return book.questions;
+      }
+      // 2. Önceden tanımlı kitaplar
+      if (PRELOADED_QUESTIONS[book.id]) {
+        return PRELOADED_QUESTIONS[book.id];
+      }
+      const titleLower = String(book.title || '').toLowerCase().trim();
+      if (titleLower.includes('küçük prens')) return PRELOADED_QUESTIONS['book_1'];
+      if (titleLower.includes('şeker portakalı')) return PRELOADED_QUESTIONS['book_2'];
+      if (titleLower.includes('sol ayağım')) return PRELOADED_QUESTIONS['book_3'];
+      if (titleLower.includes('define adası')) return PRELOADED_QUESTIONS['book_4'];
+
+      // 3. Genel Pedagojik Anlama Soruları
+      return GENERIC_QUESTIONS;
+    },
+
+    openBookQuestions(studentId, bookId, txId, fromModal = 'student') {
+      const data = this.getData();
+      const student = (this.students || []).find(s => String(s.id) === String(studentId)) ||
+        (data.students || []).find(s => String(s.id) === String(studentId)) ||
+        { id: studentId, name: 'Öğrenci' };
+      const book = (data.books && data.books.library || []).find(b => String(b.id) === String(bookId)) ||
+        { id: bookId, title: 'Kitap' };
+
+      const rawQuestions = this.getBookQuestions(book);
+      // Soruları rastgele karıştır
+      const shuffled = [...rawQuestions].sort(() => Math.random() - 0.5);
+
+      this.currentQuestionSession = {
+        studentId: String(studentId),
+        studentName: `${student.name || ''} ${student.surname || ''}`.trim(),
+        studentPhoto: student.photo || null,
+        studentNumber: student.number || '-',
+        bookId: String(bookId),
+        bookTitle: book.title || 'İsimsiz Kitap',
+        bookAuthor: book.author || 'Yazar Belirtilmemiş',
+        bookPages: book.pages || '',
+        txId: txId || null,
+        questions: shuffled,
+        currentIndex: 0,
+        showAnswer: false,
+        fromModal: fromModal
+      };
+
+      this.renderQuestionsModal();
+
+      const modal = document.getElementById('companion-book-questions-modal');
+      if (modal) {
+        modal.style.display = 'flex';
+        requestAnimationFrame(() => modal.classList.add('active'));
+      }
+    },
+
+    renderQuestionsModal() {
+      const sess = this.currentQuestionSession;
+      if (!sess) return;
+
+      const bodyEl = document.getElementById('book-questions-dynamic-body');
+      const subtitleEl = document.getElementById('book-questions-header-subtitle');
+      if (!bodyEl) return;
+
+      if (subtitleEl) {
+        subtitleEl.textContent = `${sess.studentName} • ${sess.bookTitle}`;
+      }
+
+      const qList = sess.questions || [];
+      const currentQ = qList[sess.currentIndex] || { question: "Soru bulunamadı.", answer: "" };
+      const totalQ = qList.length;
+      const qIndexNum = sess.currentIndex + 1;
+
+      const avatarHtml = sess.studentPhoto
+        ? `<img src="${sess.studentPhoto}" style="width: 42px; height: 42px; border-radius: 50%; object-fit: cover; border: 2px solid #d8b4fe;" />`
+        : `<div style="width: 42px; height: 42px; border-radius: 50%; background: #9333ea; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 16px;">${(sess.studentName ? sess.studentName[0] : '?').toUpperCase()}</div>`;
+
+      bodyEl.innerHTML = `
+        <!-- Öğrenci ve Kitap Mini Başlık Kartı -->
+        <div style="background: linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%); border: 1.5px solid #d8b4fe; border-radius: 14px; padding: 10px 12px; display: flex; align-items: center; justify-content: space-between; gap: 10px;">
+          <div style="display: flex; align-items: center; gap: 10px; min-width: 0; flex: 1;">
+            ${avatarHtml}
+            <div style="min-width: 0; flex: 1;">
+              <div style="font-size: 14px; font-weight: 800; color: #581c87; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHTML(sess.studentName)}</div>
+              <div style="font-size: 11px; color: #7e22ce; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">📖 ${escapeHTML(sess.bookTitle)} ${sess.bookPages ? '• ' + sess.bookPages + ' sf.' : ''}</div>
+            </div>
+          </div>
+          <span style="background: #9333ea; color: #ffffff; font-size: 11px; font-weight: 800; padding: 4px 9px; border-radius: 999px; white-space: nowrap;">
+            Soru ${qIndexNum}/${totalQ}
+          </span>
+        </div>
+
+        <!-- Soru Kartı -->
+        <div style="background: #ffffff; border: 1.5px solid #cbd5e1; border-radius: 16px; padding: 16px 14px; box-shadow: 0 4px 14px rgba(0,0,0,0.06); display: flex; flex-direction: column; gap: 12px;">
+          <div style="display: flex; align-items: center; justify-content: space-between;">
+            <span style="font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; color: #7c3aed; display: flex; align-items: center; gap: 5px;">
+              <i data-lucide="help-circle" style="width: 14px; height: 14px;"></i>
+              <span>Öğrenciye Sorulacak Soru:</span>
+            </span>
+          </div>
+
+          <div style="font-size: 15px; font-weight: 700; color: #0f172a; line-height: 1.45;">
+            ${escapeHTML(currentQ.question)}
+          </div>
+
+          <!-- Model Cevap Göster/Gizle Butonu & Alanı -->
+          <div style="border-top: 1px dashed #e2e8f0; padding-top: 10px;">
+            <button type="button" style="display: inline-flex; align-items: center; gap: 6px; background: ${sess.showAnswer ? '#f1f5f9' : '#eef2ff'}; color: ${sess.showAnswer ? '#475569' : '#4f46e5'}; border: 1px solid ${sess.showAnswer ? '#cbd5e1' : '#c7d2fe'}; padding: 6px 12px; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer;" onclick="window.CompanionBooks.toggleQuestionAnswer()">
+              <i data-lucide="${sess.showAnswer ? 'eye-off' : 'eye'}" style="width: 14px; height: 14px;"></i>
+              <span>${sess.showAnswer ? 'Model Cevabı Gizle' : '💡 Beklenen Model Cevabı Gör'}</span>
+            </button>
+
+            ${sess.showAnswer ? `
+              <div style="margin-top: 10px; background: #fffbeb; border: 1.5px solid #fde68a; border-radius: 10px; padding: 10px 12px; font-size: 12.5px; color: #92400e; line-height: 1.4;">
+                <strong style="display: block; margin-bottom: 2px; color: #78350f; font-size: 11.5px;">✓ Öğrenciden Beklenen Model Cevap:</strong>
+                ${escapeHTML(currentQ.answer || 'Bu soru için özel model cevap girilmemiş.')}
+              </div>
+            ` : ''}
+          </div>
+        </div>
+
+        <!-- Butonlar -->
+        <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 4px;">
+          <!-- Sonraki / Başka Soru -->
+          <button type="button" class="c-btn-secondary" style="justify-content: center; gap: 8px; padding: 11px; font-size: 13px; font-weight: 700; border-radius: 10px; border-color: #cbd5e1;" onclick="window.CompanionBooks.nextBookQuestion()">
+            <i data-lucide="shuffle" style="width: 16px; height: 16px; color: #7c3aed;"></i>
+            <span>Başka Soru Sor (Sıradaki Soru)</span>
+          </button>
+
+          <!-- Kitabı Teslim Al Butonu -->
+          <button type="button" class="c-btn-primary" style="justify-content: center; gap: 10px; padding: 13px; font-size: 15px; font-weight: 800; background: linear-gradient(135deg, #10b981, #059669); box-shadow: 0 4px 16px rgba(16, 185, 129, 0.4); border-radius: 12px;" onclick="window.CompanionBooks.returnBookFromQuestionsModal()">
+            <i data-lucide="check-circle-2" style="width: 20px; height: 20px;"></i>
+            <span>✓ Cevap Başarılı • Kitabı Teslim Al</span>
+          </button>
+
+          <button type="button" style="background: transparent; border: none; padding: 8px; font-size: 12px; color: #64748b; font-weight: 600; cursor: pointer;" onclick="window.CompanionBooks.closeQuestionsModal()">
+            <span>Soruları Kapat (Geri Dön)</span>
+          </button>
+        </div>
+      `;
+
+      if (window.lucide && typeof window.lucide.createIcons === 'function') window.lucide.createIcons();
+    },
+
+    toggleQuestionAnswer() {
+      if (!this.currentQuestionSession) return;
+      this.currentQuestionSession.showAnswer = !this.currentQuestionSession.showAnswer;
+      this.renderQuestionsModal();
+    },
+
+    nextBookQuestion() {
+      const sess = this.currentQuestionSession;
+      if (!sess || !Array.isArray(sess.questions) || sess.questions.length === 0) return;
+      sess.currentIndex = (sess.currentIndex + 1) % sess.questions.length;
+      sess.showAnswer = false;
+      this.renderQuestionsModal();
+    },
+
+    closeQuestionsModal() {
+      const modal = document.getElementById('companion-book-questions-modal');
+      if (modal) {
+        modal.classList.remove('active');
+        setTimeout(() => { modal.style.display = 'none'; }, 200);
+      }
+      this.currentQuestionSession = null;
+    },
+
+    returnBookFromQuestionsModal() {
+      const sess = this.currentQuestionSession;
+      if (!sess) return;
+      const { studentId, bookId, txId, fromModal } = sess;
+      this.closeQuestionsModal();
+
+      if (fromModal === 'smart') {
+        this.returnBookFromSmartModal(txId, studentId, bookId);
+      } else {
+        if (this.activeStudent && String(this.activeStudent.id) === String(studentId)) {
+          this.returnActiveBook();
+        } else {
+          this.returnBookFromSmartModal(txId, studentId, bookId);
+        }
       }
     }
   };

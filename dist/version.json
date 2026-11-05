@@ -1,13 +1,14 @@
 {
-  "version": "1.0.127",
+  "version": "1.0.128",
   "releaseDate": "2026-11-05",
   "minRequiredVersion": "1.0.0",
-  "title": "Sınıf Asistanı v1.0.127 Yayında!",
-  "description": "El Terminali Toplu Optik Gönderim Mimarisi ve Akıllı Tahta Soru Analizi Görünüm İyileştirmeleri",
+  "title": "Sınıf Asistanı v1.0.128 Yayında!",
+  "description": "Kitap Tesliminde Anlama Soruları, Barkod Teslim Ön Onayı ve Görev Puanı Düzenleme Geliştirmeleri",
   "features": [
-    "Toplu Optik Gönderim (Masaüstüne Gönder): El terminalinde kağıt okuma sırasında her öğrencide ağ isteği atmak yerine 'Masaüstüne Gönder' butonu ile sınıfın tamamı tek hamlede aktarılacak şekilde optimize edildi; masaüstü kilitlenmesi ve donması kalıcı olarak çözüldü.",
-    "Işık Hızında & Çevrimdışı Optik Okuma: Kağıt okuma esnasında ağ beklemesi kaldırıldı; optik formlar çevrimdışı ve saniyede bir kağıt hızında kesintisiz okunabilir hale getirildi.",
-    "Akıllı Tahta Soru Analizi Kartları: Tahtada soru analizi ekranındaki öğrenci kartları, ad-soyad, okul numarası, fotoğraflar ve şık rozetleri (❌ B Şıkkı vb.) sınıfın en arka sıralarından rahatça görülebilecek şekilde devasa boyuta getirildi."
+    "Kitap Tesliminde Soru Sorma: El terminalinde bir kitap teslim alınırken öğrenciye okuduğunu anlama sorusu yöneltebilme; model cevabı görüp tek dokunuşla teslim alma özelliği eklendi.",
+    "Barkodla Kitap Tesliminde Ön Onay: Yeni bir kitap okutulduğunda onaysız doğrudan yazılma engellendi; öğrenci ve kitap bilgisi kontrol edilip onaylanarak teslim edilmesi sağlandı.",
+    "Görev Tesliminde Puan Değiştirme: Masaüstü görev teslim ekranında projenin başarısına göre puanı arttırıp azaltma butonları eklendi.",
+    "El Terminali Menü Kartları Görsel İyileştirmesi: Ana ekrandaki 6 adet eylem kartının etrafına zemin tonuyla uyumlu belirgin kobalt mavi kontur çizgisi ve ışık gölgesi uygulandı."
   ],
   "release_url": "https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/latest"
 }

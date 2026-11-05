@@ -5485,20 +5485,32 @@ class StateManager {
     return assignment;
   }
 
-  completeTaskAssignment(id, completedDate) {
+  completeTaskAssignment(id, completedDate, customPoints) {
     if (!this.state.tasks) return false;
     const task = this.state.tasks.find(t => t.id === id);
     if (task) {
       task.status = 'completed';
       task.completedDate = completedDate || window.formatLocalDate();
       
+      // İlk belirlenen puanı sakla (geri alma işlemi için)
+      if (task.initialPoints === undefined) {
+        task.initialPoints = task.points !== undefined ? task.points : 5;
+      }
+
+      // Öğretmenin teslim alırken belirlediği nihai puan
+      const finalPoints = (customPoints !== undefined && customPoints !== null && !isNaN(parseInt(customPoints, 10)))
+        ? parseInt(customPoints, 10)
+        : (task.points || 0);
+
+      task.points = finalPoints;
+
       // Öğrencinin Dojo performans akışına puan ekle
       const weekId = window.getISOWeek(task.completedDate);
       
       const perfRecord = this.addPerformance(
         task.studentId,
-        task.points >= 0 ? 'positive' : 'development',
-        task.points,
+        finalPoints >= 0 ? 'positive' : 'development',
+        finalPoints,
         `"${task.description}" Görevi Teslim Edildi`,
         weekId,
         { taskId: task.id }
@@ -5530,6 +5542,9 @@ class StateManager {
       task.status = 'active';
       task.completedDate = null;
       task.performanceId = null;
+      if (task.initialPoints !== undefined) {
+        task.points = task.initialPoints;
+      }
       this.saveState();
       return true;
     }

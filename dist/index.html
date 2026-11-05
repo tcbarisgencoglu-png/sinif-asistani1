@@ -9571,29 +9571,68 @@
     </div>
   </div>
 
-  <!-- MODAL: GÖREV TESLİM AL -->
+  <!-- MODAL: GÖREV TESLİM AL & PUAN DEĞERLENDİRME -->
   <div class="modal" id="modal-complete-task">
-    <div class="modal-content" style="--max-width: 400px;">
+    <div class="modal-content" style="--max-width: 440px;">
       <div class="modal-header">
-        <h3 style="display: flex; align-items: center; gap: 0.5rem; color: var(--success); margin: 0;">
-          <i data-lucide="check-circle-2"></i> Görevi Teslim Al
+        <h3 style="display: flex; align-items: center; gap: 0.5rem; color: var(--success); margin: 0; font-size: 1.15rem;">
+          <i data-lucide="check-circle-2"></i> Görevi Teslim Al & Değerlendir
         </h3>
         <button class="close-btn">&times;</button>
       </div>
       <form id="form-complete-task">
         <input type="hidden" id="complete-task-id">
-        <div class="modal-body" style="padding: 1.5rem;">
-          <div class="form-group" style="margin-bottom: 1rem;">
-            <label for="complete-task-date" style="font-weight: 600;">Teslim Edilme Tarihi</label>
-            <input type="text" class="form-control" id="complete-task-date" data-datepicker="true" placeholder="GG.AA.YYYY" required style="width: 100%; height: 38px; padding: 0.35rem 0.75rem;">
-            <span style="font-size: 0.75rem; color: var(--text-muted); display: block; margin-top: 0.4rem;">
-              Görev puanı seçtiğiniz tarihin ait olduğu haftaya eklenecektir.
-            </span>
+        <div class="modal-body" style="padding: 1.25rem 1.5rem; display: flex; flex-direction: column; gap: 1rem;">
+          
+          <!-- Öğrenci ve Görev Bilgi Kartı -->
+          <div id="complete-task-info-card" style="background: var(--bg-primary, #f8fafc); border: 1px solid var(--border-color); border-radius: 10px; padding: 0.85rem 1rem;">
+            <div style="font-size: 0.72rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase; margin-bottom: 2px;">Öğrenci & Görev</div>
+            <div id="complete-task-student-name" style="font-weight: 800; font-size: 0.95rem; color: var(--text-primary);">Öğrenci Adı</div>
+            <div id="complete-task-desc-text" style="font-size: 0.82rem; color: var(--text-secondary); margin-top: 3px; font-style: italic; line-height: 1.35;">Görev açıklaması...</div>
           </div>
+
+          <!-- Teslim Edilme Tarihi -->
+          <div class="form-group" style="margin-bottom: 0;">
+            <label for="complete-task-date" style="font-weight: 600; font-size: 0.85rem; display: flex; align-items: center; gap: 4px; margin-bottom: 0.35rem;">
+              <i data-lucide="calendar" style="width: 14px; height: 14px; color: var(--primary);"></i> Teslim Edilme Tarihi
+            </label>
+            <input type="text" class="form-control" id="complete-task-date" data-datepicker="true" placeholder="GG.AA.YYYY" required style="width: 100%; height: 38px; padding: 0.35rem 0.75rem; font-size: 0.9rem;">
+          </div>
+
+          <!-- Puan Arttırıp Azaltma Bölümü -->
+          <div class="form-group" style="margin-bottom: 0; background: rgba(16, 185, 129, 0.05); border: 1.5px solid rgba(16, 185, 129, 0.25); border-radius: 10px; padding: 0.85rem 1rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <label for="complete-task-points" style="font-weight: 700; font-size: 0.88rem; color: var(--text-primary); margin: 0; display: flex; align-items: center; gap: 5px;">
+                <i data-lucide="award" style="width: 16px; height: 16px; color: #10b981;"></i> Verilecek Performans Puanı
+              </label>
+              <span id="complete-task-points-diff" style="font-size: 0.75rem; font-weight: 700; color: #059669; background: #dcfce7; padding: 2px 7px; border-radius: 6px;">
+                Varsayılan: 5 Puan
+              </span>
+            </div>
+
+            <!-- Stepper ve Giriş Alanı -->
+            <div style="display: flex; align-items: center; gap: 6px;">
+              <button type="button" class="btn btn-secondary" id="btn-task-pts-minus-5" style="padding: 0 9px; height: 38px; font-weight: 800; font-size: 0.8rem; cursor: pointer;" title="5 Puan Azalt">-5</button>
+              <button type="button" class="btn btn-secondary" id="btn-task-pts-minus-1" style="padding: 0 11px; height: 38px; font-weight: 800; font-size: 0.9rem; cursor: pointer;" title="1 Puan Azalt">-1</button>
+              
+              <input type="number" class="form-control" id="complete-task-points" required min="0" max="100" style="flex: 1; height: 38px; text-align: center; font-size: 1.15rem; font-weight: 900; color: var(--primary); border: 2px solid var(--primary-light, #c7d2fe); border-radius: 8px;">
+              
+              <button type="button" class="btn btn-secondary" id="btn-task-pts-plus-1" style="padding: 0 11px; height: 38px; font-weight: 800; font-size: 0.9rem; cursor: pointer;" title="1 Puan Arttır">+1</button>
+              <button type="button" class="btn btn-secondary" id="btn-task-pts-plus-5" style="padding: 0 9px; height: 38px; font-weight: 800; font-size: 0.8rem; cursor: pointer;" title="5 Puan Arttır">+5</button>
+            </div>
+
+            <div style="font-size: 0.74rem; color: var(--text-muted); margin-top: 6px; line-height: 1.35;">
+              💡 <em>Proje kalitesi veya öğrenci çabasına göre puanı arttırabilir (+), eksik teslimlerde azaltabilirsiniz (-).</em>
+            </div>
+          </div>
+
         </div>
-        <div class="modal-footer" style="padding: 1rem 1.5rem; display: flex; justify-content: flex-end; gap: 0.75rem;">
+        <div class="modal-footer" style="padding: 1rem 1.5rem; display: flex; justify-content: flex-end; gap: 0.75rem; border-top: 1px solid var(--border-color);">
           <button type="button" class="btn btn-secondary close-btn-action">Vazgeç</button>
-          <button type="submit" class="btn btn-success">Teslim Al ve Puanı Ekle</button>
+          <button type="submit" class="btn btn-success" style="font-weight: 700; display: inline-flex; align-items: center; gap: 6px;">
+            <i data-lucide="check" style="width: 16px; height: 16px;"></i>
+            <span>Teslim Al ve Puanı Ekle</span>
+          </button>
         </div>
       </form>
     </div>

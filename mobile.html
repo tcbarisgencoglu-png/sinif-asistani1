@@ -2368,6 +2368,35 @@
   </div>
 
   <!-- ==========================================================================
+       11D. KİTAP SORULARI & DEĞERLENDİRME MODALI
+       ========================================================================== -->
+  <div id="companion-book-questions-modal" class="c-modal-overlay" style="display: none;" onclick="if(event.target === this) window.CompanionBooks.closeQuestionsModal();">
+    <div class="c-score-sheet c-smart-result-sheet" style="max-height: 90vh;">
+      <div class="c-sheet-grabber"></div>
+
+      <div class="c-score-sheet-header">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div class="c-smart-result-icon-badge" style="background: #f3e8ff; color: #9333ea;">
+            <i data-lucide="help-circle" style="width: 20px; height: 20px;"></i>
+          </div>
+          <div>
+            <h3 style="font-size: 16px; font-weight: 800; color: #0f172a; margin: 0;">Kitap Anlama Soruları</h3>
+            <span id="book-questions-header-subtitle" style="font-size: 11px; color: #64748b; font-weight: 600;">Öğrenci okuduğunu anlama değerlendirmesi</span>
+          </div>
+        </div>
+        <button type="button" class="c-score-modal-close" onclick="window.CompanionBooks.closeQuestionsModal()">
+          <i data-lucide="x" style="width: 20px; height: 20px;"></i>
+        </button>
+      </div>
+
+      <!-- Soru Modalı Dinamik Gövdesi -->
+      <div id="book-questions-dynamic-body" style="display: flex; flex-direction: column; gap: 12px;">
+        <!-- companion-books.js dinamik dolduracak -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
        HIZLI ÖĞRENCİ SEÇİCİ MODALI (OMR EŞLEŞTİRME KURTARMA)
        ========================================================================== -->
   <div id="omr-student-picker-modal" class="c-modal-overlay" style="display: none;" onclick="if(event.target === this) window.CompanionOmr.closeStudentPickerModal();">

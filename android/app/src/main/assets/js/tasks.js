@@ -18,9 +18,46 @@
   const formCompleteTask = document.getElementById('form-complete-task');
   const completeTaskId = document.getElementById('complete-task-id');
   const completeTaskDate = document.getElementById('complete-task-date');
+  const completeTaskStudentName = document.getElementById('complete-task-student-name');
+  const completeTaskDescText = document.getElementById('complete-task-desc-text');
+  const completeTaskPoints = document.getElementById('complete-task-points');
+  const completeTaskPointsDiff = document.getElementById('complete-task-points-diff');
+  const btnTaskPtsMinus5 = document.getElementById('btn-task-pts-minus-5');
+  const btnTaskPtsMinus1 = document.getElementById('btn-task-pts-minus-1');
+  const btnTaskPtsPlus1 = document.getElementById('btn-task-pts-plus-1');
+  const btnTaskPtsPlus5 = document.getElementById('btn-task-pts-plus-5');
 
   let toastCallback = null;
   let activeTasksTab = 'active'; // 'active', 'completed', 'passive'
+
+  function updateCompleteTaskPointsBadge() {
+    if (!completeTaskPoints || !completeTaskPointsDiff) return;
+    const orig = parseInt(completeTaskPoints.dataset.originalPoints, 10) || 0;
+    const current = parseInt(completeTaskPoints.value, 10) || 0;
+    const diff = current - orig;
+
+    if (diff > 0) {
+      completeTaskPointsDiff.textContent = `Varsayılan: ${orig} → ${current} Puan (+${diff} Ek Puan) 🌟`;
+      completeTaskPointsDiff.style.background = '#dcfce7';
+      completeTaskPointsDiff.style.color = '#15803d';
+    } else if (diff < 0) {
+      completeTaskPointsDiff.textContent = `Varsayılan: ${orig} → ${current} Puan (${diff} Puan)`;
+      completeTaskPointsDiff.style.background = '#fee2e2';
+      completeTaskPointsDiff.style.color = '#b91c1c';
+    } else {
+      completeTaskPointsDiff.textContent = `Varsayılan: ${orig} Puan`;
+      completeTaskPointsDiff.style.background = '#eef2ff';
+      completeTaskPointsDiff.style.color = '#4338ca';
+    }
+  }
+
+  function adjustCompleteTaskPoints(delta) {
+    if (!completeTaskPoints) return;
+    let val = parseInt(completeTaskPoints.value, 10) || 0;
+    val = Math.max(0, val + delta);
+    completeTaskPoints.value = val;
+    updateCompleteTaskPointsBadge();
+  }
 
   // Helper for DD.MM.YYYY formatting
   function formatDateTR(dateStr) {
@@ -135,6 +172,16 @@
       });
     }
 
+    // Puan Arttırma / Azaltma Butonları
+    if (btnTaskPtsMinus5) btnTaskPtsMinus5.addEventListener('click', () => adjustCompleteTaskPoints(-5));
+    if (btnTaskPtsMinus1) btnTaskPtsMinus1.addEventListener('click', () => adjustCompleteTaskPoints(-1));
+    if (btnTaskPtsPlus1) btnTaskPtsPlus1.addEventListener('click', () => adjustCompleteTaskPoints(1));
+    if (btnTaskPtsPlus5) btnTaskPtsPlus5.addEventListener('click', () => adjustCompleteTaskPoints(5));
+    if (completeTaskPoints) {
+      completeTaskPoints.addEventListener('input', updateCompleteTaskPointsBadge);
+      completeTaskPoints.addEventListener('change', updateCompleteTaskPointsBadge);
+    }
+
     // Form Submission: Complete Task
     if (formCompleteTask) {
       formCompleteTask.addEventListener('submit', (e) => {
@@ -148,9 +195,19 @@
           return;
         }
 
-        const success = stateManager.completeTaskAssignment(id, date);
+        const newPoints = parseInt(completeTaskPoints ? completeTaskPoints.value : 5, 10);
+        const originalPoints = parseInt(completeTaskPoints && completeTaskPoints.dataset.originalPoints ? completeTaskPoints.dataset.originalPoints : newPoints, 10);
+
+        const success = stateManager.completeTaskAssignment(id, date, newPoints);
         if (success) {
-          if (toastCallback) toastCallback('Görev tamamlandı ve puan eklendi.', 'success');
+          const diff = newPoints - originalPoints;
+          let msg = `Görev teslim alındı ve ${newPoints} performans puanı eklendi.`;
+          if (diff > 0) {
+            msg = `🌟 Harika! Görev teslim alındı, proje kalitesine göre +${diff} ek puanla toplam ${newPoints} puan eklendi.`;
+          } else if (diff < 0) {
+            msg = `Görev teslim alındı, değerlendirmeye göre ${newPoints} puan eklendi (${diff} puan).`;
+          }
+          if (toastCallback) toastCallback(msg, 'success');
         } else {
           if (toastCallback) toastCallback('Bir hata oluştu. Görev bulunamadı.', 'danger');
         }
@@ -419,7 +476,23 @@
           e.stopPropagation();
           if (completeTaskId) completeTaskId.value = task.id;
           if (completeTaskDate) completeTaskDate.value = window.formatLocalDate();
+
+          const defaultPts = task.points !== undefined ? task.points : 5;
+          if (completeTaskPoints) {
+            completeTaskPoints.dataset.originalPoints = defaultPts;
+            completeTaskPoints.value = defaultPts;
+          }
+          if (completeTaskStudentName) {
+            const branchText = student.branch ? ` [${student.branch}]` : '';
+            completeTaskStudentName.textContent = `${student.name} ${student.surname} (No: ${student.number})${branchText}`;
+          }
+          if (completeTaskDescText) {
+            completeTaskDescText.textContent = `"${task.description}"`;
+          }
+          updateCompleteTaskPointsBadge();
+
           if (modalCompleteTask) modalCompleteTask.classList.add('active');
+          if (window.safeCreateIcons) window.safeCreateIcons();
         });
       }
 
