@@ -59,6 +59,7 @@
     temporarySelectedSections: new Set(),
     setupStep: 1,
     setupSelectedRole: 'primary',
+    userSelectedSingleClass: null,
 
     isClassTeacher(branch) {
       if (this.profile && this.profile.teacherRole === 'primary') return true;
@@ -262,6 +263,11 @@
       this.renderIcons();
     },
 
+    onSingleClassSelectChange(val) {
+      this.userSelectedSingleClass = val;
+      this.activeSection = val;
+    },
+
     goToSetupStep(step) {
       // Adım 1'den ilerlerken doğrulama yap
       if (this.setupStep === 1 && step > 1) {
@@ -275,6 +281,13 @@
         if (this.setupSelectedRole === 'middle' && this.temporarySelectedSections.size === 0) {
           this.showToast('Lütfen girdiğiniz en az 1 şubeyi seçin.');
           return;
+        }
+        if (this.setupSelectedRole === 'primary') {
+          const singleClassSelect = document.getElementById('setup-single-class-select');
+          if (singleClassSelect) {
+            this.userSelectedSingleClass = singleClassSelect.value;
+            this.activeSection = singleClassSelect.value;
+          }
         }
       }
 
@@ -383,29 +396,41 @@
 
       if (uniqueSections.length === 0) return;
 
-      // Sınıf Öğretmeni için okuttuğu sınıfı otomatik seç
+      // Sınıf Öğretmeni için okuttuğu sınıf seçeneklerini zenginleştir ama seçimi koru
       const singleClassSelect = document.getElementById('setup-single-class-select');
       if (singleClassSelect && singleClassSelect.options) {
-        const matchingSec = uniqueSections[0];
-        let exists = false;
-        for (let i = 0; i < singleClassSelect.options.length; i++) {
-          if (singleClassSelect.options[i].value === matchingSec) {
-            exists = true;
-            break;
+        uniqueSections.forEach(sec => {
+          let exists = false;
+          for (let i = 0; i < singleClassSelect.options.length; i++) {
+            if (singleClassSelect.options[i].value === sec) {
+              exists = true;
+              break;
+            }
           }
+          if (!exists) {
+            const opt = document.createElement('option');
+            opt.value = sec;
+            opt.textContent = sec;
+            singleClassSelect.appendChild(opt);
+          }
+        });
+
+        // Kullanıcı kendisi bir sınıf seçtiyse onu KESİNLİKLE KORU, asla ezme!
+        if (this.userSelectedSingleClass) {
+          singleClassSelect.value = this.userSelectedSingleClass;
+          this.activeSection = this.userSelectedSingleClass;
+        } else if (uniqueSections.length === 1) {
+          singleClassSelect.value = uniqueSections[0];
+          this.activeSection = uniqueSections[0];
+          this.userSelectedSingleClass = uniqueSections[0];
         }
-        if (!exists) {
-          const opt = document.createElement('option');
-          opt.value = matchingSec;
-          opt.textContent = matchingSec;
-          singleClassSelect.appendChild(opt);
-        }
-        singleClassSelect.value = matchingSec;
       }
 
       // Branş Öğretmeni için şubeleri seçili yap
-      uniqueSections.forEach(sec => this.temporarySelectedSections.add(sec));
-      this.renderSetupChips();
+      if (this.setupSelectedRole === 'middle') {
+        uniqueSections.forEach(sec => this.temporarySelectedSections.add(sec));
+        this.renderSetupChips();
+      }
     },
 
     renderWizardSummary() {
@@ -416,8 +441,9 @@
       const name = nameInput ? nameInput.value.trim() : 'Öğretmen';
       const isPrimary = this.setupSelectedRole === 'primary';
       const roleStr = isPrimary ? 'Sınıf Öğretmeni (İlkokul)' : ((branchSelect && branchSelect.value) || 'Branş Öğretmeni');
+      const chosenClass = this.userSelectedSingleClass || (singleClassSelect ? singleClassSelect.value : (isPrimary ? '4-C' : '5-A'));
       const sectionsStr = isPrimary
-        ? (singleClassSelect ? singleClassSelect.value : '3-A')
+        ? chosenClass
         : (Array.from(this.temporarySelectedSections).sort().join(', ') || '-');
 
       const sName = document.getElementById('summary-teacher-name');
@@ -461,15 +487,18 @@
       const name = nameInput ? nameInput.value.trim() : 'Öğretmen';
       const isPrimary = this.setupSelectedRole === 'primary';
       const branch = isPrimary ? 'Sınıf Öğretmeni (İlkokul)' : ((branchSelect && branchSelect.value) || 'Matematik');
-      const sections = isPrimary ? [(singleClassSelect ? singleClassSelect.value : '3-A')] : Array.from(this.temporarySelectedSections).sort();
+      const chosenSection = this.userSelectedSingleClass || (singleClassSelect ? singleClassSelect.value : (isPrimary ? '4-C' : '5-A'));
+      const sections = isPrimary ? [chosenSection] : Array.from(this.temporarySelectedSections).sort();
       const pin = (pinInput && pinInput.value.trim()) || '1234';
+
+      this.activeSection = sections[0] || chosenSection;
 
       this.saveProfile({
         name,
         teacherRole: isPrimary ? 'primary' : 'middle',
         isClassTeacher: isPrimary,
         branch,
-        sections: sections.length > 0 ? sections : [isPrimary ? '3-A' : '5-A'],
+        sections: sections.length > 0 ? sections : [this.activeSection],
         pin
       });
 
@@ -478,7 +507,6 @@
         window.CloudSync.setDevicePaired(true);
       }
 
-      this.activeSection = sections[0] || (isPrimary ? '3-A' : '5-A');
       localStorage.setItem(ACTIVE_SECTION_KEY, this.activeSection);
       this.renderSectionBar();
       this.showToast('🎉 Tebrikler! Sınıf Asistanı kullanıma hazır.');
@@ -509,9 +537,13 @@
         this.temporarySelectedSections = new Set(this.profile.sections || ['5-A', '6-A', '7-A', '8-A']);
         if (singleClassSelect && this.profile.sections && this.profile.sections[0]) {
           singleClassSelect.value = this.profile.sections[0];
+          this.userSelectedSingleClass = this.profile.sections[0];
         }
       } else {
         this.temporarySelectedSections = new Set(['5-A', '6-A', '7-A', '8-A']);
+        if (singleClassSelect) {
+          this.userSelectedSingleClass = singleClassSelect.value;
+        }
       }
 
       // Branşları doldur

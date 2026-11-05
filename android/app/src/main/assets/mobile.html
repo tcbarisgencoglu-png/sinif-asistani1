@@ -11,7 +11,7 @@
   <link rel="shortcut icon" href="icons/icon-128.png" type="image/png">
 
   <!-- Hafif Mobil Tasarım Sistemi -->
-  <link rel="stylesheet" href="css/companion.css?v=1.0.125">
+  <link rel="stylesheet" href="css/companion.css?v=1.0.126">
 
   <!-- Çevrim Dışı İkon Kütüphanesi -->
   <script src="js/lucide.min.js"></script>
@@ -27,7 +27,7 @@
       <div class="c-appbar-info">
         <div style="display: flex; align-items: center; gap: 4px; flex-wrap: wrap;">
           <div class="c-appbar-name" id="appbar-teacher-name">Öğretmen</div>
-          <span id="companion-version-badge" style="font-size: 10px; background: rgba(255,255,255,0.22); padding: 1.5px 7px; border-radius: 999px; font-weight: 700; color: #fff; margin-left: 6px; letter-spacing: 0.3px;">v1.0.125</span>
+          <span id="companion-version-badge" style="font-size: 10px; background: rgba(255,255,255,0.22); padding: 1.5px 7px; border-radius: 999px; font-weight: 700; color: #fff; margin-left: 6px; letter-spacing: 0.3px;">v1.0.126</span>
           <span id="appbar-sync-code-badge" onclick="window.Companion.openSettingsModal()" style="font-size: 10px; background: rgba(79, 70, 229, 0.45); border: 1px solid rgba(165, 180, 252, 0.45); padding: 1.5px 6px; border-radius: 6px; font-weight: 800; color: #e0e7ff; font-family: monospace; letter-spacing: 0.5px; cursor: pointer;" title="Cihaz Eşleşme Kodu (Değiştirmek için dokunun)">SA-......</span>
         </div>
         <div class="c-appbar-branch" id="appbar-branch-name">Branş Seçilmedi</div>
@@ -152,7 +152,7 @@
         <!-- Sınıf Öğretmenleri İçin: Tek Şube Seçici (Varsayılan Açık) -->
         <div class="c-form-group" id="setup-single-section-group" style="margin-bottom: 14px;">
           <label class="c-label" for="setup-single-class-select">Okuttuğunuz Şube <span style="color: #ef4444;">*</span></label>
-          <select id="setup-single-class-select" class="c-select">
+          <select id="setup-single-class-select" class="c-select" onchange="window.Companion.onSingleClassSelectChange(this.value)">
             <option value="1-A">1-A</option>
             <option value="1-B">1-B</option>
             <option value="1-C">1-C</option>
@@ -512,11 +512,15 @@
         </button>
       </div>
 
-      <!-- Ödev Konusu & Başlığı Girişi -->
-      <div style="margin-bottom: 10px;">
+      <!-- Ödev Konusu & Başlığı Girişi ve Ödev İçeriğini Görme Butonu -->
+      <div style="display: flex; gap: 8px; margin-bottom: 10px; align-items: center;">
         <input type="text" id="hw-title-input" class="c-input" placeholder="Ödev konusu/açıklaması (Örn: Sayfa 45-48 Alıştırmalar)..."
-               style="height: 38px; font-size: 13px; border-radius: 12px; background: rgba(255, 255, 255, 0.95); color: #0f172a; -webkit-text-fill-color: #0f172a;"
+               style="flex: 1; min-width: 0; height: 38px; font-size: 13px; border-radius: 12px; background: rgba(255, 255, 255, 0.95); color: #0f172a; -webkit-text-fill-color: #0f172a;"
                onchange="window.CompanionHomework.onTitleChanged(this.value)" />
+        <button type="button" id="btn-view-hw-details" class="c-hw-detail-btn disabled" disabled onclick="window.CompanionHomework.openDetailsModal()" title="Ödev İçeriğini Gör">
+          <i data-lucide="eye" style="width: 15px; height: 15px;"></i>
+          <span>Ödev İçeriği</span>
+        </button>
       </div>
 
       <!-- Hızlı Kontroller & Özet Sayaçlar -->
@@ -833,6 +837,24 @@
           </div>
         </div>
 
+        <!-- Hızlı Ödev Şablonları (Tek Dokunuşla Uygula / Kaydet) -->
+        <div class="c-hw-template-strip" id="new-hw-template-container">
+          <div style="display: flex; align-items: center; justify-content: space-between;">
+            <span style="font-size: 11px; font-weight: 800; color: #4338ca; display: flex; align-items: center; gap: 4px;">
+              <i data-lucide="sparkles" style="width: 13px; height: 13px; color: #6366f1;"></i>
+              Ödev Şablonları
+            </span>
+            <button type="button" onclick="window.CompanionHomework.saveCurrentAsTemplate()" 
+                    style="background: #eef2ff; border: 1px solid #c7d2fe; border-radius: 8px; font-size: 11px; font-weight: 800; color: #3730a3; cursor: pointer; display: flex; align-items: center; gap: 3px; padding: 3px 8px;">
+              <i data-lucide="plus-circle" style="width: 12px; height: 12px;"></i>
+              <span>Bu Düzeni Şablon Yap</span>
+            </button>
+          </div>
+          <div id="new-hw-template-chips" class="c-hw-template-chips">
+            <!-- companion-homework.js dinamik dolduracak -->
+          </div>
+        </div>
+
         <!-- 2. Ödev Tanımı (Genel Başlık / Fasikül / Hafta) -->
         <div>
           <label for="new-hw-definition" style="display: block; font-size: 12px; font-weight: 700; color: #334155; margin-bottom: 6px;">
@@ -972,6 +994,45 @@
         <button type="button" class="c-btn-primary" style="flex: 2; height: 44px; border-radius: 12px; font-weight: 800; background: linear-gradient(135deg, #2563eb, #1d4ed8); box-shadow: 0 4px 12px rgba(37,99,235,0.35);" onclick="window.CompanionHomework.saveOrderDraft()">
           <i data-lucide="check" style="width: 18px; height: 18px;"></i>
           <span>Sıralamayı Kaydet</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       ÖDEV İÇERİĞİ VE GÖREV DETAYLARI MODALI (BOTTOM SHEET MODAL)
+       ========================================================================== -->
+  <div class="c-modal-overlay" id="companion-hw-details-modal" style="display: none;" onclick="if(event.target === this) window.CompanionHomework.closeDetailsModal();">
+    <div class="c-modal-card" style="max-height: 85vh; display: flex; flex-direction: column; width: 92%; max-width: 440px; border-radius: 20px; padding: 16px;">
+      <div class="c-sheet-grabber" style="margin: 0 auto 10px auto; width: 44px; height: 4px; background: #cbd5e1; border-radius: 999px;"></div>
+      
+      <!-- Başlık Çubuğu -->
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid #e2e8f0;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <div style="width: 32px; height: 32px; border-radius: 10px; background: #eef2ff; color: #4f46e5; display: flex; align-items: center; justify-content: center;">
+            <i data-lucide="book-open" style="width: 18px; height: 18px;"></i>
+          </div>
+          <div>
+            <h3 style="margin: 0; font-size: 15px; font-weight: 800; color: #0f172a;">Ödev Detayları</h3>
+            <span id="hw-details-modal-subtitle" style="font-size: 11px; color: #64748b; font-weight: 600;">Seçili Günün Ödevi</span>
+          </div>
+        </div>
+        <button type="button" class="c-modal-close" onclick="window.CompanionHomework.closeDetailsModal()" style="background: none; border: none; font-size: 20px; color: #94a3b8; cursor: pointer; padding: 4px 8px;">✕</button>
+      </div>
+
+      <!-- İçerik Alanı (Kaydırılabilir) -->
+      <div id="hw-details-modal-body" style="flex: 1; overflow-y: auto; padding-right: 2px; min-height: 140px; max-height: calc(85vh - 160px); display: flex; flex-direction: column; gap: 10px;">
+        <!-- Dinamik olarak render edilecek -->
+      </div>
+
+      <!-- Alt Butonlar -->
+      <div style="display: flex; gap: 8px; margin-top: 14px; padding-top: 10px; border-top: 1px solid #e2e8f0;">
+        <button type="button" class="c-btn-secondary" style="flex: 1; height: 42px; border-radius: 12px; font-weight: 700;" onclick="window.CompanionHomework.closeDetailsModal()">
+          Kapat
+        </button>
+        <button type="button" class="c-btn-secondary" style="flex: 1; height: 42px; border-radius: 12px; font-weight: 700; background: #dcfce7; color: #15803d; border-color: #86efac; display: flex; align-items: center; justify-content: center; gap: 6px;" onclick="window.CompanionHomework.shareCurrentHomeworkWhatsApp()">
+          <i data-lucide="share-2" style="width: 15px; height: 15px;"></i>
+          <span>WhatsApp</span>
         </button>
       </div>
     </div>
@@ -1674,7 +1735,7 @@
 
         <!-- Versiyon Bilgisi -->
         <div style="text-align: center; margin-top: 14px; font-size: 11px; color: #94a3b8; font-weight: 600;">
-          Sınıf Asistanı El Terminali • <span id="settings-modal-version" style="color: #4f46e5; font-weight: 800;">v1.0.125</span>
+          Sınıf Asistanı El Terminali • <span id="settings-modal-version" style="color: #4f46e5; font-weight: 800;">v1.0.126</span>
         </div>
 
       </div>
@@ -2331,18 +2392,18 @@
   </div>
 
   <!-- QR, Bulut & OMR Analiz Motorları -->
-  <script src="js/supabase-config.js?v=1.0.125"></script>
-  <script src="js/cloud-sync.js?v=1.0.125"></script>
+  <script src="js/supabase-config.js?v=1.0.126"></script>
+  <script src="js/cloud-sync.js?v=1.0.126"></script>
   <script src="js/qrcode.min.js"></script>
   <script src="js/jsqr.js"></script>
-  <script src="js/omr-engine.js?v=1.0.125"></script>
-  <script src="js/companion-omr.js?v=1.0.125"></script>
-  <script src="js/companion-behavior.js?v=1.0.125"></script>
-  <script src="js/companion-homework.js?v=1.0.125"></script>
-  <script src="js/companion-books.js?v=1.0.125"></script>
-  <script src="js/companion-schedule.js?v=1.0.125"></script>
+  <script src="js/omr-engine.js?v=1.0.126"></script>
+  <script src="js/companion-omr.js?v=1.0.126"></script>
+  <script src="js/companion-behavior.js?v=1.0.126"></script>
+  <script src="js/companion-homework.js?v=1.0.126"></script>
+  <script src="js/companion-books.js?v=1.0.126"></script>
+  <script src="js/companion-schedule.js?v=1.0.126"></script>
 
   <!-- Çekirdek Kontrolcü -->
-  <script src="js/companion.js?v=1.0.125"></script>
+  <script src="js/companion.js?v=1.0.126"></script>
 </body>
 </html>

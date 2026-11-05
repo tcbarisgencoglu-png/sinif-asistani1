@@ -1382,46 +1382,65 @@
 
       // Mobil Companion varsa profil ve şubeleri otomatik uyarla
       if (window.Companion) {
-        const isPrimary = (masterItem.educationLevel === 'primary') ||
-                          (localData.educationLevel === 'primary') ||
-                          (typeof window.Companion.isClassTeacher === 'function' && window.Companion.isClassTeacher());
+        const isWizardRunning = !window.Companion.profile || !window.Companion.profile.isComplete || window.Companion.currentView === 'setup';
+        const singleClassSelect = document.getElementById('setup-single-class-select');
+        const wizardSelectedSection = (singleClassSelect && singleClassSelect.value) || window.Companion.userSelectedSingleClass || window.Companion.activeSection;
+
+        const isPrimary = (window.Companion.setupSelectedRole === 'primary') ||
+                          (typeof window.Companion.isClassTeacher === 'function' && window.Companion.isClassTeacher()) ||
+                          (masterItem.educationLevel === 'primary') ||
+                          (localData.educationLevel === 'primary');
 
         const uniqueSections = [...new Set((localData.students || []).map(s => {
           const b = s.branch || s.section || '';
           return b.replace('/', '-').trim().toUpperCase();
         }).filter(Boolean))].sort();
 
-        if (!window.Companion.profile) window.Companion.profile = {};
-        if (uniqueSections.length > 0) {
-          window.Companion.profile.sections = uniqueSections;
-          if (!window.Companion.profile.sections.includes(window.Companion.activeSection)) {
-            window.Companion.activeSection = uniqueSections[0];
+        if (isWizardRunning) {
+          // Kurulum sihirbazı açıkken kullanıcının seçtiği sınıfı koru! Asla ezme!
+          if (wizardSelectedSection) {
+            window.Companion.activeSection = wizardSelectedSection;
+            window.Companion.userSelectedSingleClass = wizardSelectedSection;
           }
-        } else if (isPrimary && window.Companion.activeSection) {
-          // İlkokulda öğrenciler şubesiz (boş) olabilir; mevcut şubeyi ("4-C") koru ve öğrencilere ata
-          if (!window.Companion.profile.sections || window.Companion.profile.sections.length === 0) {
-            window.Companion.profile.sections = [window.Companion.activeSection];
+          if (singleClassSelect && wizardSelectedSection) {
+            singleClassSelect.value = wizardSelectedSection;
           }
-          localData.students.forEach(stu => {
-            if (!stu.branch) stu.branch = window.Companion.activeSection;
-          });
-          try {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(localData));
-          } catch (e) {}
-        }
+          // Sihirbaz çalışırken isComplete'i true YAPMA; kullanıcı Step 3'te "Başlat" butonuna bastığında finishSetupWizard yapacak!
+        } else {
+          // Kurulum tamamlandıktan sonraki normal arka plan senkronizasyonu
+          if (!window.Companion.profile) window.Companion.profile = {};
+          if (isPrimary) {
+            // Sınıf Öğretmeni: Tek şube korunur
+            const currentSec = window.Companion.activeSection || (window.Companion.profile.sections && window.Companion.profile.sections[0]) || '4-C';
+            window.Companion.profile.sections = [currentSec];
+            window.Companion.activeSection = currentSec;
+            localData.students.forEach(stu => {
+              if (!stu.branch) stu.branch = currentSec;
+            });
+            try {
+              localStorage.setItem(STORAGE_KEY, JSON.stringify(localData));
+            } catch (e) {}
+          } else if (uniqueSections.length > 0) {
+            // Branş Öğretmeni: Tüm şubeleri listele
+            window.Companion.profile.sections = uniqueSections;
+            if (!window.Companion.profile.sections.includes(window.Companion.activeSection)) {
+              window.Companion.activeSection = uniqueSections[0];
+            }
+          }
 
-        if (masterItem.teacherProfile?.name && (!window.Companion.profile.name || window.Companion.profile.name === 'Öğretmen')) {
-          window.Companion.profile.name = masterItem.teacherProfile.name;
-        }
-        if (masterItem.teacherProfile?.branch && (!window.Companion.profile.branch || window.Companion.profile.branch === 'Branş Seçilmedi')) {
-          window.Companion.profile.branch = masterItem.teacherProfile.branch;
-        }
-        window.Companion.profile.isComplete = true;
-        localStorage.setItem('sinif_companion_profile', JSON.stringify(window.Companion.profile));
-        localStorage.setItem('sinif_companion_active_section', window.Companion.activeSection);
+          if (masterItem.teacherProfile?.name && (!window.Companion.profile.name || window.Companion.profile.name === 'Öğretmen')) {
+            window.Companion.profile.name = masterItem.teacherProfile.name;
+          }
+          if (masterItem.teacherProfile?.branch && (!window.Companion.profile.branch || window.Companion.profile.branch === 'Branş Seçilmedi')) {
+            window.Companion.profile.branch = masterItem.teacherProfile.branch;
+          }
+          window.Companion.profile.isComplete = true;
+          localStorage.setItem('sinif_companion_profile', JSON.stringify(window.Companion.profile));
+          localStorage.setItem('sinif_companion_active_section', window.Companion.activeSection);
 
-        window.Companion.updateHeader();
-        window.Companion.renderSectionBar();
+          window.Companion.updateHeader();
+          window.Companion.renderSectionBar();
+        }
       }
 
       // Mobil Companion Modülleri varsa anında tazele

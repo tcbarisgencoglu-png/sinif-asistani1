@@ -9,6 +9,22 @@
 
   const STORAGE_KEY = 'sinif_asistani_data';
   const HW_ORDER_KEY_PREFIX = 'sinif_companion_hw_order_';
+  const HW_TEMPLATES_KEY = 'sinif_companion_hw_templates';
+
+  const DEFAULT_HW_TEMPLATES = [
+    {
+      id: 'tpl_default_gunluk',
+      name: 'Günlük (Türkçe, Matematik)',
+      definition: 'Günlük Ödev',
+      subjects: ['Türkçe', 'Matematik']
+    },
+    {
+      id: 'tpl_default_fasikul',
+      name: 'Fasikül (Türkçe, Mat, Fen)',
+      definition: 'Fasikül Çalışması',
+      subjects: ['Türkçe', 'Matematik', 'Fen Bilimleri']
+    }
+  ];
 
   function escapeHTML(str) {
     if (!str) return '';
@@ -29,6 +45,7 @@
   const CompanionHomework = {
     currentDate: '',       // 'YYYY-MM-DD'
     currentTitle: '',      // Ödev konusu / başlığı
+    currentHomework: null, // Seçili günün mevcut ödev nesnesi (varsa)
     students: [],          // Aktif şubedeki öğrenciler (sıralı liste)
     orderDraft: [],        // Sıralama modalı içindeki taslak liste
     statusMap: {},         // { [studentId]: 'completed' | 'incomplete' | 'missing' | 'excused' | 'none' }
@@ -218,6 +235,8 @@
         return matchDate && matchBranch;
       });
 
+      this.currentHomework = existingHw || null;
+
       this.statusMap = {};
       if (existingHw) {
         this.currentTitle = existingHw.title || '';
@@ -239,6 +258,7 @@
         titleInput.value = this.currentTitle;
       }
 
+      this.updateDetailsButtonState();
       this.renderStudentList();
       this.updateStats();
     },
@@ -544,6 +564,9 @@
 
       // Konu çiplerini temizle
       this.updateSubjectChipsState();
+
+      // Hızlı şablonları listele
+      this.renderTemplateChips();
 
       modal.style.display = 'flex';
       setTimeout(() => modal.classList.add('active'), 10);
@@ -1334,6 +1357,321 @@
       }
       if (window.Companion && typeof window.Companion.showToast === 'function') {
         window.Companion.showToast('✅ Ödev kontrol sırası kaydedildi.');
+      }
+    },
+
+    // Ödev İçeriği Görme Butonu Durumunu Güncelle (Ödev yoksa pasif, varsa aktif)
+    updateDetailsButtonState() {
+      const btn = document.getElementById('btn-view-hw-details');
+      if (!btn) return;
+
+      const hw = this.currentHomework;
+      const hasHomework = !!(hw && (
+        (hw.definition && hw.definition.trim()) ||
+        (Array.isArray(hw.tasks) && hw.tasks.length > 0) ||
+        (hw.description && hw.description.trim()) ||
+        (hw.title && hw.title.trim() && !hw.title.includes(' Ödevi'))
+      ));
+
+      if (hasHomework) {
+        btn.disabled = false;
+        btn.classList.remove('disabled');
+        btn.style.pointerEvents = 'auto';
+        btn.style.opacity = '1';
+        btn.title = 'Ödev İçeriğini Gör';
+      } else {
+        btn.disabled = true;
+        btn.classList.add('disabled');
+        btn.style.pointerEvents = 'none';
+        btn.style.opacity = '0.45';
+        btn.title = 'Bu tarihe ait henüz bir ödev tanımlanmamış';
+      }
+    },
+
+    openDetailsModal() {
+      const hw = this.currentHomework;
+      if (!hw) {
+        if (window.Companion && typeof window.Companion.showToast === 'function') {
+          window.Companion.showToast('ℹ️ Bu tarihe ait kayıtlı bir ödev bulunmuyor.');
+        }
+        return;
+      }
+
+      const modal = document.getElementById('companion-hw-details-modal');
+      const subtitleEl = document.getElementById('hw-details-modal-subtitle');
+      const bodyEl = document.getElementById('hw-details-modal-body');
+
+      if (!modal || !bodyEl) return;
+
+      // Tarih ve Şube alt başlığı
+      const dateStr = this.currentDate || hw.dueDate;
+      let dateText = dateStr;
+      if (dateStr) {
+        const parts = dateStr.split('-').map(Number);
+        const dObj = new Date(parts[0], parts[1] - 1, parts[2]);
+        dateText = `${dObj.getDate()} ${MONTH_NAMES[dObj.getMonth()]} ${dObj.getFullYear()} ${DAY_NAMES[dObj.getDay()]}`;
+      }
+      const activeSection = this.getActiveSection();
+      if (subtitleEl) {
+        subtitleEl.textContent = `${dateText} • ${activeSection ? activeSection + ' Şubesi' : 'Tüm Şubeler'}`;
+      }
+
+      // İçerik HTML'ini hazırla
+      let html = '';
+
+      // 1. Ödev Tanımı Başlığı
+      if (hw.definition && hw.definition.trim()) {
+        html += `
+          <div style="background: #eef2ff; border: 1.5px solid #c7d2fe; border-radius: 12px; padding: 10px 12px;">
+            <div style="font-size: 11px; font-weight: 700; color: #4f46e5; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px;">📌 Ödev Tanımı</div>
+            <div style="font-size: 14px; font-weight: 800; color: #1e1b4b;">${this.escapeHtml(hw.definition)}</div>
+          </div>
+        `;
+      }
+
+      // 2. Ders Görevleri
+      if (Array.isArray(hw.tasks) && hw.tasks.length > 0) {
+        html += `
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <div style="font-size: 12px; font-weight: 800; color: #334155; display: flex; align-items: center; justify-content: space-between;">
+              <span>📚 Ders Bazlı Görevler</span>
+              <span style="font-size: 11px; font-weight: 700; background: #f1f5f9; color: #475569; padding: 2px 8px; border-radius: 6px;">${hw.tasks.length} Ders</span>
+            </div>
+            ${hw.tasks.map(t => `
+              <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 10px 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.03);">
+                <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 4px;">
+                  <span style="display: inline-block; padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 800; background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe;">
+                    ${this.escapeHtml(t.subject || 'Ders')}
+                  </span>
+                </div>
+                <div style="font-size: 13px; font-weight: 600; color: #0f172a; line-height: 1.45; word-break: break-word;">
+                  ${this.escapeHtml(t.task || 'Belirtilmedi')}
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        `;
+      } else if (hw.title && hw.title.trim()) {
+        // Eski format veya serbest başlık
+        html += `
+          <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.03);">
+            <div style="font-size: 11px; font-weight: 700; color: #64748b; margin-bottom: 4px;">Ödev Konusu / Görev</div>
+            <div style="font-size: 13px; font-weight: 700; color: #0f172a; line-height: 1.45;">
+              ${this.escapeHtml(hw.title)}
+            </div>
+          </div>
+        `;
+      }
+
+      // 3. Veli / Açıklama Notu
+      if (hw.description && hw.description.trim()) {
+        html += `
+          <div style="background: #fffbeb; border: 1.5px solid #fde68a; border-radius: 12px; padding: 10px 12px;">
+            <div style="font-size: 11px; font-weight: 700; color: #b45309; margin-bottom: 3px; display: flex; align-items: center; gap: 4px;">
+              <span>📢 Velilere Bilgilendirme Notu</span>
+            </div>
+            <div style="font-size: 12px; font-weight: 600; color: #78350f; line-height: 1.45; white-space: pre-wrap; word-break: break-word;">
+              ${this.escapeHtml(hw.description)}
+            </div>
+          </div>
+        `;
+      }
+
+      // Eğer hiçbiri yoksa bilgi mesajı
+      if (!html) {
+        html = `
+          <div style="padding: 24px 16px; text-align: center; color: #94a3b8; font-size: 13px;">
+            <p style="margin: 0;">Bu ödev için girilmiş ayrıntılı bir açıklama bulunmuyor.</p>
+          </div>
+        `;
+      }
+
+      bodyEl.innerHTML = html;
+      modal.style.display = 'flex';
+
+      if (window.lucide && typeof window.lucide.createIcons === 'function') {
+        window.lucide.createIcons();
+      }
+      if (window.Companion && typeof window.Companion.vibrate === 'function') {
+        window.Companion.vibrate(12);
+      }
+    },
+
+    closeDetailsModal() {
+      const modal = document.getElementById('companion-hw-details-modal');
+      if (modal) {
+        modal.style.display = 'none';
+      }
+    },
+
+    // =========================================================================
+    // ÖDEV ŞABLONLARI (TEMPLATES) YÖNETİMİ
+    // =========================================================================
+    getTemplates() {
+      try {
+        const raw = localStorage.getItem(HW_TEMPLATES_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        }
+      } catch (e) {
+        console.error('Şablon yükleme hatası:', e);
+      }
+      return [...DEFAULT_HW_TEMPLATES];
+    },
+
+    saveTemplates(tplList) {
+      try {
+        localStorage.setItem(HW_TEMPLATES_KEY, JSON.stringify(tplList));
+      } catch (e) {
+        console.error('Şablon kaydetme hatası:', e);
+      }
+    },
+
+    renderTemplateChips() {
+      const container = document.getElementById('new-hw-template-chips');
+      if (!container) return;
+
+      const templates = this.getTemplates();
+      if (!templates || templates.length === 0) {
+        container.innerHTML = '<span style="font-size: 11px; color: #94a3b8; font-style: italic; padding: 4px 2px;">Kayıtlı şablon yok. Tanım ve dersleri seçip "Bu Düzeni Şablon Yap"a dokunun.</span>';
+        return;
+      }
+
+      let html = '';
+      templates.forEach(tpl => {
+        const titleTooltip = `${tpl.name} (${(tpl.subjects || []).join(', ') || 'Ders yok'})`;
+        html += `
+          <div class="c-hw-template-chip" onclick="window.CompanionHomework.applyTemplate('${tpl.id}')" title="${this.escapeHtml(titleTooltip)}">
+            <span>📋</span>
+            <span>${this.escapeHtml(tpl.name)}</span>
+            <span class="del-btn" onclick="window.CompanionHomework.deleteTemplate('${tpl.id}', event)" title="Şablonu sil">✕</span>
+          </div>
+        `;
+      });
+
+      container.innerHTML = html;
+    },
+
+    saveCurrentAsTemplate() {
+      const defInput = document.getElementById('new-hw-definition');
+      const definition = (defInput && defInput.value.trim()) || '';
+      const subjects = Object.keys(this.selectedSubjectTasks || {});
+
+      if (!definition && subjects.length === 0) {
+        if (window.Companion && typeof window.Companion.showToast === 'function') {
+          window.Companion.showToast('⚠️ Lütfen önce bir ödev tanımı yazın veya en az bir ders seçin.');
+          window.Companion.vibrate([40, 40]);
+        } else {
+          alert('Lütfen önce bir ödev tanımı yazın veya en az bir ders seçin.');
+        }
+        return;
+      }
+
+      // Varsayılan isim önerisi
+      let defaultName = '';
+      if (definition && subjects.length > 0) {
+        defaultName = `${definition} (${subjects.slice(0, 2).join(', ')}${subjects.length > 2 ? '...' : ''})`;
+      } else if (definition) {
+        defaultName = definition;
+      } else {
+        defaultName = subjects.join(', ') + ' Ödevi';
+      }
+
+      const inputName = prompt('Ödev Şablonu Adı:', defaultName);
+      if (inputName === null) return; // İptal edildi
+      const finalName = inputName.trim() || defaultName;
+
+      const newTpl = {
+        id: 'tpl_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+        name: finalName,
+        definition: definition,
+        subjects: subjects,
+        createdAt: new Date().toISOString()
+      };
+
+      const templates = this.getTemplates();
+      templates.unshift(newTpl);
+      this.saveTemplates(templates);
+      this.renderTemplateChips();
+
+      if (window.Companion && typeof window.Companion.vibrate === 'function') {
+        window.Companion.vibrate([20, 20]);
+      }
+      if (window.Companion && typeof window.Companion.showToast === 'function') {
+        window.Companion.showToast(`⭐ "${finalName}" şablon olarak kaydedildi.`);
+      }
+    },
+
+    applyTemplate(tplId) {
+      const templates = this.getTemplates();
+      const tpl = templates.find(t => t.id === tplId);
+      if (!tpl) return;
+
+      // 1. Ödev Tanımını doldur
+      const defInput = document.getElementById('new-hw-definition');
+      if (defInput) {
+        defInput.value = tpl.definition || '';
+      }
+
+      // 2. Seçilen dersleri hazırla ve görev kutularını BOŞ olarak getir
+      this.selectedSubjectTasks = {};
+      if (Array.isArray(tpl.subjects)) {
+        tpl.subjects.forEach(subj => {
+          this.selectedSubjectTasks[subj] = '';
+        });
+      }
+
+      // 3. Ders kartlarını oluştur
+      this.renderSubjectCards();
+
+      // 4. Ders butonlarının aktif/seçili durumlarını güncelle
+      this.updateSubjectChipsState();
+
+      // 5. Genel görev metin kutusunu temizle
+      const titleInput = document.getElementById('new-hw-title');
+      if (titleInput) {
+        titleInput.value = '';
+      }
+
+      // 6. İlk ders görev kutusuna odaklan
+      if (Array.isArray(tpl.subjects) && tpl.subjects.length > 0) {
+        setTimeout(() => {
+          const firstSubj = tpl.subjects[0];
+          const firstInput = document.getElementById(`hw-task-input-${firstSubj}`);
+          if (firstInput) {
+            firstInput.focus();
+          }
+        }, 120);
+      }
+
+      if (window.Companion && typeof window.Companion.vibrate === 'function') {
+        window.Companion.vibrate(15);
+      }
+      if (window.Companion && typeof window.Companion.showToast === 'function') {
+        window.Companion.showToast(`📋 "${tpl.name}" şablonu uygulandı. Görevleri yazabilirsiniz.`);
+      }
+    },
+
+    deleteTemplate(tplId, event) {
+      if (event) {
+        event.stopPropagation();
+      }
+
+      const templates = this.getTemplates();
+      const tpl = templates.find(t => t.id === tplId);
+      const tplName = tpl ? tpl.name : 'Bu şablonu';
+
+      if (!confirm(`"${tplName}" şablonunu silmek istediğinize emin misiniz?`)) {
+        return;
+      }
+
+      const filtered = templates.filter(t => t.id !== tplId);
+      this.saveTemplates(filtered);
+      this.renderTemplateChips();
+
+      if (window.Companion && typeof window.Companion.showToast === 'function') {
+        window.Companion.showToast('🗑️ Şablon silindi.');
       }
     }
   };

@@ -1,15 +1,14 @@
 {
-  "version": "1.0.125",
-  "releaseDate": "2026-11-04",
+  "version": "1.0.126",
+  "releaseDate": "2026-11-05",
   "minRequiredVersion": "1.0.0",
-  "title": "Sınıf Asistanı v1.0.125 Yayında!",
-  "description": "El Terminali Ödev Kontrol Sırası Yönetimi ve Sıralama Optimizasyonu",
+  "title": "Sınıf Asistanı v1.0.126 Yayında!",
+  "description": "El Terminali Ödev Şablonları, Ödev Detay Görünümü ve Kurulum Güvenlik İyileştirmeleri",
   "features": [
-    "Ödev Kontrol Sırası Yönetimi: El terminalinde öğretmenlerin ders esnasında kontrol rotasına göre öğrenci sırasını özelleştirebileceği 'Sıra Düzeni' modülü eklendi.",
-    "Hızlı Sıralama Şablonları (Presets): Numara sırası, isim sırası (A-Z), oturma planı / sınıf masa düzeni ve ters çevirme seçenekleriyle tek dokunuşla hazır liste oluşturma.",
-    "Dokunmatik Sürükle-Bırak & Konum Butonları: Öğrenci kartlarını tutamaçtan sürükleyerek veya ▲ ▼ butonlarıyla yer değiştirerek anında özel kontrol listesi oluşturabilme.",
-    "Öğrenci Kontrol Sıra Numarası: Ana ödev listesinde her öğrenci kartının başına kontrol rota numarası (#1, #2, #3...) rozeti eklendi.",
-    "Şube Bazlı Bağımsız Bellek: Her şubenin kontrol sırası kendi sınıfına özel olarak cihazda kalıcı olarak saklanır."
+    "Ödev Şablonları Yönetimi: El terminalinde öğretmenlerin sık kullandığı ödev tanımı ve ders kartlarını şablon olarak kaydedebilmesi ve sonraki günlerde tek dokunuşla ders kutuları boş olarak kullanabilmesi sağlandı.",
+    "Ödev İçeriği Görüntüleme Modalı: Seçili günün ödev tanımı, ders bazlı görevleri ve veli notlarını detaylı gösteren şık pencere ve hızlı WhatsApp paylaşım entegrasyonu eklendi.",
+    "Dinamik Pasif Buton Koruması: Ödev menüsündeki ödev içeriği butonu, o güne ait ödev tanımlanmamışsa otomatik olarak pasif kalacak şekilde korumaya alındı.",
+    "İlk Kurulum Şube Koruması: El terminali ilk kurulum sihirbazında seçilen sınıf ve şubenin veri çekme esnasında ilk şube ile ezilmesi kalıcı olarak engellendi."
   ],
   "release_url": "https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/latest"
 }

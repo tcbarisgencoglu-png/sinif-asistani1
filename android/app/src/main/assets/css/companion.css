@@ -3344,6 +3344,143 @@ body.dark-mode .c-hw-sub-chip.active {
   border-color: #38bdf8 !important;
 }
 
+/* Ödev İçeriği Görme Butonu ve Detay Modalı Stilleri */
+.c-hw-detail-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 38px;
+  padding: 0 12px;
+  font-size: 12px;
+  font-weight: 700;
+  border-radius: 12px;
+  border: 1.5px solid #818cf8;
+  background: #eef2ff;
+  color: #4338ca;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  flex-shrink: 0;
+}
+
+.c-hw-detail-btn:hover {
+  background: #e0e7ff;
+  border-color: #6366f1;
+}
+
+.c-hw-detail-btn:active {
+  transform: scale(0.95);
+  background: #dbeafe;
+}
+
+.c-hw-detail-btn:disabled,
+.c-hw-detail-btn.disabled {
+  opacity: 0.45 !important;
+  background: #f1f5f9 !important;
+  color: #94a3b8 !important;
+  border: 1.5px dashed #cbd5e1 !important;
+  cursor: not-allowed !important;
+  transform: none !important;
+  box-shadow: none !important;
+  pointer-events: none !important;
+}
+
+body.dark-mode .c-hw-detail-btn {
+  background: #1e1b4b;
+  color: #c7d2fe;
+  border-color: #6366f1;
+}
+
+body.dark-mode .c-hw-detail-btn:disabled,
+body.dark-mode .c-hw-detail-btn.disabled {
+  background: #1e293b !important;
+  color: #64748b !important;
+  border-color: #334155 !important;
+}
+
+/* ==========================================================================
+   ÖDEV ŞABLONLARI (TEMPLATE) STİLLERİ
+   ========================================================================== */
+.c-hw-template-strip {
+  background: #f8fafc;
+  border: 1.5px dashed #cbd5e1;
+  border-radius: 12px;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+body.dark-mode .c-hw-template-strip {
+  background: #1e293b;
+  border-color: #334155;
+}
+
+.c-hw-template-chips {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.c-hw-template-chips::-webkit-scrollbar {
+  display: none;
+}
+
+.c-hw-template-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  background: #ffffff;
+  border: 1.5px solid #c7d2fe;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #3730a3;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+  user-select: none;
+  flex-shrink: 0;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.c-hw-template-chip:hover {
+  background: #eef2ff;
+  border-color: #818cf8;
+}
+
+.c-hw-template-chip:active {
+  transform: scale(0.96);
+  background: #e0e7ff;
+}
+
+body.dark-mode .c-hw-template-chip {
+  background: #0f172a;
+  border-color: #4338ca;
+  color: #c7d2fe;
+}
+
+.c-hw-template-chip .del-btn {
+  color: #94a3b8;
+  font-size: 13px;
+  padding: 0 2px;
+  line-height: 1;
+  border-radius: 4px;
+  transition: color 0.15s;
+}
+
+.c-hw-template-chip .del-btn:hover {
+  color: #ef4444;
+}
+
 /* Ödev Kontrol Sırası Düzenleme Butonu ve Modal Stilleri */
 .c-hw-order-preset-btn {
   display: flex;
