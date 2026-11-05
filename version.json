@@ -1,14 +1,13 @@
 {
-  "version": "1.0.126",
+  "version": "1.0.127",
   "releaseDate": "2026-11-05",
   "minRequiredVersion": "1.0.0",
-  "title": "Sınıf Asistanı v1.0.126 Yayında!",
-  "description": "El Terminali Ödev Şablonları, Ödev Detay Görünümü ve Kurulum Güvenlik İyileştirmeleri",
+  "title": "Sınıf Asistanı v1.0.127 Yayında!",
+  "description": "El Terminali Toplu Optik Gönderim Mimarisi ve Akıllı Tahta Soru Analizi Görünüm İyileştirmeleri",
   "features": [
-    "Ödev Şablonları Yönetimi: El terminalinde öğretmenlerin sık kullandığı ödev tanımı ve ders kartlarını şablon olarak kaydedebilmesi ve sonraki günlerde tek dokunuşla ders kutuları boş olarak kullanabilmesi sağlandı.",
-    "Ödev İçeriği Görüntüleme Modalı: Seçili günün ödev tanımı, ders bazlı görevleri ve veli notlarını detaylı gösteren şık pencere ve hızlı WhatsApp paylaşım entegrasyonu eklendi.",
-    "Dinamik Pasif Buton Koruması: Ödev menüsündeki ödev içeriği butonu, o güne ait ödev tanımlanmamışsa otomatik olarak pasif kalacak şekilde korumaya alındı.",
-    "İlk Kurulum Şube Koruması: El terminali ilk kurulum sihirbazında seçilen sınıf ve şubenin veri çekme esnasında ilk şube ile ezilmesi kalıcı olarak engellendi."
+    "Toplu Optik Gönderim (Masaüstüne Gönder): El terminalinde kağıt okuma sırasında her öğrencide ağ isteği atmak yerine 'Masaüstüne Gönder' butonu ile sınıfın tamamı tek hamlede aktarılacak şekilde optimize edildi; masaüstü kilitlenmesi ve donması kalıcı olarak çözüldü.",
+    "Işık Hızında & Çevrimdışı Optik Okuma: Kağıt okuma esnasında ağ beklemesi kaldırıldı; optik formlar çevrimdışı ve saniyede bir kağıt hızında kesintisiz okunabilir hale getirildi.",
+    "Akıllı Tahta Soru Analizi Kartları: Tahtada soru analizi ekranındaki öğrenci kartları, ad-soyad, okul numarası, fotoğraflar ve şık rozetleri (❌ B Şıkkı vb.) sınıfın en arka sıralarından rahatça görülebilecek şekilde devasa boyuta getirildi."
   ],
   "release_url": "https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/latest"
 }

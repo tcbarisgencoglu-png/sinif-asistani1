@@ -9514,35 +9514,64 @@ input:checked + .slider:before {
 
 .board-student-card {
   background: var(--bg-surface, #ffffff);
-  border: 1.5px solid var(--border-color);
-  border-radius: 10px;
-  padding: 0.75rem 0.85rem;
+  border: 2px solid var(--border-color);
+  border-radius: 14px;
+  padding: 1rem 1.15rem;
+  min-height: 86px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.65rem;
+  gap: 1rem;
   transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
 .board-student-card:hover {
   border-color: var(--primary);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.06);
-  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+  transform: translateY(-2px);
 }
 
 .board-student-card.is-wrong {
-  border-color: rgba(239, 68, 68, 0.4);
-  background: linear-gradient(135deg, rgba(254, 242, 242, 0.8), #ffffff);
+  border-color: #ef4444;
+  background: linear-gradient(135deg, rgba(254, 242, 242, 0.95), #ffffff);
 }
 
 .board-student-card.is-blank {
-  border-color: rgba(100, 116, 139, 0.35);
-  background: linear-gradient(135deg, rgba(248, 250, 252, 0.9), #ffffff);
+  border-color: #94a3b8;
+  background: linear-gradient(135deg, rgba(248, 250, 252, 0.95), #ffffff);
 }
 
 .board-student-card.is-correct {
-  border-color: rgba(16, 185, 129, 0.4);
-  background: linear-gradient(135deg, rgba(240, 253, 244, 0.8), #ffffff);
+  border-color: #22c55e;
+  background: linear-gradient(135deg, rgba(240, 253, 244, 0.95), #ffffff);
+}
+
+body.dark-mode .board-student-card {
+  background: #1e293b;
+  border-color: #334155;
+  color: #f1f5f9;
+}
+
+body.dark-mode .board-student-card.is-wrong {
+  background: linear-gradient(135deg, rgba(127, 29, 29, 0.35), #1e293b);
+  border-color: #ef4444;
+}
+
+body.dark-mode .board-student-card.is-blank {
+  background: linear-gradient(135deg, rgba(51, 65, 85, 0.45), #1e293b);
+  border-color: #64748b;
+}
+
+body.dark-mode .board-student-card.is-correct {
+  background: linear-gradient(135deg, rgba(6, 78, 59, 0.35), #1e293b);
+  border-color: #22c55e;
+}
+
+#modal-board-question-analysis.board-fullscreen #board-qa-students-grid {
+  max-height: calc(100vh - 420px) !important;
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)) !important;
+  gap: 1.1rem !important;
 }
 
 .board-choice-chip {

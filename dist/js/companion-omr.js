@@ -707,11 +707,11 @@
           `}
         </div>
 
-        <!-- Sabit Alt Eylem Çubuğu: Sonuçları Kaydet & Akıllı / Canlı Tara -->
+        <!-- Sabit Alt Eylem Çubuğu: Masaüstüne Gönder & Akıllı / Canlı Tara -->
         <div class="c-omr-sticky-actions">
-          <button type="button" class="c-btn-save-results" onclick="window.CompanionOmr.saveAndRankResults()">
-            <i data-lucide="save" style="width: 18px; height: 18px;"></i>
-            <span>Sonuçları Kaydet</span>
+          <button type="button" class="c-btn-save-results" onclick="window.CompanionOmr.sendResultsToDesktop()" style="background: linear-gradient(135deg, #059669, #10b981); box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35); flex: 1.25; justify-content: center;" title="Okunan tüm optik sonuçları masaüstüne aktar">
+            <i data-lucide="cloud-upload" style="width: 18px; height: 18px;"></i>
+            <span>Masaüstüne Gönder${scannedCount > 0 ? ` (${scannedCount})` : ''}</span>
           </button>
 
           <div style="display: flex; gap: 6px; flex: 1.3;">
@@ -728,10 +728,10 @@
     },
 
     // ==========================================================================
-    // SONUÇLARI KAYDET VE PUAN ÜSTÜNLÜĞÜ SIRALAMASI OLUŞTUR
+    // SONUÇLARI TOPLU OLARAK MASAÜSTÜNE GÖNDER VE SIRALAMA OLUŞTUR
     // ==========================================================================
 
-    async saveAndRankResults() {
+    async sendResultsToDesktop() {
       if (!this.activeExam) return;
 
       const data = this.getData();
@@ -744,8 +744,17 @@
       const count = Object.keys(studentResults).length;
 
       if (count === 0) {
-        if (window.Companion) window.Companion.showToast('Henüz taranmış öğrenci sonucu bulunmuyor.');
+        if (window.Companion) {
+          window.Companion.vibrate([40, 40]);
+          window.Companion.showToast('⚠️ Henüz taranmış öğrenci sonucu bulunmuyor.');
+        } else {
+          alert('Henüz taranmış öğrenci sonucu bulunmuyor.');
+        }
         return;
+      }
+
+      if (window.Companion && typeof window.Companion.showToast === 'function') {
+        window.Companion.showToast('🚀 Sonuçlar masaüstüne aktarılıyor...');
       }
 
       // Puan üstünlüğüne göre bayrağı aç
@@ -760,18 +769,29 @@
       playCelebrationChime();
       if (window.Companion) window.Companion.vibrate([30, 40, 50, 60]);
 
-      // Buluta ve masaüstüne canlı fırlat
+      // Buluta ve masaüstüne TEK BİR PAKETTE toplu olarak fırlat!
       if (window.CloudSync) {
-        window.CloudSync.pushExam(exam).catch(() => {});
-        window.CloudSync.pushLiveExamResults(exam, 'terminal').catch(() => {});
+        try {
+          await window.CloudSync.pushExam(exam);
+          if (typeof window.CloudSync.pushLiveExamResults === 'function') {
+            await window.CloudSync.pushLiveExamResults(exam, 'terminal');
+          }
+        } catch (e) {
+          console.error('Masaüstüne toplu optik gönderim hatası:', e);
+        }
       }
 
       // Ekranı güncelle (puan üstünlüğü madalyalarıyla listelenir)
       this.renderHub();
 
       if (window.Companion) {
-        window.Companion.showToast(`✅ ${count} öğrenci puan üstünlüğüne göre sıralandı ve masaüstüne aktarıldı!`);
+        window.Companion.showToast(`✅ ${count} öğrencinin sınav sonucu masaüstüne aktarıldı!`, 'success');
       }
+    },
+
+    // Geriye dönük uyumluluk
+    async saveAndRankResults() {
+      return this.sendResultsToDesktop();
     },
 
     // ==========================================================================
@@ -2371,13 +2391,9 @@
       this.saveData(data);
       this.activeExam = exam;
 
-      // Arka planda sessizce buluta da gönder ve masaüstüne canlı fırlat
-      if (window.CloudSync) {
-        window.CloudSync.pushExam(exam).catch(() => {});
-        if (typeof window.CloudSync.pushLiveOmr === 'function') {
-          window.CloudSync.pushLiveOmr(exam.id, exam.examName, canonicalStudentId, canonicalName, exam.studentResults[canonicalStudentId]);
-        }
-      }
+      // Not: Toplu gönderim mimarisi gereği her kart okumasında masaüstünü kilitlememek
+      // ve ağ kotasını tüketmemek için sonuçlar yerelde güvenle biriktirilir.
+      // Öğretmen alt çubuktaki "Masaüstüne Gönder" butonuna bastığında tüm sınıf tek seferde aktarılır.
     },
 
     deleteResult(studentId) {

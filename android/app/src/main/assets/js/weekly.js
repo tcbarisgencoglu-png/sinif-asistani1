@@ -8385,8 +8385,8 @@ function renderBoardStudentsGrid(studentAnalysisList, correctAns) {
     const sSurname = (st && st.surname) ? String(st.surname) : '';
     const initials = `${sName[0] || ''}${sSurname[0] || ''}`;
     const avatarHtml = (st && st.photo)
-      ? `<img src="${st.photo}" style="width: 36px; height: 36px; object-fit: cover; border-radius: 50%; flex-shrink: 0;">`
-      : `<div style="width: 36px; height: 36px; font-size: 0.82rem; font-weight: 700; background: var(--primary-light, #e0e7ff); color: var(--primary, #4338ca); border-radius: 50%; display: flex; align-items: center; justify-content: center; text-transform: uppercase; flex-shrink: 0;">${initials}</div>`;
+      ? `<img src="${st.photo}" style="width: 52px; height: 52px; object-fit: cover; border-radius: 50%; flex-shrink: 0; border: 2px solid var(--border-color); box-shadow: 0 2px 6px rgba(0,0,0,0.08);">`
+      : `<div style="width: 52px; height: 52px; font-size: 1.15rem; font-weight: 800; background: var(--primary-light, #e0e7ff); color: var(--primary, #4338ca); border-radius: 50%; display: flex; align-items: center; justify-content: center; text-transform: uppercase; flex-shrink: 0; border: 2px solid rgba(99, 102, 241, 0.25); box-shadow: 0 2px 6px rgba(0,0,0,0.06);">${initials}</div>`;
 
     let cardClass = '';
     let badgeHtml = '';
@@ -8395,27 +8395,27 @@ function renderBoardStudentsGrid(studentAnalysisList, correctAns) {
       cardClass = 'is-wrong';
       badgeHtml = `
         <div style="text-align: right; flex-shrink: 0;">
-          <span style="background: #fee2e2; border: 1.5px solid #ef4444; color: #b91c1c; padding: 3px 8px; border-radius: 6px; font-size: 0.82rem; font-weight: 800; display: inline-flex; align-items: center; gap: 3px;">
-            ❌ <b>${item.answer}</b> Şıkkı
+          <span style="background: #fee2e2; border: 2px solid #ef4444; color: #b91c1c; padding: 6px 14px; border-radius: 10px; font-size: 1.15rem; font-weight: 900; display: inline-flex; align-items: center; gap: 5px; box-shadow: 0 2px 8px rgba(239, 68, 68, 0.2);">
+            ❌ <b style="font-size: 1.35rem; text-decoration: underline;">${item.answer}</b> Şıkkı
           </span>
-          ${correctAns ? `<div style="font-size: 0.7rem; color: #15803d; font-weight: 700; margin-top: 2px;">(Doğru: ${correctAns})</div>` : ''}
+          ${correctAns ? `<div style="font-size: 0.82rem; color: #15803d; font-weight: 800; margin-top: 4px;">(Doğru: ${correctAns})</div>` : ''}
         </div>
       `;
     } else if (item.status === 'blank') {
       cardClass = 'is-blank';
       badgeHtml = `
         <div style="text-align: right; flex-shrink: 0;">
-          <span style="background: #f1f5f9; border: 1.5px solid #94a3b8; color: #475569; padding: 3px 8px; border-radius: 6px; font-size: 0.82rem; font-weight: 700; display: inline-flex; align-items: center; gap: 3px;">
+          <span style="background: #f1f5f9; border: 2px solid #94a3b8; color: #334155; padding: 6px 14px; border-radius: 10px; font-size: 1.05rem; font-weight: 800; display: inline-flex; align-items: center; gap: 5px; box-shadow: 0 2px 6px rgba(148, 163, 184, 0.15);">
             ⚪ Boş Bıraktı
           </span>
-          ${correctAns ? `<div style="font-size: 0.7rem; color: #15803d; font-weight: 700; margin-top: 2px;">(Doğru: ${correctAns})</div>` : ''}
+          ${correctAns ? `<div style="font-size: 0.82rem; color: #15803d; font-weight: 800; margin-top: 4px;">(Doğru: ${correctAns})</div>` : ''}
         </div>
       `;
     } else if (item.status === 'correct') {
       cardClass = 'is-correct';
       badgeHtml = `
         <div style="text-align: right; flex-shrink: 0;">
-          <span style="background: #dcfce7; border: 1.5px solid #22c55e; color: #15803d; padding: 3px 8px; border-radius: 6px; font-size: 0.82rem; font-weight: 800; display: inline-flex; align-items: center; gap: 3px;">
+          <span style="background: #dcfce7; border: 2px solid #22c55e; color: #15803d; padding: 6px 14px; border-radius: 10px; font-size: 1.15rem; font-weight: 900; display: inline-flex; align-items: center; gap: 5px; box-shadow: 0 2px 8px rgba(34, 197, 94, 0.2);">
             ✓ Doğru (${item.answer})
           </span>
         </div>
@@ -8423,22 +8423,22 @@ function renderBoardStudentsGrid(studentAnalysisList, correctAns) {
     } else {
       badgeHtml = `
         <div style="text-align: right; flex-shrink: 0;">
-          <span style="font-size: 0.75rem; color: var(--text-muted); font-style: italic;">Cevap Yok</span>
+          <span style="font-size: 0.95rem; color: var(--text-muted); font-style: italic;">Cevap Yok</span>
         </div>
       `;
     }
 
     html += `
       <div class="board-student-card ${cardClass}">
-        <div style="display: flex; align-items: center; gap: 0.65rem; min-width: 0; flex: 1;">
+        <div style="display: flex; align-items: center; gap: 0.85rem; min-width: 0; flex: 1;">
           ${avatarHtml}
           <div style="min-width: 0; flex: 1;">
-            <div style="font-weight: 800; font-size: 0.92rem; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+            <div style="font-weight: 800; font-size: 1.25rem; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.25;">
               ${sName} ${sSurname}
             </div>
-            <div style="font-size: 0.75rem; color: var(--text-muted); display: flex; align-items: center; gap: 6px; margin-top: 2px;">
-              ${st.number ? `<span style="background: var(--bg-primary); border: 1px solid var(--border-color); padding: 0 5px; border-radius: 4px; font-weight: 600;">No: ${st.number}</span>` : ''}
-              <span>Net Puan: <strong>${item.score}</strong></span>
+            <div style="font-size: 0.92rem; color: var(--text-muted); display: flex; align-items: center; gap: 8px; margin-top: 4px; font-weight: 600;">
+              ${st.number ? `<span style="background: var(--bg-primary, #f1f5f9); border: 1.5px solid var(--border-color); padding: 1px 7px; border-radius: 6px; font-weight: 700; color: var(--text-primary);">No: ${st.number}</span>` : ''}
+              <span>Sınav Puanı: <strong style="color: var(--text-primary);">${item.score}</strong></span>
             </div>
           </div>
         </div>
