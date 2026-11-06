@@ -1,14 +1,15 @@
 {
-  "version": "1.0.128",
-  "releaseDate": "2026-11-05",
+  "version": "1.0.129",
+  "releaseDate": "2026-11-06",
   "minRequiredVersion": "1.0.0",
-  "title": "Sınıf Asistanı v1.0.128 Yayında!",
-  "description": "Kitap Tesliminde Anlama Soruları, Barkod Teslim Ön Onayı ve Görev Puanı Düzenleme Geliştirmeleri",
+  "title": "Sınıf Asistanı v1.0.129 Yayında!",
+  "description": "El Terminali Raporlar Modülü, WhatsApp Sınıf Bülteni & Günün Özeti ve Ayarlar Akordiyon Menü Geliştirmeleri",
   "features": [
-    "Kitap Tesliminde Soru Sorma: El terminalinde bir kitap teslim alınırken öğrenciye okuduğunu anlama sorusu yöneltebilme; model cevabı görüp tek dokunuşla teslim alma özelliği eklendi.",
-    "Barkodla Kitap Tesliminde Ön Onay: Yeni bir kitap okutulduğunda onaysız doğrudan yazılma engellendi; öğrenci ve kitap bilgisi kontrol edilip onaylanarak teslim edilmesi sağlandı.",
-    "Görev Tesliminde Puan Değiştirme: Masaüstü görev teslim ekranında projenin başarısına göre puanı arttırıp azaltma butonları eklendi.",
-    "El Terminali Menü Kartları Görsel İyileştirmesi: Ana ekrandaki 6 adet eylem kartının etrafına zemin tonuyla uyumlu belirgin kobalt mavi kontur çizgisi ve ışık gölgesi uygulandı."
+    "Raporlar & WhatsApp Bülteni: El terminalinde 'Günün Özeti' ve 'Haftalık Sınıf Bülteni' oluşturup tek dokunuşla doğrudan WhatsApp sınıf gruplarında veya velilerle paylaşabilme özelliği eklendi.",
+    "Haftalık Bülten Başarı Köşesi: Haftanın kitap kurtları (sayfa ve kitap sayıları), davranış şampiyonları, ödev yıldızları ve haftalık değerlendirme sınav özeti bültene dinamik olarak entegre edildi.",
+    "Bireysel Öğrenci Veli Bilgilendirmesi: Açılır listeden seçilen öğrencinin puanını, ödevlerini, okuduğu kitabı ve öğretmenin özel notunu içeren kişisel WhatsApp raporu hazırlama imkanı sağlandı.",
+    "Ayarlar Akordiyon Menüsü: Ayarlar menüsü tam ekran modern akordiyon yapısına kavuşturuldu; Eşleşme, Görev Türü, Şifre İşlemleri ve Güncelleme ayarları akıcı animasyonlarla düzenlendi.",
+    "Ana Menü Alt Bilgi Rozeti Düzeni: Sınıf ve sürüm bilgi kutusu ana ekranın en altına tam oturtularak arayüz düzeni mükemmelleştirildi."
   ],
   "release_url": "https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/latest"
 }

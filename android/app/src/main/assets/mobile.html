@@ -11,7 +11,7 @@
   <link rel="shortcut icon" href="icons/icon-128.png" type="image/png">
 
   <!-- Hafif Mobil Tasarım Sistemi -->
-  <link rel="stylesheet" href="css/companion.css?v=1.0.127">
+  <link rel="stylesheet" href="css/companion.css?v=1.0.129">
 
   <!-- Çevrim Dışı İkon Kütüphanesi -->
   <script src="js/lucide.min.js"></script>
@@ -22,18 +22,6 @@
        1. ÜST BAR (APP BAR)
        ========================================================================== -->
   <header class="c-appbar">
-    <div class="c-appbar-left">
-      <div class="c-appbar-avatar" id="appbar-avatar-initials">Ö</div>
-      <div class="c-appbar-info">
-        <div style="display: flex; align-items: center; gap: 4px; flex-wrap: wrap;">
-          <div class="c-appbar-name" id="appbar-teacher-name">Öğretmen</div>
-          <span id="companion-version-badge" style="font-size: 10px; background: rgba(255,255,255,0.22); padding: 1.5px 7px; border-radius: 999px; font-weight: 700; color: #fff; margin-left: 6px; letter-spacing: 0.3px;">v1.0.127</span>
-          <span id="appbar-sync-code-badge" onclick="window.Companion.openSettingsModal()" style="font-size: 10px; background: rgba(79, 70, 229, 0.45); border: 1px solid rgba(165, 180, 252, 0.45); padding: 1.5px 6px; border-radius: 6px; font-weight: 800; color: #e0e7ff; font-family: monospace; letter-spacing: 0.5px; cursor: pointer;" title="Cihaz Eşleşme Kodu (Değiştirmek için dokunun)">SA-......</span>
-        </div>
-        <div class="c-appbar-branch" id="appbar-branch-name">Branş Seçilmedi</div>
-      </div>
-    </div>
-
     <div class="c-appbar-right">
       <!-- Yenile / Masaüstüyle Eşitle Butonu -->
       <button class="c-icon-btn" id="btn-companion-refresh" title="Masaüstüyle Eşitle / Yenile" onclick="window.Companion.handleRefreshButton()">
@@ -425,13 +413,13 @@
           <div class="c-tile-subtitle">Ödünç Verme & İade</div>
         </div>
 
-        <!-- 5. Masaüstü Eşitleme -->
-        <div class="c-tile-card" onclick="window.Companion.showView('sync')">
-          <div class="c-tile-icon-wrap info">
-            <i data-lucide="cloud" style="width: 32px; height: 32px;"></i>
+        <!-- 5. Raporlar & Bülten -->
+        <div class="c-tile-card" onclick="window.Companion.showView('reports'); if (window.CompanionReports) window.CompanionReports.init();">
+          <div class="c-tile-icon-wrap" style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(5, 150, 105, 0.1)); color: #10b981;">
+            <i data-lucide="file-text" style="width: 32px; height: 32px;"></i>
           </div>
-          <div class="c-tile-title">Masaüstü Eşitleme</div>
-          <div class="c-tile-subtitle">Akıllı Tahta Köprüsü</div>
+          <div class="c-tile-title">Raporlar</div>
+          <div class="c-tile-subtitle">WhatsApp &amp; Sınıf Bülteni</div>
         </div>
 
         <!-- 6. Ders & Planlama -->
@@ -443,6 +431,20 @@
           <div class="c-tile-subtitle">Canlı Ders & Günün Planı</div>
         </div>
 
+      </div>
+
+      <!-- Ana Sayfa Alt Bilgi Kutusu (Sınıf Etiketi, Öğretmen Adı Soyadı ve Sürüm Rozeti) -->
+      <div class="c-dashboard-info-box" id="dashboard-info-box">
+        <div class="c-dash-info-meta">
+          <div class="c-dash-info-class-badge" id="appbar-branch-name">
+            <i data-lucide="school" style="width: 14px; height: 14px;"></i>
+            <span>Sınıf: 4-C</span>
+          </div>
+          <div class="c-dash-info-teacher" id="appbar-teacher-name">Öğretmen</div>
+        </div>
+        <div class="c-dash-info-right">
+          <span id="companion-version-badge" style="font-size: 10px; background: rgba(255,255,255,0.22); padding: 1.5px 7px; border-radius: 999px; font-weight: 700; color: #fff; margin-left: 6px; letter-spacing: 0.3px;">v1.0.129</span>
+        </div>
       </div>
     </section>
 
@@ -724,6 +726,161 @@
               <span>Sonuçları Gönder</span>
             </button>
           </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- -----------------------------------------------------------------------
+         EKRAN: RAPORLAR & WHATSAPP SINIF BÜLTENİ
+         ----------------------------------------------------------------------- -->
+    <section class="c-view" id="view-reports" style="display: none;">
+      <!-- Üst Gezinme Başlığı -->
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; gap: 8px;">
+        <div style="display: flex; align-items: center; gap: 10px; min-width: 0;">
+          <button type="button" class="c-icon-btn" onclick="window.Companion.showView('dashboard')">
+            <i data-lucide="arrow-left" style="width: 20px; height: 20px;"></i>
+          </button>
+          <div style="overflow: hidden;">
+            <h2 style="font-size: 18px; font-weight: 800; color: #ffffff; line-height: 1.2;">Sınıf Raporları</h2>
+            <span style="font-size: 11px; color: #93c5fd;" id="reports-view-subtitle">WhatsApp &amp; Veli Bülteni Paylaşımı</span>
+          </div>
+        </div>
+
+        <button type="button" class="c-btn-secondary" style="padding: 6px 12px; font-size: 12px; border-radius: 10px; background: rgba(255, 255, 255, 0.15); color: #fff; border: 1px solid rgba(255, 255, 255, 0.25); display: inline-flex; align-items: center; gap: 5px;" onclick="window.CompanionReports.generateActiveReport()" title="Yenile">
+          <i data-lucide="refresh-cw" style="width: 14px; height: 14px;"></i>
+          <span>Yenile</span>
+        </button>
+      </div>
+
+      <!-- Rapor Türü Sekmeleri (Günün Özeti, Haftalık Bülten, Bireysel Veli) -->
+      <div class="c-report-tabs-nav">
+        <button type="button" class="c-report-tab-btn active" id="tab-report-daily" onclick="window.CompanionReports.setTab('daily')">
+          <i data-lucide="calendar" style="width: 15px; height: 15px;"></i>
+          <span>Günün Özeti</span>
+        </button>
+        <button type="button" class="c-report-tab-btn" id="tab-report-weekly" onclick="window.CompanionReports.setTab('weekly')">
+          <i data-lucide="award" style="width: 15px; height: 15px;"></i>
+          <span>Haftalık Bülten</span>
+        </button>
+        <button type="button" class="c-report-tab-btn" id="tab-report-student" onclick="window.CompanionReports.setTab('student')">
+          <i data-lucide="user" style="width: 15px; height: 15px;"></i>
+          <span>Bireysel Veli</span>
+        </button>
+      </div>
+
+      <!-- 1. GÜNÜN ÖZETİ SEÇENEKLER KARTI -->
+      <div class="c-report-options-card" id="report-panel-daily">
+        <div class="c-report-field-group">
+          <label class="c-report-label">
+            <i data-lucide="sparkles" style="width: 14px; height: 14px; color: #10b981;"></i>
+            Bugün İşlenen Konular &amp; Dersler
+          </label>
+          <input
+            type="text"
+            id="report-daily-topics"
+            class="c-report-input"
+            placeholder="Örn: Türkçe (Noktalama), Matematik (Çarpma)..."
+            oninput="window.CompanionReports.onCustomInputChange()"
+          />
+        </div>
+        <div class="c-report-field-group" style="margin-top: 10px;">
+          <label class="c-report-label">
+            <i data-lucide="info" style="width: 14px; height: 14px; color: #38bdf8;"></i>
+            Öğretmen Duyurusu &amp; Hatırlatma Notu
+          </label>
+          <input
+            type="text"
+            id="report-daily-note"
+            class="c-report-input"
+            placeholder="Örn: Yarın beden eğitimi için spor kıyafeti ile gelinecektir."
+            oninput="window.CompanionReports.onCustomInputChange()"
+          />
+        </div>
+      </div>
+
+      <!-- 2. HAFTALIK BÜLTEN SEÇENEKLER KARTI -->
+      <div class="c-report-options-card" id="report-panel-weekly" style="display: none;">
+        <div class="c-report-field-group">
+          <label class="c-report-label">
+            <i data-lucide="info" style="width: 14px; height: 14px; color: #38bdf8;"></i>
+            Öğretmenin Hafta Sonu Mesajı
+          </label>
+          <textarea
+            id="report-weekly-note"
+            class="c-report-textarea-input"
+            rows="2"
+            oninput="window.CompanionReports.onCustomInputChange()"
+          >Tüm öğrencilerimize ve desteklerini esirgemeyen değerli velilerimize teşekkür eder, keyifli ve dinlendirici bir hafta sonu dileriz! 🌿</textarea>
+        </div>
+      </div>
+
+      <!-- 3. BİREYSEL VELİ KARTI SEÇENEKLERİ -->
+      <div class="c-report-options-card" id="report-panel-student" style="display: none;">
+        <div class="c-report-field-group">
+          <label class="c-report-label">
+            <i data-lucide="user" style="width: 14px; height: 14px; color: #a855f7;"></i>
+            Raporu Hazırlanacak Öğrenci
+          </label>
+          <select id="report-student-select" class="c-report-select" onchange="window.CompanionReports.onStudentSelectChange(this.value)">
+            <!-- companion-reports.js dinamik dolduracak -->
+          </select>
+        </div>
+        <div class="c-report-field-group" style="margin-top: 10px;">
+          <label class="c-report-label">
+            <i data-lucide="edit-3" style="width: 14px; height: 14px; color: #38bdf8;"></i>
+            Veliye Özel Öğretmen Notu
+          </label>
+          <input
+            type="text"
+            id="report-student-note"
+            class="c-report-input"
+            placeholder="Örn: Bu hafta ders içi katılımda çok başarılıydı, tebrik ederim."
+            oninput="window.CompanionReports.onCustomInputChange()"
+          />
+        </div>
+      </div>
+
+      <!-- CANLI WHATSAPP ÖNİZLEME & DÜZENLEME ALANI -->
+      <div class="c-report-preview-wrap">
+        <div class="c-report-preview-header">
+          <div class="c-report-preview-title">
+            <i data-lucide="file-text" style="width: 16px; height: 16px;"></i>
+            <span>WhatsApp Önizleme &amp; Düzenleme</span>
+          </div>
+          <span class="c-report-char-badge" id="report-char-count">0 karakter</span>
+        </div>
+        <div class="c-report-textarea-box">
+          <div class="c-report-bubble">
+            <div class="c-report-bubble-header">
+              <span>CANLI METİN ŞABLONU</span>
+              <span style="font-size: 9.5px; opacity: 0.8;">Göndermeden önce dilediğiniz gibi düzenleyebilirsiniz</span>
+            </div>
+            <textarea
+              id="report-preview-textarea"
+              class="c-report-live-textarea"
+              placeholder="Rapor metni hazırlanıyor..."
+              oninput="window.CompanionReports.updateCharCount(this.value)"
+            ></textarea>
+          </div>
+        </div>
+      </div>
+
+      <!-- EYLEM BUTONLARI -->
+      <div class="c-report-actions-grid">
+        <button type="button" class="c-btn-whatsapp-share" onclick="window.CompanionReports.shareToWhatsApp()">
+          <i data-lucide="share-2" style="width: 20px; height: 20px;"></i>
+          <span>📲 WhatsApp Grubunda Paylaş</span>
+        </button>
+
+        <div class="c-report-sub-actions">
+          <button type="button" class="c-btn-report-copy" onclick="window.CompanionReports.copyToClipboard()">
+            <i data-lucide="clipboard-check" style="width: 16px; height: 16px; color: #38bdf8;"></i>
+            <span>📋 Metni Kopyala</span>
+          </button>
+          <button type="button" class="c-btn-report-native" onclick="window.CompanionReports.shareNative()">
+            <i data-lucide="upload-cloud" style="width: 16px; height: 16px; color: #10b981;"></i>
+            <span>📤 Diğer Paylaşım</span>
+          </button>
         </div>
       </div>
     </section>
@@ -1735,7 +1892,7 @@
 
         <!-- Versiyon Bilgisi -->
         <div style="text-align: center; margin-top: 14px; font-size: 11px; color: #94a3b8; font-weight: 600;">
-          Sınıf Asistanı El Terminali • <span id="settings-modal-version" style="color: #4f46e5; font-weight: 800;">v1.0.127</span>
+          Sınıf Asistanı El Terminali • <span id="settings-modal-version" style="color: #4f46e5; font-weight: 800;">v1.0.129</span>
         </div>
 
       </div>
@@ -2421,18 +2578,19 @@
   </div>
 
   <!-- QR, Bulut & OMR Analiz Motorları -->
-  <script src="js/supabase-config.js?v=1.0.127"></script>
-  <script src="js/cloud-sync.js?v=1.0.127"></script>
+  <script src="js/supabase-config.js?v=1.0.129"></script>
+  <script src="js/cloud-sync.js?v=1.0.129"></script>
   <script src="js/qrcode.min.js"></script>
   <script src="js/jsqr.js"></script>
-  <script src="js/omr-engine.js?v=1.0.127"></script>
-  <script src="js/companion-omr.js?v=1.0.127"></script>
-  <script src="js/companion-behavior.js?v=1.0.127"></script>
-  <script src="js/companion-homework.js?v=1.0.127"></script>
-  <script src="js/companion-books.js?v=1.0.127"></script>
-  <script src="js/companion-schedule.js?v=1.0.127"></script>
+  <script src="js/omr-engine.js?v=1.0.129"></script>
+  <script src="js/companion-omr.js?v=1.0.129"></script>
+  <script src="js/companion-behavior.js?v=1.0.129"></script>
+  <script src="js/companion-homework.js?v=1.0.129"></script>
+  <script src="js/companion-books.js?v=1.0.129"></script>
+  <script src="js/companion-schedule.js?v=1.0.129"></script>
+  <script src="js/companion-reports.js?v=1.0.129"></script>
 
   <!-- Çekirdek Kontrolcü -->
-  <script src="js/companion.js?v=1.0.127"></script>
+  <script src="js/companion.js?v=1.0.129"></script>
 </body>
 </html>

@@ -157,10 +157,12 @@
         window.CompanionHomework.init();
       } else if (this.currentView === 'books' && window.CompanionBooks) {
         window.CompanionBooks.init();
+      } else if (this.currentView === 'reports' && window.CompanionReports) {
+        window.CompanionReports.init();
       }
     },
 
-    // Üst Bar Bilgilerini Güncelle
+    // Üst Bar & Bilgi Kutusu Bilgilerini Güncelle
     updateHeader() {
       if (!this.profile) return;
       const nameEl = document.getElementById('appbar-teacher-name');
@@ -170,9 +172,10 @@
       const isClassT = this.isClassTeacher();
       if (nameEl) nameEl.textContent = this.profile.name || 'Öğretmen';
       if (branchEl) {
-        branchEl.textContent = isClassT
-          ? `Sınıf Öğretmeni • ${this.activeSection}`
-          : `${this.profile.branch || 'Branş'} • ${this.activeSection}`;
+        const secText = this.activeSection || (this.profile.sections && this.profile.sections[0]) || '4-C';
+        branchEl.innerHTML = isClassT
+          ? `<i data-lucide="school" style="width: 13px; height: 13px;"></i><span>Sınıf: ${secText}</span>`
+          : `<i data-lucide="book-open" style="width: 13px; height: 13px;"></i><span>${this.profile.branch || 'Branş'} • ${secText}</span>`;
       }
       if (avatarEl) {
         const initials = (this.profile.name || 'Ö')
@@ -194,9 +197,10 @@
         const cCode = (window.CloudSync && window.CloudSync.syncCode) || localStorage.getItem('sinif_sync_pair_code') || '';
         codeBadge.textContent = cCode ? `Kod: ${cCode}` : 'Kod: Yok';
       }
+      this.renderIcons();
     },
 
-    // Şube Seçici Barı (Sınıf Öğretmeninde veya tek şubede GİZLENİR)
+    // Şube Seçici Barı (Sınıf Öğretmeninde veya tek şubede GİZLENİR, alt bilgi kutusunda gösterilir)
     renderSectionBar() {
       const container = document.getElementById('companion-section-bar');
       if (!container) return;
@@ -204,19 +208,12 @@
       const isClass = this.isClassTeacher();
       const sections = (this.profile && Array.isArray(this.profile.sections) && this.profile.sections.length > 0)
         ? this.profile.sections
-        : (isClass ? ['3-A'] : DEFAULT_SECTIONS);
+        : (isClass ? ['4-C'] : DEFAULT_SECTIONS);
 
-      // Sınıf Öğretmeni ise tek bir şubesi vardır; çoklu buton barını gizle veya sade sınıf etiketi göster
+      // Sınıf Öğretmeni ise tek bir şubesi vardır; çoklu buton barını gizle (çünkü alt bilgi kutusunda sınıf etiketi var)
       if (isClass || sections.length <= 1) {
-        container.style.display = 'flex';
-        const mySection = sections[0] || this.activeSection || '3-A';
-        container.innerHTML = `
-          <div style="display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; background: rgba(79, 70, 229, 0.15); border: 1.5px solid rgba(99, 102, 241, 0.35); border-radius: 999px;">
-            <i data-lucide="school" style="width: 13px; height: 13px; color: #a5b4fc;"></i>
-            <span style="font-size: 11.5px; font-weight: 800; color: #e2e8f0;">Sınıf: ${mySection}</span>
-          </div>
-        `;
-        this.renderIcons();
+        container.style.display = 'none';
+        container.innerHTML = '';
         return;
       }
 
@@ -609,7 +606,11 @@
       }
       const views = document.querySelectorAll('.c-view');
       views.forEach(v => {
-        v.style.display = (v.id === `view-${viewId}`) ? 'block' : 'none';
+        if (v.id === `view-${viewId}`) {
+          v.style.display = (viewId === 'dashboard') ? 'flex' : 'block';
+        } else {
+          v.style.display = 'none';
+        }
       });
 
       // Bottom nav aktiflik durumu
@@ -630,7 +631,11 @@
         if (bottomNav) bottomNav.style.display = 'none';
       } else {
         if (appbar) appbar.style.display = 'flex';
-        if (sectionBar) sectionBar.style.display = 'flex';
+        if (sectionBar) {
+          const isClass = this.isClassTeacher();
+          const sections = (this.profile && Array.isArray(this.profile.sections)) ? this.profile.sections : [];
+          sectionBar.style.display = (isClass || sections.length <= 1) ? 'none' : 'flex';
+        }
         if (bottomNav) bottomNav.style.display = 'flex';
       }
 
@@ -661,6 +666,11 @@
       // Ders & Planlama Modülü açıldığında verileri başlat ve render et
       if (viewId === 'schedule-plan' && window.CompanionSchedule) {
         window.CompanionSchedule.init();
+      }
+
+      // Raporlar & WhatsApp Bülteni Modülü açıldığında verileri başlat ve render et
+      if (viewId === 'reports' && window.CompanionReports) {
+        window.CompanionReports.init();
       }
 
       // Eşitleme veya Ayarlar açıldığında bulut göstergelerini tazele
@@ -922,6 +932,12 @@
         nameInput.value = (this.profile && this.profile.name) || 'Öğretmen';
       }
 
+      // PIN şifresi alanını doldur
+      const pinInput = document.getElementById('settings-pin-input');
+      if (pinInput) {
+        pinInput.value = (this.profile && this.profile.pin) || '1234';
+      }
+
       const isClass = this.isClassTeacher();
       const rolePrimary = document.getElementById('role-primary');
       const roleMiddle = document.getElementById('role-middle');
@@ -934,8 +950,12 @@
 
       const secSelect = document.getElementById('settings-primary-section');
       if (secSelect) {
-        secSelect.value = this.activeSection || '3-A';
+        secSelect.value = this.activeSection || (this.profile && this.profile.sections && this.profile.sections[0]) || '4-C';
       }
+
+      // Menü açıldığında tüm akordiyon panellerini kapalı başlat
+      const items = modal.querySelectorAll('.c-accordion-item');
+      items.forEach(item => item.classList.remove('active'));
 
       modal.style.display = 'flex';
       this.renderIcons();
@@ -944,6 +964,29 @@
     closeSettingsModal() {
       const modal = document.getElementById('companion-settings-modal');
       if (modal) modal.style.display = 'none';
+    },
+
+    // Akordiyon Menü Geçiş Metodu
+    toggleSettingsAccordion(id) {
+      const target = document.getElementById(id);
+      if (!target) return;
+      const isAlreadyActive = target.classList.contains('active');
+      const allItems = document.querySelectorAll('#companion-settings-modal .c-accordion-item');
+      allItems.forEach(item => item.classList.remove('active'));
+
+      if (!isAlreadyActive) {
+        target.classList.add('active');
+      }
+      this.vibrate(10);
+      this.renderIcons();
+    },
+
+    // Ayarlardan Oturumu Kilitle
+    lockFromSettings() {
+      this.saveSettingsModal();
+      setTimeout(() => {
+        this.lockApp();
+      }, 200);
     },
 
     handleRoleChange(role) {
@@ -978,11 +1021,14 @@
       const nameInput = document.getElementById('settings-teacher-name-input');
       const teacherName = nameInput ? nameInput.value.trim() : 'Öğretmen';
 
+      const pinInput = document.getElementById('settings-pin-input');
+      const pinVal = pinInput ? pinInput.value.trim() : '';
+
       const rolePrimary = document.getElementById('role-primary');
       const isPrimary = rolePrimary ? rolePrimary.checked : false;
 
       const secSelect = document.getElementById('settings-primary-section');
-      const primarySection = secSelect ? secSelect.value : '3-A';
+      const primarySection = secSelect ? secSelect.value : '4-C';
 
       if (!this.profile) {
         this.profile = {
@@ -992,6 +1038,9 @@
       }
 
       this.profile.name = teacherName;
+      if (pinVal) {
+        this.profile.pin = pinVal;
+      }
       this.profile.teacherRole = isPrimary ? 'primary' : 'middle';
       this.profile.isClassTeacher = isPrimary;
       this.profile.branch = isPrimary ? 'Sınıf Öğretmeni (İlkokul)' : (this.profile.branch || 'Matematik');
@@ -1006,6 +1055,7 @@
       }
 
       this.saveProfile(this.profile);
+      this.updateHeader();
       this.closeSettingsModal();
       this.showToast('✅ Terminal ayarları kaydedildi!');
     },
