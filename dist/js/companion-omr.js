@@ -190,8 +190,12 @@
         if (raw) {
           const parsed = JSON.parse(raw);
           if (parsed && ((Array.isArray(parsed.students) && parsed.students.length > 0) || (Array.isArray(parsed.weeklyEvaluations) && parsed.weeklyEvaluations.length > 0))) {
+            this._memoryData = parsed;
             return parsed;
           }
+        }
+        if (this._memoryData && typeof this._memoryData === 'object') {
+          return this._memoryData;
         }
         // Ana mobil ve masaüstü veritabanı yedeği (sinif_asistani_state_v3)
         const v3Raw = localStorage.getItem('sinif_asistani_state_v3');
@@ -199,15 +203,58 @@
           const v3 = JSON.parse(v3Raw);
           if (v3 && typeof v3 === 'object') return v3;
         }
-      } catch (e) {}
+      } catch (e) {
+        if (this._memoryData && typeof this._memoryData === 'object') {
+          return this._memoryData;
+        }
+      }
       return { students: [], weeklyEvaluations: [] };
     },
 
+    // Ağır Görsel Verilerini (thumbUrl, questionDetails) RAM Belleğe Alıp localStorage'ı Koru (5MB Kota Kalkanı)
+    stripHeavyExamVisuals(data) {
+      if (!data || !Array.isArray(data.weeklyEvaluations)) return;
+      this.scannedCardImages = this.scannedCardImages || {};
+      data.weeklyEvaluations.forEach(ex => {
+        if (!ex || typeof ex !== 'object') return;
+        if (ex.pdfDataUrl) delete ex.pdfDataUrl;
+        if (ex.studentResults && typeof ex.studentResults === 'object') {
+          Object.keys(ex.studentResults).forEach(stuKey => {
+            const r = ex.studentResults[stuKey];
+            if (!r || typeof r !== 'object') return;
+            if (r.thumbUrl) {
+              this.scannedCardImages[stuKey] = r.thumbUrl;
+              delete r.thumbUrl;
+            }
+            if (r.questionDetails) {
+              delete r.questionDetails;
+            }
+          });
+        }
+      });
+    },
+
     saveData(data) {
+      if (!data || typeof data !== 'object') return;
+      this.stripHeavyExamVisuals(data);
+      this._memoryData = data;
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
       } catch (e) {
-        console.error('State kaydetme hatası:', e);
+        console.warn('localStorage kota sınırına ulaşıldı, önbellek temizlenip yeniden deneniyor:', e);
+        try {
+          localStorage.removeItem('sinif_asistani_state_v3');
+          if (Array.isArray(data.students)) {
+            data.students.forEach(s => {
+              if (s && s.photo && s.photo.length > 50000) {
+                delete s.photo;
+              }
+            });
+          }
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+        } catch (retryErr) {
+          console.error('State kaydetme hatası (bellek üzerinden devam ediliyor):', retryErr);
+        }
       }
     },
 
@@ -287,9 +334,15 @@
           );
 
           const canonicalId = matchedStu ? String(matchedStu.id) : String(res.studentId || rawKey);
+          const isGenericName = !sName || sName === 'öğrenci' || sName.startsWith('öğrenci ') || sName.startsWith('form ') || sName.startsWith('eşleştirilemedi');
           const dedupGroupKey = matchedStu
             ? `stu_${matchedStu.id}`
-            : (sNo && sNo !== '-' ? `no_${parseInt(sNo, 10) || sNo}` : (sName ? `name_${sName}` : `id_${canonicalId}`));
+            : (sNo && sNo !== '-' ? `no_${parseInt(sNo, 10) || sNo}` : (!isGenericName ? `name_${sName}` : `id_${canonicalId}`));
+
+          if (res.thumbUrl) {
+            this.scannedCardImages = this.scannedCardImages || {};
+            this.scannedCardImages[canonicalId] = res.thumbUrl;
+          }
 
           const enrichedRes = {
             ...res,
@@ -297,6 +350,8 @@
             studentName: matchedStu ? `${matchedStu.name || ''} ${matchedStu.surname || ''}`.trim() : (res.studentName || 'Öğrenci'),
             studentNo: matchedStu && matchedStu.number ? matchedStu.number : (res.studentNo || res.studentNumber || '-')
           };
+          delete enrichedRes.thumbUrl;
+          delete enrichedRes.questionDetails;
 
           const existing = byStudentKey.get(dedupGroupKey);
           if (!existing) {
@@ -305,15 +360,9 @@
             const oldTime = new Date(existing.res.updatedAt || 0).getTime() || 0;
             const newTime = new Date(enrichedRes.updatedAt || 0).getTime() || 0;
             const preferNew = (newTime > oldTime) ||
-              (newTime === oldTime && String(rawKey) === String(canonicalId)) ||
-              (!existing.res.thumbUrl && enrichedRes.thumbUrl);
+              (newTime === oldTime && String(rawKey) === String(canonicalId));
             if (preferNew) {
-              if (!enrichedRes.thumbUrl && existing.res.thumbUrl) {
-                enrichedRes.thumbUrl = existing.res.thumbUrl;
-              }
               byStudentKey.set(dedupGroupKey, { canonicalId, res: enrichedRes });
-            } else if (!existing.res.thumbUrl && enrichedRes.thumbUrl) {
-              existing.res.thumbUrl = enrichedRes.thumbUrl;
             }
           }
         });
@@ -1891,7 +1940,7 @@
     },
 
     // Görüntü Analizi (OMREngine, ArUco ve QR Kod Okuma)
-    async processImageCanvas(canvas, bounds = null, liveQr = null, liveAruco = null) {
+    async processImageCanvas(canvas, bounds = null, liveQr = null, liveAruco = null, isBatchScan = false) {
       const students = this.getActiveStudents();
       const exam = this.activeExam;
 
@@ -1956,7 +2005,7 @@
           }
           const stuName = matched ? `${matched.name} ${matched.surname || ''}`.trim() : (card.studentName || card.rawStudentName || (scanResult.cards.length > 1 ? `Form #${cIdx + 1}` : 'Öğrenci'));
           const stuNo = matched ? (matched.number || matched.no || '-') : (card.studentNo || card.rawStudentNo || '-');
-          const stuId = matched ? matched.id : (card.studentId || ('temp_' + Date.now() + '_' + cIdx));
+          const stuId = matched ? matched.id : (card.studentId || ('temp_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5) + '_' + cIdx));
 
           const cardResult = {
             studentId: stuId,
@@ -1978,10 +2027,12 @@
         });
 
         this.activeCardResult = savedResults[0];
-        playSuccessBeep();
-        if (window.Companion) window.Companion.vibrate([40, 30, 40]);
+        if (!isBatchScan) {
+          playSuccessBeep();
+          if (window.Companion) window.Companion.vibrate([40, 30, 40]);
+        }
 
-        if (savedResults.length > 1) {
+        if (savedResults.length > 1 && !isBatchScan) {
           const names = savedResults.map(r => r.studentName).join(', ');
           if (window.Companion) window.Companion.showToast(`✅ ${savedResults.length} Öğrenci Formu Okundu: ${names}`, 'success');
         }
@@ -1990,7 +2041,7 @@
         const isModalOpen = modal && modal.style.display !== 'none';
         if (isModalOpen) {
           this.showResultHud(this.activeCardResult);
-        } else {
+        } else if (!isBatchScan) {
           const r = this.activeCardResult;
           if (window.Companion) {
             window.Companion.showToast(`✅ ${r.studentName}: ${r.score} Puan (${r.correct}D ${r.wrong}Y ${r.blank}B)`, 'success');
@@ -2006,7 +2057,7 @@
                             this.activeCardResult.studentName === 'Öğrenci' || 
                             (typeof this.activeCardResult.studentName === 'string' && (this.activeCardResult.studentName.startsWith('Öğrenci #') || this.activeCardResult.studentName.includes('Eşleştirilemedi')));
 
-        if (isUnmatched) {
+        if (isUnmatched && !isBatchScan) {
           this.openStudentPickerModal();
         }
 
@@ -2026,16 +2077,18 @@
           }, 700);
         }
       } else {
-        playNoticeBeep();
-        const guideBox = document.getElementById('omr-guide-box');
-        const statusPill = document.getElementById('omr-status-pill');
-        const statusText = document.getElementById('omr-status-text');
-        guideBox && guideBox.classList.remove('locked');
-        statusPill && statusPill.classList.remove('success');
-        if (statusText) statusText.textContent = 'Optik formu kılavuza oturtun';
-        if (window.Companion) {
-          window.Companion.vibrate(50);
-          window.Companion.showToast('Optik form algılanamadı.');
+        if (!isBatchScan) {
+          playNoticeBeep();
+          const guideBox = document.getElementById('omr-guide-box');
+          const statusPill = document.getElementById('omr-status-pill');
+          const statusText = document.getElementById('omr-status-text');
+          guideBox && guideBox.classList.remove('locked');
+          statusPill && statusPill.classList.remove('success');
+          if (statusText) statusText.textContent = 'Optik formu kılavuza oturtun';
+          if (window.Companion) {
+            window.Companion.vibrate(50);
+            window.Companion.showToast('Optik form algılanamadı.');
+          }
         }
         this.isProcessingFrame = false;
         this.scanCooldownUntil = Date.now() + 1500;
@@ -2056,6 +2109,7 @@
 
       let readCardsCount = 0;
       const total = items.length;
+      const isBatch = total > 1;
 
       for (let i = 0; i < total; i++) {
         const src = items[i];
@@ -2074,20 +2128,24 @@
           const ctx = canvas.getContext('2d');
           ctx.drawImage(img, 0, 0);
 
-          await this.processImageCanvas(canvas, null);
+          await this.processImageCanvas(canvas, null, null, null, isBatch);
           readCardsCount++;
         } catch (err) {
           console.error(`Belge #${i + 1} işlenirken hata:`, err);
         }
       }
 
+      if (isBatch) {
+        playSuccessBeep();
+      }
       if (window.AndroidBridge && typeof window.AndroidBridge.vibrate === 'function') {
         window.AndroidBridge.vibrate(60);
       }
 
       if (total > 1) {
+        const totalInExam = (this.activeExam && this.activeExam.studentResults) ? Object.keys(this.activeExam.studentResults).length : readCardsCount;
         if (window.Companion) {
-          window.Companion.showToast(`✅ ${total} sayfadan optik formlar başarıyla okundu ve kaydedildi!`, 'success');
+          window.Companion.showToast(`✅ ${readCardsCount} optik form değerlendirildi (Toplam: ${totalInExam} Öğrenci)`, 'success');
         }
       }
       this.renderHub();
@@ -2340,15 +2398,19 @@
       const canonicalNo = matchedStu && matchedStu.number ? matchedStu.number : res.studentNo;
 
       let prevThumb = null;
+      const normCanonName = (canonicalName || '').trim().toLocaleLowerCase('tr-TR');
+      const isGenericCanonName = !normCanonName || normCanonName === 'öğrenci' || normCanonName.startsWith('öğrenci ') || normCanonName.startsWith('form ') || normCanonName.startsWith('eşleştirilemedi');
+
       Object.keys(exam.studentResults).forEach(k => {
         const existingRes = exam.studentResults[k];
         if (!existingRes) return;
         const kNo = String(existingRes.studentNo || existingRes.studentNumber || '').trim();
+        const existingNormName = (existingRes.studentName || '').trim().toLocaleLowerCase('tr-TR');
         const isSameStudent =
           String(k) === canonicalStudentId ||
           String(k) === String(studentId) ||
           (canonicalNo && canonicalNo !== '-' && (String(k) === String(canonicalNo) || kNo === String(canonicalNo))) ||
-          (canonicalName && existingRes.studentName && existingRes.studentName.trim().toLocaleLowerCase('tr-TR') === canonicalName.trim().toLocaleLowerCase('tr-TR'));
+          (!isGenericCanonName && existingNormName && existingNormName === normCanonName);
         if (isSameStudent) {
           if (existingRes.thumbUrl && !prevThumb) prevThumb = existingRes.thumbUrl;
           if (String(k) !== canonicalStudentId) {
@@ -2358,6 +2420,17 @@
         }
       });
 
+      const finalThumb = res.thumbUrl || prevThumb || null;
+      if (finalThumb) {
+        this.scannedCardImages = this.scannedCardImages || {};
+        this.scannedCardImages[canonicalStudentId] = finalThumb;
+        try {
+          sessionStorage.setItem('omr_thumb_' + canonicalStudentId, finalThumb);
+        } catch (e) {}
+      }
+
+      // Ağır base64 thumbUrl verisi localStorage'ın 5 MB sınırını doldurmaması için
+      // yalnızca RAM'de (scannedCardImages) tutulur, studentResults içine gömülmez!
       exam.studentResults[canonicalStudentId] = {
         studentId: canonicalStudentId,
         studentName: canonicalName,
@@ -2369,7 +2442,6 @@
         score: res.score,
         answers: res.answers,
         subjectBreakdown: res.subjectBreakdown || {},
-        thumbUrl: res.thumbUrl || prevThumb || null,
         updatedAt: new Date().toISOString()
       };
       exam.examScores[canonicalStudentId] = res.score;
@@ -2379,14 +2451,6 @@
         exam.deletedStudentIds = exam.deletedStudentIds.filter(id => id !== canonicalStudentId && id !== String(studentId) && (!canonicalNo || id !== String(canonicalNo)));
       }
       exam.updatedAt = new Date().toISOString();
-
-      if (res.thumbUrl) {
-        this.scannedCardImages = this.scannedCardImages || {};
-        this.scannedCardImages[canonicalStudentId] = res.thumbUrl;
-        try {
-          sessionStorage.setItem('omr_thumb_' + canonicalStudentId, res.thumbUrl);
-        } catch (e) {}
-      }
 
       this.saveData(data);
       this.activeExam = exam;

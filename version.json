@@ -1,15 +1,15 @@
 {
-  "version": "1.0.129",
+  "version": "1.0.130",
   "releaseDate": "2026-11-06",
   "minRequiredVersion": "1.0.0",
-  "title": "Sınıf Asistanı v1.0.129 Yayında!",
-  "description": "El Terminali Raporlar Modülü, WhatsApp Sınıf Bülteni & Günün Özeti ve Ayarlar Akordiyon Menü Geliştirmeleri",
+  "title": "Sınıf Asistanı v1.0.130 Yayında!",
+  "description": "El Terminali Toplu Optik Okuma Hafıza Kalkanı (Sınırsız Optik Kayıt), Raporlar Modülü ve WhatsApp Bülteni",
   "features": [
+    "Sınırsız Toplu Optik Okuma (5 MB Hafıza Kalkanı): El terminalinde çoklu optik form okutulurken 8. formdan sonra oluşan localStorage kota dolumu (QuotaExceededError) giderildi; önizleme görselleri RAM belleğe alınarak 20, 30 veya tüm sınıfın optiklerinin tek seferde eksiksiz masaüstüne aktarılması sağlandı.",
     "Raporlar & WhatsApp Bülteni: El terminalinde 'Günün Özeti' ve 'Haftalık Sınıf Bülteni' oluşturup tek dokunuşla doğrudan WhatsApp sınıf gruplarında veya velilerle paylaşabilme özelliği eklendi.",
     "Haftalık Bülten Başarı Köşesi: Haftanın kitap kurtları (sayfa ve kitap sayıları), davranış şampiyonları, ödev yıldızları ve haftalık değerlendirme sınav özeti bültene dinamik olarak entegre edildi.",
     "Bireysel Öğrenci Veli Bilgilendirmesi: Açılır listeden seçilen öğrencinin puanını, ödevlerini, okuduğu kitabı ve öğretmenin özel notunu içeren kişisel WhatsApp raporu hazırlama imkanı sağlandı.",
-    "Ayarlar Akordiyon Menüsü: Ayarlar menüsü tam ekran modern akordiyon yapısına kavuşturuldu; Eşleşme, Görev Türü, Şifre İşlemleri ve Güncelleme ayarları akıcı animasyonlarla düzenlendi.",
-    "Ana Menü Alt Bilgi Rozeti Düzeni: Sınıf ve sürüm bilgi kutusu ana ekranın en altına tam oturtularak arayüz düzeni mükemmelleştirildi."
+    "Ayarlar Akordiyon Menüsü: Ayarlar menüsü tam ekran modern akordiyon yapısına kavuşturuldu; Eşleşme, Görev Türü, Şifre İşlemleri ve Güncelleme ayarları akıcı animasyonlarla düzenlendi."
   ],
   "release_url": "https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/latest"
 }
