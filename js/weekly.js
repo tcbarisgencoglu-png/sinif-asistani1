@@ -1184,7 +1184,6 @@ function setupWeeklyTab(showToast) {
       activeExam = null;
       window.activeWeeklyExam = null;
       if (activeExamCard) activeExamCard.style.display = 'none';
-      if (btnPrintReport) btnPrintReport.style.display = 'none';
       renderExamsList();
     });
   }
@@ -1337,45 +1336,130 @@ function setupWeeklyTab(showToast) {
     });
   }
 
+  function renderPrintModalCustomExamsChecklist(allExams) {
+    const customBox = document.getElementById('print-modal-custom-exams-box');
+    const customList = document.getElementById('print-modal-custom-exams-list');
+    if (!customBox || !customList) return;
+
+    customList.innerHTML = '';
+    allExams.forEach((ex, idx) => {
+      const formattedW = window.formatWeekTR ? window.formatWeekTR(ex.weekId, 'short') : (ex.weekId || '');
+      const isChecked = examStatsCustomSelectedIds.size > 0
+        ? examStatsCustomSelectedIds.has(String(ex.id))
+        : (idx < 5);
+
+      const label = document.createElement('label');
+      label.style.cssText = 'display: flex; align-items: center; gap: 0.6rem; padding: 0.45rem 0.65rem; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-primary); cursor: pointer; font-size: 0.82rem;';
+      label.innerHTML = `
+        <input type="checkbox" class="print-modal-custom-exam-chk" value="${ex.id}" ${isChecked ? 'checked' : ''} style="width: 16px; height: 16px; cursor: pointer; accent-color: var(--primary);">
+        <span style="font-weight: 700; color: var(--primary);">#${idx + 1}</span>
+        <span style="font-weight: 600; color: var(--text-primary); flex: 1;">${ex.examName || 'Sınav'}</span>
+        ${ex.branch ? `<span class="badge" style="font-size: 0.68rem; padding: 0.1rem 0.35rem;">${ex.branch}</span>` : ''}
+        <span style="font-size: 0.75rem; color: var(--text-muted);">${formattedW} • ${ex.totalQuestions || 0} Soru</span>
+      `;
+      customList.appendChild(label);
+    });
+
+    const btnSelAll = document.getElementById('btn-print-modal-select-all');
+    const btnClrAll = document.getElementById('btn-print-modal-clear-all');
+    if (btnSelAll) {
+      btnSelAll.onclick = () => {
+        customList.querySelectorAll('.print-modal-custom-exam-chk').forEach(chk => { chk.checked = true; });
+      };
+    }
+    if (btnClrAll) {
+      btnClrAll.onclick = () => {
+        customList.querySelectorAll('.print-modal-custom-exam-chk').forEach(chk => { chk.checked = false; });
+      };
+    }
+  }
+
   function openPrintWeeklyExamReportModal() {
     if (!printExamSelect) return;
     printExamSelect.innerHTML = '';
 
     const state = stateManager.loadState();
+    const allExams = getSortedWeeklyExams(state);
+
+    if (allExams.length === 0) {
+      if (toastCallback) toastCallback('Henüz tanımlı sınav bulunmuyor!', 'warning');
+      return;
+    }
+
     const selectedWeek = stateManager.getSelectedWeek();
     const normSelected = window.normalizeWeekId ? window.normalizeWeekId(selectedWeek) : selectedWeek;
-    const weekExams = (state.weeklyEvaluations || []).filter(e => {
+    const weekExams = allExams.filter(e => {
       const eNorm = window.normalizeWeekId ? window.normalizeWeekId(e.weekId) : e.weekId;
       return eNorm === normSelected;
     });
 
-    if (weekExams.length === 0) {
-      if (toastCallback) toastCallback('Seçili haftada tanımlı sınav bulunmuyor!', 'warning');
-      return;
-    }
+    // 1. Çoklu Sınav Sıralama ve İstatistik Raporları Grubu
+    const multiGroup = document.createElement('optgroup');
+    multiGroup.label = '📊 Sıralama ve İstatistik Raporları (Çoklu Sınav)';
 
-    // 1. Sınavları Listele
-    weekExams.forEach(ex => {
-      const opt = document.createElement('option');
-      opt.value = ex.id;
-      opt.textContent = `${ex.examName} (${ex.totalQuestions} Soru)`;
-      if (activeExam && activeExam.id === ex.id) {
-        opt.selected = true;
-      }
-      printExamSelect.appendChild(opt);
-    });
-
-    // 2. Haftalık Ortalama seçeneği
-    const optWeekAvg = document.createElement('option');
-    optWeekAvg.value = 'week_avg';
-    optWeekAvg.textContent = 'Tüm Sınavların Ortalaması (Seçili Hafta)';
-    printExamSelect.appendChild(optWeekAvg);
-
-    // 3. Genel Ortalama seçeneği
     const optAllAvg = document.createElement('option');
     optAllAvg.value = 'all_avg';
-    optAllAvg.textContent = 'Tüm Sınavların Ortalaması (Tüm Sınavlar)';
-    printExamSelect.appendChild(optAllAvg);
+    optAllAvg.textContent = `Tüm Sınavlar — Sıralama ve İstatistik Raporu (${allExams.length} Sınav)`;
+    multiGroup.appendChild(optAllAvg);
+
+    const optLast5 = document.createElement('option');
+    optLast5.value = 'last_5';
+    optLast5.textContent = `Son 5 Sınav — Sıralama ve İstatistik Raporu (${Math.min(5, allExams.length)} Sınav)`;
+    multiGroup.appendChild(optLast5);
+
+    const optLast10 = document.createElement('option');
+    optLast10.value = 'last_10';
+    optLast10.textContent = `Son 10 Sınav — Sıralama ve İstatistik Raporu (${Math.min(10, allExams.length)} Sınav)`;
+    multiGroup.appendChild(optLast10);
+
+    const optLast3 = document.createElement('option');
+    optLast3.value = 'last_3';
+    optLast3.textContent = `Son 3 Sınav — Sıralama ve İstatistik Raporu (${Math.min(3, allExams.length)} Sınav)`;
+    multiGroup.appendChild(optLast3);
+
+    const optCustom = document.createElement('option');
+    optCustom.value = 'custom_select';
+    optCustom.textContent = 'Seçeceğim Sınavlar — Özel Sınav Aralığı Raporu';
+    multiGroup.appendChild(optCustom);
+
+    if (weekExams.length > 0) {
+      const optWeekAvg = document.createElement('option');
+      optWeekAvg.value = 'week_avg';
+      optWeekAvg.textContent = `Seçili Haftadaki Sınavlar (${weekExams.length} Sınav)`;
+      multiGroup.appendChild(optWeekAvg);
+    }
+
+    printExamSelect.appendChild(multiGroup);
+
+    // 2. Tek Sınav Sonuç Raporları Grubu
+    const singleGroup = document.createElement('optgroup');
+    singleGroup.label = '📝 Tek Sınav Sonuç Raporları';
+    allExams.forEach((ex, idx) => {
+      const opt = document.createElement('option');
+      opt.value = ex.id;
+      const wLabel = window.formatWeekTR ? window.formatWeekTR(ex.weekId, 'short') : (ex.weekId || '');
+      opt.textContent = `#${idx + 1} ${ex.examName} (${ex.totalQuestions} Soru${wLabel ? ' • ' + wLabel : ''})`;
+      if (activeExam && String(activeExam.id) === String(ex.id)) {
+        opt.selected = true;
+      }
+      singleGroup.appendChild(opt);
+    });
+    printExamSelect.appendChild(singleGroup);
+
+    if (!activeExam) {
+      printExamSelect.value = 'all_avg';
+    }
+
+    renderPrintModalCustomExamsChecklist(allExams);
+
+    const customBox = document.getElementById('print-modal-custom-exams-box');
+    const syncCustomBoxVisibility = () => {
+      if (customBox) {
+        customBox.style.display = printExamSelect.value === 'custom_select' ? 'block' : 'none';
+      }
+    };
+    printExamSelect.onchange = syncCustomBoxVisibility;
+    syncCustomBoxVisibility();
 
     if (modalPrintWeeklyExamReport) {
       modalPrintWeeklyExamReport.classList.add('active');
@@ -1388,6 +1472,7 @@ function setupWeeklyTab(showToast) {
       if (!selectedValue) return;
 
       const state = stateManager.loadState();
+      const allExams = getSortedWeeklyExams(state);
       const selectedWeek = stateManager.getSelectedWeek();
 
       let examsToPrint = [];
@@ -1400,24 +1485,59 @@ function setupWeeklyTab(showToast) {
       if (selectedValue === 'week_avg') {
         isAverageReport = true;
         const normSelected = window.normalizeWeekId ? window.normalizeWeekId(selectedWeek) : selectedWeek;
-        examsToPrint = (state.weeklyEvaluations || []).filter(e => {
+        examsToPrint = allExams.filter(e => {
           const eNorm = window.normalizeWeekId ? window.normalizeWeekId(e.weekId) : e.weekId;
           return eNorm === normSelected;
         });
         const formattedWeek = window.formatWeekTR ? window.formatWeekTR(selectedWeek, 'full') : selectedWeek;
-        reportTitle = 'SINAV ORTALAMA RAPORU (SEÇİLİ HAFTA)';
+        reportTitle = 'SEÇİLİ HAFTA SINAV SIRALAMA VE İSTATİSTİK RAPORU';
         reportSubtitle = `Uygulama Dönemi: ${formattedWeek} | Rapor Tarihi: ${new Date().toLocaleDateString('tr-TR')}`;
-        examDetailText = `Toplam ${examsToPrint.length} Sınavın Ortalaması`;
-        notes = "Bu haftaki tüm sınavların başarı ortalamalarını içerir.";
+        examDetailText = `Toplam ${examsToPrint.length} Sınavın Toplam ve Ortalama Analizi`;
+        notes = `Bu rapor, ${formattedWeek} döneminde uygulanan ${examsToPrint.length} sınavdaki öğrenci toplam doğru, toplam yanlış, toplam net ve not ortalamalarını puan üstünlüğüne göre sıralı olarak içerir.`;
       } else if (selectedValue === 'all_avg') {
         isAverageReport = true;
-        examsToPrint = state.weeklyEvaluations || [];
-        reportTitle = 'SINAV ORTALAMA RAPORU (TÜM ZAMANLAR)';
+        examsToPrint = allExams;
+        reportTitle = 'TÜM SINAVLAR ÖĞRENCİ SIRALAMA VE İSTATİSTİK RAPORU';
         reportSubtitle = `Tüm Dönem Sınavları | Rapor Tarihi: ${new Date().toLocaleDateString('tr-TR')}`;
-        examDetailText = `Toplam ${examsToPrint.length} Sınavın Ortalaması`;
-        notes = "Dönem başından bu yana yapılan tüm sınavların başarı ortalamalarını içerir.";
+        examDetailText = `Toplam ${examsToPrint.length} Sınavın Genel Sıralama ve İstatistikleri`;
+        notes = `Öğrencilerin dönem başından itibaren girdikleri tüm sınavlardaki (${examsToPrint.length} sınav) toplam doğru, toplam yanlış, toplam net sayıları ve not ortalamaları puan üstünlüğüne göre sıralanmıştır.`;
+      } else if (selectedValue === 'last_5') {
+        isAverageReport = true;
+        examsToPrint = allExams.slice(0, 5);
+        reportTitle = `SON ${examsToPrint.length} SINAV ÖĞRENCİ SIRALAMA VE İSTATİSTİK RAPORU`;
+        reportSubtitle = `Son ${examsToPrint.length} Sınav Analizi | Rapor Tarihi: ${new Date().toLocaleDateString('tr-TR')}`;
+        examDetailText = `Son ${examsToPrint.length} Sınavın Sıralama ve İstatistikleri`;
+        notes = `Öğrencilerin son ${examsToPrint.length} sınavdaki toplam doğru, toplam yanlış, toplam net sayıları ve not ortalamaları puan üstünlüğüne göre sıralanmıştır.`;
+      } else if (selectedValue === 'last_10') {
+        isAverageReport = true;
+        examsToPrint = allExams.slice(0, 10);
+        reportTitle = `SON ${examsToPrint.length} SINAV ÖĞRENCİ SIRALAMA VE İSTATİSTİK RAPORU`;
+        reportSubtitle = `Son ${examsToPrint.length} Sınav Analizi | Rapor Tarihi: ${new Date().toLocaleDateString('tr-TR')}`;
+        examDetailText = `Son ${examsToPrint.length} Sınavın Sıralama ve İstatistikleri`;
+        notes = `Öğrencilerin son ${examsToPrint.length} sınavdaki toplam doğru, toplam yanlış, toplam net sayıları ve not ortalamaları puan üstünlüğüne göre sıralanmıştır.`;
+      } else if (selectedValue === 'last_3') {
+        isAverageReport = true;
+        examsToPrint = allExams.slice(0, 3);
+        reportTitle = `SON ${examsToPrint.length} SINAV ÖĞRENCİ SIRALAMA VE İSTATİSTİK RAPORU`;
+        reportSubtitle = `Son ${examsToPrint.length} Sınav Analizi | Rapor Tarihi: ${new Date().toLocaleDateString('tr-TR')}`;
+        examDetailText = `Son ${examsToPrint.length} Sınavın Sıralama ve İstatistikleri`;
+        notes = `Öğrencilerin son ${examsToPrint.length} sınavdaki toplam doğru, toplam yanlış, toplam net sayıları ve not ortalamaları puan üstünlüğüne göre sıralanmıştır.`;
+      } else if (selectedValue === 'custom_select') {
+        isAverageReport = true;
+        const checkedIds = new Set(
+          Array.from(document.querySelectorAll('.print-modal-custom-exam-chk:checked')).map(el => String(el.value))
+        );
+        examsToPrint = allExams.filter(e => checkedIds.has(String(e.id)));
+        if (examsToPrint.length === 0) {
+          if (toastCallback) toastCallback('Lütfen rapora dahil edilecek en az bir sınav seçin!', 'warning');
+          return;
+        }
+        reportTitle = `SEÇİLİ SINAVLAR (${examsToPrint.length} SINAV) SIRALAMA VE İSTATİSTİK RAPORU`;
+        reportSubtitle = `Özel Sınav Aralığı (${examsToPrint.length} Sınav) | Rapor Tarihi: ${new Date().toLocaleDateString('tr-TR')}`;
+        examDetailText = `Seçilen ${examsToPrint.length} Sınavın Sıralama ve İstatistikleri`;
+        notes = `Seçilen ${examsToPrint.length} sınav (${examsToPrint.map(e => e.examName || 'Sınav').join(', ')}) kapsamında öğrencilerin toplam doğru, toplam yanlış, toplam net sayıları ve not ortalamaları puan üstünlüğüne göre sıralanmıştır.`;
       } else {
-        const targetExam = (state.weeklyEvaluations || []).find(e => e.id === selectedValue);
+        const targetExam = allExams.find(e => String(e.id) === String(selectedValue));
         if (!targetExam) return;
         examsToPrint = [targetExam];
         isAverageReport = false;
@@ -6374,21 +6494,9 @@ function renderOlderExamsModalList() {
   else if (window.lucide) window.lucide.createIcons();
 }
 
-function renderExamsList() {
-  ensureOlderExamsModalEvents();
-  let state = (stateManager && stateManager.state) ? stateManager.state : stateManager.loadState();
-  const examsList = document.getElementById('weekly-exams-list');
-  const emptyState = document.getElementById('weekly-exams-empty-state');
-  const olderBar = document.getElementById('weekly-older-exams-bar');
-  const headerOlderBtn = document.getElementById('btn-open-older-exams-modal');
-  const headerOlderBtnText = document.getElementById('btn-open-older-exams-modal-text');
-  const countBadge = document.getElementById('weekly-exams-count-badge');
-  
-  if (!examsList) return;
-  examsList.innerHTML = '';
-
-  // Sınavları al ve oluşturulma tarihine göre azalan sırada sırala (yeni format)
-  let exams = (state.weeklyEvaluations || []).map(e => {
+function getSortedWeeklyExams(stateObj) {
+  const st = stateObj || ((stateManager && stateManager.state) ? stateManager.state : stateManager.loadState());
+  const exams = (st.weeklyEvaluations || []).map(e => {
     if (e && !e.id) {
       e.id = 'exam_' + (e.createdAt ? new Date(e.createdAt).getTime() : Date.now());
     }
@@ -6396,6 +6504,865 @@ function renderExamsList() {
   }).filter(e => e && e.id);
 
   exams.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+  return exams;
+}
+
+// ==========================================================================
+// ÖĞRENCİ SINAV SIRALAMASI VE İSTATİSTİK RAPORU MODÜLÜ
+// (TÜM SINAVLAR / SON 5 SINAV / SON 10 SINAV / SEÇİLEN SINAVLAR)
+// ==========================================================================
+let examStatsRangeMode = 'all'; // 'all' | 'last_5' | 'last_10' | 'last_3' | 'custom'
+let examStatsCustomSelectedIds = new Set();
+let examStatsSelectedBranch = 'all';
+let examStatsExpandedStudentIds = new Set();
+let examStatsEventsBound = false;
+
+function extractStudentExamMetrics(exam, student) {
+  const totalQ = Math.max(1, parseInt(exam.totalQuestions, 10) || 20);
+  if (!exam || !student) {
+    return { participated: false, correct: 0, wrong: 0, blank: 0, net: 0, score: null, totalQuestions: totalQ };
+  }
+
+  const stuIdStr = String(student.id);
+  const stuNoStr = (student.number !== undefined && student.number !== null && String(student.number).trim() !== '')
+    ? String(student.number).trim()
+    : '';
+
+  let res = null;
+  if (exam.studentResults && typeof exam.studentResults === 'object') {
+    if (exam.studentResults[student.id]) {
+      res = exam.studentResults[student.id];
+    } else if (exam.studentResults[stuIdStr]) {
+      res = exam.studentResults[stuIdStr];
+    } else if (stuNoStr && exam.studentResults[stuNoStr]) {
+      res = exam.studentResults[stuNoStr];
+    } else if (stuNoStr) {
+      const stuNoNum = parseInt(stuNoStr, 10);
+      for (const k in exam.studentResults) {
+        const candidate = exam.studentResults[k];
+        if (!candidate) continue;
+        const candNo = String(candidate.studentNo || candidate.studentNumber || '').trim();
+        if (candNo && (candNo === stuNoStr || (stuNoNum > 0 && parseInt(candNo, 10) === stuNoNum))) {
+          res = candidate;
+          break;
+        }
+      }
+    }
+  }
+
+  let rawScoreFromExamScores = null;
+  if (exam.examScores && typeof exam.examScores === 'object') {
+    let scVal = exam.examScores[student.id];
+    if (scVal === undefined) scVal = exam.examScores[stuIdStr];
+    if (scVal === undefined && stuNoStr) scVal = exam.examScores[stuNoStr];
+    if (scVal !== undefined && scVal !== null && scVal !== '') {
+      const parsed = parseFloat(scVal);
+      if (!isNaN(parsed)) rawScoreFromExamScores = parsed;
+    }
+  }
+
+  const hasAnswers = !!(res && res.answers && Object.keys(res.answers).length > 0);
+  const hasResScore = !!(res && res.score !== undefined && res.score !== null && res.score !== '' && !isNaN(parseFloat(res.score)));
+  const hasResCounts = !!(res && (
+    (res.correct !== undefined && res.correct !== '') ||
+    (res.wrong !== undefined && res.wrong !== '') ||
+    (res.net !== undefined && res.net !== '')
+  ));
+
+  const participated = hasAnswers || hasResScore || hasResCounts || (rawScoreFromExamScores !== null);
+  if (!participated) {
+    return { participated: false, correct: 0, wrong: 0, blank: 0, net: 0, score: null, totalQuestions: totalQ };
+  }
+
+  let correct = 0;
+  let wrong = 0;
+  let blank = 0;
+
+  if (res && (res.correct !== undefined && res.correct !== '')) {
+    correct = Math.max(0, parseInt(res.correct, 10) || 0);
+    wrong = (res.wrong !== undefined && res.wrong !== '') ? Math.max(0, parseInt(res.wrong, 10) || 0) : 0;
+    blank = (res.blank !== undefined && res.blank !== '')
+      ? Math.max(0, parseInt(res.blank, 10) || 0)
+      : Math.max(0, totalQ - correct - wrong);
+  } else if (hasAnswers && exam.answerKey && Object.keys(exam.answerKey).length > 0) {
+    const isMulti = !!(exam.isMultiSubject && Array.isArray(exam.subjects) && exam.subjects.length > 0);
+    if (isMulti) {
+      const sbMap = getOrComputeSubjectBreakdown(res, exam);
+      Object.values(sbMap).forEach(sb => {
+        correct += parseInt(sb.correct, 10) || 0;
+        wrong += parseInt(sb.wrong, 10) || 0;
+        blank += parseInt(sb.blank, 10) || 0;
+      });
+    } else {
+      for (let q = 1; q <= totalQ; q++) {
+        const ans = String(res.answers[q] || res.answers[String(q)] || '').trim().toUpperCase();
+        const keyAns = String(exam.answerKey[q] || exam.answerKey[String(q)] || '').trim().toUpperCase();
+        if (!ans || ans === 'MULTIPLE') blank++;
+        else if (keyAns && ans === keyAns) correct++;
+        else wrong++;
+      }
+    }
+  } else if (rawScoreFromExamScores !== null) {
+    // Yalnızca puan girilmişse yaklaşık doğru sayısını koru veya 0 bırak
+    correct = (res && res.correct !== undefined) ? (parseInt(res.correct, 10) || 0) : 0;
+    wrong = (res && res.wrong !== undefined) ? (parseInt(res.wrong, 10) || 0) : 0;
+    blank = (res && res.blank !== undefined) ? (parseInt(res.blank, 10) || 0) : 0;
+  }
+
+  let net = 0;
+  if (res && res.net !== undefined && res.net !== null && res.net !== '' && !isNaN(parseFloat(res.net))) {
+    net = parseFloat(res.net);
+  } else {
+    const penaltyRate = exam.wrongAffects ? (parseFloat(exam.penaltyRate) || 4) : 0;
+    net = penaltyRate > 0 ? Math.max(0, correct - (wrong / penaltyRate)) : correct;
+    net = parseFloat(net.toFixed(2));
+  }
+
+  let score = 0;
+  if (rawScoreFromExamScores !== null) {
+    score = rawScoreFromExamScores;
+  } else if (hasResScore) {
+    score = parseFloat(res.score);
+  } else {
+    score = parseFloat(((net / totalQ) * 100).toFixed(1));
+  }
+
+  return {
+    participated: true,
+    correct,
+    wrong,
+    blank,
+    net: parseFloat(Number(net).toFixed(2)),
+    score: parseFloat(Number(score).toFixed(2)),
+    totalQuestions: totalQ
+  };
+}
+
+function getTargetExamsForStatsRange(allExams, rangeMode, branchFilter, isMiddle) {
+  let baseExams = [...allExams];
+  if (isMiddle && branchFilter && branchFilter !== 'all') {
+    baseExams = baseExams.filter(e => !e.branch || e.branch === 'all' || e.branch === branchFilter);
+  }
+
+  if (rangeMode === 'last_3') {
+    return baseExams.slice(0, 3);
+  }
+  if (rangeMode === 'last_5') {
+    return baseExams.slice(0, 5);
+  }
+  if (rangeMode === 'last_10') {
+    return baseExams.slice(0, 10);
+  }
+  if (rangeMode === 'custom') {
+    return baseExams.filter(e => examStatsCustomSelectedIds.has(String(e.id)));
+  }
+  return baseExams;
+}
+
+function computeMultiExamStudentRankingStats(selectedExams, branchFilter) {
+  const state = (stateManager && stateManager.state) ? stateManager.state : stateManager.loadState();
+  const isMiddle = state.educationLevel === 'middle';
+
+  let students = [...(state.students || [])];
+  if (isMiddle && branchFilter && branchFilter !== 'all') {
+    students = students.filter(s => s.branch === branchFilter);
+  }
+
+  const targetExams = Array.isArray(selectedExams) ? selectedExams : [];
+  const participants = [];
+  const nonParticipants = [];
+
+  students.forEach(student => {
+    let enteredCount = 0;
+    let applicableExamCount = 0;
+    let totalCorrect = 0;
+    let totalWrong = 0;
+    let totalBlank = 0;
+    let totalNet = 0;
+    let totalScore = 0;
+    let totalQuestionsEntered = 0;
+    let minScore = null;
+    let maxScore = null;
+    const examBreakdown = [];
+
+    targetExams.forEach(exam => {
+      // Ortaokulda sınav belirli bir şubeye aitse ve öğrenci başka şubedeyse kapsam dışı bırak
+      const isApplicableToStudent = !isMiddle || !exam.branch || exam.branch === 'all' || !student.branch || exam.branch === student.branch;
+      if (isApplicableToStudent) {
+        applicableExamCount++;
+      }
+
+      const metrics = extractStudentExamMetrics(exam, student);
+      if (metrics.participated) {
+        enteredCount++;
+        totalCorrect += metrics.correct;
+        totalWrong += metrics.wrong;
+        totalBlank += metrics.blank;
+        totalNet += metrics.net;
+        totalScore += metrics.score;
+        totalQuestionsEntered += metrics.totalQuestions;
+        if (minScore === null || metrics.score < minScore) minScore = metrics.score;
+        if (maxScore === null || metrics.score > maxScore) maxScore = metrics.score;
+      }
+
+      if (isApplicableToStudent || metrics.participated) {
+        examBreakdown.push({
+          examId: exam.id,
+          examName: exam.examName || 'Sınav',
+          weekId: exam.weekId,
+          branch: exam.branch || '',
+          totalQuestions: metrics.totalQuestions,
+          participated: metrics.participated,
+          correct: metrics.correct,
+          wrong: metrics.wrong,
+          blank: metrics.blank,
+          net: metrics.net,
+          score: metrics.score
+        });
+      }
+    });
+
+    if (enteredCount > 0) {
+      const avgScore = parseFloat((totalScore / enteredCount).toFixed(2));
+      const cleanTotalNet = parseFloat(totalNet.toFixed(2));
+      const avgNet = parseFloat((totalNet / enteredCount).toFixed(2));
+      const avgCorrect = parseFloat((totalCorrect / enteredCount).toFixed(1));
+      const avgWrong = parseFloat((totalWrong / enteredCount).toFixed(1));
+
+      participants.push({
+        student,
+        enteredCount,
+        applicableExamCount: Math.max(enteredCount, applicableExamCount || targetExams.length),
+        totalCorrect,
+        totalWrong,
+        totalBlank,
+        totalNet: cleanTotalNet,
+        avgNet,
+        avgCorrect,
+        avgWrong,
+        avgScore,
+        minScore,
+        maxScore,
+        totalQuestionsEntered,
+        examBreakdown
+      });
+    } else {
+      nonParticipants.push({
+        student,
+        enteredCount: 0,
+        applicableExamCount: applicableExamCount || targetExams.length,
+        totalCorrect: 0,
+        totalWrong: 0,
+        totalBlank: 0,
+        totalNet: 0,
+        avgNet: 0,
+        avgScore: null,
+        examBreakdown
+      });
+    }
+  });
+
+  // Öğrenci puan üstünlüğüne (Not Ortalaması azalan -> Toplam Net azalan -> Toplam Doğru azalan) göre sırala
+  participants.sort((a, b) => {
+    if (b.avgScore !== a.avgScore) return b.avgScore - a.avgScore;
+    if (b.totalNet !== a.totalNet) return b.totalNet - a.totalNet;
+    if (b.totalCorrect !== a.totalCorrect) return b.totalCorrect - a.totalCorrect;
+    if (b.enteredCount !== a.enteredCount) return b.enteredCount - a.enteredCount;
+    return String(a.student.name || '').localeCompare(String(b.student.name || ''), 'tr');
+  });
+
+  let currentRank = 1;
+  participants.forEach((p, idx) => {
+    if (idx > 0) {
+      const prev = participants[idx - 1];
+      if (p.avgScore < prev.avgScore || p.totalNet < prev.totalNet) {
+        currentRank = idx + 1;
+      }
+    }
+    p.rank = currentRank;
+  });
+
+  nonParticipants.sort((a, b) => {
+    const numA = parseInt(a.student.number, 10) || 9999;
+    const numB = parseInt(b.student.number, 10) || 9999;
+    if (numA !== numB) return numA - numB;
+    return String(a.student.name || '').localeCompare(String(b.student.name || ''), 'tr');
+  });
+
+  const totalQuestionsSum = targetExams.reduce((sum, e) => sum + (parseInt(e.totalQuestions, 10) || 0), 0);
+  const classAvgScore = participants.length > 0
+    ? parseFloat((participants.reduce((sum, p) => sum + p.avgScore, 0) / participants.length).toFixed(2))
+    : 0;
+  const classTotalCorrect = participants.reduce((sum, p) => sum + p.totalCorrect, 0);
+  const classTotalWrong = participants.reduce((sum, p) => sum + p.totalWrong, 0);
+  const classTotalBlank = participants.reduce((sum, p) => sum + p.totalBlank, 0);
+  const classTotalNet = parseFloat(participants.reduce((sum, p) => sum + p.totalNet, 0).toFixed(2));
+  const classAvgNet = participants.length > 0
+    ? parseFloat((participants.reduce((sum, p) => sum + p.avgNet, 0) / participants.length).toFixed(2))
+    : 0;
+
+  return {
+    targetExams,
+    participants,
+    nonParticipants,
+    totalStudentsCount: students.length,
+    totalQuestionsSum,
+    classAvgScore,
+    classTotalCorrect,
+    classTotalWrong,
+    classTotalBlank,
+    classTotalNet,
+    classAvgNet,
+    leader: participants.length > 0 ? participants[0] : null
+  };
+}
+
+function ensureWeeklyExamStatsEvents() {
+  if (examStatsEventsBound) return;
+  const statsCard = document.getElementById('weekly-exam-stats-card');
+  if (!statsCard) return;
+  examStatsEventsBound = true;
+
+  const scrollToStatsPanel = () => {
+    if (statsCard.style.display === 'none') {
+      statsCard.style.display = 'block';
+      renderWeeklyExamStatsPanel();
+    }
+    statsCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  const btnHeaderOpen = document.getElementById('btn-open-exam-stats-panel');
+  const btnQuickOpen = document.getElementById('btn-quick-open-exam-stats');
+  if (btnHeaderOpen) btnHeaderOpen.addEventListener('click', scrollToStatsPanel);
+  if (btnQuickOpen) btnQuickOpen.addEventListener('click', scrollToStatsPanel);
+
+  document.querySelectorAll('.exam-stats-range-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const range = btn.getAttribute('data-stats-range') || 'all';
+      examStatsRangeMode = range;
+      if (range === 'custom' && examStatsCustomSelectedIds.size === 0) {
+        const allExams = getSortedWeeklyExams();
+        allExams.forEach(e => examStatsCustomSelectedIds.add(String(e.id)));
+      }
+      renderWeeklyExamStatsPanel();
+    });
+  });
+
+  const branchSelect = document.getElementById('exam-stats-branch-select');
+  if (branchSelect) {
+    branchSelect.addEventListener('change', () => {
+      examStatsSelectedBranch = branchSelect.value || 'all';
+      renderWeeklyExamStatsPanel();
+    });
+  }
+
+  const studentSearch = document.getElementById('exam-stats-student-search');
+  if (studentSearch) {
+    studentSearch.addEventListener('input', () => {
+      renderWeeklyExamStatsPanel();
+    });
+  }
+
+  const customExamSearch = document.getElementById('exam-stats-custom-exam-search');
+  if (customExamSearch) {
+    customExamSearch.addEventListener('input', () => {
+      renderCustomExamsPickerGrid();
+    });
+  }
+
+  const btnCustomAll = document.getElementById('btn-stats-custom-select-all');
+  const btnCustomLast5 = document.getElementById('btn-stats-custom-select-last5');
+  const btnCustomLast10 = document.getElementById('btn-stats-custom-select-last10');
+  const btnCustomClear = document.getElementById('btn-stats-custom-clear-all');
+
+  if (btnCustomAll) {
+    btnCustomAll.addEventListener('click', () => {
+      const allExams = getSortedWeeklyExams();
+      examStatsCustomSelectedIds = new Set(allExams.map(e => String(e.id)));
+      renderWeeklyExamStatsPanel();
+    });
+  }
+  if (btnCustomLast5) {
+    btnCustomLast5.addEventListener('click', () => {
+      const allExams = getSortedWeeklyExams();
+      examStatsCustomSelectedIds = new Set(allExams.slice(0, 5).map(e => String(e.id)));
+      renderWeeklyExamStatsPanel();
+    });
+  }
+  if (btnCustomLast10) {
+    btnCustomLast10.addEventListener('click', () => {
+      const allExams = getSortedWeeklyExams();
+      examStatsCustomSelectedIds = new Set(allExams.slice(0, 10).map(e => String(e.id)));
+      renderWeeklyExamStatsPanel();
+    });
+  }
+  if (btnCustomClear) {
+    btnCustomClear.addEventListener('click', () => {
+      examStatsCustomSelectedIds.clear();
+      renderWeeklyExamStatsPanel();
+    });
+  }
+
+  const btnPrintCurrent = document.getElementById('btn-print-current-stats-report');
+  if (btnPrintCurrent) {
+    btnPrintCurrent.addEventListener('click', () => {
+      printCurrentExamStatsReport();
+    });
+  }
+}
+
+function renderCustomExamsPickerGrid() {
+  const grid = document.getElementById('exam-stats-custom-exams-grid');
+  const countBadge = document.getElementById('exam-stats-custom-count-badge');
+  if (!grid) return;
+
+  const state = (stateManager && stateManager.state) ? stateManager.state : stateManager.loadState();
+  const isMiddle = state.educationLevel === 'middle';
+  let allExams = getSortedWeeklyExams(state);
+  if (isMiddle && examStatsSelectedBranch && examStatsSelectedBranch !== 'all') {
+    allExams = allExams.filter(e => !e.branch || e.branch === 'all' || e.branch === examStatsSelectedBranch);
+  }
+
+  const validIds = new Set(allExams.map(e => String(e.id)));
+  const selectedValidCount = Array.from(examStatsCustomSelectedIds).filter(id => validIds.has(id)).length;
+  if (countBadge) {
+    countBadge.textContent = `${selectedValidCount} / ${allExams.length} Sınav Seçildi`;
+  }
+
+  const searchInput = document.getElementById('exam-stats-custom-exam-search');
+  const query = searchInput ? searchInput.value.trim().toLocaleLowerCase('tr') : '';
+
+  const indexed = allExams.map((ex, i) => ({ ex, orderNo: i + 1 })).filter(({ ex }) => {
+    if (!query) return true;
+    const name = String(ex.examName || '').toLocaleLowerCase('tr');
+    const branch = String(ex.branch || '').toLocaleLowerCase('tr');
+    const weekStr = (window.formatWeekTR ? window.formatWeekTR(ex.weekId, 'full') : (ex.weekId || '')).toLocaleLowerCase('tr');
+    return name.includes(query) || branch.includes(query) || weekStr.includes(query);
+  });
+
+  grid.innerHTML = '';
+  if (indexed.length === 0) {
+    grid.innerHTML = `<div style="grid-column: 1 / -1; text-align: center; padding: 1rem; color: var(--text-muted); font-size: 0.8rem;">Eşleşen sınav bulunamadı.</div>`;
+    return;
+  }
+
+  indexed.forEach(({ ex, orderNo }) => {
+    const isChecked = examStatsCustomSelectedIds.has(String(ex.id));
+    const weekShort = window.formatWeekTR ? window.formatWeekTR(ex.weekId, 'short') : (ex.weekId || '');
+    const item = document.createElement('label');
+    item.style.cssText = `display: flex; align-items: center; gap: 0.55rem; padding: 0.5rem 0.65rem; border-radius: 8px; border: 1.5px solid ${isChecked ? 'var(--primary)' : 'var(--border-color)'}; background: ${isChecked ? 'rgba(79, 70, 229, 0.08)' : 'var(--bg-secondary)'}; cursor: pointer; transition: all 0.15s ease; user-select: none;`;
+    item.innerHTML = `
+      <input type="checkbox" ${isChecked ? 'checked' : ''} style="width: 16px; height: 16px; cursor: pointer; accent-color: var(--primary); flex-shrink: 0;">
+      <div style="min-width: 0; flex: 1;">
+        <div style="display: flex; align-items: center; gap: 0.35rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+          <span style="font-size: 0.72rem; font-weight: 800; color: var(--primary);">#${orderNo}</span>
+          <strong style="font-size: 0.8rem; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis;">${ex.examName || 'Sınav'}</strong>
+        </div>
+        <div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 1px;">
+          ${weekShort} • ${ex.totalQuestions || 0} Soru${ex.branch ? ` • ${ex.branch}` : ''}
+        </div>
+      </div>
+    `;
+    const chk = item.querySelector('input');
+    if (chk) {
+      chk.addEventListener('change', () => {
+        if (chk.checked) examStatsCustomSelectedIds.add(String(ex.id));
+        else examStatsCustomSelectedIds.delete(String(ex.id));
+        renderWeeklyExamStatsPanel();
+      });
+    }
+    grid.appendChild(item);
+  });
+}
+
+function renderWeeklyExamStatsPanel() {
+  ensureWeeklyExamStatsEvents();
+  const statsCard = document.getElementById('weekly-exam-stats-card');
+  if (!statsCard) return;
+
+  const state = (stateManager && stateManager.state) ? stateManager.state : stateManager.loadState();
+  const allExams = getSortedWeeklyExams(state);
+
+  if (allExams.length === 0) {
+    statsCard.style.display = 'none';
+    return;
+  }
+  statsCard.style.display = 'block';
+
+  // Şube filtresi seçeneklerini güncelle
+  const isMiddle = state.educationLevel === 'middle';
+  const branchGroup = document.getElementById('exam-stats-branch-group');
+  const branchSelect = document.getElementById('exam-stats-branch-select');
+  const branches = [...new Set([
+    ...(state.students || []).map(s => s.branch).filter(Boolean),
+    ...allExams.map(e => e.branch).filter(b => b && b !== 'all')
+  ])].sort();
+
+  if (branchGroup && branchSelect) {
+    if (isMiddle && branches.length > 0) {
+      branchGroup.style.display = 'inline-flex';
+      const prevVal = examStatsSelectedBranch || 'all';
+      branchSelect.innerHTML = `<option value="all">Tüm Şubeler</option>` +
+        branches.map(b => `<option value="${b}" ${b === prevVal ? 'selected' : ''}>${b} Şubesi</option>`).join('');
+      if (!branches.includes(prevVal) && prevVal !== 'all') {
+        examStatsSelectedBranch = 'all';
+        branchSelect.value = 'all';
+      }
+    } else {
+      branchGroup.style.display = 'none';
+      examStatsSelectedBranch = 'all';
+    }
+  }
+
+  // Sınav aralığı butonlarının metin ve aktiflik durumlarını güncelle
+  const btnAll = document.getElementById('btn-stats-range-all');
+  const btnLast5 = document.getElementById('btn-stats-range-last5');
+  const btnLast10 = document.getElementById('btn-stats-range-last10');
+  const btnLast3 = document.getElementById('btn-stats-range-last3');
+  if (btnAll) btnAll.textContent = `Tüm Sınavlar (${allExams.length})`;
+  if (btnLast5) btnLast5.textContent = `Son 5 Sınav (${Math.min(5, allExams.length)})`;
+  if (btnLast10) btnLast10.textContent = `Son 10 Sınav (${Math.min(10, allExams.length)})`;
+  if (btnLast3) btnLast3.textContent = `Son 3 Sınav (${Math.min(3, allExams.length)})`;
+
+  document.querySelectorAll('.exam-stats-range-btn').forEach(btn => {
+    const r = btn.getAttribute('data-stats-range');
+    const isActive = r === examStatsRangeMode;
+    btn.classList.toggle('active', isActive);
+    btn.classList.toggle('btn-primary', isActive);
+    btn.classList.toggle('btn-secondary', !isActive);
+  });
+
+  const customPanel = document.getElementById('exam-stats-custom-picker-panel');
+  if (customPanel) {
+    customPanel.style.display = examStatsRangeMode === 'custom' ? 'block' : 'none';
+    if (examStatsRangeMode === 'custom') {
+      renderCustomExamsPickerGrid();
+    }
+  }
+
+  const targetExams = getTargetExamsForStatsRange(allExams, examStatsRangeMode, examStatsSelectedBranch, isMiddle);
+  const stats = computeMultiExamStudentRankingStats(targetExams, examStatsSelectedBranch);
+
+  // Kapsamdaki sınavlar bilgi barı
+  const includedBar = document.getElementById('exam-stats-included-bar');
+  if (includedBar) {
+    if (targetExams.length === 0) {
+      includedBar.innerHTML = `<span style="color: var(--danger); font-weight: 600;">⚠️ Seçili aralıkta sınav bulunmuyor. Lütfen yukarıdan en az bir sınav seçin.</span>`;
+    } else {
+      const rangeTitleMap = {
+        all: 'Tüm Sınavlar',
+        last_5: `Son ${targetExams.length} Sınav`,
+        last_10: `Son ${targetExams.length} Sınav`,
+        last_3: `Son ${targetExams.length} Sınav`,
+        custom: `Özel Seçilen (${targetExams.length} Sınav)`
+      };
+      const chipsHtml = targetExams.slice(0, 8).map((ex, i) => {
+        const wShort = window.formatWeekTR ? window.formatWeekTR(ex.weekId, 'short') : '';
+        return `<span class="badge" style="background: var(--bg-primary); color: var(--text-primary); border: 1px solid var(--border-color); font-size: 0.73rem; font-weight: 600; padding: 0.18rem 0.5rem;">${i + 1}. ${ex.examName || 'Sınav'} (${ex.totalQuestions || 0}S${wShort ? ' • ' + wShort : ''})</span>`;
+      }).join('');
+      const moreChip = targetExams.length > 8
+        ? `<span class="badge" style="background: var(--primary); color: #fff; font-size: 0.72rem; font-weight: 700; padding: 0.18rem 0.5rem;">+${targetExams.length - 8} Sınav Daha</span>`
+        : '';
+      includedBar.innerHTML = `
+        <strong style="color: var(--primary); white-space: nowrap;">📋 Rapor Kapsamı (${rangeTitleMap[examStatsRangeMode] || 'Seçili Sınavlar'}):</strong>
+        <div style="display: flex; align-items: center; gap: 0.35rem; flex-wrap: wrap;">${chipsHtml}${moreChip}</div>
+      `;
+    }
+  }
+
+  // 4 Özet KPI Kartı
+  const kpiGrid = document.getElementById('exam-stats-kpi-grid');
+  if (kpiGrid) {
+    const leaderText = stats.leader
+      ? `${stats.leader.student.name || ''} ${stats.leader.student.surname || ''}`.trim()
+      : '-';
+    const leaderScoreText = stats.leader
+      ? `${stats.leader.avgScore} Puan Ort. (${stats.leader.totalNet} Toplam Net)`
+      : 'Henüz veri yok';
+
+    kpiGrid.innerHTML = `
+      <div style="padding: 0.9rem 1rem; border-radius: var(--radius-md); background: var(--bg-secondary); border: 1px solid var(--border-color); display: flex; align-items: center; gap: 0.85rem;">
+        <div style="width: 42px; height: 42px; border-radius: 10px; background: rgba(79, 70, 229, 0.12); color: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 1.2rem; flex-shrink: 0;">📚</div>
+        <div>
+          <div style="font-size: 0.73rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">İncelenen Sınav Aralığı</div>
+          <div style="font-size: 1.15rem; font-weight: 800; color: var(--text-primary);">${targetExams.length} Sınav</div>
+          <div style="font-size: 0.75rem; color: var(--text-secondary);">Toplam ${stats.totalQuestionsSum} Soru</div>
+        </div>
+      </div>
+      <div style="padding: 0.9rem 1rem; border-radius: var(--radius-md); background: var(--bg-secondary); border: 1px solid var(--border-color); display: flex; align-items: center; gap: 0.85rem;">
+        <div style="width: 42px; height: 42px; border-radius: 10px; background: rgba(16, 185, 129, 0.12); color: #059669; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; flex-shrink: 0;">📈</div>
+        <div>
+          <div style="font-size: 0.73rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Sınıf Not Ortalaması</div>
+          <div style="font-size: 1.15rem; font-weight: 800; color: #059669;">${stats.classAvgScore} Puan</div>
+          <div style="font-size: 0.75rem; color: var(--text-secondary);">Katılan: ${stats.participants.length} / ${stats.totalStudentsCount} Öğrenci</div>
+        </div>
+      </div>
+      <div style="padding: 0.9rem 1rem; border-radius: var(--radius-md); background: var(--bg-secondary); border: 1px solid var(--border-color); display: flex; align-items: center; gap: 0.85rem;">
+        <div style="width: 42px; height: 42px; border-radius: 10px; background: rgba(99, 102, 241, 0.12); color: #4f46e5; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; flex-shrink: 0;">🎯</div>
+        <div>
+          <div style="font-size: 0.73rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Sınıf Doğru / Yanlış / Net</div>
+          <div style="font-size: 1.05rem; font-weight: 800; color: var(--primary);">Ort: ${stats.classAvgNet} Net</div>
+          <div style="font-size: 0.74rem; color: var(--text-secondary);">Top: <span style="color:#059669;font-weight:700;">${stats.classTotalCorrect}D</span> • <span style="color:#dc2626;font-weight:700;">${stats.classTotalWrong}Y</span> • <strong>${stats.classTotalNet}N</strong></div>
+        </div>
+      </div>
+      <div style="padding: 0.9rem 1rem; border-radius: var(--radius-md); background: var(--bg-secondary); border: 1px solid var(--border-color); display: flex; align-items: center; gap: 0.85rem;">
+        <div style="width: 42px; height: 42px; border-radius: 10px; background: rgba(245, 158, 11, 0.15); color: #d97706; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; flex-shrink: 0;">🥇</div>
+        <div style="min-width: 0;">
+          <div style="font-size: 0.73rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Puan Üstünlüğü Lideri</div>
+          <div style="font-size: 1.02rem; font-weight: 800; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${leaderText}</div>
+          <div style="font-size: 0.74rem; color: #d97706; font-weight: 700;">${leaderScoreText}</div>
+        </div>
+      </div>
+    `;
+  }
+
+  // Tablo Gövdesi Render
+  const tbody = document.getElementById('exam-stats-ranking-tbody');
+  if (!tbody) return;
+  tbody.innerHTML = '';
+
+  if (targetExams.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="10" style="text-align: center; padding: 2.5rem 1rem; color: var(--text-muted);">
+          Rapor oluşturmak için lütfen yukarıdan en az bir sınav seçin.
+        </td>
+      </tr>
+    `;
+    return;
+  }
+
+  const searchInput = document.getElementById('exam-stats-student-search');
+  const searchQuery = searchInput ? searchInput.value.trim().toLocaleLowerCase('tr') : '';
+
+  const matchesSearch = (student) => {
+    if (!searchQuery) return true;
+    const fullName = `${student.name || ''} ${student.surname || ''}`.toLocaleLowerCase('tr');
+    const numStr = String(student.number || '').toLocaleLowerCase('tr');
+    return fullName.includes(searchQuery) || numStr.includes(searchQuery);
+  };
+
+  const filteredParticipants = stats.participants.filter(p => matchesSearch(p.student));
+  const filteredNonParticipants = stats.nonParticipants.filter(np => matchesSearch(np.student));
+
+  if (filteredParticipants.length === 0 && filteredNonParticipants.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="10" style="text-align: center; padding: 2.5rem 1rem; color: var(--text-muted);">
+          Aranan kriterlere uygun öğrenci bulunamadı.
+        </td>
+      </tr>
+    `;
+    return;
+  }
+
+  filteredParticipants.forEach(p => {
+    const st = p.student;
+    const sName = String(st.name || '');
+    const sSurname = String(st.surname || '');
+    const initials = `${sName[0] || ''}${sSurname[0] || ''}`;
+    const avatarHtml = st.photo
+      ? `<img src="${st.photo}" class="avatar-sm" style="width: 30px; height: 30px; object-fit: cover; border-radius: 50%; margin: 0; flex-shrink: 0;">`
+      : `<div class="avatar-sm" style="width: 30px; height: 30px; font-size: 0.76rem; margin: 0; background-color: var(--primary-light); color: var(--primary); text-transform: uppercase; display: flex; align-items: center; justify-content: center; border-radius: 50%; flex-shrink: 0;">${initials}</div>`;
+
+    const rankHtml = getExamRankBadgeHtml(p.rank);
+    const isExpanded = examStatsExpandedStudentIds.has(String(st.id));
+
+    const tr = document.createElement('tr');
+    tr.style.cursor = 'pointer';
+    tr.innerHTML = `
+      <td style="text-align: center; vertical-align: middle; padding: 0.6rem 0.4rem;">${rankHtml}</td>
+      <td style="text-align: center; vertical-align: middle; font-weight: 700; color: var(--text-secondary); padding: 0.6rem 0.4rem;">${st.number || '-'}</td>
+      <td style="vertical-align: middle; padding: 0.6rem 0.6rem;">
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+          ${avatarHtml}
+          <div>
+            <strong style="color: var(--text-primary); font-size: 0.88rem;">${sName} ${sSurname}</strong>
+            ${st.branch ? `<span class="badge" style="font-size: 0.68rem; padding: 0.08rem 0.35rem; margin-left: 0.3rem; background: var(--bg-secondary); border: 1px solid var(--border-color); color: var(--text-secondary);">${st.branch}</span>` : ''}
+          </div>
+        </div>
+      </td>
+      <td style="text-align: center; vertical-align: middle; padding: 0.6rem 0.4rem;">
+        <span class="badge" style="background: var(--bg-secondary); border: 1px solid var(--border-color); color: var(--text-primary); font-size: 0.76rem; font-weight: 700; padding: 0.2rem 0.55rem;">
+          ${p.enteredCount} / ${p.applicableExamCount} Sınav
+        </span>
+      </td>
+      <td style="text-align: center; vertical-align: middle; padding: 0.6rem 0.4rem;">
+        <div style="font-weight: 800; color: #059669; font-size: 0.94rem;">${p.totalCorrect}</div>
+        <div style="font-size: 0.68rem; color: var(--text-muted);">Ort: ${p.avgCorrect}</div>
+      </td>
+      <td style="text-align: center; vertical-align: middle; padding: 0.6rem 0.4rem;">
+        <div style="font-weight: 800; color: #dc2626; font-size: 0.94rem;">${p.totalWrong}</div>
+        <div style="font-size: 0.68rem; color: var(--text-muted);">Ort: ${p.avgWrong}</div>
+      </td>
+      <td style="text-align: center; vertical-align: middle; padding: 0.6rem 0.4rem;">
+        <div style="font-weight: 700; color: #64748b; font-size: 0.9rem;">${p.totalBlank}</div>
+      </td>
+      <td style="text-align: center; vertical-align: middle; padding: 0.6rem 0.4rem;">
+        <div style="font-weight: 800; color: var(--primary); font-size: 0.96rem;">${p.totalNet} Net</div>
+        <div style="font-size: 0.69rem; color: var(--text-muted); font-weight: 600;">Ort: ${p.avgNet} N</div>
+      </td>
+      <td style="text-align: center; vertical-align: middle; padding: 0.6rem 0.4rem;">
+        <span class="badge" style="background: rgba(79, 70, 229, 0.14); color: var(--primary); border: 1px solid rgba(79, 70, 229, 0.3); font-size: 0.92rem; font-weight: 800; padding: 0.28rem 0.65rem; border-radius: 8px;">
+          ${p.avgScore} Puan
+        </span>
+      </td>
+      <td style="text-align: center; vertical-align: middle; padding: 0.6rem 0.4rem;">
+        <button type="button" class="btn btn-sm btn-secondary btn-toggle-stu-exam-breakdown" style="font-size: 0.74rem; padding: 0.25rem 0.55rem; height: auto;">
+          ${isExpanded ? 'Gizle ▲' : 'Detay ▼'}
+        </button>
+      </td>
+    `;
+
+    const toggleExpand = () => {
+      const key = String(st.id);
+      if (examStatsExpandedStudentIds.has(key)) {
+        examStatsExpandedStudentIds.delete(key);
+      } else {
+        examStatsExpandedStudentIds.add(key);
+      }
+      renderWeeklyExamStatsPanel();
+    };
+
+    tr.addEventListener('click', toggleExpand);
+    tbody.appendChild(tr);
+
+    if (isExpanded) {
+      const detailTr = document.createElement('tr');
+      detailTr.style.background = 'var(--bg-secondary)';
+      const breakdownCards = p.examBreakdown.map((eb, idx) => {
+        const wShort = window.formatWeekTR ? window.formatWeekTR(eb.weekId, 'short') : (eb.weekId || '');
+        if (!eb.participated) {
+          return `
+            <div style="padding: 0.5rem 0.65rem; border-radius: 6px; border: 1px dashed var(--border-color); background: var(--bg-primary); opacity: 0.65; font-size: 0.75rem;">
+              <div style="font-weight: 700; color: var(--text-secondary);">${idx + 1}. ${eb.examName}</div>
+              <div style="color: #f59e0b; font-style: italic; margin-top: 2px;">Sınava Katılmadı</div>
+            </div>
+          `;
+        }
+        return `
+          <div style="padding: 0.5rem 0.65rem; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-primary); font-size: 0.76rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; gap: 0.4rem; margin-bottom: 3px;">
+              <strong style="color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${idx + 1}. ${eb.examName}</strong>
+              <span class="badge" style="background: rgba(79, 70, 229, 0.12); color: var(--primary); font-weight: 800; font-size: 0.72rem; padding: 1px 6px;">${eb.score} Puan</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 0.45rem; font-size: 0.72rem;">
+              ${wShort ? `<span style="color: var(--text-muted);">${wShort} •</span>` : ''}
+              <span style="color: #059669; font-weight: 700;">${eb.correct}D</span>
+              <span style="color: #dc2626; font-weight: 700;">${eb.wrong}Y</span>
+              <span style="color: #64748b; font-weight: 600;">${eb.blank}B</span>
+              <strong style="color: var(--primary); margin-left: auto;">${eb.net} Net</strong>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      detailTr.innerHTML = `
+        <td colspan="10" style="padding: 0.75rem 1rem; border-bottom: 2px solid var(--border-color);">
+          <div style="font-size: 0.76rem; font-weight: 700; color: var(--primary); margin-bottom: 0.5rem;">
+            📌 ${sName} ${sSurname} — Seçilen Aralıktaki Sınav Karnesi (${p.enteredCount} / ${p.applicableExamCount} Sınav • Toplam: ${p.totalCorrect} Doğru, ${p.totalWrong} Yanlış, ${p.totalBlank} Boş, ${p.totalNet} Net • Ortalama: ${p.avgScore} Puan)
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 0.5rem;">
+            ${breakdownCards}
+          </div>
+        </td>
+      `;
+      tbody.appendChild(detailTr);
+    }
+  });
+
+  // Seçilen sınav aralığında hiçbir sınava katılmamış öğrenciler
+  filteredNonParticipants.forEach(np => {
+    const st = np.student;
+    const tr = document.createElement('tr');
+    tr.style.opacity = '0.68';
+    tr.innerHTML = `
+      <td style="text-align: center; vertical-align: middle; color: var(--text-muted); font-style: italic; padding: 0.55rem 0.4rem;">-</td>
+      <td style="text-align: center; vertical-align: middle; color: var(--text-muted); padding: 0.55rem 0.4rem;">${st.number || '-'}</td>
+      <td style="vertical-align: middle; padding: 0.55rem 0.6rem; color: var(--text-muted);">
+        <strong>${st.name || ''} ${st.surname || ''}</strong>
+        <span style="font-size: 0.73rem; font-style: italic; color: #f59e0b; margin-left: 0.35rem;">(Sınava Katılmadı)</span>
+      </td>
+      <td style="text-align: center; vertical-align: middle; color: var(--text-muted); padding: 0.55rem 0.4rem;">0 / ${np.applicableExamCount}</td>
+      <td style="text-align: center; vertical-align: middle; color: var(--text-muted); padding: 0.55rem 0.4rem;">-</td>
+      <td style="text-align: center; vertical-align: middle; color: var(--text-muted); padding: 0.55rem 0.4rem;">-</td>
+      <td style="text-align: center; vertical-align: middle; color: var(--text-muted); padding: 0.55rem 0.4rem;">-</td>
+      <td style="text-align: center; vertical-align: middle; color: var(--text-muted); padding: 0.55rem 0.4rem;">-</td>
+      <td style="text-align: center; vertical-align: middle; color: var(--text-muted); padding: 0.55rem 0.4rem;">-</td>
+      <td style="text-align: center; vertical-align: middle; color: var(--text-muted); padding: 0.55rem 0.4rem;">-</td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  if (window.safeCreateIcons) window.safeCreateIcons();
+  else if (window.lucide) window.lucide.createIcons();
+}
+
+function printCurrentExamStatsReport() {
+  const state = (stateManager && stateManager.state) ? stateManager.state : stateManager.loadState();
+  const isMiddle = state.educationLevel === 'middle';
+  const allExams = getSortedWeeklyExams(state);
+  const targetExams = getTargetExamsForStatsRange(allExams, examStatsRangeMode, examStatsSelectedBranch, isMiddle);
+
+  if (targetExams.length === 0) {
+    if (toastCallback) toastCallback('Yazdırılacak sınav aralığında sınav bulunamadı!', 'warning');
+    else if (window.showToast) window.showToast('Yazdırılacak sınav aralığında sınav bulunamadı!', 'warning');
+    return;
+  }
+
+  let reportTitle = 'TÜM SINAVLAR ÖĞRENCİ SIRALAMA VE İSTATİSTİK RAPORU';
+  let selectedValueKey = 'all_avg';
+  if (examStatsRangeMode === 'last_5') {
+    reportTitle = `SON ${targetExams.length} SINAV ÖĞRENCİ SIRALAMA VE İSTATİSTİK RAPORU`;
+    selectedValueKey = 'last_5';
+  } else if (examStatsRangeMode === 'last_10') {
+    reportTitle = `SON ${targetExams.length} SINAV ÖĞRENCİ SIRALAMA VE İSTATİSTİK RAPORU`;
+    selectedValueKey = 'last_10';
+  } else if (examStatsRangeMode === 'last_3') {
+    reportTitle = `SON ${targetExams.length} SINAV ÖĞRENCİ SIRALAMA VE İSTATİSTİK RAPORU`;
+    selectedValueKey = 'last_3';
+  } else if (examStatsRangeMode === 'custom') {
+    reportTitle = `SEÇİLİ SINAVLAR (${targetExams.length} SINAV) ÖĞRENCİ SIRALAMA VE İSTATİSTİK RAPORU`;
+    selectedValueKey = 'custom_select';
+  }
+
+  const reportSubtitle = `Rapor Tarihi: ${new Date().toLocaleDateString('tr-TR')}`;
+  const examDetailText = `Toplam ${targetExams.length} Sınav`;
+  const notes = `Bu rapor, seçilen ${targetExams.length} sınav (${targetExams.map(e => e.examName || 'Sınav').join(', ')}) kapsamında öğrencilerin toplam doğru, toplam yanlış, toplam boş, toplam net sayılarını ve sınav not ortalamalarını puan üstünlüğüne göre sıralı olarak gösterir.`;
+
+  prepareAdvancedPrintLayout(reportTitle, reportSubtitle, examDetailText, notes, targetExams, true, selectedValueKey, examStatsSelectedBranch);
+
+  document.body.classList.add('print-weekly');
+  window.print();
+
+  window.addEventListener('afterprint', () => {
+    document.body.classList.remove('print-weekly');
+  }, { once: true });
+
+  setTimeout(() => {
+    document.body.classList.remove('print-weekly');
+  }, 500);
+}
+
+function renderExamsList() {
+  ensureOlderExamsModalEvents();
+  ensureWeeklyExamStatsEvents();
+  let state = (stateManager && stateManager.state) ? stateManager.state : stateManager.loadState();
+  const examsList = document.getElementById('weekly-exams-list');
+  const emptyState = document.getElementById('weekly-exams-empty-state');
+  const olderBar = document.getElementById('weekly-older-exams-bar');
+  const headerOlderBtn = document.getElementById('btn-open-older-exams-modal');
+  const headerOlderBtnText = document.getElementById('btn-open-older-exams-modal-text');
+  const countBadge = document.getElementById('weekly-exams-count-badge');
+  const btnHeaderStats = document.getElementById('btn-open-exam-stats-panel');
+  const btnQuickStats = document.getElementById('btn-quick-open-exam-stats');
+  const statsCard = document.getElementById('weekly-exam-stats-card');
+  
+  if (!examsList) return;
+  examsList.innerHTML = '';
+
+  // Sınavları al ve oluşturulma tarihine göre azalan sırada sırala (yeni format)
+  let exams = getSortedWeeklyExams(state);
 
   if (countBadge) {
     if (exams.length > 0) {
@@ -6410,9 +7377,16 @@ function renderExamsList() {
     if (emptyState) emptyState.style.display = 'block';
     if (olderBar) olderBar.style.display = 'none';
     if (headerOlderBtn) headerOlderBtn.style.display = 'none';
+    if (btnHeaderStats) btnHeaderStats.style.display = 'none';
+    if (btnQuickStats) btnQuickStats.style.display = 'none';
+    if (btnPrintReport) btnPrintReport.style.display = 'none';
+    if (statsCard) statsCard.style.display = 'none';
     return;
   } else {
     if (emptyState) emptyState.style.display = 'none';
+    if (btnHeaderStats) btnHeaderStats.style.display = 'inline-flex';
+    if (btnQuickStats) btnQuickStats.style.display = 'inline-flex';
+    if (btnPrintReport) btnPrintReport.style.display = 'inline-flex';
   }
 
   // Masaüstünde sadece son 3 sınav kart olarak gösterilir
@@ -6508,6 +7482,8 @@ function renderExamsList() {
       olderBar.innerHTML = '';
     }
   }
+
+  renderWeeklyExamStatsPanel();
 
   if (window.safeCreateIcons) window.safeCreateIcons();
   else if (window.lucide) window.lucide.createIcons();
@@ -7167,28 +8143,162 @@ function getPreviousExamScore(studentId) {
   return null;
 }
 
-function prepareAdvancedPrintLayout(reportTitle, reportSubtitle, examDetailText, notes, examsToPrint, isAverageReport, selectedValue) {
+function prepareAdvancedPrintLayout(reportTitle, reportSubtitle, examDetailText, notes, examsToPrint, isAverageReport, selectedValue, customBranchFilter) {
   const state = stateManager.loadState();
   const printTitle = document.getElementById('print-title');
   const printTbody = document.getElementById('print-exam-scores-tbody');
+  const printThead = document.getElementById('print-exam-scores-thead');
+  const printIncludedBox = document.getElementById('print-included-exams-box');
+  const printNotesContent = document.getElementById('print-notes-content');
+  const printListHeading = document.getElementById('print-list-heading');
+  const labelDate = document.getElementById('print-meta-label-date');
+  const labelQuestions = document.getElementById('print-meta-label-questions');
+  const labelDuration = document.getElementById('print-meta-label-duration');
+  const labelAverage = document.getElementById('print-meta-label-average');
+  const metaDate = document.getElementById('print-meta-date');
+  const metaQuestions = document.getElementById('print-meta-questions');
+  const metaDuration = document.getElementById('print-meta-duration');
+  const metaAverage = document.getElementById('print-meta-average');
   
   if (!printTbody) return;
   printTbody.innerHTML = '';
 
-  let students = [...state.students];
+  if (printNotesContent) {
+    printNotesContent.textContent = notes || 'Herhangi bir not girilmemiş.';
+  }
 
-  if (state.educationLevel === 'middle') {
-    if (isAverageReport) {
-      const activeBranch = document.getElementById('dash-select-branch') ? document.getElementById('dash-select-branch').value : 'all';
-      if (activeBranch && activeBranch !== 'all') {
-        students = students.filter(s => s.branch === activeBranch);
-      }
-    } else {
-      const currentExam = examsToPrint[0];
-      if (currentExam && currentExam.branch) {
-        students = students.filter(s => s.branch === currentExam.branch);
-      }
+  let branchFilterToUse = customBranchFilter || 'all';
+  if (state.educationLevel === 'middle' && (!customBranchFilter || customBranchFilter === 'all')) {
+    const activeBranch = document.getElementById('dash-select-branch') ? document.getElementById('dash-select-branch').value : 'all';
+    if (activeBranch && activeBranch !== 'all') {
+      branchFilterToUse = activeBranch;
     }
+  }
+
+  if (isAverageReport) {
+    // 1. Çoklu Sınav Sıralama ve İstatistik Raporu (Puan Üstünlüğüne Göre Sıralı, Toplam D/Y/B/Net ve Not Ortalaması)
+    const stats = computeMultiExamStudentRankingStats(examsToPrint, branchFilterToUse);
+
+    if (printTitle) {
+      printTitle.textContent = reportTitle || 'ÖĞRENCİ SINAV SIRALAMA VE İSTATİSTİK RAPORU';
+    }
+    if (printListHeading) {
+      printListHeading.textContent = 'Öğrenci Puan Üstünlüğü Sıralaması ve Sınav İstatistikleri';
+    }
+
+    if (labelDate) labelDate.textContent = 'Rapor Tarihi';
+    if (labelQuestions) labelQuestions.textContent = 'İncelenen Sınav';
+    if (labelDuration) labelDuration.textContent = 'Toplam Soru';
+    if (labelAverage) labelAverage.textContent = 'Sınıf Not Ortalaması';
+
+    if (metaDate) metaDate.textContent = new Date().toLocaleDateString('tr-TR');
+    if (metaQuestions) metaQuestions.textContent = `${examsToPrint.length} Sınav`;
+    if (metaDuration) metaDuration.textContent = `${stats.totalQuestionsSum} Soru`;
+    if (metaAverage) metaAverage.textContent = `${stats.classAvgScore} Puan`;
+
+    if (printIncludedBox) {
+      printIncludedBox.style.display = 'block';
+      const examNamesList = examsToPrint.map((e, idx) => {
+        const wShort = window.formatWeekTR ? window.formatWeekTR(e.weekId, 'short') : (e.weekId || '');
+        return `${idx + 1}) ${e.examName || 'Sınav'} (${e.totalQuestions || 0} Soru${wShort ? ' - ' + wShort : ''})`;
+      }).join(' • ');
+      printIncludedBox.innerHTML = `<strong>Kapsamdaki Sınavlar (${examsToPrint.length} Sınav):</strong> ${examNamesList}`;
+    }
+
+    if (printThead) {
+      printThead.innerHTML = `
+        <tr>
+          <th style="width: 7%; text-align: center; border-bottom: 2px solid #ccc; background: #f1f5f9; padding: 0.5rem 0.25rem;">Sıra</th>
+          <th style="width: 7%; text-align: center; border-bottom: 2px solid #ccc; background: #f1f5f9; padding: 0.5rem 0.25rem;">Okul No</th>
+          <th style="width: 22%; border-bottom: 2px solid #ccc; text-align: left; background: #f1f5f9; padding: 0.5rem;">Adı Soyadı</th>
+          <th style="width: 8%; text-align: center; border-bottom: 2px solid #ccc; background: #f1f5f9; padding: 0.5rem 0.25rem;">Şube</th>
+          <th style="width: 10%; text-align: center; border-bottom: 2px solid #ccc; background: #f1f5f9; padding: 0.5rem 0.25rem;">Katılım</th>
+          <th style="width: 11%; text-align: center; border-bottom: 2px solid #ccc; background: #f1f5f9; padding: 0.5rem 0.25rem;">TOPLAM DOĞRU</th>
+          <th style="width: 11%; text-align: center; border-bottom: 2px solid #ccc; background: #f1f5f9; padding: 0.5rem 0.25rem;">TOPLAM YANLIŞ</th>
+          <th style="width: 8%; text-align: center; border-bottom: 2px solid #ccc; background: #f1f5f9; padding: 0.5rem 0.25rem;">TOPLAM BOŞ</th>
+          <th style="width: 12%; text-align: center; border-bottom: 2px solid #ccc; background: #f1f5f9; padding: 0.5rem 0.25rem;">TOPLAM NET</th>
+          <th style="width: 12%; text-align: center; border-bottom: 2px solid #ccc; background: #f1f5f9; padding: 0.5rem 0.25rem;">NOT ORTALAMASI</th>
+        </tr>
+      `;
+    }
+
+    if (stats.participants.length === 0 && stats.nonParticipants.length === 0) {
+      printTbody.innerHTML = '<tr><td colspan="10" style="text-align: center; padding: 1.5rem; color: var(--text-muted);">Öğrenci bulunamadı.</td></tr>';
+      return;
+    }
+
+    stats.participants.forEach(p => {
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td style="text-align: center; padding: 0.48rem 0.25rem; border-bottom: 1px solid #ddd; font-weight: 800; background: rgba(0,0,0,0.01);">${p.rank}</td>
+        <td style="text-align: center; padding: 0.48rem 0.25rem; border-bottom: 1px solid #ddd; font-weight: 600;">${p.student.number || '-'}</td>
+        <td style="padding: 0.48rem 0.5rem; border-bottom: 1px solid #ddd;"><strong>${p.student.name || ''} ${p.student.surname || ''}</strong></td>
+        <td style="text-align: center; padding: 0.48rem 0.25rem; border-bottom: 1px solid #ddd;">${p.student.branch || '-'}</td>
+        <td style="text-align: center; padding: 0.48rem 0.25rem; border-bottom: 1px solid #ddd; font-weight: 600;">${p.enteredCount} / ${p.applicableExamCount}</td>
+        <td style="text-align: center; padding: 0.48rem 0.25rem; border-bottom: 1px solid #ddd; color: #059669; font-weight: 700;">${p.totalCorrect}</td>
+        <td style="text-align: center; padding: 0.48rem 0.25rem; border-bottom: 1px solid #ddd; color: #dc2626; font-weight: 700;">${p.totalWrong}</td>
+        <td style="text-align: center; padding: 0.48rem 0.25rem; border-bottom: 1px solid #ddd; color: #64748b; font-weight: 600;">${p.totalBlank}</td>
+        <td style="text-align: center; padding: 0.48rem 0.25rem; border-bottom: 1px solid #ddd; font-weight: 800;">
+          ${p.totalNet}
+          <div style="font-size: 0.68rem; color: #64748b; font-weight: normal;">Ort: ${p.avgNet} N</div>
+        </td>
+        <td style="text-align: center; padding: 0.48rem 0.25rem; border-bottom: 1px solid #ddd; font-weight: 800; color: #1e1b4b; font-size: 0.98rem;">${p.avgScore}</td>
+      `;
+      printTbody.appendChild(row);
+    });
+
+    stats.nonParticipants.forEach(np => {
+      const std = np.student;
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td style="text-align: center; padding: 0.45rem 0.25rem; border-bottom: 1px solid #eee; color: #64748b; font-style: italic;">-</td>
+        <td style="text-align: center; padding: 0.45rem 0.25rem; border-bottom: 1px solid #eee; color: #64748b;">${std.number || '-'}</td>
+        <td style="padding: 0.45rem 0.5rem; border-bottom: 1px solid #eee; color: #64748b;"><strong>${std.name || ''} ${std.surname || ''}</strong> <span style="font-size: 0.72rem; font-style: italic; color: #d97706;">(Katılmadı)</span></td>
+        <td style="text-align: center; padding: 0.45rem 0.25rem; border-bottom: 1px solid #eee; color: #64748b;">${std.branch || '-'}</td>
+        <td style="text-align: center; padding: 0.45rem 0.25rem; border-bottom: 1px solid #eee; color: #64748b;">0 / ${np.applicableExamCount}</td>
+        <td style="text-align: center; padding: 0.45rem 0.25rem; border-bottom: 1px solid #eee; color: #64748b;">-</td>
+        <td style="text-align: center; padding: 0.45rem 0.25rem; border-bottom: 1px solid #eee; color: #64748b;">-</td>
+        <td style="text-align: center; padding: 0.45rem 0.25rem; border-bottom: 1px solid #eee; color: #64748b;">-</td>
+        <td style="text-align: center; padding: 0.45rem 0.25rem; border-bottom: 1px solid #eee; color: #64748b;">-</td>
+        <td style="text-align: center; padding: 0.45rem 0.25rem; border-bottom: 1px solid #eee; color: #64748b;">-</td>
+      `;
+      printTbody.appendChild(row);
+    });
+    return;
+  }
+
+  // 2. Tek Sınav Raporu Hesaplama
+  if (printIncludedBox) {
+    printIncludedBox.style.display = 'none';
+    printIncludedBox.innerHTML = '';
+  }
+  if (printListHeading) {
+    printListHeading.textContent = 'Sınav Sonuç Listesi';
+  }
+  if (labelDate) labelDate.textContent = 'Tarih';
+  if (labelQuestions) labelQuestions.textContent = 'Soru Sayısı';
+  if (labelDuration) labelDuration.textContent = 'Sınav Süresi';
+  if (labelAverage) labelAverage.textContent = 'Ortalama Puan';
+  if (printThead) {
+    printThead.innerHTML = `
+      <tr>
+        <th style="width: 8%; text-align: center; border-bottom: 2px solid #ccc; background: #f1f5f9; padding: 0.5rem 0.25rem;">Sıra No</th>
+        <th style="width: 25%; border-bottom: 2px solid #ccc; text-align: left; background: #f1f5f9; padding: 0.5rem;">Adı Soyadı</th>
+        <th style="width: 10%; text-align: center; border-bottom: 2px solid #ccc; background: #f1f5f9; padding: 0.5rem 0.25rem;">Şubesi</th>
+        <th style="width: 9%; text-align: center; border-bottom: 2px solid #ccc; background: #f1f5f9; padding: 0.5rem 0.25rem;">DOĞRU</th>
+        <th style="width: 9%; text-align: center; border-bottom: 2px solid #ccc; background: #f1f5f9; padding: 0.5rem 0.25rem;">YANLIŞ</th>
+        <th style="width: 9%; text-align: center; border-bottom: 2px solid #ccc; background: #f1f5f9; padding: 0.5rem 0.25rem;">BOŞ</th>
+        <th style="width: 10%; text-align: center; border-bottom: 2px solid #ccc; background: #f1f5f9; padding: 0.5rem 0.25rem;">NET</th>
+        <th style="width: 10%; text-align: center; border-bottom: 2px solid #ccc; background: #f1f5f9; padding: 0.5rem 0.25rem;">PUAN</th>
+        <th style="width: 10%; text-align: center; border-bottom: 2px solid #ccc; background: #f1f5f9; padding: 0.5rem 0.25rem;">YÖN</th>
+      </tr>
+    `;
+  }
+
+  let students = [...state.students];
+  const currentExam = examsToPrint[0];
+  if (state.educationLevel === 'middle' && currentExam && currentExam.branch) {
+    students = students.filter(s => s.branch === currentExam.branch);
   }
 
   if (students.length === 0) {
@@ -7199,89 +8309,13 @@ function prepareAdvancedPrintLayout(reportTitle, reportSubtitle, examDetailText,
   const participants = [];
   const nonParticipants = [];
 
-  if (isAverageReport) {
-    // 1. Ortalama Raporu Hesaplama
-    students.forEach(std => {
-      let totalCorrect = 0;
-      let totalWrong = 0;
-      let totalBlank = 0;
-      let totalNet = 0;
-      let totalScore = 0;
-      let examCount = 0;
-
-      examsToPrint.forEach(ex => {
-        const res = (ex.studentResults && ex.studentResults[std.id]) || null;
-        if (res && (res.correct !== undefined || res.score !== undefined)) {
-          totalCorrect += res.correct || 0;
-          totalWrong += res.wrong || 0;
-          totalBlank += res.blank || 0;
-          totalNet += res.net || 0;
-          totalScore += res.score || 0;
-          examCount++;
-        }
-      });
-
-      if (examCount > 0) {
-        participants.push({
-          student: std,
-          correct: Number((totalCorrect / examCount).toFixed(2)),
-          wrong: Number((totalWrong / examCount).toFixed(2)),
-          blank: Number((totalBlank / examCount).toFixed(2)),
-          net: Number((totalNet / examCount).toFixed(2)),
-          score: Number((totalScore / examCount).toFixed(2)),
-          directionHtml: '<span style="color: #64748b;">-</span>'
-        });
-      } else {
-        nonParticipants.push(std);
-      }
-    });
-
-    // Başarı sıralamasına göre sırala
-    participants.sort((a, b) => {
-      if (b.net !== a.net) return b.net - a.net;
-      if (b.score !== a.score) return b.score - a.score;
-      return a.student.name.localeCompare(b.student.name, 'tr');
-    });
-
-    nonParticipants.sort((a, b) => a.name.localeCompare(b.name, 'tr'));
-
-    // Meta box contents for average reports
-    const selectedWeek = stateManager.getSelectedWeek();
-    const formattedWeek = window.formatWeekTR ? window.formatWeekTR(selectedWeek, 'full') : selectedWeek;
-
-    const examDateText = selectedValue === 'week_avg' ? formattedWeek : 'Tüm Dönem';
-    
-    const questionCounts = [...new Set(examsToPrint.map(e => e.totalQuestions))];
-    const questionsText = questionCounts.length === 1 ? `${questionCounts[0]} Soru` : 'Değişken';
-
-    const durations = [...new Set(examsToPrint.map(e => e.duration))];
-    const durationText = durations.length === 1 ? `${durations[0]} Dk` : 'Değişken';
-
-    const totalScoresSum = participants.reduce((sum, p) => sum + p.score, 0);
-    const avgScoreText = participants.length > 0 ? (totalScoresSum / participants.length).toFixed(2) + ' Puan' : '0 Puan';
-
-    if (printTitle) printTitle.textContent = selectedValue === 'week_avg' ? 'HAFTALIK SINAV ORTALAMALARI SINAV SONUÇ RAPORU' : 'TÜM SINAVLARIN GENEL ORTALAMASI SINAV SONUÇ RAPORU';
-    
-    const metaDate = document.getElementById('print-meta-date');
-    const metaQuestions = document.getElementById('print-meta-questions');
-    const metaDuration = document.getElementById('print-meta-duration');
-    const metaAverage = document.getElementById('print-meta-average');
-
-    if (metaDate) metaDate.textContent = examDateText;
-    if (metaQuestions) metaQuestions.textContent = questionsText;
-    if (metaDuration) metaDuration.textContent = durationText;
-    if (metaAverage) metaAverage.textContent = avgScoreText;
-
-  } else {
-    // 2. Tek Sınav Raporu Hesaplama
-    const currentExam = examsToPrint[0];
-
+  {
     // Bir önceki sınavı tespit et (aynı şube)
     const sameBranchExams = (state.weeklyEvaluations || []).filter(e => e.branch === currentExam.branch);
     sameBranchExams.sort((a, b) => {
       const getTimestamp = (examItem) => {
         if (examItem.createdAt) return new Date(examItem.createdAt).getTime();
-        return parseInt(examItem.id.replace('exam_', '')) || 0;
+        return parseInt(String(examItem.id || '').replace('exam_', '')) || 0;
       };
       return getTimestamp(a) - getTimestamp(b);
     });
@@ -7297,18 +8331,18 @@ function prepareAdvancedPrintLayout(reportTitle, reportSubtitle, examDetailText,
     if (prevExam) {
       const prevParticipants = [];
       students.forEach(std => {
-        const res = (prevExam.studentResults && prevExam.studentResults[std.id]) || null;
-        if (res && (res.correct !== undefined || res.score !== undefined)) {
+        const m = extractStudentExamMetrics(prevExam, std);
+        if (m.participated) {
           prevParticipants.push({
             studentId: std.id,
-            net: res.net || 0,
-            score: res.score || 0
+            net: m.net || 0,
+            score: m.score || 0
           });
         }
       });
       prevParticipants.sort((a, b) => {
-        if (b.net !== a.net) return b.net - a.net;
         if (b.score !== a.score) return b.score - a.score;
+        if (b.net !== a.net) return b.net - a.net;
         return 0;
       });
       prevParticipants.forEach((p, idx) => {
@@ -7319,18 +8353,18 @@ function prepareAdvancedPrintLayout(reportTitle, reportSubtitle, examDetailText,
     // Bu sınavdaki sıralamaları çıkar
     const currentParticipantsList = [];
     students.forEach(std => {
-      const res = (currentExam.studentResults && currentExam.studentResults[std.id]) || null;
-      if (res && (res.correct !== undefined || res.score !== undefined)) {
+      const m = extractStudentExamMetrics(currentExam, std);
+      if (m.participated) {
         currentParticipantsList.push({
           studentId: std.id,
-          net: res.net || 0,
-          score: res.score || 0
+          net: m.net || 0,
+          score: m.score || 0
         });
       }
     });
     currentParticipantsList.sort((a, b) => {
-      if (b.net !== a.net) return b.net - a.net;
       if (b.score !== a.score) return b.score - a.score;
+      if (b.net !== a.net) return b.net - a.net;
       return 0;
     });
     const currentRankMap = {};
@@ -7340,15 +8374,15 @@ function prepareAdvancedPrintLayout(reportTitle, reportSubtitle, examDetailText,
 
     // Öğrenci listesini oluştur
     students.forEach(std => {
-      const res = (currentExam.studentResults && currentExam.studentResults[std.id]) || null;
-      if (res && (res.correct !== undefined || res.score !== undefined)) {
-        // Yön göstergesi hesapla
+      const m = extractStudentExamMetrics(currentExam, std);
+      const res = (currentExam.studentResults && (currentExam.studentResults[std.id] || (std.number ? currentExam.studentResults[String(std.number)] : null))) || null;
+      if (m.participated) {
         let directionHtml = '<span style="color: #64748b;">-</span>';
         const curRank = currentRankMap[std.id];
         const prevRank = prevRankMap[std.id];
 
         if (prevRank && curRank) {
-          const diff = prevRank - curRank; // Örn: 5.likten 2.liğe = 3 (Yükseldi)
+          const diff = prevRank - curRank;
           if (diff > 0) {
             directionHtml = `<span style="color: #10b981; font-weight: bold;">▲ ${diff}</span>`;
           } else if (diff < 0) {
@@ -7360,29 +8394,28 @@ function prepareAdvancedPrintLayout(reportTitle, reportSubtitle, examDetailText,
 
         participants.push({
           student: std,
-          correct: res.correct || 0,
-          wrong: res.wrong || 0,
-          blank: res.blank || 0,
-          net: res.net || 0,
-          score: res.score || 0,
+          correct: m.correct,
+          wrong: m.wrong,
+          blank: m.blank,
+          net: m.net,
+          score: m.score,
           directionHtml: directionHtml,
-          subjectBreakdown: res.subjectBreakdown
+          subjectBreakdown: res ? res.subjectBreakdown : null
         });
       } else {
         nonParticipants.push(std);
       }
     });
 
-    // Başarı sıralamasına göre sırala
+    // Puan üstünlüğüne göre sırala
     participants.sort((a, b) => {
-      if (b.net !== a.net) return b.net - a.net;
       if (b.score !== a.score) return b.score - a.score;
+      if (b.net !== a.net) return b.net - a.net;
       return a.student.name.localeCompare(b.student.name, 'tr');
     });
 
     nonParticipants.sort((a, b) => a.name.localeCompare(b.name, 'tr'));
 
-    // Meta box contents for specific exam
     let examDateText = '-';
     if (currentExam.createdAt) {
       try {
@@ -7390,7 +8423,7 @@ function prepareAdvancedPrintLayout(reportTitle, reportSubtitle, examDetailText,
       } catch(e) {}
     } else {
       try {
-        const ts = parseInt(currentExam.id.replace('exam_', ''));
+        const ts = parseInt(String(currentExam.id || '').replace('exam_', ''));
         if (ts) examDateText = new Date(ts).toLocaleDateString('tr-TR');
       } catch(e) {}
     }
@@ -7403,20 +8436,18 @@ function prepareAdvancedPrintLayout(reportTitle, reportSubtitle, examDetailText,
 
     if (printTitle) printTitle.textContent = `${currentExam.examName} SINAV SONUÇ RAPORU`;
 
-    const metaDate = document.getElementById('print-meta-date');
-    const metaQuestions = document.getElementById('print-meta-questions');
-    const metaDuration = document.getElementById('print-meta-duration');
-    const metaAverage = document.getElementById('print-meta-average');
-
     if (metaDate) metaDate.textContent = examDateText;
     if (metaQuestions) metaQuestions.textContent = questionsText;
     if (metaDuration) metaDuration.textContent = durationText;
     if (metaAverage) metaAverage.textContent = avgScoreText;
   }
 
-  // 3. Tablo Satırlarını Render Et
+  // 3. Tek Sınav Tablo Satırlarını Render Et
   let ranking = 1;
-  participants.forEach(p => {
+  participants.forEach((p, idx) => {
+    if (idx > 0 && p.score < participants[idx - 1].score) {
+      ranking = idx + 1;
+    }
     let breakdownPrintHtml = '';
     if (p.subjectBreakdown && typeof p.subjectBreakdown === 'object') {
       const parts = Object.values(p.subjectBreakdown).map(b => `${b.subjectName || b.name || 'Ders'}: ${b.net !== undefined ? b.net : b.correct}N`);
@@ -7441,7 +8472,6 @@ function prepareAdvancedPrintLayout(reportTitle, reportSubtitle, examDetailText,
       <td style="text-align: center; padding: 0.5rem 0.25rem; border-bottom: 1px solid #ddd;">${p.directionHtml}</td>
     `;
     printTbody.appendChild(row);
-    ranking++;
   });
 
   // Sınava girmeyenleri ekle

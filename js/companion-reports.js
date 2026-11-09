@@ -33,6 +33,29 @@
     return `${day} ${month}`;
   }
 
+  function toLocalISO(dateObj) {
+    const d = dateObj || new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  }
+
+  function getISOWeekLocal(dateInput) {
+    if (typeof window.getISOWeek === 'function') {
+      return window.getISOWeek(dateInput);
+    }
+    const date = dateInput ? (dateInput instanceof Date ? dateInput : new Date(dateInput)) : new Date();
+    if (isNaN(date.getTime())) return '';
+    const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+    const dayNum = d.getUTCDay() || 7;
+    d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+    const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+    const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+    const weekStr = weekNo < 10 ? '0' + weekNo : weekNo;
+    return `${d.getUTCFullYear()}-W${weekStr}`;
+  }
+
   function getWeekDateRange(dateObj) {
     const d = new Date(dateObj || new Date());
     const day = d.getDay();
@@ -69,8 +92,17 @@
       }
       try {
         const raw = localStorage.getItem(STORAGE_KEY) || localStorage.getItem('sinif_asistani_state_v3');
-        if (raw) return JSON.parse(raw);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (window.CompanionOmr && window.CompanionOmr._memoryData && Array.isArray(window.CompanionOmr._memoryData.weeklyEvaluations)) {
+            parsed.weeklyEvaluations = window.CompanionOmr._memoryData.weeklyEvaluations;
+          }
+          return parsed;
+        }
       } catch (e) {}
+      if (window.CompanionOmr && window.CompanionOmr._memoryData) {
+        return window.CompanionOmr._memoryData;
+      }
       return { students: [], performance: [], homeworks: [], books: { library: [], transactions: [] }, weeklyEvaluations: [] };
     },
 
@@ -218,7 +250,7 @@
       const teacher = this.getTeacherName();
       const dateStr = formatDateTurkish(new Date());
       const now = new Date();
-      const todayISO = now.toISOString().slice(0, 10); // YYYY-MM-DD
+      const todayISO = toLocalISO(now); // YYYY-MM-DD (Yerel Saat)
 
       const data = this.getData();
       const students = this.getStudentsForActiveSection();
@@ -361,8 +393,10 @@ ${noteText}
       const students = this.getStudentsForActiveSection();
       const studentIdSet = new Set(students.map(s => String(s.id)));
 
-      // Son 7 güne veya haftaya ait başlangıç tarihi (Pazartesi 00:00)
-      const mondayIso = weekRange.monday.toISOString().slice(0, 10);
+      // Son 7 güne veya haftaya ait başlangıç tarihi (Pazartesi 00:00 - Yerel Saat)
+      const mondayIso = toLocalISO(weekRange.monday);
+      const currentIsoWeek = getISOWeekLocal(now);
+      const normSec = String(sec || '').replace(/[\/\-\s]/g, '').toUpperCase();
 
       // 1. HAFTANIN KİTAP KURTLARI
       const booksData = data.books || {};
@@ -432,57 +466,183 @@ ${noteText}
         behaviorReportText = '🌟 *HAFTANIN DAVRANIŞ & KATILIM ŞAMPİYONLARI*\n⭐ Hafta boyunca sınıf düzenine ve ders kurallarına uyan tüm öğrencilerimize teşekkür ederiz.';
       }
 
-      // 3. HAFTANIN ÖDEV YILDIZLARI
+      // 3. HAFTANIN ÖDEV YILDIZLARI (Tüm öğrenciler kısaltmasız listelenir)
       const hwList = Array.isArray(data.homeworks) ? data.homeworks : (Array.isArray(data.homework) ? data.homework : []);
       const weeklyHw = hwList.filter(h => {
-        const matchSec = !h.branch || h.branch === sec || h.branch === 'all';
-        const hDate = (h.dueDate || h.createdAt || '').slice(0, 10);
-        return matchSec && hDate >= mondayIso;
+        const hBranch = String(h.branch || '').replace(/[\/\-\s]/g, '').toUpperCase();
+        const matchSec = !hBranch || hBranch === normSec || hBranch === 'ALL';
+        const dueIso = (h.dueDate || '').slice(0, 10);
+        const createdIso = (h.createdAt || '').slice(0, 10);
+        return matchSec && (dueIso >= mondayIso || createdIso >= mondayIso);
+      });
+
+      // Yalnızca kontrolü yapılmış (en az 1 öğrencisi işaretlenmiş) ödevleri değerlendirmeye al
+      const checkedWeeklyHw = weeklyHw.filter(hw => {
+        const stMap = hw.status || {};
+        return Object.values(stMap).some(v => v === 'completed' || v === 'incomplete' || v === 'missing' || v === 'excused');
       });
 
       let hwReportText = '';
-      if (weeklyHw.length > 0) {
-        // Tüm bu haftaki ödevleri 'completed' olan öğrencileri bul
+      if (checkedWeeklyHw.length > 0) {
+        // Bu hafta kontrol edilen tüm ödevleri eksiksiz ('completed' veya 'excused', en az 1 'completed') yapan tüm öğrencileri bul
         const perfectStudents = [];
         students.forEach(s => {
           let allDone = true;
-          weeklyHw.forEach(hw => {
+          let hasCompleted = false;
+          checkedWeeklyHw.forEach(hw => {
             const st = (hw.status || {})[s.id];
-            if (st !== 'completed') allDone = false;
+            if (st === 'completed') {
+              hasCompleted = true;
+            } else if (st !== 'excused') {
+              allDone = false;
+            }
           });
-          if (allDone) {
+          if (allDone && hasCompleted) {
             perfectStudents.push(`${s.name} ${s.surname || ''}`.trim());
           }
         });
 
         if (perfectStudents.length > 0) {
-          const displayHwStars = perfectStudents.slice(0, 6).join(', ');
-          const moreCount = perfectStudents.length > 6 ? ` ve ${perfectStudents.length - 6} öğrencimiz daha` : '';
-          hwReportText = `📝 *HAFTANIN ÖDEV YILDIZLARI*\nBu hafta verilen tüm görev ve ödevleri eksiksiz tamamlayan yıldızlarımız:\n🎯 ${displayHwStars}${moreCount} 👏`;
+          const displayHwStars = perfectStudents.join(', ');
+          hwReportText = `📝 *HAFTANIN ÖDEV YILDIZLARI*\nBu hafta verilen tüm görev ve ödevleri eksiksiz tamamlayan yıldızlarımız (${perfectStudents.length} Öğrenci):\n🎯 ${displayHwStars} 👏`;
         } else {
-          hwReportText = `📝 *HAFTANIN ÖDEV TAKİBİ*\nBu hafta ${weeklyHw.length} adet ödev kontrolü gerçekleştirildi. Ödev sorumluluğuna özen gösteren öğrencilerimizi kutlarız.`;
+          hwReportText = `📝 *HAFTANIN ÖDEV TAKİBİ*\nBu hafta ${checkedWeeklyHw.length} adet ödev kontrolü gerçekleştirildi. Ödev sorumluluğuna özen gösteren öğrencilerimizi kutlarız.`;
         }
       } else {
         hwReportText = '📝 *HAFTANIN ÖDEV TAKİBİ*\nVerilen ödev ve çalışmaları düzenli yapan tüm öğrencilerimizi tebrik ederiz.';
       }
 
-      // 4. HAFTALIK DEĞERLENDİRME & SINAV SONUCU (Varsa)
+      // 4. HAFTALIK DEĞERLENDİRME & SINAV SONUÇLARI (Birden çok sınav varsa ayrı sınav başlıkları altında, ilk 5 öğrenci)
       let examReportText = '';
       const exams = Array.isArray(data.weeklyEvaluations) ? data.weeklyEvaluations : [];
-      const weeklyExam = exams.find(e => {
-        const eDate = (e.date || e.createdAt || '').slice(0, 10);
-        return eDate >= mondayIso;
+
+      // Sadece bu şubeye ait ve içinde öğrenci sonucu bulunan sınavları ayıkla
+      const extractExamParticipants = (exam) => {
+        const list = [];
+        const seenKeys = new Set();
+
+        const addEntry = (rawId, resObj) => {
+          if (!resObj || typeof resObj !== 'object') return;
+          const sNo = String(resObj.studentNo || resObj.studentNumber || '').trim();
+          const rawName = String(resObj.studentName || resObj.name || '').trim();
+          const normRawName = rawName.toLocaleLowerCase('tr-TR').replace(/\s+/g, ' ');
+
+          const matchedStu = students.find(s =>
+            String(s.id) === String(rawId) ||
+            (resObj.studentId && String(s.id) === String(resObj.studentId)) ||
+            (sNo && sNo !== '-' && String(s.number || '').trim() === sNo) ||
+            (sNo && sNo !== '-' && parseInt(s.number, 10) > 0 && parseInt(s.number, 10) === parseInt(sNo, 10)) ||
+            (!isNaN(parseInt(rawId, 10)) && parseInt(s.number, 10) > 0 && parseInt(s.number, 10) === parseInt(rawId, 10)) ||
+            (normRawName && `${s.name || ''} ${s.surname || ''}`.trim().toLocaleLowerCase('tr-TR').replace(/\s+/g, ' ') === normRawName)
+          );
+
+          // Eğer sınavda şube belirtilmemişse ve öğrenci bu şubeden değilse ve şube öğrencileri varsa kontrol et
+          const dedupKey = matchedStu
+            ? `stu_${matchedStu.id}`
+            : (sNo && sNo !== '-' ? `no_${sNo}` : (normRawName ? `name_${normRawName}` : `id_${rawId}`));
+
+          if (seenKeys.has(dedupKey)) return;
+          seenKeys.add(dedupKey);
+
+          const displayName = matchedStu
+            ? `${matchedStu.name || ''} ${matchedStu.surname || ''}`.trim()
+            : (rawName || `Öğrenci #${sNo || rawId}`);
+
+          const score = parseFloat(resObj.score != null ? resObj.score : 0) || 0;
+          const net = parseFloat(resObj.net != null ? resObj.net : (resObj.correct || 0)) || 0;
+          const correct = parseInt(resObj.correct, 10) || 0;
+          const wrong = parseInt(resObj.wrong, 10) || 0;
+          const updatedIso = (resObj.updatedAt || resObj.date || '').slice(0, 10);
+
+          list.push({
+            name: displayName,
+            score,
+            net,
+            correct,
+            wrong,
+            updatedIso,
+            isClassStudent: !!matchedStu
+          });
+        };
+
+        if (exam.studentResults && typeof exam.studentResults === 'object' && !Array.isArray(exam.studentResults)) {
+          Object.entries(exam.studentResults).forEach(([k, v]) => addEntry(k, v));
+        } else if (Array.isArray(exam.results) && exam.results.length > 0) {
+          exam.results.forEach((r, idx) => addEntry(r.studentId || idx, r));
+        } else if (exam.examScores && typeof exam.examScores === 'object') {
+          Object.entries(exam.examScores).forEach(([k, v]) => {
+            if (v && typeof v === 'object') addEntry(k, v);
+            else addEntry(k, { studentId: k, score: parseFloat(v) || 0 });
+          });
+        }
+
+        return list;
+      };
+
+      const candidateExams = [];
+      exams.forEach(e => {
+        if (!e || typeof e !== 'object') return;
+        const eBranch = String(e.branch || e.section || e.className || '').replace(/[\/\-\s]/g, '').toUpperCase();
+        const branchMatches = !eBranch || eBranch === normSec || eBranch === 'ALL';
+        const participants = extractExamParticipants(e);
+        if (participants.length === 0) return;
+
+        // Şube eşleşiyorsa veya katılımcıların içinde bu şubenin öğrencileri varsa
+        const hasClassStudents = participants.some(p => p.isClassStudent);
+        if (!branchMatches && !hasClassStudents) return;
+
+        const eDateIso = (e.date || '').slice(0, 10);
+        const eCreatedIso = (e.createdAt || '').slice(0, 10);
+        const eUpdatedIso = (e.updatedAt || '').slice(0, 10);
+        const normExamWeek = (typeof window.normalizeWeekId === 'function' && e.weekId)
+          ? window.normalizeWeekId(e.weekId)
+          : String(e.weekId || '').toUpperCase();
+        const hasRecentScan = participants.some(p => p.updatedIso && p.updatedIso >= mondayIso);
+
+        const isThisWeek =
+          (eDateIso && eDateIso >= mondayIso) ||
+          (eCreatedIso && eCreatedIso >= mondayIso) ||
+          (eUpdatedIso && eUpdatedIso >= mondayIso) ||
+          (normExamWeek && currentIsoWeek && normExamWeek === currentIsoWeek) ||
+          hasRecentScan;
+
+        candidateExams.push({
+          exam: e,
+          title: (e.examName || e.title || e.name || 'Değerlendirme Sınavı').trim(),
+          participants,
+          isThisWeek
+        });
       });
 
-      if (weeklyExam && weeklyExam.title) {
-        const results = Array.isArray(weeklyExam.results) ? weeklyExam.results : [];
-        let avgStr = '';
-        if (results.length > 0) {
-          const sum = results.reduce((acc, r) => acc + (parseFloat(r.score) || 0), 0);
-          const avg = Math.round(sum / results.length);
-          avgStr = ` (Sınıf Başarı Ortalaması: %${avg})`;
-        }
-        examReportText = `\n📊 *HAFTALIK DEĞERLENDİRME*\n🎯 *${weeklyExam.title}* başarıyla uygulandı${avgStr}. Gayret gösteren tüm yavrularımızı tebrik ederiz!\n`;
+      // Önce bu haftaya ait sınavları al; eğer tarih damgası eksik olan sınavlar varsa ve bu hafta hiç eşleşmediyse mevcut sonuçlu sınavları göster
+      let weeklyExams = candidateExams.filter(c => c.isThisWeek);
+      if (weeklyExams.length === 0 && candidateExams.length > 0) {
+        weeklyExams = candidateExams;
+      }
+
+      if (weeklyExams.length > 0) {
+        const examBlocks = weeklyExams.map(item => {
+          const sorted = item.participants.slice().sort((a, b) => {
+            if (b.score !== a.score) return b.score - a.score;
+            if (b.net !== a.net) return b.net - a.net;
+            return b.correct - a.correct;
+          });
+
+          const sumScore = sorted.reduce((acc, r) => acc + (r.score || 0), 0);
+          const avgScore = Math.round(sumScore / sorted.length);
+          const topFive = sorted.slice(0, 5);
+          const rankBadges = ['🥇 1.', '🥈 2.', '🥉 3.', '🏅 4.', '🏅 5.'];
+
+          const topFiveLines = topFive.map((stu, idx) => {
+            const scoreStr = Number.isInteger(stu.score) ? stu.score : Math.round(stu.score * 10) / 10;
+            const detailStr = (stu.correct > 0 || stu.wrong > 0) ? ` (${stu.correct}D / ${stu.wrong}Y)` : '';
+            return `${rankBadges[idx] || `${idx + 1}.`} *${stu.name}* — ${scoreStr} Puan${detailStr}`;
+          }).join('\n');
+
+          return `📊 *SINAV SONUÇLARI: ${item.title.toLocaleUpperCase('tr-TR')}*\n📈 *Katılım:* ${sorted.length} Öğrenci • *Sınıf Ortalaması:* ${avgScore} Puan\n🏆 *İlk 5 Öğrencimiz:*\n${topFiveLines}`;
+        });
+
+        examReportText = '\n' + examBlocks.join('\n\n') + '\n';
       }
 
       // 5. Kapanış & Öğretmen Hafta Sonu Mesajı (KULLANICI KURALI: GELECEK HAFTA KISMI KESİNLİKLE YOK!)

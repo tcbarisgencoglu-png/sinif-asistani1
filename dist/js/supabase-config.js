@@ -1,7 +1,7 @@
 // Supabase bulut veritabanı bağlantı ayarları
 window.SupabaseConfig = {
-  url: 'https://qcxpslujddythbpkaupn.supabase.co',
-  anonKey: 'sb_publishable_imv0QQkNvBDzVlLY2Gogrw_NWkbAWAR'
+  url: 'https://gjmxfjavxvguyygbhkdi.supabase.co',
+  anonKey: 'sb_publishable_t69DnPs8cTxcM919qhwCvw_dSxKB68z'
 };
 
 // Brevo E-Posta Gönderim Ayarları

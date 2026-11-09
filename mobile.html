@@ -11,7 +11,7 @@
   <link rel="shortcut icon" href="icons/icon-128.png" type="image/png">
 
   <!-- Hafif Mobil Tasarım Sistemi -->
-  <link rel="stylesheet" href="css/companion.css?v=1.0.130">
+  <link rel="stylesheet" href="css/companion.css?v=1.0.131">
 
   <!-- Çevrim Dışı İkon Kütüphanesi -->
   <script src="js/lucide.min.js"></script>
@@ -443,7 +443,7 @@
           <div class="c-dash-info-teacher" id="appbar-teacher-name">Öğretmen</div>
         </div>
         <div class="c-dash-info-right">
-          <span id="companion-version-badge" style="font-size: 10px; background: rgba(255,255,255,0.22); padding: 1.5px 7px; border-radius: 999px; font-weight: 700; color: #fff; margin-left: 6px; letter-spacing: 0.3px;">v1.0.130</span>
+          <span id="companion-version-badge" style="font-size: 10px; background: rgba(255,255,255,0.22); padding: 1.5px 7px; border-radius: 999px; font-weight: 700; color: #fff; margin-left: 6px; letter-spacing: 0.3px;">v1.0.131</span>
         </div>
       </div>
     </section>
@@ -1763,136 +1763,215 @@
       </div>
 
       <div class="c-wizard-body" style="padding-bottom: 16px;">
-        
-        <!-- BÖLÜM 1: CİHAZ EŞLEŞTİRME -->
-        <div style="background: #ffffff; border: 1.5px solid rgba(79, 70, 229, 0.35); border-radius: 14px; padding: 14px; margin-bottom: 14px; background: linear-gradient(135deg, rgba(79, 70, 229, 0.05), rgba(99, 102, 241, 0.02));">
-          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
-            <div style="display: flex; align-items: center; gap: 8px;">
-              <i data-lucide="smartphone" style="width: 18px; height: 18px; color: #4f46e5;"></i>
-              <strong style="font-size: 13px; color: #0f172a;">Masaüstü Cihaz Eşleştirme</strong>
-            </div>
-            <span style="background: rgba(16, 185, 129, 0.15); color: #10b981; font-size: 10.5px; font-weight: 700; padding: 2px 7px; border-radius: 999px;">
-              🟢 Canlı Senkron
-            </span>
-          </div>
 
-          <p style="font-size: 11.5px; color: #64748b; margin-bottom: 10px; line-height: 1.4;">
-            Masaüstü uygulamanızdaki eşleşme kodunu girerek tüm sınıfları, öğrencileri ve sınavları terminale eşitleyin.
-          </p>
+        <!-- AKORDİYON MENÜ LİSTESİ (4 ANA BÖLÜM) -->
+        <div class="c-accordion-list">
 
-          <div class="c-sync-code-box" style="margin-bottom: 10px; padding: 10px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
-              <div style="overflow: hidden; flex: 1;">
-                <div style="font-size: 9.5px; color: var(--c-text-muted); text-transform: uppercase; font-weight: 700;">Eşleşme Kodu</div>
-                <div class="c-sync-code-display" id="settings-modal-code-display" style="font-size: 19px; margin: 2px 0; font-family: monospace; font-weight: 800; letter-spacing: 2px;">SA-......</div>
-              </div>
-              <div style="display: flex; gap: 6px; flex-shrink: 0;">
-                <button type="button" class="c-btn-primary" style="padding: 6px 10px; font-size: 11.5px; gap: 4px; background: linear-gradient(135deg, #4f46e5, #6366f1);" onclick="window.CloudSync.promptChangeSyncCode()" title="Kodu Gir">
-                  <i data-lucide="edit-3" style="width: 13px; height: 13px;"></i>
-                  <span>Kodu Gir</span>
-                </button>
-                <button type="button" class="c-btn-secondary" style="padding: 6px 8px; font-size: 11.5px;" onclick="window.CloudSync.openQrScanner()" title="QR Tara">
-                  <i data-lucide="scan" style="width: 13px; height: 13px;"></i>
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <div style="display: grid; grid-template-columns: 1fr; gap: 8px;">
-            <button type="button" class="c-btn-primary" style="justify-content: center; gap: 6px; font-size: 12px; padding: 9px; background: linear-gradient(135deg, #4f46e5, #6366f1);" onclick="window.Companion.pullMasterDataFromCloud()">
-              <i data-lucide="download-cloud" style="width: 16px; height: 16px;"></i>
-              <span>Masaüstünden Tüm Verileri Çek</span>
-            </button>
-            <button type="button" class="c-btn-secondary" style="justify-content: center; gap: 6px; font-size: 12px; padding: 9px;" onclick="window.Companion.pushTerminalDataToCloud()">
-              <i data-lucide="upload-cloud" style="width: 16px; height: 16px;"></i>
-              <span>Terminal Verilerini Masaüstüne Gönder</span>
-            </button>
-          </div>
-        </div>
-
-        <!-- BÖLÜM 2: ÖĞRETMEN BİLGİSİ & GÖREV TÜRÜ -->
-        <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 14px; margin-bottom: 14px;">
-          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
-            <i data-lucide="user-check" style="width: 18px; height: 18px; color: #0284c7;"></i>
-            <strong style="font-size: 13px; color: #0f172a;">Öğretmenlik / Görev Türü</strong>
-          </div>
-
-          <div class="c-form-group" style="margin-bottom: 12px;">
-            <label class="c-label" for="settings-teacher-name-input" style="font-weight: 700; font-size: 11.5px;">Öğretmen Adı Soyadı</label>
-            <input type="text" id="settings-teacher-name-input" class="c-input" placeholder="Örn: Ahmet Yılmaz" style="font-size: 12.5px;" />
-          </div>
-
-          <div class="c-form-group" style="margin-bottom: 10px;">
-            <label class="c-label" style="font-weight: 700; font-size: 11.5px; margin-bottom: 6px;">Görev Seçimi</label>
-            <div style="display: flex; flex-direction: column; gap: 8px;">
-              <label style="display: flex; align-items: flex-start; gap: 10px; padding: 9px 11px; background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 10px; cursor: pointer;" id="lbl-role-primary">
-                <input type="radio" name="settings-teacher-role" id="role-primary" value="primary" onchange="window.Companion.handleRoleChange('primary')" style="margin-top: 3px;" />
-                <div>
-                  <strong style="font-size: 12px; color: #0f172a; display: block;">Sınıf Öğretmeni (İlkokul / Tek Şube)</strong>
-                  <span style="font-size: 10.5px; color: #64748b; line-height: 1.35; display: block;">Sınav oluşturma sihirbazında şube sorulmaz, tek sınıfınız baz alınır.</span>
+          <!-- 1. AKORDİYON: CİHAZ EŞLEŞTİRME & SENKRONİZASYON -->
+          <div class="c-accordion-item" id="acc-item-sync">
+            <div class="c-accordion-header" onclick="window.Companion.toggleSettingsAccordion('acc-item-sync')">
+              <div class="c-acc-header-left">
+                <div class="c-acc-icon-wrap primary">
+                  <i data-lucide="smartphone" style="width: 18px; height: 18px;"></i>
                 </div>
-              </label>
-
-              <label style="display: flex; align-items: flex-start; gap: 10px; padding: 9px 11px; background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 10px; cursor: pointer;" id="lbl-role-middle">
-                <input type="radio" name="settings-teacher-role" id="role-middle" value="middle" onchange="window.Companion.handleRoleChange('middle')" style="margin-top: 3px;" />
                 <div>
-                  <strong style="font-size: 12px; color: #0f172a; display: block;">Branş Öğretmeni (Ortaokul / Çoklu Şube)</strong>
-                  <span style="font-size: 10.5px; color: #64748b; line-height: 1.35; display: block;">Birden fazla şube okutulabilir. Sınav oluştururken şube seçilir.</span>
+                  <div class="c-acc-title">Masaüstü Cihaz Eşleştirme</div>
+                  <div class="c-acc-desc">QR kod, eşleşme kodu ve veri aktarımı</div>
                 </div>
-              </label>
+              </div>
+              <i data-lucide="chevron-down" class="c-acc-chevron" style="width: 18px; height: 18px;"></i>
+            </div>
+            <div class="c-accordion-collapse">
+              <div class="c-accordion-body">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                  <span style="font-size: 11.5px; color: #64748b; line-height: 1.4;">
+                    Masaüstü uygulamanızdaki eşleşme kodunu girerek tüm sınıfları, öğrencileri ve sınavları terminale eşitleyin.
+                  </span>
+                  <span style="background: rgba(16, 185, 129, 0.15); color: #10b981; font-size: 10.5px; font-weight: 700; padding: 2px 7px; border-radius: 999px; flex-shrink: 0; margin-left: 8px;">
+                    🟢 Canlı Senkron
+                  </span>
+                </div>
+
+                <div class="c-sync-code-box" style="margin-bottom: 10px; padding: 10px;">
+                  <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
+                    <div style="overflow: hidden; flex: 1;">
+                      <div style="font-size: 9.5px; color: var(--c-text-muted); text-transform: uppercase; font-weight: 700;">Eşleşme Kodu</div>
+                      <div class="c-sync-code-display" id="settings-modal-code-display" style="font-size: 19px; margin: 2px 0; font-family: monospace; font-weight: 800; letter-spacing: 2px;">SA-......</div>
+                    </div>
+                    <div style="display: flex; gap: 6px; flex-shrink: 0;">
+                      <button type="button" class="c-btn-primary" style="padding: 6px 10px; font-size: 11.5px; gap: 4px; background: linear-gradient(135deg, #4f46e5, #6366f1);" onclick="window.CloudSync.promptChangeSyncCode()" title="Kodu Gir">
+                        <i data-lucide="edit-3" style="width: 13px; height: 13px;"></i>
+                        <span>Kodu Gir</span>
+                      </button>
+                      <button type="button" class="c-btn-secondary" style="padding: 6px 8px; font-size: 11.5px;" onclick="window.CloudSync.openQrScanner()" title="QR Tara">
+                        <i data-lucide="scan" style="width: 13px; height: 13px;"></i>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr; gap: 8px;">
+                  <button type="button" class="c-btn-primary" style="justify-content: center; gap: 6px; font-size: 12px; padding: 9px; background: linear-gradient(135deg, #4f46e5, #6366f1);" onclick="window.Companion.pullMasterDataFromCloud()">
+                    <i data-lucide="download-cloud" style="width: 16px; height: 16px;"></i>
+                    <span>Masaüstünden Tüm Verileri Çek</span>
+                  </button>
+                  <button type="button" class="c-btn-secondary" style="justify-content: center; gap: 6px; font-size: 12px; padding: 9px;" onclick="window.Companion.pushTerminalDataToCloud()">
+                    <i data-lucide="upload-cloud" style="width: 16px; height: 16px;"></i>
+                    <span>Terminal Verilerini Masaüstüne Gönder</span>
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
 
-          <!-- Sınıf Öğretmeni İçin Sınıf Seçici -->
-          <div class="c-form-group" id="settings-primary-section-wrap" style="display: none; margin-bottom: 0;">
-            <label class="c-label" for="settings-primary-section" style="font-weight: 700; font-size: 11.5px;">Okuttuğunuz Şube</label>
-            <select id="settings-primary-section" class="c-select" style="font-size: 12.5px;">
-              <option value="1-A">1-A</option>
-              <option value="1-B">1-B</option>
-              <option value="2-A">2-A</option>
-              <option value="2-B">2-B</option>
-              <option value="3-A">3-A</option>
-              <option value="3-B">3-B</option>
-              <option value="4-A">4-A</option>
-              <option value="4-B">4-B</option>
-            </select>
+          <!-- 2. AKORDİYON: ÖĞRETMEN BİLGİSİ & GÖREV TÜRÜ -->
+          <div class="c-accordion-item" id="acc-item-role">
+            <div class="c-accordion-header" onclick="window.Companion.toggleSettingsAccordion('acc-item-role')">
+              <div class="c-acc-header-left">
+                <div class="c-acc-icon-wrap info">
+                  <i data-lucide="user-check" style="width: 18px; height: 18px;"></i>
+                </div>
+                <div>
+                  <div class="c-acc-title">Öğretmenlik / Görev Türü</div>
+                  <div class="c-acc-desc">Ad soyad, sınıf ve branş seçimi</div>
+                </div>
+              </div>
+              <i data-lucide="chevron-down" class="c-acc-chevron" style="width: 18px; height: 18px;"></i>
+            </div>
+            <div class="c-accordion-collapse">
+              <div class="c-accordion-body">
+                <div class="c-form-group" style="margin-bottom: 12px;">
+                  <label class="c-label" for="settings-teacher-name-input" style="font-weight: 700; font-size: 11.5px;">Öğretmen Adı Soyadı</label>
+                  <input type="text" id="settings-teacher-name-input" class="c-input" placeholder="Örn: Ahmet Yılmaz" style="font-size: 12.5px;" />
+                </div>
+
+                <div class="c-form-group" style="margin-bottom: 10px;">
+                  <label class="c-label" style="font-weight: 700; font-size: 11.5px; margin-bottom: 6px;">Görev Seçimi</label>
+                  <div style="display: flex; flex-direction: column; gap: 8px;">
+                    <label style="display: flex; align-items: flex-start; gap: 10px; padding: 9px 11px; background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 10px; cursor: pointer;" id="lbl-role-primary">
+                      <input type="radio" name="settings-teacher-role" id="role-primary" value="primary" onchange="window.Companion.handleRoleChange('primary')" style="margin-top: 3px;" />
+                      <div>
+                        <strong style="font-size: 12px; color: #0f172a; display: block;">Sınıf Öğretmeni (İlkokul / Tek Şube)</strong>
+                        <span style="font-size: 10.5px; color: #64748b; line-height: 1.35; display: block;">Sınav oluşturma sihirbazında şube sorulmaz, tek sınıfınız baz alınır.</span>
+                      </div>
+                    </label>
+
+                    <label style="display: flex; align-items: flex-start; gap: 10px; padding: 9px 11px; background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 10px; cursor: pointer;" id="lbl-role-middle">
+                      <input type="radio" name="settings-teacher-role" id="role-middle" value="middle" onchange="window.Companion.handleRoleChange('middle')" style="margin-top: 3px;" />
+                      <div>
+                        <strong style="font-size: 12px; color: #0f172a; display: block;">Branş Öğretmeni (Ortaokul / Çoklu Şube)</strong>
+                        <span style="font-size: 10.5px; color: #64748b; line-height: 1.35; display: block;">Birden fazla şube okutulabilir. Sınav oluştururken şube seçilir.</span>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+
+                <!-- Sınıf Öğretmeni İçin Sınıf Seçici -->
+                <div class="c-form-group" id="settings-primary-section-wrap" style="display: none; margin-bottom: 0;">
+                  <label class="c-label" for="settings-primary-section" style="font-weight: 700; font-size: 11.5px;">Okuttuğunuz Şube</label>
+                  <select id="settings-primary-section" class="c-select" style="font-size: 12.5px;">
+                    <option value="1-A">1-A</option>
+                    <option value="1-B">1-B</option>
+                    <option value="1-C">1-C</option>
+                    <option value="1-D">1-D</option>
+                    <option value="1-E">1-E</option>
+                    <option value="2-A">2-A</option>
+                    <option value="2-B">2-B</option>
+                    <option value="2-C">2-C</option>
+                    <option value="2-D">2-D</option>
+                    <option value="2-E">2-E</option>
+                    <option value="3-A">3-A</option>
+                    <option value="3-B">3-B</option>
+                    <option value="3-C">3-C</option>
+                    <option value="3-D">3-D</option>
+                    <option value="3-E">3-E</option>
+                    <option value="4-A">4-A</option>
+                    <option value="4-B">4-B</option>
+                    <option value="4-C">4-C</option>
+                    <option value="4-D">4-D</option>
+                    <option value="4-E">4-E</option>
+                  </select>
+                </div>
+              </div>
+            </div>
           </div>
-        </div>
 
-        <!-- BÖLÜM 3: GENEL VE GELECEK AYARLAR BİLGİSİ -->
-        <div style="background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 12px; padding: 12px; text-align: center;">
-          <div style="font-size: 11px; color: #64748b;">
-            💡 <em>İlerleyen güncellemelerde eklenecek yeni modül ayarları da bu menü altında toplanacaktır.</em>
+          <!-- 3. AKORDİYON: ŞİFRE & GÜVENLİK İŞLEMLERİ -->
+          <div class="c-accordion-item" id="acc-item-password">
+            <div class="c-accordion-header" onclick="window.Companion.toggleSettingsAccordion('acc-item-password')">
+              <div class="c-acc-header-left">
+                <div class="c-acc-icon-wrap amber">
+                  <i data-lucide="lock" style="width: 18px; height: 18px;"></i>
+                </div>
+                <div>
+                  <div class="c-acc-title">Şifre &amp; Güvenlik İşlemleri</div>
+                  <div class="c-acc-desc">4 haneli PIN kodu ve oturum kilidi</div>
+                </div>
+              </div>
+              <i data-lucide="chevron-down" class="c-acc-chevron" style="width: 18px; height: 18px;"></i>
+            </div>
+            <div class="c-accordion-collapse">
+              <div class="c-accordion-body">
+                <div class="c-form-group" style="margin-bottom: 12px;">
+                  <label class="c-label" for="settings-pin-input" style="font-weight: 700; font-size: 11.5px;">Kilit Ekranı PIN Şifresi (4 Haneli)</label>
+                  <input type="password" id="settings-pin-input" class="c-input" placeholder="1234" inputmode="numeric" maxlength="4" style="font-size: 14px; letter-spacing: 4px; font-weight: 800;" />
+                  <span style="font-size: 10.5px; color: #64748b; display: block; margin-top: 4px;">
+                    El terminalini kilitlediğinizde tekrar açmak için bu 4 haneli şifre kullanılır.
+                  </span>
+                </div>
+
+                <button type="button" class="c-btn-secondary" style="width: 100%; justify-content: center; gap: 6px; padding: 10px; font-size: 12px; font-weight: 700; border-color: #fde68a; background: #fffbeb; color: #b45309;" onclick="window.Companion.lockFromSettings()">
+                  <i data-lucide="lock" style="width: 15px; height: 15px; color: #d97706;"></i>
+                  <span>Ayarları Kaydet ve Oturumu Şimdi Kilitle</span>
+                </button>
+              </div>
+            </div>
           </div>
-        </div>
 
-        <!-- Kurulum Sihirbazını Baştan Başlat Butonu -->
-        <div style="margin-top: 10px;">
-          <button type="button" class="c-btn-secondary" style="width: 100%; justify-content: center; gap: 6px; padding: 10px; font-size: 12px; font-weight: 700; border-color: #cbd5e1;" onclick="window.Companion.relaunchSetupWizard()">
-            <i data-lucide="sparkles" style="width: 15px; height: 15px; color: #4f46e5;"></i>
-            <span>Kurulum Sihirbazını Baştan Başlat</span>
-          </button>
-        </div>
+          <!-- 4. AKORDİYON: GÜNCELLEME & SİSTEM İŞLEMLERİ -->
+          <div class="c-accordion-item" id="acc-item-update">
+            <div class="c-accordion-header" onclick="window.Companion.toggleSettingsAccordion('acc-item-update')">
+              <div class="c-acc-header-left">
+                <div class="c-acc-icon-wrap emerald">
+                  <i data-lucide="refresh-cw" style="width: 18px; height: 18px;"></i>
+                </div>
+                <div>
+                  <div class="c-acc-title">Güncelleme &amp; Sistem Bakımı</div>
+                  <div class="c-acc-desc">APK indirme, önbellek temizleme ve kurulum sihirbazı</div>
+                </div>
+              </div>
+              <i data-lucide="chevron-down" class="c-acc-chevron" style="width: 18px; height: 18px;"></i>
+            </div>
+            <div class="c-accordion-collapse">
+              <div class="c-accordion-body">
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                  <!-- En Son APK İndir / Yükselt Butonu -->
+                  <a href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/latest/download/sinif-asistani.apk" target="_blank" class="c-btn-secondary" style="display: flex; width: 100%; justify-content: center; align-items: center; gap: 6px; padding: 10px; font-size: 12px; font-weight: 700; border: 1px solid #a7f3d0; background: #ecfdf5; color: #047857; text-decoration: none; border-radius: 10px; box-sizing: border-box;">
+                    <i data-lucide="download" style="width: 15px; height: 15px; color: #10b981;"></i>
+                    <span>En Son Sürüm APK İndir (.apk)</span>
+                  </a>
 
-        <!-- Önbelleği Temizle ve Zorunlu Güncelle Butonu -->
-        <div style="margin-top: 8px;">
-          <button type="button" class="c-btn-secondary" style="width: 100%; justify-content: center; gap: 6px; padding: 10px; font-size: 12px; font-weight: 700; border-color: #cbd5e1; background: #ffffff;" onclick="window.Companion.forceReloadApp()">
-            <i data-lucide="rotate-cw" style="width: 15px; height: 15px; color: #0284c7;"></i>
-            <span>Önbelleği Temizle ve Sayfayı Yenile</span>
-          </button>
-        </div>
+                  <!-- Önbelleği Temizle ve Zorunlu Güncelle Butonu -->
+                  <button type="button" class="c-btn-secondary" style="width: 100%; justify-content: center; gap: 6px; padding: 10px; font-size: 12px; font-weight: 700; border-color: #cbd5e1; background: #ffffff;" onclick="window.Companion.forceReloadApp()">
+                    <i data-lucide="rotate-cw" style="width: 15px; height: 15px; color: #0284c7;"></i>
+                    <span>Önbelleği Temizle ve Sayfayı Yenile</span>
+                  </button>
 
-        <!-- En Son APK İndir / Yükselt Butonu -->
-        <div style="margin-top: 8px;">
-          <a href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/latest/download/sinif-asistani.apk" target="_blank" class="c-btn-secondary" style="display: flex; width: 100%; justify-content: center; align-items: center; gap: 6px; padding: 10px; font-size: 12px; font-weight: 700; border: 1px solid #c7d2fe; background: #eef2ff; color: #4338ca; text-decoration: none; border-radius: 10px; box-sizing: border-box;">
-            <i data-lucide="download" style="width: 15px; height: 15px; color: #4f46e5;"></i>
-            <span>En Son Sürüm APK İndir (.apk)</span>
-          </a>
+                  <!-- Kurulum Sihirbazını Baştan Başlat Butonu -->
+                  <button type="button" class="c-btn-secondary" style="width: 100%; justify-content: center; gap: 6px; padding: 10px; font-size: 12px; font-weight: 700; border-color: #cbd5e1;" onclick="window.Companion.relaunchSetupWizard()">
+                    <i data-lucide="sparkles" style="width: 15px; height: 15px; color: #4f46e5;"></i>
+                    <span>Kurulum Sihirbazını Baştan Başlat</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
         </div>
 
         <!-- Versiyon Bilgisi -->
         <div style="text-align: center; margin-top: 14px; font-size: 11px; color: #94a3b8; font-weight: 600;">
-          Sınıf Asistanı El Terminali • <span id="settings-modal-version" style="color: #4f46e5; font-weight: 800;">v1.0.130</span>
+          Sınıf Asistanı El Terminali • <span id="settings-modal-version" style="color: #4f46e5; font-weight: 800;">v1.0.131</span>
         </div>
 
       </div>
@@ -2002,6 +2081,7 @@
 
       <!-- Alt Araç & Deklanşör Çubuğu -->
       <div class="c-scanner-bottom-bar">
+        <input type="file" id="omr-gallery-input" accept="image/*" multiple style="display: none;" onchange="window.CompanionOmr.handleFileSelect(event)" />
         <button type="button" class="c-scanner-btn-circle" onclick="document.getElementById('omr-gallery-input').click()" title="Galeriden Seç">
           <i data-lucide="image" style="width: 20px; height: 20px;"></i>
         </button>
@@ -2578,19 +2658,19 @@
   </div>
 
   <!-- QR, Bulut & OMR Analiz Motorları -->
-  <script src="js/supabase-config.js?v=1.0.130"></script>
-  <script src="js/cloud-sync.js?v=1.0.130"></script>
+  <script src="js/supabase-config.js?v=1.0.131"></script>
+  <script src="js/cloud-sync.js?v=1.0.131"></script>
   <script src="js/qrcode.min.js"></script>
   <script src="js/jsqr.js"></script>
-  <script src="js/omr-engine.js?v=1.0.130"></script>
-  <script src="js/companion-omr.js?v=1.0.130"></script>
-  <script src="js/companion-behavior.js?v=1.0.130"></script>
-  <script src="js/companion-homework.js?v=1.0.130"></script>
-  <script src="js/companion-books.js?v=1.0.130"></script>
-  <script src="js/companion-schedule.js?v=1.0.130"></script>
-  <script src="js/companion-reports.js?v=1.0.130"></script>
+  <script src="js/omr-engine.js?v=1.0.131"></script>
+  <script src="js/companion-omr.js?v=1.0.131"></script>
+  <script src="js/companion-behavior.js?v=1.0.131"></script>
+  <script src="js/companion-homework.js?v=1.0.131"></script>
+  <script src="js/companion-books.js?v=1.0.131"></script>
+  <script src="js/companion-schedule.js?v=1.0.131"></script>
+  <script src="js/companion-reports.js?v=1.0.131"></script>
 
   <!-- Çekirdek Kontrolcü -->
-  <script src="js/companion.js?v=1.0.130"></script>
+  <script src="js/companion.js?v=1.0.131"></script>
 </body>
 </html>

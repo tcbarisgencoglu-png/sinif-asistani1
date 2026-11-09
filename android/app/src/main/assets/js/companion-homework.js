@@ -153,6 +153,25 @@
     init() {
       this.refreshStudents();
 
+      // Cuma günü verilip teslim tarihi Cumartesi kalmış mevcut ödevleri Pazartesiye düzelt
+      const data = this.getData();
+      const hwList = Array.isArray(data.homeworks) ? data.homeworks : (Array.isArray(data.homework) ? data.homework : []);
+      let changed = false;
+      hwList.forEach(h => {
+        if (h && h.dueDate) {
+          const fixed = this.normalizeFridayDueDate(h.dueDate);
+          if (fixed !== h.dueDate) {
+            h.dueDate = fixed;
+            changed = true;
+          }
+        }
+      });
+      if (changed) {
+        data.homeworks = hwList;
+        data.homework = hwList;
+        this.saveData(data);
+      }
+
       if (!this.currentDate) {
         this.currentDate = this.getTodayDateString();
       }
@@ -510,11 +529,36 @@
 
     getTomorrowDateString() {
       const now = new Date();
-      now.setDate(now.getDate() + 1);
+      const day = now.getDay(); // 0: Pazar, 5: Cuma, 6: Cumartesi
+      if (day === 5) {
+        // Cuma günü verilen ödevin teslim tarihi Pazartesi (+3 gün) olur
+        now.setDate(now.getDate() + 3);
+      } else if (day === 6) {
+        // Cumartesi günü verilen ödevin teslim tarihi Pazartesi (+2 gün) olur
+        now.setDate(now.getDate() + 2);
+      } else {
+        now.setDate(now.getDate() + 1);
+      }
       const y = now.getFullYear();
       const m = String(now.getMonth() + 1).padStart(2, '0');
       const d = String(now.getDate()).padStart(2, '0');
       return `${y}-${m}-${d}`;
+    },
+
+    normalizeFridayDueDate(dateStr) {
+      if (!dateStr) return dateStr;
+      const parts = String(dateStr).split('-').map(Number);
+      if (parts.length !== 3 || isNaN(parts[0])) return dateStr;
+      const d = new Date(parts[0], parts[1] - 1, parts[2]);
+      if (d.getDay() === 6) {
+        // Cumartesiye denk gelen teslim tarihini Pazartesiye (+2 gün) kaydır
+        d.setDate(d.getDate() + 2);
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${y}-${m}-${day}`;
+      }
+      return dateStr;
     },
 
     escapeHtml(str) {
@@ -531,14 +575,15 @@
       const modal = document.getElementById('companion-create-hw-modal');
       if (!modal) return;
 
-      // Varsayılan olarak bir sonraki gün (Yarın) seçili gelir
+      // Varsayılan olarak bir sonraki okul günü (Cuma/Cumartesi ise Pazartesi, diğer günlerde Yarın) seçili gelir
       const tomorrowStr = this.getTomorrowDateString();
       const dateInput = document.getElementById('new-hw-due-date');
       if (dateInput) {
         dateInput.value = tomorrowStr;
       }
       this.updateCreateModalDateLabel(tomorrowStr);
-      this.updateDateChipActive('tomorrow');
+      const todayDay = new Date().getDay();
+      this.updateDateChipActive((todayDay === 5 || todayDay === 6) ? 'monday' : 'tomorrow');
 
       // Alanları sıfırla
       this.selectedSubjectTasks = {};
@@ -596,9 +641,12 @@
       const d = new Date(parts[0], parts[1] - 1, parts[2]);
       const dayName = DAY_NAMES[d.getDay()] || '';
       const todayStr = this.getTodayDateString();
-      const tomorrowStr = this.getTomorrowDateString();
 
-      if (dateStr === tomorrowStr) {
+      const calTomorrow = new Date();
+      calTomorrow.setDate(calTomorrow.getDate() + 1);
+      const calTomorrowStr = `${calTomorrow.getFullYear()}-${String(calTomorrow.getMonth() + 1).padStart(2, '0')}-${String(calTomorrow.getDate()).padStart(2, '0')}`;
+
+      if (dateStr === calTomorrowStr) {
         summaryEl.textContent = `Yarın (${dayName})`;
       } else if (dateStr === todayStr) {
         summaryEl.textContent = `Bugün (${dayName})`;
@@ -790,7 +838,8 @@
       const titleInput = document.getElementById('new-hw-title');
       const descInput = document.getElementById('new-hw-description');
 
-      const dueDate = (dateInput && dateInput.value) || this.getTomorrowDateString();
+      const rawDueDate = (dateInput && dateInput.value) || this.getTomorrowDateString();
+      const dueDate = this.normalizeFridayDueDate(rawDueDate);
       const definition = (defInput && defInput.value.trim()) || '';
       const generalTask = (titleInput && titleInput.value.trim()) || '';
       const description = (descInput && descInput.value.trim()) || '';
@@ -911,7 +960,8 @@
     shareHomeworkViaWhatsApp(hwData) {
       if (!hwData || !hwData.dueDate) return;
 
-      const parts = hwData.dueDate.split('-').map(Number);
+      const normalizedDue = this.normalizeFridayDueDate(hwData.dueDate);
+      const parts = normalizedDue.split('-').map(Number);
       const d = new Date(parts[0], parts[1] - 1, parts[2]);
       const dayName = DAY_NAMES[d.getDay()] || '';
       const monthName = MONTH_NAMES[d.getMonth()] || '';

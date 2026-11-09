@@ -22,8 +22,8 @@
     wsHeartbeat: null,
     pollingInterval: null,
     debouncedMasterTimer: null,
-    supabaseUrl: 'https://qcxpslujddythbpkaupn.supabase.co',
-    anonKey: 'sb_publishable_imv0QQkNvBDzVlLY2Gogrw_NWkbAWAR',
+    supabaseUrl: 'https://gjmxfjavxvguyygbhkdi.supabase.co',
+    anonKey: 'sb_publishable_t69DnPs8cTxcM919qhwCvw_dSxKB68z',
 
     init() {
       if (window.SupabaseConfig) {

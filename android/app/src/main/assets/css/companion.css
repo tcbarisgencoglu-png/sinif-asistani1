@@ -3000,20 +3000,25 @@ body {
    ========================================================================== */
 .c-behavior-quick-bar {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
   margin-bottom: 12px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .c-behavior-quick-btn {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 10px;
+  gap: 6px;
+  padding: 7px 6px;
   border-radius: 12px;
   border: none;
   cursor: pointer;
   text-align: left;
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
   transition: transform 0.15s ease, box-shadow 0.15s ease;
   user-select: none;
@@ -3040,9 +3045,9 @@ body {
 }
 
 .c-quick-btn-icon-wrap {
-  width: 32px;
-  height: 32px;
-  border-radius: 10px;
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
   background: rgba(255, 255, 255, 0.2);
   display: flex;
   align-items: center;
@@ -3050,24 +3055,35 @@ body {
   flex-shrink: 0;
 }
 
+.c-quick-btn-icon-wrap svg {
+  width: 15px !important;
+  height: 15px !important;
+}
+
 .c-quick-btn-info {
   display: flex;
   flex-direction: column;
+  min-width: 0;
+  flex: 1;
   overflow: hidden;
 }
 
 .c-quick-btn-title {
-  font-size: 12px;
+  font-size: clamp(10.5px, 2.85vw, 12px);
   font-weight: 800;
   line-height: 1.2;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .c-quick-btn-sub {
-  font-size: 9.5px;
+  font-size: clamp(8.5px, 2.3vw, 9.5px);
   font-weight: 600;
   opacity: 0.85;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* Küçük Eylem Butonları */
@@ -5175,33 +5191,52 @@ body.dark-mode .c-hw-template-chip {
    ========================================================================== */
 
 .c-report-tabs-nav {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   background: rgba(15, 23, 42, 0.65);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  padding: 5px;
+  padding: 4px;
   border-radius: 14px;
-  gap: 6px;
+  gap: 4px;
   border: 1px solid rgba(255, 255, 255, 0.12);
   margin-bottom: 14px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .c-report-tab-btn {
-  flex: 1;
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  padding: 10px 8px;
+  gap: 4px;
+  padding: 9px 4px;
   border-radius: 10px;
   border: none;
   background: transparent;
   color: #94a3b8;
-  font-size: 12px;
+  font-size: clamp(10.5px, 2.8vw, 12px);
   font-weight: 700;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.c-report-tab-btn svg {
+  flex-shrink: 0;
+  width: 13px !important;
+  height: 13px !important;
+}
+
+.c-report-tab-btn span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .c-report-tab-btn.active {
@@ -5411,4 +5446,187 @@ body.dark-mode .c-hw-template-chip {
   transform: scale(0.98);
   background: rgba(255, 255, 255, 0.18);
 }
+
+/* ==========================================================================
+   TOPLU OPTİK KAĞIT DEĞERLENDİRME ADIM ADIM İLERLEME MODALI
+   ========================================================================== */
+.c-omr-batch-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10020;
+  background: rgba(15, 23, 42, 0.88);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.c-omr-batch-modal-card {
+  width: 100%;
+  max-width: 420px;
+  max-height: 90vh;
+  background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+  border: 1px solid rgba(99, 102, 241, 0.35);
+  border-radius: 22px;
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.06) inset;
+  padding: 18px;
+  color: #f8fafc;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  overflow: hidden;
+}
+
+.c-omr-batch-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.c-omr-batch-pulse-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(79, 70, 229, 0.35), rgba(16, 185, 129, 0.25));
+  border: 1px solid rgba(129, 140, 248, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  flex-shrink: 0;
+  box-shadow: 0 0 20px rgba(99, 102, 241, 0.35);
+  animation: cOmrBatchPulse 1.6s ease-in-out infinite;
+}
+
+.c-omr-batch-pulse-icon.done {
+  animation: none;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.35), rgba(5, 150, 105, 0.45));
+  border-color: rgba(52, 211, 153, 0.6);
+  box-shadow: 0 0 20px rgba(16, 185, 129, 0.4);
+}
+
+@keyframes cOmrBatchPulse {
+  0%, 100% { transform: scale(1); box-shadow: 0 0 16px rgba(99, 102, 241, 0.3); }
+  50% { transform: scale(1.06); box-shadow: 0 0 26px rgba(16, 185, 129, 0.45); }
+}
+
+@keyframes cOmrSpin {
+  to { transform: rotate(360deg); }
+}
+
+.c-omr-batch-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2.5px solid rgba(165, 180, 252, 0.3);
+  border-top-color: #818cf8;
+  border-radius: 50%;
+  animation: cOmrSpin 0.8s linear infinite;
+  flex-shrink: 0;
+}
+
+/* Native <progress> Özelleştirmesi */
+progress.c-omr-batch-progress-el {
+  appearance: none;
+  border: 0 solid;
+  overflow: clip;
+  width: 100%;
+  inline-size: 100%;
+  height: 12px;
+  block-size: 12px;
+  --progress-bar-radius: 1e5px;
+  --progress-bar-track: rgba(15, 23, 42, 0.85);
+  --progress-bar-fill: linear-gradient(90deg, #6366f1 0%, #3b82f6 50%, #10b981 100%);
+  border-radius: var(--progress-bar-radius);
+  background: var(--progress-bar-track);
+  box-shadow: inset 0 1px 3px rgb(0 0 0 / 0.45), 0 0 0 1px rgba(255, 255, 255, 0.08);
+  display: block;
+}
+
+progress.c-omr-batch-progress-el::-webkit-progress-bar {
+  background: transparent;
+}
+
+progress.c-omr-batch-progress-el::-webkit-progress-value {
+  background: var(--progress-bar-fill);
+  border-radius: var(--progress-bar-radius);
+  transition: inline-size 0.3s ease;
+}
+
+progress.c-omr-batch-progress-el::-moz-progress-bar {
+  background: var(--progress-bar-fill);
+  border-radius: var(--progress-bar-radius);
+  transition: inline-size 0.3s ease;
+}
+
+.c-omr-batch-step-box {
+  background: rgba(30, 41, 59, 0.9);
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  border-radius: 14px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.c-omr-batch-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.c-omr-batch-stat-pill {
+  background: rgba(15, 23, 42, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 8px 6px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.c-omr-batch-feed-wrap {
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  padding: 8px;
+  max-height: 210px;
+  min-height: 110px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.c-omr-batch-feed-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgba(30, 41, 59, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  font-size: 12px;
+}
+
+.c-omr-batch-feed-item.active-scan {
+  background: rgba(79, 70, 229, 0.2);
+  border-color: rgba(129, 140, 248, 0.5);
+}
+
+.c-omr-batch-feed-item.success-scan {
+  border-left: 3px solid #10b981;
+}
+
+.c-omr-batch-feed-item.warn-scan {
+  border-left: 3px solid #f59e0b;
+}
+
+.c-omr-batch-feed-item.error-scan {
+  border-left: 3px solid #ef4444;
+}
+
 

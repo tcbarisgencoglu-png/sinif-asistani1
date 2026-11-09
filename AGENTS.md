@@ -24,3 +24,8 @@ Bu projede çalışan tüm yapay zeka ajanları, herhangi bir kod değişikliği
   1. `node -c <dosya.js>` ile sözdizimi doğrulaması yapılmalıdır.
   2. `npm run sync` çalıştırılarak `dist/` ve `android/app/src/main/assets/` güncellenmelidir.
   3. `Linux uygulama/` ve `MEB uygulama/` klasörlerine güncel dosyalar kopyalanmalıdır.
+
+## 5. Servisler, Hesaplar ve Altyapı Kayıtları
+- Supabase veritabanı ayarları, SQL şemaları, Brevo e-posta yapılandırması, lisanslama motoru ve hesap detayları için birincil referans **`SERVISLER_VE_HESAPLAR.md`** dosyasıdır.
+- Hesaplar veya bulut servisleriyle ilgili her türlü sorgu ve güncellemede bu dosya kontrol edilmeli ve güncel tutulmalıdır.
+

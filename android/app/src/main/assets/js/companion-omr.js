@@ -1557,13 +1557,13 @@
     async openCamera() {
       // Android ortamında Google Document Scanner destekleniyorsa doğrudan akıllı tarayıcıyı başlat
       if (window.AndroidBridge && typeof window.AndroidBridge.startDocumentScan === 'function') {
-        window.AndroidBridge.startDocumentScan(30);
+        window.AndroidBridge.startDocumentScan(50);
         return;
       }
       return this.openLiveCamera();
     },
 
-    startDocumentScan(limit = 30) {
+    startDocumentScan(limit = 50) {
       if (window.AndroidBridge && typeof window.AndroidBridge.startDocumentScan === 'function') {
         window.AndroidBridge.startDocumentScan(limit);
         return true;
@@ -1917,10 +1917,32 @@
       }
     },
 
-    handleFileSelect(event) {
-      const file = event.target.files && event.target.files[0];
-      if (!file) return;
+    async handleFileSelect(event) {
+      const files = event.target.files ? Array.from(event.target.files) : [];
+      if (files.length === 0) return;
 
+      if (files.length > 1) {
+        this.closeCamera();
+        const dataUrls = [];
+        for (const f of files) {
+          try {
+            const url = await new Promise((resolve, reject) => {
+              const r = new FileReader();
+              r.onload = (e) => resolve(e.target.result);
+              r.onerror = (err) => reject(err);
+              r.readAsDataURL(f);
+            });
+            if (url) dataUrls.push(url);
+          } catch (e) {}
+        }
+        event.target.value = '';
+        if (dataUrls.length > 0) {
+          await this.onDocumentScanSuccess(dataUrls);
+        }
+        return;
+      }
+
+      const file = files[0];
       const reader = new FileReader();
       reader.onload = (e) => {
         const img = new Image();
@@ -1937,6 +1959,7 @@
         img.src = e.target.result;
       };
       reader.readAsDataURL(file);
+      event.target.value = '';
     },
 
     // Görüntü Analizi (OMREngine, ArUco ve QR Kod Okuma)
@@ -1946,7 +1969,7 @@
 
       if (!exam) {
         this.isProcessingFrame = false;
-        return;
+        return null;
       }
 
       const data = this.getData();
@@ -2076,6 +2099,7 @@
             }
           }, 700);
         }
+        return savedResults;
       } else {
         if (!isBatchScan) {
           playNoticeBeep();
@@ -2092,7 +2116,388 @@
         }
         this.isProcessingFrame = false;
         this.scanCooldownUntil = Date.now() + 1500;
+        return null;
       }
+    },
+
+    // Tarayıcı Ana İş Parçacığına Nefes Aldır (Ekranın Donmadan Boyanmasını Sağlar)
+    yieldToUiPaint(delayMs = 24) {
+      return new Promise(resolve => {
+        if (typeof requestAnimationFrame === 'function') {
+          requestAnimationFrame(() => setTimeout(resolve, delayMs));
+        } else {
+          setTimeout(resolve, delayMs);
+        }
+      });
+    },
+
+    formatDurationSec(totalSec) {
+      const sec = Math.max(0, Math.round(totalSec || 0));
+      if (sec < 60) return `${sec} sn`;
+      const m = Math.floor(sec / 60);
+      const s = sec % 60;
+      return `${m} dk ${s < 10 ? '0' + s : s} sn`;
+    },
+
+    isCardResultUnmatched(res) {
+      if (!res) return true;
+      return !!(
+        res.isUnmatched ||
+        !res.studentId ||
+        (String(res.studentId).startsWith('temp_') && (!res.studentNo || res.studentNo === '-')) ||
+        !res.studentNo ||
+        res.studentNo === '-' ||
+        res.studentName === 'Öğrenci' ||
+        (typeof res.studentName === 'string' && (res.studentName.startsWith('Öğrenci #') || res.studentName.startsWith('Form #') || res.studentName.includes('Eşleştirilemedi')))
+      );
+    },
+
+    openBatchEvalModal(totalSheets) {
+      if (this._batchEvalTimer) {
+        clearInterval(this._batchEvalTimer);
+        this._batchEvalTimer = null;
+      }
+      if (this._batchAutoCloseTimer) {
+        clearTimeout(this._batchAutoCloseTimer);
+        this._batchAutoCloseTimer = null;
+      }
+
+      let modal = document.getElementById('companion-omr-batch-progress-modal');
+      if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'companion-omr-batch-progress-modal';
+        modal.className = 'c-omr-batch-modal-overlay';
+        document.body.appendChild(modal);
+      }
+
+      const examName = (this.activeExam && this.activeExam.examName) ? this.activeExam.examName : 'Optik Sınav';
+      const examSub = this.activeExam
+        ? (this.activeExam.isMultiSubject
+            ? `${(this.activeExam.subjects || []).length} Ders • ${this.activeExam.totalQuestions || 32} Soru`
+            : `${this.activeExam.totalQuestions || 20} Soru`)
+        : '';
+
+      modal.innerHTML = `
+        <div class="c-omr-batch-modal-card">
+          <!-- Üst Başlık -->
+          <div class="c-omr-batch-header">
+            <div class="c-omr-batch-pulse-icon" id="omr-batch-header-icon">📑</div>
+            <div style="flex: 1; min-width: 0;">
+              <div style="font-size: 16px; font-weight: 800; color: #ffffff; line-height: 1.25;" id="omr-batch-main-title">
+                Optik Kağıtlar Değerlendiriliyor
+              </div>
+              <div style="font-size: 11.5px; color: #93c5fd; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px;">
+                ${examName}${examSub ? ` • ${examSub}` : ''}
+              </div>
+            </div>
+          </div>
+
+          <!-- İlerleme Çubuğu ve Sayaçlar -->
+          <div style="background: rgba(15, 23, 42, 0.55); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 14px; padding: 12px 14px;">
+            <div style="display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 8px;">
+              <span id="omr-batch-counter-label" style="font-size: 13.5px; font-weight: 800; color: #e2e8f0;">
+                1 / ${totalSheets} Optik Kağıt
+              </span>
+              <span id="omr-batch-percent-label" style="font-size: 16px; font-weight: 900; color: #38bdf8;">
+                %0
+              </span>
+            </div>
+
+            <progress
+              id="omr-batch-progress-el"
+              class="c-omr-batch-progress-el"
+              value="0"
+              max="${Math.max(1, totalSheets)}"
+              aria-labelledby="omr-batch-counter-label"
+            ></progress>
+
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 8px; font-size: 11px; color: #94a3b8; font-weight: 600;">
+              <span id="omr-batch-elapsed-text">⏱️ Geçen süre: 0 sn</span>
+              <span id="omr-batch-eta-text">⏳ Kalan: Hesaplanıyor...</span>
+            </div>
+          </div>
+
+          <!-- Anlık Adım Açıklama Kutusu (Polite Live Region) -->
+          <div class="c-omr-batch-step-box" role="status" aria-live="polite">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <div class="c-omr-batch-spinner" id="omr-batch-step-spinner"></div>
+              <span id="omr-batch-step-title" style="font-size: 12.5px; font-weight: 800; color: #c7d2fe;">
+                Adım 1 / ${totalSheets}: Optik kağıtlar hazırlanıyor...
+              </span>
+            </div>
+            <div id="omr-batch-step-desc" style="font-size: 11.5px; color: #cbd5e1; line-height: 1.4; padding-left: 24px;">
+              Taranan ${totalSheets} adet optik kağıt sırayla okunup puanlanacak. Lütfen bekleyin...
+            </div>
+          </div>
+
+          <!-- 3'lü Canlı Özet İstatistikleri -->
+          <div class="c-omr-batch-stats-grid">
+            <div class="c-omr-batch-stat-pill">
+              <span style="font-size: 10px; color: #94a3b8; font-weight: 700;">İŞLENEN KAĞIT</span>
+              <span id="omr-batch-stat-sheets" style="font-size: 14px; font-weight: 900; color: #f8fafc;">0 / ${totalSheets}</span>
+            </div>
+            <div class="c-omr-batch-stat-pill">
+              <span style="font-size: 10px; color: #6ee7b7; font-weight: 700;">OKUNAN ÖĞRENCİ</span>
+              <span id="omr-batch-stat-students" style="font-size: 14px; font-weight: 900; color: #10b981;">0</span>
+            </div>
+            <div class="c-omr-batch-stat-pill">
+              <span style="font-size: 10px; color: #fcd34d; font-weight: 700;">DİKKAT / UYARI</span>
+              <span id="omr-batch-stat-warnings" style="font-size: 14px; font-weight: 900; color: #fbbf24;">0</span>
+            </div>
+          </div>
+
+          <!-- Canlı Adım Adım Okunan Öğrenciler Akışı -->
+          <div style="display: flex; flex-direction: column; gap: 5px; flex: 1; min-height: 0;">
+            <div style="display: flex; align-items: center; justify-content: space-between; font-size: 11px; font-weight: 800; color: #94a3b8; padding: 0 2px;">
+              <span>CANLI DEĞERLENDİRME AKIŞI</span>
+              <span id="omr-batch-feed-sub">Adım adım güncellenir</span>
+            </div>
+            <div class="c-omr-batch-feed-wrap" id="omr-batch-feed-list"></div>
+          </div>
+
+          <!-- Alt Kapat / Sonuçları Gör Butonu (Tamamlandığında Aktifleşir) -->
+          <button
+            type="button"
+            id="omr-batch-done-btn"
+            class="c-btn-primary"
+            style="display: none; width: 100%; height: 44px; justify-content: center; font-size: 14px; font-weight: 800; border-radius: 12px; background: linear-gradient(135deg, #059669, #10b981);"
+            onclick="window.CompanionOmr.closeBatchEvalModal()"
+          >
+            <span>✅ Sonuçları Görüntüle</span>
+          </button>
+        </div>
+      `;
+
+      modal.style.display = 'flex';
+
+      this._batchStartTime = Date.now();
+      this._batchCompletedSheets = 0;
+      this._batchTotalSheets = totalSheets;
+
+      this._batchEvalTimer = setInterval(() => {
+        const elapsedSec = Math.floor((Date.now() - this._batchStartTime) / 1000);
+        const elapsedEl = document.getElementById('omr-batch-elapsed-text');
+        if (elapsedEl) {
+          elapsedEl.textContent = `⏱️ Geçen süre: ${this.formatDurationSec(elapsedSec)}`;
+        }
+        const etaEl = document.getElementById('omr-batch-eta-text');
+        if (etaEl && this._batchCompletedSheets > 0 && this._batchCompletedSheets < this._batchTotalSheets) {
+          const avgMs = (Date.now() - this._batchStartTime) / this._batchCompletedSheets;
+          const remSheets = this._batchTotalSheets - this._batchCompletedSheets;
+          const remSec = Math.max(1, Math.ceil((avgMs * remSheets) / 1000));
+          etaEl.textContent = `⏳ Kalan: ~${this.formatDurationSec(remSec)}`;
+        }
+      }, 1000);
+    },
+
+    updateBatchEvalProgress({ stepNum, total, progressValue, stepTitle, stepDesc, processedSheets, readStudents, warnings }) {
+      const counterEl = document.getElementById('omr-batch-counter-label');
+      const pctEl = document.getElementById('omr-batch-percent-label');
+      const progEl = document.getElementById('omr-batch-progress-el');
+      const titleEl = document.getElementById('omr-batch-step-title');
+      const descEl = document.getElementById('omr-batch-step-desc');
+      const statSheetsEl = document.getElementById('omr-batch-stat-sheets');
+      const statStudentsEl = document.getElementById('omr-batch-stat-students');
+      const statWarnEl = document.getElementById('omr-batch-stat-warnings');
+      const etaEl = document.getElementById('omr-batch-eta-text');
+
+      const safeTotal = Math.max(1, total);
+      const val = Math.min(safeTotal, Math.max(0, progressValue));
+      const pct = Math.min(100, Math.round((val / safeTotal) * 100));
+
+      if (counterEl && stepNum !== undefined) {
+        counterEl.textContent = `${Math.min(stepNum, safeTotal)} / ${safeTotal} Optik Kağıt`;
+      }
+      if (pctEl) pctEl.textContent = `%${pct}`;
+      if (progEl) {
+        progEl.max = safeTotal;
+        progEl.value = val;
+      }
+      if (titleEl && stepTitle) titleEl.textContent = stepTitle;
+      if (descEl && stepDesc) descEl.textContent = stepDesc;
+      if (statSheetsEl && processedSheets !== undefined) statSheetsEl.textContent = `${processedSheets} / ${safeTotal}`;
+      if (statStudentsEl && readStudents !== undefined) statStudentsEl.textContent = String(readStudents);
+      if (statWarnEl && warnings !== undefined) statWarnEl.textContent = String(warnings);
+
+      if (processedSheets !== undefined) {
+        this._batchCompletedSheets = processedSheets;
+        if (etaEl) {
+          if (processedSheets >= safeTotal) {
+            etaEl.textContent = '✅ Tamamlandı';
+          } else if (processedSheets > 0) {
+            const avgMs = (Date.now() - (this._batchStartTime || Date.now())) / processedSheets;
+            const remSec = Math.max(1, Math.ceil((avgMs * (safeTotal - processedSheets)) / 1000));
+            etaEl.textContent = `⏳ Kalan: ~${this.formatDurationSec(remSec)}`;
+          }
+        }
+      }
+    },
+
+    setBatchFeedActiveRow(stepNum, total, statusText) {
+      const list = document.getElementById('omr-batch-feed-list');
+      if (!list) return;
+      let row = document.getElementById(`omr-batch-row-${stepNum}`);
+      if (!row) {
+        row = document.createElement('div');
+        row.id = `omr-batch-row-${stepNum}`;
+        row.className = 'c-omr-batch-feed-item active-scan';
+        list.prepend(row);
+      }
+      row.className = 'c-omr-batch-feed-item active-scan';
+      row.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 8px; min-width: 0;">
+          <div class="c-omr-batch-spinner" style="width: 14px; height: 14px; border-width: 2px;"></div>
+          <div style="min-width: 0;">
+            <div style="font-weight: 800; color: #e0e7ff; font-size: 12px;">
+              #${stepNum}. Optik Kağıt (${stepNum}/${total})
+            </div>
+            <div style="font-size: 11px; color: #a5b4fc; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+              ${statusText}
+            </div>
+          </div>
+        </div>
+        <span style="font-size: 10.5px; font-weight: 800; color: #818cf8; background: rgba(99, 102, 241, 0.2); padding: 3px 7px; border-radius: 999px; flex-shrink: 0;">
+          Okunuyor...
+        </span>
+      `;
+    },
+
+    resolveBatchFeedRow(stepNum, cardResults, errText = null) {
+      const list = document.getElementById('omr-batch-feed-list');
+      if (!list) return;
+      let row = document.getElementById(`omr-batch-row-${stepNum}`);
+      if (!row) {
+        row = document.createElement('div');
+        row.id = `omr-batch-row-${stepNum}`;
+        list.prepend(row);
+      }
+
+      if (Array.isArray(cardResults) && cardResults.length > 0) {
+        const first = cardResults[0];
+        const unmatched = cardResults.some(r => this.isCardResultUnmatched(r));
+        row.className = `c-omr-batch-feed-item ${unmatched ? 'warn-scan' : 'success-scan'}`;
+
+        if (cardResults.length === 1) {
+          const scoreStr = Number(first.score || 0).toFixed(1);
+          const netStr = Number(first.net || 0).toFixed(1);
+          const stuTitle = unmatched
+            ? `⚠️ ${first.studentName || 'Öğrenci Eşleşmedi'}`
+            : `✅ ${first.studentName}`;
+          const subLine = `Kağıt #${stepNum} • No: ${first.studentNo || '-'} • ${first.correct || 0}D ${first.wrong || 0}Y ${first.blank || 0}B`;
+
+          row.innerHTML = `
+            <div style="min-width: 0; flex: 1;">
+              <div style="font-weight: 800; color: ${unmatched ? '#fde68a' : '#f8fafc'}; font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                ${stuTitle}
+              </div>
+              <div style="font-size: 10.5px; color: #94a3b8;">
+                ${subLine}
+              </div>
+            </div>
+            <div style="text-align: right; flex-shrink: 0;">
+              <div style="font-size: 12.5px; font-weight: 900; color: #34d399;">${scoreStr} P</div>
+              <div style="font-size: 10px; font-weight: 700; color: #93c5fd;">${netStr} Net</div>
+            </div>
+          `;
+        } else {
+          const names = cardResults.map(r => `${r.studentName} (${Number(r.score || 0).toFixed(0)}P)`).join(', ');
+          row.innerHTML = `
+            <div style="min-width: 0; flex: 1;">
+              <div style="font-weight: 800; color: #f8fafc; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                ✅ Kağıt #${stepNum}: ${cardResults.length} Form Okundu
+              </div>
+              <div style="font-size: 10.5px; color: #94a3b8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                ${names}
+              </div>
+            </div>
+            <span style="font-size: 11px; font-weight: 800; color: #34d399; flex-shrink: 0;">+${cardResults.length} Öğrenci</span>
+          `;
+        }
+      } else {
+        row.className = 'c-omr-batch-feed-item error-scan';
+        row.innerHTML = `
+          <div style="min-width: 0; flex: 1;">
+            <div style="font-weight: 800; color: #fca5a5; font-size: 12px;">
+              ⚠️ Kağıt #${stepNum} — Optik Form Algılanamadı
+            </div>
+            <div style="font-size: 10.5px; color: #94a3b8;">
+              ${errText || 'Köşe referansları bulunamadı, lütfen bu kağıdı tekli kamerayla okutun.'}
+            </div>
+          </div>
+          <span style="font-size: 10.5px; font-weight: 800; color: #f87171; flex-shrink: 0;">Atlandı</span>
+        `;
+      }
+    },
+
+    finishBatchEvalModal(totalSheets, readStudentsCount, warningsCount) {
+      if (this._batchEvalTimer) {
+        clearInterval(this._batchEvalTimer);
+        this._batchEvalTimer = null;
+      }
+
+      const iconEl = document.getElementById('omr-batch-header-icon');
+      const mainTitleEl = document.getElementById('omr-batch-main-title');
+      const spinnerEl = document.getElementById('omr-batch-step-spinner');
+      const stepTitleEl = document.getElementById('omr-batch-step-title');
+      const stepDescEl = document.getElementById('omr-batch-step-desc');
+      const doneBtn = document.getElementById('omr-batch-done-btn');
+      const elapsedSec = Math.max(1, Math.round((Date.now() - (this._batchStartTime || Date.now())) / 1000));
+      const elapsedEl = document.getElementById('omr-batch-elapsed-text');
+
+      if (iconEl) {
+        iconEl.classList.add('done');
+        iconEl.textContent = '✅';
+      }
+      if (mainTitleEl) {
+        mainTitleEl.textContent = 'Değerlendirme Tamamlandı!';
+      }
+      if (spinnerEl) {
+        spinnerEl.style.display = 'none';
+      }
+      if (elapsedEl) {
+        elapsedEl.textContent = `⏱️ Toplam süre: ${this.formatDurationSec(elapsedSec)}`;
+      }
+
+      this.updateBatchEvalProgress({
+        stepNum: totalSheets,
+        total: totalSheets,
+        progressValue: totalSheets,
+        stepTitle: `🎉 ${totalSheets} / ${totalSheets} Kağıt Değerlendirildi (${readStudentsCount} Öğrenci)`,
+        stepDesc: warningsCount > 0
+          ? `${readStudentsCount} öğrenci puanlandı. ${warningsCount} kağıtta eşleşme/okuma uyarısı var, listeden kontrol edebilirsiniz.`
+          : `Tüm optik kağıtlar başarıyla okundu ve öğrenci puanları hesaplandı.`,
+        processedSheets: totalSheets,
+        readStudents: readStudentsCount,
+        warnings: warningsCount
+      });
+
+      if (stepTitleEl) stepTitleEl.style.color = '#6ee7b7';
+      if (stepDescEl) stepDescEl.style.paddingLeft = '0';
+
+      if (doneBtn) {
+        doneBtn.style.display = 'flex';
+        doneBtn.innerHTML = `<span>✅ Sonuçları Gör (${readStudentsCount} Öğrenci)</span>`;
+      }
+
+      // Kullanıcı hemen kapatmazsa kısa süre sonra otomatik kapatıp listeyi göster
+      const autoCloseDelay = totalSheets > 3 ? 2200 : 1100;
+      this._batchAutoCloseTimer = setTimeout(() => {
+        this.closeBatchEvalModal();
+      }, autoCloseDelay);
+    },
+
+    closeBatchEvalModal() {
+      if (this._batchEvalTimer) {
+        clearInterval(this._batchEvalTimer);
+        this._batchEvalTimer = null;
+      }
+      if (this._batchAutoCloseTimer) {
+        clearTimeout(this._batchAutoCloseTimer);
+        this._batchAutoCloseTimer = null;
+      }
+      const modal = document.getElementById('companion-omr-batch-progress-modal');
+      if (modal) modal.style.display = 'none';
+      this.renderHub();
     },
 
     // Google ML Kit Belge Tarayıcı Başarılı Döndüğünde Çağrılır
@@ -2103,16 +2508,33 @@
         return;
       }
 
-      if (window.Companion) {
-        window.Companion.showToast(`📑 ${items.length} adet optik form inceleniyor...`);
-      }
-
       let readCardsCount = 0;
+      let warningsCount = 0;
       const total = items.length;
       const isBatch = total > 1;
 
+      // Adım adım ilerleme modalını hemen aç ve ilk boyama için ana iş parçacığına nefes aldır
+      this.openBatchEvalModal(total);
+      await this.yieldToUiPaint(30);
+
       for (let i = 0; i < total; i++) {
+        const stepNum = i + 1;
         const src = items[i];
+
+        // ADIM A: Görselin Yüklenmesi ve Hazırlanması
+        this.setBatchFeedActiveRow(stepNum, total, 'Görsel belleğe yükleniyor ve hazırlanıyor...');
+        this.updateBatchEvalProgress({
+          stepNum,
+          total,
+          progressValue: i + 0.2,
+          stepTitle: `Adım ${stepNum} / ${total}: ${stepNum}. Optik Kağıt Hazırlanıyor`,
+          stepDesc: `${stepNum}. sıradaki optik kağıt görüntüsü işlenmek üzere hazırlanıyor...`,
+          processedSheets: i,
+          readStudents: readCardsCount,
+          warnings: warningsCount
+        });
+        await this.yieldToUiPaint(20);
+
         try {
           const img = await new Promise((resolve, reject) => {
             const im = new Image();
@@ -2128,25 +2550,95 @@
           const ctx = canvas.getContext('2d');
           ctx.drawImage(img, 0, 0);
 
-          await this.processImageCanvas(canvas, null, null, null, isBatch);
-          readCardsCount++;
+          // ADIM B: Köşe Hizalama, ArUco Öğrenci Kimliği ve Şıkların Okunması
+          this.setBatchFeedActiveRow(stepNum, total, 'Köşe hizalama, ArUco öğrenci no ve şıklar okunuyor...');
+          this.updateBatchEvalProgress({
+            stepNum,
+            total,
+            progressValue: i + 0.55,
+            stepTitle: `Adım ${stepNum} / ${total}: ${stepNum}. Optik Kağıt Değerlendiriliyor...`,
+            stepDesc: `ArUco öğrenci kimliği, cevap anahtarı ve işaretlenen şıklar analiz ediliyor...`,
+            processedSheets: i,
+            readStudents: readCardsCount,
+            warnings: warningsCount
+          });
+          await this.yieldToUiPaint(25);
+
+          const cardResults = await this.processImageCanvas(canvas, null, null, null, isBatch);
+
+          // Android WebView RAM şişmesini önlemek için geçici canvas belleğini serbest bırak
+          canvas.width = 0;
+          canvas.height = 0;
+
+          // ADIM C: Okunan Öğrenci Sonucunun Bildirilmesi
+          if (Array.isArray(cardResults) && cardResults.length > 0) {
+            readCardsCount += cardResults.length;
+            const hasUnmatched = cardResults.some(r => this.isCardResultUnmatched(r));
+            if (hasUnmatched) warningsCount++;
+
+            this.resolveBatchFeedRow(stepNum, cardResults);
+            const first = cardResults[0];
+            this.updateBatchEvalProgress({
+              stepNum,
+              total,
+              progressValue: stepNum,
+              stepTitle: `✅ ${stepNum} / ${total}. Kağıt Okundu: ${first.studentName}`,
+              stepDesc: `No: ${first.studentNo || '-'} • ${Number(first.score || 0).toFixed(1)} Puan (${first.correct || 0} Doğru, ${first.wrong || 0} Yanlış, ${first.blank || 0} Boş)`,
+              processedSheets: stepNum,
+              readStudents: readCardsCount,
+              warnings: warningsCount
+            });
+
+            if (window.Companion && typeof window.Companion.vibrate === 'function') {
+              window.Companion.vibrate(12);
+            }
+          } else {
+            warningsCount++;
+            this.resolveBatchFeedRow(stepNum, null, 'Optik form köşe referansları algılanamadı.');
+            this.updateBatchEvalProgress({
+              stepNum,
+              total,
+              progressValue: stepNum,
+              stepTitle: `⚠️ ${stepNum} / ${total}. Kağıt Okunamadı`,
+              stepDesc: `${stepNum}. kağıtta optik form köşeleri algılanamadı, sıradaki kağıda geçiliyor...`,
+              processedSheets: stepNum,
+              readStudents: readCardsCount,
+              warnings: warningsCount
+            });
+          }
         } catch (err) {
-          console.error(`Belge #${i + 1} işlenirken hata:`, err);
+          console.error(`Belge #${stepNum} işlenirken hata:`, err);
+          warningsCount++;
+          this.resolveBatchFeedRow(stepNum, null, 'Görsel okunurken beklenmeyen bir hata oluştu.');
+          this.updateBatchEvalProgress({
+            stepNum,
+            total,
+            progressValue: stepNum,
+            stepTitle: `⚠️ ${stepNum} / ${total}. Kağıtta Hata Oluştu`,
+            stepDesc: `${stepNum}. kağıt atlandı, sıradaki kağıda geçiliyor...`,
+            processedSheets: stepNum,
+            readStudents: readCardsCount,
+            warnings: warningsCount
+          });
         }
+
+        await this.yieldToUiPaint(25);
       }
 
-      if (isBatch) {
+      if (readCardsCount > 0) {
         playSuccessBeep();
+      } else {
+        playNoticeBeep();
       }
       if (window.AndroidBridge && typeof window.AndroidBridge.vibrate === 'function') {
         window.AndroidBridge.vibrate(60);
       }
 
-      if (total > 1) {
-        const totalInExam = (this.activeExam && this.activeExam.studentResults) ? Object.keys(this.activeExam.studentResults).length : readCardsCount;
-        if (window.Companion) {
-          window.Companion.showToast(`✅ ${readCardsCount} optik form değerlendirildi (Toplam: ${totalInExam} Öğrenci)`, 'success');
-        }
+      this.finishBatchEvalModal(total, readCardsCount, warningsCount);
+
+      const totalInExam = (this.activeExam && this.activeExam.studentResults) ? Object.keys(this.activeExam.studentResults).length : readCardsCount;
+      if (window.Companion) {
+        window.Companion.showToast(`✅ ${readCardsCount} optik form değerlendirildi (Toplam: ${totalInExam} Öğrenci)`, 'success');
       }
       this.renderHub();
     },
