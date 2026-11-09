@@ -104,6 +104,40 @@
       return (data && Array.isArray(data.plans)) ? data.plans : [];
     },
 
+    // Okul Seviyesi Kontrolü (İlkokul: 6 Ders, Ortaokul: 7 Ders)
+    isMiddleSchool() {
+      const data = this.getData();
+      if (data && data.educationLevel === 'primary') return false;
+      if (data && data.educationLevel === 'middle') return true;
+
+      // El terminali profilinde seçili rol kontrolü
+      try {
+        const profRaw = localStorage.getItem('sinif_companion_profile');
+        if (profRaw) {
+          const prof = JSON.parse(profRaw);
+          if (prof.teacherRole === 'primary' || prof.isClassTeacher) return false;
+          if (prof.teacherRole === 'middle') return true;
+        }
+      } catch (e) {}
+
+      if (window.Companion && typeof window.Companion.isClassTeacher === 'function') {
+        if (window.Companion.isClassTeacher()) return false;
+      }
+
+      // Şube adlarına bakarak kontrol et (5, 6, 7, 8 şubesi yoksa ilkokul kabul edilir)
+      const students = (data && data.students) || [];
+      const hasMiddleBranch = students.some(s => s.branch && ['5', '6', '7', '8'].includes(String(s.branch).trim()[0]));
+      return hasMiddleBranch;
+    },
+
+    getPeriodKeys(times) {
+      const isMiddle = this.isMiddleSchool();
+      const baseKeys = isMiddle
+        ? ['p1', 'p2', 'p3', 'p4', 'p5', 'p6', 'p7']
+        : ['p1', 'p2', 'p3', 'p4', 'p5', 'p6'];
+      return baseKeys.filter(k => times && times[k] && times[k].start && times[k].end);
+    },
+
     // Ders Adı ile Yıllık Plan Eşleştirici
     isLessonPlanMatch(planCourseName, lessonName) {
       if (!planCourseName || !lessonName) return false;
@@ -220,7 +254,7 @@
         };
       }
 
-      const pKeys = ['p1', 'p2', 'p3', 'p4', 'p5', 'p6', 'p7'].filter(k => times[k] && times[k].start && times[k].end);
+      const pKeys = this.getPeriodKeys(times);
 
       // 1. Aktif Ders Saati Kontrolü
       for (let i = 0; i < pKeys.length; i++) {
@@ -558,7 +592,7 @@
       }
       if (badgeEl) badgeEl.textContent = weekDisplay;
 
-      const pKeys = ['p1', 'p2', 'p3', 'p4', 'p5', 'p6', 'p7'].filter(k => times[k] && times[k].start && times[k].end);
+      const pKeys = this.getPeriodKeys(times);
 
       if (pKeys.length === 0) {
         container.innerHTML = `
@@ -656,6 +690,40 @@
       });
 
       container.innerHTML = html;
+    },
+
+    // Belirtilen Günün Derslerini Raporlama İçin Döndür
+    getDayLessons(dayNum) {
+      const times = this.getTimes();
+      const grid = this.getGrid();
+      const lessons = this.getLessons();
+      const plans = this.getPlans();
+      const pKeys = this.getPeriodKeys(times);
+
+      const dayLessons = [];
+      pKeys.forEach(pk => {
+        const gridKey = `${dayNum}-${pk}`;
+        const lessonId = grid[gridKey] || '';
+        const lesson = lessons.find(l => l.id === lessonId);
+        if (lesson) {
+          let topic = '';
+          const matchedPlan = plans.find(p => this.isLessonPlanMatch(p.courseName || p.title, lesson.name));
+          if (matchedPlan) {
+            const schedule = matchedPlan.weeklySchedule || matchedPlan.weeks || [];
+            const weekIdx = this.getActiveWeekIndex(schedule);
+            const weekObj = schedule[weekIdx];
+            if (weekObj) topic = this.extractTopic(weekObj);
+          }
+          dayLessons.push({
+            periodKey: pk,
+            periodNum: pk.replace('p', ''),
+            name: lesson.name,
+            color: lesson.color,
+            topic
+          });
+        }
+      });
+      return dayLessons;
     }
   };
 

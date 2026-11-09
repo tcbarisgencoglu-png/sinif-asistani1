@@ -1,10 +1,11 @@
 {
-  "version": "1.0.131",
+  "version": "1.0.132",
   "releaseDate": "2026-11-09",
   "minRequiredVersion": "1.0.0",
-  "title": "Sınıf Asistanı v1.0.131 Yayında!",
-  "description": "Çoklu Sınav Başarı Sıralaması, İstatistik Raporları ve Supabase Bulut Altyapı Yenilemesi",
+  "title": "Sınıf Asistanı v1.0.132 Yayında!",
+  "description": "El Terminali İlkokul 6 Saat Ders Akışı Düzeltmesi, Çoklu Sınav Başarı Sıralaması ve Yeni Supabase Altyapısı",
   "features": [
+    "El Terminali İlkokul 6 Ders Saati Uyumu: İlkokul modunda el terminalinde 7. dersin görünmesine neden olan hata giderildi; ilkokullarda günlük tam 6 saat ders ve teneffüs/öğle arası akışı eşitlendi.",
     "Çoklu Sınav Başarı ve Sıralama Raporu: Sınavlar menüsünde öğrencilerin girdikleri tüm sınavlar, son 3, 5, 10 veya seçilen özel sınav aralığına göre puan üstünlüğüne göre otomatik sıralama, not ortalaması, toplam doğru, yanlış, boş ve net sayıları hesaplama özelliği eklendi.",
     "A4 / PDF Yazdırma Desteği: Seçilen sınav aralığındaki öğrenci sıralama tablosunu tek tıkla resmi, şık ve çıktısı alınabilir A4/PDF raporu olarak kaydedebilme ve yazdırabilme imkanı sağlandı.",
     "Supabase Bulut Senkronizasyon Altyapı Güncellemesi: Yeni ve kesintisiz Supabase bulut sunucusuna geçiş yapıldı; el terminali ile akıllı tahta arasındaki canlı eşitleme ve veri trafiği korumaları tazelendi."
