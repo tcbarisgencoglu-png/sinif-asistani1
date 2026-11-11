@@ -89,6 +89,48 @@ function normalizeWeekId(weekId, defaultYear = null) {
 window.normalizeWeekId = normalizeWeekId;
 
 /**
+ * MEB Resmi Tatil ve Ara Tatil Takvimi
+ */
+const MEB_HOLIDAY_SCHEDULE = {
+  // 1. Dönem Ara Tatili: 16 - 20 Kasım 2026
+  '2026-W47': {
+    type: 'midterm_break',
+    name: '1. Dönem Ara Tatili',
+    shortLabel: '1. Ara Tatil',
+    dateRange: '16 Kas - 20 Kas',
+    isHoliday: true,
+    isBreak: true
+  },
+  // Yarıyıl / Sömestr Tatili: 25 Ocak - 5 Şubat 2027 (2 Hafta)
+  '2027-W04': {
+    type: 'semester_break',
+    name: 'Yarıyıl Tatili (1. Hafta)',
+    shortLabel: 'Yarıyıl Tatili',
+    dateRange: '25 Oca - 29 Oca',
+    isHoliday: true,
+    isBreak: true
+  },
+  '2027-W05': {
+    type: 'semester_break',
+    name: 'Yarıyıl Tatili (2. Hafta)',
+    shortLabel: 'Yarıyıl Tatili',
+    dateRange: '01 Şub - 05 Şub',
+    isHoliday: true,
+    isBreak: true
+  },
+  // 2. Dönem Ara Tatili: 8 - 12 Mart 2027
+  '2027-W10': {
+    type: 'midterm_break',
+    name: '2. Dönem Ara Tatili',
+    shortLabel: '2. Ara Tatil',
+    dateRange: '08 Mar - 12 Mar',
+    isHoliday: true,
+    isBreak: true
+  }
+};
+window.MEB_HOLIDAY_SCHEDULE = MEB_HOLIDAY_SCHEDULE;
+
+/**
  * ISO Hafta kodunu (örn: '2026-W38') MEB Eğitim-Öğretim Haftası bilgisine dönüştürür.
  */
 function getEducationWeekInfo(weekId) {
@@ -119,7 +161,6 @@ function getEducationWeekInfo(weekId) {
   const diffTime = monday.getTime() - openingMonday.getTime();
   const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
   const diffWeeks = Math.floor(diffDays / 7);
-  const academicWeekNo = diffWeeks + 1;
 
   const monthsTR = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'];
   const d1 = String(monday.getDate()).padStart(2, '0');
@@ -128,13 +169,49 @@ function getEducationWeekInfo(weekId) {
   const m2 = monthsTR[friday.getMonth()];
 
   const dateRange = `${d1} ${m1} - ${d2} ${m2}`;
+
+  // 1. Resmi Ara Tatil veya Yarıyıl Tatili Kontrolü
+  const holiday = MEB_HOLIDAY_SCHEDULE[normalized];
+  if (holiday) {
+    return {
+      weekId: normalized,
+      year,
+      isoWeekNo,
+      academicYear: academicYearStr,
+      academicWeekNo: null,
+      isAcademic: false,
+      isHoliday: true,
+      isBreak: true,
+      holidayName: holiday.name,
+      monday,
+      friday,
+      sunday,
+      dateRange,
+      label: `🌴 ${holiday.name} (${dateRange})`,
+      shortLabel: holiday.shortLabel,
+      fullLabel: `${academicYearStr} • 🌴 ${holiday.name} (${dateRange})`
+    };
+  }
+
+  // 2. Tatil haftalarını atlayarak net eğitim haftası numarasını hesapla
+  let academicWeekNo = 0;
+  if (monday.getTime() >= openingMonday.getTime()) {
+    for (let d = new Date(openingMonday.getTime()); d.getTime() <= monday.getTime(); d.setDate(d.getDate() + 7)) {
+      const dIso = typeof getISOWeek === 'function' ? getISOWeek(d) : '';
+      if (!MEB_HOLIDAY_SCHEDULE[dIso]) {
+        academicWeekNo++;
+      }
+    }
+  } else {
+    academicWeekNo = diffWeeks;
+  }
   
   let label = '';
   let shortLabel = '';
   let fullLabel = '';
   let isAcademic = false;
 
-  if (academicWeekNo >= 1 && academicWeekNo <= 42) {
+  if (academicWeekNo >= 1 && academicWeekNo <= 40) {
     isAcademic = true;
     shortLabel = `${academicWeekNo}. Hafta`;
     label = `${academicWeekNo}. Hafta (${dateRange})`;
@@ -150,12 +227,14 @@ function getEducationWeekInfo(weekId) {
   }
 
   return {
-    weekId,
+    weekId: normalized,
     year,
     isoWeekNo,
     academicYear: academicYearStr,
-    academicWeekNo,
+    academicWeekNo: isAcademic ? academicWeekNo : null,
     isAcademic,
+    isHoliday: false,
+    isBreak: false,
     monday,
     friday,
     sunday,
@@ -2604,6 +2683,31 @@ function reconcileHomeworkStateObject(stateObj) {
     return keyStr;
   };
 
+  // 0. 2026-W47 (16-20 Kasım 2026 Ara Tatil) haftasına sehven girilmiş ödevleri 9. Haftaya (09-13 Kasım 2026 / 2026-W46) çek
+  const SHIFTED_W47_DATES = {
+    '2026-11-16': '2026-11-09',
+    '2026-11-17': '2026-11-10',
+    '2026-11-18': '2026-11-11',
+    '2026-11-19': '2026-11-12',
+    '2026-11-20': '2026-11-13'
+  };
+  stateObj.homeworks.forEach(hw => {
+    if (!hw) return;
+    if (hw.id === 'hw_1794215592943_kmw9hdwx6' && hw.dueDate !== '2026-11-09') {
+      hw.dueDate = '2026-11-09';
+      changed = true;
+    } else if (hw.id === 'hw_1794300513250_61v3cfube' && hw.dueDate !== '2026-11-10') {
+      hw.dueDate = '2026-11-10';
+      changed = true;
+    } else if (hw.id === 'hw_1794300872754_gsjq138e9' && hw.dueDate !== '2026-11-11') {
+      hw.dueDate = '2026-11-11';
+      changed = true;
+    } else if (hw.dueDate && SHIFTED_W47_DATES[hw.dueDate]) {
+      hw.dueDate = SHIFTED_W47_DATES[hw.dueDate];
+      changed = true;
+    }
+  });
+
   // 1. Aynı gün (ve ortaokulda aynı şube) için mükerrer oluşmuş ödev kayıtlarını birleştir
   const isPrimary = stateObj.educationLevel === 'primary';
   const hwByKey = new Map();
@@ -2677,8 +2781,24 @@ function reconcileHomeworkStateObject(stateObj) {
   const existingHwPerfMeta = new Map();
   const oldHwPerfRecords = [];
   const nonHwPerfRecords = [];
+  const seenExamRankPerfKeys = new Set();
+
+  const isExamRankPerf = (p) => {
+    if (!p) return false;
+    if (p.examId) return true;
+    const r = typeof p.reason === 'string' ? p.reason.trim() : '';
+    return /"\s*Sınavı\s+\d+\.liği$/i.test(r);
+  };
 
   stateObj.performance.forEach(p => {
+    if (!p) {
+      changed = true;
+      return;
+    }
+    if (p.weekId === '2026-W47') {
+      p.weekId = '2026-W46';
+      changed = true;
+    }
     if (isHwPerf(p)) {
       oldHwPerfRecords.push(p);
       const canHwId = p.homeworkId ? (oldHwIdToCanonicalId.get(String(p.homeworkId)) || String(p.homeworkId)) : '';
@@ -2689,6 +2809,15 @@ function reconcileHomeworkStateObject(stateObj) {
           existingHwPerfMeta.set(mKey, { id: p.id, date: p.date });
         }
       }
+    } else if (isExamRankPerf(p)) {
+      const stuId = resolveStuId(p.studentId) || String(p.studentId || '');
+      const examKey = `${p.examId || String(p.reason || '').trim()}__${stuId}`;
+      if (seenExamRankPerfKeys.has(examKey)) {
+        changed = true;
+        return;
+      }
+      seenExamRankPerfKeys.add(examKey);
+      nonHwPerfRecords.push(p);
     } else {
       nonHwPerfRecords.push(p);
     }
@@ -2700,6 +2829,7 @@ function reconcileHomeworkStateObject(stateObj) {
   stateObj.homeworks.forEach(hw => {
     if (!hw || !hw.id || !hw.status || typeof hw.status !== 'object') return;
     const hwWeekId = (hw.dueDate && typeof getISOWeek === 'function') ? getISOWeek(hw.dueDate) : '';
+    const dueIsoPrefix = String(hw.dueDate || '').slice(0, 10);
 
     for (const [stuId, status] of Object.entries(hw.status)) {
       let points = 0;
@@ -2724,8 +2854,11 @@ function reconcileHomeworkStateObject(stateObj) {
       const meta = existingHwPerfMeta.get(mKey);
       const expectedReason = `"${hw.title}" Ödevi (${statusLabel})`;
       const expectedType = points >= 0 ? 'positive' : 'development';
-      const expectedId = (meta && meta.id) ? meta.id : `perf_hw_${hw.id}_${stuId}`;
-      const expectedDate = (meta && meta.date) ? meta.date : (hw.dueDate ? new Date(hw.dueDate).toISOString() : new Date().toISOString());
+      const expectedId = `perf_hw_${hw.id}_${stuId}`;
+      const metaDateStr = (meta && meta.date) ? String(meta.date) : '';
+      const expectedDate = (metaDateStr && metaDateStr.slice(0, 10) === dueIsoPrefix)
+        ? metaDateStr
+        : (hw.dueDate ? new Date(hw.dueDate).toISOString() : new Date().toISOString());
 
       expectedHwPerfRecords.push({
         id: expectedId,
@@ -2754,6 +2887,7 @@ function reconcileHomeworkStateObject(stateObj) {
         cur.type !== exp.type ||
         cur.reason !== exp.reason ||
         cur.weekId !== exp.weekId ||
+        String(cur.date || '').slice(0, 10) !== String(exp.date || '').slice(0, 10) ||
         String(cur.studentId) !== String(exp.studentId)
       ) {
         changed = true;
@@ -3006,12 +3140,24 @@ class StateManager {
       const r = typeof p.reason === 'string' ? p.reason.trim() : '';
       return /" Ödevi \((Tam|Yarım|Yapılmadı|Muaf)\)$/.test(r);
     };
+    const isExamRankPerfRecord = (p) => {
+      if (!p) return false;
+      if (p.examId) return true;
+      const r = typeof p.reason === 'string' ? p.reason.trim() : '';
+      return /"\s*Sınavı\s+\d+\.liği$/i.test(r);
+    };
 
     const perfMap = new Map();
-    const getPerfKey = (p) => String(p.id || `${p.studentId}_${p.date}_${p.reason}_${p.point}`);
+    const getPerfKey = (p) => {
+      if (isExamRankPerfRecord(p)) {
+        return `exam__${p.examId || String(p.reason || '').trim()}__${p.studentId}`;
+      }
+      return String(p.id || `${p.studentId}_${p.date}_${p.reason}_${p.point}`);
+    };
     [...(secondary.performance || []), ...(primary.performance || [])].forEach(p => {
       if (!p || isHwPerfRecord(p)) return;
       if (p.id && deletedSet.has(String(p.id))) return;
+      if (p.weekId === '2026-W47') p.weekId = '2026-W46';
       perfMap.set(getPerfKey(p), p);
     });
     primary.performance = Array.from(perfMap.values());
@@ -3174,15 +3320,18 @@ class StateManager {
           const beforeTime = Number(this.state?._updatedAt || 0);
           const afterTime = Number(merged?._updatedAt || 0);
 
+          const hwReconciled = reconcileHomeworkStateObject(merged);
           this.state = wrapState(merged, true);
           restoreStudentPhotosToList(this.state.rawStudents);
           cacheStudentPhotosFromList(this.state.rawStudents);
 
+          let flagChanged = false;
           if (!this.state._examCompetitionRankingFixed_v1077) {
             if (Array.isArray(this.state.weeklyEvaluations) && this.state.weeklyEvaluations.length > 0) {
               this.recalculateAllExamPoints();
             }
             this.state._examCompetitionRankingFixed_v1077 = true;
+            flagChanged = true;
           }
 
           if (!this.state._weekIdNormalized_v1080) {
@@ -3204,9 +3353,20 @@ class StateManager {
               this.recalculateAllExamPoints();
             }
             this.state._weekIdNormalized_v1080 = true;
+            flagChanged = true;
           }
 
-          if (afterScore !== beforeScore || afterTime > beforeTime || usableCandidates[0].name !== 'localStorage') {
+          if (!this.state._w47HomeworkAndExamDedupFixed_v1082) {
+            reconcileHomeworkStateObject(this.state);
+            if (Array.isArray(this.state.weeklyEvaluations) && this.state.weeklyEvaluations.length > 0) {
+              this.recalculateAllExamPoints();
+            }
+            this.state._w47HomeworkAndExamDedupFixed_v1082 = true;
+            flagChanged = true;
+          }
+
+          this._isHydrated = true;
+          if (hwReconciled || flagChanged || afterScore !== beforeScore || afterTime > beforeTime || usableCandidates[0].name !== 'localStorage') {
             console.log(`[Veri Senkronizasyonu] Birincil kaynak: ${usableCandidates[0].name} ile tüm yerel depolar birleştirildi.`);
             this.saveState('Açılış çoklu depo senkronizasyonu', true);
             if (typeof document !== 'undefined') {
@@ -3730,6 +3890,21 @@ class StateManager {
         parsed.performance = loaded.performance;
         localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
       } catch (hwSyncErr) {}
+    }
+
+    if (loaded.plans && Array.isArray(loaded.plans)) {
+      let plansModified = false;
+      loaded.plans.forEach(plan => {
+        if (typeof window.normalizePlanSchedule === 'function') {
+          if (window.normalizePlanSchedule(plan)) plansModified = true;
+        }
+      });
+      if (plansModified && allowStorageWrite) {
+        try {
+          parsed.plans = loaded.plans;
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
+        } catch (planSaveErr) {}
+      }
     }
 
     return loaded;
@@ -5066,7 +5241,7 @@ class StateManager {
     return evaluation;
   }
 
-  saveExam(examData) {
+  saveExam(examData, silent = false) {
     if (!examData || !examData.id) return null;
 
     if (!Array.isArray(this.state.weeklyEvaluations)) {
@@ -5186,7 +5361,9 @@ class StateManager {
       if (rewardPoint > 0) {
         const normWeek = typeof normalizeWeekId === 'function' ? normalizeWeekId(examData.weekId) : examData.weekId;
         this.state.performance.push({
-          id: 'perf_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5) + '_' + i,
+          id: examData.id
+            ? `perf_exam_${examData.id}_${studentScoreList[i].studentId}`
+            : ('perf_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5) + '_' + i),
           studentId: studentScoreList[i].studentId,
           type: 'positive',
           point: rewardPoint,
@@ -5198,7 +5375,12 @@ class StateManager {
       }
     }
 
-    this.saveState('Sınav kaydedildi: ' + (examData.examName || examData.id));
+    if (!silent) {
+      this.saveState('Sınav kaydedildi: ' + (examData.examName || examData.id));
+      try {
+        document.dispatchEvent(new CustomEvent('stateChanged'));
+      } catch (_) {}
+    }
     return examData;
   }
 
@@ -5295,18 +5477,24 @@ class StateManager {
         }
       }
 
-      const studentScoreList = [];
+      const dedupScoreByStudent = new Map();
       for (const stdId in scoreMap) {
-        let resolvedStudentId = stdId;
+        let resolvedStudentId = String(stdId);
         const matched = allStudents.find(s => s && (String(s.id) === String(stdId) || String(s.number) === String(stdId)));
-        if (matched) resolvedStudentId = matched.id;
+        if (matched) resolvedStudentId = String(matched.id);
 
-        studentScoreList.push({
-          studentId: resolvedStudentId,
-          score: scoreMap[stdId],
-          net: netMap[stdId] !== undefined ? netMap[stdId] : 0
-        });
+        const currentScore = scoreMap[stdId];
+        const currentNet = netMap[stdId] !== undefined ? netMap[stdId] : 0;
+        const prev = dedupScoreByStudent.get(resolvedStudentId);
+        if (!prev || currentScore > prev.score) {
+          dedupScoreByStudent.set(resolvedStudentId, {
+            studentId: resolvedStudentId,
+            score: currentScore,
+            net: currentNet
+          });
+        }
       }
+      const studentScoreList = Array.from(dedupScoreByStudent.values());
 
       studentScoreList.sort((a, b) => {
         if (b.score !== a.score) return b.score - a.score;
@@ -5333,7 +5521,9 @@ class StateManager {
         if (rewardPoint > 0) {
           const normWeek = typeof normalizeWeekId === 'function' ? normalizeWeekId(exam.weekId) : exam.weekId;
           this.state.performance.push({
-            id: 'perf_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5) + '_' + i,
+            id: exam.id
+              ? `perf_exam_${exam.id}_${studentScoreList[i].studentId}`
+              : ('perf_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5) + '_' + i),
             studentId: studentScoreList[i].studentId,
             type: 'positive',
             point: rewardPoint,
@@ -5593,9 +5783,22 @@ class StateManager {
     if (currentReal !== lastSetReal) {
       const diff = this.getWeeksDiff(lastSetReal, currentReal);
       if (diff > 0) {
-        selected = this.addWeeks(selected, diff);
+        if (selected === lastSetReal) {
+          selected = currentReal;
+        } else {
+          selected = this.addWeeks(selected, diff);
+        }
         localStorage.setItem('selected_week', selected);
       }
+      localStorage.setItem('last_set_real_week', currentReal);
+    }
+
+    // Gelecek hafta emniyet kilidi:
+    // Eğer seçili hafta gerçek takvim haftasının ilerisindeyse (örneğin sonraki haftanın ödevi planlanıp gelecekte unutulduysa),
+    // haftalık performans ve sınav puanlarının sıfır görünmesini önlemek için güvenle geçerli gerçek haftaya eşitle.
+    if (selected && currentReal && this.getWeeksDiff(currentReal, selected) > 0) {
+      selected = currentReal;
+      localStorage.setItem('selected_week', selected);
       localStorage.setItem('last_set_real_week', currentReal);
     }
     

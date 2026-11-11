@@ -1183,7 +1183,9 @@ function setupWeeklyTab(showToast) {
     btnCloseActiveExam.addEventListener('click', () => {
       activeExam = null;
       window.activeWeeklyExam = null;
+      weeklyCurrentSubView = 'exams';
       if (activeExamCard) activeExamCard.style.display = 'none';
+      if (typeof updateWeeklySubViews === 'function') updateWeeklySubViews();
       renderExamsList();
     });
   }
@@ -1252,9 +1254,20 @@ function setupWeeklyTab(showToast) {
       activeExam.notes = notes;
       activeExam.updatedAt = new Date().toISOString();
 
+      // Anlık görsel geri bildirim
+      const origBtnHtml = btnSaveActiveExam.innerHTML;
+      btnSaveActiveExam.disabled = true;
+      btnSaveActiveExam.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg> Kaydedildi!`;
+      setTimeout(() => {
+        btnSaveActiveExam.disabled = false;
+        btnSaveActiveExam.innerHTML = origBtnHtml;
+        if (window.safeCreateIcons) window.safeCreateIcons();
+      }, 1000);
+
+      // saveExam kendi içinde stateChanged olayını fırlatır ve tabloyu/listeyi tek seferde günceller
       stateManager.saveExam(activeExam);
 
-      // Canlı El Terminali Eşitlemesi (Sonuçları Terminale Canlı Fırlat)
+      // Canlı El Terminali Eşitlemesi (Arka planda asenkron fırlat)
       if (window.CloudSync) {
         window.CloudSync.pushExam(activeExam).catch(() => {});
         if (typeof window.CloudSync.pushLiveExamResults === 'function') {
@@ -1265,12 +1278,6 @@ function setupWeeklyTab(showToast) {
       if (toastCallback) {
         toastCallback('Sınav sonuçları başarıyla kaydedildi ve El Terminaline aktarıldı.', 'success');
       }
-
-      renderExamsList();
-      openActiveExam(activeExam); // Değişiklikleri yükle
-
-      const event = new CustomEvent('stateChanged');
-      document.dispatchEvent(event);
     });
   }
 
@@ -4269,18 +4276,12 @@ Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi ve
       activeExam.examScores = mergedScores;
       activeExam.studentResults = mergedResults;
       activeExam.updatedAt = new Date().toISOString();
-      stateManager.saveExam(activeExam);
 
       // Modalı kapat
       if (modalUploadOpticalEval) modalUploadOpticalEval.classList.remove('active');
 
-      // Tabloyu ve listeyi güvenli şekilde güncelle
-      try {
-        renderExamsList();
-        openActiveExam(activeExam);
-      } catch (renderErr) {
-        console.error('Sınav tablosu güncellenirken hata:', renderErr);
-      }
+      // saveExam kendi içinde stateChanged fırlatır ve tabloyu/listeyi tek seferde günceller
+      stateManager.saveExam(activeExam);
 
       const totalExamStudents = Object.keys(mergedScores).length;
       if (toastCallback) {
@@ -4290,9 +4291,6 @@ Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi ve
           toastCallback(`🎉 ${newlyAddedStudents} öğrencinin sınav notları başarıyla eklendi! (Sınavda toplam ${totalExamStudents} öğrenci kayıtlı)`, 'success');
         }
       }
-
-      const event = new CustomEvent('stateChanged');
-      document.dispatchEvent(event);
     } catch (err) {
       console.error('commitOpticalResultsToExam hatası:', err);
       if (toastCallback) {
@@ -4844,6 +4842,9 @@ Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi ve
         });
       }
 
+      if (modalEditExamAnswerKey) modalEditExamAnswerKey.classList.remove('active');
+
+      // saveExam kendi içinde stateChanged fırlatır ve tabloyu/listeyi tek seferde günceller
       stateManager.saveExam(activeExam);
 
       if (window.CloudSync) {
@@ -4853,11 +4854,6 @@ Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi ve
         }
       }
 
-      if (modalEditExamAnswerKey) modalEditExamAnswerKey.classList.remove('active');
-
-      renderExamsList();
-      openActiveExam(activeExam);
-
       if (toastCallback) {
         if (rescoredCount > 0) {
           toastCallback(`✅ Cevap anahtarı güncellendi ve ${rescoredCount} öğrencinin notları otomatik olarak yeniden hesaplandı!`, 'success');
@@ -4865,9 +4861,6 @@ Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi ve
           toastCallback('✅ Cevap anahtarı başarıyla güncellendi.', 'success');
         }
       }
-
-      const event = new CustomEvent('stateChanged');
-      document.dispatchEvent(event);
     });
   }
 
@@ -5248,14 +5241,12 @@ Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi ve
     activeExam.examScores[activeOpticalStudentId] = score;
     activeExam.updatedAt = new Date().toISOString();
 
-    stateManager.saveExam(activeExam);
-
     if (modalStudentOpticalEdit) {
       modalStudentOpticalEdit.classList.remove('active');
     }
 
-    renderActiveExamTable();
-    renderExamsList();
+    // saveExam kendi içinde stateChanged fırlatır ve tabloyu/listeyi tek seferde günceller
+    stateManager.saveExam(activeExam);
 
     const state = stateManager.loadState();
     const student = (state.students || []).find(s => String(s.id) === String(activeOpticalStudentId));
@@ -5264,9 +5255,6 @@ Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi ve
     if (toastCallback) {
       toastCallback(`✓ ${studentLabel} optik form işaretlemeleri ve puanı (${score} Puan) başarıyla güncellendi!`, 'success');
     }
-
-    const event = new CustomEvent('stateChanged');
-    document.dispatchEvent(event);
   }
 
   // Modal buton dinleyicileri
@@ -5330,6 +5318,8 @@ Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi ve
       if (student && student.number && !activeExam.deletedStudentIds.includes(String(student.number))) {
         activeExam.deletedStudentIds.push(String(student.number));
       }
+      if (modalStudentOpticalEdit) modalStudentOpticalEdit.classList.remove('active');
+
       activeExam.updatedAt = new Date().toISOString();
       stateManager.saveExam(activeExam);
 
@@ -5340,16 +5330,9 @@ Cevabını SADECE aşağıdaki JSON formatında ver (hiçbir markdown etiketi ve
         window.CloudSync.pushExam(activeExam).catch(() => {});
       }
 
-      if (modalStudentOpticalEdit) modalStudentOpticalEdit.classList.remove('active');
-      renderActiveExamTable();
-      renderExamsList();
-
       if (toastCallback) {
         toastCallback(`✓ ${sName} optik form kaydı silindi ve elle not girişine açıldı.`, 'success');
       }
-
-      const event = new CustomEvent('stateChanged');
-      document.dispatchEvent(event);
     });
   }
 
@@ -6110,20 +6093,45 @@ function computeExamSummaryStats(rawExam, state) {
   }
   const exam = rawExam || activeExam;
   const allRoster = (state && (state.rawStudents || state.students)) || [];
-  if (window.CloudSync && typeof window.CloudSync.deduplicateExamResults === 'function') {
+  const dedupKey = `${exam.updatedAt || exam.createdAt || exam.id}_${allRoster.length}`;
+  if (exam._dedupStamp !== dedupKey && window.CloudSync && typeof window.CloudSync.deduplicateExamResults === 'function') {
     window.CloudSync.deduplicateExamResults(exam, allRoster);
+    exam._dedupStamp = dedupKey;
   }
+
+  // O(1) öğrenci indeksleme haritaları
+  const stuById = new Map();
+  const stuByNo = new Map();
+  for (let i = 0; i < allRoster.length; i++) {
+    const s = allRoster[i];
+    if (!s) continue;
+    stuById.set(String(s.id), s);
+    if (s.number !== undefined && s.number !== null) {
+      const noStr = String(s.number).trim();
+      if (noStr && noStr !== '-') {
+        stuByNo.set(noStr, s);
+        const noInt = parseInt(noStr, 10);
+        if (!isNaN(noInt) && noInt > 0) stuByNo.set(String(noInt), s);
+      }
+    }
+  }
+
   const scoreMap = {};
   const resolveStuKey = (rawKey, resObj) => {
+    const rawStr = String(rawKey);
+    const byId = stuById.get(rawStr);
+    if (byId) return String(byId.id);
     const sNo = resObj ? String(resObj.studentNo || resObj.studentNumber || '').trim() : '';
-    const stu = allRoster.find(s =>
-      s && (
-        String(s.id) === String(rawKey) ||
-        (sNo && sNo !== '-' && String(s.number || '').trim() === sNo) ||
-        (!isNaN(parseInt(rawKey, 10)) && parseInt(s.number, 10) > 0 && parseInt(s.number, 10) === parseInt(rawKey, 10))
-      )
-    );
-    return stu ? String(stu.id) : String(rawKey);
+    if (sNo && sNo !== '-') {
+      const byResNo = stuByNo.get(sNo);
+      if (byResNo) return String(byResNo.id);
+    }
+    const rawInt = parseInt(rawStr, 10);
+    if (!isNaN(rawInt) && rawInt > 0) {
+      const byRawNo = stuByNo.get(String(rawInt));
+      if (byRawNo) return String(byRawNo.id);
+    }
+    return rawStr;
   };
 
   if (exam.examScores && typeof exam.examScores === 'object') {
@@ -6180,7 +6188,7 @@ function computeExamSummaryStats(rawExam, state) {
   });
 
   const getStudentShortName = (studentId) => {
-    const student = allRoster.find(s => s && String(s.id) === String(studentId));
+    const student = stuById.get(String(studentId));
     const sSurname = (student && student.surname) ? String(student.surname) : '';
     return student ? `${student.name || ''} ${sSurname ? sSurname[0] + '.' : ''}`.trim() : 'Öğrenci';
   };
@@ -6518,7 +6526,7 @@ let examStatsExpandedStudentIds = new Set();
 let examStatsEventsBound = false;
 
 function extractStudentExamMetrics(exam, student) {
-  const totalQ = Math.max(1, parseInt(exam.totalQuestions, 10) || 20);
+  const totalQ = Math.max(1, parseInt(exam && exam.totalQuestions, 10) || 20);
   if (!exam || !student) {
     return { participated: false, correct: 0, wrong: 0, blank: 0, net: 0, score: null, totalQuestions: totalQ };
   }
@@ -6527,6 +6535,20 @@ function extractStudentExamMetrics(exam, student) {
   const stuNoStr = (student.number !== undefined && student.number !== null && String(student.number).trim() !== '')
     ? String(student.number).trim()
     : '';
+
+  // Sınav bazlı hafif önbellek (updatedAt ve sonuç sayısına göre otomatik geçersizlenir)
+  const resCount = exam.studentResults ? Object.keys(exam.studentResults).length : 0;
+  const scCount = exam.examScores ? Object.keys(exam.examScores).length : 0;
+  const cacheStamp = `${exam.updatedAt || ''}|${totalQ}|${exam.wrongAffects ? 1 : 0}|${exam.penaltyRate || 4}|${resCount}|${scCount}`;
+  if (exam._metricsCacheStamp !== cacheStamp || !(exam._metricsCache instanceof Map)) {
+    exam._metricsCacheStamp = cacheStamp;
+    exam._metricsCache = new Map();
+  }
+  const cacheKey = `${stuIdStr}:${stuNoStr}`;
+  const cachedMetric = exam._metricsCache.get(cacheKey);
+  if (cachedMetric) {
+    return cachedMetric;
+  }
 
   let res = null;
   if (exam.studentResults && typeof exam.studentResults === 'object') {
@@ -6571,7 +6593,9 @@ function extractStudentExamMetrics(exam, student) {
 
   const participated = hasAnswers || hasResScore || hasResCounts || (rawScoreFromExamScores !== null);
   if (!participated) {
-    return { participated: false, correct: 0, wrong: 0, blank: 0, net: 0, score: null, totalQuestions: totalQ };
+    const emptyMetric = { participated: false, correct: 0, wrong: 0, blank: 0, net: 0, score: null, totalQuestions: totalQ };
+    exam._metricsCache.set(cacheKey, emptyMetric);
+    return emptyMetric;
   }
 
   let correct = 0;
@@ -6627,7 +6651,7 @@ function extractStudentExamMetrics(exam, student) {
     score = parseFloat(((net / totalQ) * 100).toFixed(1));
   }
 
-  return {
+  const computedMetric = {
     participated: true,
     correct,
     wrong,
@@ -6636,6 +6660,8 @@ function extractStudentExamMetrics(exam, student) {
     score: parseFloat(Number(score).toFixed(2)),
     totalQuestions: totalQ
   };
+  exam._metricsCache.set(cacheKey, computedMetric);
+  return computedMetric;
 }
 
 function getTargetExamsForStatsRange(allExams, rangeMode, branchFilter, isMiddle) {
@@ -6817,24 +6843,94 @@ function computeMultiExamStudentRankingStats(selectedExams, branchFilter) {
   };
 }
 
+let weeklyCurrentSubView = 'exams'; // 'exams' | 'stats'
+
+function updateWeeklySubViews() {
+  const examsListContainer = document.getElementById('weekly-exams-list-container');
+  const activeExamCard = document.getElementById('active-exam-card');
+  const statsCard = document.getElementById('weekly-exam-stats-card');
+  const btnHeaderStats = document.getElementById('btn-open-exam-stats-panel');
+  const btnBackFromStats = document.getElementById('btn-back-from-exam-stats');
+  const btnAddExam = document.getElementById('btn-add-weekly-exam');
+  const btnPrintReport = document.getElementById('btn-print-report');
+  const weeklyHeaderTitle = document.querySelector('#weekly .header-title h2');
+  const weeklyHeaderDesc = document.querySelector('#weekly .header-title p');
+
+  const state = (stateManager && stateManager.state) ? stateManager.state : stateManager.loadState();
+  const exams = getSortedWeeklyExams(state);
+  const hasExams = exams.length > 0;
+
+  if (weeklyCurrentSubView === 'stats') {
+    if (examsListContainer) examsListContainer.style.display = 'none';
+    if (activeExamCard) activeExamCard.style.display = 'none';
+    if (statsCard) statsCard.style.display = 'block';
+
+    if (btnHeaderStats) btnHeaderStats.style.display = 'none';
+    if (btnBackFromStats) btnBackFromStats.style.display = 'inline-flex';
+    if (btnAddExam) btnAddExam.style.display = 'none';
+    if (btnPrintReport) btnPrintReport.style.display = 'none';
+
+    if (weeklyHeaderTitle) weeklyHeaderTitle.textContent = 'Öğrenci Sınav Sıralaması ve İstatistikleri';
+    if (weeklyHeaderDesc) weeklyHeaderDesc.textContent = 'Öğrencilerin tüm sınavlar veya seçili sınav aralıklarındaki başarı sıralaması, net ve not ortalaması analizi.';
+  } else {
+    if (examsListContainer) examsListContainer.style.display = 'block';
+    if (activeExamCard) {
+      activeExamCard.style.display = activeExam ? 'block' : 'none';
+    }
+    if (statsCard) statsCard.style.display = 'none';
+
+    if (btnHeaderStats) btnHeaderStats.style.display = hasExams ? 'inline-flex' : 'none';
+    if (btnBackFromStats) btnBackFromStats.style.display = 'none';
+    if (btnAddExam) btnAddExam.style.display = 'inline-flex';
+    if (btnPrintReport) btnPrintReport.style.display = hasExams ? 'inline-flex' : 'none';
+
+    if (weeklyHeaderTitle) weeklyHeaderTitle.textContent = 'Haftalık Sınav Sonuçları';
+    if (weeklyHeaderDesc) weeklyHeaderDesc.textContent = 'Sınavlar oluşturun, öğrencilerin doğru, boş ve yanlış sayılarını kaydedin ve başarı durumlarını izleyin.';
+  }
+
+  if (window.safeCreateIcons) window.safeCreateIcons();
+  else if (window.lucide) window.lucide.createIcons();
+}
+
+function openWeeklyExamStatsView() {
+  weeklyCurrentSubView = 'stats';
+  updateWeeklySubViews();
+  renderWeeklyExamStatsPanel();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function closeWeeklyExamStatsView() {
+  weeklyCurrentSubView = 'exams';
+  updateWeeklySubViews();
+  renderExamsList();
+  if (activeExam && activeExamCard) {
+    activeExamCard.style.display = 'block';
+    activeExamCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  } else {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+}
+
+window.openWeeklyExamStatsView = openWeeklyExamStatsView;
+window.closeWeeklyExamStatsView = closeWeeklyExamStatsView;
+
 function ensureWeeklyExamStatsEvents() {
   if (examStatsEventsBound) return;
   const statsCard = document.getElementById('weekly-exam-stats-card');
   if (!statsCard) return;
   examStatsEventsBound = true;
 
-  const scrollToStatsPanel = () => {
-    if (statsCard.style.display === 'none') {
-      statsCard.style.display = 'block';
-      renderWeeklyExamStatsPanel();
-    }
-    statsCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  };
-
   const btnHeaderOpen = document.getElementById('btn-open-exam-stats-panel');
   const btnQuickOpen = document.getElementById('btn-quick-open-exam-stats');
-  if (btnHeaderOpen) btnHeaderOpen.addEventListener('click', scrollToStatsPanel);
-  if (btnQuickOpen) btnQuickOpen.addEventListener('click', scrollToStatsPanel);
+  const btnActiveExamOpen = document.getElementById('btn-active-exam-open-stats');
+  const btnHeaderBack = document.getElementById('btn-back-from-exam-stats');
+  const btnCardBack = document.getElementById('btn-stats-card-back');
+
+  if (btnHeaderOpen) btnHeaderOpen.addEventListener('click', openWeeklyExamStatsView);
+  if (btnQuickOpen) btnQuickOpen.addEventListener('click', openWeeklyExamStatsView);
+  if (btnActiveExamOpen) btnActiveExamOpen.addEventListener('click', openWeeklyExamStatsView);
+  if (btnHeaderBack) btnHeaderBack.addEventListener('click', closeWeeklyExamStatsView);
+  if (btnCardBack) btnCardBack.addEventListener('click', closeWeeklyExamStatsView);
 
   document.querySelectorAll('.exam-stats-range-btn').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -6983,8 +7079,11 @@ function renderWeeklyExamStatsPanel() {
   const state = (stateManager && stateManager.state) ? stateManager.state : stateManager.loadState();
   const allExams = getSortedWeeklyExams(state);
 
-  if (allExams.length === 0) {
+  if (allExams.length === 0 || weeklyCurrentSubView !== 'stats') {
     statsCard.style.display = 'none';
+    if (allExams.length === 0 && weeklyCurrentSubView === 'stats') {
+      closeWeeklyExamStatsView();
+    }
     return;
   }
   statsCard.style.display = 'block';
@@ -7381,12 +7480,14 @@ function renderExamsList() {
     if (btnQuickStats) btnQuickStats.style.display = 'none';
     if (btnPrintReport) btnPrintReport.style.display = 'none';
     if (statsCard) statsCard.style.display = 'none';
+    weeklyCurrentSubView = 'exams';
+    if (typeof updateWeeklySubViews === 'function') updateWeeklySubViews();
     return;
   } else {
     if (emptyState) emptyState.style.display = 'none';
-    if (btnHeaderStats) btnHeaderStats.style.display = 'inline-flex';
-    if (btnQuickStats) btnQuickStats.style.display = 'inline-flex';
-    if (btnPrintReport) btnPrintReport.style.display = 'inline-flex';
+    if (btnHeaderStats) btnHeaderStats.style.display = (weeklyCurrentSubView === 'exams') ? 'inline-flex' : 'none';
+    if (btnQuickStats) btnQuickStats.style.display = (weeklyCurrentSubView === 'exams') ? 'inline-flex' : 'none';
+    if (btnPrintReport) btnPrintReport.style.display = (weeklyCurrentSubView === 'exams') ? 'inline-flex' : 'none';
   }
 
   // Masaüstünde sadece son 3 sınav kart olarak gösterilir
@@ -7483,7 +7584,12 @@ function renderExamsList() {
     }
   }
 
-  renderWeeklyExamStatsPanel();
+  if (weeklyCurrentSubView === 'stats') {
+    renderWeeklyExamStatsPanel();
+  } else {
+    if (statsCard) statsCard.style.display = 'none';
+    if (typeof updateWeeklySubViews === 'function') updateWeeklySubViews();
+  }
 
   if (window.safeCreateIcons) window.safeCreateIcons();
   else if (window.lucide) window.lucide.createIcons();
@@ -7494,6 +7600,8 @@ function openActiveExam(exam) {
     if (!exam) return;
     activeExam = exam;
     window.activeWeeklyExam = exam;
+    weeklyCurrentSubView = 'exams';
+    if (typeof updateWeeklySubViews === 'function') updateWeeklySubViews();
 
     if (activeExamCard) activeExamCard.style.display = 'block';
     if (btnPrintReport) btnPrintReport.style.display = 'inline-flex';
@@ -7828,6 +7936,10 @@ function renderActiveExamTable() {
       return String(a.name || '').localeCompare(String(b.name || ''), 'tr');
     });
 
+    // Önceki sınavı döngü dışında tek seferde bul (35 öğrenci için 35 kez loadState ve sort yapmayı önler)
+    const prevExamForActive = getPreviousExamForActive(state);
+    const fragment = document.createDocumentFragment();
+
     sortedStudents.forEach(student => {
       const stuNoStr = (student.number !== undefined && student.number !== null) ? String(student.number) : '';
       const result = (activeExam.studentResults && (activeExam.studentResults[student.id] || (stuNoStr ? activeExam.studentResults[stuNoStr] : null))) || {
@@ -7920,16 +8032,18 @@ function renderActiveExamTable() {
         });
       }
 
-      // İlk yüklemedeki değişim okları
+      // İlk yüklemedeki değişim okları (prevExamForActive parametresiyle O(1) ve ikonsuz)
       if (result.score !== undefined && result.score !== '') {
-        updateChangeIndicator(student.id, parseFloat(result.score), row);
+        updateChangeIndicator(student.id, parseFloat(result.score), row, prevExamForActive);
       } else {
         const ciTd = row.querySelector('.change-indicator-td');
         if (ciTd) ciTd.innerHTML = `<span class="score-change-badge score-stable">-</span>`;
       }
 
-      activeExamTableBody.appendChild(row);
+      fragment.appendChild(row);
     });
+
+    activeExamTableBody.appendChild(fragment);
 
     if (window.safeCreateIcons) window.safeCreateIcons();
     else if (window.lucide) window.lucide.createIcons();
@@ -7940,6 +8054,8 @@ function renderActiveExamTable() {
     }
   }
 }
+
+let _refreshExamsListDebounceTimer = null;
 
 function refreshExamRankingsDisplay() {
   if (!activeExam || !activeExamTableBody) return;
@@ -7990,12 +8106,16 @@ function refreshExamRankingsDisplay() {
     d.rankTd.innerHTML = getExamRankBadgeHtml(rank);
   });
 
-  // Üstteki sınav kartını (ilk 3 ve sınıf ortalaması) canlı güncelle
-  try {
-    renderExamsList();
-  } catch (e) {
-    // ignore
-  }
+  // Üstteki sınav kartını (ilk 3 ve sınıf ortalaması) her tuş vuruşunda değil, kısa gecikmeyle güncelle
+  if (_refreshExamsListDebounceTimer) clearTimeout(_refreshExamsListDebounceTimer);
+  _refreshExamsListDebounceTimer = setTimeout(() => {
+    _refreshExamsListDebounceTimer = null;
+    try {
+      renderExamsList();
+    } catch (e) {
+      // ignore
+    }
+  }, 150);
 }
 
 function handleInputUpdate(studentId, rowEl, totalQuestions) {
@@ -8093,7 +8213,7 @@ function handleInputUpdate(studentId, rowEl, totalQuestions) {
   refreshExamRankingsDisplay();
 }
 
-function updateChangeIndicator(studentId, currentScore, rowEl) {
+function updateChangeIndicator(studentId, currentScore, rowEl, preloadedPrevExam) {
   const td = rowEl.querySelector('.change-indicator-td');
   if (!td) return;
 
@@ -8102,7 +8222,7 @@ function updateChangeIndicator(studentId, currentScore, rowEl) {
     return;
   }
 
-  const prevScore = getPreviousExamScore(studentId);
+  const prevScore = getPreviousExamScore(studentId, preloadedPrevExam);
   if (prevScore === null || isNaN(prevScore)) {
     td.innerHTML = `<span class="score-change-badge score-stable" title="İlk Sınav">-</span>`;
     return;
@@ -8112,33 +8232,34 @@ function updateChangeIndicator(studentId, currentScore, rowEl) {
   const diffStr = diff > 0 ? `+${diff.toFixed(1)}` : diff.toFixed(1);
 
   if (diff > 0) {
-    td.innerHTML = `<span class="score-change-badge score-up" title="Önceki Sınav: ${prevScore}"><i data-lucide="arrow-up" style="width: 12px; height: 12px;"></i> ${diffStr}</span>`;
+    td.innerHTML = `<span class="score-change-badge score-up" title="Önceki Sınav: ${prevScore}"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: -1px;"><path d="m5 12 7-7 7 7"/><path d="M12 19V5"/></svg> ${diffStr}</span>`;
   } else if (diff < 0) {
-    td.innerHTML = `<span class="score-change-badge score-down" title="Önceki Sınav: ${prevScore}"><i data-lucide="arrow-down" style="width: 12px; height: 12px;"></i> ${diffStr}</span>`;
+    td.innerHTML = `<span class="score-change-badge score-down" title="Önceki Sınav: ${prevScore}"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: -1px;"><path d="M12 5v14"/><path d="m19 12-7 7-7-7"/></svg> ${diffStr}</span>`;
   } else {
     td.innerHTML = `<span class="score-change-badge score-stable" title="Önceki Sınav: ${prevScore}">→ 0</span>`;
   }
-
-  if (window.safeCreateIcons) window.safeCreateIcons();
-  else if (window.lucide) window.lucide.createIcons();
 }
 
-function getPreviousExamScore(studentId) {
-  const state = stateManager.loadState();
-  const exams = (state.weeklyEvaluations || []).filter(e => e && e.id);
-  
-  // Oluşturulma tarihine göre azalan sırada sırala (yeni en üstte)
-  exams.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
-
+function getPreviousExamForActive(optionalState) {
   if (!activeExam) return null;
-  const activeIndex = exams.findIndex(e => e.id === activeExam.id);
-  
-  // Bu sınavdan daha önce oluşturulmuş olan ilk sınavı (descending listesinde bir sonraki elemanı) bulalım
-  const prevExam = (activeIndex !== -1 && activeIndex + 1 < exams.length) ? exams[activeIndex + 1] : null;
+  const state = optionalState || (stateManager && stateManager.state ? stateManager.state : stateManager.loadState());
+  const exams = (state.weeklyEvaluations || []).filter(e => e && e.id);
+  exams.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+  const activeIndex = exams.findIndex(e => String(e.id) === String(activeExam.id));
+  return (activeIndex !== -1 && activeIndex + 1 < exams.length) ? exams[activeIndex + 1] : null;
+}
 
-  if (prevExam && prevExam.examScores && prevExam.examScores[studentId] !== undefined) {
+function getPreviousExamScore(studentId, preloadedPrevExam) {
+  const prevExam = preloadedPrevExam !== undefined ? preloadedPrevExam : getPreviousExamForActive();
+  if (!prevExam) return null;
+
+  if (prevExam.examScores && prevExam.examScores[studentId] !== undefined) {
     const val = parseFloat(prevExam.examScores[studentId]);
-    return isNaN(val) ? null : val;
+    if (!isNaN(val)) return val;
+  }
+  if (prevExam.studentResults && prevExam.studentResults[studentId] && prevExam.studentResults[studentId].score !== undefined) {
+    const val = parseFloat(prevExam.studentResults[studentId].score);
+    if (!isNaN(val)) return val;
   }
   return null;
 }
@@ -10290,6 +10411,8 @@ function renderPipContent(win) {
   window.renderWeeklyEvaluations = renderExamsList;
   window.renderActiveExamTable = renderActiveExamTable;
   window.openActiveExam = openActiveExam;
+  window.openWeeklyExamStatsView = openWeeklyExamStatsView;
+  window.closeWeeklyExamStatsView = closeWeeklyExamStatsView;
 
   // Global state değiştiğinde (örneğin terminalden canlı sınav, cevap anahtarı veya sonuç geldiğinde) arayüzü anında tazele
   document.addEventListener('stateChanged', () => {
@@ -10310,14 +10433,19 @@ function renderPipContent(win) {
       if (!isWeeklyActive && !isModalOpen) {
         return;
       }
-      renderExamsList();
-      if (activeExam) {
-        if (activeExamCard && activeExamCard.style.display !== 'none') {
-          openActiveExam(activeExam);
-        }
-        if (modalEditExamAnswerKey && modalEditExamAnswerKey.classList.contains('active') && typeof window.openDesktopAnswerKeyModal === 'function') {
-          window.openDesktopAnswerKeyModal();
-        }
+
+      if (weeklyCurrentSubView === 'stats') {
+        renderWeeklyExamStatsPanel();
+        return;
+      }
+
+      if (activeExam && activeExamCard && activeExamCard.style.display !== 'none') {
+        openActiveExam(activeExam);
+      } else {
+        renderExamsList();
+      }
+      if (activeExam && modalEditExamAnswerKey && modalEditExamAnswerKey.classList.contains('active') && typeof window.openDesktopAnswerKeyModal === 'function') {
+        window.openDesktopAnswerKeyModal();
       }
     } catch (e) {
       console.warn('[Weekly] stateChanged arayüz tazeleme hatası:', e);

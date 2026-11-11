@@ -828,6 +828,22 @@ function renderHomeworkMatrix() {
     return;
   }
 
+  const holidayInfo = typeof window.getHolidayInfo === 'function' ? window.getHolidayInfo(selectedWeek) : null;
+  if (holidayInfo) {
+    homeworkWeeklyTable.style.display = 'none';
+    homeworkWeeklyEmptyState.style.display = 'block';
+    homeworkWeeklyEmptyState.innerHTML = `
+      <div style="padding: 2.5rem 1.5rem; text-align: center;">
+        <div style="font-size: 2.5rem; margin-bottom: 0.75rem;">🏖️</div>
+        <h3 style="color: #f59e0b; font-size: 1.2rem; font-weight: 800; margin-bottom: 0.5rem;">${holidayInfo.label} (${holidayInfo.dateRange})</h3>
+        <p style="color: var(--text-secondary); font-size: 0.9rem; max-width: 480px; margin: 0 auto;">
+          Seçili hafta resmi ara tatil haftası olduğu için ödev veri girişine kapalıdır.
+        </p>
+      </div>
+    `;
+    return;
+  }
+
   const weekDates = getWeekDates(selectedWeek);
   if (weekDates.length === 0) {
     homeworkWeeklyEmptyState.style.display = 'block';
@@ -1279,6 +1295,39 @@ function renderHomeworkDailyView() {
   const weekDates = getWeekDates(selectedWeek);
 
   if (weekDates.length === 0) return;
+
+  const holidayInfo = typeof window.getHolidayInfo === 'function' ? window.getHolidayInfo(selectedWeek) : null;
+  if (holidayInfo) {
+    const daysStrip = document.getElementById('hw-daily-days-strip');
+    if (daysStrip) daysStrip.innerHTML = '';
+    const dateLabel = document.getElementById('hw-daily-selected-date-label');
+    if (dateLabel) dateLabel.textContent = `${holidayInfo.label} (${holidayInfo.dateRange})`;
+    const infoBox = document.getElementById('hw-daily-info-box');
+    if (infoBox) {
+      infoBox.innerHTML = `
+        <div style="min-width: 0; flex: 1;">
+          <div class="hw-daily-info-title" style="color: #f59e0b;">
+            <span>🏖️</span>
+            <span>${holidayInfo.label} (${holidayInfo.dateRange})</span>
+          </div>
+          <div class="hw-daily-info-desc">
+            Seçili hafta resmi ara tatil haftası olduğu için ödev veri girişine kapalıdır.
+          </div>
+        </div>
+      `;
+    }
+    const tbody = document.getElementById('homework-daily-table-body');
+    if (tbody) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="4" style="text-align: center; color: #f59e0b; font-weight: 700; padding: 2.5rem;">
+            🏖️ ${holidayInfo.label} (${holidayInfo.dateRange}) — Ara tatil haftasında ödev kontrolü kapalıdır.
+          </td>
+        </tr>
+      `;
+    }
+    return;
+  }
 
   // Seçili gün yoksa veya haftanın dışındaysa bugünü veya haftanın ilk gününü seç
   const todayStr = new Date().toISOString().split('T')[0];

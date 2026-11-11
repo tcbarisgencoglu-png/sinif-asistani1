@@ -11,7 +11,7 @@
   <link rel="shortcut icon" href="icons/icon-128.png" type="image/png">
 
   <!-- Hafif Mobil Tasarım Sistemi -->
-  <link rel="stylesheet" href="css/companion.css?v=1.0.132">
+  <link rel="stylesheet" href="css/companion.css?v=1.0.133">
 
   <!-- Çevrim Dışı İkon Kütüphanesi -->
   <script src="js/lucide.min.js"></script>
@@ -31,8 +31,8 @@
       <button class="c-icon-btn" id="btn-companion-settings" title="Terminal Ayarları" onclick="window.Companion.openSettingsModal()">
         <i data-lucide="settings" style="width: 18px; height: 18px;"></i>
       </button>
-      <!-- PIN Kilit Butonu -->
-      <button class="c-icon-btn" title="Oturumu Kilitle" onclick="window.Companion.lockApp()">
+      <!-- Akıllı Tahta Kilit Butonu -->
+      <button class="c-icon-btn" id="btn-companion-desktop-lock" title="Akıllı Tahtayı Kilitle / Aç" onclick="window.Companion.toggleDesktopLock()">
         <i data-lucide="lock" style="width: 18px; height: 18px;"></i>
       </button>
       <!-- Tema Değiştirici -->
@@ -183,12 +183,12 @@
           </div>
         </div>
 
-        <!-- Hızlı Kilit PIN Kodu (İsteğe Bağlı) -->
+        <!-- Akıllı Tahta Kilit PIN Kodu (İsteğe Bağlı) -->
         <div class="c-form-group" style="margin-bottom: 10px;">
-          <label class="c-label" for="setup-pin-input">Hızlı Kilit PIN Kodu (4 Hane)</label>
+          <label class="c-label" for="setup-pin-input">Akıllı Tahta Kilit PIN Kodu (4 Hane)</label>
           <input type="password" id="setup-pin-input" class="c-input" placeholder="1234" inputmode="numeric" maxlength="4" />
           <span style="font-size: 11px; color: var(--c-text-muted); display: block; margin-top: 4px;">
-            İsteğe bağlıdır. Boş bırakırsanız varsayılan "1234" olarak ayarlanır.
+            Akıllı tahtayı terminalden kilitlediğinizde tahtadan açmak için kullanılır (Varsayılan: "1234").
           </span>
         </div>
 
@@ -443,7 +443,7 @@
           <div class="c-dash-info-teacher" id="appbar-teacher-name">Öğretmen</div>
         </div>
         <div class="c-dash-info-right">
-          <span id="companion-version-badge" style="font-size: 10px; background: rgba(255,255,255,0.22); padding: 1.5px 7px; border-radius: 999px; font-weight: 700; color: #fff; margin-left: 6px; letter-spacing: 0.3px;">v1.0.132</span>
+          <span id="companion-version-badge" style="font-size: 10px; background: rgba(255,255,255,0.22); padding: 1.5px 7px; border-radius: 999px; font-weight: 700; color: #fff; margin-left: 6px; letter-spacing: 0.3px;">v1.0.133</span>
         </div>
       </div>
     </section>
@@ -1904,8 +1904,8 @@
                   <i data-lucide="lock" style="width: 18px; height: 18px;"></i>
                 </div>
                 <div>
-                  <div class="c-acc-title">Şifre &amp; Güvenlik İşlemleri</div>
-                  <div class="c-acc-desc">4 haneli PIN kodu ve oturum kilidi</div>
+                  <div class="c-acc-title">Akıllı Tahta Kilit &amp; PIN İşlemleri</div>
+                  <div class="c-acc-desc">4 haneli tahta kilit PIN kodu ve uzaktan kilitleme</div>
                 </div>
               </div>
               <i data-lucide="chevron-down" class="c-acc-chevron" style="width: 18px; height: 18px;"></i>
@@ -1913,16 +1913,16 @@
             <div class="c-accordion-collapse">
               <div class="c-accordion-body">
                 <div class="c-form-group" style="margin-bottom: 12px;">
-                  <label class="c-label" for="settings-pin-input" style="font-weight: 700; font-size: 11.5px;">Kilit Ekranı PIN Şifresi (4 Haneli)</label>
+                  <label class="c-label" for="settings-pin-input" style="font-weight: 700; font-size: 11.5px;">Akıllı Tahta Kilit PIN Şifresi (4 Haneli)</label>
                   <input type="password" id="settings-pin-input" class="c-input" placeholder="1234" inputmode="numeric" maxlength="4" style="font-size: 14px; letter-spacing: 4px; font-weight: 800;" />
                   <span style="font-size: 10.5px; color: #64748b; display: block; margin-top: 4px;">
-                    El terminalini kilitlediğinizde tekrar açmak için bu 4 haneli şifre kullanılır.
+                    Akıllı tahtayı terminalden kilitlediğinizde tahtadan doğrudan açmak için bu 4 haneli şifre kullanılır (Varsayılan: 1234).
                   </span>
                 </div>
 
                 <button type="button" class="c-btn-secondary" style="width: 100%; justify-content: center; gap: 6px; padding: 10px; font-size: 12px; font-weight: 700; border-color: #fde68a; background: #fffbeb; color: #b45309;" onclick="window.Companion.lockFromSettings()">
                   <i data-lucide="lock" style="width: 15px; height: 15px; color: #d97706;"></i>
-                  <span>Ayarları Kaydet ve Oturumu Şimdi Kilitle</span>
+                  <span>Ayarları Kaydet ve Akıllı Tahtayı Kilitle</span>
                 </button>
               </div>
             </div>
@@ -1971,7 +1971,7 @@
 
         <!-- Versiyon Bilgisi -->
         <div style="text-align: center; margin-top: 14px; font-size: 11px; color: #94a3b8; font-weight: 600;">
-          Sınıf Asistanı El Terminali • <span id="settings-modal-version" style="color: #4f46e5; font-weight: 800;">v1.0.132</span>
+          Sınıf Asistanı El Terminali • <span id="settings-modal-version" style="color: #4f46e5; font-weight: 800;">v1.0.133</span>
         </div>
 
       </div>
@@ -2658,19 +2658,19 @@
   </div>
 
   <!-- QR, Bulut & OMR Analiz Motorları -->
-  <script src="js/supabase-config.js?v=1.0.132"></script>
-  <script src="js/cloud-sync.js?v=1.0.132"></script>
+  <script src="js/supabase-config.js?v=1.0.133"></script>
+  <script src="js/cloud-sync.js?v=1.0.133"></script>
   <script src="js/qrcode.min.js"></script>
   <script src="js/jsqr.js"></script>
-  <script src="js/omr-engine.js?v=1.0.132"></script>
-  <script src="js/companion-omr.js?v=1.0.132"></script>
-  <script src="js/companion-behavior.js?v=1.0.132"></script>
-  <script src="js/companion-homework.js?v=1.0.132"></script>
-  <script src="js/companion-books.js?v=1.0.132"></script>
-  <script src="js/companion-schedule.js?v=1.0.132"></script>
-  <script src="js/companion-reports.js?v=1.0.132"></script>
+  <script src="js/omr-engine.js?v=1.0.133"></script>
+  <script src="js/companion-omr.js?v=1.0.133"></script>
+  <script src="js/companion-behavior.js?v=1.0.133"></script>
+  <script src="js/companion-homework.js?v=1.0.133"></script>
+  <script src="js/companion-books.js?v=1.0.133"></script>
+  <script src="js/companion-schedule.js?v=1.0.133"></script>
+  <script src="js/companion-reports.js?v=1.0.133"></script>
 
   <!-- Çekirdek Kontrolcü -->
-  <script src="js/companion.js?v=1.0.132"></script>
+  <script src="js/companion.js?v=1.0.133"></script>
 </body>
 </html>

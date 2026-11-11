@@ -34,11 +34,18 @@
 
       // Masaüstü uygulamasında (akıllı tahta) canlı arka plan dinleyicisini ve otomatik bulut yüklemesini başlat
       if (window.stateManager) {
-        this.harmonizePerformanceRecords();
-        this.startLiveListener();
-        setTimeout(() => {
-          this.autoPushMasterDebounced();
-        }, 1500);
+        const afterHydration = () => {
+          this.harmonizePerformanceRecords();
+          this.startLiveListener();
+          setTimeout(() => {
+            this.autoPushMasterDebounced();
+          }, 1500);
+        };
+        if (window.stateManager._hydrationPromise && typeof window.stateManager._hydrationPromise.then === 'function') {
+          window.stateManager._hydrationPromise.then(afterHydration).catch(afterHydration);
+        } else {
+          afterHydration();
+        }
         if (!this._stateChangedBound) {
           this._stateChangedBound = true;
           document.addEventListener('stateChanged', () => {
@@ -1827,6 +1834,31 @@
       this.pushLiveEvent('omr_clear_all', payload);
     },
 
+    // 2g. Akıllı Tahta Uzaktan Kilit / Kilit Aç Gönder (El Terminalinden)
+    async pushLiveDesktopLock(action, pin) {
+      if (!this.syncCode) return;
+      const payload = {
+        type: 'desktop_lock',
+        action: action === 'unlock' ? 'unlock' : 'lock',
+        pin: pin || '',
+        source: window.stateManager ? 'desktop' : 'terminal',
+        timestamp: new Date().toISOString()
+      };
+      return this.pushLiveEvent('desktop_lock', payload);
+    },
+
+    // 2h. Akıllı Tahta Kilit Durumu Güncellemesi Gönder (Masaüstünden)
+    async pushLiveDesktopLockStatus(isLocked) {
+      if (!this.syncCode) return;
+      const payload = {
+        type: 'desktop_lock_status',
+        isLocked: !!isLocked,
+        source: 'desktop',
+        timestamp: new Date().toISOString()
+      };
+      return this.pushLiveEvent('desktop_lock_status', payload);
+    },
+
     // 3. Genel Canlı Olay Gönderimi (Supabase'e fırlat)
     async pushLiveEvent(eventType, eventPayload) {
       if (!this.syncCode) return;
@@ -2207,7 +2239,7 @@
     },
 
     // Masaüstü Canlı Olay İşleyicisi
-    handleDesktopIncomingLiveRecord(record, payload) {
+    async handleDesktopIncomingLiveRecord(record, payload) {
       if (!this.isDevicePaired()) {
         this.setDevicePaired(true);
       }
@@ -2939,6 +2971,49 @@
           }
         }
       }
+
+      // 3. CANLI AKILLI TAHTA UZAKTAN KİLİTLEME / AÇMA (El Terminalinden gelen komut)
+      else if (record.exam_id === 'LIVE_EVENT' && payload.type === 'desktop_lock') {
+        const action = payload.action;
+        const incomingPin = (payload.pin !== undefined && payload.pin !== null) ? String(payload.pin).trim() : '';
+
+        if (action === 'lock') {
+          const state = window.stateManager ? window.stateManager.state : null;
+          if (state) {
+            if (!state.appLock) {
+              state.appLock = { enabled: false, passwordHash: null, plainPassword: null, breakModeEnabled: false };
+            }
+            // Eğer tahtada henüz şifre yoksa terminalden oluşturulan şifre akıllı tahta için de varsayılan şifre olsun
+            if (!state.appLock.passwordHash && incomingPin) {
+              state.appLock.plainPassword = incomingPin;
+              if (window.AppLock && typeof window.AppLock.hashPassword === 'function') {
+                state.appLock.passwordHash = await window.AppLock.hashPassword(incomingPin);
+              }
+              state.appLock.enabled = false; // Şifre kontrolü pasif kalmaya devam etsin
+              window.stateManager.saveState('El Terminali PIN kodu tahta için varsayılan kilit şifresi olarak ayarlandı');
+              if (typeof renderLockTab === 'function') {
+                renderLockTab();
+              }
+            }
+          }
+
+          if (window.AppLock && typeof window.AppLock.lockApp === 'function') {
+            window.AppLock.lockApp(false, true); // isBreakLock=false, isRemoteLock=true
+            this.playDesktopLiveChime();
+            if (window.showToast) {
+              window.showToast('📱 El Terminalinden Akıllı Tahta Kilitlendi', 'warning', 3500);
+            }
+          }
+        } else if (action === 'unlock') {
+          if (window.AppLock && typeof window.AppLock.unlockApp === 'function') {
+            window.AppLock.unlockApp(true); // fromRemote=true
+            this.playDesktopLiveChime();
+            if (window.showToast) {
+              window.showToast('📱 El Terminalinden Akıllı Tahta Kilidi Açıldı', 'success', 3500);
+            }
+          }
+        }
+      }
     },
 
     // Mobil El Terminali Canlı Olay İşleyicisi
@@ -2986,6 +3061,13 @@
       ) {
         if (window.Companion && typeof window.Companion.pullMasterDataFromCloud === 'function') {
           window.Companion.pullMasterDataFromCloud(true);
+        }
+      }
+
+      // 4. CANLI AKILLI TAHTA KİLİT DURUMU (Masaüstünden güncellenince terminaldeki ikonu tazele)
+      else if (record.exam_id === 'LIVE_EVENT' && payload.type === 'desktop_lock_status') {
+        if (window.Companion && typeof window.Companion.setDesktopLockedState === 'function') {
+          window.Companion.setDesktopLockedState(payload.isLocked);
         }
       }
     },
@@ -3217,10 +3299,11 @@
             localData.weeklyEvaluations.forEach(ex => {
               if (ex && ex.id) {
                 this.deduplicateExamResults(ex, localData.students || []);
-                window.stateManager.saveExam(ex);
+                window.stateManager.saveExam(ex, true);
               }
             });
-          } else if (typeof window.stateManager.saveState === 'function') {
+          }
+          if (typeof window.stateManager.saveState === 'function') {
             window.stateManager.saveState('El Terminalinden Sınav ve Cevap Anahtarı Eşitlendi');
           }
           document.dispatchEvent(new CustomEvent('stateChanged'));
@@ -3231,7 +3314,7 @@
         localStorage.setItem(LAST_SYNC_KEY, this.lastSyncTime);
         this.updateSyncUI();
 
-        // UI'ları bilgilendir
+        // UI'ları bilgilendir (weekly görünümü zaten stateChanged ile güncellendi)
         if (window.CompanionOmr && typeof window.CompanionOmr.renderHub === 'function') {
           window.CompanionOmr.ensureActiveExam();
           window.CompanionOmr.renderHub();
@@ -3240,9 +3323,6 @@
           const refreshed = (localData.weeklyEvaluations || []).find(e => String(e.id) === String(window.activeWeeklyExam.id));
           if (refreshed) {
             window.activeWeeklyExam = refreshed;
-            if (typeof window.openActiveExam === 'function') {
-              window.openActiveExam(refreshed);
-            }
           }
         }
         if (typeof window.renderWeeklyEvaluations === 'function') {

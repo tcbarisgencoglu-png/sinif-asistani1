@@ -3092,6 +3092,223 @@ Yanıtını YALNIZCA geçerli ve hatasız bir JSON objesi formatında ver. Kesin
     renderPlansList();
   }
 
+  const ACADEMIC_MONTH_ORDER = [
+    'EYLÜL',
+    'EYLÜL - EKİM',
+    'EKİM',
+    'KASIM',
+    '1. DÖNEM ARA TATİLİ: 16 - 20 KASIM 2026',
+    'ARALIK',
+    'ARALIK - OCAK',
+    'OCAK',
+    'YARIYIL TATİLİ: 25 OCAK - 5 ŞUBAT 2027',
+    'YARIYIL TATİLİ',
+    'ŞUBAT',
+    'MART',
+    'MART - NİSAN',
+    '2. DÖNEM ARA TATİLİ: 5 - 9 NİSAN 2027',
+    '2. DÖNEM ARA TATİLİ',
+    'NİSAN',
+    'MAYIS',
+    'MAYIS - HAZİRAN',
+    'HAZİRAN',
+    'DİĞER / TARİHSİZ'
+  ];
+
+  function getCanonicalMonthName(weekItem) {
+    if (!weekItem) return 'DİĞER / TARİHSİZ';
+    if (weekItem.isHoliday || (weekItem.topics && weekItem.topics.some(t => /ara tatil/i.test(t)))) {
+      if (weekItem.month && weekItem.month.includes('ARA TATİL')) return weekItem.month;
+      if (weekItem.dateRange && weekItem.dateRange.includes('Kas')) return '1. DÖNEM ARA TATİLİ: 16 - 20 KASIM 2026';
+      if (weekItem.dateRange && weekItem.dateRange.includes('Nis')) return '2. DÖNEM ARA TATİLİ: 5 - 9 NİSAN 2027';
+      if (weekItem.dateRange && (weekItem.dateRange.includes('Oca') || weekItem.dateRange.includes('Şub'))) return 'YARIYIL TATİLİ: 25 OCAK - 5 ŞUBAT 2027';
+    }
+    const d = (weekItem.dateRange || '').toLocaleLowerCase('tr-TR');
+    if (d.includes('eyl') && d.includes('eki')) return 'EYLÜL - EKİM';
+    if (d.includes('eyl')) return 'EYLÜL';
+    if (d.includes('eki')) return 'EKİM';
+    if (d.includes('kas')) return 'KASIM';
+    if (d.includes('ara')) return 'ARALIK';
+    if (d.includes('oca')) return 'OCAK';
+    if (d.includes('şub')) return 'ŞUBAT';
+    if (d.includes('mar') && d.includes('nis')) return 'MART - NİSAN';
+    if (d.includes('mar')) return 'MART';
+    if (d.includes('nis')) return 'NİSAN';
+    if (d.includes('may') && d.includes('haz')) return 'MAYIS - HAZİRAN';
+    if (d.includes('may')) return 'MAYIS';
+    if (d.includes('haz')) return 'HAZİRAN';
+    return weekItem.month || 'DİĞER / TARİHSİZ';
+  }
+
+  function getMonthOrderIndex(mName) {
+    const upper = (mName || '').toUpperCase();
+    const exactIdx = ACADEMIC_MONTH_ORDER.indexOf(upper);
+    if (exactIdx !== -1) return exactIdx;
+    if (upper.includes('EYL')) return 0;
+    if (upper.includes('EKİ')) return 2;
+    if (upper.includes('1. DÖNEM ARA TATİL') || (upper.includes('KAS') && upper.includes('TATİL'))) return 4;
+    if (upper.includes('KAS')) return 3;
+    if (upper.includes('ARA') && !upper.includes('TATİL')) return 5;
+    if (upper.includes('YARIYIL') || upper.includes('SÖMESTR')) return 8;
+    if (upper.includes('OCA')) return 7;
+    if (upper.includes('ŞUB')) return 10;
+    if (upper.includes('2. DÖNEM ARA TATİL') || (upper.includes('NİS') && upper.includes('TATİL'))) return 13;
+    if (upper.includes('MAR')) return 11;
+    if (upper.includes('NİS')) return 14;
+    if (upper.includes('MAY')) return 15;
+    if (upper.includes('HAZ')) return 18;
+    return 999;
+  }
+
+  function normalizePlanSchedule(plan) {
+    if (!plan) return false;
+    let schedule = plan.weeklySchedule || plan.weeks || [];
+    if (!Array.isArray(schedule) || schedule.length === 0) return false;
+
+    let modified = false;
+
+    // 1. MEB 4. Sınıf Sosyal Bilgiler planı için otomatik iyileştirme
+    const isSosyal4 = (
+      (plan.courseName && /sosyal/i.test(plan.courseName)) ||
+      (plan.title && /sosyal/i.test(plan.title))
+    ) && (
+      (plan.className && /4/i.test(plan.className)) ||
+      (plan.title && /4/i.test(plan.title)) ||
+      plan.grade === 4
+    );
+
+    const isCorruptedSosyal = isSosyal4 && (
+      schedule.length < 35 ||
+      schedule.filter(w => (w.weekNum === 9 || (w.weekLabel && w.weekLabel.startsWith('9.')))).length > 1 ||
+      schedule.some((w, idx) => {
+        if (idx === 0) return false;
+        const prevNum = schedule[idx - 1].weekNum || parseInt(schedule[idx - 1].weekLabel) || 0;
+        const currNum = w.weekNum || parseInt(w.weekLabel) || 0;
+        return currNum < prevNum;
+      })
+    );
+
+    if (isCorruptedSosyal && window.MEB_CURRICULUM_DATA) {
+      const canonicalPlan = window.MEB_CURRICULUM_DATA.find(p => p.id === 'meb_2026_g4_sosyal_bilgiler_lazh');
+      if (canonicalPlan && Array.isArray(canonicalPlan.weeks) && canonicalPlan.weeks.length === 40) {
+        const completedMap = {};
+        schedule.forEach(w => {
+          const num = w.weekNum || parseInt(w.weekLabel);
+          if (num && (w.isCompleted || w.completed)) {
+            completedMap[num] = true;
+          }
+        });
+
+        const startYear = parseInt((plan.educationYear || '2026').split('-')[0]) || 2026;
+        const newSchedule = canonicalPlan.weeks.map((w, idx) => {
+          const wNum = w.weekNum || idx + 1;
+          let sDateStr = null;
+          let eDateStr = null;
+          let isoWeek = null;
+          if (w.dateRange) {
+            const { startDate, endDate, isDateParsed } = parseTurkishDateRange(w.dateRange, startYear);
+            if (isDateParsed && startDate && endDate) {
+              sDateStr = startDate.toISOString().slice(0, 10);
+              eDateStr = endDate.toISOString().slice(0, 10);
+              isoWeek = window.getISOWeek ? window.getISOWeek(startDate) : null;
+            }
+          }
+          return {
+            id: 'w_' + wNum + '_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+            month: getCanonicalMonthName(w),
+            weekNumber: [wNum],
+            weekNum: wNum,
+            weekLabel: w.weekLabel || `${wNum}. Hafta`,
+            dateRange: w.dateRange || '',
+            startDate: sDateStr,
+            endDate: eDateStr,
+            isoWeek: isoWeek,
+            classHours: w.classHours || 3,
+            unitNo: null,
+            unitName: w.unitName || '',
+            learningOutcomes: Array.isArray(w.learningOutcomes) ? [...w.learningOutcomes] : (w.learningOutcomes ? [w.learningOutcomes] : []),
+            topics: Array.isArray(w.topics) ? [...w.topics] : (w.topics ? [w.topics] : []),
+            descriptions: [],
+            specialDays: w.specialDays || '',
+            assessment: Array.isArray(w.assessment) ? [...w.assessment] : (w.assessment ? [w.assessment] : []),
+            isHoliday: !!w.isHoliday,
+            isCompleted: !!completedMap[wNum]
+          };
+        });
+
+        plan.weeklySchedule = newSchedule;
+        if (plan.weeks) plan.weeks = newSchedule;
+        return true;
+      }
+    }
+
+    // 2. Genel plan tekilleştirme ve sıralama (tüm dersler için)
+    const hasDuplicates = schedule.some((w, idx) => {
+      const num = w.weekNum || parseInt(w.weekLabel);
+      if (!num) return false;
+      return schedule.some((other, oIdx) => oIdx > idx && ((other.weekNum === num) || parseInt(other.weekLabel) === num));
+    });
+
+    const isOutOfOrder = schedule.some((w, idx) => {
+      if (idx === 0) return false;
+      const prevNum = schedule[idx - 1].weekNum || parseInt(schedule[idx - 1].weekLabel) || 0;
+      const currNum = w.weekNum || parseInt(w.weekLabel) || 0;
+      return currNum < prevNum;
+    });
+
+    if (hasDuplicates || isOutOfOrder) {
+      const mergedByWeek = new Map();
+      schedule.forEach((w, origIdx) => {
+        const num = w.weekNum || parseInt(w.weekLabel) || (origIdx + 1);
+        if (!mergedByWeek.has(num)) {
+          const itemCopy = { ...w };
+          itemCopy.weekNum = num;
+          itemCopy.weekNumber = [num];
+          itemCopy.weekLabel = w.weekLabel || `${num}. Hafta`;
+          itemCopy.learningOutcomes = Array.isArray(w.learningOutcomes) ? [...w.learningOutcomes] : (w.learningOutcomes ? [w.learningOutcomes] : []);
+          itemCopy.topics = Array.isArray(w.topics) ? [...w.topics] : (w.topics ? [w.topics] : []);
+          itemCopy.month = getCanonicalMonthName(w);
+          itemCopy.isCompleted = !!(w.isCompleted || w.completed);
+          mergedByWeek.set(num, itemCopy);
+        } else {
+          const existing = mergedByWeek.get(num);
+          (w.learningOutcomes || []).forEach(o => {
+            if (!existing.learningOutcomes.includes(o)) existing.learningOutcomes.push(o);
+          });
+          (w.topics || []).forEach(t => {
+            if (!existing.topics.includes(t)) existing.topics.push(t);
+          });
+          if (w.specialDays && !existing.specialDays) {
+            existing.specialDays = w.specialDays;
+          } else if (w.specialDays && existing.specialDays && !existing.specialDays.includes(w.specialDays)) {
+            existing.specialDays += ', ' + w.specialDays;
+          }
+          if (w.isCompleted || w.completed) {
+            existing.isCompleted = true;
+          }
+          existing.month = getCanonicalMonthName(existing);
+        }
+      });
+
+      const sortedSchedule = Array.from(mergedByWeek.values()).sort((a, b) => a.weekNum - b.weekNum);
+      plan.weeklySchedule = sortedSchedule;
+      if (plan.weeks) plan.weeks = sortedSchedule;
+      modified = true;
+      schedule = sortedSchedule;
+    }
+
+    // 3. Ay isimlerini tarihlere göre kesin doğrula
+    schedule.forEach(w => {
+      const canonicalMonth = getCanonicalMonthName(w);
+      if (canonicalMonth && w.month !== canonicalMonth) {
+        w.month = canonicalMonth;
+        modified = true;
+      }
+    });
+
+    return modified;
+  }
+
   function renderPlansList() {
     if (plansViewModeSelect) plansViewModeSelect.value = activePlansMainTab;
     const state = stateManager.loadState();
@@ -3101,6 +3318,10 @@ Yanıtını YALNIZCA geçerli ve hatasız bir JSON objesi formatında ver. Kesin
     const statePlans = stateManager.state.plans || [];
     let stateChanged = false;
     statePlans.forEach(plan => {
+      // 0. Plan haftalarını otomatik iyileştir ve tekilleştir
+      if (normalizePlanSchedule(plan)) {
+        stateChanged = true;
+      }
       // 1. Rastgele hash içeren ders adını/başlığını tespit edip onar (örn: 4/c - a4574fe744)
       if (plan.courseName && /^[a-f0-9]{8,}$/i.test(plan.courseName.trim())) {
         const allText = (plan.weeklySchedule || plan.weeks || []).map(w => 
@@ -3319,6 +3540,7 @@ Yanıtını YALNIZCA geçerli ve hatasız bir JSON objesi formatında ver. Kesin
     }
 
     plans.forEach(plan => {
+      normalizePlanSchedule(plan);
       const schedule = plan.weeklySchedule || plan.weeks || [];
       const matchResult = findWeekForSchedule(schedule, plansSelectedWeekCode, plan, plans);
       const weekIdx = matchResult.weekIdx;
@@ -3548,6 +3770,7 @@ Yanıtını YALNIZCA geçerli ve hatasız bir JSON objesi formatında ver. Kesin
     const currentWeekId = stateManager.getSelectedWeek();
 
     plans.forEach(plan => {
+      normalizePlanSchedule(plan);
       const schedule = plan.weeklySchedule || plan.weeks || [];
       const completedCount = schedule.filter(w => w.isCompleted || w.completed).length;
       const progressPercent = schedule.length > 0 ? Math.round((completedCount / schedule.length) * 100) : 0;
@@ -3617,18 +3840,18 @@ Yanıtını YALNIZCA geçerli ve hatasız bir JSON objesi formatında ver. Kesin
         </div>
       `;
 
-      // Group weeks by month
-      const monthsOrder = [];
+      // Group weeks by month using canonical month name and sorted academic order
       const groupedMonths = {};
 
       schedule.forEach((weekItem, idx) => {
-        const mName = weekItem.month || 'DİĞER / TARİHSİZ';
+        const mName = getCanonicalMonthName(weekItem);
         if (!groupedMonths[mName]) {
           groupedMonths[mName] = [];
-          monthsOrder.push(mName);
         }
         groupedMonths[mName].push({ weekItem, idx });
       });
+
+      const monthsOrder = Object.keys(groupedMonths).sort((a, b) => getMonthOrderIndex(a) - getMonthOrderIndex(b));
 
       const accordionsContainer = planCard.querySelector('.months-accordions-list');
       
@@ -3636,7 +3859,7 @@ Yanıtını YALNIZCA geçerli ve hatasız bir JSON objesi formatında ver. Kesin
       const activeWeekIdx = getActiveWeekIndex(schedule);
       let activeMonthName = '';
       if (schedule[activeWeekIdx]) {
-        activeMonthName = schedule[activeWeekIdx].month || 'DİĞER / TARİHSİZ';
+        activeMonthName = getCanonicalMonthName(schedule[activeWeekIdx]);
       }
 
       monthsOrder.forEach(monthName => {
@@ -4031,5 +4254,6 @@ Yanıtını YALNIZCA geçerli ve hatasız bir JSON objesi formatında ver. Kesin
   window.renderPlansList = renderPlansList;
   window.showPlanDetail = showPlanDetail;
   window.openPlansView = openPlansView;
+  window.normalizePlanSchedule = normalizePlanSchedule;
 
 })();

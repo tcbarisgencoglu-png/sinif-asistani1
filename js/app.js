@@ -8,15 +8,20 @@ if (typeof window.lucide === 'undefined') {
   };
 }
 
-// Güvenli İkon Oluşturma Yardımcısı
+// Güvenli İkon Oluşturma Yardımcısı (requestAnimationFrame ile birleştirilmiş - aynı frame içinde çoklu tam-DOM taramasını önler)
+let _lucideRafId = null;
 window.safeCreateIcons = () => {
-  if (window.lucide && typeof window.lucide.createIcons === 'function') {
-    try {
-      window.lucide.createIcons();
-    } catch (e) {
-      console.warn("Lucide ikonları yüklenirken hata oluştu:", e);
+  if (_lucideRafId) return;
+  _lucideRafId = requestAnimationFrame(() => {
+    _lucideRafId = null;
+    if (window.lucide && typeof window.lucide.createIcons === 'function') {
+      try {
+        window.lucide.createIcons();
+      } catch (e) {
+        console.warn("Lucide ikonları yüklenirken hata oluştu:", e);
+      }
     }
-  }
+  });
 };
 
 // Native printing support bridge
@@ -2344,8 +2349,8 @@ async function initApp() {
     const activeNav = document.querySelector('.nav-item.active');
     if (activeNav) {
       const activeTab = activeNav.getAttribute('data-tab');
-      if (activeTab) {
-        switchTab(activeTab, false); // Sayfa geçiş animasyonu yapmadan sadece veriyi yeniler
+      if (activeTab && activeTab !== 'weekly') {
+        switchTab(activeTab, false); // Sayfa geçiş animasyonu yapmadan sadece veriyi yeniler (weekly kendi stateChanged dinleyicisiyle yönetilir)
       }
     }
   });
@@ -2676,7 +2681,7 @@ async function initApp() {
 }
 
 // Mevcut uygulama sürümü (her güncellemede değişir)
-const APP_VERSION = '1.0.132';
+const APP_VERSION = '1.0.133';
 
 // GitHub & Tauri Auto-Updater kontrolü
 async function checkForUpdates() {
@@ -3063,9 +3068,6 @@ function switchTab(tabId, animate = true) {
       if (window.CloudSync && typeof window.CloudSync.checkLiveUpdates === 'function') {
         window.CloudSync.checkLiveUpdates();
       }
-      if (typeof window.renderExamsList === 'function') {
-        window.renderExamsList();
-      }
       if (window.activeWeeklyExam && typeof window.openActiveExam === 'function') {
         const activeCard = document.getElementById('active-exam-card');
         if (activeCard && activeCard.style.display !== 'none') {
@@ -3073,8 +3075,12 @@ function switchTab(tabId, animate = true) {
           if (freshExam) {
             window.activeWeeklyExam = freshExam;
             window.openActiveExam(freshExam);
+            break;
           }
         }
+      }
+      if (typeof window.renderExamsList === 'function') {
+        window.renderExamsList();
       }
       break;
   }

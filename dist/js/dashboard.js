@@ -6,6 +6,7 @@ let filterDashGender;
 let dashSelectWeek;
 let btnDashPrevWeek;
 let btnDashNextWeek;
+let btnDashCurrentWeek;
 let dashWeeklyTbody;
 let dashboardHeaderActions;
 let dashSelectMonth;
@@ -67,6 +68,7 @@ function setupDashboardTab(showToast) {
   dashSelectWeek = document.getElementById('dash-select-week');
   btnDashPrevWeek = document.getElementById('btn-dash-prev-week');
   btnDashNextWeek = document.getElementById('btn-dash-next-week');
+  btnDashCurrentWeek = document.getElementById('btn-dash-current-week');
   dashWeeklyTbody = document.getElementById('dash-weekly-tbody');
   dashboardHeaderActions = document.getElementById('dashboard-header-actions');
   dashSelectMonth = document.getElementById('dash-select-month');
@@ -127,6 +129,7 @@ function setupDashboardTab(showToast) {
     dashSelectWeek.value = stateManager.getSelectedWeek();
     dashSelectWeek.addEventListener('change', () => {
       stateManager.setSelectedWeek(dashSelectWeek.value);
+      renderDashboardWeekly();
     });
   }
 
@@ -136,9 +139,21 @@ function setupDashboardTab(showToast) {
   if (btnDashNextWeek) {
     btnDashNextWeek.addEventListener('click', () => adjustWeek(1));
   }
+  if (btnDashCurrentWeek) {
+    btnDashCurrentWeek.addEventListener('click', () => {
+      const currentReal = window.getISOWeek ? window.getISOWeek() : '';
+      if (currentReal) {
+        if (dashSelectWeek) dashSelectWeek.value = currentReal;
+        stateManager.setSelectedWeek(currentReal);
+        renderDashboardWeekly();
+        if (toastCallback) toastCallback('Güncel haftaya geçiş yapıldı.', 'info');
+      }
+    });
+  }
 
   function adjustWeek(offset) {
-    const val = dashSelectWeek.value;
+    let val = dashSelectWeek ? dashSelectWeek.value : null;
+    if (!val) val = stateManager.getSelectedWeek();
     if (!val) return;
     
     const parts = val.split('-W');
@@ -151,8 +166,9 @@ function setupDashboardTab(showToast) {
     simpleDate.setDate(simpleDate.getDate() + (offset * 7));
     
     const newWeek = window.getISOWeek(simpleDate);
-    dashSelectWeek.value = newWeek;
+    if (dashSelectWeek) dashSelectWeek.value = newWeek;
     stateManager.setSelectedWeek(newWeek);
+    renderDashboardWeekly();
   }
 
   function getMonthOfSelectedWeek() {
@@ -567,6 +583,10 @@ function setupDashboardTab(showToast) {
       window.updateFlowContent(false);
     }
     renderClassLeadersBadge();
+    const dashSec = document.getElementById('dashboard');
+    if (dashSec && dashSec.classList.contains('active')) {
+      renderDashboard();
+    }
   });
 }
 
@@ -1420,9 +1440,15 @@ document.addEventListener('click', (e) => {
 function renderDashboardWeekly() {
   const state = stateManager.loadState();
   const selectedWeek = stateManager.getSelectedWeek();
+  if (dashSelectWeek && dashSelectWeek.value !== selectedWeek) {
+    dashSelectWeek.value = selectedWeek;
+  }
   const activeWeekDisplay = document.getElementById('dash-active-week-display');
   if (activeWeekDisplay) {
     activeWeekDisplay.textContent = window.formatWeekTR ? window.formatWeekTR(selectedWeek) : selectedWeek;
+  }
+  if (typeof window.safeCreateIcons === 'function') {
+    window.safeCreateIcons();
   }
 
   // Header butonlarını ayarla
@@ -1430,6 +1456,27 @@ function renderDashboardWeekly() {
 
   if (!dashWeeklyTbody) return;
   dashWeeklyTbody.innerHTML = '';
+
+  const eduInfo = typeof window.getEducationWeekInfo === 'function' ? window.getEducationWeekInfo(selectedWeek) : null;
+  if (eduInfo && eduInfo.isHoliday) {
+    dashWeeklyTbody.innerHTML = `
+      <tr>
+        <td colspan="11" style="padding: 3.5rem 1.5rem; text-align: center;">
+          <div style="max-width: 540px; margin: 0 auto; display: flex; flex-direction: column; align-items: center; gap: 0.85rem; background: rgba(99, 102, 241, 0.05); border: 1.5px dashed rgba(99, 102, 241, 0.35); border-radius: 14px; padding: 2rem;">
+            <span style="font-size: 3rem; line-height: 1;">🌴</span>
+            <h4 style="font-size: 1.3rem; font-weight: 800; color: var(--primary); margin: 0;">${eduInfo.holidayName || eduInfo.label}</h4>
+            <p style="font-size: 0.9rem; color: var(--text-secondary); margin: 0; line-height: 1.6;">
+              Bu hafta (<strong>${eduInfo.dateRange}</strong>) resmi tatil dönemidir. Eğitim-öğretime ara verilmiştir ve haftalık veri girişi kapalıdır.
+            </p>
+            <span class="badge" style="background: rgba(16, 185, 129, 0.15); color: var(--success); font-weight: 700; font-size: 0.85rem; padding: 0.4rem 1rem; border-radius: 6px;">
+              İyi Tatiller! ✨
+            </span>
+          </div>
+        </td>
+      </tr>
+    `;
+    return;
+  }
 
   const selectBranch = document.getElementById('dash-select-branch');
   const branchFilter = selectBranch ? selectBranch.value : 'all';
@@ -3495,7 +3542,7 @@ function updateFlowContent(syncWithRealTime = true) {
         const releases = await response.json();
         if (Array.isArray(releases) && releases.length > 0) {
           const latestRelease = releases[0];
-          const tagName = latestRelease.tag_name || 'v1.0.132';
+          const tagName = latestRelease.tag_name || 'v1.0.133';
           
           const badge = document.getElementById('download-app-version-badge');
           if (badge) badge.textContent = `${tagName} (En Son)`;

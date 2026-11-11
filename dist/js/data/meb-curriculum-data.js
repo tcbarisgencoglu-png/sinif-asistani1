@@ -28503,12 +28503,17 @@ window.MEB_CURRICULUM_DATA = [
         "dateRange": "14 Eyl - 18 Eyl",
         "classHours": 3,
         "unitName": "1.ÖĞRENME ALANI: BİREY VE TOPLUM",
-        "topics": [],
+        "topics": [
+          "Resmî Kimlik Belgesi"
+        ],
         "learningOutcomes": [
-          "SB.4.1.1. Resmî kimlik belgesini inceleyerek kişisel kimliğine ilişkin çıkarımlarda bulunur"
+          "SB.4.1.1. Resmî kimlik belgesini inceleyerek kişisel kimliğine ilişkin çıkarımlarda bulunur."
         ],
         "specialDays": null,
-        "assessment": []
+        "assessment": [
+          "Gözlem",
+          "Öz Değerlendirme"
+        ]
       },
       {
         "weekNum": 2,
@@ -28517,54 +28522,53 @@ window.MEB_CURRICULUM_DATA = [
         "dateRange": "21 Eyl - 25 Eyl",
         "classHours": 3,
         "unitName": "1.ÖĞRENME ALANI: BİREY VE TOPLUM",
-        "topics": [],
+        "topics": [
+          "Kronoloji ve Yaşamım"
+        ],
         "learningOutcomes": [
           "SB.4.1.2. Yaşamına ilişkin belli başlı olayları kronolojik sıraya koyar."
         ],
         "specialDays": "15 Temmuz Demokrasi ve Millî Birlik Günü",
-        "assessment": []
+        "assessment": [
+          "Ders İçi Etkinlik"
+        ]
       },
       {
         "weekNum": 3,
         "weekLabel": "3. Hafta",
-        "month": "EYLÜL",
+        "month": "EYLÜL - EKİM",
         "dateRange": "28 Eyl - 2 Eki",
         "classHours": 3,
         "unitName": "1.ÖĞRENME ALANI: BİREY VE TOPLUM",
-        "topics": [],
+        "topics": [
+          "İlgi, İhtiyaç ve Yeteneklerim"
+        ],
         "learningOutcomes": [
-          "SB.4.1.3. Bireysel ilgi, ihtiyaç ve yeteneklerini tanır. SB.4.1.4. Kendisini farklı özelliklere sahip diğer bireylerin yerine koyar"
+          "SB.4.1.3. Bireysel ilgi, ihtiyaç ve yeteneklerini tanır."
         ],
         "specialDays": null,
-        "assessment": []
+        "assessment": [
+          "Grup Çalışması"
+        ]
       },
       {
         "weekNum": 4,
         "weekLabel": "4. Hafta",
-        "month": "EYLÜL",
-        "dateRange": "5 Eki - 9 Eki",
-        "classHours": 2,
-        "unitName": "1.ÖĞRENME ALANI: BİREY VE TOPLUM",
-        "topics": [],
-        "learningOutcomes": [
-          "SB.4.1.4. Kendisini farklı özelliklere sahip diğer bireylerin yerine koyar SB.4.1.5. Diğer bireylerin farklı özelliklerini saygı ile karşılar."
-        ],
-        "specialDays": null,
-        "assessment": []
-      },
-      {
-        "weekNum": 5,
-        "weekLabel": "5. Hafta",
         "month": "EKİM",
-        "dateRange": "12 Eki - 16 Eki",
-        "classHours": 1,
+        "dateRange": "5 Eki - 9 Eki",
+        "classHours": 3,
         "unitName": "1.ÖĞRENME ALANI: BİREY VE TOPLUM",
-        "topics": [],
+        "topics": [
+          "Empati ve Farklılıklara Saygı"
+        ],
         "learningOutcomes": [
+          "SB.4.1.4. Kendisini farklı özelliklere sahip diğer bireylerin yerine koyar.",
           "SB.4.1.5. Diğer bireylerin farklı özelliklerini saygı ile karşılar."
         ],
         "specialDays": null,
-        "assessment": []
+        "assessment": [
+          "Değerlendirme Soruları"
+        ]
       },
       {
         "weekNum": 5,
@@ -28573,12 +28577,16 @@ window.MEB_CURRICULUM_DATA = [
         "dateRange": "12 Eki - 16 Eki",
         "classHours": 3,
         "unitName": "2.ÖĞRENME ALANI: KÜLTÜR VE MİRAS",
-        "topics": [],
+        "topics": [
+          "Aile Tarihi"
+        ],
         "learningOutcomes": [
           "SB.4.2.1. Sözlü, yazılı, görsel kaynaklar ve nesnelerden yararlanarak aile tarihi çalışması yapar."
         ],
         "specialDays": null,
-        "assessment": []
+        "assessment": [
+          "Proje / Performans"
+        ]
       },
       {
         "weekNum": 6,
@@ -28587,121 +28595,85 @@ window.MEB_CURRICULUM_DATA = [
         "dateRange": "19 Eki - 23 Eki",
         "classHours": 3,
         "unitName": "2.ÖĞRENME ALANI: KÜLTÜR VE MİRAS",
-        "topics": [],
+        "topics": [
+          "Millî Kültür Ögeleri"
+        ],
         "learningOutcomes": [
-          "SB.4.2.2. Ailesi ve çevresindeki millî kültürü yansıtan ögeleri araştırarak örnekler verir"
+          "SB.4.2.2. Ailesi ve çevresindeki millî kültürü yansıtan ögeleri araştırarak örnekler verir."
         ],
         "specialDays": null,
-        "assessment": []
+        "assessment": [
+          "Araştırma Görevi"
+        ]
       },
       {
         "weekNum": 7,
         "weekLabel": "7. Hafta",
         "month": "EKİM",
         "dateRange": "26 Eki - 30 Eki",
-        "classHours": 1,
+        "classHours": 3,
         "unitName": "2.ÖĞRENME ALANI: KÜLTÜR VE MİRAS",
-        "topics": [],
-        "learningOutcomes": [
-          "SB.4.2.2. Ailesi ve çevresindeki millî kültürü yansıtan ögeleri araştırarak örnekler verir"
+        "topics": [
+          "Millî Kültür ve Çocuk Oyunları"
         ],
-        "specialDays": null,
-        "assessment": []
-      },
-      {
-        "weekNum": 9,
-        "weekLabel": "9. Hafta",
-        "month": "EKİM",
-        "dateRange": "9 Kas - 13 Kas",
-        "classHours": 2,
-        "unitName": "2.ÖĞRENME ALANI: KÜLTÜR VE MİRAS",
-        "topics": [],
         "learningOutcomes": [
+          "SB.4.2.2. Ailesi ve çevresindeki millî kültürü yansıtan ögeleri araştırarak örnekler verir.",
           "SB.4.2.3. Geleneksel çocuk oyunlarını değişim ve süreklilik açısından günümüzdeki oyunlarla karşılaştırır."
         ],
         "specialDays": "29 Ekim Cumhuriyet Bayramı",
-        "assessment": []
+        "assessment": [
+          "Etkinlik Sayfası"
+        ]
       },
       {
         "weekNum": 8,
         "weekLabel": "8. Hafta",
-        "month": "EKİM",
+        "month": "KASIM",
         "dateRange": "2 Kas - 6 Kas",
-        "classHours": 2,
+        "classHours": 3,
         "unitName": "2.ÖĞRENME ALANI: KÜLTÜR VE MİRAS",
-        "topics": [],
+        "topics": [
+          "Geleneksel Oyunlar ve Kültür"
+        ],
         "learningOutcomes": [
           "SB.4.2.3. Geleneksel çocuk oyunlarını değişim ve süreklilik açısından günümüzdeki oyunlarla karşılaştırır."
         ],
-        "specialDays": null,
-        "assessment": []
-      },
-      {
-        "weekNum": 11,
-        "weekLabel": "11. Hafta",
-        "month": "EKİM",
-        "dateRange": "23 Kas - 27 Kas",
-        "classHours": 1,
-        "unitName": "2.ÖĞRENME ALANI: KÜLTÜR VE MİRAS",
-        "topics": [],
-        "learningOutcomes": [
-          "SB.4.2.4. Millî Mücadele kahramanlarının hayatlarından hareketle Millî Mücadele’nin önemini kavrar."
-        ],
-        "specialDays": null,
-        "assessment": []
+        "specialDays": "Kızılay Haftası (29 Ekim - 4 Kasım)",
+        "assessment": [
+          "Soru Cevap"
+        ]
       },
       {
         "weekNum": 9,
         "weekLabel": "9. Hafta",
-        "month": "EKİM",
-        "dateRange": "9 Kas - 13 Kas",
-        "classHours": 2,
-        "unitName": "2.ÖĞRENME ALANI: KÜLTÜR VE MİRAS",
-        "topics": [],
-        "learningOutcomes": [
-          "SB.4.2.4. Millî Mücadele kahramanlarının hayatlarından hareketle Millî Mücadele’nin önemini kavrar"
-        ],
-        "specialDays": null,
-        "assessment": []
-      },
-      {
-        "weekNum": 13,
-        "weekLabel": "13. Hafta",
         "month": "KASIM",
-        "dateRange": "7 Ara - 11 Ara",
-        "classHours": 1,
-        "unitName": "3.ÖĞRENME ALANI: İNSANLAR, YERLER VE ÇEVRELER",
-        "topics": [],
-        "learningOutcomes": [
-          ". SB.4.3.1. Çevresindeki herhangi bir yerin konumu ile ilgili çıkarımlarda bulunur."
-        ],
-        "specialDays": "Atatürk Haftası (10-16Kasım)",
-        "assessment": []
-      },
-      {
-        "weekNum": 14,
-        "weekLabel": "14. Hafta",
-        "month": "1. DÖNEM ARA TATİLİ: 16 - 20 Kasım 2026",
-        "dateRange": "14 Ara - 18 Ara",
+        "dateRange": "9 Kas - 13 Kas",
         "classHours": 3,
-        "unitName": "3.ÖĞRENME ALANI: İNSANLAR, YERLER VE ÇEVRELER",
-        "topics": [],
-        "learningOutcomes": [],
-        "specialDays": null,
-        "assessment": []
+        "unitName": "2.ÖĞRENME ALANI: KÜLTÜR VE MİRAS",
+        "topics": [
+          "Millî Mücadele Kahramanları"
+        ],
+        "learningOutcomes": [
+          "SB.4.2.4. Millî Mücadele kahramanlarının hayatlarından hareketle Millî Mücadele’nin önemini kavrar."
+        ],
+        "specialDays": "Atatürk Haftası (10 - 16 Kasım)",
+        "assessment": [
+          "Ders İçi Etkinlik"
+        ]
       },
       {
         "weekNum": 10,
         "weekLabel": "10. Hafta",
-        "month": "KASIM",
+        "month": "1. DÖNEM ARA TATİLİ: 16 - 20 KASIM 2026",
         "dateRange": "16 Kas - 20 Kas",
-        "classHours": 3,
-        "unitName": "3.ÖĞRENME ALANI: İNSANLAR, YERLER VE ÇEVRELER",
-        "topics": [],
-        "learningOutcomes": [
-          ". SB.4.3.1. Çevresindeki herhangi bir yerin konumu ile ilgili çıkarımlarda bulunur."
+        "classHours": 0,
+        "unitName": "1. DÖNEM ARA TATİLİ",
+        "topics": [
+          "1. Dönem Ara Tatili"
         ],
-        "specialDays": "24 Kasım Öğretmenler Günü",
+        "learningOutcomes": [],
+        "specialDays": null,
+        "isHoliday": true,
         "assessment": []
       },
       {
@@ -28711,12 +28683,16 @@ window.MEB_CURRICULUM_DATA = [
         "dateRange": "23 Kas - 27 Kas",
         "classHours": 3,
         "unitName": "3.ÖĞRENME ALANI: İNSANLAR, YERLER VE ÇEVRELER",
-        "topics": [],
-        "learningOutcomes": [
-          "SB.4.3.2. Günlük yaşamında kullandığı mekânların krokisini çizer"
+        "topics": [
+          "Yönler ve Konum"
         ],
-        "specialDays": "3 Aralık Dünya Engelliler Günü",
-        "assessment": []
+        "learningOutcomes": [
+          "SB.4.3.1. Çevresindeki herhangi bir yerin konumu ile ilgili çıkarımlarda bulunur."
+        ],
+        "specialDays": "24 Kasım Öğretmenler Günü",
+        "assessment": [
+          "Uygulama Çalışması"
+        ]
       },
       {
         "weekNum": 12,
@@ -28725,12 +28701,16 @@ window.MEB_CURRICULUM_DATA = [
         "dateRange": "30 Kas - 4 Ara",
         "classHours": 3,
         "unitName": "3.ÖĞRENME ALANI: İNSANLAR, YERLER VE ÇEVRELER",
-        "topics": [],
-        "learningOutcomes": [
-          "SB.4.3.3. Yaşadığı çevredeki doğal ve beşerî unsurları ayırt eder."
+        "topics": [
+          "Kroki Çizimi"
         ],
-        "specialDays": null,
-        "assessment": []
+        "learningOutcomes": [
+          "SB.4.3.2. Günlük yaşamında kullandığı mekânların krokisini çizer."
+        ],
+        "specialDays": "3 Aralık Dünya Engelliler Günü",
+        "assessment": [
+          "Kroki Çizim Etkinliği"
+        ]
       },
       {
         "weekNum": 13,
@@ -28739,12 +28719,16 @@ window.MEB_CURRICULUM_DATA = [
         "dateRange": "7 Ara - 11 Ara",
         "classHours": 3,
         "unitName": "3.ÖĞRENME ALANI: İNSANLAR, YERLER VE ÇEVRELER",
-        "topics": [],
-        "learningOutcomes": [
-          "SB.4.3.4. Çevresinde meydana gelen hava olaylarını gözlemleyerek bulgularını resimli grafiklere aktarır"
+        "topics": [
+          "Doğal ve Beşerî Unsurlar"
         ],
-        "specialDays": "Tutum, Yatırım ve Türk Malları Haftası (12-18 Aralık)",
-        "assessment": []
+        "learningOutcomes": [
+          "SB.4.3.3. Yaşadığı çevredeki doğal ve beşerî unsurları ayırt eder."
+        ],
+        "specialDays": null,
+        "assessment": [
+          "Görsel Eşleştirme"
+        ]
       },
       {
         "weekNum": 14,
@@ -28753,12 +28737,16 @@ window.MEB_CURRICULUM_DATA = [
         "dateRange": "14 Ara - 18 Ara",
         "classHours": 3,
         "unitName": "3.ÖĞRENME ALANI: İNSANLAR, YERLER VE ÇEVRELER",
-        "topics": [],
-        "learningOutcomes": [
-          "SB.4.3.5. Yaşadığı yer ve çevresindeki yer şekilleri ve nüfus özellikleri hakkında çıkarımlarda bulunur"
+        "topics": [
+          "Hava Olayları ve Grafikler"
         ],
-        "specialDays": null,
-        "assessment": []
+        "learningOutcomes": [
+          "SB.4.3.4. Çevresinde meydana gelen hava olaylarını gözlemleyerek bulgularını resimli grafiklere aktarır."
+        ],
+        "specialDays": "Tutum, Yatırım ve Türk Malları Haftası (12 - 18 Aralık)",
+        "assessment": [
+          "Hava Gözlem Grafiği"
+        ]
       },
       {
         "weekNum": 15,
@@ -28767,149 +28755,117 @@ window.MEB_CURRICULUM_DATA = [
         "dateRange": "21 Ara - 25 Ara",
         "classHours": 3,
         "unitName": "3.ÖĞRENME ALANI: İNSANLAR, YERLER VE ÇEVRELER",
-        "topics": [],
+        "topics": [
+          "Yer Şekilleri ve Nüfus"
+        ],
         "learningOutcomes": [
-          "SB.4.3.6. Afet öncesi, sırası ve sonrasına yönelik gerekli hazırlıkları yapar."
+          "SB.4.3.5. Yaşadığı yer ve çevresindeki yer şekilleri ve nüfus özellikleri hakkında çıkarımlarda bulunur."
         ],
         "specialDays": null,
-        "assessment": []
+        "assessment": [
+          "Harita İnceleme"
+        ]
       },
       {
         "weekNum": 16,
         "weekLabel": "16. Hafta",
-        "month": "ARALIK",
+        "month": "ARALIK - OCAK",
         "dateRange": "28 Ara - 1 Oca",
-        "classHours": 1,
+        "classHours": 3,
         "unitName": "3.ÖĞRENME ALANI: İNSANLAR, YERLER VE ÇEVRELER",
-        "topics": [],
+        "topics": [
+          "Afet Bilinci ve Hazırlık"
+        ],
         "learningOutcomes": [
           "SB.4.3.6. Afet öncesi, sırası ve sonrasına yönelik gerekli hazırlıkları yapar."
         ],
-        "specialDays": null,
-        "assessment": []
-      },
-      {
-        "weekNum": 22,
-        "weekLabel": "22. Hafta",
-        "month": "ARALIK",
-        "dateRange": "8 Şub - 12 Şub",
-        "classHours": 2,
-        "unitName": "4.ÖĞRENME ALANI: BİLİM, TEKNOLOJİ VE TOPLUM",
-        "topics": [],
-        "learningOutcomes": [
-          "SB.4.4.1. Çevresindeki teknolojik ürünleri, kullanım alanlarına göre sınıflandırır"
-        ],
-        "specialDays": null,
-        "assessment": []
+        "specialDays": "Yılbaşı Tatili (1 Ocak)",
+        "assessment": [
+          "Afet Çantası Etkinliği"
+        ]
       },
       {
         "weekNum": 17,
         "weekLabel": "17. Hafta",
-        "month": "ARALIK",
+        "month": "OCAK",
         "dateRange": "4 Oca - 8 Oca",
         "classHours": 3,
-        "unitName": "4.ÖĞRENME ALANI: BİLİM, TEKNOLOJİ VE TOPLUM",
-        "topics": [],
+        "unitName": "3.ÖĞRENME ALANI: İNSANLAR, YERLER VE ÇEVRELER",
+        "topics": [
+          "Doğal Afetler ve Korunma"
+        ],
         "learningOutcomes": [
-          "SB.4.4.2. Teknolojik ürünlerin geçmişteki ve bugünkü kullanımlarını karşılaştırır"
+          "SB.4.3.6. Afet öncesi, sırası ve sonrasına yönelik gerekli hazırlıkları yapar."
         ],
         "specialDays": null,
-        "assessment": []
+        "assessment": [
+          "Özet Değerlendirme"
+        ]
       },
       {
         "weekNum": 18,
         "weekLabel": "18. Hafta",
-        "month": "ARALIK",
+        "month": "OCAK",
         "dateRange": "11 Oca - 15 Oca",
-        "classHours": 1,
-        "unitName": "4.ÖĞRENME ALANI: BİLİM, TEKNOLOJİ VE TOPLUM",
-        "topics": [],
-        "learningOutcomes": [
-          "SB.4.4.2. Teknolojik ürünlerin geçmişteki ve bugünkü kullanımlarını karşılaştırır"
-        ],
-        "specialDays": null,
-        "assessment": []
-      },
-      {
-        "weekNum": 25,
-        "weekLabel": "25. Hafta",
-        "month": "ARALIK",
-        "dateRange": "1 Mar - 5 Mar",
-        "classHours": 2,
-        "unitName": "4.ÖĞRENME ALANI: BİLİM, TEKNOLOJİ VE TOPLUM",
-        "topics": [],
-        "learningOutcomes": [
-          "SB.4.4.3. Kullandığı teknolojik ürünlerin mucitlerini ve bu ürünlerin zaman içerisindeki gelişimini araştırır."
-        ],
-        "specialDays": null,
-        "assessment": []
-      },
-      {
-        "weekNum": 26,
-        "weekLabel": "26. Hafta",
-        "month": "ARALIK",
-        "dateRange": "25 Ocak-5 Şubat",
         "classHours": 3,
         "unitName": "4.ÖĞRENME ALANI: BİLİM, TEKNOLOJİ VE TOPLUM",
-        "topics": [],
-        "learningOutcomes": [],
-        "specialDays": null,
-        "assessment": []
+        "topics": [
+          "Teknolojik Ürünler ve Kullanım Alanları"
+        ],
+        "learningOutcomes": [
+          "SB.4.4.1. Çevresindeki teknolojik ürünleri, kullanım alanlarına göre sınıflandırır."
+        ],
+        "specialDays": "Enerji Tasarrufu Haftası",
+        "assessment": [
+          "Sınıflandırma Tablosu"
+        ]
       },
       {
         "weekNum": 19,
         "weekLabel": "19. Hafta",
-        "month": "ŞUBAT",
+        "month": "OCAK",
         "dateRange": "18 Oca - 22 Oca",
         "classHours": 3,
         "unitName": "4.ÖĞRENME ALANI: BİLİM, TEKNOLOJİ VE TOPLUM",
-        "topics": [],
-        "learningOutcomes": [
-          "SB.4.4.3. Kullandığı teknolojik ürünlerin mucitlerini ve bu ürünlerin zaman içerisindeki gelişimini araştırır."
+        "topics": [
+          "Geçmişten Bugüne Teknoloji"
         ],
-        "specialDays": null,
-        "assessment": []
+        "learningOutcomes": [
+          "SB.4.4.2. Teknolojik ürünlerin geçmişteki ve bugünkü kullanımlarını karşılaştırır."
+        ],
+        "specialDays": "1. Dönem Sonu / Karneler",
+        "assessment": [
+          "1. Dönem Değerlendirmesi"
+        ]
       },
       {
         "weekNum": 20,
         "weekLabel": "20. Hafta",
-        "month": "ŞUBAT",
+        "month": "YARIYIL TATİLİ: 25 OCAK - 5 ŞUBAT 2027",
         "dateRange": "25 Oca - 29 Oca",
-        "classHours": 3,
-        "unitName": "4.ÖĞRENME ALANI: BİLİM, TEKNOLOJİ VE TOPLUM",
-        "topics": [],
-        "learningOutcomes": [
-          "SB.4.4.4. Çevresindeki ihtiyaçlardan yola çıkarak kendine özgü ürünler tasarlamaya yönelik fikirler geliştirir."
+        "classHours": 0,
+        "unitName": "YARIYIL TATİLİ",
+        "topics": [
+          "Yarıyıl Tatili (1. Hafta)"
         ],
+        "learningOutcomes": [],
         "specialDays": null,
+        "isHoliday": true,
         "assessment": []
       },
       {
         "weekNum": 21,
         "weekLabel": "21. Hafta",
-        "month": "ŞUBAT",
+        "month": "YARIYIL TATİLİ: 25 OCAK - 5 ŞUBAT 2027",
         "dateRange": "1 Şub - 5 Şub",
-        "classHours": 2,
-        "unitName": "4.ÖĞRENME ALANI: BİLİM, TEKNOLOJİ VE TOPLUM",
-        "topics": [],
-        "learningOutcomes": [
-          "SB.4.4.5. Teknolojik ürünleri kendisine, başkalarına ve doğaya zarar vermeden kullanır"
+        "classHours": 0,
+        "unitName": "YARIYIL TATİLİ",
+        "topics": [
+          "Yarıyıl Tatili (2. Hafta)"
         ],
+        "learningOutcomes": [],
         "specialDays": null,
-        "assessment": []
-      },
-      {
-        "weekNum": 30,
-        "weekLabel": "30. Hafta",
-        "month": "ŞUBAT",
-        "dateRange": "5 Nis - 9 Nis",
-        "classHours": 1,
-        "unitName": "5. ÜRETİM, DAĞITIM VE TÜKETİM",
-        "topics": [],
-        "learningOutcomes": [
-          "SB.4.5.1. İstek ve ihtiyaçlarını ayırt ederek ikisi arasında bilinçli seçimler yapar."
-        ],
-        "specialDays": null,
+        "isHoliday": true,
         "assessment": []
       },
       {
@@ -28918,37 +28874,17 @@ window.MEB_CURRICULUM_DATA = [
         "month": "ŞUBAT",
         "dateRange": "8 Şub - 12 Şub",
         "classHours": 3,
-        "unitName": "6. ÜRETİM, DAĞITIM VE TÜKETİM",
-        "topics": [],
-        "learningOutcomes": [
-          "SB.4.5.1. İstek ve ihtiyaçlarını ayırt ederek ikisi arasında bilinçli seçimler yapar."
+        "unitName": "4.ÖĞRENME ALANI: BİLİM, TEKNOLOJİ VE TOPLUM",
+        "topics": [
+          "Mucitler ve Teknolojinin Gelişimi"
         ],
-        "specialDays": null,
-        "assessment": []
-      },
-      {
-        "weekNum": 2,
-        "weekLabel": "2. Hafta",
-        "month": "ŞUBAT",
-        "dateRange": "2. DÖNEM",
-        "classHours": 3,
-        "unitName": "6. ÜRETİM, DAĞITIM VE TÜKETİM",
-        "topics": [],
-        "learningOutcomes": [],
-        "specialDays": null,
-        "assessment": []
-      },
-      {
-        "weekNum": 33,
-        "weekLabel": "33. Hafta",
-        "month": "ŞUBAT",
-        "dateRange": "10-11 MART",
-        "classHours": 3,
-        "unitName": "6. ÜRETİM, DAĞITIM VE TÜKETİM",
-        "topics": [],
-        "learningOutcomes": [],
-        "specialDays": null,
-        "assessment": []
+        "learningOutcomes": [
+          "SB.4.4.3. Kullandığı teknolojik ürünlerin mucitlerini ve bu ürünlerin zaman içerisindeki gelişimini araştırır."
+        ],
+        "specialDays": "2. Dönem Başlangıcı",
+        "assessment": [
+          "Araştırma Sunumu"
+        ]
       },
       {
         "weekNum": 23,
@@ -28956,13 +28892,17 @@ window.MEB_CURRICULUM_DATA = [
         "month": "ŞUBAT",
         "dateRange": "15 Şub - 19 Şub",
         "classHours": 3,
-        "unitName": "6. ÜRETİM, DAĞITIM VE TÜKETİM",
-        "topics": [],
-        "learningOutcomes": [
-          "SB.4.5.2. Ailesi ve yakın çevresindeki başlıca ekonomik faaliyetleri tanır."
+        "unitName": "4.ÖĞRENME ALANI: BİLİM, TEKNOLOJİ VE TOPLUM",
+        "topics": [
+          "Fikir Geliştirme ve Tasarım"
         ],
-        "specialDays": "İstiklâl Marşı'nın Kabulü ve Mehmet Akif Ersoy'u Anma Günü (12 Mart) Şehitler Günü (18 Mart)",
-        "assessment": []
+        "learningOutcomes": [
+          "SB.4.4.4. Çevresindeki ihtiyaçlardan yola çıkarak kendine özgü ürünler tasarlamaya yönelik fikirler geliştirir."
+        ],
+        "specialDays": null,
+        "assessment": [
+          "Tasarım Etkinliği"
+        ]
       },
       {
         "weekNum": 24,
@@ -28970,83 +28910,302 @@ window.MEB_CURRICULUM_DATA = [
         "month": "ŞUBAT",
         "dateRange": "22 Şub - 26 Şub",
         "classHours": 3,
-        "unitName": "6. ÜRETİM, DAĞITIM VE TÜKETİM",
-        "topics": [],
-        "learningOutcomes": [
-          "SB.4.5.3. Sorumluluk sahibi bir birey olarak bilinçli tüketici davranışları sergiler."
+        "unitName": "4.ÖĞRENME ALANI: BİLİM, TEKNOLOJİ VE TOPLUM",
+        "topics": [
+          "Teknolojinin Doğru Kullanımı"
         ],
-        "specialDays": "Türk Dünyası ve Toplulukları Haftası (21 Mart Nevruz Günü'nü içine alan hafta)",
-        "assessment": []
+        "learningOutcomes": [
+          "SB.4.4.5. Teknolojik ürünleri kendisine, başkalarına ve doğaya zarar vermeden kullanır."
+        ],
+        "specialDays": null,
+        "assessment": [
+          "Afiş Çalışması"
+        ]
       },
       {
         "weekNum": 25,
         "weekLabel": "25. Hafta",
-        "month": "ŞUBAT",
+        "month": "MART",
         "dateRange": "1 Mar - 5 Mar",
         "classHours": 3,
-        "unitName": "6. ÜRETİM, DAĞITIM VE TÜKETİM",
-        "topics": [],
-        "learningOutcomes": [
-          "SB.4.5.4. Kendine ait örnek bir bütçe oluşturur."
+        "unitName": "5.ÖĞRENME ALANI: ÜRETİM, DAĞITIM VE TÜKETİM",
+        "topics": [
+          "İstek ve İhtiyaçlar"
         ],
-        "specialDays": null,
-        "assessment": []
+        "learningOutcomes": [
+          "SB.4.5.1. İstek ve ihtiyaçlarını ayırt ederek ikisi arasında bilinçli seçimler yapar."
+        ],
+        "specialDays": "Yeşilay Haftası (1 - 7 Mart)",
+        "assessment": [
+          "Örnek Olay İnceleme"
+        ]
       },
       {
         "weekNum": 26,
         "weekLabel": "26. Hafta",
-        "month": "ŞUBAT",
+        "month": "MART",
         "dateRange": "8 Mar - 12 Mar",
         "classHours": 3,
-        "unitName": "6. ÜRETİM, DAĞITIM VE TÜKETİM",
-        "topics": [],
-        "learningOutcomes": [
-          "SB.4.5.5. Çevresindeki kaynakları israf etmeden kullanır."
+        "unitName": "5.ÖĞRENME ALANI: ÜRETİM, DAĞITIM VE TÜKETİM",
+        "topics": [
+          "Ekonomik Faaliyetler"
         ],
-        "specialDays": null,
-        "assessment": []
+        "learningOutcomes": [
+          "SB.4.5.2. Ailesi ve yakın çevresindeki başlıca ekonomik faaliyetleri tanır."
+        ],
+        "specialDays": "İstiklâl Marşı’nın Kabulü (12 Mart) Bilim ve Teknoloji Haftası",
+        "assessment": [
+          "Grup Tartışması"
+        ]
       },
       {
         "weekNum": 27,
         "weekLabel": "27. Hafta",
-        "month": "NİSAN",
+        "month": "MART",
         "dateRange": "15 Mar - 19 Mar",
-        "classHours": 2,
-        "unitName": "6. ÜRETİM, DAĞITIM VE TÜKETİM",
-        "topics": [],
-        "learningOutcomes": [
-          "SB.4.5.5. Çevresindeki kaynakları israf etmeden kullanır."
+        "classHours": 3,
+        "unitName": "5.ÖĞRENME ALANI: ÜRETİM, DAĞITIM VE TÜKETİM",
+        "topics": [
+          "Bilinçli Tüketici"
         ],
-        "specialDays": null,
-        "assessment": []
-      },
-      {
-        "weekNum": 39,
-        "weekLabel": "39. Hafta",
-        "month": "NİSAN",
-        "dateRange": "7 Haz - 11 Haz",
-        "classHours": 1,
-        "unitName": "6. ETKİN VATANDAŞLIK",
-        "topics": [],
         "learningOutcomes": [
-          "SB.4.6.1. Çocuk olarak sahip olduğu haklara örnekler verir."
+          "SB.4.5.3. Sorumluluk sahibi bir birey olarak bilinçli tüketici davranışları sergiler."
         ],
-        "specialDays": null,
-        "assessment": []
+        "specialDays": "Şehitler Günü (18 Mart)",
+        "assessment": [
+          "Tüketici Hakları İncelemesi"
+        ]
       },
       {
         "weekNum": 28,
         "weekLabel": "28. Hafta",
-        "month": "NİSAN",
+        "month": "MART",
         "dateRange": "22 Mar - 26 Mar",
         "classHours": 3,
-        "unitName": "6. ETKİN VATANDAŞLIK",
-        "topics": [],
+        "unitName": "5.ÖĞRENME ALANI: ÜRETİM, DAĞITIM VE TÜKETİM",
+        "topics": [
+          "Örnek Bütçe Oluşturma"
+        ],
+        "learningOutcomes": [
+          "SB.4.5.4. Kendine ait örnek bir bütçe oluşturur."
+        ],
+        "specialDays": "Türk Dünyası ve Toplulukları Haftası (21 Mart Nevruz)",
+        "assessment": [
+          "Bütçe Tablosu"
+        ]
+      },
+      {
+        "weekNum": 29,
+        "weekLabel": "29. Hafta",
+        "month": "MART - NİSAN",
+        "dateRange": "29 Mar - 2 Nis",
+        "classHours": 3,
+        "unitName": "5.ÖĞRENME ALANI: ÜRETİM, DAĞITIM VE TÜKETİM",
+        "topics": [
+          "Kaynakları İsraf Etmeme"
+        ],
+        "learningOutcomes": [
+          "SB.4.5.5. Çevresindeki kaynakları israf etmeden kullanır."
+        ],
+        "specialDays": "Kütüphaneler Haftası",
+        "assessment": [
+          "Tasarruf Planı"
+        ]
+      },
+      {
+        "weekNum": 30,
+        "weekLabel": "30. Hafta",
+        "month": "2. DÖNEM ARA TATİLİ: 5 - 9 NİSAN 2027",
+        "dateRange": "5 Nis - 9 Nis",
+        "classHours": 0,
+        "unitName": "2. DÖNEM ARA TATİLİ",
+        "topics": [
+          "2. Dönem Ara Tatili"
+        ],
+        "learningOutcomes": [],
+        "specialDays": null,
+        "isHoliday": true,
+        "assessment": []
+      },
+      {
+        "weekNum": 31,
+        "weekLabel": "31. Hafta",
+        "month": "NİSAN",
+        "dateRange": "12 Nis - 16 Nis",
+        "classHours": 3,
+        "unitName": "6.ÖĞRENME ALANI: ETKİN VATANDAŞLIK",
+        "topics": [
+          "Çocuk Hakları"
+        ],
         "learningOutcomes": [
           "SB.4.6.1. Çocuk olarak sahip olduğu haklara örnekler verir."
         ],
+        "specialDays": null,
+        "assessment": [
+          "Haklar Panosu"
+        ]
+      },
+      {
+        "weekNum": 32,
+        "weekLabel": "32. Hafta",
+        "month": "NİSAN",
+        "dateRange": "19 Nis - 23 Nis",
+        "classHours": 3,
+        "unitName": "6.ÖĞRENME ALANI: ETKİN VATANDAŞLIK",
+        "topics": [
+          "Sorumluluklarımız"
+        ],
+        "learningOutcomes": [
+          "SB.4.6.2. Aile ve okul yaşamında söz ve eylemlerinin sorumluluğunu alır."
+        ],
         "specialDays": "23 Nisan Ulusal Egemenlik ve Çocuk Bayramı",
-        "assessment": []
+        "assessment": [
+          "Görsel Çalışma"
+        ]
+      },
+      {
+        "weekNum": 33,
+        "weekLabel": "33. Hafta",
+        "month": "NİSAN",
+        "dateRange": "26 Nis - 30 Nis",
+        "classHours": 3,
+        "unitName": "6.ÖĞRENME ALANI: ETKİN VATANDAŞLIK",
+        "topics": [
+          "Kulüp ve Sosyal Etkinlikler"
+        ],
+        "learningOutcomes": [
+          "SB.4.6.3. Okul yaşamında gerekli gördüğü eğitsel ve sosyal kulüp faaliyetlerine katılır."
+        ],
+        "specialDays": null,
+        "assessment": [
+          "Kulüp Çalışma Raporu"
+        ]
+      },
+      {
+        "weekNum": 34,
+        "weekLabel": "34. Hafta",
+        "month": "MAYIS",
+        "dateRange": "3 May - 7 May",
+        "classHours": 3,
+        "unitName": "6.ÖĞRENME ALANI: ETKİN VATANDAŞLIK",
+        "topics": [
+          "Bağımsızlık Sembollerimiz"
+        ],
+        "learningOutcomes": [
+          "SB.4.6.4. Ülkesinin bağımsızlık sembollerine değer verir."
+        ],
+        "specialDays": "Bilişim Haftası / Trafik ve İlk Yardım Haftası",
+        "assessment": [
+          "Şiir / Kompozisyon"
+        ]
+      },
+      {
+        "weekNum": 35,
+        "weekLabel": "35. Hafta",
+        "month": "MAYIS",
+        "dateRange": "10 May - 14 May",
+        "classHours": 3,
+        "unitName": "7.ÖĞRENME ALANI: KÜRESEL BAĞLANTILAR",
+        "topics": [
+          "Dünya Ülkeleri"
+        ],
+        "learningOutcomes": [
+          "SB.4.7.1. Dünya üzerindeki çeşitli ülkeleri tanıtır."
+        ],
+        "specialDays": "Engelliler Haftası (10 - 16 Mayıs)",
+        "assessment": [
+          "Ülke Tanıtım Kartı"
+        ]
+      },
+      {
+        "weekNum": 36,
+        "weekLabel": "36. Hafta",
+        "month": "MAYIS",
+        "dateRange": "17 May - 21 May",
+        "classHours": 3,
+        "unitName": "7.ÖĞRENME ALANI: KÜRESEL BAĞLANTILAR",
+        "topics": [
+          "Komşularımız ve Türk Cumhuriyetleri"
+        ],
+        "learningOutcomes": [
+          "SB.4.7.2. Türkiye’nin komşuları ile diğer Türk cumhuriyetlerini tanıtır."
+        ],
+        "specialDays": "19 Mayıs Atatürk’ü Anma, Gençlik ve Spor Bayramı",
+        "assessment": [
+          "Harita Çalışması"
+        ]
+      },
+      {
+        "weekNum": 37,
+        "weekLabel": "37. Hafta",
+        "month": "MAYIS",
+        "dateRange": "24 May - 28 May",
+        "classHours": 3,
+        "unitName": "7.ÖĞRENME ALANI: KÜRESEL BAĞLANTILAR",
+        "topics": [
+          "Farklı Kültürler"
+        ],
+        "learningOutcomes": [
+          "SB.4.7.3. Farklı ülkelere ait kültürel unsurlarla kendi kültürünü karşılaştırır."
+        ],
+        "specialDays": "İstanbul’un Fethi (29 Mayıs)",
+        "assessment": [
+          "Kültür Karşılaştırma Şeması"
+        ]
+      },
+      {
+        "weekNum": 38,
+        "weekLabel": "38. Hafta",
+        "month": "MAYIS - HAZİRAN",
+        "dateRange": "31 May - 4 Haz",
+        "classHours": 3,
+        "unitName": "7.ÖĞRENME ALANI: KÜRESEL BAĞLANTILAR",
+        "topics": [
+          "Farklılıklara Saygı"
+        ],
+        "learningOutcomes": [
+          "SB.4.7.4. Farklı kültürlere saygı gösterir."
+        ],
+        "specialDays": "Çevre Koruma Haftası",
+        "assessment": [
+          "Örnek Olay Değerlendirmesi"
+        ]
+      },
+      {
+        "weekNum": 39,
+        "weekLabel": "39. Hafta",
+        "month": "HAZİRAN",
+        "dateRange": "7 Haz - 11 Haz",
+        "classHours": 3,
+        "unitName": "GENEL TEKRAR VE DEĞERLENDİRME",
+        "topics": [
+          "Yıl Sonu Etkinlikleri"
+        ],
+        "learningOutcomes": [
+          "Öğrenilen konuların genel tekrarı ve yıl sonu etkinlikleri."
+        ],
+        "specialDays": "Yıl Sonu Faaliyet Haftası",
+        "assessment": [
+          "Genel Değerlendirme"
+        ]
+      },
+      {
+        "weekNum": 40,
+        "weekLabel": "40. Hafta",
+        "month": "HAZİRAN",
+        "dateRange": "14 Haz - 18 Haz",
+        "classHours": 3,
+        "unitName": "DERS YILI SONU",
+        "topics": [
+          "Yıl Sonu Değerlendirmesi ve Karneler"
+        ],
+        "learningOutcomes": [
+          "Ders yılı sonu değerlendirmesi ve karne haftası."
+        ],
+        "specialDays": "Ders Yılının Sona Ermesi (Karneler)",
+        "assessment": [
+          "Karne ve Başarı Değerlendirmesi"
+        ]
       }
     ]
   },

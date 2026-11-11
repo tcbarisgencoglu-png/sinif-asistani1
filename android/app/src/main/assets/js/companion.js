@@ -55,6 +55,7 @@
     activeSection: '5-A',
     currentView: 'dashboard',
     isLocked: false,
+    isDesktopLocked: false,
     enteredPin: '',
     temporarySelectedSections: new Set(),
     setupStep: 1,
@@ -99,6 +100,7 @@
         }
       }
 
+      this.updateDesktopLockUI();
       this.renderIcons();
     },
 
@@ -700,30 +702,66 @@
       // Devre dışı bırakıldı
     },
 
-    // PIN Kilit Sistemi
-    lockApp() {
-      const pinStr = (this.profile && this.profile.pin) ? String(this.profile.pin).trim() : '';
-      if (!pinStr) {
+    // Akıllı Tahta Uzaktan Kilit Sistemi
+    toggleDesktopLock() {
+      if (!window.CloudSync || !window.CloudSync.syncCode) {
         this.vibrate([40, 60, 40]);
         if (typeof this.showToast === 'function') {
-          this.showToast('⚠️ Uygulamayı kilitlemek için önce Ayarlardan bir PIN şifresi belirlemelisiniz.', 'warning', 3500);
-        }
-        const setNow = confirm(
-          '🔒 Kilit Şifresi Belirlenmedi!\n\n' +
-          'Uygulamayı kilitleyebilmeniz için önce 4 haneli bir güvenlik PIN kodu belirlemeniz gerekmektedir.\n\n' +
-          'Şimdi Ayarlar ekranından şifre belirlemek ister misiniz?'
-        );
-        if (setNow) {
-          this.openSettingsModal();
+          this.showToast('⚠️ Akıllı tahta ile eşleşme yapılmamış.', 'warning', 3500);
         }
         return;
       }
-      this.isLocked = true;
-      this.enteredPin = '';
-      this.updatePinDots();
-      const overlay = document.getElementById('companion-lock-overlay');
-      if (overlay) overlay.style.display = 'flex';
-      this.vibrate(30);
+
+      const pinStr = (this.profile && this.profile.pin) ? String(this.profile.pin).trim() : '1234';
+
+      if (!this.isDesktopLocked) {
+        // Tahtayı Kilitle
+        this.isDesktopLocked = true;
+        this.updateDesktopLockUI();
+        if (window.CloudSync && typeof window.CloudSync.pushLiveDesktopLock === 'function') {
+          window.CloudSync.pushLiveDesktopLock('lock', pinStr);
+        }
+        this.vibrate(30);
+        this.showToast(`🔒 Akıllı Tahta Kilitlendi (PIN: ${pinStr})`, 'warning', 3000);
+      } else {
+        // Tahtanın Kilidini Aç
+        this.isDesktopLocked = false;
+        this.updateDesktopLockUI();
+        if (window.CloudSync && typeof window.CloudSync.pushLiveDesktopLock === 'function') {
+          window.CloudSync.pushLiveDesktopLock('unlock', pinStr);
+        }
+        this.vibrate([20, 50, 20]);
+        this.showToast('🔓 Akıllı Tahta Kilidi Açıldı', 'success', 3000);
+      }
+    },
+
+    setDesktopLockedState(isLocked) {
+      this.isDesktopLocked = !!isLocked;
+      this.updateDesktopLockUI();
+    },
+
+    updateDesktopLockUI() {
+      const btn = document.getElementById('btn-companion-desktop-lock');
+      if (!btn) return;
+      if (this.isDesktopLocked) {
+        btn.classList.add('desktop-locked');
+        btn.title = 'Akıllı Tahta Kilitli — Açmak İçin Dokunun';
+        btn.innerHTML = '<i data-lucide="unlock" style="width: 18px; height: 18px; color: #ef4444;"></i>';
+        btn.style.background = 'rgba(239, 68, 68, 0.15)';
+        btn.style.borderColor = 'rgba(239, 68, 68, 0.35)';
+      } else {
+        btn.classList.remove('desktop-locked');
+        btn.title = 'Akıllı Tahtayı Kilitle';
+        btn.innerHTML = '<i data-lucide="lock" style="width: 18px; height: 18px;"></i>';
+        btn.style.background = '';
+        btn.style.borderColor = '';
+      }
+      this.renderIcons();
+    },
+
+    // Eski kilit çağrılarını akıllı tahta kilidine yönlendir
+    lockApp() {
+      this.toggleDesktopLock();
     },
 
     enterPinDigit(digit) {
@@ -981,11 +1019,13 @@
       this.renderIcons();
     },
 
-    // Ayarlardan Oturumu Kilitle
+    // Ayarlardan Akıllı Tahtayı Kilitle
     lockFromSettings() {
       this.saveSettingsModal();
       setTimeout(() => {
-        this.lockApp();
+        if (!this.isDesktopLocked) {
+          this.toggleDesktopLock();
+        }
       }, 200);
     },
 

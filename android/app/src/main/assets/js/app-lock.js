@@ -68,19 +68,31 @@
     return !!(p1 && p2 && p1.start && p1.end && p2.start && p2.end);
   }
 
-  function lockApp(isBreakLock) {
+  function lockApp(isBreakLock, isRemoteLock) {
     if (isLocked) return;
     isLocked = true;
     const overlay = document.getElementById('app-lock-overlay');
     if (!overlay) return;
     const msg = document.getElementById('lock-break-message');
+    const remoteMsg = document.getElementById('lock-remote-message');
     const title = document.getElementById('lock-title');
+    const subtitle = document.querySelector('.lock-subtitle');
+
     if (isBreakLock) {
       if (msg) msg.style.display = 'flex';
+      if (remoteMsg) remoteMsg.style.display = 'none';
       if (title) title.textContent = 'Teneffüs — Uygulama Kilitli';
+      if (subtitle) subtitle.textContent = 'Devam etmek için öğretmen şifresini girin.';
+    } else if (isRemoteLock) {
+      if (msg) msg.style.display = 'none';
+      if (remoteMsg) remoteMsg.style.display = 'flex';
+      if (title) title.textContent = 'Akıllı Tahta Kilitli';
+      if (subtitle) subtitle.textContent = 'Devam etmek için şifrenizi girin veya el terminalinizden açın.';
     } else {
       if (msg) msg.style.display = 'none';
+      if (remoteMsg) remoteMsg.style.display = 'none';
       if (title) title.textContent = 'Uygulama Kilitli';
+      if (subtitle) subtitle.textContent = 'Devam etmek için öğretmen şifresini girin.';
     }
     const errEl = document.getElementById('lock-error-msg');
     if (errEl) errEl.style.display = 'none';
@@ -91,14 +103,27 @@
       requestAnimationFrame(() => overlay.classList.add('visible'));
     });
     setTimeout(() => { if (input) input.focus(); }, 400);
+
+    if (window.safeCreateIcons) window.safeCreateIcons();
+    else if (window.lucide) window.lucide.createIcons();
+
+    // Masaüstünde yerel olarak kilitlendiyse el terminalini haberdar et
+    if (!isRemoteLock && window.CloudSync && typeof window.CloudSync.pushLiveDesktopLockStatus === 'function') {
+      window.CloudSync.pushLiveDesktopLockStatus(true);
+    }
   }
 
-  function unlockApp() {
+  function unlockApp(fromRemote = false) {
     isLocked = false;
     const overlay = document.getElementById('app-lock-overlay');
     if (!overlay) return;
     overlay.classList.remove('visible');
     setTimeout(() => { overlay.style.display = 'none'; }, 350);
+
+    // Masaüstünden manuel açıldıysa el terminalindeki ikonu güncelle
+    if (!fromRemote && window.CloudSync && typeof window.CloudSync.pushLiveDesktopLockStatus === 'function') {
+      window.CloudSync.pushLiveDesktopLockStatus(false);
+    }
   }
 
   async function attemptUnlock() {
@@ -113,14 +138,17 @@
     const state = getState();
     if (!state || !state.appLock) return;
     const enteredHash = await sha256(password);
-    if (enteredHash === state.appLock.passwordHash) {
+    const hashMatch = (enteredHash === state.appLock.passwordHash);
+    const plainMatch = (state.appLock.plainPassword && password === String(state.appLock.plainPassword).trim());
+
+    if (hashMatch || plainMatch) {
       try {
         const currentBreak = getCurrentBreakId();
         if (currentBreak) manuallyUnlockedBreakId = currentBreak;
       } catch (err) {
         console.warn('getCurrentBreakId error:', err);
       }
-      unlockApp();
+      unlockApp(false);
     } else {
       if (errEl) {
         errEl.textContent = 'Yanlış şifre. Lütfen tekrar deneyin.';
@@ -174,6 +202,7 @@
     if (!state.appLock) state.appLock = {};
     state.appLock.enabled = true;
     state.appLock.passwordHash = hash;
+    state.appLock.plainPassword = newPassword;
     saveCurrentState();
     if (state.appLock.breakModeEnabled) startBreakCheck();
     return true;
@@ -182,7 +211,7 @@
   function removePassword() {
     const state = getState();
     if (!state) return;
-    state.appLock = { enabled: false, passwordHash: null, breakModeEnabled: false };
+    state.appLock = { enabled: false, passwordHash: null, plainPassword: null, breakModeEnabled: false };
     saveCurrentState();
     if (breakCheckInterval) { clearInterval(breakCheckInterval); breakCheckInterval = null; }
   }
@@ -228,6 +257,7 @@
     unlockApp,
     isScheduleConfigured,
     getCurrentBreakId,
+    hashPassword: sha256,
     get isLocked() { return isLocked; }
   };
 })();

@@ -2272,17 +2272,28 @@ SADECE VE SADECE GEÇERLİ BİR JSON DİZİSİ DÖNDÜR. Markdown (örneğin \`\
     const state = window.AppState ? window.AppState.state : null;
     if (!state) return;
 
-    const appLock = state.appLock || { enabled: false, passwordHash: null, breakModeEnabled: false };
-    const hasPassword = !!(appLock.enabled && appLock.passwordHash);
+    const appLock = state.appLock || { enabled: false, passwordHash: null, plainPassword: null, breakModeEnabled: false };
+    const hasPassword = !!appLock.passwordHash;
+
+    const newPassInput = document.getElementById('config-lock-new-pass');
+    const confirmPassInput = document.getElementById('config-lock-confirm-pass');
+    if (appLock.plainPassword && newPassInput && confirmPassInput) {
+      if (!newPassInput.value) newPassInput.value = appLock.plainPassword;
+      if (!confirmPassInput.value) confirmPassInput.value = appLock.plainPassword;
+    }
 
     // Durum badge ve metin
     const badge = document.getElementById('lock-status-badge');
     const statusText = document.getElementById('lock-status-text');
     if (badge) {
-      if (hasPassword) {
+      if (appLock.enabled && hasPassword) {
         badge.textContent = 'AKTİF';
         badge.style.background = 'rgba(16,185,129,0.15)';
         badge.style.color = '#10b981';
+      } else if (hasPassword && !appLock.enabled) {
+        badge.textContent = 'PASİF (ŞİFRE KAYITLI)';
+        badge.style.background = 'rgba(245,158,11,0.15)';
+        badge.style.color = '#f59e0b';
       } else {
         badge.textContent = 'PASİF';
         badge.style.background = 'rgba(239,68,68,0.15)';
@@ -2290,9 +2301,13 @@ SADECE VE SADECE GEÇERLİ BİR JSON DİZİSİ DÖNDÜR. Markdown (örneğin \`\
       }
     }
     if (statusText) {
-      statusText.textContent = hasPassword
-        ? 'Şifre koruması aktif — uygulama açılışta şifre sorar.'
-        : 'Şifre belirlenmemiş — uygulama herkese açık.';
+      if (appLock.enabled && hasPassword) {
+        statusText.textContent = 'Şifre koruması aktif — uygulama açılışta ve kilitlendiğinde şifre sorar.';
+      } else if (hasPassword && !appLock.enabled) {
+        statusText.textContent = `Şifre belirlendi (${appLock.plainPassword ? 'PIN: ' + appLock.plainPassword : 'Kayıtlı'}). Açılışta şifre sormaz, el terminalinden kilitlendiğinde geçerlidir.`;
+      } else {
+        statusText.textContent = 'Şifre belirlenmemiş — uygulama herkese açık.';
+      }
     }
 
     // Şifre kaldır butonu
@@ -2388,6 +2403,10 @@ SADECE VE SADECE GEÇERLİ BİR JSON DİZİSİ DÖNDÜR. Markdown (örneğin \`\
         const confirmed = await window.confirmAsync('Şifre korumasını kaldırmak istediğinize emin misiniz?\nBundan sonra uygulama şifresiz açılacak.');
         if (confirmed) {
           window.AppLock.removePassword();
+          const newPass = document.getElementById('config-lock-new-pass');
+          const confirmPass = document.getElementById('config-lock-confirm-pass');
+          if (newPass) newPass.value = '';
+          if (confirmPass) confirmPass.value = '';
           renderLockTab();
           if (toastCallback) toastCallback('Şifre koruması kaldırıldı.', 'info');
         }
