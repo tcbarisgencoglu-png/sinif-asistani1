@@ -1914,15 +1914,22 @@
       this.initialPollDone = false;
       if (!this.processedEventIds) this.processedEventIds = new Set();
 
-      // A) Supabase Realtime WebSocket Bağlantısı
+      // A) Supabase Realtime WebSocket Canlı Bağlantısı (Sıfır Kota & Saliselik Anlık Senkronizasyon)
       this.connectRealtimeWebSocket();
 
-      // B) Dayanıklı Kalp Atışı / Yedek Polling (Kota dostu: Her 8 saniyede bir hafif başlık kontrolü)
+      // B) Açılışta Tek Seferlik Senkronizasyon (One-Shot Boot Sync)
+      setTimeout(() => this.checkLiveUpdates(), 800);
+
+      // C) Yalnızca WebSocket Koptuğunda Devreye Giren Nadir Güvenlik Kontrolü (60 sn)
       if (this.pollingInterval) clearInterval(this.pollingInterval);
-      setTimeout(() => this.checkLiveUpdates(), 1200);
       this.pollingInterval = setInterval(() => {
+        // Canlı WebSocket hattı açıksa hiçbir HTTP isteği ATMA (Kota Tüketimi = 0 Byte)
+        if (this.realtimeWs && this.realtimeWs.readyState === WebSocket.OPEN) {
+          return;
+        }
+        // Yalnızca hat koptuğunda seyrek güvenlik kontrolü yap
         this.checkLiveUpdates();
-      }, 8000);
+      }, 60000);
 
       this.updateSyncUI();
     },
@@ -1957,6 +1964,9 @@
               ws.send(JSON.stringify({ topic: 'phoenix', event: 'heartbeat', payload: {}, ref: 'hb' }));
             }
           }, 25000);
+
+          // Canlı hat bağlandığında / geri geldiğinde aradaki farkı tek seferde kapat (Catch-up Sync)
+          setTimeout(() => this.checkLiveUpdates(), 300);
         };
 
         ws.onmessage = (e) => {
@@ -1975,10 +1985,14 @@
           } catch (err) {}
         };
 
-        ws.onerror = () => {};
+        ws.onerror = (err) => {
+          console.warn('Realtime WS bağlantı uyarısı:', err);
+        };
         ws.onclose = () => {
+          if (this.wsHeartbeat) clearInterval(this.wsHeartbeat);
           if (this.liveListenerActive) {
-            setTimeout(() => this.connectRealtimeWebSocket(), 10000);
+            // Hat koparsa 5 saniye sonra yeniden bağlanmayı dene
+            setTimeout(() => this.connectRealtimeWebSocket(), 5000);
           }
         };
       } catch (e) {
@@ -1996,7 +2010,7 @@
         // 1. Adım: Sadece exam_id ve updated_at çek (~150 Byte - %99.9 Egress tasarrufu)
         const metaRes = await this.request(
           'GET',
-          `teacher_sync?sync_code=eq.${encodeURIComponent(this.syncCode)}&order=updated_at.desc&limit=30&select=exam_id,updated_at`
+          `teacher_sync?sync_code=eq.${encodeURIComponent(this.syncCode)}&order=updated_at.desc&limit=10&select=exam_id,updated_at`
         );
         if (Array.isArray(metaRes) && metaRes.length > 0) {
           if (!this.lastSeenUpdatedAtByExamId) this.lastSeenUpdatedAtByExamId = {};
