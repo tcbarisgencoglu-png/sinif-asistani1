@@ -1499,36 +1499,36 @@ function setupWeeklyTab(showToast) {
         const formattedWeek = window.formatWeekTR ? window.formatWeekTR(selectedWeek, 'full') : selectedWeek;
         reportTitle = 'SEÇİLİ HAFTA SINAV SIRALAMA VE İSTATİSTİK RAPORU';
         reportSubtitle = `Uygulama Dönemi: ${formattedWeek} | Rapor Tarihi: ${new Date().toLocaleDateString('tr-TR')}`;
-        examDetailText = `Toplam ${examsToPrint.length} Sınavın Toplam ve Ortalama Analizi`;
-        notes = `Bu rapor, ${formattedWeek} döneminde uygulanan ${examsToPrint.length} sınavdaki öğrenci toplam doğru, toplam yanlış, toplam net ve not ortalamalarını puan üstünlüğüne göre sıralı olarak içerir.`;
+        examDetailText = `Toplam ${examsToPrint.length} Sınavın Toplam ve Ağırlıklı Analizi`;
+        notes = `Bu rapor, ${formattedWeek} döneminde uygulanan ${examsToPrint.length} sınavdaki öğrenci toplam doğru, toplam yanlış, toplam net ve soru ağırlıklı başarı puanlarını ((Toplam Net / Toplam Soru) x 100) puan üstünlüğüne göre sıralı olarak içerir.`;
       } else if (selectedValue === 'all_avg') {
         isAverageReport = true;
         examsToPrint = allExams;
         reportTitle = 'TÜM SINAVLAR ÖĞRENCİ SIRALAMA VE İSTATİSTİK RAPORU';
         reportSubtitle = `Tüm Dönem Sınavları | Rapor Tarihi: ${new Date().toLocaleDateString('tr-TR')}`;
         examDetailText = `Toplam ${examsToPrint.length} Sınavın Genel Sıralama ve İstatistikleri`;
-        notes = `Öğrencilerin dönem başından itibaren girdikleri tüm sınavlardaki (${examsToPrint.length} sınav) toplam doğru, toplam yanlış, toplam net sayıları ve not ortalamaları puan üstünlüğüne göre sıralanmıştır.`;
+        notes = `Öğrencilerin dönem başından itibaren girdikleri tüm sınavlardaki (${examsToPrint.length} sınav) toplam doğru, toplam yanlış, toplam net sayıları ve soru ağırlıklı başarı puanları ((Toplam Net / Toplam Soru) x 100) puan üstünlüğüne göre sıralanmıştır.`;
       } else if (selectedValue === 'last_5') {
         isAverageReport = true;
         examsToPrint = allExams.slice(0, 5);
         reportTitle = `SON ${examsToPrint.length} SINAV ÖĞRENCİ SIRALAMA VE İSTATİSTİK RAPORU`;
         reportSubtitle = `Son ${examsToPrint.length} Sınav Analizi | Rapor Tarihi: ${new Date().toLocaleDateString('tr-TR')}`;
         examDetailText = `Son ${examsToPrint.length} Sınavın Sıralama ve İstatistikleri`;
-        notes = `Öğrencilerin son ${examsToPrint.length} sınavdaki toplam doğru, toplam yanlış, toplam net sayıları ve not ortalamaları puan üstünlüğüne göre sıralanmıştır.`;
+        notes = `Öğrencilerin son ${examsToPrint.length} sınavdaki toplam doğru, toplam yanlış, toplam net sayıları ve soru ağırlıklı başarı puanları ((Toplam Net / Toplam Soru) x 100) puan üstünlüğüne göre sıralanmıştır.`;
       } else if (selectedValue === 'last_10') {
         isAverageReport = true;
         examsToPrint = allExams.slice(0, 10);
         reportTitle = `SON ${examsToPrint.length} SINAV ÖĞRENCİ SIRALAMA VE İSTATİSTİK RAPORU`;
         reportSubtitle = `Son ${examsToPrint.length} Sınav Analizi | Rapor Tarihi: ${new Date().toLocaleDateString('tr-TR')}`;
         examDetailText = `Son ${examsToPrint.length} Sınavın Sıralama ve İstatistikleri`;
-        notes = `Öğrencilerin son ${examsToPrint.length} sınavdaki toplam doğru, toplam yanlış, toplam net sayıları ve not ortalamaları puan üstünlüğüne göre sıralanmıştır.`;
+        notes = `Öğrencilerin son ${examsToPrint.length} sınavdaki toplam doğru, toplam yanlış, toplam net sayıları ve soru ağırlıklı başarı puanları ((Toplam Net / Toplam Soru) x 100) puan üstünlüğüne göre sıralanmıştır.`;
       } else if (selectedValue === 'last_3') {
         isAverageReport = true;
         examsToPrint = allExams.slice(0, 3);
         reportTitle = `SON ${examsToPrint.length} SINAV ÖĞRENCİ SIRALAMA VE İSTATİSTİK RAPORU`;
         reportSubtitle = `Son ${examsToPrint.length} Sınav Analizi | Rapor Tarihi: ${new Date().toLocaleDateString('tr-TR')}`;
         examDetailText = `Son ${examsToPrint.length} Sınavın Sıralama ve İstatistikleri`;
-        notes = `Öğrencilerin son ${examsToPrint.length} sınavdaki toplam doğru, toplam yanlış, toplam net sayıları ve not ortalamaları puan üstünlüğüne göre sıralanmıştır.`;
+        notes = `Öğrencilerin son ${examsToPrint.length} sınavdaki toplam doğru, toplam yanlış, toplam net sayıları ve soru ağırlıklı başarı puanları ((Toplam Net / Toplam Soru) x 100) puan üstünlüğüne göre sıralanmıştır.`;
       } else if (selectedValue === 'custom_select') {
         isAverageReport = true;
         const checkedIds = new Set(
@@ -1542,7 +1542,7 @@ function setupWeeklyTab(showToast) {
         reportTitle = `SEÇİLİ SINAVLAR (${examsToPrint.length} SINAV) SIRALAMA VE İSTATİSTİK RAPORU`;
         reportSubtitle = `Özel Sınav Aralığı (${examsToPrint.length} Sınav) | Rapor Tarihi: ${new Date().toLocaleDateString('tr-TR')}`;
         examDetailText = `Seçilen ${examsToPrint.length} Sınavın Sıralama ve İstatistikleri`;
-        notes = `Seçilen ${examsToPrint.length} sınav (${examsToPrint.map(e => e.examName || 'Sınav').join(', ')}) kapsamında öğrencilerin toplam doğru, toplam yanlış, toplam net sayıları ve not ortalamaları puan üstünlüğüne göre sıralanmıştır.`;
+        notes = `Seçilen ${examsToPrint.length} sınav (${examsToPrint.map(e => e.examName || 'Sınav').join(', ')}) kapsamında öğrencilerin toplam doğru, toplam yanlış, toplam net sayıları ve soru ağırlıklı başarı puanları ((Toplam Net / Toplam Soru) x 100) puan üstünlüğüne göre sıralanmıştır.`;
       } else {
         const targetExam = allExams.find(e => String(e.id) === String(selectedValue));
         if (!targetExam) return;
@@ -6754,6 +6754,10 @@ function computeMultiExamStudentRankingStats(selectedExams, branchFilter) {
       const avgNet = parseFloat((totalNet / enteredCount).toFixed(2));
       const avgCorrect = parseFloat((totalCorrect / enteredCount).toFixed(1));
       const avgWrong = parseFloat((totalWrong / enteredCount).toFixed(1));
+      
+      // Soru / Net Ağırlıklı Başarı Puanı: (Toplam Net / Girilen Sınavların Toplam Soru Sayısı) * 100
+      const rawWeightedScore = totalQuestionsEntered > 0 ? (totalNet / totalQuestionsEntered) * 100 : 0;
+      const weightedScore = parseFloat(Math.max(0, rawWeightedScore).toFixed(2));
 
       participants.push({
         student,
@@ -6767,6 +6771,7 @@ function computeMultiExamStudentRankingStats(selectedExams, branchFilter) {
         avgCorrect,
         avgWrong,
         avgScore,
+        weightedScore,
         minScore,
         maxScore,
         totalQuestionsEntered,
@@ -6783,14 +6788,16 @@ function computeMultiExamStudentRankingStats(selectedExams, branchFilter) {
         totalNet: 0,
         avgNet: 0,
         avgScore: null,
+        weightedScore: null,
+        totalQuestionsEntered: 0,
         examBreakdown
       });
     }
   });
 
-  // Öğrenci puan üstünlüğüne (Not Ortalaması azalan -> Toplam Net azalan -> Toplam Doğru azalan) göre sırala
+  // Öğrenci puan üstünlüğüne (Soru Ağırlıklı Başarı Puanı azalan -> Toplam Net azalan -> Toplam Doğru azalan) göre sırala
   participants.sort((a, b) => {
-    if (b.avgScore !== a.avgScore) return b.avgScore - a.avgScore;
+    if (b.weightedScore !== a.weightedScore) return b.weightedScore - a.weightedScore;
     if (b.totalNet !== a.totalNet) return b.totalNet - a.totalNet;
     if (b.totalCorrect !== a.totalCorrect) return b.totalCorrect - a.totalCorrect;
     if (b.enteredCount !== a.enteredCount) return b.enteredCount - a.enteredCount;
@@ -6801,7 +6808,7 @@ function computeMultiExamStudentRankingStats(selectedExams, branchFilter) {
   participants.forEach((p, idx) => {
     if (idx > 0) {
       const prev = participants[idx - 1];
-      if (p.avgScore < prev.avgScore || p.totalNet < prev.totalNet) {
+      if (p.weightedScore < prev.weightedScore || p.totalNet < prev.totalNet) {
         currentRank = idx + 1;
       }
     }
@@ -6817,6 +6824,9 @@ function computeMultiExamStudentRankingStats(selectedExams, branchFilter) {
 
   const totalQuestionsSum = targetExams.reduce((sum, e) => sum + (parseInt(e.totalQuestions, 10) || 0), 0);
   const classAvgScore = participants.length > 0
+    ? parseFloat((participants.reduce((sum, p) => sum + p.weightedScore, 0) / participants.length).toFixed(2))
+    : 0;
+  const classSimpleAvgScore = participants.length > 0
     ? parseFloat((participants.reduce((sum, p) => sum + p.avgScore, 0) / participants.length).toFixed(2))
     : 0;
   const classTotalCorrect = participants.reduce((sum, p) => sum + p.totalCorrect, 0);
@@ -6834,6 +6844,7 @@ function computeMultiExamStudentRankingStats(selectedExams, branchFilter) {
     totalStudentsCount: students.length,
     totalQuestionsSum,
     classAvgScore,
+    classSimpleAvgScore,
     classTotalCorrect,
     classTotalWrong,
     classTotalBlank,
@@ -7176,7 +7187,7 @@ function renderWeeklyExamStatsPanel() {
       ? `${stats.leader.student.name || ''} ${stats.leader.student.surname || ''}`.trim()
       : '-';
     const leaderScoreText = stats.leader
-      ? `${stats.leader.avgScore} Puan Ort. (${stats.leader.totalNet} Toplam Net)`
+      ? `${stats.leader.weightedScore} Puan (%${stats.leader.weightedScore} • ${stats.leader.totalNet} Net)`
       : 'Henüz veri yok';
 
     kpiGrid.innerHTML = `
@@ -7191,9 +7202,9 @@ function renderWeeklyExamStatsPanel() {
       <div style="padding: 0.9rem 1rem; border-radius: var(--radius-md); background: var(--bg-secondary); border: 1px solid var(--border-color); display: flex; align-items: center; gap: 0.85rem;">
         <div style="width: 42px; height: 42px; border-radius: 10px; background: rgba(16, 185, 129, 0.12); color: #059669; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; flex-shrink: 0;">📈</div>
         <div>
-          <div style="font-size: 0.73rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Sınıf Not Ortalaması</div>
+          <div style="font-size: 0.73rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Sınıf Ağırlıklı Ortalaması</div>
           <div style="font-size: 1.15rem; font-weight: 800; color: #059669;">${stats.classAvgScore} Puan</div>
-          <div style="font-size: 0.75rem; color: var(--text-secondary);">Katılan: ${stats.participants.length} / ${stats.totalStudentsCount} Öğrenci</div>
+          <div style="font-size: 0.75rem; color: var(--text-secondary);">Katılan: ${stats.participants.length} / ${stats.totalStudentsCount} Öğrenci • <span title="Sınav başı aritmetik ortalama">Basit Ort: ${stats.classSimpleAvgScore}</span></div>
         </div>
       </div>
       <div style="padding: 0.9rem 1rem; border-radius: var(--radius-md); background: var(--bg-secondary); border: 1px solid var(--border-color); display: flex; align-items: center; gap: 0.85rem;">
@@ -7302,9 +7313,10 @@ function renderWeeklyExamStatsPanel() {
         <div style="font-size: 0.69rem; color: var(--text-muted); font-weight: 600;">Ort: ${p.avgNet} N</div>
       </td>
       <td style="text-align: center; vertical-align: middle; padding: 0.6rem 0.4rem;">
-        <span class="badge" style="background: rgba(79, 70, 229, 0.14); color: var(--primary); border: 1px solid rgba(79, 70, 229, 0.3); font-size: 0.92rem; font-weight: 800; padding: 0.28rem 0.65rem; border-radius: 8px;">
-          ${p.avgScore} Puan
+        <span class="badge" style="background: rgba(79, 70, 229, 0.14); color: var(--primary); border: 1px solid rgba(79, 70, 229, 0.3); font-size: 0.92rem; font-weight: 800; padding: 0.28rem 0.65rem; border-radius: 8px;" title="Soru Ağırlıklı Başarı Puanı: (Toplam Net / Toplam Soru) x 100&#10;Sınav Başı Basit Ortalama: ${p.avgScore} Puan">
+          ${p.weightedScore} Puan
         </span>
+        <div style="font-size: 0.67rem; color: var(--text-muted); margin-top: 2px;">Soru Ağırlıklı (Ort: ${p.avgScore})</div>
       </td>
       <td style="text-align: center; vertical-align: middle; padding: 0.6rem 0.4rem;">
         <button type="button" class="btn btn-sm btn-secondary btn-toggle-stu-exam-breakdown" style="font-size: 0.74rem; padding: 0.25rem 0.55rem; height: auto;">
@@ -7359,7 +7371,7 @@ function renderWeeklyExamStatsPanel() {
       detailTr.innerHTML = `
         <td colspan="10" style="padding: 0.75rem 1rem; border-bottom: 2px solid var(--border-color);">
           <div style="font-size: 0.76rem; font-weight: 700; color: var(--primary); margin-bottom: 0.5rem;">
-            📌 ${sName} ${sSurname} — Seçilen Aralıktaki Sınav Karnesi (${p.enteredCount} / ${p.applicableExamCount} Sınav • Toplam: ${p.totalCorrect} Doğru, ${p.totalWrong} Yanlış, ${p.totalBlank} Boş, ${p.totalNet} Net • Ortalama: ${p.avgScore} Puan)
+            📌 ${sName} ${sSurname} — Seçilen Aralıktaki Sınav Karnesi (${p.enteredCount} / ${p.applicableExamCount} Sınav • Toplam: ${p.totalCorrect} Doğru, ${p.totalWrong} Yanlış, ${p.totalBlank} Boş, ${p.totalNet} Net • Ağırlıklı Başarı: ${p.weightedScore} Puan • Sınav Başı Ort: ${p.avgScore} Puan)
           </div>
           <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 0.5rem;">
             ${breakdownCards}
@@ -7427,7 +7439,7 @@ function printCurrentExamStatsReport() {
 
   const reportSubtitle = `Rapor Tarihi: ${new Date().toLocaleDateString('tr-TR')}`;
   const examDetailText = `Toplam ${targetExams.length} Sınav`;
-  const notes = `Bu rapor, seçilen ${targetExams.length} sınav (${targetExams.map(e => e.examName || 'Sınav').join(', ')}) kapsamında öğrencilerin toplam doğru, toplam yanlış, toplam boş, toplam net sayılarını ve sınav not ortalamalarını puan üstünlüğüne göre sıralı olarak gösterir.`;
+  const notes = `Bu rapor, seçilen ${targetExams.length} sınav (${targetExams.map(e => e.examName || 'Sınav').join(', ')}) kapsamında öğrencilerin toplam doğru, toplam yanlış, toplam boş, toplam net sayılarını ve soru ağırlıklı başarı puanlarını ((Toplam Net / Toplam Soru) x 100) puan üstünlüğüne göre sıralı olarak gösterir.`;
 
   prepareAdvancedPrintLayout(reportTitle, reportSubtitle, examDetailText, notes, targetExams, true, selectedValueKey, examStatsSelectedBranch);
 
@@ -8310,7 +8322,7 @@ function prepareAdvancedPrintLayout(reportTitle, reportSubtitle, examDetailText,
     if (labelDate) labelDate.textContent = 'Rapor Tarihi';
     if (labelQuestions) labelQuestions.textContent = 'İncelenen Sınav';
     if (labelDuration) labelDuration.textContent = 'Toplam Soru';
-    if (labelAverage) labelAverage.textContent = 'Sınıf Not Ortalaması';
+    if (labelAverage) labelAverage.textContent = 'Sınıf Ağırlıklı Ortalaması';
 
     if (metaDate) metaDate.textContent = new Date().toLocaleDateString('tr-TR');
     if (metaQuestions) metaQuestions.textContent = `${examsToPrint.length} Sınav`;
@@ -8338,7 +8350,7 @@ function prepareAdvancedPrintLayout(reportTitle, reportSubtitle, examDetailText,
           <th style="width: 11%; text-align: center; border-bottom: 2px solid #ccc; background: #f1f5f9; padding: 0.5rem 0.25rem;">TOPLAM YANLIŞ</th>
           <th style="width: 8%; text-align: center; border-bottom: 2px solid #ccc; background: #f1f5f9; padding: 0.5rem 0.25rem;">TOPLAM BOŞ</th>
           <th style="width: 12%; text-align: center; border-bottom: 2px solid #ccc; background: #f1f5f9; padding: 0.5rem 0.25rem;">TOPLAM NET</th>
-          <th style="width: 12%; text-align: center; border-bottom: 2px solid #ccc; background: #f1f5f9; padding: 0.5rem 0.25rem;">NOT ORTALAMASI</th>
+          <th style="width: 12%; text-align: center; border-bottom: 2px solid #ccc; background: #f1f5f9; padding: 0.5rem 0.25rem;">AĞIRLIKLI NOT ORTALAMASI</th>
         </tr>
       `;
     }
@@ -8363,7 +8375,10 @@ function prepareAdvancedPrintLayout(reportTitle, reportSubtitle, examDetailText,
           ${p.totalNet}
           <div style="font-size: 0.68rem; color: #64748b; font-weight: normal;">Ort: ${p.avgNet} N</div>
         </td>
-        <td style="text-align: center; padding: 0.48rem 0.25rem; border-bottom: 1px solid #ddd; font-weight: 800; color: #1e1b4b; font-size: 0.98rem;">${p.avgScore}</td>
+        <td style="text-align: center; padding: 0.48rem 0.25rem; border-bottom: 1px solid #ddd; font-weight: 800; color: #1e1b4b; font-size: 0.98rem;">
+          ${p.weightedScore}
+          <div style="font-size: 0.65rem; color: #64748b; font-weight: normal;">Soru Ağırlıklı (Ort: ${p.avgScore})</div>
+        </td>
       `;
       printTbody.appendChild(row);
     });
@@ -9041,12 +9056,16 @@ function closeBoardQuestionAnalysisModal() {
 
 function handleBoardQaKeydown(e) {
   const modal = document.getElementById('modal-board-question-analysis');
-  if (!modal || !modal.classList.contains('active')) return;
+  const isModalActive = modal && modal.classList.contains('active');
+  const isWidgetActive = boardFloatingWidget && boardFloatingWidget.style.display !== 'none' && !boardFloatingMinimized;
+
+  if (!isModalActive && !isWidgetActive) return;
 
   const activeTag = document.activeElement ? document.activeElement.tagName.toLowerCase() : '';
   if (activeTag === 'input' || activeTag === 'textarea' || activeTag === 'select') {
     if (e.key === 'Escape') {
-      closeBoardQuestionAnalysisModal();
+      if (isModalActive) closeBoardQuestionAnalysisModal();
+      else if (isWidgetActive) closeBoardFloatingWidget();
     }
     return;
   }
@@ -9059,7 +9078,8 @@ function handleBoardQaKeydown(e) {
     boardQaStepQuestion(1);
   } else if (e.key === 'Escape') {
     e.preventDefault();
-    closeBoardQuestionAnalysisModal();
+    if (isModalActive) closeBoardQuestionAnalysisModal();
+    else if (isWidgetActive) closeBoardFloatingWidget();
   }
 }
 
@@ -9459,6 +9479,9 @@ function renderBoardQuestionAnalysis() {
   if (boardPipWindow && !boardPipWindow.closed) {
     renderPipContent(boardPipWindow);
   }
+  if (boardFloatingWidget && boardFloatingWidget.style.display !== 'none') {
+    renderPipContent(boardFloatingWidget);
+  }
 
   if (window.safeCreateIcons) window.safeCreateIcons();
   else if (window.lucide) window.lucide.createIcons();
@@ -9692,6 +9715,306 @@ window.closeBoardQuestionAnalysisModal = closeBoardQuestionAnalysisModal;
 // HER ZAMAN EN ÜSTTE YÜZEN MİNİ PENCERE MOTORU (ALWAYS-ON-TOP PiP / POPUP)
 // ==========================================================================
 let boardPipWindow = null;
+let boardFloatingWidget = null;
+let boardFloatingMinimized = false;
+
+function ensureFloatingWidgetStyles() {
+  if (document.getElementById('sinif-asistani-pip-styles')) return;
+  const style = document.createElement('style');
+  style.id = 'sinif-asistani-pip-styles';
+  style.textContent = `
+    #board-qa-floating-widget {
+      position: fixed;
+      top: 75px;
+      right: 25px;
+      width: 380px;
+      height: 600px;
+      max-height: calc(100vh - 90px);
+      background: #ffffff;
+      border-radius: 12px;
+      box-shadow: 0 16px 40px rgba(0,0,0,0.35), 0 0 0 1px rgba(0,0,0,0.1);
+      z-index: 10050;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
+      font-size: 13px !important;
+      color: #0f172a !important;
+      user-select: none;
+    }
+    #board-qa-floating-widget.pip-minimized {
+      width: auto !important;
+      height: auto !important;
+      max-height: none !important;
+      background: transparent !important;
+      border-radius: 999px !important;
+      box-shadow: none !important;
+      border: none !important;
+      overflow: visible !important;
+    }
+    .pip-wrapper {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      box-sizing: border-box;
+      background: #f8fafc;
+      overflow: hidden;
+    }
+    .pip-header {
+      background: linear-gradient(135deg, #1e1b4b, #312e81);
+      color: #ffffff;
+      padding: 8px 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-shrink: 0;
+      user-select: none;
+    }
+    .pip-subj-bar {
+      background: #ffffff;
+      border-bottom: 1px solid #e2e8f0;
+      padding: 5px 8px;
+      display: flex;
+      gap: 5px;
+      overflow-x: auto;
+      flex-shrink: 0;
+    }
+    .pip-subj-btn {
+      padding: 3px 8px;
+      border-radius: 6px;
+      border: 1px solid #cbd5e1;
+      background: #ffffff;
+      color: #1e293b;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      transition: all 0.15s;
+    }
+    .pip-subj-btn.active {
+      background: #4338ca;
+      color: #ffffff;
+      border-color: #312e81;
+    }
+    .pip-nav-bar {
+      background: #ffffff;
+      border-bottom: 1px solid #e2e8f0;
+      padding: 7px 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+    .pip-nav-btn {
+      background: #f1f5f9;
+      border: 1px solid #cbd5e1;
+      color: #0f172a;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-weight: 700;
+      font-size: 11.5px;
+      cursor: pointer;
+    }
+    .pip-nav-btn:hover {
+      background: #e2e8f0;
+    }
+    .pip-select {
+      flex: 1;
+      padding: 4px 6px;
+      font-size: 12px;
+      font-weight: 700;
+      border-radius: 6px;
+      border: 1px solid #cbd5e1;
+      background: #ffffff;
+      color: #0f172a;
+    }
+    .pip-hero {
+      background: #ffffff;
+      border-bottom: 1px solid #e2e8f0;
+      padding: 8px 12px;
+      flex-shrink: 0;
+    }
+    .pip-filter-bar {
+      background: #f8fafc;
+      border-bottom: 1px solid #e2e8f0;
+      padding: 5px 8px;
+      display: flex;
+      gap: 4px;
+      overflow-x: auto;
+      flex-shrink: 0;
+    }
+    .pip-filter-btn {
+      padding: 3px 8px;
+      border-radius: 6px;
+      border: 1px solid #cbd5e1;
+      background: #ffffff;
+      color: #475569;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .pip-filter-btn.active {
+      background: #1e1b4b;
+      color: #ffffff;
+      border-color: #1e1b4b;
+    }
+    .pip-students-container {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      background: #f8fafc;
+      min-height: 0;
+    }
+    .pip-student-item {
+      background: #ffffff;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 7px;
+      padding: 6px 9px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+    }
+    .pip-student-item.is-wrong {
+      border-color: #fca5a5;
+      background: #fef2f2;
+    }
+    .pip-student-item.is-blank {
+      border-color: #cbd5e1;
+      background: #f8fafc;
+    }
+    .pip-student-item.is-correct {
+      border-color: #86efac;
+      background: #f0fdf4;
+    }
+    .pip-footer {
+      background: #ffffff;
+      border-top: 1px solid #e2e8f0;
+      padding: 5px 10px;
+      font-size: 10px;
+      color: #64748b;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-shrink: 0;
+    }
+  `;
+  document.head.appendChild(style);
+}
+
+function setupFloatingWidgetDrag(widget, handle) {
+  if (!widget || !handle) return;
+  if (handle._dragInitialized) return;
+  handle._dragInitialized = true;
+
+  let isDragging = false;
+  let startX = 0, startY = 0;
+  let initialLeft = 0, initialTop = 0;
+
+  const onStart = (clientX, clientY) => {
+    isDragging = true;
+    const rect = widget.getBoundingClientRect();
+    startX = clientX;
+    startY = clientY;
+    initialLeft = rect.left;
+    initialTop = rect.top;
+    widget.style.right = 'auto';
+    widget.style.bottom = 'auto';
+    widget.style.left = `${initialLeft}px`;
+    widget.style.top = `${initialTop}px`;
+    document.body.style.userSelect = 'none';
+  };
+
+  const onMove = (clientX, clientY) => {
+    if (!isDragging) return;
+    const dx = clientX - startX;
+    const dy = clientY - startY;
+    const maxLeft = Math.max(0, window.innerWidth - widget.offsetWidth);
+    const maxTop = Math.max(0, window.innerHeight - widget.offsetHeight);
+    const newLeft = Math.min(Math.max(10, initialLeft + dx), maxLeft - 10);
+    const newTop = Math.min(Math.max(10, initialTop + dy), maxTop - 10);
+    widget.style.left = `${newLeft}px`;
+    widget.style.top = `${newTop}px`;
+  };
+
+  const onEnd = () => {
+    if (!isDragging) return;
+    isDragging = false;
+    document.body.style.userSelect = '';
+  };
+
+  handle.addEventListener('mousedown', (e) => {
+    if (e.target.closest('button, select, input')) return;
+    onStart(e.clientX, e.clientY);
+    const handleMouseMove = (ev) => onMove(ev.clientX, ev.clientY);
+    const handleMouseUp = () => {
+      onEnd();
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+  });
+
+  handle.addEventListener('touchstart', (e) => {
+    if (e.target.closest('button, select, input')) return;
+    const touch = e.touches[0];
+    onStart(touch.clientX, touch.clientY);
+    const handleTouchMove = (ev) => {
+      const t = ev.touches[0];
+      onMove(t.clientX, t.clientY);
+    };
+    const handleTouchEnd = () => {
+      onEnd();
+      window.removeEventListener('touchmove', handleTouchMove);
+      window.removeEventListener('touchend', handleTouchEnd);
+    };
+    window.addEventListener('touchmove', handleTouchMove, { passive: true });
+    window.addEventListener('touchend', handleTouchEnd);
+  }, { passive: true });
+}
+
+function openBoardQuestionAnalysisFloatingWidget() {
+  ensureFloatingWidgetStyles();
+
+  let widget = document.getElementById('board-qa-floating-widget');
+  if (!widget) {
+    widget = document.createElement('div');
+    widget.id = 'board-qa-floating-widget';
+    document.body.appendChild(widget);
+  }
+
+  boardFloatingWidget = widget;
+  widget.style.display = 'flex';
+  boardFloatingMinimized = false;
+
+  renderPipContent(widget);
+
+  closeBoardQuestionAnalysisModal();
+  document.addEventListener('keydown', handleBoardQaKeydown);
+
+  if (window.showToast) {
+    window.showToast('📌 Yüzen Mini Analiz açıldı. Başlığından tutup ekran üzerinde istediğiniz yere taşıyabilirsiniz.', 'info', 2800);
+  }
+}
+
+function closeBoardFloatingWidget() {
+  if (boardFloatingWidget) {
+    boardFloatingWidget.style.display = 'none';
+    boardFloatingWidget = null;
+    boardFloatingMinimized = false;
+  }
+}
+window.closeBoardFloatingWidget = closeBoardFloatingWidget;
+window.openBoardQuestionAnalysisFloatingWidget = openBoardQuestionAnalysisFloatingWidget;
 
 async function openBoardQuestionAnalysisPip(examId) {
   const state = stateManager.loadState();
@@ -9716,13 +10039,20 @@ async function openBoardQuestionAnalysisPip(examId) {
 
   window.activeWeeklyExam = activeExam;
 
-  // Eğer zaten açıksa öne getir
+  // Eğer zaten harici pencere açıksa öne getir
   if (boardPipWindow && !boardPipWindow.closed) {
     try {
       boardPipWindow.focus();
       renderPipContent(boardPipWindow);
       return;
     } catch (e) {}
+  }
+
+  // Eğer zaten uygulama içi yüzen panel açıksa öne getir
+  if (boardFloatingWidget && boardFloatingWidget.style.display !== 'none') {
+    boardFloatingMinimized = false;
+    renderPipContent(boardFloatingWidget);
+    return;
   }
 
   const width = 380;
@@ -9741,8 +10071,8 @@ async function openBoardQuestionAnalysisPip(examId) {
     }
   }
 
-  // 2. Standart Bağımsız Pop-up Pencere (Safari, Firefox ve genel tarayıcı desteği)
-  if (!win) {
+  // 2. Standart Bağımsız Pop-up Pencere (Masaüstü Tauri haricindeki ortamlarda)
+  if (!win && !window.__TAURI__) {
     const left = Math.max(10, (window.screen.availWidth || window.screen.width) - width - 20);
     const top = 80;
     try {
@@ -9752,10 +10082,10 @@ async function openBoardQuestionAnalysisPip(examId) {
     }
   }
 
+  // 3. Eğer harici pencere açılamadıysa (Tauri masaüstü, WebKitGTK / Pardus veya engellenmiş pop-up):
+  // Doğrudan Uygulama İçi Yüzen Mini Modu aç!
   if (!win) {
-    const msg = 'Açılır pencere engellendi! Lütfen tarayıcınızın adres çubuğundan pop-up pencerelere izin verin.';
-    if (toastCallback) toastCallback(msg, 'warning');
-    else if (window.showToast) window.showToast(msg, 'warning');
+    openBoardQuestionAnalysisFloatingWidget();
     return;
   }
 
@@ -9967,11 +10297,17 @@ function setupPipWindowStyles(win) {
   }
 }
 
-function renderPipContent(win) {
-  if (!win || win.closed || !activeExam) return;
+function renderPipContent(target) {
+  if (!activeExam) return;
+  const isWindow = target && typeof target.closed !== 'undefined' && target.document;
+  const isWidget = target && target.nodeType === 1;
+
+  if (isWindow && target.closed) return;
+  if (!isWindow && !isWidget) return;
 
   try {
-    const doc = win.document;
+    const doc = isWindow ? target.document : document;
+    const root = isWindow ? target.document.body : target;
     const state = stateManager.loadState();
     const isMiddle = state.educationLevel === 'middle';
     const examBranch = activeExam.branch || '';
@@ -10199,21 +10535,66 @@ function renderPipContent(win) {
       });
     }
 
-    doc.body.innerHTML = `
+    // Uygulama içi simge durumuna küçültülmüş yüzen hap modu
+    if (isWidget && boardFloatingMinimized) {
+      target.classList.add('pip-minimized');
+      target.innerHTML = `
+        <div class="pip-minimized-pill pip-drag-handle" style="cursor: pointer; display: flex; align-items: center; gap: 8px; background: linear-gradient(135deg, #1e1b4b, #312e81); color: #ffffff; padding: 7px 14px; border-radius: 999px; box-shadow: 0 8px 24px rgba(0,0,0,0.3); font-size: 12px; font-weight: 700; border: 1.5px solid rgba(255,255,255,0.25);">
+          <span style="cursor: grab; opacity: 0.7; font-size: 13px;" title="Taşımak için basılı tutun">⋮⋮</span>
+          <span>📌 Soru ${boardQaActiveQNum}</span>
+          <span style="background: #10b981; color: #fff; padding: 1px 6px; border-radius: 4px; font-size: 10.5px;">D: ${correctAns || '-'}</span>
+          <span style="color: #f87171; font-size: 11px;">(${wrongCount}Y)</span>
+          <span style="background: rgba(255,255,255,0.18); padding: 2px 7px; border-radius: 4px; font-size: 10px; margin-left: 2px;">Genişlet ⤢</span>
+          <button type="button" id="pip-btn-pill-close" style="background: none; border: none; color: #cbd5e1; font-size: 14px; cursor: pointer; padding: 0 2px; line-height: 1; margin-left: 4px;" title="Kapat">✕</button>
+        </div>
+      `;
+      setupFloatingWidgetDrag(target, target.querySelector('.pip-drag-handle'));
+      const btnPillClose = target.querySelector('#pip-btn-pill-close');
+      if (btnPillClose) {
+        btnPillClose.addEventListener('click', (e) => {
+          e.stopPropagation();
+          closeBoardFloatingWidget();
+        });
+      }
+      const pill = target.querySelector('.pip-minimized-pill');
+      if (pill) {
+        pill.addEventListener('click', (e) => {
+          if (e.target.closest('#pip-btn-pill-close')) return;
+          boardFloatingMinimized = false;
+          renderPipContent(target);
+        });
+      }
+      return;
+    }
+
+    if (isWidget) {
+      target.classList.remove('pip-minimized');
+    }
+
+    root.innerHTML = `
       <div class="pip-wrapper">
         <!-- Header -->
-        <div class="pip-header">
-          <div style="min-width: 0;">
-            <div style="font-weight: 800; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-              📌 ${activeExam.examName || 'Haftalık Sınav'}
-            </div>
-            <div style="font-size: 10px; color: #c7d2fe; margin-top: 1px;">
-              ${isMulti ? currentSubj.name + ' • ' : ''}Toplam ${qCount} Soru
+        <div class="pip-header pip-drag-handle" style="${isWidget ? 'cursor: move;' : ''}">
+          <div style="min-width: 0; display: flex; align-items: center; gap: 6px;">
+            ${isWidget ? `<span style="cursor: grab; font-size: 14px; opacity: 0.75;" title="Taşımak için basılı tutun">⋮⋮</span>` : ''}
+            <div>
+              <div style="font-weight: 800; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: ${isWidget ? '180px' : '220px'};">
+                📌 ${activeExam.examName || 'Haftalık Sınav'}
+              </div>
+              <div style="font-size: 10px; color: #c7d2fe; margin-top: 1px;">
+                ${isMulti ? currentSubj.name + ' • ' : ''}Toplam ${qCount} Soru
+              </div>
             </div>
           </div>
-          <span style="background: #f59e0b; color: #000; font-size: 9.5px; font-weight: 800; padding: 2px 6px; border-radius: 999px; white-space: nowrap;">
-            Always-on-Top
-          </span>
+          <div style="display: flex; align-items: center; gap: 5px;">
+            <span style="background: #f59e0b; color: #000; font-size: 9.5px; font-weight: 800; padding: 2px 6px; border-radius: 999px; white-space: nowrap;">
+              ${isWidget ? 'Yüzen Mini Mod' : 'Always-on-Top'}
+            </span>
+            ${isWidget ? `
+              <button type="button" id="pip-btn-minimize" style="background: rgba(255,255,255,0.18); border: none; color: #fff; width: 22px; height: 22px; border-radius: 4px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: bold; line-height: 1;" title="Simge Durumuna Küçült">−</button>
+              <button type="button" id="pip-btn-close" style="background: rgba(255,255,255,0.18); border: none; color: #fff; width: 22px; height: 22px; border-radius: 4px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 13px; line-height: 1;" title="Kapat">✕</button>
+            ` : ''}
+          </div>
         </div>
 
         <!-- Çoklu Ders Çubuğu -->
@@ -10276,21 +10657,40 @@ function renderPipContent(win) {
       </div>
     `;
 
-    const btnPrev = doc.getElementById('pip-btn-prev');
+    if (isWidget) {
+      setupFloatingWidgetDrag(target, root.querySelector('.pip-drag-handle'));
+      const btnMinimize = root.querySelector('#pip-btn-minimize');
+      if (btnMinimize) {
+        btnMinimize.addEventListener('click', (e) => {
+          e.stopPropagation();
+          boardFloatingMinimized = true;
+          renderPipContent(target);
+        });
+      }
+      const btnCloseWidget = root.querySelector('#pip-btn-close');
+      if (btnCloseWidget) {
+        btnCloseWidget.addEventListener('click', (e) => {
+          e.stopPropagation();
+          closeBoardFloatingWidget();
+        });
+      }
+    }
+
+    const btnPrev = root.querySelector('#pip-btn-prev');
     if (btnPrev) {
       btnPrev.addEventListener('click', () => {
         boardQaStepQuestion(-1);
       });
     }
 
-    const btnNext = doc.getElementById('pip-btn-next');
+    const btnNext = root.querySelector('#pip-btn-next');
     if (btnNext) {
       btnNext.addEventListener('click', () => {
         boardQaStepQuestion(1);
       });
     }
 
-    const selQ = doc.getElementById('pip-select-q');
+    const selQ = root.querySelector('#pip-select-q');
     if (selQ) {
       selQ.addEventListener('change', (e) => {
         boardQaActiveQNum = parseInt(e.target.value, 10) || 1;
@@ -10298,7 +10698,7 @@ function renderPipContent(win) {
       });
     }
 
-    doc.querySelectorAll('.pip-subj-btn').forEach(btn => {
+    root.querySelectorAll('.pip-subj-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         boardQaActiveSubjIdx = parseInt(btn.getAttribute('data-subj'), 10) || 0;
         boardQaActiveQNum = 1;
@@ -10306,22 +10706,24 @@ function renderPipContent(win) {
       });
     });
 
-    doc.querySelectorAll('.pip-filter-btn').forEach(btn => {
+    root.querySelectorAll('.pip-filter-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         boardQaActiveFilter = btn.getAttribute('data-filter') || 'all_errors';
         renderBoardQuestionAnalysis();
       });
     });
 
-    doc.onkeydown = (e) => {
-      if (e.key === 'ArrowLeft') {
-        e.preventDefault();
-        boardQaStepQuestion(-1);
-      } else if (e.key === 'ArrowRight') {
-        e.preventDefault();
-        boardQaStepQuestion(1);
-      }
-    };
+    if (isWindow) {
+      doc.onkeydown = (e) => {
+        if (e.key === 'ArrowLeft') {
+          e.preventDefault();
+          boardQaStepQuestion(-1);
+        } else if (e.key === 'ArrowRight') {
+          e.preventDefault();
+          boardQaStepQuestion(1);
+        }
+      };
+    }
 
   } catch (err) {
     console.error('renderPipContent hatası:', err);

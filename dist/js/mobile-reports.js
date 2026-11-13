@@ -421,12 +421,17 @@
 
       let participated = 0;
       let totalExamScore = 0;
+      let totalExamNet = 0;
+      let totalExamQuestions = 0;
       const examItems = [];
 
       evalList.forEach(e => {
+        const qCount = parseInt(e.totalQuestions, 10) || (e.questions ? e.questions.length : 0) || 0;
         let sc = undefined;
+        let net = undefined;
         if (e.studentResults && e.studentResults[student.id]) {
           sc = e.studentResults[student.id].score;
+          net = e.studentResults[student.id].net;
         } else if (e.examScores && e.examScores[student.id] !== undefined) {
           sc = e.examScores[student.id];
         }
@@ -434,7 +439,15 @@
         const hasScore = sc !== undefined && sc !== null && sc !== '';
         if (hasScore) {
           participated++;
-          totalExamScore += parseFloat(sc);
+          const parsedSc = parseFloat(sc) || 0;
+          totalExamScore += parsedSc;
+          if (net !== undefined && net !== null && net !== '') {
+            totalExamNet += parseFloat(net) || 0;
+            totalExamQuestions += qCount;
+          } else if (qCount > 0) {
+            totalExamNet += (parsedSc / 100) * qCount;
+            totalExamQuestions += qCount;
+          }
         }
 
         let detailText = '';
@@ -451,26 +464,49 @@
         });
       });
 
-      const avgScore = participated > 0 ? (totalExamScore / participated).toFixed(1) : '-';
+      const weightedStudentScore = totalExamQuestions > 0
+        ? ((totalExamNet / totalExamQuestions) * 100).toFixed(1)
+        : (participated > 0 ? (totalExamScore / participated).toFixed(1) : null);
+      const avgScore = weightedStudentScore !== null ? weightedStudentScore : '-';
 
-      // Sınıf sınav ortalamaları ve sıralama
+      // Sınıf sınav ortalamaları ve sıralama (Soru ağırlıklı başarı puanı)
       const classExams = scopeStudents.map(s => {
         let sPart = 0;
         let sTotal = 0;
+        let sTotalNet = 0;
+        let sTotalQuestions = 0;
         evalList.forEach(e => {
+          const qCount = parseInt(e.totalQuestions, 10) || (e.questions ? e.questions.length : 0) || 0;
           let sc = undefined;
+          let net = undefined;
           if (e.studentResults && e.studentResults[s.id]) {
             sc = e.studentResults[s.id].score;
+            net = e.studentResults[s.id].net;
           } else if (e.examScores && e.examScores[s.id] !== undefined) {
             sc = e.examScores[s.id];
           }
           if (sc !== undefined && sc !== null && sc !== '') {
             sPart++;
-            sTotal += parseFloat(sc);
+            const parsedSc = parseFloat(sc) || 0;
+            sTotal += parsedSc;
+            if (net !== undefined && net !== null && net !== '') {
+              sTotalNet += parseFloat(net) || 0;
+              sTotalQuestions += qCount;
+            } else if (qCount > 0) {
+              sTotalNet += (parsedSc / 100) * qCount;
+              sTotalQuestions += qCount;
+            }
           }
         });
-        return { id: s.id, avg: sPart > 0 ? (sTotal / sPart) : 0, participated: sPart };
-      }).sort((a, b) => (b.avg - a.avg) || (b.participated - a.participated));
+        const sWeighted = sTotalQuestions > 0 ? ((sTotalNet / sTotalQuestions) * 100) : (sPart > 0 ? (sTotal / sPart) : 0);
+        return {
+          id: s.id,
+          weightedScore: sWeighted,
+          totalNet: sTotalNet,
+          avg: sPart > 0 ? (sTotal / sPart) : 0,
+          participated: sPart
+        };
+      }).sort((a, b) => (b.weightedScore - a.weightedScore) || (b.totalNet - a.totalNet) || (b.participated - a.participated));
 
       const examRankIdx = classExams.findIndex(x => String(x.id) === String(student.id));
       const examRank = examRankIdx !== -1 ? (examRankIdx + 1) : '-';

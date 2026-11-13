@@ -530,54 +530,89 @@
         let participatedCount = 0;
         let missedCount = 0;
         let totalExamScore = 0;
+        let totalExamNet = 0;
+        let totalExamQuestions = 0;
 
         relevantExams.forEach(e => {
+          const qCount = parseInt(e.totalQuestions, 10) || (e.questions ? e.questions.length : 0) || 0;
           let score = undefined;
+          let net = undefined;
           if (e.studentResults && e.studentResults[student.id]) {
             score = e.studentResults[student.id].score;
+            net = e.studentResults[student.id].net;
           } else if (e.examScores && e.examScores[student.id] !== undefined) {
             score = e.examScores[student.id];
           }
 
           if (score !== undefined && score !== null && score !== '') {
             participatedCount++;
-            totalExamScore += parseFloat(score);
+            const parsedScore = parseFloat(score) || 0;
+            totalExamScore += parsedScore;
+            if (net !== undefined && net !== null && net !== '') {
+              totalExamNet += parseFloat(net) || 0;
+              totalExamQuestions += qCount;
+            } else if (qCount > 0) {
+              totalExamNet += (parsedScore / 100) * qCount;
+              totalExamQuestions += qCount;
+            }
           } else {
             missedCount++;
           }
         });
 
-        const avgExamScore = participatedCount > 0 ? (totalExamScore / participatedCount).toFixed(1) + ' Puan' : 'Girilmedi';
+        const weightedStudentScore = totalExamQuestions > 0
+          ? ((totalExamNet / totalExamQuestions) * 100).toFixed(1)
+          : (participatedCount > 0 ? (totalExamScore / participatedCount).toFixed(1) : null);
+        const avgExamScore = weightedStudentScore !== null ? `${weightedStudentScore} Puan` : 'Girilmedi';
 
-        // Sınıftaki başarı sıralaması hesaplama
+        // Sınıftaki başarı sıralaması hesaplama (Soru ağırlıklı puan üstünlüğü)
         const classGrades = filteredStudents.map(s => {
           let sParticipated = 0;
           let sTotalScore = 0;
+          let sTotalNet = 0;
+          let sTotalQuestions = 0;
           
           relevantExams.forEach(e => {
+            const qCount = parseInt(e.totalQuestions, 10) || (e.questions ? e.questions.length : 0) || 0;
             let score = undefined;
+            let net = undefined;
             if (e.studentResults && e.studentResults[s.id]) {
               score = e.studentResults[s.id].score;
+              net = e.studentResults[s.id].net;
             } else if (e.examScores && e.examScores[s.id] !== undefined) {
               score = e.examScores[s.id];
             }
             if (score !== undefined && score !== null && score !== '') {
               sParticipated++;
-              sTotalScore += parseFloat(score);
+              const parsedScore = parseFloat(score) || 0;
+              sTotalScore += parsedScore;
+              if (net !== undefined && net !== null && net !== '') {
+                sTotalNet += parseFloat(net) || 0;
+                sTotalQuestions += qCount;
+              } else if (qCount > 0) {
+                sTotalNet += (parsedScore / 100) * qCount;
+                sTotalQuestions += qCount;
+              }
             }
           });
           
+          const sWeighted = sTotalQuestions > 0 ? ((sTotalNet / sTotalQuestions) * 100) : (sParticipated > 0 ? (sTotalScore / sParticipated) : 0);
           const sAvg = sParticipated > 0 ? (sTotalScore / sParticipated) : 0;
           return {
             studentId: s.id,
+            weightedScore: sWeighted,
+            totalNet: sTotalNet,
             avgScore: sAvg,
             participated: sParticipated
           };
         });
 
         classGrades.sort((a, b) => {
-          if (b.avgScore !== a.avgScore) {
-            return b.avgScore - a.avgScore;
+          if (b.weightedScore !== a.weightedScore) {
+            return b.weightedScore - a.weightedScore;
+          }
+          if (b.totalNet !== a.totalNet) {
+            return b.totalNet - a.totalNet;
           }
           if (b.participated !== a.participated) {
             return b.participated - a.participated;
@@ -889,23 +924,39 @@
 
       let participatedCount = 0;
       let totalExamScore = 0;
+      let totalExamNet = 0;
+      let totalExamQuestions = 0;
 
       relevantExams.forEach(e => {
+        const qCount = parseInt(e.totalQuestions, 10) || (e.questions ? e.questions.length : 0) || 0;
         let score = undefined;
+        let net = undefined;
         if (e.studentResults && e.studentResults[student.id]) {
           score = e.studentResults[student.id].score;
+          net = e.studentResults[student.id].net;
         } else if (e.examScores && e.examScores[student.id] !== undefined) {
           score = e.examScores[student.id];
         }
 
         if (score !== undefined && score !== null && score !== '') {
           participatedCount++;
-          totalExamScore += parseFloat(score);
+          const parsedScore = parseFloat(score) || 0;
+          totalExamScore += parsedScore;
+          if (net !== undefined && net !== null && net !== '') {
+            totalExamNet += parseFloat(net) || 0;
+            totalExamQuestions += qCount;
+          } else if (qCount > 0) {
+            totalExamNet += (parsedScore / 100) * qCount;
+            totalExamQuestions += qCount;
+          }
         }
       });
 
-      const avgExamScore = participatedCount > 0 ? (totalExamScore / participatedCount).toFixed(1) + ' Puan' : 'Girilmedi';
-      msg += `🏆 *Sınav Ortalaması:* ${avgExamScore}\n`;
+      const weightedStudentScore = totalExamQuestions > 0
+        ? ((totalExamNet / totalExamQuestions) * 100).toFixed(1)
+        : (participatedCount > 0 ? (totalExamScore / participatedCount).toFixed(1) : null);
+      const avgExamScore = weightedStudentScore !== null ? `${weightedStudentScore} Puan` : 'Girilmedi';
+      msg += `🏆 *Sınav Başarı Puanı (Ağırlıklı):* ${avgExamScore}\n`;
     }
 
     // 4. Görevler
