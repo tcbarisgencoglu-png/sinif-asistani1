@@ -1268,10 +1268,10 @@
         border-radius: 8px !important;
       }
       .nav-actions {
-        gap: 0.3rem !important;
+        gap: 0.25rem !important;
       }
       .nav-actions #btn-tanitim-download {
-        display: none !important; /* Hide secondary download button on narrow phone header to guarantee 0 overflow */
+        display: flex !important;
       }
       .nav-cta {
         padding: 0.35rem 0.55rem !important;
@@ -1351,7 +1351,7 @@
       <span class="btn-text-full">🎁 1 Ay Ücretsiz Dene</span>
       <span class="btn-text-short">🎁 Dene</span>
     </button>
-    <button type="button" id="btn-tanitim-download" onclick="window.openTanitimDownloadModal(event)" class="nav-cta" style="background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.2); box-shadow: none; display: flex; align-items: center; gap: 0.4rem; cursor: pointer;">
+    <button type="button" id="btn-tanitim-download" onclick="window.openTanitimDownloadModal(event)" class="nav-cta" style="background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); border: 1px solid rgba(56, 189, 248, 0.4); box-shadow: 0 4px 15px rgba(2, 132, 199, 0.35); display: flex; align-items: center; gap: 0.35rem; cursor: pointer;">
       <span>📥 İndir</span>
     </button>
     <a href="/uygulama" class="nav-cta" id="btn-tanitim-app">
@@ -1365,7 +1365,7 @@
   <div class="slider-track" id="sliderTrack">
     <!-- Slide 1: Sınıf Asistanı Giriş -->
     <div class="slide-item" data-title="Sınıf Asistanı — Öğretmenin Dijital Gücü" style="padding: 0; overflow: hidden; position: relative;">
-      <div class="hero-full-bg">
+      <div class="hero-full-bg" onclick="window.openTanitimDownloadModal(event)" style="cursor: pointer;" title="Sınıf Asistanı İndir">
         <picture>
           <source media="(max-width: 1024px)" srcset="images/m-1.jpg">
           <img src="images/1.jpg" alt="Sınıf Asistanı — Öğretmenin Dijital Gücü" class="main-fullscreen-img">
