@@ -171,6 +171,13 @@
       justify-content: center;
       background: #080712;
     }
+    .hero-full-bg picture {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
     .main-fullscreen-img {
       width: 100%;
       height: 100%;
@@ -1141,6 +1148,11 @@
         max-width: 900px !important;
         margin: 0 auto !important;
       }
+      .hero-full-bg picture {
+        width: 100% !important;
+        height: auto !important;
+        display: block !important;
+      }
       .main-fullscreen-img {
         width: 100% !important;
         height: auto !important;
@@ -1354,42 +1366,60 @@
     <!-- Slide 1: Sınıf Asistanı Giriş -->
     <div class="slide-item" data-title="Sınıf Asistanı — Öğretmenin Dijital Gücü" style="padding: 0; overflow: hidden; position: relative;">
       <div class="hero-full-bg">
-        <img src="images/1.jpg" alt="Sınıf Asistanı — Öğretmenin Dijital Gücü" class="main-fullscreen-img">
+        <picture>
+          <source media="(max-width: 1024px)" srcset="images/m-1.jpg">
+          <img src="images/1.jpg" alt="Sınıf Asistanı — Öğretmenin Dijital Gücü" class="main-fullscreen-img">
+        </picture>
       </div>
     </div>
 
     <!-- Slide 2: Mobil El Terminali -->
     <div class="slide-item" data-title="Mobil El Terminali & Canlı Tahta Senkronizasyonu" style="padding: 0; overflow: hidden; position: relative;">
       <div class="hero-full-bg">
-        <img src="images/2.jpg" alt="Mobil El Terminali & Canlı Tahta Senkronizasyonu" class="main-fullscreen-img">
+        <picture>
+          <source media="(max-width: 1024px)" srcset="images/m-2.jpg">
+          <img src="images/2.jpg" alt="Mobil El Terminali & Canlı Tahta Senkronizasyonu" class="main-fullscreen-img">
+        </picture>
       </div>
     </div>
 
     <!-- Slide 3: Optik Okuma -->
     <div class="slide-item" data-title="Kamera ile Anında Optik Okuma" style="padding: 0; overflow: hidden; position: relative;">
       <div class="hero-full-bg">
-        <img src="images/3.jpg" alt="Kamera ile Anında Optik Okuma" class="main-fullscreen-img">
+        <picture>
+          <source media="(max-width: 1024px)" srcset="images/m-3.jpg">
+          <img src="images/3.jpg" alt="Kamera ile Anında Optik Okuma" class="main-fullscreen-img">
+        </picture>
       </div>
     </div>
 
     <!-- Slide 4: Kitap Asistanı -->
     <div class="slide-item" data-title="Kitap Takip Asistanı" style="padding: 0; overflow: hidden; position: relative;">
       <div class="hero-full-bg">
-        <img src="images/4.jpg" alt="Kitap Takip Asistanı" class="main-fullscreen-img">
+        <picture>
+          <source media="(max-width: 1024px)" srcset="images/m-4.jpg">
+          <img src="images/4.jpg" alt="Kitap Takip Asistanı" class="main-fullscreen-img">
+        </picture>
       </div>
     </div>
 
     <!-- Slide 5: Ödev & Rapor -->
     <div class="slide-item" data-title="Haftalık Ödev Takibi & Veli Raporları" style="padding: 0; overflow: hidden; position: relative;">
       <div class="hero-full-bg">
-        <img src="images/5.jpg" alt="Haftalık Ödev Takibi & Veli Raporları" class="main-fullscreen-img">
+        <picture>
+          <source media="(max-width: 1024px)" srcset="images/m-5.jpg">
+          <img src="images/5.jpg" alt="Haftalık Ödev Takibi & Veli Raporları" class="main-fullscreen-img">
+        </picture>
       </div>
     </div>
 
     <!-- Slide 6: Sınıf Oyunları -->
     <div class="slide-item" data-title="Dersleri Eğlenceli Oyunlara Dönüştürün" style="padding: 0; overflow: hidden; position: relative;">
       <div class="hero-full-bg">
-        <img src="images/6.jpg" alt="Dersleri Eğlenceli Oyunlara Dönüştürün" class="main-fullscreen-img">
+        <picture>
+          <source media="(max-width: 1024px)" srcset="images/m-6.jpg">
+          <img src="images/6.jpg" alt="Dersleri Eğlenceli Oyunlara Dönüştürün" class="main-fullscreen-img">
+        </picture>
       </div>
     </div>
   </div> <!-- Close slider-track -->
