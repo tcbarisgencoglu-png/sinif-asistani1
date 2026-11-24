@@ -149,8 +149,8 @@
       display: none;
     }
 
-    /* 1280px ve altında menü taşmasını önlemek için yatay link şeridini gizle */
-    @media (max-width: 1280px) {
+    /* 1024px ve altında menü taşmasını önlemek için yatay link şeridini gizle */
+    @media (max-width: 1024px) {
       .nav-links-wrapper {
         display: none !important;
       }
@@ -158,7 +158,7 @@
         padding: 0.75rem 1.25rem;
       }
     }
-    /* ───── HERO FULLSCREEN IMAGE & TYPEWRITER OVERLAY ───── */
+    /* ───── HERO FULLSCREEN IMAGE ───── */
     .hero-full-bg {
       position: absolute;
       inset: 0;
@@ -166,11 +166,15 @@
       height: 100%;
       z-index: 1;
       overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #080712;
     }
     .main-fullscreen-img {
       width: 100%;
       height: 100%;
-      object-fit: cover; /* covers the screen completely, leaving no gaps */
+      object-fit: contain; /* covers/contains gracefully without clipping poster texts */
       object-position: center;
       animation: fadeIn 0.8s ease-out both;
     }
@@ -179,6 +183,7 @@
       to { opacity: 1; }
     }
     .hero-overlay-box {
+      display: none !important;
       position: absolute;
       bottom: 0;
       left: 0;
@@ -230,7 +235,7 @@
     }
     .slider-track {
       display: flex;
-      width: 800vw;
+      width: 600vw;
       height: 100%;
       transition: transform 0.8s cubic-bezier(0.25, 1, 0.3, 1);
     }
@@ -1119,13 +1124,12 @@
         width: 100% !important;
         max-width: 100vw !important;
         height: auto !important;
-        min-height: calc(100vh - 60px) !important;
-        padding: 5.5rem 1rem 3rem !important;
+        min-height: auto !important;
+        padding: 4.8rem 0.75rem 2rem !important;
         display: flex !important;
         flex-direction: column !important;
         justify-content: center !important;
         align-items: center !important;
-        gap: 1.5rem !important;
         border-bottom: 1px solid var(--border) !important;
         box-sizing: border-box !important;
       }
@@ -1134,17 +1138,16 @@
         width: 100% !important;
         height: auto !important;
         inset: auto !important;
-        max-width: 540px !important;
+        max-width: 900px !important;
         margin: 0 auto !important;
-        order: 2 !important;
       }
       .main-fullscreen-img {
         width: 100% !important;
         height: auto !important;
-        max-height: 48vh !important;
+        max-height: 85vh !important;
         object-fit: contain !important;
-        border-radius: 16px !important;
-        border: 2px solid var(--border) !important;
+        border-radius: 14px !important;
+        border: 1px solid rgba(255, 255, 255, 0.12) !important;
         box-shadow: 0 15px 40px rgba(0, 0, 0, 0.6) !important;
         display: block !important;
       }
@@ -1323,14 +1326,12 @@
   <div class="nav-links-wrapper">
     <div class="nav-indicator"></div>
     <ul class="nav-links">
-      <li><a href="#" class="nav-link-item active" data-index="0">Sınıf Asistanı Nedir?</a></li>
-      <li><a href="#" class="nav-link-item" data-index="1">Kitap Asistanı</a></li>
-      <li><a href="#" class="nav-link-item" data-index="2">Ödev Asistanı</a></li>
-      <li><a href="#" class="nav-link-item" data-index="3">Sınav Asistanı</a></li>
-      <li><a href="#" class="nav-link-item" data-index="4">Sınıf Oyunları</a></li>
-      <li><a href="#" class="nav-link-item" data-index="5">Görev Asistanı</a></li>
-      <li><a href="#" class="nav-link-item" data-index="6">Araçlar</a></li>
-      <li><a href="#" class="nav-link-item" data-index="7">Ders Materyalleri</a></li>
+      <li><a href="#" class="nav-link-item active" data-index="0">Giriş</a></li>
+      <li><a href="#" class="nav-link-item" data-index="1">Mobil Terminal</a></li>
+      <li><a href="#" class="nav-link-item" data-index="2">Optik Okuma</a></li>
+      <li><a href="#" class="nav-link-item" data-index="3">Kitap Asistanı</a></li>
+      <li><a href="#" class="nav-link-item" data-index="4">Ödev & Rapor</a></li>
+      <li><a href="#" class="nav-link-item" data-index="5">Sınıf Oyunları</a></li>
     </ul>
   </div>
   <div class="nav-actions">
@@ -1350,100 +1351,49 @@
 
 <div class="horizontal-slider">
   <div class="slider-track" id="sliderTrack">
-    <!-- Slide 1: Sınıf Asistanı Nedir? -->
-    <div class="slide-item" data-title="Sınıf Asistanı Nedir?" style="padding: 0; overflow: hidden; position: relative;">
+    <!-- Slide 1: Sınıf Asistanı Giriş -->
+    <div class="slide-item" data-title="Sınıf Asistanı — Öğretmenin Dijital Gücü" style="padding: 0; overflow: hidden; position: relative;">
       <div class="hero-full-bg">
-        <img src="images/screen_dashboard.png?v=3" alt="Sınıf Asistanı Nedir?" class="main-fullscreen-img">
+        <img src="images/1.jpg" alt="Sınıf Asistanı — Öğretmenin Dijital Gücü" class="main-fullscreen-img">
       </div>
-      <div class="hero-overlay-box">
-        <div style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: 0.5rem;">
-          <h3 class="overlay-title" style="margin: 0;">Sınıf Asistanı Nedir?</h3>
-          <button type="button" onclick="window.openDemoLicenseModal(event)" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #fff; border: none; border-radius: 50px; padding: 0.45rem 1.1rem; font-size: 0.82rem; font-weight: 700; display: inline-flex; align-items: center; gap: 0.4rem; cursor: pointer; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.4); font-family: inherit;">
-            <span>🎁 1 Aylık Ücretsiz Deneme Lisansı Al</span>
-          </button>
-        </div>
-        <p class="overlay-text" id="typewriterText"></p>
+    </div>
+
+    <!-- Slide 2: Mobil El Terminali -->
+    <div class="slide-item" data-title="Mobil El Terminali & Canlı Tahta Senkronizasyonu" style="padding: 0; overflow: hidden; position: relative;">
+      <div class="hero-full-bg">
+        <img src="images/2.jpg" alt="Mobil El Terminali & Canlı Tahta Senkronizasyonu" class="main-fullscreen-img">
       </div>
-    </div> <!-- Close Slide 1 -->
+    </div>
 
-<!-- Slide 2: Kitap Asistanı -->
-<div class="slide-item" data-title="Kitap Asistanı" style="padding: 0; overflow: hidden; position: relative;">
-  <div class="hero-full-bg">
-    <img src="images/screen_books.png?v=1" alt="Kitap Asistanı" class="main-fullscreen-img">
-  </div>
-  <div class="hero-overlay-box">
-    <h3 class="overlay-title">Kitap Takip Asistanı</h3>
-    <p class="overlay-text" id="typewriterTextBooks"></p>
-  </div>
-</div> <!-- Close Slide 2: Kitap Asistanı -->
+    <!-- Slide 3: Optik Okuma -->
+    <div class="slide-item" data-title="Kamera ile Anında Optik Okuma" style="padding: 0; overflow: hidden; position: relative;">
+      <div class="hero-full-bg">
+        <img src="images/3.jpg" alt="Kamera ile Anında Optik Okuma" class="main-fullscreen-img">
+      </div>
+    </div>
 
-<!-- Slide 3: Ödev Asistanı -->
-<div class="slide-item" data-title="Ödev Asistanı" style="padding: 0; overflow: hidden; position: relative;">
-  <div class="hero-full-bg">
-    <img src="images/screen_homework.png?v=1" alt="Ödev Asistanı" class="main-fullscreen-img">
-  </div>
-  <div class="hero-overlay-box">
-    <h3 class="overlay-title">Ödev Takip Asistanı</h3>
-    <p class="overlay-text" id="typewriterTextHomework"></p>
-  </div>
-</div> <!-- Close Slide 3: Ödev Asistanı -->
+    <!-- Slide 4: Kitap Asistanı -->
+    <div class="slide-item" data-title="Kitap Takip Asistanı" style="padding: 0; overflow: hidden; position: relative;">
+      <div class="hero-full-bg">
+        <img src="images/4.jpg" alt="Kitap Takip Asistanı" class="main-fullscreen-img">
+      </div>
+    </div>
 
-<!-- Slide 4: Sınav Asistanı -->
-<div class="slide-item" data-title="Sınav Asistanı" style="padding: 0; overflow: hidden; position: relative;">
-  <div class="hero-full-bg">
-    <img src="images/screen_exam.png?v=1" alt="Sınav Asistanı" class="main-fullscreen-img">
-  </div>
-  <div class="hero-overlay-box">
-    <h3 class="overlay-title">Sınav Takip Asistanı</h3>
-    <p class="overlay-text" id="typewriterTextExam"></p>
-  </div>
-</div> <!-- Close Slide 4: Sınav Asistanı -->
+    <!-- Slide 5: Ödev & Rapor -->
+    <div class="slide-item" data-title="Haftalık Ödev Takibi & Veli Raporları" style="padding: 0; overflow: hidden; position: relative;">
+      <div class="hero-full-bg">
+        <img src="images/5.jpg" alt="Haftalık Ödev Takibi & Veli Raporları" class="main-fullscreen-img">
+      </div>
+    </div>
 
-<!-- Slide 5: Sınıf Oyunları -->
-<div class="slide-item" data-title="Sınıf Oyunları" style="padding: 0; overflow: hidden; position: relative;">
-  <div class="hero-full-bg">
-    <img src="images/screen_games.png?v=1" alt="Sınıf Oyunları" class="main-fullscreen-img">
-  </div>
-  <div class="hero-overlay-box">
-    <h3 class="overlay-title">Sınıf Oyunları Modülü</h3>
-    <p class="overlay-text" id="typewriterTextGames"></p>
-  </div>
-</div> <!-- Close Slide 5: Sınıf Oyunları -->
-
-<!-- Slide 6: Görev Asistanı -->
-<div class="slide-item" data-title="Görev Asistanı" style="padding: 0; overflow: hidden; position: relative;">
-  <div class="hero-full-bg">
-    <img src="images/screen_tasks.png?v=1" alt="Görev Asistanı" class="main-fullscreen-img">
-  </div>
-  <div class="hero-overlay-box">
-    <h3 class="overlay-title">Görev Takip Asistanı</h3>
-    <p class="overlay-text" id="typewriterTextTasks"></p>
-  </div>
-</div> <!-- Close Slide 6: Görev Asistanı -->
-
-<!-- Slide 7: Araçlar -->
-<div class="slide-item" data-title="Araçlar" style="padding: 0; overflow: hidden; position: relative;">
-  <div class="hero-full-bg">
-    <img src="images/screen_tools.png?v=2" alt="Araçlar" class="main-fullscreen-img">
-  </div>
-  <div class="hero-overlay-box">
-    <h3 class="overlay-title">Sınıf Yardımcı Araçları</h3>
-    <p class="overlay-text" id="typewriterTextTools"></p>
-  </div>
-</div> <!-- Close Slide 7: Araçlar -->
-
-<!-- Slide 8: Ders Materyalleri -->
-<div class="slide-item" data-title="Ders Materyalleri" style="padding: 0; overflow: hidden; position: relative;">
-  <div class="hero-full-bg">
-    <img src="images/screen_notebooks.png?v=1" alt="Ders Materyalleri" class="main-fullscreen-img">
-  </div>
-  <div class="hero-overlay-box">
-    <h3 class="overlay-title">Ders Materyalleri ve Kitaplar</h3>
-    <p class="overlay-text" id="typewriterTextMaterials"></p>
-  </div>
-</div> <!-- Close Slide 8: Ders Materyalleri -->
-    </div> <!-- Close slider-track -->
-  </div> <!-- Close horizontal-slider -->
+    <!-- Slide 6: Sınıf Oyunları -->
+    <div class="slide-item" data-title="Dersleri Eğlenceli Oyunlara Dönüştürün" style="padding: 0; overflow: hidden; position: relative;">
+      <div class="hero-full-bg">
+        <img src="images/6.jpg" alt="Dersleri Eğlenceli Oyunlara Dönüştürün" class="main-fullscreen-img">
+      </div>
+    </div>
+  </div> <!-- Close slider-track -->
+</div> <!-- Close horizontal-slider -->
 
   <!-- Navigation Arrows -->
   <button class="slider-arrow arrow-left disabled" id="prevSlideBtn" aria-label="Önceki Sayfa">
@@ -1477,7 +1427,7 @@
 
   // ── Horizontal Slider System ──
   let currentSlide = 0;
-  const totalSlides = 8;
+  const totalSlides = 6;
   const sliderTrack = document.getElementById('sliderTrack');
   const navLinkItems = document.querySelectorAll('.nav-link-item');
   const prevBtn = document.getElementById('prevSlideBtn');
@@ -1498,155 +1448,6 @@
       indicator.style.width = `${relativeWidth}px`;
     }
   }
-
-  // ── Typewriter Animation Logic ──
-  const fullText = "Kitap okuma, ödev takibi, kişiselleştirilmiş görevler ve sınıf oyunlarıyla öğrencilere motivasyon puanları kazandırırken; sınav analizi, yıllık plan ve nöbet listesi gibi zengin araçlarıyla öğretmenlerin tüm sınıf içi iş yükünü hafifleten akıllı asistanınız.";
-  const fullTextBooks = "Kitap Takip Asistanı ile sınıf kitaplığında ödünç alıp-verme süreçlerini yönetmek artık çok kolay! Program, öğrencinin okuması gereken ve kitaplıkta bekleyen uygun kitabı bularak önerir ve kitap okuma sürelerini kontrol altında tutar. Yapay zeka destekli mini sınavlar sayesinde öğrencilerin kitabı okuyup anlamadığını doğrular ve elde edilen tüm verilerle kapsamlı bir kitap okuma karnesi hazırlar.";
-  const fullTextHomework = "Ödev Takip Asistanı ile öğrencilerin ödevlerini haftalık olarak kolayca kontrol edin, performans puanları atayın. Sistem, her pazartesi otomatik olarak yeni takip haftasına geçer. Ödevleri doğrudan veli WhatsApp gruplarına iletebilir, dilediğiniz tarih aralığında detaylı ödev raporları alıp yazdırabilirsiniz.";
-  const fullTextExam = "Sınav Takip Asistanı ile sınıfınızda yaptığınız tüm sınavları kolayca değerlendirin, öğrencilere performans puanları atayın. Yıl boyunca düzenlenen tüm sınavların istatistiksel analizini yaparak her öğrencinin akademik gelişimini ve yıllık performans eğrisini tek tıkla izleyin.";
-  const fullTextGames = "Sınıf Oyunları Modülü ile istediğiniz konuda yapay zeka destekli quizleri saniyeler içinde hazırlayıp derse heyecan katın! Çoktan seçmeli, boşluk doldurma ve doğru/yanlış yarışmalarının yanı sıra grup oyunları ve eğlenceli çarpım tablosu mücadeleleriyle sınıfta tatlı bir rekabet ortamı oluşturun.";
-  const fullTextTasks = "Görev Takip Asistanı ile öğrencilerinize belirli teslim sürelerine sahip özel görevler tanımlayın ve başarılarını performans puanlarıyla ödüllendirin! Böylece öğrencileriniz sınıf içi performanslarını yükseltmek ve hedeflerine ulaşmak için verilen her görevi büyük bir titizlikle tamamlasın.";
-  const fullTextTools = "Sınıf Yardımcı Araçları ile öğretmenliğin getirdiği rutin evrak yüklerini en aza indirin! Tek tıkla sınıf nöbet listesi hazırlayın, ders planınızı takip ederek konu tamamlama oranlarını izleyin, belgelerinizi güvenli depoda saklayın ve dakikalar içinde yazılı sınav hazırlayıp kazanım analizleri oluşturun. Üstelik uygulama, seçeceğiniz ilkokul veya ortaokul moduna göre tamamen sizin ihtiyaçlarınıza göre biçimlenir.";
-  const fullTextMaterials = "Ders Materyalleri ve PDF Modülü ile sınıfınız için özel öğrenci defterleri oluşturun, ders kitaplarını PDF formatında sisteme yükleyin! Entegre metin editörü ve zengin biçimlendirme araçları sayesinde defterlerinizi dilediğiniz gibi tasarlayarak derslerinizi daha etkileşimli hale getirin.";
-  
-  let typewriterInterval;
-  let typewriterIntervalBooks;
-  let typewriterIntervalHomework;
-  let typewriterIntervalExam;
-  let typewriterIntervalGames;
-  let typewriterIntervalTasks;
-  let typewriterIntervalTools;
-  let typewriterIntervalMaterials;
-
-  function runTypewriter() {
-    const el = document.getElementById('typewriterText');
-    if (!el) return;
-    clearInterval(typewriterInterval);
-    el.textContent = "";
-    let index = 0;
-    typewriterInterval = setInterval(() => {
-      if (index < fullText.length) {
-        el.textContent += fullText.charAt(index);
-        index++;
-      } else {
-        clearInterval(typewriterInterval);
-      }
-    }, 20);
-  }
-
-  function runTypewriterBooks() {
-    const el = document.getElementById('typewriterTextBooks');
-    if (!el) return;
-    clearInterval(typewriterIntervalBooks);
-    el.textContent = "";
-    let index = 0;
-    typewriterIntervalBooks = setInterval(() => {
-      if (index < fullTextBooks.length) {
-        el.textContent += fullTextBooks.charAt(index);
-        index++;
-      } else {
-        clearInterval(typewriterIntervalBooks);
-      }
-    }, 20);
-  }
-
-  function runTypewriterHomework() {
-    const el = document.getElementById('typewriterTextHomework');
-    if (!el) return;
-    clearInterval(typewriterIntervalHomework);
-    el.textContent = "";
-    let index = 0;
-    typewriterIntervalHomework = setInterval(() => {
-      if (index < fullTextHomework.length) {
-        el.textContent += fullTextHomework.charAt(index);
-        index++;
-      } else {
-        clearInterval(typewriterIntervalHomework);
-      }
-    }, 20);
-  }
-
-  function runTypewriterExam() {
-    const el = document.getElementById('typewriterTextExam');
-    if (!el) return;
-    clearInterval(typewriterIntervalExam);
-    el.textContent = "";
-    let index = 0;
-    typewriterIntervalExam = setInterval(() => {
-      if (index < fullTextExam.length) {
-        el.textContent += fullTextExam.charAt(index);
-        index++;
-      } else {
-        clearInterval(typewriterIntervalExam);
-      }
-    }, 20);
-  }
-
-  function runTypewriterGames() {
-    const el = document.getElementById('typewriterTextGames');
-    if (!el) return;
-    clearInterval(typewriterIntervalGames);
-    el.textContent = "";
-    let index = 0;
-    typewriterIntervalGames = setInterval(() => {
-      if (index < fullTextGames.length) {
-        el.textContent += fullTextGames.charAt(index);
-        index++;
-      } else {
-        clearInterval(typewriterIntervalGames);
-      }
-    }, 20);
-  }
-
-  function runTypewriterTasks() {
-    const el = document.getElementById('typewriterTextTasks');
-    if (!el) return;
-    clearInterval(typewriterIntervalTasks);
-    el.textContent = "";
-    let index = 0;
-    typewriterIntervalTasks = setInterval(() => {
-      if (index < fullTextTasks.length) {
-        el.textContent += fullTextTasks.charAt(index);
-        index++;
-      } else {
-        clearInterval(typewriterIntervalTasks);
-      }
-    }, 20);
-  }
-
-  function runTypewriterTools() {
-    const el = document.getElementById('typewriterTextTools');
-    if (!el) return;
-    clearInterval(typewriterIntervalTools);
-    el.textContent = "";
-    let index = 0;
-    typewriterIntervalTools = setInterval(() => {
-      if (index < fullTextTools.length) {
-        el.textContent += fullTextTools.charAt(index);
-        index++;
-      } else {
-        clearInterval(typewriterIntervalTools);
-      }
-    }, 20);
-  }
-
-  function runTypewriterMaterials() {
-    const el = document.getElementById('typewriterTextMaterials');
-    if (!el) return;
-    clearInterval(typewriterIntervalMaterials);
-    el.textContent = "";
-    let index = 0;
-    typewriterIntervalMaterials = setInterval(() => {
-      if (index < fullTextMaterials.length) {
-        el.textContent += fullTextMaterials.charAt(index);
-        index++;
-      } else {
-        clearInterval(typewriterIntervalMaterials);
-      }
-    }, 20);
-  }
-
-
 
   function goToSlide(idx) {
     if (idx < 0 || idx >= totalSlides) return;
@@ -1687,64 +1488,6 @@
       const revealsInActive = activeSlideEl.querySelectorAll('.reveal');
       revealsInActive.forEach(r => r.classList.add('visible'));
     }
-
-    // Trigger typewriter when entering Slide 1 (Giriş)
-    if (idx === 0) {
-      setTimeout(runTypewriter, 1400);
-    } else {
-      clearInterval(typewriterInterval);
-    }
-
-    // Trigger typewriter when entering Slide 2 (Kitap Asistanı)
-    if (idx === 1) {
-      setTimeout(runTypewriterBooks, 1400);
-    } else {
-      clearInterval(typewriterIntervalBooks);
-    }
-
-    // Trigger typewriter when entering Slide 3 (Ödev Asistanı)
-    if (idx === 2) {
-      setTimeout(runTypewriterHomework, 1400);
-    } else {
-      clearInterval(typewriterIntervalHomework);
-    }
-
-    // Trigger typewriter when entering Slide 4 (Sınav Asistanı)
-    if (idx === 3) {
-      setTimeout(runTypewriterExam, 1400);
-    } else {
-      clearInterval(typewriterIntervalExam);
-    }
-
-    // Trigger typewriter when entering Slide 5 (Sınıf Oyunları)
-    if (idx === 4) {
-      setTimeout(runTypewriterGames, 1400);
-    } else {
-      clearInterval(typewriterIntervalGames);
-    }
-
-    // Trigger typewriter when entering Slide 6 (Görev Asistanı)
-    if (idx === 5) {
-      setTimeout(runTypewriterTasks, 1400);
-    } else {
-      clearInterval(typewriterIntervalTasks);
-    }
-
-    // Trigger typewriter when entering Slide 7 (Araçlar)
-    if (idx === 6) {
-      setTimeout(runTypewriterTools, 1400);
-    } else {
-      clearInterval(typewriterIntervalTools);
-    }
-
-    // Trigger typewriter when entering Slide 8 (Ders Materyalleri)
-    if (idx === 7) {
-      setTimeout(runTypewriterMaterials, 1400);
-    } else {
-      clearInterval(typewriterIntervalMaterials);
-    }
-
-
   }
 
   // Bind navigation links
@@ -1838,22 +1581,9 @@
   // Handle window resizing to keep indicator aligned
   window.addEventListener('resize', updateNavIndicator);
 
-  // Initialize indicator position and typewriter on load
+  // Initialize indicator position on load
   window.addEventListener('load', () => {
     setTimeout(updateNavIndicator, 300);
-    if (window.innerWidth <= 1024) {
-      // Mobile: fill all texts immediately
-      const elText = document.getElementById('typewriterText'); if (elText) elText.textContent = fullText;
-      const elBooks = document.getElementById('typewriterTextBooks'); if (elBooks) elBooks.textContent = fullTextBooks;
-      const elHomework = document.getElementById('typewriterTextHomework'); if (elHomework) elHomework.textContent = fullTextHomework;
-      const elExam = document.getElementById('typewriterTextExam'); if (elExam) elExam.textContent = fullTextExam;
-      const elGames = document.getElementById('typewriterTextGames'); if (elGames) elGames.textContent = fullTextGames;
-      const elTasks = document.getElementById('typewriterTextTasks'); if (elTasks) elTasks.textContent = fullTextTasks;
-      const elTools = document.getElementById('typewriterTextTools'); if (elTools) elTools.textContent = fullTextTools;
-      const elMaterials = document.getElementById('typewriterTextMaterials'); if (elMaterials) elMaterials.textContent = fullTextMaterials;
-    } else {
-      setTimeout(runTypewriter, 1500); // Desktop: run typewriter on first slide
-    }
   });
 
   // Expose function globally for inline onclick handlers
