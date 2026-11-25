@@ -1,14 +1,12 @@
 {
-  "version": "1.0.137",
+  "version": "1.0.138",
   "releaseDate": "2026-11-25",
   "minRequiredVersion": "1.0.0",
-  "title": "Sınıf Asistanı v1.0.137 Yayında!",
-  "description": "Kalıcı Ders Kitabı Konum Takibi, Haftanın Eksisiz Dojo Listesi, El Terminali Ödev İçeriği Düzeltmesi ve Yeni Araçlar",
+  "title": "Sınıf Asistanı v1.0.138 Yayında!",
+  "description": "Ders Kitabı Üzerinde Kalıcı Çizim & İşaretleme Araçları ve El Terminali Haftalık Bülten Düzeltmeleri",
   "features": [
-    "Kalıcı Ders Kitabı Son Konum Takibi: Yüklenen PDF ders kitapları PDF.js okuyucu ile açılarak son sayfa, sayfa içi kaydırma konumu ve yakınlaştırma oranı yerel diske kalıcı olarak kaydedilir; uygulama kapatılıp açılsa da tam kaldığı yerden açılır.",
-    "Haftanın Eksi Dojo Almayan Öğrencileri: Masaüstü üst Hızlı Menü'ye eklenen Eksisiz Dojo ikonu ile geçerli hafta içinde yalnızca Dojo puanlarında hiç eksi almamış öğrenciler listelenir, kopyalanabilir ve yazdırılabilir.",
-    "El Terminali Ödev İçeriği Düzeltmesi: El terminalindeki Ödev İçeriği butonunun detay penceresini açmama sorunu giderildi.",
-    "Yeni Sınıf Araçları ve Kılavuz İyileştirmeleri: Belge/Sertifika oluşturucu, rubrik aracı, kullanım kılavuzu ve plan/sınav iyileştirmeleri eklendi."
+    "Ders Kitabı Üzerinde Çizim ve İşaretleme: Sağ kenarda dikey açılan ve sürüklenip taşınabilen çizim paleti eklendi (satır altı düz çizgi, fosforlu kalem, serbest kalem, dikdörtgen, daire, ok, silgi, geri/ileri al). Çizimler zoom uyumlu ve kalıcı olarak saklanır.",
+    "El Terminali Haftalık Bülten Düzeltmeleri: Henüz okunmakta olan (iade edilmemiş) kitapların okunmuş sayılması giderildi, davranış şampiyonları akıllı tahta Dojo net puanlarıyla eşitlendi ve eski haftaların sınavlarının listelenmesi engellendi."
   ],
   "release_url": "https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/latest"
 }

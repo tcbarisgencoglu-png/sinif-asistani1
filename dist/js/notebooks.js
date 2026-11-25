@@ -107,6 +107,16 @@
   let activePdfScrollSaveTimer = null;
   let activePdfUsingJsViewer = false;
 
+  // PDF.js Kitap Üzeri Çizim & İşaretleme Durumu
+  let pdfDrawPaletteOpen = false;
+  let pdfDrawTool = 'hand'; // 'hand' | 'line' | 'highlighter' | 'pen' | 'rect' | 'ellipse' | 'arrow' | 'eraser'
+  let pdfDrawColor = '#ef4444';
+  let pdfDrawSize = 4;
+  let activePdfAnnotations = {}; // { [pageNum]: Array<Shape> }
+  let activePdfUndoStack = [];
+  let activePdfRedoStack = [];
+  let pdfDrawInitialized = false;
+
   // Numaralı Liste Sürekliliği (Modül Seviyesi - Her yerden erişilebilir)
   function syncOrderedListContinuity() {
     if (!notebookTextarea) return;
@@ -2503,9 +2513,10 @@
   }
 
   const DB_NAME = 'TextbooksDB';
-  const DB_VERSION = 2;
+  const DB_VERSION = 3;
   const STORE_NAME = 'pdfs';
   const POS_STORE_NAME = 'positions';
+  const ANNOT_STORE_NAME = 'annotations';
 
   function openDB() {
     return new Promise((resolve, reject) => {
@@ -2517,6 +2528,9 @@
         }
         if (!db.objectStoreNames.contains(POS_STORE_NAME)) {
           db.createObjectStore(POS_STORE_NAME, { keyPath: 'id' });
+        }
+        if (!db.objectStoreNames.contains(ANNOT_STORE_NAME)) {
+          db.createObjectStore(ANNOT_STORE_NAME, { keyPath: 'id' });
         }
       };
       request.onsuccess = (e) => resolve(e.target.result);
@@ -2556,11 +2570,16 @@
   async function deletePDF(id) {
     const db = await openDB();
     await new Promise((resolve, reject) => {
-      const stores = db.objectStoreNames.contains(POS_STORE_NAME) ? [STORE_NAME, POS_STORE_NAME] : [STORE_NAME];
+      const stores = [STORE_NAME];
+      if (db.objectStoreNames.contains(POS_STORE_NAME)) stores.push(POS_STORE_NAME);
+      if (db.objectStoreNames.contains(ANNOT_STORE_NAME)) stores.push(ANNOT_STORE_NAME);
       const transaction = db.transaction(stores, 'readwrite');
       transaction.objectStore(STORE_NAME).delete(id);
       if (db.objectStoreNames.contains(POS_STORE_NAME)) {
         transaction.objectStore(POS_STORE_NAME).delete(id);
+      }
+      if (db.objectStoreNames.contains(ANNOT_STORE_NAME)) {
+        transaction.objectStore(ANNOT_STORE_NAME).delete(id);
       }
       transaction.oncomplete = () => resolve(true);
       transaction.onerror = () => reject(transaction.error);
@@ -2860,6 +2879,590 @@
     if (totalEl) totalEl.style.display = 'none';
     const zoomControls = document.getElementById('pdf-viewer-zoom-controls');
     if (zoomControls) zoomControls.style.display = 'none';
+    const btnDrawToggle = document.getElementById('btn-pdf-draw-toggle');
+    if (btnDrawToggle) {
+      btnDrawToggle.style.display = 'none';
+      btnDrawToggle.classList.remove('btn-primary');
+      btnDrawToggle.classList.add('btn-outline-primary');
+    }
+    const palette = document.getElementById('pdf-draw-palette');
+    if (palette) palette.style.display = 'none';
+    pdfDrawPaletteOpen = false;
+    pdfDrawTool = 'hand';
+    activePdfAnnotations = {};
+    activePdfUndoStack = [];
+    activePdfRedoStack = [];
+  }
+
+  // =========================================================================
+  // PDF.JS KİTAP ÜZERİ ÇİZİM & İŞARETLEME MOTORU (LAZY + ZOOM UYUMLU + KALICI)
+  // =========================================================================
+  async function loadPDFAnnotationsFromIDB(pdfId) {
+    if (!pdfId) return {};
+    try {
+      const db = await openDB();
+      if (!db.objectStoreNames.contains(ANNOT_STORE_NAME)) return {};
+      const rec = await new Promise((resolve) => {
+        const tx = db.transaction(ANNOT_STORE_NAME, 'readonly');
+        const req = tx.objectStore(ANNOT_STORE_NAME).get(pdfId);
+        req.onsuccess = (e) => resolve(e.target.result || null);
+        req.onerror = () => resolve(null);
+      });
+      return (rec && rec.pages && typeof rec.pages === 'object') ? rec.pages : {};
+    } catch (e) {
+      console.warn('loadPDFAnnotationsFromIDB error:', e);
+      return {};
+    }
+  }
+
+  async function savePDFAnnotationsToIDB(pdfId, pagesObj) {
+    if (!pdfId) return false;
+    try {
+      const db = await openDB();
+      if (!db.objectStoreNames.contains(ANNOT_STORE_NAME)) return false;
+      return await new Promise((resolve) => {
+        const tx = db.transaction(ANNOT_STORE_NAME, 'readwrite');
+        const req = tx.objectStore(ANNOT_STORE_NAME).put({
+          id: pdfId,
+          pages: pagesObj || {},
+          updatedAt: Date.now()
+        });
+        req.onsuccess = () => resolve(true);
+        req.onerror = () => resolve(false);
+      });
+    } catch (e) {
+      console.warn('savePDFAnnotationsToIDB error:', e);
+      return false;
+    }
+  }
+
+  function drawSingleAnnotationShape(ctx, shape, w, h) {
+    if (!shape || !ctx) return;
+    const scaleFactor = w / 800;
+    const baseSize = Math.max(1.2, (Number(shape.size) || 4) * scaleFactor);
+
+    ctx.save();
+    ctx.strokeStyle = shape.color || '#ef4444';
+    ctx.fillStyle = shape.color || '#ef4444';
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+
+    if (shape.type === 'highlighter') {
+      ctx.globalAlpha = 0.32;
+      ctx.lineWidth = Math.max(10, baseSize * 4.5);
+    } else {
+      ctx.globalAlpha = 0.94;
+      ctx.lineWidth = baseSize;
+    }
+
+    if (shape.type === 'pen' || shape.type === 'highlighter') {
+      const pts = shape.points;
+      if (Array.isArray(pts) && pts.length > 0) {
+        ctx.beginPath();
+        ctx.moveTo(pts[0][0] * w, pts[0][1] * h);
+        if (pts.length === 1) {
+          ctx.lineTo(pts[0][0] * w + 0.1, pts[0][1] * h + 0.1);
+        } else {
+          for (let i = 1; i < pts.length; i++) {
+            ctx.lineTo(pts[i][0] * w, pts[i][1] * h);
+          }
+        }
+        ctx.stroke();
+      }
+    } else if (shape.type === 'line') {
+      ctx.beginPath();
+      ctx.moveTo(shape.x1 * w, shape.y1 * h);
+      ctx.lineTo(shape.x2 * w, shape.y2 * h);
+      ctx.stroke();
+    } else if (shape.type === 'rect') {
+      const x = Math.min(shape.x1, shape.x2) * w;
+      const y = Math.min(shape.y1, shape.y2) * h;
+      const rw = Math.abs(shape.x2 - shape.x1) * w;
+      const rh = Math.abs(shape.y2 - shape.y1) * h;
+      ctx.strokeRect(x, y, rw, rh);
+    } else if (shape.type === 'ellipse') {
+      const cx = ((shape.x1 + shape.x2) / 2) * w;
+      const cy = ((shape.y1 + shape.y2) / 2) * h;
+      const rx = Math.abs(shape.x2 - shape.x1) * w / 2;
+      const ry = Math.abs(shape.y2 - shape.y1) * h / 2;
+      ctx.beginPath();
+      ctx.ellipse(cx, cy, Math.max(1, rx), Math.max(1, ry), 0, 0, Math.PI * 2);
+      ctx.stroke();
+    } else if (shape.type === 'arrow') {
+      const x1 = shape.x1 * w, y1 = shape.y1 * h;
+      const x2 = shape.x2 * w, y2 = shape.y2 * h;
+      const headLen = Math.max(10, baseSize * 4);
+      const angle = Math.atan2(y2 - y1, x2 - x1);
+      ctx.beginPath();
+      ctx.moveTo(x1, y1);
+      ctx.lineTo(x2, y2);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(x2, y2);
+      ctx.lineTo(x2 - headLen * Math.cos(angle - Math.PI / 6), y2 - headLen * Math.sin(angle - Math.PI / 6));
+      ctx.moveTo(x2, y2);
+      ctx.lineTo(x2 - headLen * Math.cos(angle + Math.PI / 6), y2 - headLen * Math.sin(angle + Math.PI / 6));
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  function pointToSegmentDist(px, py, x1, y1, x2, y2) {
+    const dx = x2 - x1;
+    const dy = y2 - y1;
+    const lenSq = dx * dx + dy * dy;
+    if (lenSq === 0) return Math.hypot(px - x1, py - y1);
+    let t = ((px - x1) * dx + (py - y1) * dy) / lenSq;
+    t = Math.max(0, Math.min(1, t));
+    return Math.hypot(px - (x1 + t * dx), py - (y1 + t * dy));
+  }
+
+  function hitTestAnnotationShape(shape, nx, ny, tol = 0.025) {
+    if (!shape) return false;
+    if (shape.type === 'pen' || shape.type === 'highlighter') {
+      const pts = shape.points || [];
+      const t = shape.type === 'highlighter' ? tol * 1.6 : tol;
+      for (let i = 0; i < pts.length; i++) {
+        if (i === 0) {
+          if (Math.hypot(nx - pts[0][0], ny - pts[0][1]) <= t) return true;
+        } else {
+          if (pointToSegmentDist(nx, ny, pts[i - 1][0], pts[i - 1][1], pts[i][0], pts[i][1]) <= t) return true;
+        }
+      }
+      return false;
+    }
+    if (shape.type === 'line' || shape.type === 'arrow') {
+      return pointToSegmentDist(nx, ny, shape.x1, shape.y1, shape.x2, shape.y2) <= tol;
+    }
+    if (shape.type === 'rect') {
+      const minX = Math.min(shape.x1, shape.x2);
+      const maxX = Math.max(shape.x1, shape.x2);
+      const minY = Math.min(shape.y1, shape.y2);
+      const maxY = Math.max(shape.y1, shape.y2);
+      const nearH = (nx >= minX - tol && nx <= maxX + tol) && (Math.abs(ny - minY) <= tol || Math.abs(ny - maxY) <= tol);
+      const nearV = (ny >= minY - tol && ny <= maxY + tol) && (Math.abs(nx - minX) <= tol || Math.abs(nx - maxX) <= tol);
+      return nearH || nearV;
+    }
+    if (shape.type === 'ellipse') {
+      const cx = (shape.x1 + shape.x2) / 2;
+      const cy = (shape.y1 + shape.y2) / 2;
+      const rx = Math.max(0.005, Math.abs(shape.x2 - shape.x1) / 2);
+      const ry = Math.max(0.005, Math.abs(shape.y2 - shape.y1) / 2);
+      const norm = Math.hypot((nx - cx) / rx, (ny - cy) / ry);
+      return Math.abs(norm - 1) <= Math.max(0.18, tol / Math.min(rx, ry));
+    }
+    return false;
+  }
+
+  function redrawPageAnnotations(pageNum, previewShape = null) {
+    const slot = activePdfPageSlots[pageNum - 1];
+    if (!slot) return;
+    const annotCanvas = slot.querySelector('canvas.pdf-annot-canvas');
+    if (!annotCanvas) return;
+
+    const cssW = slot.clientWidth || parseInt(slot.style.width, 10) || 1;
+    const cssH = slot.clientHeight || parseInt(slot.style.height, 10) || 1;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const targetW = Math.floor(cssW * dpr);
+    const targetH = Math.floor(cssH * dpr);
+    if (annotCanvas.width !== targetW || annotCanvas.height !== targetH) {
+      annotCanvas.width = targetW;
+      annotCanvas.height = targetH;
+    }
+
+    const ctx = annotCanvas.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, cssW, cssH);
+
+    const shapes = activePdfAnnotations[pageNum] || [];
+    for (let i = 0; i < shapes.length; i++) {
+      drawSingleAnnotationShape(ctx, shapes[i], cssW, cssH);
+    }
+    if (previewShape) {
+      drawSingleAnnotationShape(ctx, previewShape, cssW, cssH);
+    }
+  }
+
+  function applyAnnotCanvasPointerMode(annotCanvas) {
+    if (!annotCanvas) return;
+    if (pdfDrawTool === 'hand') {
+      annotCanvas.style.pointerEvents = 'none';
+      annotCanvas.style.touchAction = 'auto';
+      annotCanvas.style.cursor = 'default';
+    } else if (pdfDrawTool === 'eraser') {
+      annotCanvas.style.pointerEvents = 'auto';
+      annotCanvas.style.touchAction = 'none';
+      annotCanvas.style.cursor = 'cell';
+    } else {
+      annotCanvas.style.pointerEvents = 'auto';
+      annotCanvas.style.touchAction = 'none';
+      annotCanvas.style.cursor = 'crosshair';
+    }
+  }
+
+  function attachAnnotCanvasEvents(annotCanvas, pageNum) {
+    let isDrawing = false;
+    let draftShape = null;
+    let erasedDuringStroke = false;
+    let prevShapesSnapshot = null;
+
+    const getNormCoords = (e) => {
+      const rect = annotCanvas.getBoundingClientRect();
+      const x = Math.max(0, Math.min(1, (e.clientX - rect.left) / Math.max(1, rect.width)));
+      const y = Math.max(0, Math.min(1, (e.clientY - rect.top) / Math.max(1, rect.height)));
+      return { x, y };
+    };
+
+    const eraseAt = (nx, ny) => {
+      const list = activePdfAnnotations[pageNum];
+      if (!Array.isArray(list) || list.length === 0) return;
+      for (let i = list.length - 1; i >= 0; i--) {
+        if (hitTestAnnotationShape(list[i], nx, ny)) {
+          if (!erasedDuringStroke) {
+            prevShapesSnapshot = list.slice();
+            erasedDuringStroke = true;
+          }
+          list.splice(i, 1);
+          redrawPageAnnotations(pageNum);
+          break;
+        }
+      }
+    };
+
+    annotCanvas.addEventListener('pointerdown', (e) => {
+      if (pdfDrawTool === 'hand') return;
+      if (e.button !== undefined && e.button !== 0 && e.pointerType === 'mouse') return;
+      e.preventDefault();
+      e.stopPropagation();
+      try { annotCanvas.setPointerCapture(e.pointerId); } catch (err) {}
+
+      const { x, y } = getNormCoords(e);
+      isDrawing = true;
+
+      if (pdfDrawTool === 'eraser') {
+        erasedDuringStroke = false;
+        prevShapesSnapshot = null;
+        eraseAt(x, y);
+        return;
+      }
+
+      if (pdfDrawTool === 'pen' || pdfDrawTool === 'highlighter') {
+        draftShape = {
+          type: pdfDrawTool,
+          color: pdfDrawColor,
+          size: pdfDrawSize,
+          points: [[Math.round(x * 10000) / 10000, Math.round(y * 10000) / 10000]]
+        };
+      } else {
+        draftShape = {
+          type: pdfDrawTool,
+          color: pdfDrawColor,
+          size: pdfDrawSize,
+          x1: x,
+          y1: y,
+          x2: x,
+          y2: y
+        };
+      }
+      redrawPageAnnotations(pageNum, draftShape);
+    });
+
+    annotCanvas.addEventListener('pointermove', (e) => {
+      if (!isDrawing) return;
+      e.preventDefault();
+      const { x, y } = getNormCoords(e);
+
+      if (pdfDrawTool === 'eraser') {
+        eraseAt(x, y);
+        return;
+      }
+      if (!draftShape) return;
+
+      if (draftShape.type === 'pen' || draftShape.type === 'highlighter') {
+        const last = draftShape.points[draftShape.points.length - 1];
+        if (!last || Math.hypot(x - last[0], y - last[1]) >= 0.0025) {
+          draftShape.points.push([Math.round(x * 10000) / 10000, Math.round(y * 10000) / 10000]);
+        }
+      } else {
+        let tx = x, ty = y;
+        // Düz çizgide satır altı çizerken yatay açı 6°'den küçükse otomatik dümdüz yatay hizala
+        if (draftShape.type === 'line') {
+          const dx = tx - draftShape.x1;
+          const dy = ty - draftShape.y1;
+          if (e.shiftKey) {
+            const ang = Math.round(Math.atan2(dy, dx) / (Math.PI / 4)) * (Math.PI / 4);
+            const dist = Math.hypot(dx, dy);
+            tx = draftShape.x1 + Math.cos(ang) * dist;
+            ty = draftShape.y1 + Math.sin(ang) * dist;
+          } else if (Math.abs(dx) > 0.02 && Math.abs(dy) / Math.abs(dx) < 0.1) {
+            ty = draftShape.y1;
+          }
+        }
+        draftShape.x2 = tx;
+        draftShape.y2 = ty;
+      }
+      redrawPageAnnotations(pageNum, draftShape);
+    });
+
+    const finishStroke = (e) => {
+      if (!isDrawing) return;
+      isDrawing = false;
+      try { if (e && e.pointerId !== undefined) annotCanvas.releasePointerCapture(e.pointerId); } catch (err) {}
+
+      if (pdfDrawTool === 'eraser') {
+        if (erasedDuringStroke && prevShapesSnapshot) {
+          const nextShapes = (activePdfAnnotations[pageNum] || []).slice();
+          if (nextShapes.length === 0) delete activePdfAnnotations[pageNum];
+          activePdfUndoStack.push({ pageNum, prevShapes: prevShapesSnapshot, nextShapes });
+          activePdfRedoStack = [];
+          savePDFAnnotationsToIDB(currentOpenPdfId, activePdfAnnotations);
+        }
+        erasedDuringStroke = false;
+        prevShapesSnapshot = null;
+        return;
+      }
+
+      if (draftShape) {
+        let isValid = true;
+        if (draftShape.type === 'line' || draftShape.type === 'rect' || draftShape.type === 'ellipse' || draftShape.type === 'arrow') {
+          isValid = Math.hypot(draftShape.x2 - draftShape.x1, draftShape.y2 - draftShape.y1) >= 0.005;
+        }
+        if (isValid) {
+          const prevShapes = (activePdfAnnotations[pageNum] || []).slice();
+          if (!activePdfAnnotations[pageNum]) activePdfAnnotations[pageNum] = [];
+          activePdfAnnotations[pageNum].push(draftShape);
+          const nextShapes = activePdfAnnotations[pageNum].slice();
+          activePdfUndoStack.push({ pageNum, prevShapes, nextShapes });
+          if (activePdfUndoStack.length > 60) activePdfUndoStack.shift();
+          activePdfRedoStack = [];
+          savePDFAnnotationsToIDB(currentOpenPdfId, activePdfAnnotations);
+        }
+        draftShape = null;
+        redrawPageAnnotations(pageNum);
+      }
+    };
+
+    annotCanvas.addEventListener('pointerup', finishStroke);
+    annotCanvas.addEventListener('pointercancel', finishStroke);
+  }
+
+  function ensurePageAnnotCanvas(pageNum) {
+    const slot = activePdfPageSlots[pageNum - 1];
+    if (!slot) return null;
+    let annotCanvas = slot.querySelector('canvas.pdf-annot-canvas');
+    if (!annotCanvas) {
+      annotCanvas = document.createElement('canvas');
+      annotCanvas.className = 'pdf-annot-canvas';
+      annotCanvas.style.cssText = 'position: absolute; inset: 0; width: 100%; height: 100%; z-index: 5;';
+      slot.appendChild(annotCanvas);
+      attachAnnotCanvasEvents(annotCanvas, pageNum);
+    }
+    applyAnnotCanvasPointerMode(annotCanvas);
+    redrawPageAnnotations(pageNum);
+    return annotCanvas;
+  }
+
+  function syncAllAnnotLayersPointerMode() {
+    for (let i = 0; i < activePdfPageSlots.length; i++) {
+      const slot = activePdfPageSlots[i];
+      if (!slot) continue;
+      const pNo = i + 1;
+      const hasShapes = Array.isArray(activePdfAnnotations[pNo]) && activePdfAnnotations[pNo].length > 0;
+      const isRendered = activePdfRenderedPages.get(pNo) === true;
+      let annotCanvas = slot.querySelector('canvas.pdf-annot-canvas');
+      if (!annotCanvas && isRendered && (hasShapes || pdfDrawTool !== 'hand')) {
+        annotCanvas = ensurePageAnnotCanvas(pNo);
+      } else if (annotCanvas) {
+        applyAnnotCanvasPointerMode(annotCanvas);
+      }
+    }
+  }
+
+  function setPdfDrawTool(tool) {
+    pdfDrawTool = tool || 'hand';
+    document.querySelectorAll('#pdf-draw-palette .pdf-draw-tool-btn').forEach((btn) => {
+      const isAct = btn.dataset.tool === pdfDrawTool;
+      btn.classList.toggle('active', isAct);
+      btn.style.background = isAct ? 'rgba(99,102,241,0.92)' : 'transparent';
+      if (btn.dataset.tool === 'eraser') {
+        btn.style.color = isAct ? '#fff' : '#fca5a5';
+      } else {
+        btn.style.color = isAct ? '#fff' : '#e2e8f0';
+      }
+    });
+    syncAllAnnotLayersPointerMode();
+  }
+
+  function undoPdfAnnotation() {
+    if (!activePdfUndoStack.length) return;
+    const action = activePdfUndoStack.pop();
+    activePdfRedoStack.push(action);
+    if (action.prevShapes && action.prevShapes.length > 0) {
+      activePdfAnnotations[action.pageNum] = action.prevShapes.slice();
+    } else {
+      delete activePdfAnnotations[action.pageNum];
+    }
+    ensurePageAnnotCanvas(action.pageNum);
+    savePDFAnnotationsToIDB(currentOpenPdfId, activePdfAnnotations);
+  }
+
+  function redoPdfAnnotation() {
+    if (!activePdfRedoStack.length) return;
+    const action = activePdfRedoStack.pop();
+    activePdfUndoStack.push(action);
+    if (action.nextShapes && action.nextShapes.length > 0) {
+      activePdfAnnotations[action.pageNum] = action.nextShapes.slice();
+    } else {
+      delete activePdfAnnotations[action.pageNum];
+    }
+    ensurePageAnnotCanvas(action.pageNum);
+    savePDFAnnotationsToIDB(currentOpenPdfId, activePdfAnnotations);
+  }
+
+  function clearActivePageAnnotations() {
+    const pageNum = activePdfCurrentPage || 1;
+    const prevShapes = (activePdfAnnotations[pageNum] || []).slice();
+    if (prevShapes.length === 0) return;
+    delete activePdfAnnotations[pageNum];
+    activePdfUndoStack.push({ pageNum, prevShapes, nextShapes: [] });
+    activePdfRedoStack = [];
+    redrawPageAnnotations(pageNum);
+    savePDFAnnotationsToIDB(currentOpenPdfId, activePdfAnnotations);
+    if (window.showToast) window.showToast(`Sayfa ${pageNum} çizimleri temizlendi.`, 'info');
+  }
+
+  function initPdfDrawPalette() {
+    if (pdfDrawInitialized) return;
+    pdfDrawInitialized = true;
+
+    const btnToggle = document.getElementById('btn-pdf-draw-toggle');
+    const palette = document.getElementById('pdf-draw-palette');
+    const handle = document.getElementById('pdf-draw-palette-handle');
+    const stage = document.getElementById('pdf-viewer-stage');
+
+    if (btnToggle && palette) {
+      btnToggle.addEventListener('click', () => {
+        if (!activePdfUsingJsViewer) return;
+        pdfDrawPaletteOpen = !pdfDrawPaletteOpen;
+        palette.style.display = pdfDrawPaletteOpen ? 'flex' : 'none';
+        btnToggle.classList.toggle('btn-primary', pdfDrawPaletteOpen);
+        btnToggle.classList.toggle('btn-outline-primary', !pdfDrawPaletteOpen);
+        if (pdfDrawPaletteOpen) {
+          if (pdfDrawTool === 'hand') setPdfDrawTool('line');
+          if (window.safeCreateIcons) window.safeCreateIcons();
+        } else {
+          setPdfDrawTool('hand');
+        }
+      });
+    }
+
+    document.querySelectorAll('#pdf-draw-palette .pdf-draw-tool-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        setPdfDrawTool(btn.dataset.tool || 'hand');
+      });
+    });
+
+    document.querySelectorAll('#pdf-draw-palette .pdf-draw-color-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        pdfDrawColor = btn.dataset.color || '#ef4444';
+        document.querySelectorAll('#pdf-draw-palette .pdf-draw-color-btn').forEach((b) => {
+          const isAct = b === btn;
+          b.classList.toggle('active', isAct);
+          b.style.borderColor = isAct ? '#fff' : (b.dataset.color === '#0f172a' ? 'rgba(255,255,255,0.45)' : 'transparent');
+        });
+        if (pdfDrawTool === 'hand' || pdfDrawTool === 'eraser') {
+          setPdfDrawTool('line');
+        }
+      });
+    });
+
+    document.querySelectorAll('#pdf-draw-palette .pdf-draw-size-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        pdfDrawSize = parseInt(btn.dataset.size, 10) || 4;
+        document.querySelectorAll('#pdf-draw-palette .pdf-draw-size-btn').forEach((b) => {
+          const isAct = b === btn;
+          b.classList.toggle('active', isAct);
+          b.style.background = isAct ? 'rgba(99,102,241,0.35)' : 'transparent';
+          b.style.borderRadius = isAct ? '6px' : '0';
+          const dot = b.querySelector('span');
+          if (dot) dot.style.background = isAct ? '#fff' : '#cbd5e1';
+        });
+      });
+    });
+
+    const btnUndo = document.getElementById('btn-pdf-draw-undo');
+    const btnRedo = document.getElementById('btn-pdf-draw-redo');
+    const btnClear = document.getElementById('btn-pdf-draw-clear-page');
+    if (btnUndo) btnUndo.addEventListener('click', undoPdfAnnotation);
+    if (btnRedo) btnRedo.addEventListener('click', redoPdfAnnotation);
+    if (btnClear) btnClear.addEventListener('click', clearActivePageAnnotations);
+
+    // Klavye kısayolları (Ctrl+Z, Ctrl+Y, ESC -> Gezinme Modu)
+    document.addEventListener('keydown', (e) => {
+      if (!activePdfUsingJsViewer || !currentOpenPdfId) return;
+      const overlay = document.getElementById('pdf-viewer-overlay');
+      if (!overlay || overlay.style.display === 'none') return;
+      const tag = (e.target && e.target.tagName) ? e.target.tagName.toLowerCase() : '';
+      if (tag === 'input' || tag === 'textarea') return;
+
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
+        e.preventDefault();
+        if (e.shiftKey) redoPdfAnnotation();
+        else undoPdfAnnotation();
+      } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') {
+        e.preventDefault();
+        redoPdfAnnotation();
+      } else if (e.key === 'Escape' && pdfDrawTool !== 'hand') {
+        setPdfDrawTool('hand');
+      }
+    });
+
+    // Taşınabilir Palet (Fare + Dokunmatik Pointer Events)
+    if (handle && palette && stage) {
+      let dragging = false;
+      let startX = 0, startY = 0;
+      let startLeft = 0, startTop = 0;
+
+      handle.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        dragging = true;
+        handle.style.cursor = 'grabbing';
+        try { handle.setPointerCapture(e.pointerId); } catch (err) {}
+
+        const stageRect = stage.getBoundingClientRect();
+        const palRect = palette.getBoundingClientRect();
+        startLeft = palRect.left - stageRect.left;
+        startTop = palRect.top - stageRect.top;
+        startX = e.clientX;
+        startY = e.clientY;
+
+        palette.style.right = 'auto';
+        palette.style.left = startLeft + 'px';
+        palette.style.top = startTop + 'px';
+      });
+
+      handle.addEventListener('pointermove', (e) => {
+        if (!dragging) return;
+        e.preventDefault();
+        const stageRect = stage.getBoundingClientRect();
+        const palRect = palette.getBoundingClientRect();
+        const maxLeft = Math.max(8, stageRect.width - palRect.width - 8);
+        const maxTop = Math.max(8, stageRect.height - palRect.height - 8);
+        const nextLeft = Math.max(8, Math.min(maxLeft, startLeft + (e.clientX - startX)));
+        const nextTop = Math.max(8, Math.min(maxTop, startTop + (e.clientY - startY)));
+        palette.style.left = Math.round(nextLeft) + 'px';
+        palette.style.top = Math.round(nextTop) + 'px';
+      });
+
+      const stopDrag = (e) => {
+        if (!dragging) return;
+        dragging = false;
+        handle.style.cursor = 'grab';
+        try { if (e && e.pointerId !== undefined) handle.releasePointerCapture(e.pointerId); } catch (err) {}
+      };
+      handle.addEventListener('pointerup', stopDrag);
+      handle.addEventListener('pointercancel', stopDrag);
+    }
   }
 
   async function renderPdfJsPage(pageNum, session) {
@@ -2881,9 +3484,10 @@
       slot.style.width = Math.round(viewport.width) + 'px';
       slot.style.height = Math.round(viewport.height) + 'px';
 
-      let canvas = slot.querySelector('canvas');
+      let canvas = slot.querySelector('canvas.pdf-page-canvas');
       if (!canvas) {
         canvas = document.createElement('canvas');
+        canvas.className = 'pdf-page-canvas';
         canvas.style.display = 'block';
         canvas.style.width = '100%';
         canvas.style.height = '100%';
@@ -2903,6 +3507,12 @@
 
       if (session !== activePdfRenderSession) return;
       activePdfRenderedPages.set(pageNum, true);
+
+      // Sayfanın kayıtlı çizimi varsa veya çizim modu açıksa çizim katmanını çiz (lazy)
+      const hasPageAnnots = Array.isArray(activePdfAnnotations[pageNum]) && activePdfAnnotations[pageNum].length > 0;
+      if (hasPageAnnots || pdfDrawTool !== 'hand') {
+        ensurePageAnnotCanvas(pageNum);
+      }
 
       // Bellek yönetimi: aktif sayfadan 14 sayfadan fazla uzaklaşmış canvas'ları temizle
       if (activePdfRenderedPages.size > 24) {
@@ -3073,13 +3683,25 @@
       container.style.display = 'block';
       container.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#e2e8f0;font-size:1rem;font-weight:600;">Ders kitabı hazırlanıyor...</div>`;
 
-      const arrayBuffer = await blob.arrayBuffer();
+      const [arrayBuffer, loadedAnnots] = await Promise.all([
+        blob.arrayBuffer(),
+        loadPDFAnnotationsFromIDB(pdf.id)
+      ]);
       const loadingTask = window.pdfjsLib.getDocument({ data: arrayBuffer });
       const pdfDoc = await loadingTask.promise;
 
       activePdfDoc = pdfDoc;
       activePdfTotalPages = pdfDoc.numPages || 1;
       activePdfUsingJsViewer = true;
+      activePdfAnnotations = loadedAnnots || {};
+      activePdfUndoStack = [];
+      activePdfRedoStack = [];
+      initPdfDrawPalette();
+
+      const btnDrawToggle = document.getElementById('btn-pdf-draw-toggle');
+      if (btnDrawToggle) {
+        btnDrawToggle.style.display = 'flex';
+      }
 
       // İlk açılış ölçeği: kayıtlı zoom varsa onu kullan, yoksa ekrana uygun hesapla
       if (initialPos && Number.isFinite(Number(initialPos.scale)) && Number(initialPos.scale) >= 0.5) {

@@ -41,6 +41,46 @@
     return `${y}-${m}-${day}`;
   }
 
+  function normalizeWeekIdLocal(weekId) {
+    if (typeof window.normalizeWeekId === 'function') {
+      return window.normalizeWeekId(weekId);
+    }
+    return String(weekId || '').trim().toUpperCase();
+  }
+
+  // Akıllı tahta (dashboard.js) ile birebir aynı Dojo (Davranış/Performans) sınıflandırması
+  function isDojoPerformanceRecord(p, data) {
+    if (!p || typeof p !== 'object') return false;
+    const reason = p.reason || '';
+    const reasonLower = reason.toLowerCase();
+
+    if (p.homeworkId) return false;
+    if (p.examId || reasonLower.includes('sınav') || reasonLower.includes('değerlendirme')) return false;
+
+    const tasks = (data && Array.isArray(data.tasks)) ? data.tasks : [];
+    const isTask = !!(
+      p.taskId ||
+      tasks.some(t => t.performanceId === p.id || (t.id && t.id === p.taskId)) ||
+      reason.includes('Görevi Teslim Edildi') ||
+      reason.includes('Görevi Tamamlandı') ||
+      (/görev/i.test(reason) && !reasonLower.includes('kitap okuma tamamlandı'))
+    );
+    if (isTask) return false;
+
+    const isStar = !!(
+      (p.extraData && p.extraData.isBookStar) ||
+      reasonLower.includes('yıldız') ||
+      reason === 'Kitap Okuma Puanı' ||
+      reasonLower.includes('kitap yıldızı') ||
+      reasonLower.includes('ders kitabı')
+    );
+    if (isStar) return false;
+
+    if (reasonLower.includes('kitap')) return false;
+
+    return true;
+  }
+
   function getISOWeekLocal(dateInput) {
     if (typeof window.getISOWeek === 'function') {
       return window.getISOWeek(dateInput);
@@ -393,12 +433,13 @@ ${noteText}
       const students = this.getStudentsForActiveSection();
       const studentIdSet = new Set(students.map(s => String(s.id)));
 
-      // Son 7 güne veya haftaya ait başlangıç tarihi (Pazartesi 00:00 - Yerel Saat)
+      // Geçerli haftanın başlangıç ve bitiş tarihleri (Pazartesi - Pazar, Yerel Saat)
       const mondayIso = toLocalISO(weekRange.monday);
-      const currentIsoWeek = getISOWeekLocal(now);
+      const sundayIso = toLocalISO(weekRange.sunday);
+      const currentIsoWeek = normalizeWeekIdLocal(getISOWeekLocal(now));
       const normSec = String(sec || '').replace(/[\/\-\s]/g, '').toUpperCase();
 
-      // 1. HAFTANIN KİTAP KURTLARI
+      // 1. HAFTANIN KİTAP KURTLARI (Yalnızca bu hafta okunup iade edilen kitaplar; halen okunmakta olan 'reading' kitaplar hariç)
       const booksData = data.books || {};
       const txList = Array.isArray(booksData.transactions) ? booksData.transactions : [];
       const libList = Array.isArray(booksData.library) ? booksData.library : [];
@@ -410,9 +451,11 @@ ${noteText}
       let totalClassPages = 0;
 
       txList.forEach(t => {
-        if (!studentIdSet.has(String(t.studentId))) return false;
-        const txDate = (t.returnDate || t.borrowDate || '').slice(0, 10);
-        if (txDate >= mondayIso) {
+        if (!t || !studentIdSet.has(String(t.studentId))) return;
+        const retIso = (t.returnDate || t.returnedAt || '').slice(0, 10);
+        const isReturned = t.status === 'returned' || (!!retIso && t.status !== 'reading');
+        if (!isReturned || !retIso) return;
+        if (retIso >= mondayIso && retIso <= sundayIso) {
           const sObj = students.find(s => String(s.id) === String(t.studentId));
           if (!sObj) return;
           const sName = `${sObj.name} ${sObj.surname || ''}`.trim();
@@ -438,13 +481,17 @@ ${noteText}
         bookReportText = '📚 *HAFTANIN KİTAP KURTLARI*\n📖 Bu hafta kitap okuma gayretini sürdüren tüm öğrencilerimizi tebrik ediyoruz. Kitaplar en sadık dostumuzdur!';
       }
 
-      // 2. HAFTANIN DAVRANIŞ & KATILIM ŞAMPİYONLARI
+      // 2. HAFTANIN DAVRANIŞ & KATILIM ŞAMPİYONLARI (Akıllı tahta ile birebir uyumlu: Sadece Dojo kayıtlarının haftalık net toplamı)
       const perfList = Array.isArray(data.performance) ? data.performance : [];
       const weeklyPerf = perfList.filter(p => {
-        if (!studentIdSet.has(String(p.studentId))) return false;
-        if (p.type !== 'positive') return false;
+        if (!p || !studentIdSet.has(String(p.studentId))) return false;
+        if (!isDojoPerformanceRecord(p, data)) return false;
+        if (p.weekId) {
+          const normPWeek = normalizeWeekIdLocal(p.weekId);
+          return !currentIsoWeek || normPWeek === currentIsoWeek;
+        }
         const pDate = (p.date || '').slice(0, 10);
-        return pDate >= mondayIso;
+        return !!pDate && pDate >= mondayIso && pDate <= sundayIso;
       });
 
       const behaviorScores = {};
@@ -452,28 +499,34 @@ ${noteText}
         const sObj = students.find(s => String(s.id) === String(p.studentId));
         if (!sObj) return;
         const sName = `${sObj.name} ${sObj.surname || ''}`.trim();
-        const pt = parseInt(p.point, 10) || 1;
+        const pt = Number(p.point) || 0;
         behaviorScores[sName] = (behaviorScores[sName] || 0) + pt;
       });
 
       let behaviorReportText = '';
-      const sortedBehavior = Object.keys(behaviorScores).sort((a, b) => behaviorScores[b] - behaviorScores[a]);
+      const sortedBehavior = Object.keys(behaviorScores)
+        .filter(n => behaviorScores[n] > 0)
+        .sort((a, b) => behaviorScores[b] - behaviorScores[a]);
       if (sortedBehavior.length > 0) {
         const topBehavior = sortedBehavior.slice(0, 5);
         behaviorReportText = '🌟 *HAFTANIN DAVRANIŞ & KATILIM ŞAMPİYONLARI*\nDers içi aktif katılımları, nezaketleri ve örnek tutumlarıyla öne çıkan öğrencilerimiz:\n' +
-          topBehavior.map((n, i) => `⭐ *${n}* (+${behaviorScores[n]} Puan)`).join('\n');
+          topBehavior.map((n) => `⭐ *${n}* (+${behaviorScores[n]} Puan)`).join('\n');
       } else {
         behaviorReportText = '🌟 *HAFTANIN DAVRANIŞ & KATILIM ŞAMPİYONLARI*\n⭐ Hafta boyunca sınıf düzenine ve ders kurallarına uyan tüm öğrencilerimize teşekkür ederiz.';
       }
 
-      // 3. HAFTANIN ÖDEV YILDIZLARI (Tüm öğrenciler kısaltmasız listelenir)
+      // 3. HAFTANIN ÖDEV YILDIZLARI (Tüm öğrenciler kısaltmasız listelenir; yalnızca bu hafta teslim tarihli ödevler)
       const hwList = Array.isArray(data.homeworks) ? data.homeworks : (Array.isArray(data.homework) ? data.homework : []);
       const weeklyHw = hwList.filter(h => {
         const hBranch = String(h.branch || '').replace(/[\/\-\s]/g, '').toUpperCase();
         const matchSec = !hBranch || hBranch === normSec || hBranch === 'ALL';
         const dueIso = (h.dueDate || '').slice(0, 10);
         const createdIso = (h.createdAt || '').slice(0, 10);
-        return matchSec && (dueIso >= mondayIso || createdIso >= mondayIso);
+        if (!matchSec) return false;
+        if (dueIso) {
+          return dueIso >= mondayIso && dueIso <= sundayIso;
+        }
+        return !!createdIso && createdIso >= mondayIso && createdIso <= sundayIso;
       });
 
       // Yalnızca kontrolü yapılmış (en az 1 öğrencisi işaretlenmiş) ödevleri değerlendirmeye al
@@ -593,32 +646,30 @@ ${noteText}
 
         const eDateIso = (e.date || '').slice(0, 10);
         const eCreatedIso = (e.createdAt || '').slice(0, 10);
-        const eUpdatedIso = (e.updatedAt || '').slice(0, 10);
-        const normExamWeek = (typeof window.normalizeWeekId === 'function' && e.weekId)
-          ? window.normalizeWeekId(e.weekId)
-          : String(e.weekId || '').toUpperCase();
-        const hasRecentScan = participants.some(p => p.updatedIso && p.updatedIso >= mondayIso);
+        const normExamWeek = normalizeWeekIdLocal(e.weekId);
 
-        const isThisWeek =
-          (eDateIso && eDateIso >= mondayIso) ||
-          (eCreatedIso && eCreatedIso >= mondayIso) ||
-          (eUpdatedIso && eUpdatedIso >= mondayIso) ||
-          (normExamWeek && currentIsoWeek && normExamWeek === currentIsoWeek) ||
-          hasRecentScan;
+        // Sınavın weekId bilgisi varsa kesin hafta eşleşmesi kullan; yoksa tarih aralığını (Pzt-Paz) kontrol et
+        let isThisWeek = false;
+        if (normExamWeek && currentIsoWeek) {
+          isThisWeek = normExamWeek === currentIsoWeek;
+        } else if (eDateIso) {
+          isThisWeek = eDateIso >= mondayIso && eDateIso <= sundayIso;
+        } else if (eCreatedIso) {
+          isThisWeek = eCreatedIso >= mondayIso && eCreatedIso <= sundayIso;
+        }
+
+        if (!isThisWeek) return;
 
         candidateExams.push({
           exam: e,
           title: (e.examName || e.title || e.name || 'Değerlendirme Sınavı').trim(),
           participants,
-          isThisWeek
+          isThisWeek: true
         });
       });
 
-      // Önce bu haftaya ait sınavları al; eğer tarih damgası eksik olan sınavlar varsa ve bu hafta hiç eşleşmediyse mevcut sonuçlu sınavları göster
-      let weeklyExams = candidateExams.filter(c => c.isThisWeek);
-      if (weeklyExams.length === 0 && candidateExams.length > 0) {
-        weeklyExams = candidateExams;
-      }
+      // Yalnızca geçerli haftaya ait sınavları göster (eski haftaların sınavları kesinlikle eklenmez)
+      const weeklyExams = candidateExams;
 
       if (weeklyExams.length > 0) {
         const examBlocks = weeklyExams.map(item => {
@@ -685,9 +736,9 @@ ${closingText}
       const sFullName = `${student.name} ${student.surname || ''}`.trim();
       const sNo = student.number ? `#${student.number}` : '';
 
-      // Davranış Puanı
+      // Davranış Puanı (Yalnızca Dojo kayıtları)
       const perfList = Array.isArray(data.performance) ? data.performance : [];
-      const sPerf = perfList.filter(p => String(p.studentId) === String(student.id));
+      const sPerf = perfList.filter(p => String(p.studentId) === String(student.id) && isDojoPerformanceRecord(p, data));
       let totalPts = 0;
       const recentReasons = [];
       sPerf.forEach(p => {
