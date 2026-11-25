@@ -5205,6 +5205,7 @@
         const d = new Date(opening.getTime() + (k - 1) * 7 * 24 * 60 * 60 * 1000);
         const iso = typeof window.getISOWeek === 'function' ? window.getISOWeek(d) : `W${k}`;
         const inf = typeof window.getEducationWeekInfo === 'function' ? window.getEducationWeekInfo(iso) : null;
+        if (inf && inf.isMergedContinuation) continue;
 
         const opt = document.createElement('option');
         opt.value = iso;
@@ -5230,20 +5231,24 @@
     if (!curWeek) curWeek = typeof window.getISOWeek === 'function' ? window.getISOWeek(new Date()) : '';
     if (!curWeek) return;
 
-    const parts = curWeek.split('-W');
-    if (parts.length === 2) {
+    let newWeek = curWeek;
+    if (typeof window.stepEducationWeek === 'function') {
+      newWeek = window.stepEducationWeek(curWeek, offset);
+    } else {
+      const parts = curWeek.split('-W');
+      if (parts.length !== 2) return;
       const year = parseInt(parts[0], 10);
       const week = parseInt(parts[1], 10);
       const d = window.getDayInWeek ? window.getDayInWeek(year, week, 4) : new Date();
       d.setDate(d.getDate() + (offset * 7));
-      const newWeek = typeof window.getISOWeek === 'function' ? window.getISOWeek(d) : curWeek;
-      window.stateManager.setSelectedWeek(newWeek);
-      updateMobileWeekUI(newWeek);
-      window.vibrate(20);
-      const weekLabel = typeof window.formatWeekTR === 'function' ? window.formatWeekTR(newWeek, 'short') : newWeek;
-      showMobileToast(`📅 Hafta değiştirildi: ${weekLabel}`);
-      renderActiveTab();
+      newWeek = typeof window.getISOWeek === 'function' ? window.getISOWeek(d) : curWeek;
     }
+    window.stateManager.setSelectedWeek(newWeek);
+    updateMobileWeekUI(newWeek);
+    window.vibrate(20);
+    const weekLabel = typeof window.formatWeekTR === 'function' ? window.formatWeekTR(newWeek, 'short') : newWeek;
+    showMobileToast(`📅 Hafta değiştirildi: ${weekLabel}`);
+    renderActiveTab();
   };
 
   window.resetMobileWeekToCurrent = () => {

@@ -10,6 +10,8 @@ let toolsRosterView;
 let toolsPlansView;
 let toolsDocumentsView;
 let toolsHwRobotView;
+let toolsRubricView;
+let toolsCertificateView;
 
 let btnLaunchRoster;
 let btnBackToTools;
@@ -19,6 +21,10 @@ let btnLaunchDocuments;
 let btnBackToToolsFromDocuments;
 let btnLaunchHwRobot;
 let btnBackToToolsFromHwRobot;
+let btnLaunchRubric;
+let btnBackToToolsFromRubric;
+let btnLaunchCertificate;
+let btnBackToToolsFromCertificate;
 
 let rosterStartDate;
 let rosterEndDate;
@@ -44,6 +50,8 @@ function setupToolsTab(toastCallback) {
   toolsPlansView = document.getElementById('tools-plans-view');
   toolsDocumentsView = document.getElementById('tools-documents-view');
   toolsHwRobotView = document.getElementById('tools-hw-robot-view');
+  toolsRubricView = document.getElementById('tools-rubric-view');
+  toolsCertificateView = document.getElementById('tools-certificate-view');
 
   btnLaunchRoster = document.getElementById('btn-launch-roster');
   btnBackToTools = document.getElementById('btn-back-to-tools');
@@ -53,6 +61,10 @@ function setupToolsTab(toastCallback) {
   btnBackToToolsFromDocuments = document.getElementById('btn-back-to-tools-from-documents');
   btnLaunchHwRobot = document.getElementById('btn-launch-hw-robot');
   btnBackToToolsFromHwRobot = document.getElementById('btn-back-to-tools-from-hw-robot');
+  btnLaunchRubric = document.getElementById('btn-launch-rubric');
+  btnBackToToolsFromRubric = document.getElementById('btn-back-to-tools-from-rubric');
+  btnLaunchCertificate = document.getElementById('btn-launch-certificate');
+  btnBackToToolsFromCertificate = document.getElementById('btn-back-to-tools-from-certificate');
 
   rosterStartDate = document.getElementById('roster-start-date');
   rosterEndDate = document.getElementById('roster-end-date');
@@ -128,6 +140,48 @@ function setupToolsTab(toastCallback) {
   if (btnBackToToolsFromHwRobot) {
     btnBackToToolsFromHwRobot.addEventListener('click', () => {
       if (toolsHwRobotView) toolsHwRobotView.style.display = 'none';
+      toolsLandingView.style.display = 'block';
+    });
+  }
+
+  // Dereceli Puanlama Anahtarı (Rubrik) Navigasyonu
+  if (btnLaunchRubric) {
+    btnLaunchRubric.addEventListener('click', () => {
+      toolsLandingView.style.display = 'none';
+      if (toolsRubricView) toolsRubricView.style.display = 'block';
+      if (typeof window.initRubricMaker === 'function') {
+        window.initRubricMaker();
+      }
+      if (window.lucide && typeof window.lucide.createIcons === 'function') {
+        window.lucide.createIcons();
+      }
+    });
+  }
+
+  if (btnBackToToolsFromRubric) {
+    btnBackToToolsFromRubric.addEventListener('click', () => {
+      if (toolsRubricView) toolsRubricView.style.display = 'none';
+      toolsLandingView.style.display = 'block';
+    });
+  }
+
+  // Öğrenci Başarı Belgesi & Sertifika Navigasyonu
+  if (btnLaunchCertificate) {
+    btnLaunchCertificate.addEventListener('click', () => {
+      toolsLandingView.style.display = 'none';
+      if (toolsCertificateView) toolsCertificateView.style.display = 'block';
+      if (typeof window.initCertificateMaker === 'function') {
+        window.initCertificateMaker();
+      }
+      if (window.lucide && typeof window.lucide.createIcons === 'function') {
+        window.lucide.createIcons();
+      }
+    });
+  }
+
+  if (btnBackToToolsFromCertificate) {
+    btnBackToToolsFromCertificate.addEventListener('click', () => {
+      if (toolsCertificateView) toolsCertificateView.style.display = 'none';
       toolsLandingView.style.display = 'block';
     });
   }

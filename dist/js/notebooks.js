@@ -92,7 +92,20 @@
   let savedRange = null;
   let currentCoverPdfId = null;
   let currentOpenPdfId = null;
+  let currentOpenPdfName = '';
   let currentOpenPdfUrl = null;
+  let activePdfDoc = null;
+  let activePdfTotalPages = 0;
+  let activePdfScale = 1.25;
+  let activePdfCurrentPage = 1;
+  let activePdfScrollRatio = 0;
+  let activePdfObserver = null;
+  let activePdfPageSlots = [];
+  let activePdfRenderedPages = new Map();
+  let activePdfRenderSession = 0;
+  let activePdfIsProgrammaticScroll = false;
+  let activePdfScrollSaveTimer = null;
+  let activePdfUsingJsViewer = false;
 
   // Numaralı Liste Sürekliliği (Modül Seviyesi - Her yerden erişilebilir)
   function syncOrderedListContinuity() {
@@ -499,17 +512,18 @@
       });
     }
 
+    const pdfViewerPageInput = document.getElementById('pdf-viewer-page-input');
     const btnClosePdfViewer = document.getElementById('btn-close-pdf-viewer');
     if (btnClosePdfViewer) {
       btnClosePdfViewer.addEventListener('click', () => {
-        if (currentOpenPdfId && pdfViewerPageInput) {
-          const pageNum = parseInt(pdfViewerPageInput.value) || 1;
-          saveCurrentPdfPageState(currentOpenPdfId, pageNum);
+        if (currentOpenPdfId) {
+          persistActivePdfPosition(true);
         }
         if (pdfLiveInterval) {
           clearInterval(pdfLiveInterval);
           pdfLiveInterval = null;
         }
+        cleanupPdfJsViewer();
         const overlay = document.getElementById('pdf-viewer-overlay');
         const iframe = document.getElementById('pdf-viewer-iframe');
         if (overlay) overlay.style.display = 'none';
@@ -521,39 +535,61 @@
           currentOpenPdfUrl = null;
         }
         currentOpenPdfId = null;
+        currentOpenPdfName = '';
         renderTextbooksList();
       });
     }
 
-    const pdfViewerPageInput = document.getElementById('pdf-viewer-page-input');
     if (pdfViewerPageInput) {
       pdfViewerPageInput.addEventListener('change', async (e) => {
-        let pageNum = parseInt(e.target.value) || 1;
+        let pageNum = parseInt(e.target.value, 10) || 1;
         if (pageNum < 1) pageNum = 1;
+        if (activePdfUsingJsViewer && activePdfTotalPages > 0 && pageNum > activePdfTotalPages) {
+          pageNum = activePdfTotalPages;
+        }
         e.target.value = pageNum;
         
         if (currentOpenPdfId) {
-          saveCurrentPdfPageState(currentOpenPdfId, pageNum);
-          const iframe = document.getElementById('pdf-viewer-iframe');
-          if (iframe && currentOpenPdfUrl) {
-            iframe.src = currentOpenPdfUrl + '#page=' + pageNum;
+          activePdfCurrentPage = pageNum;
+          activePdfScrollRatio = 0;
+          if (activePdfUsingJsViewer) {
+            scrollToPdfPage(pageNum, 0);
+            saveCurrentPdfPageState(currentOpenPdfId, pageNum, {
+              scrollRatio: 0,
+              scale: activePdfScale,
+              name: currentOpenPdfName,
+              immediate: true
+            });
+          } else {
+            saveCurrentPdfPageState(currentOpenPdfId, pageNum, {
+              scrollRatio: 0,
+              scale: activePdfScale,
+              name: currentOpenPdfName,
+              immediate: true
+            });
+            const iframe = document.getElementById('pdf-viewer-iframe');
+            if (iframe && currentOpenPdfUrl) {
+              iframe.src = currentOpenPdfUrl + '#page=' + pageNum;
+            }
           }
         }
       });
     }
 
-    // Uygulama kapatıldığında veya sayfa yenilendiğinde son sayfayı garantiye al
-    window.addEventListener('beforeunload', () => {
-      if (currentOpenPdfId && pdfViewerPageInput) {
-        const pageNum = parseInt(pdfViewerPageInput.value) || 1;
-        localStorage.setItem('sinif_asistani_textbook_page_' + currentOpenPdfId, pageNum);
-        localStorage.setItem('sinif_asistani_last_opened_textbook_id', currentOpenPdfId);
+    // Uygulama kapatıldığında, sekme gizlendiğinde veya sayfa yenilendiğinde son konumu garantiye al
+    const handleAppExitPdfSave = () => {
+      if (currentOpenPdfId) {
+        persistActivePdfPosition(true);
+        if (window.stateManager && typeof window.stateManager.flushPendingSave === 'function') {
+          try { window.stateManager.flushPendingSave(); } catch (e) {}
+        }
       }
-    });
-    window.addEventListener('pagehide', () => {
-      if (currentOpenPdfId && pdfViewerPageInput) {
-        const pageNum = parseInt(pdfViewerPageInput.value) || 1;
-        localStorage.setItem('sinif_asistani_textbook_page_' + currentOpenPdfId, pageNum);
+    };
+    window.addEventListener('beforeunload', handleAppExitPdfSave);
+    window.addEventListener('pagehide', handleAppExitPdfSave);
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') {
+        handleAppExitPdfSave();
       }
     });
 
@@ -561,7 +597,7 @@
     const btnPdfNextPage = document.getElementById('btn-pdf-next-page');
     if (btnPdfPrevPage && btnPdfNextPage && pdfViewerPageInput) {
       btnPdfPrevPage.addEventListener('click', () => {
-        let pageNum = parseInt(pdfViewerPageInput.value) || 1;
+        let pageNum = parseInt(pdfViewerPageInput.value, 10) || 1;
         if (pageNum > 1) {
           pageNum--;
           pdfViewerPageInput.value = pageNum;
@@ -570,10 +606,44 @@
       });
 
       btnPdfNextPage.addEventListener('click', () => {
-        let pageNum = parseInt(pdfViewerPageInput.value) || 1;
-        pageNum++;
-        pdfViewerPageInput.value = pageNum;
-        pdfViewerPageInput.dispatchEvent(new Event('change'));
+        let pageNum = parseInt(pdfViewerPageInput.value, 10) || 1;
+        if (!activePdfUsingJsViewer || !activePdfTotalPages || pageNum < activePdfTotalPages) {
+          pageNum++;
+          pdfViewerPageInput.value = pageNum;
+          pdfViewerPageInput.dispatchEvent(new Event('change'));
+        }
+      });
+    }
+
+    // PDF.js Yakınlaştırma (Zoom) Kontrolleri
+    const btnPdfZoomOut = document.getElementById('btn-pdf-zoom-out');
+    const btnPdfZoomIn = document.getElementById('btn-pdf-zoom-in');
+    const btnPdfZoomFit = document.getElementById('btn-pdf-zoom-fit');
+    if (btnPdfZoomOut) {
+      btnPdfZoomOut.addEventListener('click', () => {
+        if (!activePdfUsingJsViewer || !activePdfDoc) return;
+        const nextScale = Math.max(0.5, Math.round((activePdfScale - 0.15) * 100) / 100);
+        changePdfJsZoom(nextScale);
+      });
+    }
+    if (btnPdfZoomIn) {
+      btnPdfZoomIn.addEventListener('click', () => {
+        if (!activePdfUsingJsViewer || !activePdfDoc) return;
+        const nextScale = Math.min(3.0, Math.round((activePdfScale + 0.15) * 100) / 100);
+        changePdfJsZoom(nextScale);
+      });
+    }
+    if (btnPdfZoomFit) {
+      btnPdfZoomFit.addEventListener('click', async () => {
+        if (!activePdfUsingJsViewer || !activePdfDoc) return;
+        try {
+          const container = document.getElementById('pdf-viewer-canvas-container');
+          const p = await activePdfDoc.getPage(activePdfCurrentPage || 1);
+          const baseVp = p.getViewport({ scale: 1 });
+          const availW = Math.max(320, (container ? container.clientWidth : window.innerWidth) - 48);
+          const fitScale = Math.max(0.5, Math.min(2.5, Math.round((availW / baseVp.width) * 100) / 100));
+          changePdfJsZoom(fitScale);
+        } catch (e) {}
       });
     }
 
@@ -2433,8 +2503,9 @@
   }
 
   const DB_NAME = 'TextbooksDB';
-  const DB_VERSION = 1;
+  const DB_VERSION = 2;
   const STORE_NAME = 'pdfs';
+  const POS_STORE_NAME = 'positions';
 
   function openDB() {
     return new Promise((resolve, reject) => {
@@ -2443,6 +2514,9 @@
         const db = e.target.result;
         if (!db.objectStoreNames.contains(STORE_NAME)) {
           db.createObjectStore(STORE_NAME, { keyPath: 'id' });
+        }
+        if (!db.objectStoreNames.contains(POS_STORE_NAME)) {
+          db.createObjectStore(POS_STORE_NAME, { keyPath: 'id' });
         }
       };
       request.onsuccess = (e) => resolve(e.target.result);
@@ -2481,13 +2555,24 @@
 
   async function deletePDF(id) {
     const db = await openDB();
-    return new Promise((resolve, reject) => {
-      const transaction = db.transaction(STORE_NAME, 'readwrite');
-      const store = transaction.objectStore(STORE_NAME);
-      const request = store.delete(id);
-      request.onsuccess = () => resolve(true);
-      request.onerror = () => reject(request.error);
+    await new Promise((resolve, reject) => {
+      const stores = db.objectStoreNames.contains(POS_STORE_NAME) ? [STORE_NAME, POS_STORE_NAME] : [STORE_NAME];
+      const transaction = db.transaction(stores, 'readwrite');
+      transaction.objectStore(STORE_NAME).delete(id);
+      if (db.objectStoreNames.contains(POS_STORE_NAME)) {
+        transaction.objectStore(POS_STORE_NAME).delete(id);
+      }
+      transaction.oncomplete = () => resolve(true);
+      transaction.onerror = () => reject(transaction.error);
     });
+    try {
+      localStorage.removeItem('sinif_asistani_textbook_page_' + id);
+      localStorage.removeItem('sinif_asistani_textbook_pos_' + id);
+    } catch (e) {}
+    if (window.stateManager && typeof window.stateManager.deleteTextbookPosition === 'function') {
+      try { window.stateManager.deleteTextbookPosition(id); } catch (e) {}
+    }
+    return true;
   }
 
   async function getPDF(id) {
@@ -2512,25 +2597,530 @@
     });
   }
 
-  function saveCurrentPdfPageState(pdfId, pageNum) {
-    if (!pdfId) return;
-    const p = Math.max(1, parseInt(pageNum) || 1);
+  async function savePDFPositionToIDB(posObj) {
+    if (!posObj || !posObj.id) return false;
     try {
-      localStorage.setItem('sinif_asistani_textbook_page_' + pdfId, p);
+      const db = await openDB();
+      if (!db.objectStoreNames.contains(POS_STORE_NAME)) return false;
+      return await new Promise((resolve, reject) => {
+        const transaction = db.transaction(POS_STORE_NAME, 'readwrite');
+        const store = transaction.objectStore(POS_STORE_NAME);
+        const request = store.put(posObj);
+        request.onsuccess = () => resolve(true);
+        request.onerror = () => reject(request.error);
+      });
+    } catch (e) {
+      console.warn('savePDFPositionToIDB error:', e);
+      return false;
+    }
+  }
+
+  async function getPDFPositionFromIDB(pdfId) {
+    if (!pdfId) return null;
+    try {
+      const db = await openDB();
+      if (!db.objectStoreNames.contains(POS_STORE_NAME)) return null;
+      return await new Promise((resolve) => {
+        const transaction = db.transaction(POS_STORE_NAME, 'readonly');
+        const store = transaction.objectStore(POS_STORE_NAME);
+        const request = store.get(pdfId);
+        request.onsuccess = (e) => resolve(e.target.result || null);
+        request.onerror = () => resolve(null);
+      });
+    } catch (e) {
+      return null;
+    }
+  }
+
+  async function getAllPDFPositionsFromIDB() {
+    const map = {};
+    try {
+      const db = await openDB();
+      if (!db.objectStoreNames.contains(POS_STORE_NAME)) return map;
+      const rows = await new Promise((resolve) => {
+        const transaction = db.transaction(POS_STORE_NAME, 'readonly');
+        const store = transaction.objectStore(POS_STORE_NAME);
+        const request = store.getAll();
+        request.onsuccess = (e) => resolve(Array.isArray(e.target.result) ? e.target.result : []);
+        request.onerror = () => resolve([]);
+      });
+      rows.forEach(r => {
+        if (r && r.id) map[r.id] = r;
+      });
+    } catch (e) {}
+    return map;
+  }
+
+  function getBestTextbookPosition(pdfId, pdfName = '', fallbackRecord = null, idbPos = null) {
+    const candidates = [];
+
+    // 1. StateManager (Masaüstü yerel disk JSON + IndexedDB yedekli — en kalıcı katman)
+    if (window.stateManager && typeof window.stateManager.getTextbookPosition === 'function') {
+      try {
+        const stPos = window.stateManager.getTextbookPosition(pdfId, pdfName);
+        if (stPos && Number(stPos.page) >= 1) {
+          candidates.push({
+            page: Math.max(1, parseInt(stPos.page, 10) || 1),
+            scrollRatio: Number.isFinite(Number(stPos.scrollRatio)) ? Math.max(0, Math.min(1, Number(stPos.scrollRatio))) : 0,
+            scale: Number.isFinite(Number(stPos.scale)) ? Number(stPos.scale) : null,
+            updatedAt: Number(stPos.updatedAt) || 2,
+            priority: 4
+          });
+        }
+      } catch (e) {}
+    }
+
+    // 2. TextbooksDB hafif positions store'u
+    if (idbPos && Number(idbPos.page) >= 1) {
+      candidates.push({
+        page: Math.max(1, parseInt(idbPos.page, 10) || 1),
+        scrollRatio: Number.isFinite(Number(idbPos.scrollRatio)) ? Math.max(0, Math.min(1, Number(idbPos.scrollRatio))) : 0,
+        scale: Number.isFinite(Number(idbPos.scale)) ? Number(idbPos.scale) : null,
+        updatedAt: Number(idbPos.updatedAt) || 2,
+        priority: 3
+      });
+    }
+
+    // 3. localStorage (JSON konum + geriye dönük sadece sayfa anahtarı)
+    try {
+      const rawJson = localStorage.getItem('sinif_asistani_textbook_pos_' + pdfId);
+      if (rawJson) {
+        const parsed = JSON.parse(rawJson);
+        if (parsed && Number(parsed.page) >= 1) {
+          candidates.push({
+            page: Math.max(1, parseInt(parsed.page, 10) || 1),
+            scrollRatio: Number.isFinite(Number(parsed.scrollRatio)) ? Math.max(0, Math.min(1, Number(parsed.scrollRatio))) : 0,
+            scale: Number.isFinite(Number(parsed.scale)) ? Number(parsed.scale) : null,
+            updatedAt: Number(parsed.updatedAt) || 1,
+            priority: 2
+          });
+        }
+      } else {
+        const storedPage = localStorage.getItem('sinif_asistani_textbook_page_' + pdfId);
+        if (storedPage && parseInt(storedPage, 10) >= 1) {
+          candidates.push({
+            page: Math.max(1, parseInt(storedPage, 10)),
+            scrollRatio: 0,
+            scale: null,
+            updatedAt: 1,
+            priority: 1
+          });
+        }
+      }
+    } catch (e) {}
+
+    // 4. Eski pdf kaydındaki lastPage alanı (geriye dönük uyumluluk)
+    if (fallbackRecord && Number(fallbackRecord.lastPage) >= 1) {
+      candidates.push({
+        page: Math.max(1, parseInt(fallbackRecord.lastPage, 10)),
+        scrollRatio: 0,
+        scale: null,
+        updatedAt: 0,
+        priority: 0
+      });
+    }
+
+    if (candidates.length === 0) {
+      return { page: 1, scrollRatio: 0, scale: null, updatedAt: 0 };
+    }
+
+    // En yeni zaman damgasına göre seç; eşitse öncelik sırasına göre
+    candidates.sort((a, b) => {
+      if (b.updatedAt !== a.updatedAt) return b.updatedAt - a.updatedAt;
+      return b.priority - a.priority;
+    });
+    return candidates[0];
+  }
+
+  function saveCurrentPdfPageState(pdfId, pageNum, opts = {}) {
+    if (!pdfId) return;
+    const p = Math.max(1, parseInt(pageNum, 10) || 1);
+    const scrollRatio = Number.isFinite(Number(opts.scrollRatio))
+      ? Math.max(0, Math.min(1, Number(opts.scrollRatio)))
+      : 0;
+    const scale = Number.isFinite(Number(opts.scale))
+      ? Math.max(0.4, Math.min(4, Number(opts.scale)))
+      : (activePdfScale || 1.25);
+    const name = opts.name || currentOpenPdfName || '';
+    const immediate = !!opts.immediate;
+    const updatedAt = Date.now();
+
+    const posObj = {
+      id: pdfId,
+      page: p,
+      scrollRatio: Math.round(scrollRatio * 10000) / 10000,
+      scale: Math.round(scale * 100) / 100,
+      name,
+      updatedAt
+    };
+
+    // Katman 1: localStorage (senkron — çıkış anında anında yazılır)
+    try {
+      localStorage.setItem('sinif_asistani_textbook_pos_' + pdfId, JSON.stringify(posObj));
+      localStorage.setItem('sinif_asistani_textbook_page_' + pdfId, String(p));
       localStorage.setItem('sinif_asistani_last_opened_textbook_id', pdfId);
     } catch (e) {
       console.warn("saveCurrentPdfPageState localStorage error:", e);
     }
-    
+
+    // Katman 2: TextbooksDB hafif 'positions' deposu (dev PDF blob'una dokunmadan milisaniyede yazar)
+    savePDFPositionToIDB(posObj);
+
+    // Katman 3: StateManager (Masaüstü Tauri yerel disk JSON + günlük yedekler + IndexedDB state)
+    if (window.stateManager && typeof window.stateManager.setTextbookPosition === 'function') {
+      try {
+        window.stateManager.setTextbookPosition(pdfId, posObj, immediate);
+      } catch (e) {
+        console.warn("saveCurrentPdfPageState stateManager error:", e);
+      }
+    }
+  }
+
+  function computeCurrentPdfScrollPosition() {
+    const container = document.getElementById('pdf-viewer-canvas-container');
+    if (!activePdfUsingJsViewer || !container || !activePdfPageSlots.length) {
+      const pageInput = document.getElementById('pdf-viewer-page-input');
+      const fallbackPage = pageInput ? (parseInt(pageInput.value, 10) || activePdfCurrentPage || 1) : (activePdfCurrentPage || 1);
+      return { page: Math.max(1, fallbackPage), scrollRatio: activePdfScrollRatio || 0 };
+    }
+
+    const scrollTop = container.scrollTop;
+    const probeY = scrollTop + 28; // Üst kenardan biraz aşağısı: aktif okunan sayfa
+    let matchedSlot = activePdfPageSlots[0];
+    let matchedPage = 1;
+
+    for (let i = 0; i < activePdfPageSlots.length; i++) {
+      const slot = activePdfPageSlots[i];
+      const top = slot.offsetTop;
+      const bottom = top + slot.offsetHeight;
+      if (probeY >= top - 16) {
+        matchedSlot = slot;
+        matchedPage = i + 1;
+        if (probeY < bottom) break;
+      } else {
+        break;
+      }
+    }
+
+    const slotHeight = Math.max(1, matchedSlot.offsetHeight);
+    const offsetInPage = Math.max(0, scrollTop - (matchedSlot.offsetTop - 16));
+    const ratio = Math.max(0, Math.min(0.98, offsetInPage / slotHeight));
+
+    return { page: matchedPage, scrollRatio: ratio };
+  }
+
+  function persistActivePdfPosition(immediate = false) {
+    if (!currentOpenPdfId) return;
+    if (activePdfScrollSaveTimer) {
+      clearTimeout(activePdfScrollSaveTimer);
+      activePdfScrollSaveTimer = null;
+    }
+    const pos = computeCurrentPdfScrollPosition();
+    activePdfCurrentPage = pos.page;
+    activePdfScrollRatio = pos.scrollRatio;
+    saveCurrentPdfPageState(currentOpenPdfId, pos.page, {
+      scrollRatio: pos.scrollRatio,
+      scale: activePdfScale,
+      name: currentOpenPdfName,
+      immediate
+    });
+  }
+
+  function cleanupPdfJsViewer() {
+    activePdfRenderSession++;
+    if (activePdfScrollSaveTimer) {
+      clearTimeout(activePdfScrollSaveTimer);
+      activePdfScrollSaveTimer = null;
+    }
+    if (activePdfObserver) {
+      try { activePdfObserver.disconnect(); } catch (e) {}
+      activePdfObserver = null;
+    }
+    activePdfRenderedPages.forEach((task) => {
+      if (task && typeof task.cancel === 'function') {
+        try { task.cancel(); } catch (e) {}
+      }
+    });
+    activePdfRenderedPages.clear();
+    activePdfPageSlots = [];
+    if (activePdfDoc) {
+      try { activePdfDoc.destroy(); } catch (e) {}
+      activePdfDoc = null;
+    }
+    activePdfTotalPages = 0;
+    activePdfUsingJsViewer = false;
+
+    const container = document.getElementById('pdf-viewer-canvas-container');
+    if (container) {
+      container.onscroll = null;
+      container.innerHTML = '';
+      container.style.display = 'none';
+    }
+    const totalEl = document.getElementById('pdf-viewer-total-pages');
+    if (totalEl) totalEl.style.display = 'none';
+    const zoomControls = document.getElementById('pdf-viewer-zoom-controls');
+    if (zoomControls) zoomControls.style.display = 'none';
+  }
+
+  async function renderPdfJsPage(pageNum, session) {
+    if (!activePdfDoc || session !== activePdfRenderSession) return;
+    if (pageNum < 1 || pageNum > activePdfTotalPages) return;
+    if (activePdfRenderedPages.has(pageNum)) return;
+
+    const slot = activePdfPageSlots[pageNum - 1];
+    if (!slot) return;
+
+    activePdfRenderedPages.set(pageNum, 'loading');
     try {
-      getPDF(pdfId).then(record => {
-        if (record) {
-          record.lastPage = p;
-          savePDFRecord(record).catch(e => console.warn("savePDFRecord error:", e));
+      const page = await activePdfDoc.getPage(pageNum);
+      if (session !== activePdfRenderSession || !activePdfDoc) return;
+
+      const viewport = page.getViewport({ scale: activePdfScale });
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+      slot.style.width = Math.round(viewport.width) + 'px';
+      slot.style.height = Math.round(viewport.height) + 'px';
+
+      let canvas = slot.querySelector('canvas');
+      if (!canvas) {
+        canvas = document.createElement('canvas');
+        canvas.style.display = 'block';
+        canvas.style.width = '100%';
+        canvas.style.height = '100%';
+        slot.innerHTML = '';
+        slot.appendChild(canvas);
+      }
+
+      canvas.width = Math.floor(viewport.width * dpr);
+      canvas.height = Math.floor(viewport.height * dpr);
+
+      const ctx = canvas.getContext('2d');
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      const renderTask = page.render({ canvasContext: ctx, viewport });
+      activePdfRenderedPages.set(pageNum, renderTask);
+      await renderTask.promise;
+
+      if (session !== activePdfRenderSession) return;
+      activePdfRenderedPages.set(pageNum, true);
+
+      // Bellek yönetimi: aktif sayfadan 14 sayfadan fazla uzaklaşmış canvas'ları temizle
+      if (activePdfRenderedPages.size > 24) {
+        for (const [pNo, state] of activePdfRenderedPages.entries()) {
+          if (state === true && Math.abs(pNo - activePdfCurrentPage) > 14) {
+            const farSlot = activePdfPageSlots[pNo - 1];
+            if (farSlot) {
+              farSlot.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;color:#94a3b8;font-size:0.85rem;">Sayfa ${pNo}</div>`;
+            }
+            activePdfRenderedPages.delete(pNo);
+          }
         }
-      }).catch(e => console.warn("saveCurrentPdfPageState getPDF error:", e));
-    } catch (e) {
-      console.warn("saveCurrentPdfPageState IndexedDB error:", e);
+      }
+    } catch (err) {
+      if (err && err.name !== 'RenderingCancelledException') {
+        console.warn('PDF.js page render error (sayfa ' + pageNum + '):', err);
+      }
+      if (activePdfRenderedPages.get(pageNum) !== true) {
+        activePdfRenderedPages.delete(pageNum);
+      }
+    }
+  }
+
+  function scrollToPdfPage(pageNum, scrollRatio = 0) {
+    const container = document.getElementById('pdf-viewer-canvas-container');
+    if (!container || !activePdfPageSlots.length) return;
+    const clampedPage = Math.max(1, Math.min(activePdfPageSlots.length, parseInt(pageNum, 10) || 1));
+    const slot = activePdfPageSlots[clampedPage - 1];
+    if (!slot) return;
+
+    const clampedRatio = Math.max(0, Math.min(0.95, Number(scrollRatio) || 0));
+    const targetTop = Math.max(0, slot.offsetTop - 16 + Math.round(slot.offsetHeight * clampedRatio));
+
+    activePdfIsProgrammaticScroll = true;
+    container.scrollTop = targetTop;
+    activePdfCurrentPage = clampedPage;
+    activePdfScrollRatio = clampedRatio;
+
+    const pageInput = document.getElementById('pdf-viewer-page-input');
+    if (pageInput) pageInput.value = clampedPage;
+
+    const session = activePdfRenderSession;
+    for (let offset = -1; offset <= 2; offset++) {
+      const p = clampedPage + offset;
+      if (p >= 1 && p <= activePdfTotalPages) {
+        renderPdfJsPage(p, session);
+      }
+    }
+
+    setTimeout(() => {
+      activePdfIsProgrammaticScroll = false;
+    }, 120);
+  }
+
+  async function buildPdfJsPageSlots(targetPage, targetScrollRatio) {
+    const container = document.getElementById('pdf-viewer-canvas-container');
+    if (!container || !activePdfDoc) return;
+
+    const session = ++activePdfRenderSession;
+    if (activePdfObserver) {
+      try { activePdfObserver.disconnect(); } catch (e) {}
+      activePdfObserver = null;
+    }
+    activePdfRenderedPages.forEach((task) => {
+      if (task && typeof task.cancel === 'function') {
+        try { task.cancel(); } catch (e) {}
+      }
+    });
+    activePdfRenderedPages.clear();
+    activePdfPageSlots = [];
+    container.innerHTML = '';
+
+    const firstPage = await activePdfDoc.getPage(1);
+    if (session !== activePdfRenderSession) return;
+    const defaultVp = firstPage.getViewport({ scale: activePdfScale });
+    const defaultW = Math.round(defaultVp.width);
+    const defaultH = Math.round(defaultVp.height);
+
+    const frag = document.createDocumentFragment();
+    for (let i = 1; i <= activePdfTotalPages; i++) {
+      const slot = document.createElement('div');
+      slot.className = 'pdf-page-slot';
+      slot.dataset.page = String(i);
+      slot.style.cssText = `width: ${defaultW}px; height: ${defaultH}px; margin: 0 auto 18px auto; background: #ffffff; box-shadow: 0 6px 20px rgba(0,0,0,0.35); border-radius: 3px; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center;`;
+      slot.innerHTML = `<div style="color:#94a3b8;font-size:0.85rem;">Sayfa ${i} yükleniyor...</div>`;
+      activePdfPageSlots.push(slot);
+      frag.appendChild(slot);
+    }
+    container.appendChild(frag);
+
+    const zoomLabel = document.getElementById('pdf-viewer-zoom-label');
+    if (zoomLabel) zoomLabel.textContent = Math.round(activePdfScale * 100) + '%';
+
+    // Önce hedef konuma atla, ardından görünür sayfaları gözlemle
+    scrollToPdfPage(targetPage, targetScrollRatio);
+
+    if (typeof IntersectionObserver !== 'undefined') {
+      activePdfObserver = new IntersectionObserver((entries) => {
+        if (session !== activePdfRenderSession) return;
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            const pNo = parseInt(entry.target.dataset.page, 10);
+            if (pNo >= 1) {
+              renderPdfJsPage(pNo, session);
+              if (pNo + 1 <= activePdfTotalPages) renderPdfJsPage(pNo + 1, session);
+            }
+          }
+        });
+      }, { root: container, rootMargin: '900px 0px', threshold: 0.01 });
+
+      activePdfPageSlots.forEach((slot) => activePdfObserver.observe(slot));
+    }
+
+    container.onscroll = () => {
+      if (activePdfIsProgrammaticScroll || session !== activePdfRenderSession) return;
+      const pos = computeCurrentPdfScrollPosition();
+      activePdfCurrentPage = pos.page;
+      activePdfScrollRatio = pos.scrollRatio;
+
+      const pageInput = document.getElementById('pdf-viewer-page-input');
+      if (pageInput && document.activeElement !== pageInput) {
+        pageInput.value = pos.page;
+      }
+
+      if (activePdfScrollSaveTimer) clearTimeout(activePdfScrollSaveTimer);
+      activePdfScrollSaveTimer = setTimeout(() => {
+        if (currentOpenPdfId) {
+          saveCurrentPdfPageState(currentOpenPdfId, activePdfCurrentPage, {
+            scrollRatio: activePdfScrollRatio,
+            scale: activePdfScale,
+            name: currentOpenPdfName,
+            immediate: false
+          });
+        }
+      }, 280);
+    };
+  }
+
+  async function changePdfJsZoom(newScale) {
+    if (!activePdfDoc || !activePdfUsingJsViewer) return;
+    const pos = computeCurrentPdfScrollPosition();
+    activePdfScale = Math.max(0.5, Math.min(3.0, newScale));
+    await buildPdfJsPageSlots(pos.page, pos.scrollRatio);
+    if (currentOpenPdfId) {
+      saveCurrentPdfPageState(currentOpenPdfId, pos.page, {
+        scrollRatio: pos.scrollRatio,
+        scale: activePdfScale,
+        name: currentOpenPdfName,
+        immediate: true
+      });
+    }
+  }
+
+  async function openTextbookWithPdfJs(pdf, blob, initialPos) {
+    if (!window.pdfjsLib) return false;
+    const container = document.getElementById('pdf-viewer-canvas-container');
+    const iframe = document.getElementById('pdf-viewer-iframe');
+    const totalEl = document.getElementById('pdf-viewer-total-pages');
+    const zoomControls = document.getElementById('pdf-viewer-zoom-controls');
+    if (!container) return false;
+
+    try {
+      cleanupPdfJsViewer();
+      if (iframe) {
+        iframe.src = '';
+        iframe.style.display = 'none';
+      }
+      container.style.display = 'block';
+      container.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#e2e8f0;font-size:1rem;font-weight:600;">Ders kitabı hazırlanıyor...</div>`;
+
+      const arrayBuffer = await blob.arrayBuffer();
+      const loadingTask = window.pdfjsLib.getDocument({ data: arrayBuffer });
+      const pdfDoc = await loadingTask.promise;
+
+      activePdfDoc = pdfDoc;
+      activePdfTotalPages = pdfDoc.numPages || 1;
+      activePdfUsingJsViewer = true;
+
+      // İlk açılış ölçeği: kayıtlı zoom varsa onu kullan, yoksa ekrana uygun hesapla
+      if (initialPos && Number.isFinite(Number(initialPos.scale)) && Number(initialPos.scale) >= 0.5) {
+        activePdfScale = Number(initialPos.scale);
+      } else {
+        try {
+          const p1 = await pdfDoc.getPage(1);
+          const baseVp = p1.getViewport({ scale: 1 });
+          const availW = Math.max(480, (container.clientWidth || window.innerWidth) - 80);
+          activePdfScale = Math.max(0.85, Math.min(1.5, Math.round((Math.min(availW, 1050) / baseVp.width) * 100) / 100));
+        } catch (e) {
+          activePdfScale = 1.25;
+        }
+      }
+
+      if (totalEl) {
+        totalEl.textContent = '/ ' + activePdfTotalPages;
+        totalEl.style.display = 'inline';
+      }
+      if (zoomControls) {
+        zoomControls.style.display = 'flex';
+      }
+
+      const startPage = Math.max(1, Math.min(activePdfTotalPages, (initialPos && initialPos.page) || 1));
+      const startRatio = (initialPos && Number.isFinite(Number(initialPos.scrollRatio))) ? Number(initialPos.scrollRatio) : 0;
+
+      await buildPdfJsPageSlots(startPage, startRatio);
+
+      // Açılışta konumu tüm katmanlarda senkronize et
+      saveCurrentPdfPageState(pdf.id, startPage, {
+        scrollRatio: startRatio,
+        scale: activePdfScale,
+        name: pdf.name,
+        immediate: false
+      });
+      return true;
+    } catch (err) {
+      console.warn('PDF.js okuyucu başlatılamadı, standart görüntüleyiciye geçiliyor:', err);
+      cleanupPdfJsViewer();
+      if (iframe) iframe.style.display = 'block';
+      return false;
     }
   }
 
@@ -2540,7 +3130,10 @@
     grid.innerHTML = '';
     
     try {
-      const pdfs = await getAllPDFs();
+      const [pdfs, idbPositions] = await Promise.all([
+        getAllPDFs(),
+        getAllPDFPositionsFromIDB()
+      ]);
       if (pdfs.length === 0) {
         grid.innerHTML = `
           <div style="grid-column: 1 / -1; text-align: center; padding: 3rem 2rem; color: var(--text-muted); display: flex; flex-direction: column; align-items: center; justify-content: center;">
@@ -2574,7 +3167,8 @@
         const card = document.createElement('div');
         card.className = 'glass-card book-card';
         card.style.cssText = 'position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 1.5rem; text-align: center; gap: 0.5rem; min-height: 200px;';
-        const savedPage = parseInt(localStorage.getItem('sinif_asistani_textbook_page_' + pdf.id)) || pdf.lastPage || 1;
+        const bestPos = getBestTextbookPosition(pdf.id, pdf.name, pdf, idbPositions[pdf.id] || null);
+        const savedPage = bestPos.page || 1;
 
         card.innerHTML = `
           <div class="card-actions" style="position: absolute; top: 8px; right: 8px; z-index: 10;">
@@ -2638,7 +3232,10 @@
           e.stopPropagation();
           try {
             if (window.showToast) window.showToast('Kitap açılıyor...', 'info');
-            const data = await getPDF(pdf.id);
+            const [data, idbPos] = await Promise.all([
+              getPDF(pdf.id),
+              getPDFPositionFromIDB(pdf.id)
+            ]);
             if (data && data.blob) {
               const overlay = document.getElementById('pdf-viewer-overlay');
               const iframe = document.getElementById('pdf-viewer-iframe');
@@ -2646,32 +3243,43 @@
               const pageInput = document.getElementById('pdf-viewer-page-input');
               
               currentOpenPdfId = pdf.id;
+              currentOpenPdfName = pdf.name || data.name || '';
               
-              if (overlay && iframe && title) {
-                let savedLocalPage = null;
-                try {
-                  const stored = localStorage.getItem('sinif_asistani_textbook_page_' + pdf.id);
-                  if (stored) savedLocalPage = parseInt(stored);
-                } catch (e) {}
+              if (overlay && title) {
+                const bestPos = getBestTextbookPosition(pdf.id, currentOpenPdfName, data, idbPos);
+                const lastPage = Math.max(1, bestPos.page || 1);
+                activePdfCurrentPage = lastPage;
+                activePdfScrollRatio = bestPos.scrollRatio || 0;
 
-                const lastPage = Math.max(1, savedLocalPage || data.lastPage || 1);
                 if (pageInput) {
                   pageInput.value = lastPage;
                 }
-                
-                try {
-                  saveCurrentPdfPageState(pdf.id, lastPage);
-                } catch (errState) {
-                  console.warn("saveCurrentPdfPageState error on open:", errState);
-                }
-                
-                if (currentOpenPdfUrl) {
-                  try { URL.revokeObjectURL(currentOpenPdfUrl); } catch (e) {}
-                }
-                currentOpenPdfUrl = URL.createObjectURL(data.blob);
-                iframe.src = currentOpenPdfUrl + '#page=' + lastPage;
-                title.textContent = pdf.name;
+
+                title.textContent = currentOpenPdfName;
                 overlay.style.display = 'flex';
+                if (window.safeCreateIcons) window.safeCreateIcons();
+
+                // Önce PDF.js okuyucu ile aç (otomatik scroll + sayfa + zoom kalıcılığı)
+                const openedWithJs = await openTextbookWithPdfJs(pdf, data.blob, bestPos);
+
+                if (!openedWithJs && iframe) {
+                  iframe.style.display = 'block';
+                  try {
+                    saveCurrentPdfPageState(pdf.id, lastPage, {
+                      scrollRatio: 0,
+                      scale: activePdfScale,
+                      name: currentOpenPdfName,
+                      immediate: false
+                    });
+                  } catch (errState) {
+                    console.warn("saveCurrentPdfPageState error on open:", errState);
+                  }
+                  if (currentOpenPdfUrl) {
+                    try { URL.revokeObjectURL(currentOpenPdfUrl); } catch (e) {}
+                  }
+                  currentOpenPdfUrl = URL.createObjectURL(data.blob);
+                  iframe.src = currentOpenPdfUrl + '#page=' + lastPage;
+                }
 
                 // Canlı Ders Bilgisini Başlat
                 if (typeof updatePdfViewerLiveInfo === 'function') {

@@ -156,16 +156,18 @@ function setupDashboardTab(showToast) {
     if (!val) val = stateManager.getSelectedWeek();
     if (!val) return;
     
-    const parts = val.split('-W');
-    if (parts.length !== 2) return;
-    
-    const year = parseInt(parts[0]);
-    const week = parseInt(parts[1]);
-    
-    const simpleDate = getDayInWeek(year, week, 4); // Perşembe günü
-    simpleDate.setDate(simpleDate.getDate() + (offset * 7));
-    
-    const newWeek = window.getISOWeek(simpleDate);
+    let newWeek;
+    if (typeof window.stepEducationWeek === 'function') {
+      newWeek = window.stepEducationWeek(val, offset);
+    } else {
+      const parts = val.split('-W');
+      if (parts.length !== 2) return;
+      const year = parseInt(parts[0]);
+      const week = parseInt(parts[1]);
+      const simpleDate = getDayInWeek(year, week, 4); // Perşembe günü
+      simpleDate.setDate(simpleDate.getDate() + (offset * 7));
+      newWeek = window.getISOWeek(simpleDate);
+    }
     if (dashSelectWeek) dashSelectWeek.value = newWeek;
     stateManager.setSelectedWeek(newWeek);
     renderDashboardWeekly();
@@ -959,6 +961,16 @@ function renderDashboardHeaderActions() {
               </div>
             </div>
           </div>
+          <div class="flip-card" id="btn-dash-no-minus-dojo" tabindex="0" role="button" title="Bu Hafta Eksi Dojo Puanı Almayan Öğrenciler">
+            <div class="flip-card-inner">
+              <div class="flip-card-front">
+                <i id="dash-no-minus-dojo-icon" data-lucide="shield-check" style="color: #10b981;"></i>
+              </div>
+              <div class="flip-card-back">
+                <span>Eksisiz Dojo</span>
+              </div>
+            </div>
+          </div>
           <div class="flip-card" id="btn-dash-fullscreen-toggle" tabindex="0" role="button" title="${document.fullscreenElement ? 'Tam Ekrandan Çık' : 'Tam Ekran Yap'}">
             <div class="flip-card-inner">
               <div class="flip-card-front">
@@ -1058,6 +1070,20 @@ function renderDashboardHeaderActions() {
       btnDashAttendance.addEventListener('click', (e) => {
         e.preventDefault();
         openAttendanceModal();
+      });
+    }
+
+    const btnDashNoMinusDojo = document.getElementById('btn-dash-no-minus-dojo');
+    if (btnDashNoMinusDojo) {
+      btnDashNoMinusDojo.addEventListener('click', (e) => {
+        e.preventDefault();
+        openWeeklyNoMinusDojoModal();
+      });
+      btnDashNoMinusDojo.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          openWeeklyNoMinusDojoModal();
+        }
       });
     }
 
@@ -3542,7 +3568,7 @@ function updateFlowContent(syncWithRealTime = true) {
         const releases = await response.json();
         if (Array.isArray(releases) && releases.length > 0) {
           const latestRelease = releases[0];
-          const tagName = latestRelease.tag_name || 'v1.0.136';
+          const tagName = latestRelease.tag_name || 'v1.0.137';
           
           const badge = document.getElementById('download-app-version-badge');
           if (badge) badge.textContent = `${tagName} (En Son)`;
@@ -3723,6 +3749,319 @@ function updateFlowContent(syncWithRealTime = true) {
     });
   }
 
+  // =========================================================================
+  // BU HAFTA EKSİ DOJO PUANI ALMAYAN ÖĞRENCİLER MODALI
+  // =========================================================================
+  let _noMinusDojoModalInitialized = false;
+  let _lastNoMinusDojoRows = [];
+  let _lastNoMinusDojoWeekLabel = '';
+
+  function getCurrentWeekDateRangeText(now = new Date()) {
+    const day = now.getDay(); // 0=Paz, 1=Pzt..6=Cmt
+    const diffToMon = (day === 0 ? -6 : 1 - day);
+    const mon = new Date(now.getFullYear(), now.getMonth(), now.getDate() + diffToMon);
+    const sun = new Date(mon.getFullYear(), mon.getMonth(), mon.getDate() + 6);
+    const fmt = (d) => d.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' });
+    return `${fmt(mon)} – ${fmt(sun)} ${sun.getFullYear()}`;
+  }
+
+  function isPerformanceRecordDojo(p, state) {
+    if (!p) return false;
+    const reason = p.reason || '';
+    const reasonLower = reason.toLowerCase();
+
+    if (p.homeworkId) return false;
+    if (p.examId || reasonLower.includes('sınav') || reasonLower.includes('değerlendirme')) return false;
+
+    const isTask = !!(
+      p.taskId ||
+      (state.tasks && state.tasks.some(t => t.performanceId === p.id || (t.id && t.id === p.taskId))) ||
+      reason.includes('Görevi Teslim Edildi') ||
+      reason.includes('Görevi Tamamlandı') ||
+      (/görev/i.test(reason) && !reasonLower.includes('kitap okuma tamamlandı'))
+    );
+    if (isTask) return false;
+
+    const isStar = !!(
+      (p.extraData && p.extraData.isBookStar) ||
+      reasonLower.includes('yıldız') ||
+      reason === 'Kitap Okuma Puanı' ||
+      reasonLower.includes('kitap yıldızı') ||
+      reasonLower.includes('ders kitabı')
+    );
+    if (isStar) return false;
+
+    if (reasonLower.includes('kitap')) return false;
+
+    return true;
+  }
+
+  function computeWeeklyNoMinusDojoStudents(branchFilter = 'all') {
+    const state = window.stateManager ? window.stateManager.loadState() : null;
+    if (!state) return { rows: [], totalStudents: 0, currentWeek: '', weekLabel: '' };
+
+    const now = new Date();
+    const currentWeek = typeof window.getISOWeek === 'function' ? window.getISOWeek(now) : '';
+    const normCurrentWeek = typeof normalizeWeekId === 'function' ? normalizeWeekId(currentWeek) : currentWeek;
+    const eduInfo = typeof window.getEducationWeekInfo === 'function' ? window.getEducationWeekInfo(currentWeek) : null;
+    const weekLabel = (eduInfo && eduInfo.dateRange)
+      ? `${eduInfo.label ? eduInfo.label + ' • ' : ''}${eduInfo.dateRange}`
+      : getCurrentWeekDateRangeText(now);
+
+    const allStudents = Array.isArray(state.students) ? state.students : [];
+    const activeStudents = allStudents.filter(student => {
+      return state.educationLevel === 'primary' || branchFilter === 'all' || student.branch === branchFilter;
+    });
+
+    const perfList = Array.isArray(state.performance) ? state.performance : [];
+    const qualified = [];
+
+    activeStudents.forEach(student => {
+      const sId = String(student.id);
+      const sNum = String(student.number || '').trim();
+      const sName = `${student.name || ''} ${student.surname || ''}`.trim().toLocaleLowerCase('tr-TR');
+
+      let hasNegativeDojo = false;
+      let weeklyDojoPositiveTotal = 0;
+      let weeklyDojoRecordCount = 0;
+
+      for (let i = 0; i < perfList.length; i++) {
+        const p = perfList[i];
+        const pId = String(p.studentId || '');
+        const isMatch = (pId === sId) ||
+          (sNum && p.studentNumber && String(p.studentNumber).trim() === sNum) ||
+          (sName && p.studentName && p.studentName.trim().toLocaleLowerCase('tr-TR') === sName);
+        if (!isMatch) continue;
+
+        // Sadece Dojo (Davranış/Performans) kayıtlarını değerlendir
+        if (!isPerformanceRecordDojo(p, state)) continue;
+
+        // Kaydın haftasını belirle (geçerli hafta kontrolü)
+        const recordWeek = p.weekId ? p.weekId : (typeof window.getISOWeek === 'function' ? window.getISOWeek(p.date) : '');
+        const normRecord = typeof normalizeWeekId === 'function' ? normalizeWeekId(recordWeek) : recordWeek;
+        if (normCurrentWeek && normRecord !== normCurrentWeek && recordWeek !== currentWeek) continue;
+
+        const pt = Number(p.point) || 0;
+        weeklyDojoRecordCount++;
+        if (pt < 0) {
+          hasNegativeDojo = true;
+          break;
+        }
+        weeklyDojoPositiveTotal += pt;
+      }
+
+      if (!hasNegativeDojo) {
+        qualified.push({
+          student,
+          weeklyDojoPositiveTotal,
+          weeklyDojoRecordCount
+        });
+      }
+    });
+
+    // Bu haftaki Dojo artı puanına göre azalan, eşitlikte okul no / alfabetik sırala
+    qualified.sort((a, b) => {
+      if (b.weeklyDojoPositiveTotal !== a.weeklyDojoPositiveTotal) {
+        return b.weeklyDojoPositiveTotal - a.weeklyDojoPositiveTotal;
+      }
+      const nA = parseInt(a.student.number, 10);
+      const nB = parseInt(b.student.number, 10);
+      if (!Number.isNaN(nA) && !Number.isNaN(nB) && nA !== nB) {
+        return nA - nB;
+      }
+      return `${a.student.name || ''} ${a.student.surname || ''}`.localeCompare(
+        `${b.student.name || ''} ${b.student.surname || ''}`,
+        'tr'
+      );
+    });
+
+    return {
+      rows: qualified,
+      totalStudents: activeStudents.length,
+      currentWeek,
+      weekLabel
+    };
+  }
+
+  function renderWeeklyNoMinusDojoModalList() {
+    const listContainer = document.getElementById('no-minus-dojo-list-container');
+    const countBadge = document.getElementById('no-minus-dojo-count-badge');
+    const subtitleEl = document.getElementById('no-minus-dojo-week-subtitle');
+    const searchInput = document.getElementById('no-minus-dojo-search');
+    const branchSelect = document.getElementById('no-minus-dojo-branch-select');
+    if (!listContainer) return;
+
+    const branchFilter = (branchSelect && branchSelect.style.display !== 'none') ? branchSelect.value : 'all';
+    const { rows, totalStudents, weekLabel } = computeWeeklyNoMinusDojoStudents(branchFilter);
+    _lastNoMinusDojoRows = rows;
+    _lastNoMinusDojoWeekLabel = weekLabel;
+
+    if (subtitleEl) {
+      subtitleEl.textContent = `Geçerli Hafta: ${weekLabel}`;
+    }
+    if (countBadge) {
+      countBadge.textContent = `${rows.length} / ${totalStudents} Öğrenci`;
+    }
+
+    const q = searchInput ? searchInput.value.trim().toLocaleLowerCase('tr-TR') : '';
+    const filtered = q
+      ? rows.filter(r => {
+          const full = `${r.student.name || ''} ${r.student.surname || ''} ${r.student.number || ''}`.toLocaleLowerCase('tr-TR');
+          return full.includes(q);
+        })
+      : rows;
+
+    if (filtered.length === 0) {
+      listContainer.innerHTML = `
+        <div style="text-align: center; padding: 2.5rem 1rem; color: var(--text-muted); border: 1px dashed var(--border-color); border-radius: 10px;">
+          ${rows.length === 0
+            ? 'Bu hafta hiç eksi dojo puanı almamış öğrenci bulunmuyor.'
+            : 'Arama kriterine uyan öğrenci bulunamadı.'}
+        </div>
+      `;
+      return;
+    }
+
+    listContainer.innerHTML = filtered.map((row, idx) => {
+      const s = row.student;
+      const fullName = `${s.name || ''} ${s.surname || ''}`.trim();
+      const initials = `${(s.name || '')[0] || ''}${(s.surname || '')[0] || ''}`.toUpperCase();
+      const avatarHtml = s.photo
+        ? `<img src="${s.photo}" alt="" style="width: 36px; height: 36px; border-radius: 50%; object-fit: cover; border: 2px solid rgba(16, 185, 129, 0.35); flex-shrink: 0;">`
+        : `<div style="width: 36px; height: 36px; border-radius: 50%; background: rgba(16, 185, 129, 0.16); color: #059669; font-weight: 800; font-size: 0.85rem; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">${initials || '?'}</div>`;
+      const branchTag = s.branch ? `<span style="font-size: 0.72rem; color: var(--text-muted); margin-left: 0.35rem;">(${s.branch})</span>` : '';
+      const dojoScoreText = row.weeklyDojoPositiveTotal > 0 ? `+${row.weeklyDojoPositiveTotal} Dojo` : '0 Dojo';
+
+      return `
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 0.55rem 0.85rem; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 10px;">
+          <div style="display: flex; align-items: center; gap: 0.7rem; min-width: 0;">
+            <span style="width: 26px; text-align: center; font-weight: 800; font-size: 0.82rem; color: var(--text-muted); flex-shrink: 0;">${idx + 1}.</span>
+            ${avatarHtml}
+            <div style="min-width: 0;">
+              <div style="font-weight: 700; font-size: 0.92rem; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${fullName}${branchTag}</div>
+              <div style="font-size: 0.76rem; color: var(--text-muted);">Okul No: ${s.number || '-'}</div>
+            </div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 0.45rem; flex-shrink: 0;">
+            <span style="font-size: 0.78rem; font-weight: 700; color: var(--primary); background: rgba(99, 102, 241, 0.1); padding: 0.25rem 0.6rem; border-radius: 999px;">${dojoScoreText}</span>
+            <span style="font-size: 0.76rem; font-weight: 700; color: #059669; background: rgba(16, 185, 129, 0.14); padding: 0.25rem 0.6rem; border-radius: 999px;">0 Eksi</span>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function openWeeklyNoMinusDojoModal() {
+    const modal = document.getElementById('modal-weekly-no-minus-dojo');
+    if (!modal) return;
+
+    const searchInput = document.getElementById('no-minus-dojo-search');
+    const branchSelect = document.getElementById('no-minus-dojo-branch-select');
+    const state = window.stateManager ? window.stateManager.loadState() : null;
+
+    if (searchInput) searchInput.value = '';
+
+    // Ortaokul kademesinde şube seçiciyi doldur
+    if (branchSelect && state) {
+      if (state.educationLevel !== 'primary') {
+        const dashBranch = document.getElementById('dash-select-branch');
+        const branches = Array.from(new Set((state.students || []).map(s => s.branch).filter(Boolean))).sort();
+        branchSelect.innerHTML = `<option value="all">Tüm Şubeler</option>` + branches.map(b => `<option value="${b}">${b}</option>`).join('');
+        branchSelect.value = (dashBranch && dashBranch.value) ? dashBranch.value : 'all';
+        branchSelect.style.display = branches.length > 0 ? 'inline-block' : 'none';
+      } else {
+        branchSelect.style.display = 'none';
+      }
+    }
+
+    if (!_noMinusDojoModalInitialized) {
+      _noMinusDojoModalInitialized = true;
+      const closeModal = () => modal.classList.remove('active');
+      const btnCloseTop = document.getElementById('btn-close-no-minus-dojo-modal');
+      const btnCloseBottom = document.getElementById('btn-footer-close-no-minus-dojo');
+      if (btnCloseTop) btnCloseTop.addEventListener('click', closeModal);
+      if (btnCloseBottom) btnCloseBottom.addEventListener('click', closeModal);
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) closeModal();
+      });
+
+      if (searchInput) {
+        searchInput.addEventListener('input', renderWeeklyNoMinusDojoModalList);
+      }
+      if (branchSelect) {
+        branchSelect.addEventListener('change', renderWeeklyNoMinusDojoModalList);
+      }
+
+      const btnCopy = document.getElementById('btn-copy-no-minus-dojo');
+      if (btnCopy) {
+        btnCopy.addEventListener('click', async () => {
+          const lines = [
+            `Haftanın Eksi Dojo Puanı Almayan Öğrencileri (${_lastNoMinusDojoWeekLabel})`,
+            `Toplam: ${_lastNoMinusDojoRows.length} Öğrenci`,
+            '----------------------------------------',
+            ..._lastNoMinusDojoRows.map((r, i) => `${i + 1}. ${r.student.name || ''} ${r.student.surname || ''} (No: ${r.student.number || '-'}) • ${r.weeklyDojoPositiveTotal > 0 ? '+' + r.weeklyDojoPositiveTotal : '0'} Dojo`)
+          ];
+          const text = lines.join('\n');
+          try {
+            await navigator.clipboard.writeText(text);
+            if (window.showToast) window.showToast('Öğrenci listesi panoya kopyalandı.', 'success');
+          } catch (err) {
+            const ta = document.createElement('textarea');
+            ta.value = text;
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand('copy');
+            document.body.removeChild(ta);
+            if (window.showToast) window.showToast('Öğrenci listesi panoya kopyalandı.', 'success');
+          }
+        });
+      }
+
+      const btnPrint = document.getElementById('btn-print-no-minus-dojo');
+      if (btnPrint) {
+        btnPrint.addEventListener('click', () => {
+          const w = window.open('', '_blank', 'width=820,height=700');
+          if (!w) return;
+          const rowsHtml = _lastNoMinusDojoRows.map((r, i) => `
+            <tr>
+              <td style="text-align:center;">${i + 1}</td>
+              <td style="text-align:center;">${r.student.number || '-'}</td>
+              <td>${(r.student.name || '')} ${(r.student.surname || '')}</td>
+              <td style="text-align:center;font-weight:700;color:#059669;">${r.weeklyDojoPositiveTotal > 0 ? '+' + r.weeklyDojoPositiveTotal : '0'}</td>
+            </tr>
+          `).join('');
+          w.document.write(`
+            <!DOCTYPE html>
+            <html lang="tr"><head><meta charset="utf-8"><title>Haftanın Eksi Dojo Almayan Öğrencileri</title>
+            <style>
+              body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 24px; color: #111827; }
+              h2 { margin: 0 0 6px 0; color: #059669; }
+              p { margin: 0 0 16px 0; color: #4b5563; font-size: 14px; }
+              table { width: 100%; border-collapse: collapse; font-size: 14px; }
+              th, td { border: 1px solid #d1d5db; padding: 8px 10px; text-align: left; }
+              th { background: #ecfdf5; color: #065f46; }
+            </style></head><body>
+              <h2>Haftanın Eksi Dojo Puanı Almayan Öğrencileri</h2>
+              <p>Geçerli Hafta: ${_lastNoMinusDojoWeekLabel} • Toplam ${_lastNoMinusDojoRows.length} Öğrenci</p>
+              <table>
+                <thead><tr><th style="width:55px;text-align:center;">Sıra</th><th style="width:90px;text-align:center;">Okul No</th><th>Ad Soyad</th><th style="width:120px;text-align:center;">Haftalık Dojo</th></tr></thead>
+                <tbody>${rowsHtml}</tbody>
+              </table>
+            </body></html>
+          `);
+          w.document.close();
+          w.focus();
+          setTimeout(() => w.print(), 250);
+        });
+      }
+    }
+
+    renderWeeklyNoMinusDojoModalList();
+    modal.classList.add('active');
+    if (window.safeCreateIcons) window.safeCreateIcons();
+  }
+
+  window.openWeeklyNoMinusDojoModal = openWeeklyNoMinusDojoModal;
   window.openDownloadDesktopAppModal = openDownloadDesktopAppModal;
   window.openPardusInstallHelpModal = openPardusInstallHelpModal;
   window.closePardusInstallHelpModal = closePardusInstallHelpModal;

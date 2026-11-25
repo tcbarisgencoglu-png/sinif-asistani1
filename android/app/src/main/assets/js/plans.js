@@ -267,7 +267,9 @@
     if (btnPlansPrevWeek) {
       btnPlansPrevWeek.addEventListener('click', () => {
         if (plansSelectedWeekCode) {
-          plansSelectedWeekCode = stateManager.addWeeks(plansSelectedWeekCode, -1);
+          plansSelectedWeekCode = typeof window.stepEducationWeek === 'function'
+            ? window.stepEducationWeek(plansSelectedWeekCode, -1)
+            : stateManager.addWeeks(plansSelectedWeekCode, -1);
           renderWeeklyView();
         }
       });
@@ -275,7 +277,9 @@
     if (btnPlansNextWeek) {
       btnPlansNextWeek.addEventListener('click', () => {
         if (plansSelectedWeekCode) {
-          plansSelectedWeekCode = stateManager.addWeeks(plansSelectedWeekCode, 1);
+          plansSelectedWeekCode = typeof window.stepEducationWeek === 'function'
+            ? window.stepEducationWeek(plansSelectedWeekCode, 1)
+            : stateManager.addWeeks(plansSelectedWeekCode, 1);
           renderWeeklyView();
         }
       });

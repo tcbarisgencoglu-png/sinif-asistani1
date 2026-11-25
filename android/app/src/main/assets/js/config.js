@@ -1110,6 +1110,83 @@ SADECE VE SADECE GEÇERLİ BİR JSON DİZİSİ DÖNDÜR. Markdown (örneğin \`\
       }
     }
 
+    // Alt Bilgi Kutusu (Her 8 saniyede bir sırayla değişir)
+    let desktopAiInfoTimer = null;
+    let desktopAiInfoFadeTimeout = null;
+    const DESKTOP_AI_INFO_ITEMS = [
+      {
+        label: 'Demo Sürüm Bilgisi',
+        icon: 'info',
+        text: 'Demo sürümde listelerinizden yalnızca ilk 5 öğrenci sisteme aktarılır. Tüm sınıfı sınırsız eklemek için tam sürüme geçebilirsiniz.'
+      },
+      {
+        label: 'İşlem Süresi Hakkında',
+        icon: 'clock',
+        text: 'Yapay zeka sunucu yoğunluğuna ve belge uzunluğuna bağlı olarak analiz işlemi 1 dakikaya kadar sürebilir. Lütfen pencereyi kapatmadan bekleyiniz.'
+      }
+    ];
+
+    function renderDesktopAiInfoItem(idx, animate = false) {
+      const item = DESKTOP_AI_INFO_ITEMS[idx % DESKTOP_AI_INFO_ITEMS.length];
+      const textEl = document.getElementById('desktop-ai-info-text');
+      const labelEl = document.getElementById('desktop-ai-info-label');
+      const iconWrap = document.getElementById('desktop-ai-info-icon');
+      const dots = document.querySelectorAll('#desktop-ai-info-dots .desktop-ai-info-dot');
+
+      const applyContent = () => {
+        if (labelEl) labelEl.textContent = item.label;
+        if (textEl) textEl.textContent = item.text;
+        if (iconWrap) {
+          iconWrap.innerHTML = `<i data-lucide="${item.icon}" style="width: 13px; height: 13px;"></i>`;
+          if (window.safeCreateIcons) window.safeCreateIcons();
+          else if (window.lucide) window.lucide.createIcons();
+        }
+        dots.forEach((dot, dIdx) => {
+          const isActive = dIdx === (idx % DESKTOP_AI_INFO_ITEMS.length);
+          dot.style.width = isActive ? '14px' : '6px';
+          dot.style.background = isActive ? '#8b5cf6' : 'rgba(139, 92, 246, 0.3)';
+        });
+      };
+
+      if (animate && textEl) {
+        textEl.style.opacity = '0';
+        textEl.style.transform = 'translateY(4px)';
+        if (desktopAiInfoFadeTimeout) clearTimeout(desktopAiInfoFadeTimeout);
+        desktopAiInfoFadeTimeout = setTimeout(() => {
+          applyContent();
+          textEl.style.opacity = '1';
+          textEl.style.transform = 'translateY(0)';
+        }, 220);
+      } else {
+        applyContent();
+        if (textEl) {
+          textEl.style.opacity = '1';
+          textEl.style.transform = 'translateY(0)';
+        }
+      }
+    }
+
+    function startDesktopAiInfoCarousel() {
+      stopDesktopAiInfoCarousel();
+      let currentIdx = 0;
+      renderDesktopAiInfoItem(currentIdx, false);
+      desktopAiInfoTimer = setInterval(() => {
+        currentIdx = (currentIdx + 1) % DESKTOP_AI_INFO_ITEMS.length;
+        renderDesktopAiInfoItem(currentIdx, true);
+      }, 8000);
+    }
+
+    function stopDesktopAiInfoCarousel() {
+      if (desktopAiInfoTimer) {
+        clearInterval(desktopAiInfoTimer);
+        desktopAiInfoTimer = null;
+      }
+      if (desktopAiInfoFadeTimeout) {
+        clearTimeout(desktopAiInfoFadeTimeout);
+        desktopAiInfoFadeTimeout = null;
+      }
+    }
+
     // Dosya Seçildiğinde Tetiklenir
     if (desktopAiStudentFileInput) {
       desktopAiStudentFileInput.addEventListener('change', async (e) => {
@@ -1117,6 +1194,7 @@ SADECE VE SADECE GEÇERLİ BİR JSON DİZİSİ DÖNDÜR. Markdown (örneğin \`\
         if (!file) return;
 
         if (modalDesktopAiLoading) modalDesktopAiLoading.classList.add('active');
+        startDesktopAiInfoCarousel();
         const isPdf = file.name.toLowerCase().endsWith('.pdf') || file.type === 'application/pdf';
         
         // 1. Adım: Belge Hazırlanıyor
@@ -1208,6 +1286,8 @@ SADECE VE SADECE GEÇERLİ BİR JSON DİZİSİ DÖNDÜR. Markdown (örneğin \`\
           if (modalDesktopAiLoading) modalDesktopAiLoading.classList.remove('active');
           console.error('Desktop AI student scan error:', err);
           if (toastCallback) toastCallback(`❌ Hata: ${err.message || 'Belge işlenirken bir sorun oluştu.'}`, 'danger');
+        } finally {
+          stopDesktopAiInfoCarousel();
         }
       });
     }
@@ -1859,16 +1939,18 @@ SADECE VE SADECE GEÇERLİ BİR JSON DİZİSİ DÖNDÜR. Markdown (örneğin \`\
     }
     if (!val) return;
 
-    const parts = val.split('-W');
-    if (parts.length !== 2) return;
-
-    const year = parseInt(parts[0]);
-    const week = parseInt(parts[1]);
-
-    const simpleDate = window.getDayInWeek ? window.getDayInWeek(year, week, 4) : new Date();
-    simpleDate.setDate(simpleDate.getDate() + (offset * 7));
-
-    const newWeek = window.getISOWeek(simpleDate);
+    let newWeek;
+    if (typeof window.stepEducationWeek === 'function') {
+      newWeek = window.stepEducationWeek(val, offset);
+    } else {
+      const parts = val.split('-W');
+      if (parts.length !== 2) return;
+      const year = parseInt(parts[0]);
+      const week = parseInt(parts[1]);
+      const simpleDate = window.getDayInWeek ? window.getDayInWeek(year, week, 4) : new Date();
+      simpleDate.setDate(simpleDate.getDate() + (offset * 7));
+      newWeek = window.getISOWeek(simpleDate);
+    }
     if (configSelectWeek) configSelectWeek.value = newWeek;
     stateManager.setSelectedWeek(newWeek);
     updateConfigWeekUI(newWeek);

@@ -484,6 +484,7 @@
       const mon = new Date(openingMon.getTime() + (w - 1) * 7 * 86400000);
       const isoWeek = typeof window.getISOWeek === 'function' ? window.getISOWeek(mon) : '';
       const info = typeof window.getEducationWeekInfo === 'function' ? window.getEducationWeekInfo(isoWeek) : null;
+      if (info && info.isMergedContinuation) continue;
       
       const label = info ? info.label : `${w}. Hafta`;
       weeksList.push({

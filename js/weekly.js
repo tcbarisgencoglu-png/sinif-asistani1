@@ -215,6 +215,7 @@ function populateDesktopExamWeekSelect(selectedWeekId) {
     const d = new Date(opening.getTime() + (k - 1) * 7 * 24 * 60 * 60 * 1000);
     const iso = typeof window.getISOWeek === 'function' ? window.getISOWeek(d) : `W${k}`;
     const inf = typeof window.getEducationWeekInfo === 'function' ? window.getEducationWeekInfo(iso) : null;
+    if (inf && inf.isMergedContinuation) continue;
 
     const opt = document.createElement('option');
     opt.value = iso;

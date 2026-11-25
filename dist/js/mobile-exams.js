@@ -66,7 +66,9 @@
   window.changeWeeklyOffset = (delta) => {
     window.vibrate(15);
     const cur = getWeeklySelectedWeek();
-    if (window.stateManager && typeof window.stateManager.addWeeks === 'function') {
+    if (typeof window.stepEducationWeek === 'function') {
+      currentWeeklyTargetWeek = window.stepEducationWeek(cur, delta);
+    } else if (window.stateManager && typeof window.stateManager.addWeeks === 'function') {
       currentWeeklyTargetWeek = window.stateManager.addWeeks(cur, delta);
     } else {
       const parts = cur.split('-W');
@@ -303,6 +305,7 @@
         const d = new Date(opening.getTime() + (k - 1) * 7 * 24 * 60 * 60 * 1000);
         const iso = typeof window.getISOWeek === 'function' ? window.getISOWeek(d) : `W${k}`;
         const inf = typeof window.getEducationWeekInfo === 'function' ? window.getEducationWeekInfo(iso) : null;
+        if (inf && inf.isMergedContinuation) continue;
 
         const opt = document.createElement('option');
         opt.value = iso;

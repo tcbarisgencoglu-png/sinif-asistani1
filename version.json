@@ -1,14 +1,14 @@
 {
-  "version": "1.0.136",
-  "releaseDate": "2026-11-13",
+  "version": "1.0.137",
+  "releaseDate": "2026-11-25",
   "minRequiredVersion": "1.0.0",
-  "title": "Sınıf Asistanı v1.0.136 Yayında!",
-  "description": "MEB Ara Tatil Takvimi, Sınav İstatistikleri Alt Sayfası, Performans Hızlandırması ve Hafta Eşitleme Koruması",
+  "title": "Sınıf Asistanı v1.0.137 Yayında!",
+  "description": "Kalıcı Ders Kitabı Konum Takibi, Haftanın Eksisiz Dojo Listesi, El Terminali Ödev İçeriği Düzeltmesi ve Yeni Araçlar",
   "features": [
-    "MEB Resmi Ara Tatil Takvimi ve Kilit Koruması: 16–20 Kasım 2026 (1. Dönem Ara Tatili), 25 Ocak–5 Şubat 2027 (Yarıyıl Tatili) ve 8–12 Mart 2027 (2. Dönem Ara Tatili) haftaları sisteme tanımlanarak ara tatil haftalarında sehven ödev ve sınav girilmesi kapatıldı.",
-    "Haftalık Sınav Sıralama ve İstatistikleri Ayrı Sayfası: Sınav istatistik raporu sınav giriş tablosunun altından ayrılarak 'Sıralama ve İstatistikler' butonuyla açılan bağımsız ve hızlı bir alt görünüme taşındı.",
-    "Haftalık Değerlendirme ve Kaydetme Hızlandırması: Sekme geçişlerinde ve 'Değerlendirmeyi Kaydet' işleminde yaşanan 4–8 saniyelik gecikme giderildi; işlem süresi milisaniyeler seviyesine indirildi.",
-    "Sınav Derece Puanları ve Ödev Tarih Eşitleme Koruması: Çoklu yerel depo birleştirmelerinde sınav derece ödüllerinin çiftlenmesi ve ileri tarihli ödev kayıtlarının oluşması kalıcı olarak engellendi."
+    "Kalıcı Ders Kitabı Son Konum Takibi: Yüklenen PDF ders kitapları PDF.js okuyucu ile açılarak son sayfa, sayfa içi kaydırma konumu ve yakınlaştırma oranı yerel diske kalıcı olarak kaydedilir; uygulama kapatılıp açılsa da tam kaldığı yerden açılır.",
+    "Haftanın Eksi Dojo Almayan Öğrencileri: Masaüstü üst Hızlı Menü'ye eklenen Eksisiz Dojo ikonu ile geçerli hafta içinde yalnızca Dojo puanlarında hiç eksi almamış öğrenciler listelenir, kopyalanabilir ve yazdırılabilir.",
+    "El Terminali Ödev İçeriği Düzeltmesi: El terminalindeki Ödev İçeriği butonunun detay penceresini açmama sorunu giderildi.",
+    "Yeni Sınıf Araçları ve Kılavuz İyileştirmeleri: Belge/Sertifika oluşturucu, rubrik aracı, kullanım kılavuzu ve plan/sınav iyileştirmeleri eklendi."
   ],
   "release_url": "https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/latest"
 }

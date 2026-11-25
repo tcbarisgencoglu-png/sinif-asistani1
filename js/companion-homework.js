@@ -1416,12 +1416,7 @@
       if (!btn) return;
 
       const hw = this.currentHomework;
-      const hasHomework = !!(hw && (
-        (hw.definition && hw.definition.trim()) ||
-        (Array.isArray(hw.tasks) && hw.tasks.length > 0) ||
-        (hw.description && hw.description.trim()) ||
-        (hw.title && hw.title.trim() && !hw.title.includes(' Ödevi'))
-      ));
+      const hasHomework = !!hw;
 
       if (hasHomework) {
         btn.disabled = false;
@@ -1538,6 +1533,7 @@
 
       bodyEl.innerHTML = html;
       modal.style.display = 'flex';
+      setTimeout(() => modal.classList.add('active'), 10);
 
       if (window.lucide && typeof window.lucide.createIcons === 'function') {
         window.lucide.createIcons();
@@ -1550,7 +1546,10 @@
     closeDetailsModal() {
       const modal = document.getElementById('companion-hw-details-modal');
       if (modal) {
-        modal.style.display = 'none';
+        modal.classList.remove('active');
+        setTimeout(() => {
+          modal.style.display = 'none';
+        }, 200);
       }
     },
 

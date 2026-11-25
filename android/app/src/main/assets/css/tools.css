@@ -3201,3 +3201,654 @@ body.print-schedule #schedule-print-area .print-cell-text {
 
 
 
+
+/* ==========================================================================
+   DERECELİ PUANLAMA ANAHTARI (RUBRİK) OLUŞTURUCU STİLLERİ
+   ========================================================================== */
+
+.rubric-layout {
+  display: grid;
+  grid-template-columns: 360px 1fr;
+  gap: 1.25rem;
+  align-items: flex-start;
+  margin-top: 1rem;
+}
+
+@media (max-width: 1080px) {
+  .rubric-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.rubric-control-panel {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+}
+
+.rubric-section-title {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.rubric-section-title span.step-num {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #0ea5e9;
+  color: white;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.rubric-preview-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  align-items: center;
+  width: 100%;
+}
+
+.rubric-preview-toolbar {
+  width: 100%;
+  max-width: 210mm;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  padding: 0.6rem 0.85rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  box-sizing: border-box;
+}
+
+/* A4 Kağıt Görünümü */
+.rubric-a4-page {
+  width: 210mm;
+  min-height: 297mm;
+  background: #ffffff;
+  color: #0f172a;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  padding: 12mm 14mm;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.12);
+  box-sizing: border-box;
+  font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+  margin: 0 auto;
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.rubric-main-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 4px;
+}
+
+.rubric-main-table th,
+.rubric-main-table td {
+  border: 1px solid #cbd5e1;
+}
+
+.rubric-main-table thead th {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+/* Seçilen Düzey Hücresi (Değerlendirme Modu) */
+.rubric-desc-cell {
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+  position: relative;
+}
+
+.rubric-desc-cell:hover {
+  background: rgba(14, 165, 233, 0.04);
+}
+
+.rubric-desc-cell.rubric-cell-selected {
+  background: #e0f2fe !important;
+  border: 2px solid #0284c7 !important;
+  color: #0369a1 !important;
+  font-weight: 600;
+  box-shadow: inset 0 0 0 1px #0284c7;
+}
+
+.rubric-desc-cell.rubric-cell-selected::after {
+  content: "✓";
+  position: absolute;
+  top: 3px;
+  right: 5px;
+  font-size: 0.75rem;
+  font-weight: 900;
+  color: #0284c7;
+}
+
+.rubric-editable {
+  outline: none;
+  display: inline-block;
+  min-width: 15px;
+}
+
+.rubric-editable:focus {
+  background: rgba(254, 240, 138, 0.45);
+  box-shadow: 0 0 0 2px #facc15;
+  border-radius: 2px;
+}
+
+/* Fotokopi (Eco) Modu */
+.rubric-a4-page.fotokopi-mode,
+.rubric-print-container.fotokopi-mode {
+  border-color: #000000 !important;
+}
+
+.rubric-a4-page.fotokopi-mode .rubric-main-table th,
+.rubric-a4-page.fotokopi-mode .rubric-main-table td,
+.rubric-print-container.fotokopi-mode .rubric-main-table th,
+.rubric-print-container.fotokopi-mode .rubric-main-table td {
+  border-color: #000000 !important;
+  background: #ffffff !important;
+  color: #000000 !important;
+}
+
+.rubric-a4-page.fotokopi-mode .rubric-desc-cell.rubric-cell-selected,
+.rubric-print-container.fotokopi-mode .rubric-desc-cell.rubric-cell-selected {
+  background: #e2e8f0 !important;
+  border: 2px solid #000000 !important;
+  color: #000000 !important;
+}
+
+/* ==========================================================================
+   RUBRİK YAZDIRMA (@media print)
+   ========================================================================== */
+@media print {
+  @page rubricPrintPage {
+    size: A4 portrait;
+    margin: 0;
+  }
+
+  body.print-rubric {
+    page: rubricPrintPage;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+  }
+
+  body.print-rubric .app-container {
+    display: none !important;
+  }
+
+  body.print-rubric .rubric-print-container {
+    display: block !important;
+    width: 210mm !important;
+    height: 297mm !important;
+    max-height: 297mm !important;
+    min-height: 297mm !important;
+    padding: 10mm 12mm !important;
+    margin: 0 !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    box-sizing: border-box !important;
+    font-size: 8pt !important;
+    page-break-after: auto !important;
+    overflow: hidden !important;
+  }
+
+  body.print-rubric .rubric-print-container [contenteditable="true"] {
+    outline: none !important;
+    background: transparent !important;
+  }
+
+  body.print-rubric .rubric-print-container .btn-rubric-del-row {
+    display: none !important;
+  }
+}
+
+/* ==========================================================================
+   ÖĞRENCİ BAŞARI VE TEŞVİK BELGESİ HAZIRLAYICI STİLLERİ
+   ========================================================================== */
+
+.cert-layout {
+  display: grid;
+  grid-template-columns: 340px 1fr;
+  gap: 1.25rem;
+  align-items: flex-start;
+  margin-top: 1rem;
+  min-width: 0;
+}
+
+@media (max-width: 1150px) {
+  .cert-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.cert-control-panel {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+}
+
+.cert-section-title {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.cert-section-title span.step-num {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #f59e0b;
+  color: white;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.cert-preview-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+}
+
+.cert-preview-toolbar {
+  width: 100%;
+  max-width: 860px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  padding: 0.6rem 0.85rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  box-sizing: border-box;
+}
+
+/* A4 Yatay Sertifika Kağıt Görünümü (Landscape - Ekrana Tam Uyumlu) */
+.cert-preview-wrapper {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  overflow: hidden;
+  padding: 0.25rem 0;
+}
+
+.cert-a4-landscape {
+  width: 100%;
+  max-width: 860px;
+  aspect-ratio: 297 / 210;
+  height: auto;
+  min-height: auto;
+  max-height: none;
+  background: #ffffff;
+  color: #0f172a;
+  padding: 8px;
+  box-sizing: border-box;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+  font-family: 'Georgia', 'Times New Roman', -apple-system, serif;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  margin: 0 auto;
+  border-radius: 6px;
+}
+
+/* Dış ve İç Bezeme Çerçevesi */
+.cert-outer-border {
+  width: 100%;
+  height: 100%;
+  border: 3px solid #b45309;
+  padding: 4px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.cert-inner-border {
+  width: 100%;
+  height: 100%;
+  border: 2px solid #d97706;
+  padding: 1rem 1.4rem;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  position: relative;
+  background: radial-gradient(circle at center, #ffffff 60%, #fffbeb 100%);
+}
+
+/* Köşe Motifleri */
+.cert-corner {
+  position: absolute;
+  font-size: 1.15rem;
+  color: #d97706;
+  line-height: 1;
+  user-select: none;
+}
+.cert-corner.corner-tl { top: 4px; left: 6px; }
+.cert-corner.corner-tr { top: 4px; right: 6px; }
+.cert-corner.corner-bl { bottom: 4px; left: 6px; }
+.cert-corner.corner-br { bottom: 4px; right: 6px; }
+
+/* Sertifika Üst Bölüm */
+.cert-header {
+  text-align: center;
+  margin-bottom: 2px;
+}
+
+.cert-meb-badge {
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 2px;
+  color: #64748b;
+  text-transform: uppercase;
+  margin-bottom: 2px;
+}
+
+.cert-school-name {
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: #1e293b;
+  letter-spacing: 0.5px;
+  margin-bottom: 3px;
+  text-transform: uppercase;
+}
+
+.cert-award-ribbon {
+  display: inline-block;
+  font-size: 1.35rem;
+  font-weight: 900;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: #b45309;
+  text-shadow: 0 1px 2px rgba(180, 83, 9, 0.15);
+  margin-bottom: 2px;
+  border-bottom: 2px solid #f59e0b;
+  padding-bottom: 1px;
+}
+
+.cert-award-sub {
+  font-size: 0.74rem;
+  font-style: italic;
+  color: #475569;
+  letter-spacing: 0.3px;
+}
+
+/* Gövde ve Öğrenci Alanı */
+.cert-body {
+  text-align: center;
+  margin: 2px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.cert-present-text {
+  font-size: 0.74rem;
+  font-style: italic;
+  color: #64748b;
+  margin-bottom: 2px;
+}
+
+.cert-student-name-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 2px;
+  min-width: 280px;
+}
+
+.cert-student-name {
+  font-size: 1.85rem;
+  font-weight: 900;
+  color: #0f172a;
+  letter-spacing: 1px;
+  font-family: 'Times New Roman', 'Playfair Display', Georgia, serif;
+  text-transform: uppercase;
+  padding: 0 10px;
+}
+
+.cert-student-line {
+  width: 100%;
+  max-width: 380px;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #b45309, transparent);
+  margin-top: 2px;
+}
+
+.cert-student-meta {
+  font-size: 0.74rem;
+  color: #475569;
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cert-meta-sep {
+  color: #cbd5e1;
+}
+
+.cert-praise-box {
+  max-width: 660px;
+  margin: 0 auto;
+}
+
+.cert-praise-text {
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: #334155;
+  font-style: italic;
+  text-align: center;
+  margin: 0;
+}
+
+/* Alt Bölüm: İmzalar ve Mühür */
+.cert-footer {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: flex-end;
+  padding-top: 2px;
+}
+
+.cert-sig-box {
+  text-align: center;
+  font-size: 0.72rem;
+}
+
+.cert-sig-title {
+  font-weight: 800;
+  color: #1e293b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 2px;
+}
+
+.cert-sig-name {
+  font-weight: 700;
+  color: #475569;
+  font-size: 0.78rem;
+  margin-bottom: 6px;
+}
+
+.cert-sig-line {
+  width: 110px;
+  margin: 0 auto;
+  border-top: 1px dashed #94a3b8;
+  padding-top: 2px;
+  font-size: 0.65rem;
+  color: #94a3b8;
+}
+
+.cert-seal-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+}
+
+.cert-date-text {
+  font-size: 0.7rem;
+  color: #64748b;
+  margin-top: 1px;
+}
+
+/* ==========================================================================
+   TEMA VARYASYONLARI
+   ========================================================================== */
+
+/* Zümrüt Prestij Teması */
+.cert-a4-landscape.theme-emerald .cert-outer-border { border-color: #047857; }
+.cert-a4-landscape.theme-emerald .cert-inner-border {
+  border-color: #059669;
+  background: radial-gradient(circle at center, #ffffff 60%, #ecfdf5 100%);
+}
+.cert-a4-landscape.theme-emerald .cert-corner { color: #059669; }
+.cert-a4-landscape.theme-emerald .cert-award-ribbon { color: #047857; border-bottom-color: #10b981; }
+.cert-a4-landscape.theme-emerald .cert-student-line { background: linear-gradient(90deg, transparent, #059669, transparent); }
+
+/* Neşeli Yıldızlar (İlkokul) Teması */
+.cert-a4-landscape.theme-joyful .cert-outer-border { border-color: #e11d48; }
+.cert-a4-landscape.theme-joyful .cert-inner-border {
+  border-color: #f43f5e;
+  background: radial-gradient(circle at center, #ffffff 60%, #fff1f2 100%);
+}
+.cert-a4-landscape.theme-joyful .cert-corner { color: #f43f5e; }
+.cert-a4-landscape.theme-joyful .cert-award-ribbon { color: #e11d48; border-bottom-color: #fb7185; }
+.cert-a4-landscape.theme-joyful .cert-student-line { background: linear-gradient(90deg, transparent, #e11d48, transparent); }
+
+/* Modern Geometrik Teması */
+.cert-a4-landscape.theme-modern .cert-outer-border { border-color: #4338ca; }
+.cert-a4-landscape.theme-modern .cert-inner-border {
+  border-color: #6366f1;
+  background: radial-gradient(circle at center, #ffffff 60%, #eef2ff 100%);
+}
+.cert-a4-landscape.theme-modern .cert-corner { color: #6366f1; }
+.cert-a4-landscape.theme-modern .cert-award-ribbon { color: #4338ca; border-bottom-color: #818cf8; }
+.cert-a4-landscape.theme-modern .cert-student-line { background: linear-gradient(90deg, transparent, #6366f1, transparent); }
+
+/* Fotokopi (Eco) Modu */
+.cert-a4-landscape.fotokopi-mode,
+.cert-print-container.fotokopi-mode .cert-a4-landscape {
+  background: #ffffff !important;
+  color: #000000 !important;
+}
+.cert-a4-landscape.fotokopi-mode .cert-outer-border,
+.cert-a4-landscape.fotokopi-mode .cert-inner-border,
+.cert-print-container.fotokopi-mode .cert-outer-border,
+.cert-print-container.fotokopi-mode .cert-inner-border {
+  border-color: #000000 !important;
+  background: #ffffff !important;
+}
+.cert-a4-landscape.fotokopi-mode .cert-award-ribbon,
+.cert-a4-landscape.fotokopi-mode .cert-corner,
+.cert-print-container.fotokopi-mode .cert-award-ribbon,
+.cert-print-container.fotokopi-mode .cert-corner {
+  color: #000000 !important;
+  border-color: #000000 !important;
+}
+.cert-a4-landscape.fotokopi-mode .cert-student-line,
+.cert-print-container.fotokopi-mode .cert-student-line {
+  background: #000000 !important;
+}
+
+.cert-editable {
+  outline: none;
+  display: inline-block;
+  min-width: 20px;
+}
+.cert-editable:focus {
+  background: rgba(254, 240, 138, 0.45);
+  box-shadow: 0 0 0 2px #facc15;
+  border-radius: 2px;
+}
+
+/* ==========================================================================
+   SERTİFİKA YAZDIRMA (@media print)
+   ========================================================================== */
+@media print {
+  @page certificatePrintPage {
+    size: A4 landscape;
+    margin: 0;
+  }
+
+  body.print-cert {
+    page: certificatePrintPage;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+  }
+
+  body.print-cert .app-container {
+    display: none !important;
+  }
+
+  body.print-cert .cert-print-container {
+    display: block !important;
+    width: 297mm !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+  }
+
+  body.print-cert .cert-print-container .cert-a4-landscape {
+    width: 297mm !important;
+    height: 210mm !important;
+    min-height: 210mm !important;
+    max-height: 210mm !important;
+    padding: 8mm 10mm !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+    page-break-after: always !important;
+    break-after: page !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    box-sizing: border-box !important;
+  }
+
+  body.print-cert .cert-print-container .cert-a4-landscape:last-child {
+    page-break-after: auto !important;
+    break-after: auto !important;
+  }
+
+  body.print-cert .cert-print-container [contenteditable="true"] {
+    outline: none !important;
+    background: transparent !important;
+  }
+}

@@ -188,7 +188,7 @@
       <div id="sidebar-demo-container"></div>
       
       <div class="sidebar-footer" style="padding: 1rem; text-align: center; font-size: 0.8rem; color: var(--text-muted); border-top: 1px solid var(--border-color);">
-        <span id="app-sidebar-version-text">Sınıf Asistanı v1.0.136</span>
+        <span id="app-sidebar-version-text">Sınıf Asistanı v1.0.137</span>
       </div>
     </aside>
 
@@ -3575,371 +3575,70 @@
 
         <!-- 6. KULLANIM KILAVUZU SEKMESİ -->
         <div class="config-tab-content" id="config-manual" style="display: none;">
-          <!-- Arama Kutusu Kartı -->
-          <div class="glass-card" style="padding: 1.25rem 1.5rem; margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
-            <div>
-              <h3 style="font-size: 1.25rem; font-weight: 700; color: var(--text-primary); margin: 0; display: flex; align-items: center; gap: 0.5rem;">
-                <i data-lucide="help-circle" style="color: var(--primary); width: 22px; height: 22px;"></i>
-                Kullanım Kılavuzu & Yardım
-              </h3>
-              <p style="font-size: 0.85rem; color: var(--text-muted); margin: 4px 0 0 0;">Uygulamanın tüm özelliklerini ve verimli kullanım ipuçlarını keşfedin.</p>
+          <!-- Başlık, Arama ve Kategori Filtre Kartı -->
+          <div class="glass-card" style="padding: 1.25rem 1.5rem; margin-bottom: 1.25rem; display: flex; flex-direction: column; gap: 1rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+              <div>
+                <h3 style="font-size: 1.25rem; font-weight: 700; color: var(--text-primary); margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+                  <i data-lucide="help-circle" style="color: var(--primary); width: 22px; height: 22px;"></i>
+                  Kullanım Kılavuzu &amp; Yardım
+                </h3>
+                <p style="font-size: 0.85rem; color: var(--text-muted); margin: 4px 0 0 0;">Masaüstü ve El Terminali (Mobil) eşleştirmeli adım adım kullanım rehberi.</p>
+              </div>
+              <div style="display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; flex: 1; justify-content: flex-end; min-width: 260px;">
+                <div class="search-wrapper" style="max-width: 320px; flex: 1; min-width: 220px;">
+                  <i data-lucide="search"></i>
+                  <input type="text" id="manual-search-input" class="form-control" placeholder="Kılavuzda veya özelliklerde ara..." style="font-size: 0.85rem; height: 38px; width: 100%;">
+                </div>
+                <button type="button" id="manual-toggle-all-btn" class="btn btn-secondary btn-sm" onclick="window.toggleAllManualAccordions()" style="height: 38px; display: inline-flex; align-items: center; gap: 0.35rem; white-space: nowrap; font-size: 0.8rem;">
+                  <i data-lucide="maximize-2" style="width: 14px; height: 14px;"></i>
+                  <span>Tümünü Aç</span>
+                </button>
+              </div>
             </div>
-            <div class="search-wrapper" style="max-width: 320px; flex: 1; min-width: 250px;">
-              <i data-lucide="search"></i>
-              <input type="text" id="manual-search-input" class="form-control" placeholder="Kılavuzda veya özelliklerde ara..." style="font-size: 0.85rem; height: 38px; width: 100%;">
+
+            <!-- Kategori Filtreleri ve Sonuç Sayacı -->
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; padding-top: 0.75rem; border-top: 1px solid var(--border-color);">
+              <div id="manual-category-chips" style="display: flex; flex-wrap: wrap; gap: 0.45rem;"></div>
+              <span id="manual-result-count" style="font-size: 0.78rem; font-weight: 600; color: var(--text-muted); white-space: nowrap;"></span>
             </div>
           </div>
 
-          <!-- Kılavuz Konuları (Akordeon Listesi) -->
-          <div id="manual-accordion-container" style="display: flex; flex-direction: column; gap: 1rem;">
-            
-            <!-- Konu 1 -->
-            <div class="manual-item glass-card" style="padding: 0; overflow: hidden; border-radius: var(--radius-md); transition: border-color 0.2s ease, box-shadow 0.2s ease;" data-title="Sınıf Kurulumu ve Öğrenci Yönetimi" data-keywords="öğrenci ekleme excel şablonu csv silme güncelleme yeni sınıf yükleme veli telefon fotoğraf">
-              <div class="manual-header" style="padding: 1.25rem 1.5rem; display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: background 0.2s;" onclick="toggleManualAccordion(this)">
-                <div style="display: flex; align-items: center; gap: 0.75rem;">
-                  <div style="width: 38px; height: 38px; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; background: var(--primary-light); color: var(--primary);">
-                    <i data-lucide="users" style="width: 18px; height: 18px;"></i>
-                  </div>
-                  <div>
-                    <h4 style="font-weight: 700; font-size: 1rem; margin: 0; color: var(--text-primary);">🚀 Sınıf Kurulumu ve Öğrenci Yönetimi</h4>
-                    <p style="font-size: 0.8rem; color: var(--text-muted); margin: 2px 0 0 0;">Tek tek veya Excel ile toplu öğrenci ekleme, düzenleme ve silme işlemleri.</p>
-                  </div>
-                </div>
-                <i data-lucide="chevron-down" class="accordion-arrow" style="width: 18px; height: 18px; color: var(--text-muted); transition: transform 0.3s ease;"></i>
-              </div>
-              <div class="manual-body" style="max-height: 0; overflow: hidden; transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1); background: rgba(255, 255, 255, 0.01); border-top: 0px solid var(--border-color);">
-                <div style="padding: 1.5rem; line-height: 1.6; font-size: 0.9rem; color: var(--text-secondary); display: flex; flex-direction: column; gap: 1rem;">
-                  <p>Sınıf Asistanını kullanmaya başlamak için ilk yapmanız gereken şey öğrenci listesini oluşturmaktır. Uygulama size hem tek tek hem de toplu öğrenci ekleme kolaylığı sunar.</p>
-                  
-                  <div style="display: flex; flex-direction: column; gap: 0.75rem; padding-left: 0.5rem;">
-                    <strong>1. Tek Tek Öğrenci Ekleme:</strong>
-                    <p style="margin: 0;">"Asistan Konfigürasyonu" → "Öğrenci Yönetimi" sekmesine gidin. Sağ üstteki <strong>"Öğrenci Ekle"</strong> butonuna tıklayın. Açılan pencerede öğrencinin adını, soyadını, okul numarasını, cinsiyetini ve veli telefon numarasını girip kaydedin. İsteğe bağlı olarak öğrenciye bir profil fotoğrafı da yükleyebilirsiniz.</p>
-                    
-                    <strong>2. Excel / CSV ile Toplu Öğrenci Yükleme:</strong>
-                    <p style="margin: 0;">Sınıfınızdaki tüm öğrencileri tek tek girmek yerine Excel dosyasından aktarabilirsiniz. Bunun için:</p>
-                    <ol style="margin: 0; padding-left: 1.25rem; display: flex; flex-direction: column; gap: 0.25rem;">
-                      <li>"Öğrenci Yönetimi" sekmesindeki <strong>"Excel Şablonu"</strong> butonuna tıklayarak örnek şablonu bilgisayarınıza indirin.</li>
-                      <li>İndirdiğiniz Excel dosyasını açın. Öğrencilerinizin <i>Adı, Soyadı, Okul No, Cinsiyet (Kız/Erkek) ve Veli Telefonu</i> bilgilerini şablondaki sütunlara uygun şekilde doldurup kaydedin.</li>
-                      <li><strong>"Öğrenci Yükle"</strong> butonuna tıklayarak hazırladığınız Excel dosyasını seçin. Öğrencileriniz saniyeler içinde sisteme yüklenecektir.</li>
-                    </ol>
-                    
-                    <strong>3. Öğrenci Bilgilerini Düzenleme ve Silme:</strong>
-                    <p style="margin: 0;">Öğrenci listesindeki her öğrencinin sağ tarafında iki işlem butonu bulunur:
-                      <br>• <strong>Düzenle (Kalem İkonu):</strong> Öğrencinin adını, okul numarasını, veli telefonunu değiştirmek veya profil fotoğrafı yüklemek/güncellemek için kullanılır.
-                      <br>• <strong>Sil (Çöp Kutusu İkonu):</strong> Öğrenciyi sınıf listesinden kalıcı olarak kaldırır.
-                    </p>
-                  </div>
+          <!-- Kılavuz Konuları (js/manual.js tarafından dinamik doldurulur) -->
+          <div id="manual-accordion-container" style="display: flex; flex-direction: column; gap: 0.9rem;"></div>
 
-                  <div style="background: var(--primary-light); border-left: 4px solid var(--primary); padding: 0.75rem 1rem; border-radius: var(--radius-sm); font-size: 0.85rem; color: var(--text-secondary);">
-                    <strong>⚠️ Önemli Uyarı:</strong> Bir öğrenciyi listeden sildiğinizde, o öğrenciye ait tüm geçmiş puanlar, davranış kayıtları, ödev durumları ve kütüphane ödünç geçmişi de kalıcı olarak silinir. Bu işlem geri alınamaz.
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Konu 2 -->
-            <div class="manual-item glass-card" style="padding: 0; overflow: hidden; border-radius: var(--radius-md); transition: border-color 0.2s ease, box-shadow 0.2s ease;" data-title="Genel Ayarlar ve Lisans Yönetimi" data-keywords="tema koyu açık tema eğitim kademesi ilkokul ortaokul yedek veri yedekleme geri yükleme json lisans anahtarı aktivasyon sıfırlama fabrika ayarları">
-              <div class="manual-header" style="padding: 1.25rem 1.5rem; display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: background 0.2s;" onclick="toggleManualAccordion(this)">
-                <div style="display: flex; align-items: center; gap: 0.75rem;">
-                  <div style="width: 38px; height: 38px; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; background: var(--primary-light); color: var(--primary);">
-                    <i data-lucide="settings" style="width: 18px; height: 18px;"></i>
-                  </div>
-                  <div>
-                    <h4 style="font-weight: 700; font-size: 1rem; margin: 0; color: var(--text-primary);">⚙️ Genel Ayarlar ve Lisans Yönetimi</h4>
-                    <p style="font-size: 0.8rem; color: var(--text-muted); margin: 2px 0 0 0;">Tema seçimi, kademe ayarları, veri yedekleme ve lisans aktifleştirme işlemleri.</p>
-                  </div>
-                </div>
-                <i data-lucide="chevron-down" class="accordion-arrow" style="width: 18px; height: 18px; color: var(--text-muted); transition: transform 0.3s ease;"></i>
-              </div>
-              <div class="manual-body" style="max-height: 0; overflow: hidden; transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1); background: rgba(255, 255, 255, 0.01); border-top: 0px solid var(--border-color);">
-                <div style="padding: 1.5rem; line-height: 1.6; font-size: 0.9rem; color: var(--text-secondary); display: flex; flex-direction: column; gap: 1rem;">
-                  <p>Genel Ayarlar sekmesi, uygulamanın görünümünü, çalışma modunu ve veri güvenliğini yönettiğiniz yönetim merkezidir.</p>
-                  
-                  <div style="display: flex; flex-direction: column; gap: 0.75rem; padding-left: 0.5rem;">
-                    <strong>1. Uygulama Teması:</strong>
-                    <p style="margin: 0;">Sınıf Asistanı modern ve gözü yormayan iki farklı temaya sahiptir. <strong>"Koyu Tema"</strong> ve <strong>"Açık Tema"</strong> arasında tek tıklamayla geçiş yapabilirsiniz. Koyu tema özellikle loş sınıflarda akıllı tahta yansıtmalarında göz yorgunluğunu ciddi şekilde azaltır.</p>
-                    
-                    <strong>2. Eğitim Kademesi Seçimi:</strong>
-                    <p style="margin: 0;">Uygulamayı <strong>İlkokul</strong> veya <strong>Ortaokul</strong> moduna ayarlayabilirsiniz. Bu ayar bazı özellikleri dinamik olarak değiştirir:
-                      <br>• <i>İlkokul Modunda:</i> Öğrenci puanları yıldızlarla gösterilir ve eğitsel oyunlar daha ön plandır.
-                      <br>• <i>Ortaokul Modunda:</i> Puanlama daha detaylıdır, yazılı sınav analizi ve not defteri araçları akademik takibe uygun şekilde optimize edilir. Ayrıca <strong>ortaokul kademesinde, dashboard sayfasında (üst menüde) seçilen şube, tüm uygulama genelinde etkin şube haline gelir</strong> ve tüm veriler bu şubeye göre filtrelenir.
-                    </p>
-                    
-                    <strong>3. Veri Yedekleme ve Geri Yükleme:</strong>
-                    <p style="margin: 0;">Sınıf Asistanı tüm verilerinizi tarayıcınızın güvenli yerel hafızasında saklar. Bilgisayarınızın arızalanması veya tarayıcı geçmişinin silinmesi durumunda veri kaybı yaşamamak için düzenli olarak yedek almalısınız:
-                      <br>• <strong>Yedek Al (JSON):</strong> Sınıf listeniz, ödevleriniz, kitaplarınız ve tüm puan verileriniz şifreli bir dosya olarak bilgisayarınıza iner.
-                      <br>• <strong>Yedek Yükle:</strong> Daha önce aldığınız yedek dosyasını (.json) seçerek tüm verilerinizi tek tıkla geri yükleyebilirsiniz.
-                    </p>
-
-                    <strong>4. Lisans Yönetimi:</strong>
-                    <p style="margin: 0;">Uygulamanın tüm özelliklerini sınırsız kullanabilmek için size tanımlanan Lisans Anahtarını ilgili kutuya yapıştırıp <strong>"Aktifleştir"</strong> butonuna tıklamanız yeterlidir. Lisansı başka bir bilgisayara taşımak isterseniz "Lisansı Kaldır" butonu ile lisansı boşa çıkarabilirsiniz.</p>
-
-                    <strong>5. Sistemi Sıfırla:</strong>
-                    <p style="margin: 0; color: var(--danger);">Tüm öğrenci listesini, puanları, ödevleri ve kitap verilerini tamamen silerek uygulamayı fabrika ayarlarına döndürür. Yeni bir eğitim öğretim yılına başlarken kullanılması önerilir.</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Konu 3 -->
-            <div class="manual-item glass-card" style="padding: 0; overflow: hidden; border-radius: var(--radius-md); transition: border-color 0.2s ease, box-shadow 0.2s ease;" data-title="Puanlama Sistemi ve Kuralları" data-keywords="puan ayarları davranış puanı artı eksi olumlu geliştirilmeli kitap puanı ödev puanları sınav başarısı kural ekleme">
-              <div class="manual-header" style="padding: 1.25rem 1.5rem; display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: background 0.2s;" onclick="toggleManualAccordion(this)">
-                <div style="display: flex; align-items: center; gap: 0.75rem;">
-                  <div style="width: 38px; height: 38px; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; background: var(--primary-light); color: var(--primary);">
-                    <i data-lucide="award" style="width: 18px; height: 18px;"></i>
-                  </div>
-                  <div>
-                    <h4 style="font-weight: 700; font-size: 1rem; margin: 0; color: var(--text-primary);">📊 Puanlama Sistemi ve Kuralları</h4>
-                    <p style="font-size: 0.8rem; color: var(--text-muted); margin: 2px 0 0 0;">Davranış, ödev, kitap okuma ve sınav puanlama kurallarının özelleştirilmesi.</p>
-                  </div>
-                </div>
-                <i data-lucide="chevron-down" class="accordion-arrow" style="width: 18px; height: 18px; color: var(--text-muted); transition: transform 0.3s ease;"></i>
-              </div>
-              <div class="manual-body" style="max-height: 0; overflow: hidden; transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1); background: rgba(255, 255, 255, 0.01); border-top: 0px solid var(--border-color);">
-                <div style="padding: 1.5rem; line-height: 1.6; font-size: 0.9rem; color: var(--text-secondary); display: flex; flex-direction: column; gap: 1rem;">
-                  <p>Öğrencilerin sınıf içi motivasyonunu ve olumlu davranışlarını desteklemek için gelişmiş bir puanlama sistemi bulunur. Tüm puan değerlerini sınıf kurallarınıza göre düzenleyebilirsiniz.</p>
-                  
-                  <div style="display: flex; flex-direction: column; gap: 0.75rem; padding-left: 0.5rem;">
-                    <strong>1. Davranış Puanları (+ / -):</strong>
-                    <p style="margin: 0;">Sınıfta sık karşılaşılan olumlu ve olumsuz davranışlar için puan kartları oluşturabilirsiniz.
-                      <br>• <strong>Olumlu (+):</strong> Derse katılım, örnek davranış, yardımlaşma gibi durumlar için artı puan (Örn: +5, +10).
-                      <br>• <strong>Geliştirilmeli (-):</strong> Derse geç gelme, hazırlıksız gelme, gürültü yapma gibi durumlar için eksi puan (Örn: -5, -10).
-                      <br>• <i>Yeni Kural Ekleme:</i> Listenin en altındaki formu kullanarak yeni bir davranış adı ve puan değeri girip sisteme ekleyebilirsiniz.
-                    </p>
-                    
-                    <strong>2. Ödev Puanları:</strong>
-                    <p style="margin: 0;">"Ödev Puanları" sekmesinden ödev takibinde verilecek puanları düzenleyebilirsiniz:
-                      <br>• <strong>Yapıldı:</strong> Ödevini tam getiren öğrencilere eklenecek puan.
-                      <br>• <strong>Eksik:</strong> Ödevini yarım yapan öğrencilere eklenecek kısmi puan.
-                      <br>• <strong>Yapılmadı:</strong> Ödevini hiç yapmayan öğrencilerden düşülecek eksi puan.
-                      <br>• <strong>Mazeretli:</strong> Hastalık vb. geçerli bir mazereti olan öğrencilere (genellikle 0 puan) etki etmeyecek durum.
-                    </p>
-                    
-                    <strong>3. Kitap Okuma Puanları:</strong>
-                    <p style="margin: 0;">Kitap seviyelerine (1. ve 2. Seviye) göre okuma ve teslimat kurallarını belirleyin:
-                      <br>• <strong>1. Seviye Kitaplar (Kolay / Temel):</strong> Zamanında teslim puanı, geç teslim puanı ve makul okuma süresi (gün).
-                      <br>• <strong>2. Seviye Kitaplar (İleri / Kalın):</strong> Zamanında teslim puanı, geç teslim puanı ve makul okuma süresi (gün).
-                    </p>
-
-                    <strong>4. Sınav Puanları:</strong>
-                    <p style="margin: 0;">Dönem içi yapılan sınavlarda dereceye giren öğrencileri ödüllendirmek için kullanılır. Örneğin, sınavda sınıf birincisi olan öğrenciye otomatik olarak +50, ikinciye +30, üçüncüye +20 puan eklenmesini sağlayabilirsiniz. Kaçıncı dereceye kadar puan verileceğini (ilk 3, ilk 5 vb.) seçebilirsiniz.</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Konu 4 -->
-            <div class="manual-item glass-card" style="padding: 0; overflow: hidden; border-radius: var(--radius-md); transition: border-color 0.2s ease, box-shadow 0.2s ease;" data-title="Haftalık Değerlendirme ve Performans Girişi" data-keywords="haftalık değerlendirme performans puan verme toplu ödev kontrolü öğrenci kartı veli mektubu gelişim grafiği haftayı kapatma yeni hafta">
-              <div class="manual-header" style="padding: 1.25rem 1.5rem; display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: background 0.2s;" onclick="toggleManualAccordion(this)">
-                <div style="display: flex; align-items: center; gap: 0.75rem;">
-                  <div style="width: 38px; height: 38px; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; background: var(--primary-light); color: var(--primary);">
-                    <i data-lucide="calendar" style="width: 18px; height: 18px;"></i>
-                  </div>
-                  <div>
-                    <h4 style="font-weight: 700; font-size: 1rem; margin: 0; color: var(--text-primary);">📝 Haftalık Değerlendirme & Performans Girişi</h4>
-                    <p style="font-size: 0.8rem; color: var(--text-muted); margin: 2px 0 0 0;">Günlük puan verme, toplu ödev kontrolü, öğrenci detay ekranı ve hafta yönetimi.</p>
-                  </div>
-                </div>
-                <i data-lucide="chevron-down" class="accordion-arrow" style="width: 18px; height: 18px; color: var(--text-muted); transition: transform 0.3s ease;"></i>
-              </div>
-              <div class="manual-body" style="max-height: 0; overflow: hidden; transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1); background: rgba(255, 255, 255, 0.01); border-top: 0px solid var(--border-color);">
-                <div style="padding: 1.5rem; line-height: 1.6; font-size: 0.9rem; color: var(--text-secondary); display: flex; flex-direction: column; gap: 1rem;">
-                  <p>Bu ekran, öğretmenin gün içinde en çok kullanacağı, sınıfın nabzını tuttuğu ana çalışma panelidir.</p>
-                  
-                  <div style="display: flex; flex-direction: column; gap: 0.75rem; padding-left: 0.5rem;">
-                    <strong>1. Hızlı Davranış Puanı Verme:</strong>
-                    <p style="margin: 0;">"Haftalık Değerlendirme" sekmesinde yer alan öğrenci listesinde bir öğrenciye tıkladığınızda sol tarafta <strong>Hızlı Değerlendirme Paneli</strong> açılır. Buradan istediğiniz olumlu veya olumsuz davranış butonuna tıklayarak öğrenciye anında puan yazabilirsiniz. Aynı anda birden fazla öğrenciyi seçerek toplu puan da verebilirsiniz.</p>
-                    
-                    <strong>2. Toplu Ödev Kontrolü:</strong>
-                    <p style="margin: 0;">Ödev sekmesinden o haftaya ait tanımlanmış ödevlerin kontrolünü yapabilirsiniz. Öğrenci isimlerinin yanındaki durum butonlarına (Yapıldı, Eksik, Yapılmadı, Mazeretli) tıklayarak sınıfa hızlıca ödev kontrolü yapabilirsiniz. Giriş yapıldığında öğrencilerin puan tabloları otomatik güncellenir.</p>
-                    
-                    <strong>3. Öğrenci Detay Kartı ve Veli Raporu:</strong>
-                    <p style="margin: 0;">Listeden bir öğrenciye çift tıkladığınızda veya detay butonuna bastığınızda o öğrenciye ait kapsamlı gelişim dosyası açılır:
-                      <br>• <strong>Performans Grafiği:</strong> Öğrencinin haftalık puan değişim grafiği.
-                      <br>• <strong>Günlük Defter:</strong> Öğrenciye hangi tarihte hangi davranıştan dolayı puan verildiğinin detaylı listesi.
-                      <br>• <strong>Ödev ve Kitap Geçmişi:</strong> Öğrencinin teslim ettiği ödevlerin ve okuduğu kitapların geçmiş dökümü.
-                      <br>• <strong>Veli Bildirim Butonu:</strong> Öğrencinin o haftaki performans özetini veliye göndermek için temiz bir metin şablonu üretir.
-                    </p>
-
-                    <strong>4. Çalışma Haftasını Yönetme:</strong>
-                    <p style="margin: 0;">Sınıf Asistanı haftalık periyotlarla çalışır. "Asistan Konfigürasyonu" → "Geçerli Hafta" sekmesinden <strong>seçilen geçerli hafta, uygulamanın tamamında (haftalık değerlendirme, ödevler, kitaplar vb.) etkin hafta olarak kabul edilir</strong>. Her hafta cuma günü ders bitiminde yine bu sekmeden <strong>"Haftayı Kapat ve Yeni Haftaya Geç"</strong> butonunu kullanarak yeni haftaya (Örn: 2. Hafta) geçiş yapabilirsiniz. Eski haftanın verileri silinmez, geçmiş haftalara ait raporları istediğiniz zaman inceleyebilirsiniz.</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Konu 5 -->
-            <div class="manual-item glass-card" style="padding: 0; overflow: hidden; border-radius: var(--radius-md); transition: border-color 0.2s ease, box-shadow 0.2s ease;" data-title="Sınıf Kitaplığı ve Okuma Takibi" data-keywords="kitaplık kitap okuma takibi ödünç verme iade alma geciken kitaplar okuma liderlik sayfa sayısı yazar adı kütüphane">
-              <div class="manual-header" style="padding: 1.25rem 1.5rem; display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: background 0.2s;" onclick="toggleManualAccordion(this)">
-                <div style="display: flex; align-items: center; gap: 0.75rem;">
-                  <div style="width: 38px; height: 38px; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; background: var(--primary-light); color: var(--primary);">
-                    <i data-lucide="book-open" style="width: 18px; height: 18px;"></i>
-                  </div>
-                  <div>
-                    <h4 style="font-weight: 700; font-size: 1rem; margin: 0; color: var(--text-primary);">📚 Sınıf Kitaplığı & Okuma Takibi</h4>
-                    <p style="font-size: 0.8rem; color: var(--text-muted); margin: 2px 0 0 0;">Kitap envanteri oluşturma, kitap ödünç/iade süreçleri ve okuma yarışması takibi.</p>
-                  </div>
-                </div>
-                <i data-lucide="chevron-down" class="accordion-arrow" style="width: 18px; height: 18px; color: var(--text-muted); transition: transform 0.3s ease;"></i>
-              </div>
-              <div class="manual-body" style="max-height: 0; overflow: hidden; transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1); background: rgba(255, 255, 255, 0.01); border-top: 0px solid var(--border-color);">
-                <div style="padding: 1.5rem; line-height: 1.6; font-size: 0.9rem; color: var(--text-secondary); display: flex; flex-direction: column; gap: 1rem;">
-                  <p>Sınıf kitaplığınızı tamamen dijitalleştirerek öğrencilerin hangi kitapları okuduğunu, hangilerinin şu an kimde olduğunu ve en çok kitap okuyan öğrencileri zahmetsizce takip edebilirsiniz.</p>
-                  
-                  <div style="display: flex; flex-direction: column; gap: 0.75rem; padding-left: 0.5rem;">
-                    <strong>1. Kitaplığa Kitap Ekleme:</strong>
-                    <p style="margin: 0;">"Sınıf Kitaplığı" sekmesine gidin. <strong>"Kitap Ekle"</strong> butonuna tıklayarak kitabın adını, yazarını, sayfa sayısını ve türünü (Roman, Hikaye, Bilim vb.) girip envantere kaydedin.</p>
-                    
-                    <strong>2. Kitap Ödünç Verme:</strong>
-                    <p style="margin: 0;">Bir öğrenci kitaplıkta bulunan boşta bir kitabı almak istediğinde:
-                      <br>• Kitap listesinden ilgili kitabı bulun ve yanındaki <strong>"Ödünç Ver"</strong> butonuna tıklayın.
-                      <br>• Açılan listeden kitabı alan öğrenciyi seçip onaylayın. Kitap durumu anında "Öğrencide" olarak güncellenecek ve teslim tarihi sayacı başlayacaktır.
-                    </p>
-                    
-                    <strong>3. Kitap İade Alma:</strong>
-                    <p style="margin: 0;">Öğrenci okuduğu kitabı geri getirdiğinde:
-                      <br>• Kitap listesindeki "İade Al" butonuna tıklayın.
-                      <br>• Sistem, kitabın teslim süresi sınırını aşıp aşmadığını kontrol eder.
-                      <br>• Kitap zamanında getirilmişse öğrenciye <strong>Zamanında İade Puanı</strong>, gecikmişse <strong>Gecikmeli İade Puanı</strong> yansıtılarak kitap tekrar kitaplığa ("Mevcut") olarak aktarılır.
-                    </p>
-
-                    <strong>4. Geciken Kitaplar ve Takip:</strong>
-                    <p style="margin: 0;">"Geciken Kitaplar" alt sekmesinden, süresi içinde iade edilmemiş tüm kitapları ve bunları elinde tutan öğrencileri tek bir ekranda görerek öğrencilere hatırlatmada bulunabilirsiniz.</p>
-
-                    <strong>5. Okuma Liderlik Tablosu:</strong>
-                    <p style="margin: 0;">Öğrencilerin okudukları toplam sayfa sayısı ve kitap sayısına göre sıralandığı dinamik bir sıralama listesidir. Sınıf içi kitap okuma yarışmaları düzenlemek için harika bir motivasyon aracıdır.</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Konu 6 -->
-            <div class="manual-item glass-card" style="padding: 0; overflow: hidden; border-radius: var(--radius-md); transition: border-color 0.2s ease, box-shadow 0.2s ease;" data-title="Eğitsel Oyunlar" data-keywords="eğitsel oyun bilgi yarışması quiz çarpım tablosu kahramanı hazine avı sandık açma süre bazlı puanlama soru ekleme">
-              <div class="manual-header" style="padding: 1.25rem 1.5rem; display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: background 0.2s;" onclick="toggleManualAccordion(this)">
-                <div style="display: flex; align-items: center; gap: 0.75rem;">
-                  <div style="width: 38px; height: 38px; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; background: var(--primary-light); color: var(--primary);">
-                    <i data-lucide="play" style="width: 18px; height: 18px;"></i>
-                  </div>
-                  <div>
-                    <h4 style="font-weight: 700; font-size: 1rem; margin: 0; color: var(--text-primary);">🎮 Eğitsel Oyunlar</h4>
-                    <p style="font-size: 0.8rem; color: var(--text-muted); margin: 2px 0 0 0;">Bilgi Yarışması, Çarpım Tablosu Kahramanı ve Hazine Avı oyunlarının yönetimi.</p>
-                  </div>
-                </div>
-                <i data-lucide="chevron-down" class="accordion-arrow" style="width: 18px; height: 18px; color: var(--text-muted); transition: transform 0.3s ease;"></i>
-              </div>
-              <div class="manual-body" style="max-height: 0; overflow: hidden; transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1); background: rgba(255, 255, 255, 0.01); border-top: 0px solid var(--border-color);">
-                <div style="padding: 1.5rem; line-height: 1.6; font-size: 0.9rem; color: var(--text-secondary); display: flex; flex-direction: column; gap: 1rem;">
-                  <p>Ders aralarında veya serbest etkinlik saatlerinde öğrencilerin öğrenirken eğlenmelerini ve sınıf puanı kazanmalarını sağlayan entegre oyunlar bulunur.</p>
-                  
-                  <div style="display: flex; flex-direction: column; gap: 0.75rem; padding-left: 0.5rem;">
-                    <strong>1. Sınıf İçi Bilgi Yarışması (Quiz):</strong>
-                    <p style="margin: 0;">Kendi müfredatınıza uygun sorular hazırlayıp sınıfta canlı bilgi yarışması düzenleyebilirsiniz:
-                      <br>• <strong>Soru Hazırlama (Admin):</strong> Yarışma panelindeki "Yönetim" sekmesinden çoktan seçmeli sorular ekleyebilirsiniz. Sorulara görsel yükleyebilir, şık sayısını ve doğru cevabı belirleyebilirsiniz.
-                      <br>• <strong>Yarışma Başlatma (Oyna):</strong> Soruları ekrandan tahtaya yansıtarak süreli şekilde başlatın. Öğrenciler cevap verdikçe doğru/yanlış durumlarını girerek puan toplayabilirler.
-                      <br>• <strong>Skor Tablosu:</strong> Yarışma sonunda en çok puanı toplayan öğrenciler skor tablosunda gösterilir ve bu durum genel sınıf puanlarına eklenir.
-                    </p>
-                    
-                    <strong>2. Çarpım Tablosu Kahramanı:</strong>
-                    <p style="margin: 0;">Öğrencilerin çarpım tablosunu ezberlemeden, hızlı düşünme yeteneği kazanmasını sağlayan oyundur.
-                      <br>• Oyun ayarlarından hangi sayılarla (Örn: 2'ler, 5'ler veya hepsi karışık) yarışılacağını seçin.
-                      <br>• Öğrenciye ekranda rastgele çarpım soruları gelir. Belirlenen süre (Örn: 60 saniye) içinde en çok doğru cevabı veren öğrenci en yüksek puanı alır.
-                      <br>• Doğru cevap hızı arttıkça bonus puanlar verilir.
-                    </p>
-                    
-                    <strong>3. Hazine Avı (Treasure Hunt):</strong>
-                    <p style="margin: 0;">Öğrencilerin mantık, matematik ve dikkat gerektiren soruları çözerek kilitli sandıkları açmaya çalıştığı macera oyunudur.
-                      <br>• Her sandık kilitlidir ve üzerinde bir şifre/soru bulunur.
-                      <br>• Soruyu doğru çözen grup veya öğrenci sandığı açarak içindeki ödül puanları kazanır. Sınıfı gruplara ayırarak oynamak için idealdir.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Konu 7 -->
-            <div class="manual-item glass-card" style="padding: 0; overflow: hidden; border-radius: var(--radius-md); transition: border-color 0.2s ease, box-shadow 0.2s ease;" data-title="Sınıf Yardımcı Araçları" data-keywords="yardımcı araçlar nöbet listesi yazılı sınav analizi ders programı ders saati not defteri çarkıfelek rastgele öğrenci görev yöneticisi todo kronometre">
-              <div class="manual-header" style="padding: 1.25rem 1.5rem; display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: background 0.2s;" onclick="toggleManualAccordion(this)">
-                <div style="display: flex; align-items: center; gap: 0.75rem;">
-                  <div style="width: 38px; height: 38px; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; background: var(--primary-light); color: var(--primary);">
-                    <i data-lucide="wrench" style="width: 18px; height: 18px;"></i>
-                  </div>
-                  <div>
-                    <h4 style="font-weight: 700; font-size: 1rem; margin: 0; color: var(--text-primary);">🛠️ Sınıf Yardımcı Araçları</h4>
-                    <p style="font-size: 0.8rem; color: var(--text-muted); margin: 2px 0 0 0;">Yazılı sınav analizi, nöbetçi listesi, ders programı, notlar, çarkıfelek ve kronometre.</p>
-                  </div>
-                </div>
-                <i data-lucide="chevron-down" class="accordion-arrow" style="width: 18px; height: 18px; color: var(--text-muted); transition: transform 0.3s ease;"></i>
-              </div>
-              <div class="manual-body" style="max-height: 0; overflow: hidden; transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1); background: rgba(255, 255, 255, 0.01); border-top: 0px solid var(--border-color);">
-                <div style="padding: 1.5rem; line-height: 1.6; font-size: 0.9rem; color: var(--text-secondary); display: flex; flex-direction: column; gap: 1rem;">
-                  <p>Öğretmenin idari ve pedagojik yükünü hafifleten, sınıfı organize etmeye yardımcı zengin araç paketidir.</p>
-                  
-                  <div style="display: flex; flex-direction: column; gap: 0.75rem; padding-left: 0.5rem;">
-                    <strong>1. Yazılı Sınav Analiz Aracı:</strong>
-                    <p style="margin: 0;">Ölçme ve değerlendirme süreçlerini tamamen otomatikleştirir:
-                      <br>• Yeni sınav ekleyin, sınavdaki soru sayısını ve her sorunun hangi kazanıma ait olduğunu girin.
-                      <br>• Öğrencilerin her soruya verdiği puanları veya doğru/yanlış durumlarını girin.
-                      <br>• Sistem öğrencilerin toplam notlarını, sınav ortalamasını, standart sapmayı ve en önemlisi <strong>Kazanım Analiz Raporunu</strong> çıkarır. Hangi konunun sınıf tarafından anlaşılmadığını grafiklerle analiz edebilirsiniz.
-                    </p>
-                    
-                    <strong>2. Sınıf Nöbet Listesi Hazırlayıcı:</strong>
-                    <p style="margin: 0;">Sınıf içi günlük nöbetçi öğrencileri otomatik olarak belirler. Adil bir dağıtım yapmak amacıyla, nöbet görevlerini öğrencilere eşit şekilde dağıtır ve takvime yerleştirir. Çıktı alıp panoya asabilirsiniz.</p>
-                    
-                    <strong>3. Haftalık Ders Programı ve Ders Saatleri:</strong>
-                    <p style="margin: 0;">Sınıfınızın haftalık ders çizelgesini ve teneffüs saatlerini bir defa tanımlayın. Gösterge panelinde o günkü dersler, sıradaki ders ve teneffüse kalan süre sayaçla birlikte anlık gösterilir.</p>
-                    
-                    <strong>4. Kişisel Not Defteri (Rich Notepad):</strong>
-                    <p style="margin: 0;">Sınıf içi veli görüşmeleri, öğretmenler kurulu kararları veya günlük ders planı notlarınız için zengin metin biçimlendirme (kalın yazı, listeler, tablolar ekleme) özelliklerine sahip dijital bir not defteridir.</p>
-
-                    <strong>5. Rastgele Öğrenci Seçici (Çarkıfelek):</strong>
-                    <p style="margin: 0;">Derste adil söz hakkı vermek veya tahtaya kaldırılacak öğrencileri eğlenceli hale getirmek için tasarlanmıştır. Çarkı çevirdiğinizde tahtada seçilen öğrencinin adı ve fotoğrafı belirir.</p>
-
-                    <strong>6. Sayaç, Kronometre ve Görev Yöneticisi:</strong>
-                    <p style="margin: 0;">Sınavlarda süre tutmak veya grup çalışmalarında zaman takibi yapmak için kronometre ve geri sayım aracını kullanabilirsiniz. Ayrıca öğretmen olarak tamamlamanız gereken işler için görev kartları (yapılacaklar listesi) oluşturabilirsiniz.</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Konu 8 -->
-            <div class="manual-item glass-card" style="padding: 0; overflow: hidden; border-radius: var(--radius-md); transition: border-color 0.2s ease, box-shadow 0.2s ease;" data-title="Raporlar ve Karne Çıktıları" data-keywords="raporlar karne veli bilgilendirme grafikleri excel pdf çıktı alma karne mektubu öğrenci başarı durum">
-              <div class="manual-header" style="padding: 1.25rem 1.5rem; display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: background 0.2s;" onclick="toggleManualAccordion(this)">
-                <div style="display: flex; align-items: center; gap: 0.75rem;">
-                  <div style="width: 38px; height: 38px; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; background: var(--primary-light); color: var(--primary);">
-                    <i data-lucide="trending-up" style="width: 18px; height: 18px;"></i>
-                  </div>
-                  <div>
-                    <h4 style="font-weight: 700; font-size: 1rem; margin: 0; color: var(--text-primary);">📈 Raporlar ve Karne Çıktıları</h4>
-                    <p style="font-size: 0.8rem; color: var(--text-muted); margin: 2px 0 0 0;">Akademik gelişim raporları, veli karnesi ve verileri dışa aktarma yöntemleri.</p>
-                  </div>
-                </div>
-                <i data-lucide="chevron-down" class="accordion-arrow" style="width: 18px; height: 18px; color: var(--text-muted); transition: transform 0.3s ease;"></i>
-              </div>
-              <div class="manual-body" style="max-height: 0; overflow: hidden; transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1); background: rgba(255, 255, 255, 0.01); border-top: 0px solid var(--border-color);">
-                <div style="padding: 1.5rem; line-height: 1.6; font-size: 0.9rem; color: var(--text-secondary); display: flex; flex-direction: column; gap: 1rem;">
-                  <p>Toplanan tüm verileri haftalık, aylık veya dönemlik olarak görselleştirip analiz edebileceğiniz ve velilerle paylaşabileceğiniz raporlama aracıdır.</p>
-                  
-                  <div style="display: flex; flex-direction: column; gap: 0.75rem; padding-left: 0.5rem;">
-                    <strong>1. Öğrenci Veli Karneleri:</strong>
-                    <p style="margin: 0;">Öğrencilerinizin sadece ders notlarını değil; davranış puanlarını, ödev teslim oranlarını ve okuduğu toplam kitap/sayfa sayılarını içeren zengin içerikli çok boyutlu karneler üretebilirsiniz. Bu karneler veliler için mükemmel bir geribildirim belgesidir.</p>
-                    
-                    <strong>2. Veli Bilgilendirme Raporu Hazırlama:</strong>
-                    <p style="margin: 0;">Öğrenci bazlı karne görünümünden tek tıkla velinin telefonuna veya e-postasına gönderilmeye hazır, öğrencinin durumunu (olumlu yönlerini ve geliştirmesi gereken alanları) özetleyen hazır metin şablonu oluşturabilirsiniz.</p>
-                    
-                    <strong>3. Excel ve PDF Olarak Dışa Aktarma:</strong>
-                    <p style="margin: 0;">Uygulamadaki tüm tabloları (öğrenci listesi, puan durumları, kitap envanteri, ödev çizelgesi vb.) Excel formatında (.xlsx) bilgisayarınıza indirebilirsiniz. Raporları ve karneleri ise yazdırılabilir A4 boyutunda PDF formatına dönüştürüp çıktı alabilirsiniz.</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-          </div>
-
-          <!-- JavaScript & Local CSS for Accordion and Search -->
           <style>
+            .manual-cat-chip {
+              display: inline-flex;
+              align-items: center;
+              gap: 0.35rem;
+              padding: 0.38rem 0.75rem;
+              border-radius: 999px;
+              border: 1px solid var(--border-color);
+              background: var(--bg-secondary);
+              color: var(--text-secondary);
+              font-size: 0.78rem;
+              font-weight: 600;
+              cursor: pointer;
+              transition: all 0.18s ease;
+            }
+            .manual-cat-chip:hover {
+              border-color: var(--primary);
+              color: var(--primary);
+            }
+            .manual-cat-chip.active {
+              background: var(--primary);
+              border-color: var(--primary);
+              color: #ffffff;
+              box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+            }
             .manual-item {
+              padding: 0;
+              overflow: hidden;
+              border-radius: var(--radius-md);
               border: 1px solid var(--border-color);
               background: var(--bg-glass);
+              transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
             }
             .manual-item:hover {
               border-color: var(--primary-glow);
@@ -3950,79 +3649,215 @@
               border-color: var(--primary);
               box-shadow: var(--shadow-md);
             }
+            .manual-header {
+              padding: 1.15rem 1.4rem;
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              gap: 1rem;
+              cursor: pointer;
+              transition: background 0.2s;
+            }
             .manual-header:hover {
-              background: rgba(255, 255, 255, 0.04);
+              background: rgba(99, 102, 241, 0.04);
             }
-            [data-theme="dark"] .manual-header:hover {
-              background: rgba(255, 255, 255, 0.02);
+            .manual-header-left {
+              display: flex;
+              align-items: center;
+              gap: 0.85rem;
+              min-width: 0;
             }
-            .manual-body ol, .manual-body ul {
-              margin-top: 0.5rem;
-              margin-bottom: 0.5rem;
-              padding-left: 1.5rem;
+            .manual-icon-box {
+              width: 38px;
+              height: 38px;
+              border-radius: var(--radius-sm);
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              background: var(--primary-light);
+              color: var(--primary);
+              flex-shrink: 0;
             }
-            .manual-body li {
-              margin-bottom: 0.25rem;
+            .manual-title-wrap {
+              min-width: 0;
+            }
+            .manual-title-row {
+              display: flex;
+              align-items: center;
+              flex-wrap: wrap;
+              gap: 0.45rem;
+            }
+            .manual-title-row h4 {
+              font-weight: 700;
+              font-size: 0.98rem;
+              margin: 0;
+              color: var(--text-primary);
+            }
+            .manual-title-wrap p {
+              font-size: 0.8rem;
+              color: var(--text-muted);
+              margin: 3px 0 0 0;
+            }
+            .manual-badge {
+              font-size: 0.66rem;
+              font-weight: 800;
+              letter-spacing: 0.4px;
+              padding: 2px 7px;
+              border-radius: 999px;
+            }
+            .manual-badge-start {
+              background: rgba(16, 185, 129, 0.16);
+              color: #059669;
+            }
+            .manual-badge-new {
+              background: rgba(139, 92, 246, 0.16);
+              color: #7c3aed;
+            }
+            .manual-badge-updated {
+              background: rgba(14, 165, 233, 0.16);
+              color: #0284c7;
+            }
+            .manual-mobile-pill {
+              font-size: 0.68rem;
+              font-weight: 700;
+              padding: 2px 8px;
+              border-radius: 999px;
+              background: rgba(99, 102, 241, 0.12);
+              color: var(--primary);
+              border: 1px solid rgba(99, 102, 241, 0.25);
+            }
+            .manual-body {
+              max-height: 0;
+              overflow: hidden;
+              transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+              background: rgba(255, 255, 255, 0.01);
+              border-top: 0px solid var(--border-color);
+            }
+            .manual-body-inner {
+              padding: 1.25rem 1.5rem 1.45rem;
+              line-height: 1.6;
+              font-size: 0.89rem;
+              color: var(--text-secondary);
+              display: flex;
+              flex-direction: column;
+              gap: 0.9rem;
+            }
+            .manual-body-inner p {
+              margin: 0;
+            }
+            .manual-body-inner code {
+              font-family: inherit;
+              font-weight: 600;
+              font-size: 0.83rem;
+              padding: 1px 6px;
+              border-radius: 5px;
+              background: rgba(99, 102, 241, 0.1);
+              color: var(--primary);
+            }
+            .manual-path-bar {
+              display: inline-flex;
+              align-items: center;
+              gap: 0.45rem;
+              padding: 0.45rem 0.75rem;
+              border-radius: var(--radius-sm);
+              background: var(--bg-secondary);
+              border: 1px solid var(--border-color);
+              font-size: 0.8rem;
+              color: var(--text-muted);
+              align-self: flex-start;
+            }
+            .manual-path-bar strong {
+              color: var(--text-primary);
+            }
+            .manual-subsections {
+              display: flex;
+              flex-direction: column;
+              gap: 0.95rem;
+              padding-left: 0.35rem;
+            }
+            .manual-subsections > div {
+              display: flex;
+              flex-direction: column;
+              gap: 0.3rem;
+            }
+            .manual-subsections strong {
+              color: var(--text-primary);
+            }
+            .manual-subsections > div > strong:first-child {
+              display: block;
+              font-size: 0.92rem;
+              margin-bottom: 0.1rem;
+            }
+            .manual-step-list {
+              margin: 0.2rem 0 0 0;
+              padding-left: 1.35rem;
+              display: flex;
+              flex-direction: column;
+              gap: 0.65rem;
+            }
+            .manual-step-list li strong {
+              color: var(--text-primary);
+            }
+            .manual-body-inner ul {
+              margin: 0.3rem 0 0 0;
+              padding-left: 1.35rem;
+              display: flex;
+              flex-direction: column;
+              gap: 0.35rem;
+            }
+            .manual-callout {
+              padding: 0.75rem 1rem;
+              border-radius: var(--radius-sm);
+              font-size: 0.84rem;
+              line-height: 1.5;
+            }
+            .manual-callout-tip {
+              background: rgba(16, 185, 129, 0.08);
+              border-left: 4px solid #10b981;
+              color: var(--text-secondary);
+            }
+            .manual-callout-info {
+              background: rgba(14, 165, 233, 0.08);
+              border-left: 4px solid #0ea5e9;
+              color: var(--text-secondary);
+            }
+            .manual-callout-important {
+              background: rgba(139, 92, 246, 0.09);
+              border-left: 4px solid #8b5cf6;
+              color: var(--text-secondary);
+            }
+            .manual-callout-warn {
+              background: rgba(245, 158, 11, 0.1);
+              border-left: 4px solid #f59e0b;
+              color: var(--text-secondary);
+            }
+            .manual-callout strong {
+              color: var(--text-primary);
+            }
+            .manual-mobile-box {
+              background: linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(14, 165, 233, 0.06));
+              border: 1px solid rgba(99, 102, 241, 0.25);
+              border-left: 4px solid #6366f1;
+              border-radius: var(--radius-sm);
+              padding: 0.85rem 1rem;
+              display: flex;
+              flex-direction: column;
+              gap: 0.35rem;
+            }
+            .manual-mobile-box-title {
+              display: flex;
+              align-items: center;
+              gap: 0.45rem;
+              font-weight: 700;
+              font-size: 0.85rem;
+              color: var(--primary);
+            }
+            .manual-mobile-box p {
+              font-size: 0.85rem;
+              color: var(--text-secondary);
+              margin: 0;
             }
           </style>
-
-          <script>
-            function toggleManualAccordion(header) {
-              const item = header.closest('.manual-item');
-              const body = item.querySelector('.manual-body');
-              const arrow = item.querySelector('.accordion-arrow');
-              const isOpen = item.classList.contains('open');
-              
-              if (isOpen) {
-                item.classList.remove('open');
-                body.style.maxHeight = '0px';
-                body.style.borderTopWidth = '0px';
-                arrow.style.transform = 'rotate(0deg)';
-              } else {
-                item.classList.add('open');
-                body.style.maxHeight = body.scrollHeight + 'px';
-                body.style.borderTopWidth = '1px';
-                body.style.borderTopColor = 'var(--border-color)';
-                body.style.borderTopStyle = 'solid';
-                arrow.style.transform = 'rotate(180deg)';
-              }
-            }
-
-            document.getElementById('manual-search-input').addEventListener('input', function(e) {
-              const query = e.target.value.toLowerCase().trim();
-              const items = document.querySelectorAll('.manual-item');
-              
-              items.forEach(item => {
-                const title = item.getAttribute('data-title').toLowerCase();
-                const keywords = item.getAttribute('data-keywords').toLowerCase();
-                const bodyText = item.querySelector('.manual-body').innerText.toLowerCase();
-                
-                const isMatch = title.includes(query) || keywords.includes(query) || bodyText.includes(query);
-                
-                if (isMatch) {
-                  item.style.display = 'block';
-                  if (query.length > 0) {
-                    item.classList.add('open');
-                    const body = item.querySelector('.manual-body');
-                    body.style.maxHeight = body.scrollHeight + 'px';
-                    body.style.borderTopWidth = '1px';
-                    body.style.borderTopColor = 'var(--border-color)';
-                    body.style.borderTopStyle = 'solid';
-                    const arrow = item.querySelector('.accordion-arrow');
-                    if (arrow) arrow.style.transform = 'rotate(180deg)';
-                  }
-                } else {
-                  item.style.display = 'none';
-                  item.classList.remove('open');
-                  const body = item.querySelector('.manual-body');
-                  body.style.maxHeight = '0px';
-                  body.style.borderTopWidth = '0px';
-                  const arrow = item.querySelector('.accordion-arrow');
-                  if (arrow) arrow.style.transform = 'rotate(0deg)';
-                }
-              });
-            });
-          </script>
         </div>
           </div> <!-- /.config-contents-pane -->
         </div> <!-- /.config-layout-wrapper -->
@@ -4135,6 +3970,36 @@
                 <p style="font-size: 0.85rem; color: var(--text-secondary); line-height: 1.4; margin-bottom: 1rem;">Yıllık plan kazanımları ve yapay zeka ile hazır şablonlu etkinlik, test ve çalışma kağıtları oluşturun.</p>
               </div>
               <button class="btn btn-primary btn-full" id="btn-launch-hw-robot" style="width: 100%; display: flex; justify-content: center; gap: 0.5rem; background: linear-gradient(135deg, #6366f1, #4f46e5);">
+                <i data-lucide="play" style="width: 16px; height: 16px;"></i> Aracı Başlat
+              </button>
+            </div>
+
+            <!-- Araç 10: Dereceli Puanlama Anahtarı (Rubrik) -->
+            <div class="game-landing-card glass-card" style="padding: 1.5rem; border-radius: 12px; background: var(--bg-secondary); border: 1px solid var(--border-color); display: flex; flex-direction: column; justify-content: space-between; min-height: 220px; transition: transform 0.2s ease; border-top: 3px solid #0ea5e9;">
+              <div>
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
+                  <div style="font-size: 2rem;">📋</div>
+                  <span style="font-size: 0.7rem; font-weight: 800; background: rgba(14, 165, 233, 0.15); color: #0ea5e9; padding: 2px 8px; border-radius: 20px;">MAARİF MODELİ</span>
+                </div>
+                <h3 style="font-size: 1.15rem; font-weight: 700; margin-bottom: 0.5rem;">Dereceli Puanlama Anahtarı (Rubrik)</h3>
+                <p style="font-size: 0.85rem; color: var(--text-secondary); line-height: 1.4; margin-bottom: 1rem;">MEB süreç odaklı ölçme standartlarında analitik rubrikler hazırlayın, yapay zeka ile üretin, canlı puanlayın veya A4 yazdırın.</p>
+              </div>
+              <button class="btn btn-primary btn-full" id="btn-launch-rubric" style="width: 100%; display: flex; justify-content: center; gap: 0.5rem; background: linear-gradient(135deg, #0ea5e9, #0284c7);">
+                <i data-lucide="play" style="width: 16px; height: 16px;"></i> Aracı Başlat
+              </button>
+            </div>
+
+            <!-- Araç 11: Öğrenci Başarı ve Teşvik Belgesi -->
+            <div class="game-landing-card glass-card" style="padding: 1.5rem; border-radius: 12px; background: var(--bg-secondary); border: 1px solid var(--border-color); display: flex; flex-direction: column; justify-content: space-between; min-height: 220px; transition: transform 0.2s ease; border-top: 3px solid #f59e0b;">
+              <div>
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
+                  <div style="font-size: 2rem;">🏆</div>
+                  <span style="font-size: 0.7rem; font-weight: 800; background: rgba(245, 158, 11, 0.15); color: #f59e0b; padding: 2px 8px; border-radius: 20px;">ÖDÜL & TEŞVİK</span>
+                </div>
+                <h3 style="font-size: 1.15rem; font-weight: 700; margin-bottom: 0.5rem;">Başarı Belgesi & Sertifika</h3>
+                <p style="font-size: 0.85rem; color: var(--text-secondary); line-height: 1.4; margin-bottom: 1rem;">İlkokul ve ortaokul için Ayın Öğrencisi, Kitap Kurdu, Akademik Başarı gibi belgeleri kişiye özel veya tüm sınıfa toplu hazırlayın.</p>
+              </div>
+              <button class="btn btn-primary btn-full" id="btn-launch-certificate" style="width: 100%; display: flex; justify-content: center; gap: 0.5rem; background: linear-gradient(135deg, #f59e0b, #d97706);">
                 <i data-lucide="play" style="width: 16px; height: 16px;"></i> Aracı Başlat
               </button>
             </div>
@@ -5739,6 +5604,396 @@
             </div>
           </div>
         </div>
+
+        <!-- Dereceli Puanlama Anahtarı (Rubrik) Paneli (Başlangıçta Gizli) -->
+        <div id="tools-rubric-view" style="display: none;">
+          <div class="page-header" style="margin-bottom: 1.5rem;">
+            <div class="header-title" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; width: 100%;">
+              <div style="display: flex; align-items: center; gap: 1rem;">
+                <button class="btn btn-secondary btn-sm" id="btn-back-to-tools-from-rubric" style="padding: 0.35rem 0.75rem; font-size: 0.85rem; height: 35px;">
+                  <i data-lucide="arrow-left" style="width: 16px; height: 16px;"></i> Geri Dön
+                </button>
+                <div>
+                  <h2 style="font-size: 1.5rem; margin-bottom: 0;">Dereceli Puanlama Anahtarı (Rubrik) Oluşturucu</h2>
+                  <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0;">Türkiye Yüzyılı Maarif Modeli süreç odaklı ölçme standartlarında hazır şablonlar, yapay zeka desteği ve canlı sınıf içi puanlama.</p>
+                </div>
+              </div>
+              <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                <button class="btn btn-secondary btn-sm" id="btn-rubric-view-scores-list" style="font-size: 0.82rem; height: 35px;" title="Kaydedilen Öğrenci Not Listesi">
+                  <span>📊</span> Öğrenci Puan Listesi
+                </button>
+                <button class="btn btn-secondary btn-sm" onclick="window.showGeminiKeyRequiredModal && window.showGeminiKeyRequiredModal({ title: 'Yapay Zeka API Ayarları' })" title="Google Gemini API Anahtarını Yönet" style="font-size: 0.82rem; height: 35px;">
+                  <span>🔑</span> API Durumu
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Rubrik Ana Düzeni -->
+          <div class="rubric-layout">
+            <!-- Sol Panel: Parametreler & Yapay Zeka -->
+            <div class="rubric-control-panel">
+              <!-- 1. Adım: Şablon Seçimi -->
+              <div>
+                <div class="rubric-section-title">
+                  <span class="step-num">1</span>
+                  <span>Şablon Kütüphanesi</span>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 0.6rem;">
+                  <div>
+                    <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-secondary); margin-bottom: 4px; display: block;">Hazır MEB Şablonları:</label>
+                    <select id="rubric-template-select" class="form-control" style="font-size: 0.82rem; padding: 0.45rem;">
+                      <option value="">Şablon Yükleniyor...</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-secondary); margin-bottom: 4px; display: block;">Kayıtlı Özel Şablonlarım:</label>
+                    <div style="display: grid; grid-template-columns: 1fr auto; gap: 0.4rem;">
+                      <select id="rubric-saved-select" class="form-control" style="font-size: 0.82rem; padding: 0.45rem;">
+                        <option value="">-- Kayıtlı Şablon Yok --</option>
+                      </select>
+                      <button type="button" class="btn btn-secondary btn-sm" id="btn-rubric-delete-saved" title="Seçili Şablonu Sil" style="padding: 0 0.5rem; color: #ef4444;">
+                        🗑️
+                      </button>
+                    </div>
+                  </div>
+
+                  <div style="display: flex; gap: 0.5rem; margin-top: 2px;">
+                    <button type="button" class="btn btn-secondary btn-sm" id="btn-rubric-save-template" style="width: 100%; font-size: 0.78rem;">
+                      💾 Mevcut Rubriği Şablon Olarak Kaydet
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 2. Adım: Yapay Zeka ile Rubrik Oluştur (Gemini) -->
+              <div style="background: rgba(14, 165, 233, 0.05); border: 1px dashed rgba(14, 165, 233, 0.4); border-radius: 10px; padding: 0.85rem;">
+                <div class="rubric-section-title" style="margin-bottom: 0.5rem;">
+                  <span class="step-num" style="background: linear-gradient(135deg, #0ea5e9, #0284c7);">AI</span>
+                  <span>Yapay Zeka ile Özel Rubrik Üret</span>
+                </div>
+                
+                <div style="display: flex; flex-direction: column; gap: 0.6rem;">
+                  <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 0.5rem;">
+                    <div>
+                      <label style="font-size: 0.73rem; font-weight: 700; color: var(--text-secondary); display: block; margin-bottom: 2px;">Ders:</label>
+                      <input type="text" id="rubric-ai-lesson" class="form-control" placeholder="Örn: Fen Bilimleri" value="Türkçe" style="font-size: 0.8rem; padding: 0.4rem;">
+                    </div>
+                    <div>
+                      <label style="font-size: 0.73rem; font-weight: 700; color: var(--text-secondary); display: block; margin-bottom: 2px;">Sınıf:</label>
+                      <select id="rubric-ai-grade" class="form-control" style="font-size: 0.8rem; padding: 0.4rem;">
+                        <option value="1. Sınıf">1. Sınıf</option>
+                        <option value="2. Sınıf">2. Sınıf</option>
+                        <option value="3. Sınıf">3. Sınıf</option>
+                        <option value="4. Sınıf">4. Sınıf</option>
+                        <option value="5. Sınıf">5. Sınıf</option>
+                        <option value="6. Sınıf">6. Sınıf</option>
+                        <option value="7. Sınıf" selected>7. Sınıf</option>
+                        <option value="8. Sınıf">8. Sınıf</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label style="font-size: 0.73rem; font-weight: 700; color: var(--text-secondary); display: block; margin-bottom: 2px;">Etkinlik / Ödev / Sınav Konusu:</label>
+                    <textarea id="rubric-ai-topic" class="form-control" rows="2" placeholder="Örn: Güneş Tutulması Modeli Hazırlama ve Sunumu" style="font-size: 0.8rem; padding: 0.4rem; resize: vertical;"></textarea>
+                  </div>
+
+                  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+                    <div>
+                      <label style="font-size: 0.73rem; font-weight: 700; color: var(--text-secondary); display: block; margin-bottom: 2px;">Ölçüt Sayısı:</label>
+                      <select id="rubric-ai-crit-count" class="form-control" style="font-size: 0.8rem; padding: 0.4rem;">
+                        <option value="3">3 Ölçüt</option>
+                        <option value="4" selected>4 Ölçüt</option>
+                        <option value="5">5 Ölçüt</option>
+                        <option value="6">6 Ölçüt</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label style="font-size: 0.73rem; font-weight: 700; color: var(--text-secondary); display: block; margin-bottom: 2px;">Düzey Formatı:</label>
+                      <select id="rubric-ai-level-type" class="form-control" style="font-size: 0.8rem; padding: 0.4rem;">
+                        <option value="4_level" selected>4 Düzey (Maarif Modeli)</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <button type="button" class="btn btn-primary btn-full" id="btn-rubric-ai-generate" style="background: linear-gradient(135deg, #0ea5e9, #0284c7); font-size: 0.82rem; font-weight: 700; padding: 0.5rem; display: flex; justify-content: center; align-items: center; gap: 0.5rem; margin-top: 4px;">
+                    <span>✨</span> Yapay Zeka ile Rubrik Oluştur
+                  </button>
+                </div>
+              </div>
+
+              <!-- 3. Adım: Form & Başlık Düzenleme -->
+              <div>
+                <div class="rubric-section-title">
+                  <span class="step-num">2</span>
+                  <span>Form Bilgileri ve Ayarlar</span>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                  <div>
+                    <label style="font-size: 0.73rem; font-weight: 700; color: var(--text-secondary); display: block; margin-bottom: 2px;">Okul Adı:</label>
+                    <input type="text" id="rubric-input-school" class="form-control" style="font-size: 0.8rem; padding: 0.4rem;">
+                  </div>
+                  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+                    <div>
+                      <label style="font-size: 0.73rem; font-weight: 700; color: var(--text-secondary); display: block; margin-bottom: 2px;">Ders Adı:</label>
+                      <input type="text" id="rubric-input-lesson" class="form-control" style="font-size: 0.8rem; padding: 0.4rem;">
+                    </div>
+                    <div>
+                      <label style="font-size: 0.73rem; font-weight: 700; color: var(--text-secondary); display: block; margin-bottom: 2px;">Öğretmen Adı:</label>
+                      <input type="text" id="rubric-input-teacher" class="form-control" style="font-size: 0.8rem; padding: 0.4rem;">
+                    </div>
+                  </div>
+                  <div>
+                    <label style="font-size: 0.73rem; font-weight: 700; color: var(--text-secondary); display: block; margin-bottom: 2px;">Etkinlik / Görev Başlığı:</label>
+                    <input type="text" id="rubric-input-task" class="form-control" style="font-size: 0.8rem; padding: 0.4rem;">
+                  </div>
+
+                  <div style="display: flex; gap: 0.5rem; margin-top: 4px;">
+                    <button type="button" class="btn btn-secondary btn-sm" id="btn-rubric-add-criterion" style="flex: 1; font-size: 0.75rem;">
+                      ➕ Ölçüt Ekle
+                    </button>
+                    <button type="button" class="btn btn-secondary btn-sm" id="btn-rubric-balance-weights" style="flex: 1; font-size: 0.75rem;" title="Tüm ölçütlerin ağırlıklarını eşit olarak toplam 100 puana tamamlar">
+                      ⚖️ Puanları Eşitle (%100)
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 4. Adım: Canlı Öğrenci Değerlendirme Modülü (Açılır Panel) -->
+              <div id="rubric-eval-student-panel" style="display: none; background: #f0fdf4; border: 1px solid #86efac; border-radius: 10px; padding: 0.85rem;">
+                <div class="rubric-section-title" style="margin-bottom: 0.5rem; color: #15803d;">
+                  <span class="step-num" style="background: #16a34a;">👥</span>
+                  <span>Canlı Öğrenci Puanlama</span>
+                </div>
+                
+                <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                  <div>
+                    <label style="font-size: 0.73rem; font-weight: 700; color: #166534; display: block; margin-bottom: 2px;">Sınıftan Öğrenci Seç:</label>
+                    <select id="rubric-student-select" class="form-control" style="font-size: 0.82rem; padding: 0.45rem;">
+                      <option value="">Öğrenciler Yükleniyor...</option>
+                    </select>
+                  </div>
+                  
+                  <div style="font-size: 0.72rem; color: #166534; line-height: 1.3;">
+                    💡 <em>Sağdaki tabloda öğrencinin ulaştığı düzey kutucuklarına tıklayınız. Puan ve geliştirici dönüt otomatik hesaplanacaktır.</em>
+                  </div>
+
+                  <div style="display: flex; gap: 0.5rem;">
+                    <button type="button" class="btn btn-secondary btn-sm" id="btn-rubric-gen-feedback" style="flex: 1; font-size: 0.75rem; background: #dcfce7; color: #166534; border-color: #86efac;" title="Seçilen düzeylere göre yapıcı gelişim cümlesi oluştur">
+                      🪄 Geri Bildirim Üret
+                    </button>
+                    <button type="button" class="btn btn-primary btn-sm" id="btn-rubric-save-student-score" style="flex: 1.3; background: #16a34a; font-size: 0.8rem; font-weight: 700;">
+                      💾 Notu Kaydet
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Sağ Panel: A4 Canlı Önizleme & Çıktı -->
+            <div class="rubric-preview-panel">
+              <!-- Üst Araç Çubuğu -->
+              <div class="rubric-preview-toolbar">
+                <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                  <div style="font-size: 0.78rem; font-weight: 600; color: var(--text-secondary); display: flex; align-items: center; gap: 5px;">
+                    <span>✏️</span> <span>Yazılara tıklayarak anında düzenleyebilirsiniz</span>
+                  </div>
+                </div>
+
+                <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                  <button type="button" class="btn btn-secondary btn-sm" id="btn-rubric-toggle-view-mode" title="Öğrenciye dağıtılacak boş görev kağıdı ile doldurulmuş öğretmen nüshası arasında geçiş yapar" style="font-size: 0.78rem; padding: 0.4rem 0.7rem; display: flex; align-items: center; gap: 4px;">
+                    <span>📋</span> <span>Mod: Öğretmen Değerlendirme</span>
+                  </button>
+                  <button type="button" class="btn btn-secondary btn-sm" id="btn-rubric-toggle-scenario" title="Görev senaryosu ve yönergelerini göster/gizle" style="font-size: 0.78rem; padding: 0.4rem 0.7rem; display: flex; align-items: center; gap: 4px;">
+                    <span>🎯</span> <span>Senaryo: Açık</span>
+                  </button>
+                  <button type="button" class="btn btn-secondary btn-sm" id="btn-rubric-toggle-eval-mode" style="font-size: 0.78rem; padding: 0.4rem 0.7rem; display: flex; align-items: center; gap: 4px;">
+                    <span>👥</span> <span>Canlı Öğrenci Puanlama</span>
+                  </button>
+                  <button type="button" class="btn btn-secondary btn-sm" id="btn-rubric-toggle-eco" style="font-size: 0.78rem; padding: 0.4rem 0.7rem; display: flex; align-items: center; gap: 4px;">
+                    <span>🖨️</span> <span>Fotokopi (Eco) Modu</span>
+                  </button>
+                  <button type="button" class="btn btn-primary btn-sm" id="btn-rubric-print" style="font-size: 0.82rem; padding: 0.4rem 0.85rem; font-weight: 700; display: flex; align-items: center; gap: 5px; background: linear-gradient(135deg, #0ea5e9, #0284c7);">
+                    <i data-lucide="printer" style="width: 15px; height: 15px;"></i>
+                    <span>A4 Yazdır / PDF</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- A4 Sayfası -->
+              <div id="rubric-a4-sheet">
+                <!-- JS tarafından dinamik oluşturulacak -->
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Öğrenci Başarı ve Teşvik Belgesi Paneli (Başlangıçta Gizli) -->
+        <div id="tools-certificate-view" style="display: none;">
+          <div class="page-header" style="margin-bottom: 1.5rem;">
+            <div class="header-title" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; width: 100%;">
+              <div style="display: flex; align-items: center; gap: 1rem;">
+                <button class="btn btn-secondary btn-sm" id="btn-back-to-tools-from-certificate" style="padding: 0.35rem 0.75rem; font-size: 0.85rem; height: 35px;">
+                  <i data-lucide="arrow-left" style="width: 16px; height: 16px;"></i> Geri Dön
+                </button>
+                <div>
+                  <h2 style="font-size: 1.5rem; margin-bottom: 0;">Öğrenci Başarı ve Teşvik Belgesi Hazırlayıcı</h2>
+                  <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0;">İlkokul ve ortaokul öğrencileri için göz alıcı çerçeveler, mühürler, kişiye özel takdir metinleri veya tüm sınıfa toplu A4 yatay sertifikalar.</p>
+                </div>
+              </div>
+              <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                <button class="btn btn-secondary btn-sm" onclick="window.showGeminiKeyRequiredModal && window.showGeminiKeyRequiredModal({ title: 'Yapay Zeka API Ayarları' })" title="Google Gemini API Anahtarını Yönet" style="font-size: 0.82rem; height: 35px;">
+                  <span>🔑</span> API Durumu
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Sertifika Ana Düzeni -->
+          <div class="cert-layout">
+            <!-- Sol Panel: Parametreler & Öğrenci Seçimi -->
+            <div class="cert-control-panel">
+              <!-- 1. Adım: Belge ve Tema Seçimi -->
+              <div>
+                <div class="cert-section-title">
+                  <span class="step-num">1</span>
+                  <span>Belge Türü ve Görsel Tema</span>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 0.6rem;">
+                  <div>
+                    <label style="font-size: 0.73rem; font-weight: 700; color: var(--text-secondary); display: block; margin-bottom: 2px;">Başarı Kategorisi:</label>
+                    <select id="cert-template-select" class="form-control" style="font-size: 0.82rem; padding: 0.45rem;">
+                      <option value="star_student">Ayın Örnek Öğrencisi Belgesi</option>
+                      <option value="bookworm">Kitap Kurdu Başarı Belgesi</option>
+                      <option value="academic_excellence">Akademik Üstün Başarı Belgesi</option>
+                      <option value="homework_hero">Ödev ve Sorumluluk Bilinci Belgesi</option>
+                      <option value="young_scientist">Genç Bilim İnsanı ve Araştırmacı Belgesi</option>
+                      <option value="kindness_friendship">Nezaket ve Yardımlaşma Belgesi</option>
+                      <option value="great_growth">Üstün Gayret ve Gelişim Belgesi</option>
+                      <option value="talent_arts_sports">Sanat, Spor ve Yetenek Başarı Belgesi</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label style="font-size: 0.73rem; font-weight: 700; color: var(--text-secondary); display: block; margin-bottom: 2px;">Görsel Çerçeve Teması:</label>
+                    <select id="cert-theme-select" class="form-control" style="font-size: 0.82rem; padding: 0.45rem;">
+                      <option value="gold" selected>👑 Kraliyet Altını (Asil & Klasik)</option>
+                      <option value="joyful">⭐ Neşeli Yıldızlar (İlkokul & Canlı)</option>
+                      <option value="emerald">🌿 Zümrüt Prestij (Akademik & MEB)</option>
+                      <option value="modern">🚀 Modern Geometrik (Yetenek & STEM)</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 2. Adım: Öğrenci Seçimi ve Toplu Mod -->
+              <div>
+                <div class="cert-section-title">
+                  <span class="step-num">2</span>
+                  <span>Öğrenci Seçimi & Toplu Baskı</span>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 0.6rem;">
+                  <div>
+                    <label style="font-size: 0.73rem; font-weight: 700; color: var(--text-secondary); display: block; margin-bottom: 2px;">Öğrenci Kapsamı:</label>
+                    <select id="cert-student-select" class="form-control" style="font-size: 0.82rem; padding: 0.45rem;">
+                      <option value="all_batch">👥 TÜM SINIF (Toplu Seri Baskı)</option>
+                    </select>
+                  </div>
+
+                  <!-- Toplu Mod Sayfa Geçiş Çubuğu -->
+                  <div id="cert-batch-nav-panel" style="display: flex; align-items: center; justify-content: space-between; background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; padding: 0.4rem 0.6rem;">
+                    <button type="button" class="btn btn-secondary btn-sm" id="btn-cert-batch-prev" style="font-size: 0.75rem; padding: 0.25rem 0.5rem;" title="Önceki Öğrenci">
+                      ◀ Önceki
+                    </button>
+                    <span id="cert-batch-counter-badge" style="font-size: 0.75rem; font-weight: 800; color: #b45309;">Öğrenci: 1 / 25</span>
+                    <button type="button" class="btn btn-secondary btn-sm" id="btn-cert-batch-next" style="font-size: 0.75rem; padding: 0.25rem 0.5rem;" title="Sonraki Öğrenci">
+                      Sonraki ▶
+                    </button>
+                  </div>
+                  <div style="font-size: 0.7rem; color: #64748b; line-height: 1.3;">
+                    💡 <em>'TÜM SINIF' seçiliyken A4 Yazdır butonuna bastığınızda tüm öğrencilerin belgeleri tek PDF / baskı kuyruğunda ardışık sayfalara basılır.</em>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 3. Adım: Belge Bilgileri ve Övgü Metni -->
+              <div>
+                <div class="cert-section-title">
+                  <span class="step-num">3</span>
+                  <span>Belge Metinleri ve İmzalar</span>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                  <div>
+                    <label style="font-size: 0.73rem; font-weight: 700; color: var(--text-secondary); display: block; margin-bottom: 2px;">Okul Adı:</label>
+                    <input type="text" id="cert-input-school" class="form-control" style="font-size: 0.8rem; padding: 0.4rem;">
+                  </div>
+                  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+                    <div>
+                      <label style="font-size: 0.73rem; font-weight: 700; color: var(--text-secondary); display: block; margin-bottom: 2px;">Belge Başlığı:</label>
+                      <input type="text" id="cert-input-title" class="form-control" style="font-size: 0.8rem; padding: 0.4rem;">
+                    </div>
+                    <div>
+                      <label style="font-size: 0.73rem; font-weight: 700; color: var(--text-secondary); display: block; margin-bottom: 2px;">Tarih:</label>
+                      <input type="text" id="cert-input-date" class="form-control" style="font-size: 0.8rem; padding: 0.4rem;">
+                    </div>
+                  </div>
+                  <div>
+                    <label style="font-size: 0.73rem; font-weight: 700; color: var(--text-secondary); display: block; margin-bottom: 2px;">Alt Başlık / Tanım:</label>
+                    <input type="text" id="cert-input-subtitle" class="form-control" style="font-size: 0.8rem; padding: 0.4rem;">
+                  </div>
+                  <div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px;">
+                      <label style="font-size: 0.73rem; font-weight: 700; color: var(--text-secondary);">Takdir & Övgü Cümlesi:</label>
+                      <button type="button" id="btn-cert-ai-praise" class="btn btn-secondary btn-sm" style="font-size: 0.68rem; padding: 2px 6px; background: #fef3c7; color: #b45309; border-color: #fde68a;" title="Seçilen öğrenciye özel yapay zeka ile pedagojik övgü metni yaz">
+                        ✨ AI ile Yaz
+                      </button>
+                    </div>
+                    <textarea id="cert-input-praise" class="form-control" rows="3" style="font-size: 0.78rem; padding: 0.4rem; resize: vertical;"></textarea>
+                  </div>
+                  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+                    <div>
+                      <label style="font-size: 0.73rem; font-weight: 700; color: var(--text-secondary); display: block; margin-bottom: 2px;">Sınıf Öğretmeni:</label>
+                      <input type="text" id="cert-input-teacher" class="form-control" style="font-size: 0.8rem; padding: 0.4rem;">
+                    </div>
+                    <div>
+                      <label style="font-size: 0.73rem; font-weight: 700; color: var(--text-secondary); display: block; margin-bottom: 2px;">Okul Müdürü:</label>
+                      <input type="text" id="cert-input-principal" class="form-control" style="font-size: 0.8rem; padding: 0.4rem;">
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Sağ Panel: A4 Yatay Canlı Önizleme & Çıktı -->
+            <div class="cert-preview-panel">
+              <!-- Üst Araç Çubuğu -->
+              <div class="cert-preview-toolbar">
+                <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                  <div style="font-size: 0.78rem; font-weight: 600; color: var(--text-secondary); display: flex; align-items: center; gap: 5px;">
+                    <span>✏️</span> <span>Belge üzerindeki tüm yazılara tıklayarak anında düzenleyebilirsiniz</span>
+                  </div>
+                </div>
+
+                <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                  <button type="button" class="btn btn-secondary btn-sm" id="btn-cert-toggle-eco" style="font-size: 0.78rem; padding: 0.4rem 0.7rem; display: flex; align-items: center; gap: 4px;">
+                    <span>🖨️</span> <span>Fotokopi (Eco) Modu</span>
+                  </button>
+                  <button type="button" class="btn btn-primary btn-sm" id="btn-cert-print" style="font-size: 0.82rem; padding: 0.4rem 0.85rem; font-weight: 700; display: flex; align-items: center; gap: 5px; background: linear-gradient(135deg, #f59e0b, #d97706);">
+                    <i data-lucide="printer" style="width: 15px; height: 15px;"></i>
+                    <span>A4 Yatay Yazdır / PDF</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- A4 Yatay Kağıt Alanı -->
+              <div id="cert-a4-sheet-container">
+                <!-- JS tarafından çizilecek -->
+              </div>
+            </div>
+          </div>
+        </div>
       </section>
       <!-- Raporlar Sekmesi -->
       <section id="reports" class="content-section">
@@ -7064,10 +7319,21 @@
         </div>
       </div>
 
-      <!-- Bilgi Notu -->
-      <div style="font-size: 0.76rem; color: var(--text-muted); line-height: 1.45; display: flex; align-items: center; justify-content: center; gap: 6px;">
-        <i data-lucide="info" style="width: 14px; height: 14px; flex-shrink: 0; color: #8b5cf6;"></i>
-        <span>Yapay zeka tüm listeyi detaylı incelediği için işlem 10-20 saniye sürebilir.</span>
+      <!-- Sırayla Değişen Bilgi Kutusu (8 sn) -->
+      <div id="desktop-ai-info-box" style="background: rgba(139, 92, 246, 0.08); border: 1px solid rgba(139, 92, 246, 0.22); border-radius: 10px; padding: 0.75rem 0.95rem; text-align: left;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.35rem;">
+          <span id="desktop-ai-info-badge" style="display: inline-flex; align-items: center; gap: 5px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; color: #8b5cf6;">
+            <span id="desktop-ai-info-icon" style="display: inline-flex; align-items: center;"><i data-lucide="info" style="width: 13px; height: 13px;"></i></span>
+            <span id="desktop-ai-info-label">Demo Sürüm Bilgisi</span>
+          </span>
+          <div id="desktop-ai-info-dots" style="display: flex; align-items: center; gap: 5px;">
+            <span class="desktop-ai-info-dot" data-idx="0" style="width: 14px; height: 4px; border-radius: 999px; background: #8b5cf6; transition: all 0.3s ease;"></span>
+            <span class="desktop-ai-info-dot" data-idx="1" style="width: 6px; height: 4px; border-radius: 999px; background: rgba(139, 92, 246, 0.3); transition: all 0.3s ease;"></span>
+          </div>
+        </div>
+        <div id="desktop-ai-info-text" style="font-size: 0.77rem; color: var(--text-secondary); line-height: 1.48; min-height: 36px; transition: opacity 0.3s ease, transform 0.3s ease;">
+          Demo sürümde listelerinizden yalnızca ilk 5 öğrenci sisteme aktarılır. Tüm sınıfı sınırsız eklemek için tam sürüme geçebilirsiniz.
+        </div>
       </div>
     </div>
   </div>
@@ -10289,12 +10555,12 @@
         <div style="display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 1rem; background: var(--bg-secondary); border-radius: 10px; border: 1px solid var(--border-color);">
           <div style="display: flex; align-items: center; gap: 0.4rem;">
             <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600;">Mevcut:</span>
-            <span id="update-current-version" class="badge" style="font-size: 0.8rem; font-weight: 700; background: var(--border-color); color: var(--text-secondary); padding: 0.2rem 0.5rem; border-radius: 6px;">v1.0.136</span>
+            <span id="update-current-version" class="badge" style="font-size: 0.8rem; font-weight: 700; background: var(--border-color); color: var(--text-secondary); padding: 0.2rem 0.5rem; border-radius: 6px;">v1.0.137</span>
           </div>
           <i data-lucide="arrow-right" style="width: 16px; height: 16px; color: #6366f1;"></i>
           <div style="display: flex; align-items: center; gap: 0.4rem;">
             <span style="font-size: 0.75rem; color: #6366f1; font-weight: 600;">Yeni Sürüm:</span>
-            <span id="update-latest-version" class="badge" style="font-size: 0.8rem; font-weight: 700; background: #6366f1; color: white; padding: 0.2rem 0.5rem; border-radius: 6px;">v1.0.136</span>
+            <span id="update-latest-version" class="badge" style="font-size: 0.8rem; font-weight: 700; background: #6366f1; color: white; padding: 0.2rem 0.5rem; border-radius: 6px;">v1.0.137</span>
           </div>
         </div>
 
@@ -10376,6 +10642,50 @@
   </div>
 
   <!-- MODAL: YENİ HATIRLATICI EKLE -->
+  <!-- MODAL: BU HAFTA EKSİ DOJO PUANI ALMAYAN ÖĞRENCİLER -->
+  <div class="modal" id="modal-weekly-no-minus-dojo" style="--max-width: 760px;">
+    <div class="modal-content" style="max-width: 760px; width: 94vw; max-height: 88vh; display: flex; flex-direction: column;">
+      <div class="modal-header" style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(5, 150, 105, 0.14)); border-bottom: 1px solid var(--border-color);">
+        <div style="display: flex; align-items: center; gap: 0.65rem;">
+          <div style="width: 38px; height: 38px; border-radius: 10px; background: rgba(16, 185, 129, 0.18); color: #10b981; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+            <i data-lucide="shield-check" style="width: 22px; height: 22px;"></i>
+          </div>
+          <div>
+            <h3 style="margin: 0; font-size: 1.08rem; font-weight: 800; color: var(--text-primary);">Haftanın Eksi Dojo Almayan Öğrencileri</h3>
+            <div id="no-minus-dojo-week-subtitle" style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.15rem;">Geçerli hafta hesaplanıyor...</div>
+          </div>
+        </div>
+        <button type="button" class="close-btn" id="btn-close-no-minus-dojo-modal" title="Kapat">&times;</button>
+      </div>
+      <div class="modal-body" style="padding: 1rem 1.25rem; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 0.85rem;">
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.65rem; flex-wrap: wrap;">
+          <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+            <span id="no-minus-dojo-count-badge" class="badge" style="background: rgba(16, 185, 129, 0.16); color: #059669; font-weight: 800; font-size: 0.85rem; padding: 0.4rem 0.85rem; border-radius: 999px;">0 / 0 Öğrenci</span>
+            <select id="no-minus-dojo-branch-select" class="form-control" style="display: none; width: 135px; height: 34px; padding: 0.2rem 0.5rem; font-size: 0.82rem;"></select>
+          </div>
+          <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+            <input type="text" id="no-minus-dojo-search" class="form-control" placeholder="Öğrenci adı veya no ara..." style="width: 200px; height: 34px; padding: 0.25rem 0.65rem; font-size: 0.82rem;">
+            <button type="button" class="btn btn-secondary btn-sm" id="btn-copy-no-minus-dojo" style="display: inline-flex; align-items: center; gap: 0.35rem; height: 34px; font-size: 0.8rem;">
+              <i data-lucide="copy" style="width: 14px; height: 14px;"></i> Kopyala
+            </button>
+            <button type="button" class="btn btn-primary btn-sm" id="btn-print-no-minus-dojo" style="display: inline-flex; align-items: center; gap: 0.35rem; height: 34px; font-size: 0.8rem;">
+              <i data-lucide="printer" style="width: 14px; height: 14px;"></i> Yazdır
+            </button>
+          </div>
+        </div>
+        <div style="font-size: 0.78rem; color: var(--text-muted); background: rgba(16, 185, 129, 0.06); border: 1px solid rgba(16, 185, 129, 0.2); border-radius: 8px; padding: 0.5rem 0.75rem;">
+          Yalnızca geçerli haftadaki <strong>Dojo (Davranış/Performans)</strong> kayıtlarında hiç eksi puan (<strong>&lt; 0</strong>) almamış öğrenciler listelenir. Ödev, kitap, görev ve sınav puanları hariç tutulur.
+        </div>
+        <div id="no-minus-dojo-list-container" style="display: flex; flex-direction: column; gap: 0.45rem;">
+          <!-- JS ile doldurulacaktır -->
+        </div>
+      </div>
+      <div class="modal-footer" style="border-top: 1px solid var(--border-color); padding: 0.75rem 1.25rem; display: flex; justify-content: flex-end;">
+        <button type="button" class="btn btn-secondary" id="btn-footer-close-no-minus-dojo">Kapat</button>
+      </div>
+    </div>
+  </div>
+
   <div class="modal" id="modal-reminder-add" style="--max-width: 500px;">
     <div class="modal-content" style="max-width: 500px;">
       <div class="modal-header" style="background: rgba(99, 102, 241, 0.1); color: var(--primary);">
@@ -10514,7 +10824,7 @@
           <div>
             <h3 style="margin: 0; font-size: 1.2rem; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
               Sınıf Asistanı Masaüstü Uygulaması
-              <span id="download-app-version-badge" class="badge" style="font-size: 0.75rem; background: var(--primary); color: white; padding: 0.2rem 0.5rem; border-radius: 6px; font-weight: 600;">v1.0.136 (En Son)</span>
+              <span id="download-app-version-badge" class="badge" style="font-size: 0.75rem; background: var(--primary); color: white; padding: 0.2rem 0.5rem; border-radius: 6px; font-weight: 600;">v1.0.137 (En Son)</span>
             </h3>
             <p style="margin: 0; font-size: 0.85rem; color: var(--text-secondary);">Akıllı tahta ve bilgisayarınızda internet olmadan da tam performans çalışın.</p>
           </div>
@@ -10542,7 +10852,7 @@
               </p>
             </div>
             <div>
-              <a id="btn-download-deb" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/download/v1.0.136/sinif-asistani_1.0.136_amd64.deb" target="_blank" class="btn btn-primary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem; background: #ef4444; border-color: #ef4444; font-weight: 600;">
+              <a id="btn-download-deb" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/download/v1.0.137/sinif-asistani_1.0.137_amd64.deb" target="_blank" class="btn btn-primary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem; background: #ef4444; border-color: #ef4444; font-weight: 600;">
                 <i data-lucide="download" style="width: 16px; height: 16px;"></i> Pardus (.deb) İndir
               </a>
               <button type="button" onclick="window.openPardusInstallHelpModal()" style="width: 100%; margin-top: 0.5rem; background: rgba(239, 68, 68, 0.12); border: 1px dashed rgba(239, 68, 68, 0.5); color: #f87171; border-radius: var(--radius-sm, 8px); padding: 0.45rem 0.5rem; font-size: 0.78rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.35rem; transition: all 0.2s ease;">
@@ -10569,7 +10879,7 @@
               </p>
             </div>
             <div>
-              <a id="btn-download-exe" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/download/v1.0.136/sinif-asistani_1.0.136_x64-setup.exe" target="_blank" class="btn btn-primary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem; background: #0284c7; border-color: #0284c7; font-weight: 600;">
+              <a id="btn-download-exe" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/download/v1.0.137/sinif-asistani_1.0.137_x64-setup.exe" target="_blank" class="btn btn-primary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem; background: #0284c7; border-color: #0284c7; font-weight: 600;">
                 <i data-lucide="download" style="width: 16px; height: 16px;"></i> Windows (.exe) İndir
               </a>
               <button type="button" onclick="window.openWinInstallHelpModal()" style="width: 100%; margin-top: 0.5rem; background: rgba(2, 132, 199, 0.12); border: 1px dashed rgba(2, 132, 199, 0.5); color: #38bdf8; border-radius: var(--radius-sm, 8px); padding: 0.45rem 0.5rem; font-size: 0.78rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.35rem; transition: all 0.2s ease;">
@@ -10597,13 +10907,13 @@
             </div>
             <div>
               <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem;">
-                <a id="btn-download-dmg" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/download/v1.0.136/sinif-asistani_1.0.136_aarch64.dmg" target="_blank" class="btn btn-primary" style="flex: 1.1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.15rem; background: #8b5cf6; border-color: #8b5cf6; font-weight: 600; padding: 0.5rem 0.35rem; font-size: 0.78rem; text-align: center; text-decoration: none;">
+                <a id="btn-download-dmg" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/download/v1.0.137/sinif-asistani_1.0.137_aarch64.dmg" target="_blank" class="btn btn-primary" style="flex: 1.1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.15rem; background: #8b5cf6; border-color: #8b5cf6; font-weight: 600; padding: 0.5rem 0.35rem; font-size: 0.78rem; text-align: center; text-decoration: none;">
                   <span style="display: flex; align-items: center; gap: 0.25rem; font-weight: 700;">
                     <i data-lucide="download" style="width: 14px; height: 14px;"></i> Apple Silicon
                   </span>
                   <span style="font-size: 0.67rem; opacity: 0.92; font-weight: 500;">(M1 / M2 / M3 / M4)</span>
                 </a>
-                <a id="btn-download-dmg-intel" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/download/v1.0.136/sinif-asistani_1.0.136_x64.dmg" target="_blank" class="btn btn-secondary" style="flex: 0.9; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.15rem; font-weight: 600; padding: 0.5rem 0.35rem; font-size: 0.78rem; text-align: center; text-decoration: none; border: 1px solid rgba(139, 92, 246, 0.45); color: var(--text-primary);">
+                <a id="btn-download-dmg-intel" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/download/v1.0.137/sinif-asistani_1.0.137_x64.dmg" target="_blank" class="btn btn-secondary" style="flex: 0.9; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.15rem; font-weight: 600; padding: 0.5rem 0.35rem; font-size: 0.78rem; text-align: center; text-decoration: none; border: 1px solid rgba(139, 92, 246, 0.45); color: var(--text-primary);">
                   <span style="display: flex; align-items: center; gap: 0.25rem; font-weight: 700;">
                     <i data-lucide="download" style="width: 14px; height: 14px;"></i> Intel Mac
                   </span>
@@ -10633,7 +10943,7 @@
                 Derste masaları gezerken tek dokunuşla ödev kontrolü, ders akışı ve hızlı yoklama için mobil uygulama paketi.
               </p>
             </div>
-            <a id="btn-download-apk" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/download/v1.0.136/sinif-asistani.apk" target="_blank" class="btn btn-primary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem; background: #16a34a; border-color: #16a34a; font-weight: 600;">
+            <a id="btn-download-apk" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/download/v1.0.137/sinif-asistani.apk" target="_blank" class="btn btn-primary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem; background: #16a34a; border-color: #16a34a; font-weight: 600;">
               <i data-lucide="download" style="width: 16px; height: 16px;"></i> Android (.apk) İndir
             </a>
           </div>
@@ -10655,7 +10965,7 @@
                 <strong>Kurulum gerektirmez!</strong> Özellikle ortaokul modunda sınıf sınıf gezen branş öğretmenleri, uygulamayı Flash diskine (USB) yükleyerek tüm sınıflardaki akıllı tahtalarda doğrudan flash bellek üzerinden tak-çalıştır şeklinde kullanabilir.
               </p>
             </div>
-            <a id="btn-download-appimage" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/download/v1.0.136/sinif-asistani_1.0.136_amd64.AppImage" target="_blank" class="btn btn-primary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem; background: #10b981; border-color: #10b981; font-weight: 600;">
+            <a id="btn-download-appimage" href="https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/download/v1.0.137/sinif-asistani_1.0.137_amd64.AppImage" target="_blank" class="btn btn-primary" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem; background: #10b981; border-color: #10b981; font-weight: 600;">
               <i data-lucide="download" style="width: 16px; height: 16px;"></i> AppImage (USB Uyumlu) İndir
             </a>
           </div>
@@ -10918,7 +11228,7 @@
   <script src="js/datepicker.js?v=1"></script>
   <script src="js/supabase-config.js?v=32"></script>
   <script src="js/license-config.js?v=32"></script>
-  <script src="js/state.js?v=37"></script>
+  <script src="js/state.js?v=38"></script>
   <script src="js/ai-helper.js?v=1"></script>
   <script src="js/performance.js?v=35"></script>
   <script src="js/books.js?v=36"></script>
@@ -10929,7 +11239,7 @@
   <script src="js/cloud-sync.js?v=1"></script>
   <script src="js/omr-engine.js?v=64"></script>
   <script src="js/weekly.js?v=62"></script>
-  <script src="js/dashboard.js?v=35"></script>
+  <script src="js/dashboard.js?v=36"></script>
   <script src="js/timer.js?v=35"></script>
   <script src="js/quick-caller.js?v=35"></script>
   <script src="js/games.js?v=38"></script>
@@ -10943,22 +11253,25 @@
   <script src="js/plans.js?v=35"></script>
   <script src="js/tools.js?v=35"></script>
   <script src="js/homework-generator.js?v=3"></script>
+  <script src="js/rubric-maker.js?v=1"></script>
+  <script src="js/certificate-maker.js?v=1"></script>
   <script src="js/schedule.js?v=35"></script>
   <script src="js/daily-plans.js?v=1"></script>
   <script src="js/written-exam.js?v=35"></script>
   <script src="js/exam-analysis.js?v=35"></script>
   <script src="js/reports.js?v=35"></script>
   <script src="js/seating.js?v=35"></script>
-  <script src="js/notebooks.js?v=35"></script>
+  <script src="js/notebooks.js?v=36"></script>
   <script src="js/contributions.js?v=37"></script>
   <script src="js/app-lock.js?v=1"></script>
+  <script src="js/manual.js?v=1"></script>
   <script src="js/app.js?v=37"></script>
   <script src="js/test_plans.js"></script>
   <div id="pdf-viewer-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: var(--bg-primary); z-index: 9999; flex-direction: column;">
-    <div style="height: 60px; background: var(--bg-secondary); border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; padding: 0 1.5rem;">
-      <div style="display: flex; align-items: center; gap: 0.75rem; flex: 1; overflow: hidden; margin-right: 1rem;">
+    <div style="height: 60px; background: var(--bg-secondary); border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; padding: 0 1.25rem; gap: 0.75rem;">
+      <div style="display: flex; align-items: center; gap: 0.75rem; flex: 1; min-width: 0; overflow: hidden;">
         <i data-lucide="book-open" style="color: var(--primary); flex-shrink: 0;"></i>
-        <span id="pdf-viewer-title" style="font-weight: 700; color: var(--text-primary); font-size: 1.1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 250px;">Ders Kitabı</span>
+        <span id="pdf-viewer-title" style="font-weight: 700; color: var(--text-primary); font-size: 1.05rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 220px;">Ders Kitabı</span>
         <!-- Canlı Ders Bilgisi Rozeti -->
         <div id="pdf-viewer-live-badge" style="display: inline-flex; align-items: center; gap: 0.5rem; background: rgba(0,0,0,0.25); border: 1px solid var(--border-color); padding: 0.25rem 0.75rem; border-radius: 20px; font-size: 0.8rem; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="Canlı Ders ve Konu Detayını Gör">
           <span id="pdf-live-period-text" style="font-weight: 700; color: #10b981; display: inline-flex; align-items: center; gap: 0.25rem;">
@@ -10966,24 +11279,40 @@
             <span>Ders Akışı</span>
           </span>
           <span style="opacity: 0.4;">|</span>
-          <span id="pdf-live-topic-text" style="color: var(--text-primary); max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Yükleniyor...</span>
+          <span id="pdf-live-topic-text" style="color: var(--text-primary); max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Yükleniyor...</span>
         </div>
       </div>
       
-      <!-- Kaldığı Sayfa Takibi -->
-      <div style="display: flex; align-items: center; gap: 0.5rem; background: rgba(255, 255, 255, 0.05); padding: 0.35rem 0.75rem; border-radius: 20px; border: 1px solid var(--border-color);">
-        <button id="btn-pdf-prev-page" style="background: transparent; border: none; color: var(--text-primary); cursor: pointer; display: flex; align-items: center; padding: 0.1rem; outline: none;" title="Önceki Sayfa">
-          <i data-lucide="chevron-left" style="width: 16px; height: 16px;"></i>
-        </button>
-        <span style="font-size: 0.85rem; font-weight: 600; color: var(--text-secondary);">Sayfa:</span>
-        <input type="number" id="pdf-viewer-page-input" min="1" value="1" style="width: 50px; background: transparent; border: none; color: var(--text-primary); font-weight: 700; font-size: 0.9rem; outline: none; text-align: center;">
-        <button id="btn-pdf-next-page" style="background: transparent; border: none; color: var(--text-primary); cursor: pointer; display: flex; align-items: center; padding: 0.1rem; outline: none;" title="Sonraki Sayfa">
-          <i data-lucide="chevron-right" style="width: 16px; height: 16px;"></i>
-        </button>
+      <!-- Kaldığı Sayfa ve Yakınlaştırma Takibi -->
+      <div style="display: flex; align-items: center; gap: 0.5rem; flex-shrink: 0;">
+        <div style="display: flex; align-items: center; gap: 0.35rem; background: rgba(255, 255, 255, 0.05); padding: 0.3rem 0.65rem; border-radius: 20px; border: 1px solid var(--border-color);">
+          <button id="btn-pdf-prev-page" style="background: transparent; border: none; color: var(--text-primary); cursor: pointer; display: flex; align-items: center; padding: 0.1rem; outline: none;" title="Önceki Sayfa">
+            <i data-lucide="chevron-left" style="width: 16px; height: 16px;"></i>
+          </button>
+          <span style="font-size: 0.82rem; font-weight: 600; color: var(--text-secondary);">Sayfa:</span>
+          <input type="number" id="pdf-viewer-page-input" min="1" value="1" style="width: 48px; background: transparent; border: none; color: var(--text-primary); font-weight: 700; font-size: 0.9rem; outline: none; text-align: center;">
+          <span id="pdf-viewer-total-pages" style="font-size: 0.82rem; font-weight: 600; color: var(--text-muted); display: none;">/ 1</span>
+          <button id="btn-pdf-next-page" style="background: transparent; border: none; color: var(--text-primary); cursor: pointer; display: flex; align-items: center; padding: 0.1rem; outline: none;" title="Sonraki Sayfa">
+            <i data-lucide="chevron-right" style="width: 16px; height: 16px;"></i>
+          </button>
+        </div>
+
+        <div id="pdf-viewer-zoom-controls" style="display: none; align-items: center; gap: 0.25rem; background: rgba(255, 255, 255, 0.05); padding: 0.3rem 0.55rem; border-radius: 20px; border: 1px solid var(--border-color);">
+          <button id="btn-pdf-zoom-out" style="background: transparent; border: none; color: var(--text-primary); cursor: pointer; display: flex; align-items: center; padding: 0.1rem 0.25rem; outline: none;" title="Uzaklaştır">
+            <i data-lucide="zoom-out" style="width: 15px; height: 15px;"></i>
+          </button>
+          <span id="pdf-viewer-zoom-label" style="font-size: 0.8rem; font-weight: 700; color: var(--text-primary); min-width: 42px; text-align: center;">125%</span>
+          <button id="btn-pdf-zoom-in" style="background: transparent; border: none; color: var(--text-primary); cursor: pointer; display: flex; align-items: center; padding: 0.1rem 0.25rem; outline: none;" title="Yakınlaştır">
+            <i data-lucide="zoom-in" style="width: 15px; height: 15px;"></i>
+          </button>
+          <button id="btn-pdf-zoom-fit" style="background: transparent; border: none; color: var(--text-secondary); cursor: pointer; display: flex; align-items: center; padding: 0.1rem 0.25rem; outline: none; font-size: 0.75rem; font-weight: 600;" title="Genişliğe Sığdır">
+            <i data-lucide="maximize-2" style="width: 14px; height: 14px;"></i>
+          </button>
+        </div>
       </div>
 
       <!-- Tam Ekran Hızlı Araçlar (Öğrenci Çağır, Puan Ver, Süre Tut) -->
-      <div style="display: flex; align-items: center; gap: 0.5rem; margin-left: 1rem;">
+      <div style="display: flex; align-items: center; gap: 0.45rem; flex-shrink: 0;">
         <button class="btn btn-sm btn-outline-primary" id="btn-pdf-quick-caller" style="display: flex; align-items: center; gap: 0.35rem; font-size: 0.82rem; padding: 0.35rem 0.65rem;" title="Rastgele Öğrenci Çağır">
           <i data-lucide="user-check" style="width: 15px; height: 15px;"></i>
           <span>Öğrenci Çağır</span>
@@ -10998,13 +11327,14 @@
         </button>
       </div>
 
-      <div style="flex: 1; display: flex; justify-content: flex-end;">
+      <div style="display: flex; justify-content: flex-end; flex-shrink: 0;">
         <button class="btn btn-secondary" id="btn-close-pdf-viewer" style="display: flex; align-items: center; gap: 0.25rem;">
           <i data-lucide="x"></i> Kapat
         </button>
       </div>
     </div>
-    <div style="flex: 1; position: relative; background: #525659;">
+    <div style="flex: 1; position: relative; background: #525659; overflow: hidden;">
+      <div id="pdf-viewer-canvas-container" style="display: none; width: 100%; height: 100%; overflow-y: auto; overflow-x: auto; padding: 1.25rem 0 2.5rem 0; box-sizing: border-box; scroll-behavior: auto;"></div>
       <iframe id="pdf-viewer-iframe" style="width: 100%; height: 100%; border: none;" src=""></iframe>
     </div>
   </div>

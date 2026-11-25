@@ -101,20 +101,25 @@ const MEB_HOLIDAY_SCHEDULE = {
     isHoliday: true,
     isBreak: true
   },
-  // Yarıyıl / Sömestr Tatili: 25 Ocak - 5 Şubat 2027 (2 Hafta)
+  // Yarıyıl / Sömestr Tatili: 25 Ocak - 5 Şubat 2027 (2 Hafta - Tek Blok Gösterim)
   '2027-W04': {
     type: 'semester_break',
-    name: 'Yarıyıl Tatili (1. Hafta)',
+    name: 'Yarıyıl Tatili',
     shortLabel: 'Yarıyıl Tatili',
-    dateRange: '25 Oca - 29 Oca',
+    dateRange: '25 Oca - 05 Şub',
+    mergedWeeks: ['2027-W04', '2027-W05'],
+    canonicalWeekId: '2027-W04',
     isHoliday: true,
     isBreak: true
   },
   '2027-W05': {
     type: 'semester_break',
-    name: 'Yarıyıl Tatili (2. Hafta)',
+    name: 'Yarıyıl Tatili',
     shortLabel: 'Yarıyıl Tatili',
-    dateRange: '01 Şub - 05 Şub',
+    dateRange: '25 Oca - 05 Şub',
+    mergedWeeks: ['2027-W04', '2027-W05'],
+    canonicalWeekId: '2027-W04',
+    isMergedContinuation: true,
     isHoliday: true,
     isBreak: true
   },
@@ -173,6 +178,7 @@ function getEducationWeekInfo(weekId) {
   // 1. Resmi Ara Tatil veya Yarıyıl Tatili Kontrolü
   const holiday = MEB_HOLIDAY_SCHEDULE[normalized];
   if (holiday) {
+    const displayRange = holiday.dateRange || dateRange;
     return {
       weekId: normalized,
       year,
@@ -182,14 +188,16 @@ function getEducationWeekInfo(weekId) {
       isAcademic: false,
       isHoliday: true,
       isBreak: true,
+      isMergedContinuation: !!holiday.isMergedContinuation,
+      canonicalWeekId: holiday.canonicalWeekId || normalized,
       holidayName: holiday.name,
       monday,
       friday,
       sunday,
-      dateRange,
-      label: `🌴 ${holiday.name} (${dateRange})`,
+      dateRange: displayRange,
+      label: `🌴 ${holiday.name} (${displayRange})`,
       shortLabel: holiday.shortLabel,
-      fullLabel: `${academicYearStr} • 🌴 ${holiday.name} (${dateRange})`
+      fullLabel: `${academicYearStr} • 🌴 ${holiday.name} (${displayRange})`
     };
   }
 
@@ -245,6 +253,47 @@ function getEducationWeekInfo(weekId) {
   };
 }
 window.getEducationWeekInfo = getEducationWeekInfo;
+
+/**
+ * Birleşik tatil bloklarını (örn. 2 haftalık Yarıyıl Tatili) tek adımda geçerek
+ * önceki/sonraki eğitim haftasına ilerler.
+ */
+function stepEducationWeek(weekId, offset) {
+  if (!weekId || !offset) return weekId;
+  const normalized = normalizeWeekId(weekId);
+  const parts = normalized.split('-W');
+  if (parts.length !== 2) return weekId;
+
+  const dir = offset > 0 ? 1 : -1;
+  const steps = Math.abs(offset);
+  let curWeek = normalized;
+
+  for (let i = 0; i < steps; i++) {
+    const curHoliday = MEB_HOLIDAY_SCHEDULE[curWeek];
+    if (curHoliday && Array.isArray(curHoliday.mergedWeeks) && curHoliday.mergedWeeks.length > 1) {
+      const edgeWeek = dir > 0
+        ? curHoliday.mergedWeeks[curHoliday.mergedWeeks.length - 1]
+        : curHoliday.mergedWeeks[0];
+      const ep = edgeWeek.split('-W');
+      const d = getDayInWeek(parseInt(ep[0], 10), parseInt(ep[1], 10), 4);
+      d.setDate(d.getDate() + (dir * 7));
+      curWeek = getISOWeek(d);
+    } else {
+      const cp = curWeek.split('-W');
+      const d = getDayInWeek(parseInt(cp[0], 10), parseInt(cp[1], 10), 4);
+      d.setDate(d.getDate() + (dir * 7));
+      curWeek = getISOWeek(d);
+    }
+
+    const targetHoliday = MEB_HOLIDAY_SCHEDULE[curWeek];
+    if (targetHoliday && targetHoliday.isMergedContinuation && targetHoliday.canonicalWeekId) {
+      curWeek = targetHoliday.canonicalWeekId;
+    }
+  }
+
+  return curWeek;
+}
+window.stepEducationWeek = stepEducationWeek;
 
 function formatWeekTR(weekId, formatType) {
   if (!weekId) return '';
@@ -6336,6 +6385,79 @@ class StateManager {
     const event = new CustomEvent('stateChanged');
     document.dispatchEvent(event);
     return true;
+  }
+
+  getTextbookPosition(pdfId, pdfName = '') {
+    if (!this.state) return null;
+    const map = this.state.textbookPositions;
+    if (!map || typeof map !== 'object') return null;
+    if (pdfId && map[pdfId] && typeof map[pdfId] === 'object') {
+      return { ...map[pdfId] };
+    }
+    // Kitap farklı ID ile yeniden yüklendiyse veya başka cihazdan eşitlendiyse dosya adıyla eşleştir
+    if (pdfName) {
+      const normalized = String(pdfName).trim().toLowerCase();
+      let best = null;
+      for (const key of Object.keys(map)) {
+        const item = map[key];
+        if (item && item.name && String(item.name).trim().toLowerCase() === normalized) {
+          if (!best || (Number(item.updatedAt) || 0) > (Number(best.updatedAt) || 0)) {
+            best = item;
+          }
+        }
+      }
+      if (best) return { ...best };
+    }
+    return null;
+  }
+
+  setTextbookPosition(pdfId, posData, immediate = false) {
+    if (!this.state || !pdfId || !posData || typeof posData !== 'object') return false;
+    if (!this.state.textbookPositions || typeof this.state.textbookPositions !== 'object') {
+      this.state.textbookPositions = {};
+    }
+    const page = Math.max(1, parseInt(posData.page, 10) || 1);
+    const scrollRatio = Number.isFinite(Number(posData.scrollRatio))
+      ? Math.max(0, Math.min(1, Number(posData.scrollRatio)))
+      : 0;
+    const scale = Number.isFinite(Number(posData.scale))
+      ? Math.max(0.4, Math.min(4, Number(posData.scale)))
+      : 1.25;
+    const updatedAt = Number(posData.updatedAt) || Date.now();
+    const existing = this.state.textbookPositions[pdfId];
+
+    // Aynı değerler için gereksiz disk yazımını önle (immediate değilse)
+    if (
+      !immediate &&
+      existing &&
+      existing.page === page &&
+      Math.abs((Number(existing.scrollRatio) || 0) - scrollRatio) < 0.003 &&
+      Math.abs((Number(existing.scale) || 1.25) - scale) < 0.01
+    ) {
+      return true;
+    }
+
+    this.state.textbookPositions[pdfId] = {
+      page,
+      scrollRatio: Math.round(scrollRatio * 10000) / 10000,
+      scale: Math.round(scale * 100) / 100,
+      name: posData.name || (existing && existing.name) || '',
+      updatedAt
+    };
+
+    // Not: Arayüzü yeniden çizmeye (notify) gerek kalmadan diske ve yerel yedeklere kalıcı yaz
+    this.saveState('Ders kitabı son konum kaydı', immediate);
+    return true;
+  }
+
+  deleteTextbookPosition(pdfId) {
+    if (!this.state || !pdfId || !this.state.textbookPositions) return false;
+    if (this.state.textbookPositions[pdfId]) {
+      delete this.state.textbookPositions[pdfId];
+      this.saveState('Ders kitabı konum kaydı silindi', false);
+      return true;
+    }
+    return false;
   }
 }
 
