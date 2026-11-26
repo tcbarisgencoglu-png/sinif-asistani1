@@ -48,7 +48,7 @@
     return String(weekId || '').trim().toUpperCase();
   }
 
-  // Akıllı tahta (dashboard.js) ile birebir aynı Dojo (Davranış/Performans) sınıflandırması
+  // Akıllı tahta (dashboard.js) ile uyumlu Dojo (Davranış/Performans) sınıflandırması
   function isDojoPerformanceRecord(p, data) {
     if (!p || typeof p !== 'object') return false;
     const reason = p.reason || '';
@@ -63,7 +63,7 @@
       tasks.some(t => t.performanceId === p.id || (t.id && t.id === p.taskId)) ||
       reason.includes('Görevi Teslim Edildi') ||
       reason.includes('Görevi Tamamlandı') ||
-      (/görev/i.test(reason) && !reasonLower.includes('kitap okuma tamamlandı'))
+      reasonLower.startsWith('görev:')
     );
     if (isTask) return false;
 
@@ -76,7 +76,7 @@
     );
     if (isStar) return false;
 
-    if (reasonLower.includes('kitap')) return false;
+    if (reasonLower.includes('kitap okuma tamamlandı') || reasonLower.includes('kitap iade')) return false;
 
     return true;
   }
@@ -481,36 +481,70 @@ ${noteText}
         bookReportText = '📚 *HAFTANIN KİTAP KURTLARI*\n📖 Bu hafta kitap okuma gayretini sürdüren tüm öğrencilerimizi tebrik ediyoruz. Kitaplar en sadık dostumuzdur!';
       }
 
-      // 2. HAFTANIN DAVRANIŞ & KATILIM ŞAMPİYONLARI (Akıllı tahta ile birebir uyumlu: Sadece Dojo kayıtlarının haftalık net toplamı)
-      const perfList = Array.isArray(data.performance) ? data.performance : [];
-      const weeklyPerf = perfList.filter(p => {
-        if (!p || !studentIdSet.has(String(p.studentId))) return false;
-        if (!isDojoPerformanceRecord(p, data)) return false;
+      // 2. HAFTANIN DAVRANIŞ & KATILIM ŞAMPİYONLARI (Öğrenci ID / Numara / İsim eşleşmeli, yerel hafta uyumlu)
+      const resolvePerfStudent = (p) => {
+        if (!p) return null;
+        const pId = String(p.studentId || '').trim();
+        const pNum = String(p.studentNumber || '').trim();
+        const pName = String(p.studentName || '').trim().toLocaleLowerCase('tr-TR');
+        return students.find(s => {
+          if (pId && String(s.id).trim() === pId) return true;
+          if (pNum && s.number && String(s.number).trim() === pNum) return true;
+          if (pName) {
+            const full = `${s.name || ''} ${s.surname || ''}`.trim().toLocaleLowerCase('tr-TR');
+            if (full === pName) return true;
+          }
+          return false;
+        }) || null;
+      };
+
+      const isRecordInCurrentWeek = (p) => {
         if (p.weekId) {
           const normPWeek = normalizeWeekIdLocal(p.weekId);
           return !currentIsoWeek || normPWeek === currentIsoWeek;
         }
-        const pDate = (p.date || '').slice(0, 10);
-        return !!pDate && pDate >= mondayIso && pDate <= sundayIso;
-      });
+        if (p.date) {
+          const dWeek = normalizeWeekIdLocal(getISOWeekLocal(p.date));
+          if (dWeek && currentIsoWeek) return dWeek === currentIsoWeek;
+          const pDate = toLocalISO(new Date(p.date));
+          return !!pDate && pDate >= mondayIso && pDate <= sundayIso;
+        }
+        return false;
+      };
 
-      const behaviorScores = {};
-      weeklyPerf.forEach(p => {
-        const sObj = students.find(s => String(s.id) === String(p.studentId));
+      const perfList = Array.isArray(data.performance) ? data.performance : [];
+      const dojoScores = {};
+      const totalWeeklyPerfScores = {};
+
+      perfList.forEach(p => {
+        if (!p || !isRecordInCurrentWeek(p)) return;
+        const sObj = resolvePerfStudent(p);
         if (!sObj) return;
         const sName = `${sObj.name} ${sObj.surname || ''}`.trim();
         const pt = Number(p.point) || 0;
-        behaviorScores[sName] = (behaviorScores[sName] || 0) + pt;
+        totalWeeklyPerfScores[sName] = (totalWeeklyPerfScores[sName] || 0) + pt;
+        if (isDojoPerformanceRecord(p, data)) {
+          dojoScores[sName] = (dojoScores[sName] || 0) + pt;
+        }
       });
 
+      const sortedDojo = Object.keys(dojoScores)
+        .filter(n => dojoScores[n] > 0)
+        .sort((a, b) => dojoScores[b] - dojoScores[a]);
+
+      const sortedTotalPerf = Object.keys(totalWeeklyPerfScores)
+        .filter(n => totalWeeklyPerfScores[n] > 0)
+        .sort((a, b) => totalWeeklyPerfScores[b] - totalWeeklyPerfScores[a]);
+
+      // Öncelik haftalık Dojo puanlarıdır; bu hafta pozitif Dojo kaydı yoksa haftalık toplam performans puanları gösterilir
+      const activeScoreMap = sortedDojo.length > 0 ? dojoScores : totalWeeklyPerfScores;
+      const sortedBehavior = sortedDojo.length > 0 ? sortedDojo : sortedTotalPerf;
+
       let behaviorReportText = '';
-      const sortedBehavior = Object.keys(behaviorScores)
-        .filter(n => behaviorScores[n] > 0)
-        .sort((a, b) => behaviorScores[b] - behaviorScores[a]);
       if (sortedBehavior.length > 0) {
         const topBehavior = sortedBehavior.slice(0, 5);
         behaviorReportText = '🌟 *HAFTANIN DAVRANIŞ & KATILIM ŞAMPİYONLARI*\nDers içi aktif katılımları, nezaketleri ve örnek tutumlarıyla öne çıkan öğrencilerimiz:\n' +
-          topBehavior.map((n) => `⭐ *${n}* (+${behaviorScores[n]} Puan)`).join('\n');
+          topBehavior.map((n) => `⭐ *${n}* (+${activeScoreMap[n]} Puan)`).join('\n');
       } else {
         behaviorReportText = '🌟 *HAFTANIN DAVRANIŞ & KATILIM ŞAMPİYONLARI*\n⭐ Hafta boyunca sınıf düzenine ve ders kurallarına uyan tüm öğrencilerimize teşekkür ederiz.';
       }

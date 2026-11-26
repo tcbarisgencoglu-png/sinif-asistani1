@@ -826,12 +826,23 @@
       });
 
       // Sıralama Mantığı:
-      // Eğer "Sonuçları Kaydet" butonuna basılmışsa (isRanked === true) -> Puan Üstünlüğü (score desc, net desc)
-      // Basılmamışsa -> Okunma Sırası (en son okunan en üstte)
+      // Puan Üstünlüğü (isRanked === true) -> Masaüstü ile birebir aynı: puan (azalan), net (azalan), ad (A-Z)
+      // Eşit puanlı öğrencilere aynı başarı sırası verilir (Standart yarışma sıralaması: 1, 1, 3...)
+      // Okunma Sırası (isRanked === false) -> En son okunan en üstte
       if (this.isRanked) {
         studentListItems.sort((a, b) => {
-          if (b.score !== a.score) return b.score - a.score;
-          return b.net - a.net;
+          if (Math.abs(b.score - a.score) > 0.001) return b.score - a.score;
+          if (Math.abs(b.net - a.net) > 0.001) return b.net - a.net;
+          const nameA = `${a.stu.name || ''} ${a.stu.surname || ''}`.trim();
+          const nameB = `${b.stu.name || ''} ${b.stu.surname || ''}`.trim();
+          return nameA.localeCompare(nameB, 'tr');
+        });
+        let currentRank = 1;
+        studentListItems.forEach((item, idx) => {
+          if (idx > 0 && (studentListItems[idx - 1].score - item.score) > 0.001) {
+            currentRank = idx + 1;
+          }
+          item.rank = currentRank;
         });
       } else {
         studentListItems.sort((a, b) => b.time - a.time);
@@ -900,19 +911,18 @@
           </div>
         </div>
 
-        <!-- Taranan Öğrenciler Başlığı ve Sıralama Durumu -->
-        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
-          <div style="display: flex; align-items: center; gap: 6px;">
+        <!-- Taranan Öğrenciler Başlığı ve Sıralama Seçicisi -->
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-bottom: 10px; flex-wrap: wrap;">
+          <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
             <span style="font-size: 14px; font-weight: 800; color: #ffffff;">Taranan Öğrenciler (${scannedCount})</span>
-            ${this.isRanked ? `
-              <span style="font-size: 10.5px; background: #fbbf24; color: #78350f; font-weight: 800; padding: 2px 7px; border-radius: 999px;">
-                🏆 Puan Üstünlüğü Sıralaması
-              </span>
-            ` : `
-              <span style="font-size: 10.5px; background: rgba(255, 255, 255, 0.15); color: #e2e8f0; font-weight: 700; padding: 2px 7px; border-radius: 999px;">
-                Okunma Sırası
-              </span>
-            `}
+            <div style="display: inline-flex; align-items: center; background: rgba(15, 23, 42, 0.45); border: 1px solid rgba(255, 255, 255, 0.16); border-radius: 999px; padding: 2px; gap: 2px;">
+              <button type="button" onclick="window.CompanionOmr.setScannedSortMode('time')" style="border: none; cursor: pointer; font-size: 10.5px; font-weight: 800; padding: 3px 8px; border-radius: 999px; transition: all 0.15s; background: ${!this.isRanked ? 'rgba(255, 255, 255, 0.22)' : 'transparent'}; color: ${!this.isRanked ? '#ffffff' : '#cbd5e1'};">
+                Okunma
+              </button>
+              <button type="button" onclick="window.CompanionOmr.setScannedSortMode('score')" style="border: none; cursor: pointer; font-size: 10.5px; font-weight: 800; padding: 3px 8px; border-radius: 999px; transition: all 0.15s; background: ${this.isRanked ? '#fbbf24' : 'transparent'}; color: ${this.isRanked ? '#78350f' : '#cbd5e1'};">
+                🏆 Puan
+              </button>
+            </div>
           </div>
           ${scannedCount > 0 ? `
             <button type="button" class="c-btn-secondary" style="padding: 3px 8px; font-size: 11px; color: #ef4444;" onclick="window.CompanionOmr.clearAllResults()">
@@ -934,7 +944,7 @@
           ` : `
             ${studentListItems.map((item, index) => {
               const { studentId, stu, res, score, net } = item;
-              const rankNum = index + 1;
+              const rankNum = this.isRanked ? (item.rank || (index + 1)) : (index + 1);
               let rankBadgeClass = '';
               let rankText = `#${rankNum}`;
 
@@ -1124,6 +1134,33 @@
         populateCompanionExamWeekSelect(weekSelect, getISOWeekSafe(new Date()));
       }
 
+      // Mevcut Sınavdan Çoğaltma Seçicisini Doldur
+      const cloneSection = document.getElementById('wizard-clone-section');
+      const cloneSelect = document.getElementById('wizard-clone-exam');
+      const cloneKeyRow = document.getElementById('wizard-clone-key-row');
+      const cloneKeyCheck = document.getElementById('wizard-clone-answer-key');
+      if (cloneKeyRow) cloneKeyRow.style.display = 'none';
+      if (cloneKeyCheck) cloneKeyCheck.checked = false;
+
+      if (cloneSelect) {
+        const allExams = Array.isArray(this.getData().weeklyEvaluations) ? this.getData().weeklyEvaluations : [];
+        if (allExams.length === 0) {
+          if (cloneSection) cloneSection.style.display = 'none';
+        } else {
+          if (cloneSection) cloneSection.style.display = 'block';
+          cloneSelect.innerHTML = '<option value="">— Sıfırdan Yeni Sınav Oluştur —</option>' +
+            allExams.map(ex => {
+              const isM = !!(ex.isMultiSubject && Array.isArray(ex.subjects) && ex.subjects.length > 0);
+              const qInfo = isM ? `${ex.subjects.length} Ders / ${ex.totalQuestions || 40}S` : `${ex.totalQuestions || 20} Soru`;
+              const wLabel = ex.weekId ? formatWeekTRSafe(ex.weekId, 'short') : '';
+              const meta = [wLabel, qInfo].filter(Boolean).join(' • ');
+              const safeName = String(ex.examName || 'İsimsiz Sınav').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+              return `<option value="${ex.id}">${safeName} (${meta})</option>`;
+            }).join('');
+          cloneSelect.value = '';
+        }
+      }
+
       // Form elemanlarını sıfırla
       const nameInput = document.getElementById('wizard-exam-name');
       if (nameInput) nameInput.value = '';
@@ -1142,6 +1179,144 @@
 
       modal.style.display = 'flex';
       if (window.Companion) window.Companion.renderIcons();
+    },
+
+    // Taranan öğrenciler listesinde sıralama modunu değiştir (Okunma Sırası / Puan Üstünlüğü)
+    setScannedSortMode(mode) {
+      this.isRanked = (mode === 'score');
+      this.renderView();
+    },
+
+    // Mevcut sınavın cevap anahtarını sihirbaza kopyala
+    wizardApplyClonedAnswerKey(sourceExam) {
+      this.wizardKey = {};
+      if (!sourceExam) return;
+      const srcKey = sourceExam.answerKey || {};
+      const isMulti = !!(sourceExam.isMultiSubject && Array.isArray(sourceExam.subjects) && sourceExam.subjects.length > 0);
+      if (isMulti) {
+        let cumulative = 0;
+        this.wizardSubjects.forEach((subj, idx) => {
+          const origSubj = sourceExam.subjects[idx] || {};
+          const origSubjKey = origSubj.answerKey || {};
+          for (let qi = 1; qi <= subj.questionCount; qi++) {
+            const globalQ = cumulative + qi;
+            const ans = origSubjKey[qi] ||
+              srcKey[`${origSubj.id}_${qi}`] ||
+              srcKey[`${origSubj.name}_${qi}`] ||
+              srcKey[globalQ];
+            if (ans) {
+              this.wizardKey[`${subj.id}_${qi}`] = ans;
+              this.wizardKey[`${subj.name}_${qi}`] = ans;
+              this.wizardKey[globalQ] = ans;
+            }
+          }
+          cumulative += subj.questionCount;
+        });
+      } else {
+        const totalQ = sourceExam.totalQuestions || 20;
+        for (let q = 1; q <= totalQ; q++) {
+          if (srcKey[q]) this.wizardKey[q] = srcKey[q];
+        }
+      }
+    },
+
+    // Sihirbazda mevcut bir sınavı şablon olarak çek
+    wizardCloneFromExam(examId) {
+      const cloneKeyRow = document.getElementById('wizard-clone-key-row');
+      const cloneKeyCheck = document.getElementById('wizard-clone-answer-key');
+
+      if (!examId) {
+        if (cloneKeyRow) cloneKeyRow.style.display = 'none';
+        if (cloneKeyCheck) cloneKeyCheck.checked = false;
+        this.wizardKey = {};
+        this.wizardRenderAnswerKeyGrid();
+        return;
+      }
+
+      const allExams = Array.isArray(this.getData().weeklyEvaluations) ? this.getData().weeklyEvaluations : [];
+      const src = allExams.find(e => String(e.id) === String(examId));
+      if (!src) return;
+
+      // 1. Yeni sınav adı (pratik yeniden adlandırma için odaklanıp seçili gelir)
+      const nameInput = document.getElementById('wizard-exam-name');
+      if (nameInput) {
+        nameInput.value = `${src.examName || 'Sınav'} (Kopya)`;
+      }
+
+      // 2. Süre ve Şube
+      const durInput = document.getElementById('wizard-exam-duration');
+      if (durInput) durInput.value = src.duration || 40;
+
+      const sectionSelect = document.getElementById('wizard-exam-section');
+      if (sectionSelect && src.branch) {
+        const hasOpt = Array.from(sectionSelect.options).some(o => o.value === src.branch);
+        if (hasOpt) sectionSelect.value = src.branch;
+      }
+
+      // 3. Net Hesabı ayarları
+      const wrongAffCheck = document.getElementById('wizard-wrong-affects');
+      const penaltyRow = document.getElementById('wizard-penalty-row');
+      const penaltySelect = document.getElementById('wizard-penalty-rate');
+      if (wrongAffCheck) wrongAffCheck.checked = !!src.wrongAffects;
+      if (penaltyRow) penaltyRow.style.display = src.wrongAffects ? 'block' : 'none';
+      if (penaltySelect && src.penaltyRate) {
+        penaltySelect.value = String(src.penaltyRate);
+      }
+
+      // 4. Tek Ders / Çoklu Ders yapısı
+      const isMulti = !!(src.isMultiSubject && Array.isArray(src.subjects) && src.subjects.length > 0);
+      if (isMulti) {
+        this.wizardSubjects = src.subjects.map((s, idx) => ({
+          id: s.id || `sub_${idx}`,
+          name: s.name || `Ders ${idx + 1}`,
+          questionCount: parseInt(s.questionCount, 10) || 10
+        }));
+        this.wizardActiveSubjId = this.wizardSubjects[0] ? this.wizardSubjects[0].id : 'sub_0';
+        this.wizardSelectType('multi');
+      } else {
+        const qInput = document.getElementById('wizard-exam-questions');
+        if (qInput) qInput.value = src.totalQuestions || 20;
+        this.wizardSelectType('single');
+      }
+
+      // 5. Şık sayısı
+      this.wizardSelectChoicesCount(src.choicesCount || 4);
+
+      // 6. Cevap anahtarı kutucuğunu göster (varsayılan boş, işaretliyse kopyala)
+      if (cloneKeyRow) cloneKeyRow.style.display = 'block';
+      if (cloneKeyCheck && cloneKeyCheck.checked) {
+        this.wizardApplyClonedAnswerKey(src);
+      } else {
+        this.wizardKey = {};
+      }
+      this.wizardRenderAnswerKeyGrid();
+
+      if (window.Companion && typeof window.Companion.showToast === 'function') {
+        window.Companion.showToast('Sınav nitelikleri aktarıldı. Yeni sınav adını yazıp kaydedebilirsiniz.', 'info');
+      }
+      if (nameInput) {
+        setTimeout(() => {
+          nameInput.focus();
+          nameInput.select();
+        }, 60);
+      }
+    },
+
+    // "Cevap anahtarını da kopyala" kutucuğu değiştiğinde
+    wizardOnToggleCloneKey(checked) {
+      const cloneSelect = document.getElementById('wizard-clone-exam');
+      const examId = cloneSelect ? cloneSelect.value : '';
+      if (!checked || !examId) {
+        this.wizardKey = {};
+        this.wizardRenderAnswerKeyGrid();
+        return;
+      }
+      const allExams = Array.isArray(this.getData().weeklyEvaluations) ? this.getData().weeklyEvaluations : [];
+      const src = allExams.find(e => String(e.id) === String(examId));
+      if (src) {
+        this.wizardApplyClonedAnswerKey(src);
+        this.wizardRenderAnswerKeyGrid();
+      }
     },
 
     closeCreateExamModal() {

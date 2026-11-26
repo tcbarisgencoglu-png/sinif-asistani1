@@ -1,13 +1,13 @@
 {
-  "version": "1.0.139",
+  "version": "1.0.140",
   "releaseDate": "2026-11-26",
   "minRequiredVersion": "1.0.0",
-  "title": "Sınıf Asistanı v1.0.139 Yayında!",
-  "description": "El Terminali–Masaüstü MEB Hafta Eşitlemesi, Takip Haftası Seçici ve Arka Plan Bildirim Sesi Düzeltmeleri",
+  "title": "Sınıf Asistanı v1.0.140 Yayında!",
+  "description": "El Terminali Puan Sıralaması (Eşit Puan Derece Kuralı), Sınav Çoğaltma Sihirbazı ve Haftalık Bülten Performans Düzeltmesi",
   "features": [
-    "El Terminali–Masaüstü MEB Hafta Eşitlemesi: El Terminali sınav sihirbazı, sınav ayarları ve program takibi masaüstü MEB ara tatil/yarıyıl tatili takvimiyle birebir eşitlendi (23 Kas - 27 Kas = 10. Hafta).",
-    "Haftalık Performans Takip Haftası Seçici: Linux/Pardus ve macOS uyumlu MEB hafta açılır listesiyle boş kutu sorunu giderildi.",
-    "Arka Plan Bildirim Sesi Düzeltmesi: Canlı eşitleme zaman damgası tekrarı, eski olay çalması ve 30 saniyelik görev hatırlatıcı ses döngüsü giderildi; bildirim katmanı (toast) en üstte görünecek şekilde güncellendi."
+    "El Terminali Taranan Öğrenci Sıralaması: Okunma Sırası ve Puan Üstünlüğü arasında tek dokunuşla geçiş eklendi; masaüstüyle birebir aynı şekilde eşit puanlı öğrencilere aynı başarı sırası ve madalya verilir.",
+    "Sınav Çoğaltma Sihirbazı: + Yeni Sınav sihirbazına mevcut sınavdan şablon çekme ve isteğe bağlı 'Cevap anahtarını da kopyala' kutucuğu eklendi.",
+    "Haftalık Bülten Davranış & Katılım Şampiyonları: Öğrenci performans puanlarının bültende eksiksiz ve yerel hafta uyumlu şekilde görünmesi sağlandı."
   ],
   "release_url": "https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/latest"
 }
