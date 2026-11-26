@@ -135,6 +135,11 @@
 
     if (btnCloseTaskDueAlert) btnCloseTaskDueAlert.addEventListener('click', dismissCurrentDueTasks);
     if (btnCloseTaskDueAlertX) btnCloseTaskDueAlertX.addEventListener('click', dismissCurrentDueTasks);
+    if (modalTaskDueAlert) {
+      modalTaskDueAlert.addEventListener('click', (e) => {
+        if (e.target === modalTaskDueAlert) dismissCurrentDueTasks();
+      });
+    }
 
     if (btnGoToTasksFromAlert) {
       btnGoToTasksFromAlert.addEventListener('click', () => {
@@ -526,6 +531,8 @@
   }
 
   // Görev Son Teslim Tarihi Bildirim Kontrolü
+  let lastAlertedDueTasksSignature = '';
+
   function checkDueTasksNotification() {
     const modalTaskDueAlert = document.getElementById('modal-task-due-alert');
     const listContainer = document.getElementById('task-due-alert-list');
@@ -540,6 +547,7 @@
     const dueTasks = allTasks.filter(t => t.status === 'active' && t.dueDate && t.dueDate <= todayStr && studentsMap.has(String(t.studentId)));
     if (dueTasks.length === 0) {
       modalTaskDueAlert.classList.remove('active');
+      lastAlertedDueTasksSignature = '';
       return;
     }
 
@@ -555,6 +563,13 @@
     if (unhandledTasks.length === 0) {
       return; // Bu oturumda zaten öğretmen tarafından görüldü/kapatıldı
     }
+
+    const signature = unhandledTasks.map(t => String(t.id)).sort().join(',');
+    // Aynı görevler için zaten bildirim gösterildiyse/çaldıysa her 30 saniyede bir tekrar ses çalma
+    if (signature === lastAlertedDueTasksSignature) {
+      return;
+    }
+    lastAlertedDueTasksSignature = signature;
 
     // Görev listesi html çıktısını üret
     listContainer.innerHTML = unhandledTasks.map(task => {

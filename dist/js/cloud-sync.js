@@ -2000,6 +2000,13 @@
       }
     },
 
+    // Zaman damgasını format farklarından (Z vs +00:00, mikrosaniye farkı) bağımsız milisaniye sayısına çevir
+    normalizeTimestampMs(ts) {
+      if (!ts) return 0;
+      const ms = Date.parse(ts);
+      return Number.isFinite(ms) ? ms : 0;
+    },
+
     // Yedek Kontrolcü (Kota Dostu Heartbeat Polling - Önce sadece ~150 byte meta veri çeker, değişen varsa içeriği indirir)
     async checkLiveUpdates() {
       if (!this.syncCode) return;
@@ -2032,21 +2039,26 @@
             const localExams = (window.stateManager && window.stateManager.state && Array.isArray(window.stateManager.state.weeklyEvaluations))
               ? window.stateManager.state.weeklyEvaluations
               : [];
+            const lastLiveMs = parseInt(localStorage.getItem('sinif_cloud_last_live_event_ms') || '0', 10) || 0;
 
             latestMetaList.forEach(rec => {
-              const prevSeen = this.lastSeenUpdatedAtByExamId[rec.exam_id];
+              const recMs = this.normalizeTimestampMs(rec.updated_at);
+              const prevSeenMs = this.normalizeTimestampMs(this.lastSeenUpdatedAtByExamId[rec.exam_id]);
               this.lastSeenUpdatedAtByExamId[rec.exam_id] = rec.updated_at;
 
               // Masaüstündeysek ve buluttaki sınav kaydı yerel sınavdan daha yeniyse (veya yerelde yoksa) açılışta hemen çek
               if (window.stateManager && String(rec.exam_id).startsWith('exam_')) {
                 const localEx = localExams.find(e => String(e.id) === String(rec.exam_id));
-                const cloudTime = new Date(rec.updated_at).getTime() || 0;
                 const localTime = localEx ? (new Date(localEx.updatedAt || localEx.createdAt || 0).getTime() || 0) : 0;
-                if (!localEx || cloudTime > localTime || (prevSeen && prevSeen !== rec.updated_at)) {
+                if (!localEx || recMs > localTime || (prevSeenMs > 0 && recMs > prevSeenMs)) {
                   initialChangedIds.push(rec.exam_id);
                 }
               } else if (window.stateManager && rec.exam_id === 'LIVE_EVENT') {
-                initialChangedIds.push('LIVE_EVENT');
+                // Açılışta sadece daha önce işlenmemiş ve son 2 dakika içinde oluşmuş taze LIVE_EVENT varsa çek
+                const isFresh = recMs > lastLiveMs && (Date.now() - recMs < 120000);
+                if (isFresh) {
+                  initialChangedIds.push('LIVE_EVENT');
+                }
               } else if (!window.stateManager) {
                 // El Terminalindeysek (Mobil / Companion):
                 if (rec.exam_id === 'MASTER_STATE') {
@@ -2058,8 +2070,8 @@
                       if (Array.isArray(parsed.students)) localStuCount = parsed.students.length;
                     }
                   } catch (e) {}
-                  // Eğer yerelde hiç öğrenci yoksa VEYA buluttaki MASTER_STATE daha önce görülenden farklıysa açılışta hemen çek
-                  if (localStuCount === 0 || !prevSeen || prevSeen !== rec.updated_at) {
+                  // Eğer yerelde hiç öğrenci yoksa VEYA buluttaki MASTER_STATE daha önce görülenden yeniyse açılışta hemen çek
+                  if (localStuCount === 0 || !prevSeenMs || recMs > prevSeenMs) {
                     initialChangedIds.push('MASTER_STATE');
                   }
                 } else if (rec.exam_id === 'LIVE_EVENT') {
@@ -2082,13 +2094,14 @@
             return;
           }
 
-          // 2. Adım: Sadece en güncel updated_at değeri gerçekten değişen kayıtları belirle
+          // 2. Adım: Sadece en güncel updated_at zaman damgası gerçekten ilerleyen kayıtları belirle
           const orderedMeta = [...latestMetaList].reverse();
           const changedIds = [];
           orderedMeta.forEach(rec => {
             if (!rec || !rec.exam_id || !rec.updated_at) return;
-            const prevTime = this.lastSeenUpdatedAtByExamId[rec.exam_id];
-            if (prevTime !== rec.updated_at) {
+            const recMs = this.normalizeTimestampMs(rec.updated_at);
+            const prevMs = this.normalizeTimestampMs(this.lastSeenUpdatedAtByExamId[rec.exam_id]);
+            if (recMs > prevMs) {
               this.lastSeenUpdatedAtByExamId[rec.exam_id] = rec.updated_at;
               // STUDENT_PHOTOS yalnızca eksik fotoğraf olduğunda pullMasterData içinde çekilir
               if (rec.exam_id === 'STUDENT_PHOTOS') return;
@@ -2229,7 +2242,9 @@
         }
       }
 
-      const eventKey = `${record.updated_at}_${record.exam_id}_${payload.timestamp || ''}`;
+      const recMs = this.normalizeTimestampMs(record.updated_at);
+      const payloadTsMs = this.normalizeTimestampMs(payload.timestamp);
+      const eventKey = `${recMs || record.updated_at}_${record.exam_id}_${payloadTsMs || payload.timestamp || ''}`;
       if (this.processedEventIds && this.processedEventIds.has(eventKey)) return;
       if (!this.processedEventIds) this.processedEventIds = new Set();
       this.processedEventIds.add(eventKey);
@@ -2242,6 +2257,11 @@
       // 1. MASAÜSTÜ UYGULAMASI (Akıllı Tahta)
       if (window.stateManager && window.stateManager.state) {
         if (payload.source === 'desktop') return; // Kendisinin ürettiği olayları atla
+        if (record.exam_id === 'LIVE_EVENT' && recMs > 0) {
+          const lastLiveMs = parseInt(localStorage.getItem('sinif_cloud_last_live_event_ms') || '0', 10) || 0;
+          if (recMs <= lastLiveMs) return; // Daha önce işlenmiş LIVE_EVENT'i tekrar işleme / ses çalma
+          try { localStorage.setItem('sinif_cloud_last_live_event_ms', String(recMs)); } catch (e) {}
+        }
         this.handleDesktopIncomingLiveRecord(record, payload);
       }
 
@@ -2899,12 +2919,14 @@
               Object.keys(cloudHw.status).forEach(sKey => {
                 const matched = this.resolveDesktopStudent(sKey, '', '', allStudents);
                 const targetId = matched ? matched.id : sKey;
-                existing.status[targetId] = cloudHw.status[sKey];
-                if (window.stateManager && typeof window.stateManager.updateHomeworkStatus === 'function') {
-                  window.stateManager.updateHomeworkStatus(existing.id, targetId, cloudHw.status[sKey]);
+                if (existing.status[targetId] !== cloudHw.status[sKey]) {
+                  existing.status[targetId] = cloudHw.status[sKey];
+                  if (window.stateManager && typeof window.stateManager.updateHomeworkStatus === 'function') {
+                    window.stateManager.updateHomeworkStatus(existing.id, targetId, cloudHw.status[sKey]);
+                  }
+                  stateModified = true;
                 }
               });
-              stateModified = true;
             }
           });
         }
@@ -3089,6 +3111,10 @@
     // Masaüstünde Canlı Bildirim Sesi (Ding-Dong)
     playDesktopLiveChime() {
       try {
+        const nowMs = Date.now();
+        if (this._lastDesktopChimeAt && (nowMs - this._lastDesktopChimeAt < 1500)) return;
+        this._lastDesktopChimeAt = nowMs;
+
         const AudioContextClass = window.AudioContext || window.webkitAudioContext;
         if (!AudioContextClass) return;
         const ctx = new AudioContextClass();
@@ -3115,6 +3141,10 @@
         gain2.connect(ctx.destination);
         osc2.start(now + 0.12);
         osc2.stop(now + 0.48);
+
+        setTimeout(() => {
+          try { if (ctx.state !== 'closed') ctx.close(); } catch (e) {}
+        }, 650);
       } catch (e) {}
     },
 

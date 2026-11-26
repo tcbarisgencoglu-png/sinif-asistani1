@@ -2475,6 +2475,9 @@ async function initApp() {
       playTone(523.25, ctx.currentTime, 0.15);       // C5
       playTone(659.25, ctx.currentTime + 0.18, 0.15);  // E5
       playTone(783.99, ctx.currentTime + 0.36, 0.4);   // G5
+      setTimeout(() => {
+        try { if (ctx.state !== 'closed') ctx.close(); } catch (e) {}
+      }, 900);
     } catch (e) {
       console.warn("Audio Context playback failed:", e);
     }
@@ -2681,7 +2684,7 @@ async function initApp() {
 }
 
 // Mevcut uygulama sürümü (her güncellemede değişir)
-const APP_VERSION = '1.0.138';
+const APP_VERSION = '1.0.139';
 
 // GitHub & Tauri Auto-Updater kontrolü
 async function checkForUpdates() {

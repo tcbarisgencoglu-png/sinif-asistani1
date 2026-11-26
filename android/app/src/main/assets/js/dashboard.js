@@ -126,8 +126,9 @@ function setupDashboardTab(showToast) {
 
   // Hafta seçici başlangıç değeri ve dinleyicileri (Haftalık Tab)
   if (dashSelectWeek) {
-    dashSelectWeek.value = stateManager.getSelectedWeek();
+    populateDashboardWeekSelect(stateManager.getSelectedWeek());
     dashSelectWeek.addEventListener('change', () => {
+      if (!dashSelectWeek.value) return;
       stateManager.setSelectedWeek(dashSelectWeek.value);
       renderDashboardWeekly();
     });
@@ -143,7 +144,7 @@ function setupDashboardTab(showToast) {
     btnDashCurrentWeek.addEventListener('click', () => {
       const currentReal = window.getISOWeek ? window.getISOWeek() : '';
       if (currentReal) {
-        if (dashSelectWeek) dashSelectWeek.value = currentReal;
+        populateDashboardWeekSelect(currentReal);
         stateManager.setSelectedWeek(currentReal);
         renderDashboardWeekly();
         if (toastCallback) toastCallback('Güncel haftaya geçiş yapıldı.', 'info');
@@ -168,7 +169,7 @@ function setupDashboardTab(showToast) {
       simpleDate.setDate(simpleDate.getDate() + (offset * 7));
       newWeek = window.getISOWeek(simpleDate);
     }
-    if (dashSelectWeek) dashSelectWeek.value = newWeek;
+    populateDashboardWeekSelect(newWeek);
     stateManager.setSelectedWeek(newWeek);
     renderDashboardWeekly();
   }
@@ -1463,12 +1464,50 @@ document.addEventListener('click', (e) => {
   }
 });
 
+function populateDashboardWeekSelect(selectedWeek) {
+  if (!dashSelectWeek) return;
+  const targetWeek = selectedWeek || (stateManager && typeof stateManager.getSelectedWeek === 'function' ? stateManager.getSelectedWeek() : (window.getISOWeek ? window.getISOWeek() : ''));
+  const currInfo = typeof window.getEducationWeekInfo === 'function' ? window.getEducationWeekInfo(targetWeek) : null;
+  const startYear = currInfo
+    ? parseInt(currInfo.academicYear.split('-')[0], 10)
+    : (new Date().getMonth() >= 8 ? new Date().getFullYear() : new Date().getFullYear() - 1);
+
+  if (dashSelectWeek.dataset.academicYear !== String(startYear) || dashSelectWeek.options.length === 0) {
+    dashSelectWeek.innerHTML = '';
+    const opening = typeof window.getSchoolOpeningMonday === 'function'
+      ? window.getSchoolOpeningMonday(startYear)
+      : new Date(startYear, 8, 14);
+
+    for (let k = 1; k <= 40; k++) {
+      const d = new Date(opening.getTime() + (k - 1) * 7 * 86400000);
+      const iso = typeof window.getISOWeek === 'function' ? window.getISOWeek(d) : `W${k}`;
+      const inf = typeof window.getEducationWeekInfo === 'function' ? window.getEducationWeekInfo(iso) : null;
+      if (inf && inf.isMergedContinuation) continue;
+
+      const opt = document.createElement('option');
+      opt.value = iso;
+      opt.textContent = inf ? inf.label : `${k}. Hafta`;
+      dashSelectWeek.appendChild(opt);
+    }
+    dashSelectWeek.dataset.academicYear = String(startYear);
+  }
+
+  if (targetWeek && !Array.from(dashSelectWeek.options).some(o => o.value === targetWeek)) {
+    const opt = document.createElement('option');
+    opt.value = targetWeek;
+    opt.textContent = typeof window.formatWeekTR === 'function' ? window.formatWeekTR(targetWeek) : targetWeek;
+    dashSelectWeek.insertBefore(opt, dashSelectWeek.firstChild);
+  }
+
+  if (targetWeek) {
+    dashSelectWeek.value = targetWeek;
+  }
+}
+
 function renderDashboardWeekly() {
   const state = stateManager.loadState();
   const selectedWeek = stateManager.getSelectedWeek();
-  if (dashSelectWeek && dashSelectWeek.value !== selectedWeek) {
-    dashSelectWeek.value = selectedWeek;
-  }
+  populateDashboardWeekSelect(selectedWeek);
   const activeWeekDisplay = document.getElementById('dash-active-week-display');
   if (activeWeekDisplay) {
     activeWeekDisplay.textContent = window.formatWeekTR ? window.formatWeekTR(selectedWeek) : selectedWeek;
@@ -3568,7 +3607,7 @@ function updateFlowContent(syncWithRealTime = true) {
         const releases = await response.json();
         if (Array.isArray(releases) && releases.length > 0) {
           const latestRelease = releases[0];
-          const tagName = latestRelease.tag_name || 'v1.0.138';
+          const tagName = latestRelease.tag_name || 'v1.0.139';
           
           const badge = document.getElementById('download-app-version-badge');
           if (badge) badge.textContent = `${tagName} (En Son)`;

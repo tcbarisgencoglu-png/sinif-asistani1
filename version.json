@@ -1,12 +1,13 @@
 {
-  "version": "1.0.138",
-  "releaseDate": "2026-11-25",
+  "version": "1.0.139",
+  "releaseDate": "2026-11-26",
   "minRequiredVersion": "1.0.0",
-  "title": "Sınıf Asistanı v1.0.138 Yayında!",
-  "description": "Ders Kitabı Üzerinde Kalıcı Çizim & İşaretleme Araçları ve El Terminali Haftalık Bülten Düzeltmeleri",
+  "title": "Sınıf Asistanı v1.0.139 Yayında!",
+  "description": "El Terminali–Masaüstü MEB Hafta Eşitlemesi, Takip Haftası Seçici ve Arka Plan Bildirim Sesi Düzeltmeleri",
   "features": [
-    "Ders Kitabı Üzerinde Çizim ve İşaretleme: Sağ kenarda dikey açılan ve sürüklenip taşınabilen çizim paleti eklendi (satır altı düz çizgi, fosforlu kalem, serbest kalem, dikdörtgen, daire, ok, silgi, geri/ileri al). Çizimler zoom uyumlu ve kalıcı olarak saklanır.",
-    "El Terminali Haftalık Bülten Düzeltmeleri: Henüz okunmakta olan (iade edilmemiş) kitapların okunmuş sayılması giderildi, davranış şampiyonları akıllı tahta Dojo net puanlarıyla eşitlendi ve eski haftaların sınavlarının listelenmesi engellendi."
+    "El Terminali–Masaüstü MEB Hafta Eşitlemesi: El Terminali sınav sihirbazı, sınav ayarları ve program takibi masaüstü MEB ara tatil/yarıyıl tatili takvimiyle birebir eşitlendi (23 Kas - 27 Kas = 10. Hafta).",
+    "Haftalık Performans Takip Haftası Seçici: Linux/Pardus ve macOS uyumlu MEB hafta açılır listesiyle boş kutu sorunu giderildi.",
+    "Arka Plan Bildirim Sesi Düzeltmesi: Canlı eşitleme zaman damgası tekrarı, eski olay çalması ve 30 saniyelik görev hatırlatıcı ses döngüsü giderildi; bildirim katmanı (toast) en üstte görünecek şekilde güncellendi."
   ],
   "release_url": "https://github.com/tcbarisgencoglu-png/sinif-asistani1/releases/latest"
 }

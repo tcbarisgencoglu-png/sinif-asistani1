@@ -195,7 +195,18 @@
         }
       }
 
-      // 2. Eylül Başlangıcına Göre Tahmin
+      // 2. MEB Akademik Hafta Hesabı (Tatiller atlanarak masaüstü ile birebir eşleşir)
+      if (typeof window.getEducationWeekInfo === 'function' && typeof window.getISOWeek === 'function') {
+        const eduInfo = window.getEducationWeekInfo(window.getISOWeek(now));
+        if (eduInfo && eduInfo.academicWeekNo && eduInfo.academicWeekNo >= 1) {
+          const idx = eduInfo.academicWeekNo - 1;
+          if (idx >= 0 && idx < weeklySchedule.length) {
+            return idx;
+          }
+        }
+      }
+
+      // 3. Eylül Başlangıcına Göre Yedek Tahmin
       const year = (now.getMonth() >= 8) ? now.getFullYear() : (now.getFullYear() - 1);
       const schoolOpening = new Date(year, 8, 14); // Yaklaşık 14 Eylül
       const diffMs = now - schoolOpening;

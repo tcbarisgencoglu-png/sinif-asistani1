@@ -62,6 +62,238 @@
   if (!window.normalizeWeekId) window.normalizeWeekId = normalizeWeekIdSafe;
   if (!window.getISOWeek) window.getISOWeek = getISOWeekSafe;
 
+  // MEB Resmi Tatil ve Ara Tatil Takvimi (Masaüstü state.js ile birebir uyumlu)
+  const MEB_HOLIDAY_SCHEDULE_FALLBACK = {
+    '2026-W47': {
+      type: 'midterm_break',
+      name: '1. Dönem Ara Tatili',
+      shortLabel: '1. Ara Tatil',
+      dateRange: '16 Kas - 20 Kas',
+      isHoliday: true,
+      isBreak: true
+    },
+    '2027-W04': {
+      type: 'semester_break',
+      name: 'Yarıyıl Tatili',
+      shortLabel: 'Yarıyıl Tatili',
+      dateRange: '25 Oca - 05 Şub',
+      mergedWeeks: ['2027-W04', '2027-W05'],
+      canonicalWeekId: '2027-W04',
+      isHoliday: true,
+      isBreak: true
+    },
+    '2027-W05': {
+      type: 'semester_break',
+      name: 'Yarıyıl Tatili',
+      shortLabel: 'Yarıyıl Tatili',
+      dateRange: '25 Oca - 05 Şub',
+      mergedWeeks: ['2027-W04', '2027-W05'],
+      canonicalWeekId: '2027-W04',
+      isMergedContinuation: true,
+      isHoliday: true,
+      isBreak: true
+    },
+    '2027-W10': {
+      type: 'midterm_break',
+      name: '2. Dönem Ara Tatili',
+      shortLabel: '2. Ara Tatil',
+      dateRange: '08 Mar - 12 Mar',
+      isHoliday: true,
+      isBreak: true
+    }
+  };
+  if (!window.MEB_HOLIDAY_SCHEDULE) window.MEB_HOLIDAY_SCHEDULE = MEB_HOLIDAY_SCHEDULE_FALLBACK;
+
+  function getDayInWeekSafe(year, week, dayIndex) {
+    if (typeof window.getDayInWeek === 'function' && window.getDayInWeek !== getDayInWeekSafe) {
+      return window.getDayInWeek(year, week, dayIndex);
+    }
+    const jan4 = new Date(year, 0, 4);
+    const dayOfJan4 = jan4.getDay() || 7;
+    const week1Start = new Date(jan4.getTime());
+    week1Start.setDate(jan4.getDate() - dayOfJan4 + 1);
+    const targetDay = new Date(week1Start.getTime());
+    targetDay.setDate(week1Start.getDate() + (week - 1) * 7 + (dayIndex - 1));
+    return targetDay;
+  }
+  if (!window.getDayInWeek) window.getDayInWeek = getDayInWeekSafe;
+
+  function getEducationWeekInfoSafe(weekId) {
+    if (typeof window.getEducationWeekInfo === 'function' && window.getEducationWeekInfo !== getEducationWeekInfoSafe) {
+      return window.getEducationWeekInfo(weekId);
+    }
+    if (!weekId) return null;
+    const normalized = normalizeWeekIdSafe(weekId);
+    const parts = normalized.split('-W');
+    if (parts.length !== 2) return null;
+
+    const year = parseInt(parts[0], 10);
+    const isoWeekNo = parseInt(parts[1], 10);
+    const monday = getDayInWeekSafe(year, isoWeekNo, 1);
+    const friday = getDayInWeekSafe(year, isoWeekNo, 5);
+    const sunday = getDayInWeekSafe(year, isoWeekNo, 7);
+    if (isNaN(monday.getTime())) return null;
+
+    const mMonth = monday.getMonth();
+    const startAcademicYear = mMonth >= 8 ? monday.getFullYear() : monday.getFullYear() - 1;
+    const academicYearStr = `${startAcademicYear}-${startAcademicYear + 1}`;
+    const openingMonday = getSchoolOpeningMondaySafe(startAcademicYear);
+
+    const diffTime = monday.getTime() - openingMonday.getTime();
+    const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+    const diffWeeks = Math.floor(diffDays / 7);
+
+    const monthsTR = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'];
+    const d1 = String(monday.getDate()).padStart(2, '0');
+    const m1 = monthsTR[monday.getMonth()];
+    const d2 = String(friday.getDate()).padStart(2, '0');
+    const m2 = monthsTR[friday.getMonth()];
+    const dateRange = `${d1} ${m1} - ${d2} ${m2}`;
+
+    const holidayMap = window.MEB_HOLIDAY_SCHEDULE || MEB_HOLIDAY_SCHEDULE_FALLBACK;
+    const holiday = holidayMap[normalized];
+    if (holiday) {
+      const displayRange = holiday.dateRange || dateRange;
+      return {
+        weekId: normalized,
+        year,
+        isoWeekNo,
+        academicYear: academicYearStr,
+        academicWeekNo: null,
+        isAcademic: false,
+        isHoliday: true,
+        isBreak: true,
+        isMergedContinuation: !!holiday.isMergedContinuation,
+        canonicalWeekId: holiday.canonicalWeekId || normalized,
+        holidayName: holiday.name,
+        monday,
+        friday,
+        sunday,
+        dateRange: displayRange,
+        label: `🌴 ${holiday.name} (${displayRange})`,
+        shortLabel: holiday.shortLabel,
+        fullLabel: `${academicYearStr} • 🌴 ${holiday.name} (${displayRange})`
+      };
+    }
+
+    let academicWeekNo = 0;
+    if (monday.getTime() >= openingMonday.getTime()) {
+      for (let d = new Date(openingMonday.getTime()); d.getTime() <= monday.getTime(); d.setDate(d.getDate() + 7)) {
+        const dIso = getISOWeekSafe(d);
+        if (!holidayMap[dIso]) {
+          academicWeekNo++;
+        }
+      }
+    } else {
+      academicWeekNo = diffWeeks;
+    }
+
+    let label = '';
+    let shortLabel = '';
+    let fullLabel = '';
+    let isAcademic = false;
+
+    if (academicWeekNo >= 1 && academicWeekNo <= 40) {
+      isAcademic = true;
+      shortLabel = `${academicWeekNo}. Hafta`;
+      label = `${academicWeekNo}. Hafta (${dateRange})`;
+      fullLabel = `${academicYearStr} • ${academicWeekNo}. Hafta (${dateRange})`;
+    } else if (academicWeekNo < 1) {
+      shortLabel = 'Dönem Öncesi';
+      label = `Dönem Öncesi (${dateRange})`;
+      fullLabel = `${academicYearStr} • Dönem Öncesi (${dateRange})`;
+    } else {
+      shortLabel = 'Yaz Tatili';
+      label = `Yaz Tatili (${dateRange})`;
+      fullLabel = `${academicYearStr} • Yaz Tatili (${dateRange})`;
+    }
+
+    return {
+      weekId: normalized,
+      year,
+      isoWeekNo,
+      academicYear: academicYearStr,
+      academicWeekNo: isAcademic ? academicWeekNo : null,
+      isAcademic,
+      isHoliday: false,
+      isBreak: false,
+      monday,
+      friday,
+      sunday,
+      dateRange,
+      label,
+      shortLabel,
+      fullLabel
+    };
+  }
+  if (!window.getEducationWeekInfo) window.getEducationWeekInfo = getEducationWeekInfoSafe;
+
+  function formatWeekTRSafe(weekId, formatType) {
+    if (typeof window.formatWeekTR === 'function' && window.formatWeekTR !== formatWeekTRSafe) {
+      return window.formatWeekTR(weekId, formatType);
+    }
+    if (!weekId) return '';
+    const info = getEducationWeekInfoSafe(weekId);
+    if (!info) {
+      const parts = String(weekId).split('-W');
+      return parts.length === 2 ? `${parts[0]} Yılı, ${parts[1]}. Hafta` : String(weekId);
+    }
+    if (formatType === 'short') return info.shortLabel;
+    if (formatType === 'full') return info.fullLabel;
+    if (formatType === 'dates') return info.dateRange;
+    return info.label;
+  }
+  if (!window.formatWeekTR) window.formatWeekTR = formatWeekTRSafe;
+
+  // Masaüstü populateDesktopExamWeekSelect ile birebir aynı MEB hafta seçici doldurucu
+  function populateCompanionExamWeekSelect(weekSelect, targetWeekId) {
+    if (!weekSelect) return;
+    weekSelect.innerHTML = '';
+
+    const rawTarget = targetWeekId || getISOWeekSafe(new Date());
+    const targetIso = normalizeWeekIdSafe(rawTarget) || getISOWeekSafe(new Date());
+    const currInfo = getEducationWeekInfoSafe(targetIso);
+    const now = new Date();
+    const startYear = currInfo
+      ? parseInt(currInfo.academicYear.split('-')[0], 10)
+      : (now.getMonth() >= 8 ? now.getFullYear() : (now.getFullYear() - 1));
+    const opening = getSchoolOpeningMondaySafe(startYear);
+
+    const legacyWeekNum = /^W?\d{1,2}$/i.test(String(rawTarget || '').trim())
+      ? parseInt(String(rawTarget).replace(/^W/i, ''), 10)
+      : null;
+
+    let matched = false;
+    for (let k = 1; k <= 40; k++) {
+      const monday = new Date(opening.getTime() + (k - 1) * 7 * 86400000);
+      const isoWeek = getISOWeekSafe(monday);
+      const inf = getEducationWeekInfoSafe(isoWeek);
+      if (inf && inf.isMergedContinuation) continue;
+
+      const opt = document.createElement('option');
+      opt.value = isoWeek;
+      opt.textContent = inf ? inf.label : `${k}. Hafta`;
+
+      const isMatch = (isoWeek === targetIso) ||
+        (legacyWeekNum !== null && inf && inf.academicWeekNo === legacyWeekNum);
+      if (isMatch) {
+        opt.selected = true;
+        matched = true;
+      }
+      weekSelect.appendChild(opt);
+    }
+
+    if (!matched && targetIso) {
+      const opt = document.createElement('option');
+      opt.value = targetIso;
+      opt.textContent = formatWeekTRSafe(targetIso);
+      opt.selected = true;
+      weekSelect.insertBefore(opt, weekSelect.firstChild);
+    } else if (!weekSelect.value && weekSelect.options.length > 0) {
+      weekSelect.selectedIndex = 0;
+    }
+  }
+
   // Ses Sentezleyicileri (Web Audio API - Çevrim Dışı & Sıfır Bağımlılık)
   let audioCtx = null;
   function getAudioContext() {
@@ -886,33 +1118,10 @@
         }
       }
 
-      // Hafta Seçicisini Doldur (MEB 1. - 36. Hafta - Standart ISO Hafta Eşleşmesi)
+      // Hafta Seçicisini Doldur (Masaüstü ile birebir MEB Eğitim Haftası + Tatil Eşleşmesi)
       const weekSelect = document.getElementById('wizard-exam-week');
       if (weekSelect) {
-        weekSelect.innerHTML = '';
-        const now = new Date();
-        const startYear = (now.getMonth() >= 8) ? now.getFullYear() : (now.getFullYear() - 1);
-        const opening = getSchoolOpeningMondaySafe(startYear);
-        const currentIsoWeek = getISOWeekSafe(now);
-
-        for (let w = 1; w <= 36; w++) {
-          const opt = document.createElement('option');
-          const monday = new Date(opening.getTime() + (w - 1) * 7 * 86400000);
-          const friday = new Date(monday.getTime() + 4 * 86400000);
-          const isoWeek = getISOWeekSafe(monday);
-          opt.value = isoWeek;
-          const trMonths = ['Oca','Şub','Mar','Nis','May','Haz','Tem','Ağu','Eyl','Eki','Kas','Ara'];
-          const mDateStr = `${monday.getDate()} ${trMonths[monday.getMonth()]}`;
-          const fDateStr = `${friday.getDate()} ${trMonths[friday.getMonth()]}`;
-          opt.textContent = `${w}. Hafta (${mDateStr} - ${fDateStr})`;
-          if (isoWeek === currentIsoWeek) {
-            opt.selected = true;
-          }
-          weekSelect.appendChild(opt);
-        }
-        if (!weekSelect.value && weekSelect.options.length > 0) {
-          weekSelect.selectedIndex = 0;
-        }
+        populateCompanionExamWeekSelect(weekSelect, getISOWeekSafe(new Date()));
       }
 
       // Form elemanlarını sıfırla
@@ -3298,28 +3507,7 @@
 
       const weekSelect = document.getElementById('settings-exam-week');
       if (weekSelect) {
-        weekSelect.innerHTML = '';
-        const now = new Date();
-        const startYear = (now.getMonth() >= 8) ? now.getFullYear() : (now.getFullYear() - 1);
-        const opening = getSchoolOpeningMondaySafe(startYear);
-        const activeNorm = normalizeWeekIdSafe(this.settingsState.weekId);
-
-        for (let w = 1; w <= 36; w++) {
-          const opt = document.createElement('option');
-          const monday = new Date(opening.getTime() + (w - 1) * 7 * 86400000);
-          const friday = new Date(monday.getTime() + 4 * 86400000);
-          const isoWeek = getISOWeekSafe(monday);
-          opt.value = isoWeek;
-          const trMonths = ['Oca','Şub','Mar','Nis','May','Haz','Tem','Ağu','Eyl','Eki','Kas','Ara'];
-          const mDateStr = `${monday.getDate()} ${trMonths[monday.getMonth()]}`;
-          const fDateStr = `${friday.getDate()} ${trMonths[friday.getMonth()]}`;
-          opt.textContent = `${w}. Hafta (${mDateStr} - ${fDateStr})`;
-
-          if (isoWeek === activeNorm || `W${w}` === this.settingsState.weekId || w === parseInt(String(this.settingsState.weekId).replace('W', ''), 10)) {
-            opt.selected = true;
-          }
-          weekSelect.appendChild(opt);
-        }
+        populateCompanionExamWeekSelect(weekSelect, this.settingsState.weekId);
       }
 
       // Soru Sayısı ve Branşlar

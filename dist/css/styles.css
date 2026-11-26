@@ -1885,7 +1885,7 @@ select option {
   display: flex;
   flex-direction: column-reverse;
   gap: 0.6rem;
-  z-index: 99999;
+  z-index: 1000005;
   pointer-events: none;
   max-width: min(420px, calc(100vw - 2rem));
 }
